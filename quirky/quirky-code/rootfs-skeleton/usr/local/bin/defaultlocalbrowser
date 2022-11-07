@@ -1,0 +1,20 @@
+#!/bin/sh
+
+if [ -e /usr/bin/netsurf ];then
+ if [ "$@" ];then
+  exec netsurf "$@"
+ else
+  exec netsurf
+ fi
+fi
+
+if [ -f /usr/bin/surfer ];then #package helpsurfer
+ COMMANDPARAM="`echo -n "$@" | sed -e 's%file://%%'`" #surfer cannot handle this.
+ if [ "$COMMANDPARAM" ];then
+  exec surfer "$COMMANDPARAM"
+ else
+  exec surfer #150209 the empty double-quotes causes crash.
+ fi
+fi
+
+exec defaultbrowser "$@"

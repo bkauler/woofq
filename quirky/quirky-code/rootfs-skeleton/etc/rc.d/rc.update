@@ -1,0 +1,30 @@
+#!/bin/ash
+#131217 called from rc.sysinit, as background process.
+#150303 append space in echo text.
+#200528 moved profile update out of /usr/bin/seamonkeyQNEW, dumb place to have it.
+
+#131217 only do this on very first boot...
+if [ ! -f /etc/networkmodules ];then
+ echo -n " network-drivers-list " >/dev/console
+ /usr/sbin/updatenetmoduleslist.sh
+fi
+
+#200528 moved this out of /usr/bin/seamonkeyQNEW, dumb place to have it...
+#200516 sm 2.53.2 new profile...
+HOMEDIR="/root/.mozilla/seamonkey"
+OLDPROFILE=''; NEWPROFILE=''
+SMPROFILES="$(find ${HOMEDIR} -mindepth 1 -maxdepth 1 -type d -name '*.default' | tr '\n' ' ')"
+for aSMPROFILE in ${SMPROFILES}
+do
+ [ -f ${aSMPROFILE}/places.sqlite ] && OLDPROFILE="${aSMPROFILE}"
+ [ ! -f ${aSMPROFILE}/places.sqlite ] && NEWPROFILE="${aSMPROFILE}"
+done
+if [ "$OLDPROFILE" -a "$NEWPROFILE" ];then
+ cp -a -f ${OLDPROFILE}/cookies.sqlite ${NEWPROFILE}/ 2>/dev/null
+ cp -a -f ${OLDPROFILE}/favicons.sqlite ${NEWPROFILE}/ 2>/dev/null
+ cp -a -f ${OLDPROFILE}/formhistory.sqlite ${NEWPROFILE}/ 2>/dev/null
+ cp -a -f ${OLDPROFILE}/permissions.sqlite ${NEWPROFILE}/ 2>/dev/null
+ cp -a -f ${OLDPROFILE}/places.sqlite ${NEWPROFILE}/ 2>/dev/null
+ mv -f ${OLDPROFILE} ${OLDPROFILE}OLD
+fi
+

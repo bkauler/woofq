@@ -1,0 +1,102 @@
+#!/bin/ash
+#(c) Copyright Barry kauler February 22 2018, bkhome.org
+#License GPL v3 (/usr/share/doc/legal)
+#called from /etc/rc.d/rc.services. passed parameters:
+#dep1[:dep2[...]] service1[:service2[...]]
+#180222 first release.
+#180228 handle one-shot services (no "stop)" option in service script).
+#180301 export DISPLAY when 'x' dep met.
+#200107 new ipc value 'bluetoothhw', ref: /etc/eventmanager, /usr/local/pup_event/bluetoothhw
+#200212 rc.services will flag when dbus-daemon is running, so don't wait (in case of hotplugging bt)...
+#200213 detect bluetooth hw already available. generalise for any dep.
+
+#tech details:
+#ipc reference document: /usr/local/pup_event/pup_event_ipc-README.htm
+#service management doc: /usr/local/pup_event/pup_event_service-management.htm
+#/usr/local/pup_event/pup_event_frontend_d is started from /root/.xinitrc
+#when X starts. This is an "ipc server".
+#rc.services_ipc can be a "ipc client", waiting on messages from the server.
+#for example, if passed parameters are:
+# network rc.samba:sshd
+# will wait for network-up message from server, then run the scripts.
+#allowed ipc values are: network, x, bluetoothhw
+#180228 one-shot ex: $2 = sshd:cups-net-fixONESHOT
+
+[ ! $1 ] && exit
+[ ! $2 ] && exit
+
+DEPs="${1//:/ }" #replace all : with spaces
+SERVICEs="${2//:/ }"
+
+#180228 find any one-shot services. ref: /etc/eventmanager
+oSERVICEs=''; mSERVICEs=''
+for aSERVICE in $SERVICEs
+do
+ case "$aSERVICE" in
+  *ONESHOT) oSERVICEs="${oSERVICEs}${aSERVICE/ONESHOT/} " ;;
+  *)        mSERVICEs="${mSERVICEs}${aSERVICE} " ;;
+ esac
+done
+
+#200107
+if [ ! -f /tmp/pup_event_backend/bluetoothhw_ ];then
+ mkdir -p /tmp/pup_event_backend
+ touch /tmp/pup_event_backend/bluetoothhw_
+fi
+touch /tmp/pup_event_backend/dbus_ #200212
+
+###big loop###
+while [ true ]; do
+
+ for aDEP in $DEPs
+ do
+  #200212 rc.services will flag when dbus-daemon is running, so don't wait (in case of hotplugging bt)...
+  MSG1=''
+  [ ! "$aDEP" ] && continue #200213 precaution.
+  #200213 detect if dep already avail...
+  [ -s /tmp/pup_event_backend/${aDEP}_ ] && MSG1="$(cat /tmp/pup_event_backend/${aDEP}_)"
+  [ ! "$MSG1" ] && MSG1="$(/usr/local/pup_event/pup_event_ipc "${aDEP}:${$}")" #***WAIT FOR FILE CHG***
+  #...ex: network:12345 MSG=eth0 or MSG='' (empty, meaning i/f gone down)
+  [ ! "$MSG1" ] && continue 2
+  if [ "$aDEP" == "x" ];then #180301
+   DISPLAY=":$(grep -o '[01]' /tmp/pup_event_backend/x_)"
+   export DISPLAY #ex: :0
+  fi
+ done
+
+ #start the services...
+ for aSERVICE in $mSERVICEs $oSERVICEs
+ do
+  if [ -x /etc/init.d/${aSERVICE} ];then
+   echo "rc.services_ipc: Starting /etc/init.d/${aSERVICE}"
+   /etc/init.d/${aSERVICE} start
+  fi
+ done
+ oSERVICEs=''
+ [ "$mSERVICEs" == "" ] && break
+ 
+ for aDEP in $DEPs
+ do
+  MSG1="$(/usr/local/pup_event/pup_event_ipc "${aDEP}:${$}")"
+  if [ ! "$MSG1" ];then
+   
+   DISPLAY=":$(grep -o '[01]' /tmp/pup_event_backend/x_)"
+   export DISPLAY #ex: :0
+   
+   #stop the services...
+   #200207 reverse string, so stops in reverse order...
+   REVservices="$(echo "$mSERVICEs" |tr ' ' '\n' | tac | tr '\n' ' ')"
+   for aSERVICE in $REVservices #$mSERVICEs
+   do
+    if [ -x /etc/init.d/${aSERVICE} ];then
+     echo "rc.services_ipc: Stopping /etc/init.d/${aSERVICE}"
+     /etc/init.d/${aSERVICE} stop
+    fi
+   done
+   
+   continue 2
+  fi
+ done
+
+done ###big loop###
+###end###

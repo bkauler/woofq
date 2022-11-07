@@ -1,0 +1,207 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+  <head>
+    <title>makeself - Make self-extractable archives on Unix</title>
+    <link rel="alternate" type="text/html" media="handheld" href="http://mowser.com/a147154ece07dbc/web/megastep.org/makeself/" title="Mobile/PDA" />
+  </head>
+
+  <body>
+<script type="text/javascript">
+window.google_analytics_uacct = "UA-1803317-2";
+</script>
+
+    <h1>makeself - Make self-extractable archives on Unix</h1>
+
+	<P>
+	<a href="makeself.run">makeself.sh</a> is a small shell script that generates a self-extractable tar.gz archive
+	from a directory. The resulting file appears as a shell script (many of those have a <b>.run</b> suffix), and can be launched as is. The archive will
+	then uncompress itself to a temporary directory and an optional arbitrary command will be executed (for example an installation
+	script). This is pretty similar to archives generated with WinZip Self-Extractor in the Windows world. Makeself archives also include checksums for integrity self-validation (CRC and/or MD5 checksums).
+	</P>
+	<P>The makeself.sh script itself is used only to create the archives from a directory of files. The resultant
+	  archive is actually a compressed (using gzip, bzip2, or compress) TAR archive, with a small shell script stub at the beginning. This 
+	  small stub performs all the steps of extracting the files, running the embedded command, and removing the temporary
+	  files when it's all over. All what the user has to do to install the software contained in such an archive is to
+	  "run" the archive, i.e <B>sh nice-software.run</B>. I recommend using the "run" (which was introduced by some Makeself archives released by Loki Software) or "sh" suffix for such archives not to confuse
+	  the users, since they know it's actually shell scripts (with quite a lot of binary data attached to it though!).
+	</P>
+	<p>I am trying to keep the code of this script as portable as possible, i.e it's not relying on any bash-specific
+	  features and only calls commands that are installed on any functioning UNIX-compatible system. 
+	  This script as well as the archives it generates should run on any Unix flavor, with any compatible Bourne shell,
+	  provided of course that the compression programs are available.
+	</p>
+    <p>As of version 2.1, Makeself has been rewritten and tested on the following platforms :
+    <ul>
+      <li>Linux (all distributions)</li>
+      <li>Sun Solaris (8 and above)</li>
+      <li>HP-UX (tested on 11.0 and 11i on HPPA RISC)</li>
+      <li>SCO OpenUnix and OpenServer</li>
+      <li>IBM AIX 5.1L</li>
+      <li>MacOS X (Darwin)</li>
+      <li>SGI IRIX 6.5</li>
+      <li>FreeBSD</li>
+      <li>UnicOS / Cray</li>
+      <li>Cygwin (Windows)</li>
+    </ul>
+    <p>
+    If you successfully run Makeself and/or archives created with it on another
+    system, then <a href="mailto:megastep@REMOVEME.megastep.org">let me know</a>!</p>
+    </p>
+	<p>
+	  Examples of publicly available archives made using makeself are :
+	<UL>
+          <LI>Game patches and installers for <a href="http://www.idsoftware.com/">Id Software</a> games like Quake 3 for Linux or Return To Castle Wolfenstien ;</li>
+	  <LI>All game patches released by <a href="http://www.lokigames.com/products/myth2/updates.php3">Loki Software</a> for the Linux version of popular games ;</li>
+	  <LI>The <a href="http://www.nvidia.com/">nVidia drivers</a> for Linux</li>
+	  <LI>The installer for the Linux version of <a href="http://earth.google.com/">Google Earth</a></LI>
+	  <li>The <a href="http://www.virtualbox.org/">VirtualBox</a> installers for Linux</li>
+	  <LI>The <a href="makeself.run">Makeself</a> distribution itself ;-)</li>
+	  <LI>and countless others...</li>
+	</UL>
+	</p>
+    <p><B>Important note for Apache users:</B> By default, most Web servers will think that Makeself archives are regular text files and thus they may show up as text in a Web browser. The correct way to prevent this is to add a MIME type for this file format, like so (in httpd.conf) :
+    </p>
+    <code>AddType application/x-makeself .run</code>
+
+    <p><B>Important note for recent GNU/Linux distributions:</B> Archives created with Makeself prior to v2.1.2 were using an old syntax for the <i>head</i> and <i>tail</i> Unix commands that is being progressively obsoleted in their GNU forms. Therefore you may have problems uncompressing some of these archives. A workaround for this is to set the environment variable $_POSIX2_VERSION to enable the old syntax, i.e. :
+    </p>
+<code>export _POSIX2_VERSION=199209</code>
+
+	<H2>Usage</H2>
+	The syntax of makeself is the following:
+	<p>
+	  <code>makeself.sh [args] archive_dir file_name label startup_script [script_args]</code>
+	<ul>
+	  <li><em>args</em> are optional options for Makeself. The available ones are :
+		<ul>
+		  <li><b>--version</b> : Prints the version number on stdout, then exits immediately
+                  <li><b>--gzip</b> : Use gzip for compression (is the default on platforms on which gzip is commonly available, like Linux)
+		  <li><b>--bzip2</b> : Use bzip2 instead of gzip for better compression. The bzip2 command must be available
+			in the command path. I recommend that you set the prefix to something like '.bz2.run' for the archive,
+			so that potential users know that they'll need bzip2 to extract it.
+	  <li><b>--compress</b> : Use the UNIX "compress" command to compress the data. This should be the default on all platforms that don't have gzip available.
+		  <li><b>--nocomp</b> : Do not use any compression for the archive, which will then be an uncompressed TAR.
+		  <li><b>--notemp</b> : The generated archive will not extract the files to a temporary directory, but in a new
+			directory created in the current directory. This is better to distribute software packages that may extract
+			and compile by themselves (i.e. launch the compilation through the embedded script).
+	    <li><b>--current</b> : Files will be extracted to the current directory, instead of in a subdirectory. This option implies <b>--notemp</b> above.</li>
+	    <li><b>--follow</b> : Follow the symbolic links inside of the archive directory, i.e. store the files that are being pointed to instead of the links themselves.</li>
+	    <li><b>--append</b> <i>(new in 2.1.x)</i>: Append data to an existing archive, instead of creating a new one. In this mode, the settings from the original archive are reused (compression type, label, embedded script), and thus don't need to be specified again on the command line.</li>
+	  <li><b>--header</b> : Makeself 2.0 uses a separate file to store the header stub, called "makeself-header.sh". By default, it is assumed that it is stored in the same location as makeself.sh. This option can be used to specify its actual location if it is stored someplace else.</li>
+	  <li><b>--copy</b> : Upon extraction, the archive will first extract itself to a temporary directory. The main application of this is to allow self-contained installers stored in a Makeself archive on a CD, when the installer program will later need to unmount the CD and allow a new one to be inserted. This prevents "Filesystem busy" errors for installers that span multiple CDs.</li>
+	  <li><b>--nox11</b> : Disable the automatic spawning of a new terminal in X11.</li>
+	  <li><b>--nowait</b> : When executed from a new X11 terminal, disable the user prompt at the end of the script execution.</li>
+	<li><b>--nomd5</b> and <b>--nocrc</b> : Disable the creation of a MD5 / CRC checksum for the archive. This speeds up the extraction process if integrity checking is not necessary.</li>
+		  <li><b>--lsm <i>file</i></b> : Provide and LSM file to makeself, that will be embedded in the generated archive.
+			LSM files are describing a software package in a way that is easily parseable.
+			The LSM entry can then be later retrieved using the '-lsm' argument to the archive. An exemple of a LSM file
+			is provided with Makeself.</li>
+		</ul>
+	  <li><em>archive_dir</em> is the name of the directory that contains the files to be archived
+	  <li><em>file_name</em> is the name of the archive to be created
+	  <li><em>label</em> is an arbitrary text string describing the package. It will be displayed while extracting the files.
+	  <li><em>startup_script</em> is the command to be executed <em>from within</em> the directory of extracted files. 
+		Thus, if you wish to execute a program contain in this directory, you must prefix your command with "./". 
+		For example, ./program will be fine. The <em>script_args</em> are additionnal arguments for this command.</li>
+	</ul>
+	Here is an example, assuming the user has a package image stored in a <b>/home/joe/mysoft</b>, and he wants to generate
+	a self-extracting package named <b>mysoft.sh</b>, which will launch the "setup" script initially stored in /home/joe/mysoft :
+	<p>
+	  <code>makeself.sh /home/joe/mysoft mysoft.sh "Joe's Nice Software Package" ./setup
+	  </code>
+	</p>
+	Here is also how I created the <a href="makeself.run">makeself.run</a> archive which contains 
+	the Makeself distribution :
+	<p>
+	  <code>makeself.sh --notemp makeself makeself.run "Makeself by Stephane Peter" echo "Makeself has extracted itself"
+	  </code>
+	</p>
+	</p>
+	<p>Archives generated with Makeself 2.1 can be passed the following arguments:<p>
+      <ul>
+      <li><em>--keep</em> :  Prevent the files to be extracted in a temporary directory that will be removed after the embedded script's execution. The files will then be extracted in the current working directory and will stay here until you remove them.</li>
+      <li><em>--verbose</em> : Will prompt the user before executing the embedded command</li>
+      <li><em>--target dir</em> : Allows to extract the archive in an arbitrary place.</li>
+      <li><em>--nox11</em> : Do not spawn a X11 terminal.</li>
+      <li><em>--confirm</em> : Prompt the user for confirmation before running the embedded command.</li>
+      <li><em>--info</em> : Print out general information about the archive (does not extract).</li>
+      <li><em>--lsm</em> : Print out the LSM entry, if it is present.</li>
+      <li><em>--list</em> : List the files in the archive.</li>
+      <li><em>--check</em> : Check the archive for integrity using the embedded checksums. Does not extract the archive.</li>
+      <li><em>--nochown</em> : By default, a "chown -R" command is run on the target directory after extraction, so that all files belong to the current user. This is mostly needed if you are running as root, as tar will then try to recreate the initial user ownerships. You may disable this behavior with this flag.</li>
+	<li><em>--tar</em> : Run the tar command on the contents of the archive, using the following arguments as parameter for the command.</li>
+	<li><em>--noexec</em> : Do not run the embedded script after extraction.</li>
+      </ul>
+    <p>Any subsequent arguments to the archive will be passed as additional arguments to the embedded command. You should explicitly use the <em>--</em> special command-line construct before any such options to make sure that Makeself will not try to interpret them.</p>
+	<H2>License</H2>
+	Makeself is covered by the <a href="http://www.gnu.org/copyleft/gpl.html">GNU General Public License</a> (GPL) version 2 and above. Archives generated by Makeself don't have to be placed under this license (although I encourage it ;-)), since the archive itself is merely data for Makeself.
+	<H2>Download</H2>
+    <p>Get the latest official distribution <a href="makeself-2.1.5.run">here</a> (version 2.1.5).</p>
+    <p>The latest development version can be grabbed from <a href="http://github.com/megastep/makeself">GitHub</a>. Feel free to submit any patches there through the fork process.</p>
+<script type="text/javascript"><!--
+google_ad_client = "pub-8808659087239091";
+//728x90, megastep.org
+google_ad_slot = "6321605424";
+google_ad_width = 728;
+google_ad_height = 90;
+//--></script>
+<script type="text/javascript"
+src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+	<h2>Version history</h2>
+	<ul>
+	<li><b>v1.0:</b> Initial public release
+	<li><b>v1.1:</b> The archive can be passed parameters that will be passed on to the embedded script, thanks 
+	  to John C. Quillan
+	<li><b>v1.2:</b> Cosmetic updates, support for bzip2 compression and non-temporary archives. Many ideas thanks to
+		Francois Petitjean.
+	<li><b>v1.3:</b> More patches from Bjarni R. Einarsson and Francois Petitjean:
+		Support for no compression (--nocomp), script is no longer mandatory,
+		automatic launch in an xterm, optional verbose output, and -target 
+		archive option to indicate where to extract the files.
+	<li><b>v1.4:</b> Many patches from Francois Petitjean: improved UNIX compatibility, automatic integrity checking,
+		support of LSM files to get info on the package at run time..
+	<li><b>v1.5.x:</b> A lot of bugfixes, and many other patches, including automatic verification through the usage of checksums. Version 1.5.5 was the stable release for a long time, even though the Web page didn't get updated ;-). Makeself was also officially made a part of the <a href="http://www.icculus.org/loki_setup/">Loki Setup installer</a>, and its source is being maintained as part of this package.
+	<li><b>v2.0:</b> Complete internal rewrite of Makeself. The command-line parsing was vastly improved, the overall maintenance of the package was greatly improved by separating the stub from makeself.sh. Also Makeself was ported and tested to a variety of Unix platforms.
+	<li><b>v2.0.1:</b> First public release of the new 2.0 branch. Prior versions are officially obsoleted. This release introduced the '--copy' argument that was introduced in response to a need for the <a href="http://www.unrealtournament2003.com/">UT2K3</a> Linux installer.</li>
+	<li><b>v2.1.0:</b> Big change : Makeself can now support multiple embedded tarballs, each stored separately with their own checksums. An existing archive can be updated with the --append flag. Checksums are also better managed, and the --nochown option for archives appeared.</li>
+        <li><b>v2.1.1:</b> Fixes related to the Unix compression (compress command). Some Linux distributions made the insane choice to make it unavailable, even though gzip is capable of uncompressing these files, plus some more bugfixes in the extraction and checksum code.</li>
+	<li><b>v2.1.2:</b> Some bug fixes. Use head -n to avoid problems with POSIX conformance.</li>
+	<li><b>v2.1.3:</b> Bug fixes with the command line when spawning terminals. Added --tar, --noexec for archives. Added --nomd5 and --nocrc to avoid creating checksums in archives. The embedded script is now run through "eval". The --info output now includes the command used to create the archive. A man page was contributed by Bartosz Fenski.</li>
+	 <li><b>v2.1.4:</b> Fixed --info output. Generate random directory name when extracting files to . to avoid problems. Better handling of errors with wrong permissions for the directory containing the files. Avoid some race conditions, Unset the $CDPATH variable to avoid problems if it is set. Better handling of dot files in the archive directory.</li>
+	<li><b>v2.1.5:</b> Made the md5sum detection consistent with the header code. 
+Check for the presence of the archive directory. Added --encrypt for symmetric encryption through gpg (Eric Windisch).
+Added support for the digest command on Solaris 10 for MD5 checksums.
+Check for available disk space before extracting to the target directory (Andreas Schweitzer).
+Allow extraction to run asynchronously (patch by Peter Hatch).
+Use file descriptors internally to avoid error messages (patch by Kay Tiong Khoo).
+	</ul>
+	<H2>Links</H2>
+	<ul>
+	  <li>Check out the <a href="http://www.icculus.org/loki_setup/">"Loki setup"</a>
+		installer, used to install many Linux games and other applications, and of which I am the co-author. Since the demise of Loki, I am now the official maintainer of the project, and it is now being hosted on <a href="http://www.icculus.org/">icculus.org</a>, as well as a bunch of other ex-Loki projects (and a lot of other good stuff!).
+	  <li>Bjarni R. Einarsson also wrote the <b>setup.sh</b> installer script, inspired by Makeself.
+	  <a href="http://bre.klaki.net/programs/setup.sh/">Check it out !</a>
+	</ul>
+	<H2>Contact</H2>
+	<p>This script was written by <a href="mailto:megastep@@megastep.org">Stéphane Peter</a> (megastep at megastep.org)
+	I welcome any enhancements and suggestions.</p>
+	<p>Contributions were included from John C. Quillan, Bjarni R. Einarsson, Francois Petitjean, and Ryan C. Gordon, thanks to them! If you think I forgot your name, don't hesitate to contact me.
+    </p>
+    <p>icculus.org also has a <a href="https://bugzilla.icculus.org/">Bugzilla server</a> available that allows bug reports to be submitted for Loki setup, and since Makeself is a part of Loki setup, you can submit bug reports from there!
+      </p>
+    <hr>
+    <address><a href="mailto:megastep@@megastep.org">St&eacute;phane Peter</a></address>
+
+<script src="http://www.google-analytics.com/urchin.js" type="text/javascript">
+</script>
+<script type="text/javascript">
+_uacct = "UA-1803317-2";
+urchinTracker();
+</script>
+<!-- Created: Thu Oct 21 02:50:01 CEST 1999 -->
+<!-- hhmts start -->
+Last modified: Fri Jan  4 15:51:05 PST 2008
+<!-- hhmts end -->
+  </body>
+</html>

@@ -1,0 +1,348 @@
+#!/bin/bash
+#(c) Copyright Barry Kauler 2015. License: GPL3 (/usr/share/doc/legal)
+#called from 'installquirky'.
+#150402 first version.
+#150405 verify burn.
+#150414 install-funcs. establish working area with sufficient space.
+#150414 online files now in 'releases' folder. fix LANG=C
+#151006 ftp spider at ibiblio no longer works.
+#151202 no longer using /etc/rc.d/install.log. added erase-cd option. note, Qarch hardcoded below.
+#151204 test if dvd already erased.
+#151206 autodetect cd or dvd. 151209 fix erase, verify.
+
+#note, exported from installquirky: RXVTEXE ATADRIVES Qarch Qfw. ex: Qarch=amd64 Qfw=UEFI
+export TEXTDOMAIN=installquirky
+export OUTPUT_CHARSET=UTF-8
+
+#detect if running inside a self-extracted archive: 150414
+WDcurrent="`pwd`"
+PRE=''
+if [ -f ${WDcurrent}/DISTRO_SPECS ];then
+ [ -f ${WDcurrent}/gtkdialog ] || exit 1 #precaution.
+ . ${WDcurrent}/DISTRO_SPECS
+ . ${WDcurrent}/install-funcs
+ PRE="${WDcurrent}/"
+else
+ . /etc/DISTRO_SPECS
+ . /usr/local/install_quirky/install-funcs
+fi
+
+CR='
+'
+
+#151202 may need to ask in future...
+Qarch='amd64'
+export Qarch
+
+isoMSG="$(gettext 'Quirky is available online as an <b>ISO</b> file, which may be downloaded, burnt to CD, and becomes a <b>live-CD</b>.')"
+
+export IQ_DLG2="<window title=\"$(gettext "Quirky Installer: Live-CD")\" icon-name=\"gtk-convert\">
+<vbox>
+ <text use-markup=\"true\"><label>\"${isoMSG}\"</label></text>
+ <text><label>$(gettext 'You need to specify where the Quirky ISO file is, either online (not yet downloaded), or already downloaded.')</label></text>
+ <hbox>
+  <text><label>$(gettext 'Choose where to obtain the ISO file:')</label></text>
+  <combobox><variable>COMBO1</variable><item>Download</item><item>Local ISO file</item></combobox>
+ </hbox>
+ <hbox>
+  <button><label>$(gettext "CONTINUE")</label><action type=\"exit\">continuelivecd</action></button>
+  <button cancel></button>
+ </hbox>
+</vbox>
+</window>"
+RETSTRING2="$(${PRE}gtkdialog --program=IQ_DLG2 --center)"
+[ $? -ne 0 ] && exit
+eval "$RETSTRING2"
+[ "$EXIT" != "continuelivecd" ] && exit
+
+exit_func() { #150414 these variables set in find_working_place_func
+ cd "$WDcurrent"
+ ${PRE}busybox sync
+ [ $TMPWKG_MNTPTflag ] && [ $TMPWKG_MNTPTflag -eq 1 ] && ${PRE}busybox umount $TMPWKG_MNTPT
+ #[ "$TMPWKG_MNTPT" ] && [ -d $TMPWKG_MNTPT ] && ${PRE}busybox rm -rf $TMPWKG_MNTPT
+ [ $TMPWKG_PARTMNTflag ] && [ $TMPWKG_PARTMNTflag -eq 1 ] && ${PRE}busybox umount $TMPWKG_PARTMNT
+ exit $1
+}
+
+if [ "$COMBO1" == "Download" ];then
+ find_working_place_func 300 xxx #150414 pass reqd space, exclude-devs. returns TMPWKG_MNTPT
+ if [ $? -ne 0 ];then
+  errTITLE="$(gettext 'Insufficient working space')"
+  errMSG="$(gettext 'Unable to find sufficient free space to download the ISO file. Aborting installation.')"
+  ${PRE}popup "level=top background=#FF8080 terminate=ok|<b>${errTITLE}</b>${CR}${errMSG}"
+  exit_func 1
+ fi
+ cd $TMPWKG_MNTPT
+ ${PRE}busybox ping -4 -c 1 www.google.com
+ if [ $? -ne 0 ];then
+  ${PRE}popup "terminate=ok background='#FF8080'|<b>$(gettext 'Download ISO: error')</b>${CR}$(gettext 'Sorry, there is no Internet connection. Aborting.')"
+  exit_func 1
+ fi
+ ${PRE}popup "level=top background='#FFE000'|<big>$(gettext 'Please wait, searching online...')</big>"
+ #DL_URL="ftp://distro.ibiblio.org/quirky/quirky6/${Qarch}/releases" #150414
+ DL_URL="ftp://distro.ibiblio.org/quirky/quirky6/${Qarch}/releases" #151006
+ #ISOs="$(LANG=C wget -r -4 -t 2 -T 20 --waitretry=20 --spider -S --no-parent --no-directories -A '*.iso' ${DL_URL}/ 2>&1 | grep -o "${DL_URL}/.*\.iso$" | sort -u)" #ex: ftp://distro.ibiblio.org/quirky/quirky6/amd64/releases/april-7.0.2/april64-7.0.2.iso
+ ISOs="$(LANG=C wget -r -4 -t 2 -T 20 --waitretry=20 --spider -S --no-parent --no-directories -A '*.iso' --recursive --level=2 ${DL_URL}/ 2>&1 | grep -o "${DL_URL}/.*\.iso$" | sort -u)" #151006 ex: http://distro.ibiblio.org/quirky/quirky6/amd64/releases/april-7.0.2/april64-7.0.2.iso
+ ${PRE}busybox killall popup
+ if [ ! "$ISOs" ];then
+  ${PRE}popup "level=top background='#FF8080' terminate=ok|$(gettext 'Could not find any ISO files. Maybe ibiblio.org is down. Aborting.')"
+  exit_func 1
+ fi
+ ITEMSISO=''
+ for aISO in `${PRE}busybox echo -n "$ISOs" | ${PRE}busybox tr '\n' ' '`
+ do
+  aITEM="$(${PRE}busybox basename $aISO)"
+  #if [ "$DISTRO_VERSION" ];then
+  # aVER="$(echo -n $aITEM | cut -f 2 -d '-' | rev | cut -f 2- -d '.' | rev)"
+  # if vercmp $aVER lt $DISTRO_VERSION;then
+  #  continue
+  # fi
+  #fi
+  ITEMSISO="${ITEMSISO}<item>${aITEM}</item>"
+ done
+ export IQ_DLG_DL_ISO="<window title=\"$(gettext "Quirky Installer: download ISO")\" icon-name=\"gtk-convert\">
+ <vbox>
+  <text><label>$(gettext 'Online ISO files have been found. You need to choose the most appropriate one to download.')</label></text>
+  <hbox>
+   <text><label>$(gettext 'Choose the ISO file:')</label></text>
+   <combobox><variable>COMBODL</variable>${ITEMSISO}</combobox>
+  </hbox>
+  <hbox>
+   <button><label>$(gettext "DOWNLOAD")</label><action type=\"exit\">downloadiso</action></button>
+   <button cancel></button>
+  </hbox>
+ </vbox>
+ </window>"
+ RETSTRINGDL="$(${PRE}gtkdialog --program=IQ_DLG_DL_ISO --center)"
+ [ $? -ne 0 ] && exit_func 0
+ eval "$RETSTRINGDL"
+ [ "$EXIT" != "downloadiso" ] && exit_func 0
+ URLiso="$(${PRE}busybox echo "$ISOs" | ${PRE}busybox grep "${COMBODL}$" | ${PRE}busybox head -n 1)"
+ URLdir="$(${PRE}busybox dirname $URLiso)"
+ [ -f ./sha1sums.txt ] && ${PRE}busybox rm -f ./sha1sums.txt
+ if [ `which download_file` ];then #150323 in most puppies.
+  download_file ${URLdir}/sha1sums.txt
+ else
+  LANG=C wget -4 ${URLdir}/sha1sums.txt
+ fi
+ if [ $? -ne 0 ];then
+  ${PRE}popup "level=top background='#FF8080' terminate=ok|$(gettext 'Could not download ISO file. Aborting.')"
+  exit_func 1
+ fi
+ [ -f ./${COMBODL} ] && [ ! -d ./${COMBODL} ] && rm -f ./${COMBODL}
+ if [ `which download_file` ];then #150323 in most puppies.
+  download_file $URLiso
+ else
+  DLmsg="$(gettext 'Downloading:')" #150414
+  LANG=C ${RXVTEXE} -geometry 80x3+0+0 -bg orange -fg black -title "${DLmsg} ${URLiso}" -e wget -4 $URLiso
+ fi
+ ${PRE}busybox sync
+ SHA1SUMa="$(${PRE}busybox grep -w "$COMBODL" ./sha1sums.txt | ${PRE}busybox cut -f 1 -d ' ')"
+ SHA1SUMb="$(${PRE}busybox sha1sum ./${COMBODL} | cut -f 1 -d ' ')"
+ if [ "$SHA1SUMa" != "$SHA1SUMb" ];then
+  ${PRE}popup "level=top background='#FF8080' terminate=ok|$(gettext 'ISO downloaded, but checksum is wrong. Aborting.')"
+  ${PRE}busybox rm -f ./sha1sums.txt
+  ${PRE}busybox rm -f ./${COMBODL}
+  exit_func 1
+ fi
+ SRCFLG='iso'
+ PWD2="`${PRE}busybox pwd`"
+ SRCXML="<text use-markup=\"true\"><label>\"$(gettext 'The file has been downloaded:')${CR}<b>${PWD2}/${COMBODL}</b>\"</label></text>"
+ CHOOSE1="${PWD2}/${COMBODL}"
+ cd $WDcurrent #150414
+else
+ #choose a local iso...
+ M_2b=""
+ DEFPATH="/file/downloads"
+ if [ ! -d /file/downloads ];then
+  DEFPATH="/root/Downloads"
+  mkdir -p /root/Downloads
+ fi
+ while [ true ];do
+  export IQ_DLG2b="<window title=\"$(gettext "Quirky Installer: Live-CD")\" icon-name=\"gtk-convert\">
+  <vbox>
+   ${M_2b}
+   <text><label>$(gettext 'Please choose the .iso file:')</label></text>
+   <chooser><variable>CHOOSE1</variable><default>${DEFPATH}</default><width>600</width><height>400</height></chooser>
+   <hbox>
+    <button><label>$(gettext "CONTINUE")</label><action type=\"exit\">continuelivecd</action></button>
+    <button cancel></button>
+   </hbox>
+  </vbox>
+  </window>"
+  RETSTRING2="$(${PRE}gtkdialog --program=IQ_DLG2b --center)"
+  [ $? -ne 0 ] && exit
+  eval "$RETSTRING2"
+  [ "$EXIT" != "continuelivecd" ] && exit
+  if [ "$(${PRE}busybox echo -n "$CHOOSE1" | ${PRE}busybox rev | ${PRE}busybox cut -c 1-4 | ${PRE}busybox rev)" != ".iso" ];then
+   M_2b="<text use-markeup=\"true\"><label>\"<span fgcolor='#FF0000'>$(gettext 'ERROR, you did not choose an ISO file, please try again:')</span>\"</label></text>"
+   continue
+  fi
+  break
+ done
+ SRCXML="<text use-markup=\"true\"><label>\"$(gettext 'The chosen ISO file:')${CR}<b>${CHOOSE1}</b>\"</label></text>"
+fi
+
+#CHOOSE1 is iso. burn to cd.
+OPTICALS="$(${PRE}probedisk | ${PRE}busybox grep '|optical|')"
+if [ "$OPTICALS" == "" ];then
+ ${PRE}popup "terminate=ok background='#FF8080'|<b>$(gettext 'ERROR: no optical drive')</b>${CR}$(gettext 'No optical drive detected. Cannot burn ISO to CD.')${CR}$(gettext 'ISO file:') ${CHOOSE1}${CR}$(gettext 'The Installer has to now exit.')"
+ exit_func 1
+fi
+OPTITEMS="$(${PRE}busybox echo "$OPTICALS" | ${PRE}busybox cut -f 1,3 -d '|' | ${PRE}busybox sed -e 's%^/dev/%%' -e 's%|% (%' -e 's%$%)%' -e 's%[^()0-9a-zA-Z _-]%%g' -e 's%^%<item>%' -e 's%$%</item>%')"
+
+#check utilities exit:
+if [ ! `${PRE}busybox which cdrecord` ];then
+ ${PRE}popup "terminate=ok background='#FF8080'|<b>$(gettext 'ERROR: cdrecord missing')</b>${CR}$(gettext 'ISO file:') ${CHOOSE1}${CR}$(gettext 'A utility needed to burn the ISO to optical media is missing.')${CR}$(gettext 'The Installer has to now exit.')"
+ exit_func 1
+fi
+if [ ! `${PRE}busybox which growisofs` ];then
+ ${PRE}popup "terminate=ok background='#FF8080'|<b>$(gettext 'ERROR: growisofs missing')</b>${CR}$(gettext 'ISO file:') ${CHOOSE1}${CR}$(gettext 'A utility needed to burn the ISO to optical media is missing.')${CR}$(gettext 'The Installer has to now exit.')"
+ exit_func 1
+fi
+
+ ####
+  CDMSG="$(gettext 'Erasing CD, please wait...')"
+  DVDMSG="$(gettext 'Erasing DVD, please wait...')"
+  SSOPT="$(gettext 'Erasing:')"
+  echo "#!/bin/sh
+  OPTDEV=\"\$1\"
+  #151206 determine cd or dvd...
+  dvd+rw-mediainfo /dev/\${OPTDEV} > /tmp/ss-type-dvd 2>&1
+  if [ \$? -eq 0 ];then #=0 DVD
+   MEDIATYPE='dvd'
+  else
+   MEDIATYPE='cd'
+  fi
+  if [ \"\$MEDIATYPE\" == \"cd\" ];then
+   popup \"placement=center background=#FFC080 level=top|<big>${CDMSG}</big>\" #daemonizes
+   cdrecord -tao -v blank=fast dev=/dev/\${OPTDEV}
+   #urxvt -geometry 80x5+0+0 -bg orange -fg black -title \"${SSOPT} \${OPTDEV}\" -e cdrecord -tao -v blank=fast dev=/dev/\${OPTDEV}
+   RETVAL=\$?
+  else
+   #151204 test if already erased...
+   if [ \"\$(grep ' Disc status: *blank' /tmp/ss-type-dvd)\" != \"\" ];then
+    pupmessage -bg '#8080FF' -title \"$(gettext 'Already erased')\" \"$(gettext 'The optical media is already erased. Proceed to the next step.')\"
+    exit 0
+   fi
+   popup \"placement=center background=#FFC080 level=top|<big>${DVDMSG}</big>\" #daemonizes
+   dvd+rw-format -force /dev/\${OPTDEV}
+   #growisofs -Z /dev/\${OPTDEV}=/dev/zero
+   #urxvt -geometry 80x5+0+0 -bg orange -fg black -title \"${SSOPT} \${OPTDEV}\" -e growisofs -Z /dev/\${OPTDEV}=/dev/zero
+   RETVAL=\$?
+  fi
+  sync
+  killall popup
+  if [ \$RETVAL -ne 0 ];then
+   pupmessage -bg '#FF8080' -title \"$(gettext 'Erase error')\" \"$(gettext 'Have you chosen the correct drive? Is media inserted?')\"
+  else
+   pupmessage -bg '#80FF80' -title \"$(gettext 'Erase completed')\" \"$(gettext 'The optical media has been erased. You may now proceed to the next step.')\"
+  fi" > /tmp/ss-erase-cd
+  chmod 755 /tmp/ss-erase-cd
+ 
+
+while [ true ];do ###
+ export IQ_DLG4="<window title=\"$(gettext "Quirky Installer: Live-CD")\" icon-name=\"gtk-convert\">
+ <vbox>
+  ${SRCXML}
+  <text use-markup=\"true\"><label>\"<span fgcolor='#800080'><b>$(gettext 'Please insert CD or DVD media now!')</b></span>\"</label></text>
+  <frame $(gettext 'STEP1: Choose')>
+   <hbox>
+    <text><label>$(gettext 'Choose the optical drive:')</label></text>
+    <combobox><variable>COMBOOPT</variable>${OPTITEMS}</combobox>
+   </hbox>
+  </frame>
+  <frame $(gettext 'Erase')>
+   <hbox>
+    <vbox>
+     <text><label>$(gettext 'A CD or DVD -RW media with content on it, will need to be erased. Click the ERASE button now, before doing STEP3:')</label></text>
+     <text><label>$(gettext 'WARNING: CD RW media may not work properly on laptop and external drives. Recommend use DVD-RW.')</label></text>
+    </vbox>
+    <vbox><button><label>$(gettext "ERASE")</label><action>/tmp/ss-erase-cd \$COMBOOPT > /dev/null 2>&1 </action></button></vbox>
+   </hbox>
+  </frame>
+  <frame $(gettext 'STEP3: Burn')>
+   <text><label>$(gettext 'A blank CD or DVD must be inserted. Now click the BURN button:')</label></text>
+   <hbox>
+    <button><label>$(gettext "BURN")</label><action type=\"exit\">burn</action></button>
+   </hbox>
+  </frame>
+  <hbox>
+   <button cancel></button>
+  </hbox>
+ </vbox>
+ </window>"
+ RETSTRING4="$(${PRE}gtkdialog --program=IQ_DLG4 --center)"
+ [ $? -ne 0 ] && exit_func 0
+ eval "$RETSTRING4"
+ [ "$EXIT" != "burn" ] && exit_func 0
+ 
+ sleep 3
+ OPTICALDEV="$(${PRE}busybox echo -n "$COMBOOPT" | ${PRE}busybox cut -f 1 -d ' ')"
+ #151206...
+ dvd+rw-mediainfo /dev/${OPTICALDEV} > /dev/null 2>&1
+ if [ $? -eq 0 ];then #=0 DVD
+  OPTICALTYPE='DVD'
+ else
+  OPTICALTYPE='CD'
+ fi
+
+ if [ "$(${PRE}busybox mount | ${PRE}busybox grep "/${OPTICALDEV}")" != "" ];then
+  ${PRE}busybox umount /dev/${OPTICALDEV}
+  if [ $? -ne 0 ];then
+   ${PRE}popup "terminate=ok background='#FF8080'|<b>$(gettext 'Drive:') ${OPTICALDEV}</b>${CR}$(gettext 'Cannot unmount optical drive. Please do so, and try again.')"
+   continue
+  fi
+ fi
+ break
+done ###
+
+if [ "$OPTICALTYPE" == "CD" ];then
+ ${RXVTEXE} -name burniso2cd -bg orange -geometry 80x10 -e cdrecord -dao -data -eject -v speed=10 dev=/dev/${OPTICALDEV} "$CHOOSE1"
+else
+ ${RXVTEXE} -name burniso2cd -bg orange -geometry 80x10 -e growisofs -speed=2 -Z /dev/${OPTICALDEV}="$CHOOSE1"
+fi
+${PRE}busybox sync
+${PRE}busybox sleep 5
+
+#150405 verify burn
+export IQ_DLG5="<window title=\"$(gettext "Quirky Installer: Live-CD")\" icon-name=\"gtk-convert\">
+ <vbox>
+  <text><label>$(gettext 'ISO file:')</label></text>
+  <text use-markup=\"true\"><label>\"<b>${CHOOSE1}</b>\"</label></text>
+  <text use-markup=\"true\"><label>\"<span fgcolor='#008000'><b>$(gettext 'Burn completed!')</b></span>\"</label></text>
+  <frame $(gettext 'Verify burn')>
+   <hbox>
+   <text use-markup=\"true\"><label>\"$(gettext 'Would you like to verify the burn?')${CR}$(gettext 'If so, <b>close the tray now</b>, then click the <b>VERIFY</b> button:')\"</label></text>
+   <button><label>$(gettext "VERIFY")</label><action type=\"exit\">verify</action></button>
+   </hbox>
+  </frame>
+  <hbox>
+   <button><label>$(gettext "Finished")</label><action type=\"exit\">finished</action></button>
+  </hbox>
+ </vbox>
+ </window>"
+RETSTRING5="$(${PRE}gtkdialog --program=IQ_DLG5 --center)"
+[ $? -ne 0 ] && exit_func 0
+eval "$RETSTRING5"
+
+if [ "$EXIT" == "verify" ];then #150405
+ ${PRE}popup "level=top background='#FFE000'|<big>$(gettext 'Please wait, reading optical media...')</big>"
+ sleep 5
+ MD5read="$(${PRE}busybox dd if=/dev/${OPTICALDEV} 2>> /tmp/burniso2cd.log | ${PRE}busybox head -c `${PRE}busybox stat -c %s ${CHOOSE1}` | ${PRE}busybox md5sum | ${PRE}busybox cut -f 1 -d " ")"
+ MD5orig="$(${PRE}busybox md5sum ${CHOOSE1} | ${PRE}busybox cut -f 1 -d ' ')" #151209 fix.
+ ${PRE}busybox killall popup
+ if [ "$MD5read" == "$MD5orig" ];then
+  ${PRE}popup "terminate=ok background='#80FF80'|<b>$(gettext 'Burn verified')</b>${CR}$(gettext 'The ISO file has been burnt to optical media, and verified correct. All done, finished.')"
+ else
+  ${PRE}popup "terminate=ok background='#FF8080'|<b>$(gettext 'Burn failure')</b>${CR}$(gettext 'The ISO file has been burnt to optical media. However, the verify operation has reported an error. Sorry about that. Faulty CD?')"
+ fi
+ #${PRE}busybox eject /dev/${OPTICALDEV}
+ #exit
+fi
+
+${PRE}busybox eject /dev/${OPTICALDEV}
+
+#${PRE}popup "terminate=ok background='#80FF80'|<b>$(gettext 'Burn completed')</b>${CR}$(gettext 'The ISO file has been burnt to optical media.')"
+exit_func 0
+###END###

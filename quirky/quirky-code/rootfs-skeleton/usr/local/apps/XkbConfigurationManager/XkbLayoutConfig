@@ -1,0 +1,117 @@
+#!/bin/sh
+# A script to change the XkbLayout variable in xorg.conf
+# Part of the Puppy XkbConfigurator
+#130117 rodin.s: adding gettext
+#170105 BK: support xorg.conf.d and evdev.
+#171015 BK: apply npierce patch from 20120201: Removing a layout also adjusts the variant list.
+
+export TEXTDOMAIN=xkbconfig #xkb
+export TEXTDOMAINDIR=/usr/share/locale
+export OUTPUT_CHARSET=UTF-8
+. gettext.sh
+
+##--------variables---------->>
+INFILE=''
+INTEST="$(grep '"XkbLayout"' /etc/X11/xorg.conf | grep -v '#.*"XkbLayout"')"
+[ "$INTEST" ] && INFILE='/etc/X11/xorg.conf'
+if [ "$INFILE" == "" ];then
+ if [ -f /etc/X11/xorg.conf.d/10-evdev-puppy.conf ];then
+  INTEST="$(grep '"XkbLayout"' /etc/X11/xorg.conf.d/10-evdev-puppy.conf | grep -v '#.*"XkbLayout"')"
+  [ "$INTEST" ] && INFILE='/etc/X11/xorg.conf.d/10-evdev-puppy.conf'
+ fi
+fi
+if [ "$INFILE" == "" ];then
+ Xdialog --title "$(gettext 'ERROR')" --msgbox "$(gettext 'Your Xorg config files do not contain any XkbLayout options!')" 0 0
+ exit
+fi
+
+OUTFILE='/etc/X11/xorg.conf.tmp2'
+LIST="/etc/X11/xkb/rules/xorg.lst"
+# exported the following from main
+#ERRMSG='Xdialog --title "ERROR" --msgbox "An Error has occured! Try again." 0 0'
+#SUCCESS='Xdialog --title "Success!" --no-buttons --infobox "Changes applied successfuly!" 0 0 2000'
+
+# the full line containing XkbLayout:
+ORIGINAL="`fgrep '"XkbLayout"' $INFILE | grep -v '^#'`"
+
+# the full line containig XkbVariant, and the variants extracted from that line:   #20120201
+ORIGINALVARIANTS=`fgrep '"XkbVariant"' $INFILE | grep -v '^#'`
+CURRENTVARIANTS=`echo "$ORIGINALVARIANTS" | cut -d'"' -f4`
+VARIANTS="$CURRENTVARIANTS"
+
+#find current layouts:
+CURRENT=`echo "$ORIGINAL" | cut -d'"' -f4`
+
+# make list of existing layouts with their names:
+if [ ! "$CURRENT" = "" ]; then
+	EXIST=`echo "$CURRENT" | tr ',' '\n' | while read ONE;
+do fgrep " $ONE " $LIST | grep -v ':' ; done`
+## could add head and tail for the fgrep, but this works ok.
+else
+	EXIST="NONE!"
+fi
+#count how many layouts we already have:
+COUNT=`echo "$EXIST" | wc -l | tr -d ' '`
+
+# if only one currently, ask to change or add:
+if [ $COUNT -eq 1 ]; then
+	Xdialog --title "$(gettext 'Configure Xkb Layout')" --ok-label "$(gettext 'Change')" --cancel-label "$(gettext 'Add')" --buttons-style text --yesno "$(gettext 'What would you like to do:
+add another layout or change the current one')" 0 0
+	CHANGE=$?
+	[ $CHANGE -eq 255 ] && echo "$(gettext 'Aborted')" && exit
+	if [ $CHANGE -eq 0 ]; then #change
+		MESSAGE="$(gettext 'Please select the layout you would like to
+ replace it with, then press OK')"
+	else #add
+		MESSAGE="$(gettext 'Please select the layout you would like to
+ add, then press OK')"
+	fi
+else
+	MESSAGE="$(gettext 'If you wish to remove one of the above, select
+ it in the list below, then press OK.
+To add an additional layout, select it and press OK.')"
+fi
+
+#give option to select additional layout.
+CHOICE=`Xdialog --stdout --title "$(gettext 'Configure Xkb Layout')" --left --menubox "$(gettext 'You are currently using the following layout(s)'):
+$EXIST
+
+$MESSAGE" 0 0 15 us "U.S. English" ara "Arabic" al "Albania" am "Armenia" az "Azerbaijan" by "Belarus" be "Belgium" bd "Bangladesh" bt "Bhutan" ba "Bosnia and Herzegovina" br "Brazil" bg "Bulgaria" ca "Canada" hr "Croatia" cz "Czechia" dk "Denmark" ee "Estonia" fo "Faroe Islands" fi "Finland" fr "France" ge "Georgia" de "Germany" gr "Greece" hu "Hungary" is "Iceland" in "India" ir "Iran" ie "Ireland" il "Israel" it "Italy" jp "Japan" kg "Kyrgyzstan" la "Laos" latam "Latin American" lt "Lithuania" lv "Latvia" mao "Maori" mkd "Macedonian" mt "Malta" mm "Myanmar" mn "Mongolia" nl "Netherlands" no "Norway" pk "Pakistan" pl "Poland" pt "Portugal" qc "Quebec" ro "Romania" ru "Russia" srp "Serbian" si "Slovenia" sk "Slovakia" es "Spain" lk "Sri Lanka" se "Sweden" ch "Switzerland" sy "Syria" tj "Tajikistan" th "Thailand" tr "Turkish " ua "Ukraine" gb "United Kingdom" uz "Uzbekistan" vn "Vietnam"`
+[ ! $? -eq 0 ] && echo "cancelled" && exit 
+
+# position of $CHOICE in layout list   #20120201
+ITSPOS=`echo "$CURRENT" | tr ',' '\n' | fgrep -n "$CHOICE" | cut -d: -f1`
+
+if echo "$CURRENT" | tr ',' '\n' | fgrep -wq $CHOICE ; then #remove
+	NEW=`echo -n $CURRENT | tr ',' '\n' | fgrep -wv $CHOICE | tr '\n' ',' | sed 's/^,//;s/,$//'`
+	[ "$NEW" = "" ] && NEW="$CURRENT"
+	[ -n "$VARIANTS" ] && for POS in $ITSPOS ; do VARIANTS=`echo "$VARIANTS" | tr ',' '\n' | sed "${POS}d" | tr '\n' ','` ; done   #20120201
+        VARIANTS=`echo "$VARIANTS" | sed 's/,$//'`
+else #add
+	[ "$COUNT" = "4" ] && Xdialog --title "$(gettext 'ERROR')" --msgbox "$(gettext 'Sorry! No more than 4 layouts are allowed...')" 0 0 && exit
+	NEW="$CURRENT,$CHOICE"
+	[ $COUNT -eq 1 ] && [ $CHANGE -eq 0 ] && NEW="$CHOICE"
+	[ "$EXIST" = "NONE!" ] && NEW="$CHOICE"
+fi
+
+# add new layout to line:
+MODIFIED=`echo "$ORIGINAL" | sed "s%\"$CURRENT\"%\"$NEW\"%"`
+
+# add to file
+#sed "s%$ORIGINAL%$MODIFIED%" ${INFILE} > $OUTFILE
+# adjust variants line:   #20120201
+MODIFIEDVARIANTS=`echo "$ORIGINALVARIANTS" | sed "s%\"$CURRENTVARIANTS\"%\"$VARIANTS\"%"`
+if [ -z "$MODIFIEDVARIANTS" ] ; then
+        sed "s%$ORIGINAL%$MODIFIED%" ${INFILE} > $OUTFILE
+else
+        sed -e "s%$ORIGINAL%$MODIFIED%" -e "s%$ORIGINALVARIANTS%$MODIFIEDVARIANTS%" ${INFILE} > $OUTFILE   #20120201
+fi        
+
+if ! fgrep -q '"XkbModel"' $OUTFILE ; then
+	eval $ERRMSG
+	rm -f $OUTFILE
+else
+	mv -f $OUTFILE $INFILE
+	eval $SUCCESS
+fi
+exit

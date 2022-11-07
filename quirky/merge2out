@@ -1,0 +1,436 @@
+#!/bin/sh
+#BK nov. 2011
+#111126 do not copy files from woof-distro to woof-out, symlink only.
+#111126 fix symlink to compat-distro pkg download directory.
+#111127 make sure host linux system has 'printcols' and 'vercmp' utilities.
+#111127 also make sure target build will have 'printcols' and 'vercmp'.
+#111203 fixes for rerun of this script.
+#120503 i left some EMPTYDIRMARKER files inside /dev.
+#120512 remove option to create symlinks in working directory.
+#120515 build from "gentoo" binary tarballs (refer support/gentoo).
+#130306 arch linux: gz now xz.
+#130528 change owner:group of symlink instead of what it points to.
+#131209 Packages-puppy- files renamed to Packages-pet-
+#140117 target now ../builds/quirky-out_*
+#140119 fixes for quirky build. 140121
+#141011 added note about Ubuntu version numbers.
+#141116 support buildroot, plus general handler.
+#150708 add note on Wily Werewolf.
+#150813 i want the 'source' folder in target. REVERT.
+#151103 always want t2 april db-file copied (going to support building with compat:april in a ubuntu build).
+#151104 build a real puppy live-cd.
+#170930 new WOOF_VARIANT  171205 fix.
+#181125 this is the original merge2out before easyos.
+#181125 woof-arch, woof-code, woof-distro dirs changed to quirky-*
+#181216 'builds' folder moved outside.
+#200514 get 'packages-templates' from easyos.
+
+[ ! -d ./quirky-arch ] && exit
+[ ! -d ./quirky-code ] && exit
+[ ! -d ./quirky-distro ] && exit
+
+CURDIR="`pwd`"
+#181216
+mkdir -p ../../../../../builds/woof-project/builds
+BUILDSPATH='../../../../../builds/woof-project/builds'
+[ ! -d ${BUILDSPATH} ] && exit 1
+ln -snf ../../../../builds/woof-project/builds ../builds
+ln -snf ../../bk/projects/woof/woof-project/local-repositories ../../../../../builds/woof-project/local-repositories
+ln -snf ../../bk/projects/woof/woof-project/pet-construction ../../../../../builds/woof-project/pet-construction
+
+echo
+echo 'This script merges quirky-arch, quirky-code and quirky-distro, to:
+ ${BUILDSPATH}/quirky-out_*.
+
+quirky-arch:  architecture-dependent (x86, arm) files, mostly binary executables.
+quirky-code:  the core of Woof. Mostly scripts.
+quirky-distro: distro-configuration (Debian, Slackware, etc.) files.
+
+Important: the host architecture is distinct from the target architecture.
+The host is the machine you are running Woof on, the target is the machine
+in which the Puppy that you build is going to run. Typically, you will build
+on a x86 machine, and the target may be x86 or arm.'
+echo
+
+#151206 no need to ask...
+#CNT=1
+#for ONEARCH in `find quirky-arch -mindepth 1 -maxdepth 1 -type d | sed -e 's%^quirky-arch/%%' | sort | tr '\n' ' '`
+#do
+# echo "$CNT  $ONEARCH"
+# CNT=$(($CNT + 1))
+#done
+#echo -n 'Type number of host architecture: '
+#read nHOSTARCH
+#HOSTARCH="`find quirky-arch -mindepth 1 -maxdepth 1 -type d | sed -e 's%^quirky-arch/%%' | sort | head -n $nHOSTARCH | tail -n 1`"
+#echo "...ok, $HOSTARCH"
+#echo
+. /etc/DISTRO_SPECS #has DISTRO_TARGETARCH
+HOSTARCH="$DISTRO_TARGETARCH"
+echo "Host arch: ${HOSTARCH}"
+echo
+
+CNT=1
+for ONEARCH in `find quirky-arch -mindepth 1 -maxdepth 1 -type d | sed -e 's%^quirky-arch/%%' | sort | tr '\n' ' '`
+do
+ echo "$CNT  $ONEARCH"
+ CNT=$(($CNT + 1))
+done
+echo -n 'Type number of target architecture: '
+read nTARGETARCH
+TARGETARCH="`find quirky-arch -mindepth 1 -maxdepth 1 -type d | sed -e 's%^quirky-arch/%%' | sort | head -n $nTARGETARCH | tail -n 1`"
+echo "...ok, $TARGETARCH"
+echo
+
+echo 'Woof builds a Puppy based on the binary packages from another distro.
+We sometimes refer to this as the "compat-distro".'
+echo
+CNT=1
+taPTN="s%^quirky-distro/${TARGETARCH}/%%"
+for ONEDISTRO in `find quirky-distro/${TARGETARCH} -mindepth 1 -maxdepth 1 -type d | sed -e "${taPTN}" | sort | tr '\n' ' '`
+do
+ echo "$CNT  $ONEDISTRO"
+ CNT=$(($CNT + 1))
+done
+echo -n 'Type number of compat-distro: '
+read nCOMPATDISTRO
+COMPATDISTRO="`find quirky-distro/${TARGETARCH} -mindepth 1 -maxdepth 1 -type d | sed -e "${taPTN}" | sort | head -n $nCOMPATDISTRO | tail -n 1`"
+echo "...ok, $COMPATDISTRO"
+echo
+
+echo 'The compat-distro usually has release versions, unless it is a rolling
+release system such as Arch Linux. Please choose which release you want to
+obtain the binary packages from.'
+
+case $COMPATDISTRO in
+ ubuntu)
+  echo 'Note: Ubuntu versions:
+  16.04 LTS Xenial Xerus, 15.10 Wily Werewolf, 15.04 Vivid Vervet,
+  14.10 Utopic Unicorn, 14.04 Trusty Tahr, 12.04 Precise Pangolin'
+ ;;
+esac
+
+CNT=1
+for ONECOMPAT in `find quirky-distro/${TARGETARCH}/${COMPATDISTRO} -maxdepth 1 -mindepth 1 -type d | rev | cut -f 1 -d '/' | rev | sort | tr '\n' ' '`
+do
+ echo "$CNT  $ONECOMPAT"
+ CNT=$(($CNT + 1))
+done
+if [ $CNT -eq 1 ];then
+ echo
+ echo "Sorry, there are no release directories inside quirky-distro/${COMPATDISTRO}."
+ echo "At least one is required. Quiting."
+ exit
+fi
+echo -n 'Type number of release: '
+read nCOMPATVERSION
+COMPATVERSION="`find quirky-distro/${TARGETARCH}/${COMPATDISTRO} -maxdepth 1 -mindepth 1 -type d | rev | cut -f 1 -d '/' | rev | sort | head -n $nCOMPATVERSION | tail -n 1`"
+echo "...ok, $COMPATVERSION"
+
+echo
+echo 'Choices:'
+echo "Host architecture:     $HOSTARCH"
+echo "Target architecture:   $TARGETARCH"
+echo "Compatible-distro:     $COMPATDISTRO"
+echo "Compat-distro version: $COMPATVERSION"
+echo
+echo -n "If these are ok, press ENTER, other CTRL-C to quit: "
+read waitforit
+
+echo
+echo "Directory '../builds/quirky-out_${HOSTARCH}_${TARGETARCH}_${COMPATDISTRO}_${COMPATVERSION}'
+will now be created, if not already, and the contents of 'quirky-code' copied
+into it. Then, these will also be copied into it:
+quirky-arch/${HOSTARCH}/build
+quirky-arch/${TARGETARCH}/target
+quirky-distro/${TARGETARCH}/${COMPATDISTRO}/${COMPATVERSION} (files all levels)"
+echo
+echo "Any existing files in '../builds/quirky-out_${HOSTARCH}_${TARGETARCH}_${COMPATDISTRO}_${COMPATVERSION}' will be over-ridden."
+echo "(Also, if you have any of your own files in folders 'boot', 'kernel-skeleton',
+ 'packages-templates', 'rootfs-skeleton' or 'support', they will be deleted.)"
+echo -n 'Press ENTER to continue: '
+read goforit
+
+#111203 as files/dirs could be removed in future woofs, need to wipe entire target dirs first...
+rm -r -f ../builds/quirky-out_${HOSTARCH}_${TARGETARCH}_${COMPATDISTRO}_${COMPATVERSION}/boot  2> /dev/null
+rm -r -f ../builds/quirky-out_${HOSTARCH}_${TARGETARCH}_${COMPATDISTRO}_${COMPATVERSION}/kernel-skeleton  2> /dev/null
+rm -r -f ../builds/quirky-out_${HOSTARCH}_${TARGETARCH}_${COMPATDISTRO}_${COMPATVERSION}/packages-templates  2> /dev/null
+rm -r -f ../builds/quirky-out_${HOSTARCH}_${TARGETARCH}_${COMPATDISTRO}_${COMPATVERSION}/rootfs-skeleton  2> /dev/null
+rm -r -f ../builds/quirky-out_${HOSTARCH}_${TARGETARCH}_${COMPATDISTRO}_${COMPATVERSION}/support  2> /dev/null
+sync
+
+mkdir -p ../builds/quirky-out_${HOSTARCH}_${TARGETARCH}_${COMPATDISTRO}_${COMPATVERSION}
+getARCHDIR=""
+[ -f ../builds/quirky-out_${HOSTARCH}_${TARGETARCH}_${COMPATDISTRO}_${COMPATVERSION}/DISTRO_SPECS ] && getARCHDIR="`grep '^DISTRO_ARCHDIR' ../builds/quirky-out_${HOSTARCH}_${TARGETARCH}_${COMPATDISTRO}_${COMPATVERSION}/DISTRO_SPECS`" #140119 140121
+echo "Copying quirky-code/*..."
+cp -a -f --remove-destination quirky-code/* ../builds/quirky-out_${HOSTARCH}_${TARGETARCH}_${COMPATDISTRO}_${COMPATVERSION}/
+sync
+echo "Copying 'packages-templates' from easyos..." #200514
+cp -a ../easyos/easy-code/packages-templates ../builds/quirky-out_${HOSTARCH}_${TARGETARCH}_${COMPATDISTRO}_${COMPATVERSION}/
+sync
+echo "Copying quirky-arch/${HOSTARCH}/build/*..."
+cp -a -f --remove-destination quirky-arch/${HOSTARCH}/build/* ../builds/quirky-out_${HOSTARCH}_${TARGETARCH}_${COMPATDISTRO}_${COMPATVERSION}/
+sync
+echo "Copying quirky-arch/${TARGETARCH}/target/*"
+cp -a -f --remove-destination quirky-arch/${TARGETARCH}/target/* ../builds/quirky-out_${HOSTARCH}_${TARGETARCH}_${COMPATDISTRO}_${COMPATVERSION}/
+sync
+echo
+echo "Copying quirky-distro/${COMPATDISTRO}/${COMPATVERSION}/*..."
+#copy any top-level files, going down...
+
+#120512 remove this option...
+##111203 script run before, respect previous decision...
+#DESTTYPE=''
+#ONETOP="`find quirky-distro -mindepth 1 -maxdepth 1 -type f | head -n 1`"
+#[ ! "$ONETOP" ] && ONETOP="`find quirky-distro/${TARGETARCH} -mindepth 1 -maxdepth 1 -type f | head -n 1`"
+#[ ! "$ONETOP" ] && ONETOP="`find quirky-distro/${TARGETARCH}/${COMPATDISTRO} -mindepth 1 -maxdepth 1 -type f | head -n 1`"
+#[ ! "$ONETOP" ] && ONETOP="`find quirky-distro/${TARGETARCH}/${COMPATDISTRO}/${COMPATVERSION} -mindepth 1 -maxdepth 1 -type f | head -n 1`"
+#if [ "$ONETOP" ];then
+# ONEBASE="`basename $ONETOP`"
+# if [ -e ../builds/quirky-out_${HOSTARCH}_${TARGETARCH}_${COMPATDISTRO}_${COMPATVERSION}/${ONEBASE} ];then
+#  DESTTYPE='file'
+#  [ -h ../builds/quirky-out_${HOSTARCH}_${TARGETARCH}_${COMPATDISTRO}_${COMPATVERSION}/${ONEBASE} ] && DESTTYPE='symlink'
+# fi
+#fi
+#if [ "$DESTTYPE" = "" ];then
+# #111126 don't copy, more convenient if symlink, so only one instance of the file... 111129 offer choice...
+# echo
+# echo "Press ENTER only to copy files from quirky-distro, any other char to symlink
+#files back to quirky-distro. Latter is a convenience for administrator, for most
+#Woof users, please choose former."
+# echo -n "Recommend press ENTER only: "
+# read choosesymlink
+#else
+# choosesymlink=''
+# [ "$DESTTYPE" = "symlink" ] && choosesymlink='y'
+#fi
+DESTTYPE='file'
+choosesymlink=''
+
+PARENTDIR="`echo -n "$CURDIR" | rev | cut -f 1 -d '/' | rev`" #ex: woof2
+for ONETOP in `find quirky-distro -mindepth 1 -maxdepth 1 -type f | tr '\n' ' '`
+do
+ if [ "$choosesymlink" = "" ];then
+  cp -a -f --remove-destination $ONETOP ../builds/quirky-out_${HOSTARCH}_${TARGETARCH}_${COMPATDISTRO}_${COMPATVERSION}/
+ else
+  ONENAME="`basename $ONETOP`"
+  ln -snf ../../${PARENTDIR}/${ONETOP} ../builds/quirky-out_${HOSTARCH}_${TARGETARCH}_${COMPATDISTRO}_${COMPATVERSION}/${ONENAME}
+ fi
+done
+for ONETOP in `find quirky-distro/${TARGETARCH} -mindepth 1 -maxdepth 1 -type f | tr '\n' ' '`
+do
+ if [ "$choosesymlink" = "" ];then
+  cp -f -a --remove-destination $ONETOP ../builds/quirky-out_${HOSTARCH}_${TARGETARCH}_${COMPATDISTRO}_${COMPATVERSION}/
+ else
+  ONENAME="`basename $ONETOP`"
+  ln -snf ../../${PARENTDIR}/${ONETOP} ../builds/quirky-out_${HOSTARCH}_${TARGETARCH}_${COMPATDISTRO}_${COMPATVERSION}/${ONENAME}
+ fi
+done
+for ONETOP in `find quirky-distro/${TARGETARCH}/${COMPATDISTRO} -mindepth 1 -maxdepth 1 -type f | tr '\n' ' '`
+do
+ if [ "$choosesymlink" = "" ];then
+  cp -f -a --remove-destination $ONETOP ../builds/quirky-out_${HOSTARCH}_${TARGETARCH}_${COMPATDISTRO}_${COMPATVERSION}/
+ else
+  ONENAME="`basename $ONETOP`"
+  ln -snf ../../${PARENTDIR}/${ONETOP} ../builds/quirky-out_${HOSTARCH}_${TARGETARCH}_${COMPATDISTRO}_${COMPATVERSION}/${ONENAME}
+ fi
+done
+#lowest level...
+#cp -a -f --remove-destination quirky-distro/${TARGETARCH}/${COMPATDISTRO}/${COMPATVERSION}/* ../builds/quirky-out_${HOSTARCH}_${TARGETARCH}_${COMPATDISTRO}_${COMPATVERSION}/
+for ONETOP in `find quirky-distro/${TARGETARCH}/${COMPATDISTRO}/${COMPATVERSION} -mindepth 1 -maxdepth 1 -type f | tr '\n' ' '`
+do
+ if [ "$choosesymlink" = "" ];then
+  cp -f -a --remove-destination $ONETOP ../builds/quirky-out_${HOSTARCH}_${TARGETARCH}_${COMPATDISTRO}_${COMPATVERSION}/
+ else
+  ONENAME="`basename $ONETOP`"
+  ln -snf ../../${PARENTDIR}/${ONETOP} ../builds/quirky-out_${HOSTARCH}_${TARGETARCH}_${COMPATDISTRO}_${COMPATVERSION}/${ONENAME}
+ fi
+done
+sync
+
+##150813 i want the 'source' folder in target... REVERT
+#[ -d ../builds/quirky-out_${HOSTARCH}_${TARGETARCH}_${COMPATDISTRO}_${COMPATVERSION}/source ] && rm -rf ../builds/quirky-out_${HOSTARCH}_${TARGETARCH}_${COMPATDISTRO}_${COMPATVERSION}/source
+#cp -a source ../builds/quirky-out_${HOSTARCH}_${TARGETARCH}_${COMPATDISTRO}_${COMPATVERSION}/
+#sync
+
+echo "WOOF_HOSTARCH='$HOSTARCH'
+WOOF_TARGETARCH='${TARGETARCH}'
+WOOF_COMPATDISTRO='${COMPATDISTRO}'
+WOOF_COMPATVERSION='${COMPATVERSION}'" > ../builds/quirky-out_${HOSTARCH}_${TARGETARCH}_${COMPATDISTRO}_${COMPATVERSION}/WOOFMERGEVARS
+
+#170930 171205
+echo "WOOF_VARIANT='quirky'" >> ../builds/quirky-out_${HOSTARCH}_${TARGETARCH}_${COMPATDISTRO}_${COMPATVERSION}/WOOFMERGEVARS
+
+echo
+echo "Now for some housekeeping..."
+
+#work around limitations of a version control system...
+echo
+echo "Some things are modified inside 'quirky-code' to cater for most Version
+Control Systems. Typically, a VCS cannot handle most of these:
+1. Empty directories
+2. Special file/directory permissions/ownership
+3. Device nodes
+4. Symlinks
+5. Special characters (such as [, [[) in file/dir names
+6. Binary files
+
+BK's Bones VCS can handle all six. Fossil VCS can do no.4 & no.6 only (in fact,
+most VCSs such as SVN, GIT and Mercurial, can handle no.4 & no.6). Woof has
+lots of symlinks and binary files, and you must use a VCS that supports them.
+No.5 is solved by avoiding usage of such special characters, except we have
+workarounds for case of files named '[' and '[['."
+echo
+echo "Directory 'quirky-code' has workarounds for no.1-3 (& partial 5):
+1. An empty file named 'EMPTYDIRMARKER' inside all empty directories.
+2. A file named VCSMETADATA has permissions/ownerships of special files/dirs.
+3. 'dev' directories are converted to '*DEVDIR.tar.gz' tarball files.
+5. Files named '[' and '[[' renamed 'LEFTSQBRACKETCHAR' 'DBLLEFTSQBRACKETCHAR'."
+echo
+echo "These workarounds will now be undone in '../builds/quirky-out_*'..."
+echo -n "Press ENTER to continue: "
+read goforit
+
+fossil_fixup_func() { #workarounds for VCS...
+ #param passed in is directory to fix.
+ #5: '[' and '[[' files renamed...
+ for FOSSILFIXFILE in `find ${1} -name LEFTSQBRACKETCHAR | tr '\n' ' '`
+ do
+  DIRFFF="`dirname "$FOSSILFIXFILE"`"
+  mv -f $FOSSILFIXFILE $DIRFFF/[
+ done
+ for FOSSILFIXFILE in `find ${1} -name DBLLEFTSQBRACKETCHAR | tr '\n' ' '`
+ do
+  DIRFFF="`dirname "$FOSSILFIXFILE"`"
+  mv -f $FOSSILFIXFILE $DIRFFF/[[
+ done
+ #1: empty dirs have file 'EMPTYDIRMARKER' in them...
+ for FOSSILFIXFILE in `find ${1} -type f -name EMPTYDIRMARKER | tr '\n' ' '`
+ do
+  DIRFFF="`dirname "$FOSSILFIXFILE"`"
+  rm -f $DIRFFF/EMPTYDIRMARKER
+ done
+ #3: 'dev' dir made into a tarball and stored in 'quirky-arch'...
+ for DEVFILE in `find ${1} -type f -name DEVDIRMARKER | tr '\n' ' '`
+ do
+  xDEVFILE="${CURDIR}/quirky-arch/`cat $DEVFILE`"
+  DIRFFF="`dirname "$DEVFILE"`"
+  cp -f $xDEVFILE ${DIRFFF}/DEVDIR.tar.gz
+  FCURRDIR="`pwd`"
+  cd $DIRFFF
+  tar -zxf DEVDIR.tar.gz
+  rm -f DEVDIR.tar.gz
+  rm -f DEVDIRMARKER
+  #120503 i left some EMPTYDIRMARKER inside /dev...
+  for FOSSILFIXFILE in `find dev -type f -name EMPTYDIRMARKER | tr '\n' ' '`
+  do
+   DIRFFF="`dirname "$FOSSILFIXFILE"`"
+   rm -f $DIRFFF/EMPTYDIRMARKER
+  done
+  cd $FCURRDIR
+ done
+}
+
+echo
+cd ../builds/quirky-out_${HOSTARCH}_${TARGETARCH}_${COMPATDISTRO}_${COMPATVERSION}
+echo "Fixing ../builds/quirky-out_${HOSTARCH}_${TARGETARCH}_${COMPATDISTRO}_${COMPATVERSION}/rootfs-skeleton..."
+fossil_fixup_func rootfs-skeleton
+echo "Fixing ../builds/quirky-out_${HOSTARCH}_${TARGETARCH}_${COMPATDISTRO}_${COMPATVERSION}/packages-templates..."
+fossil_fixup_func packages-templates
+
+#2: VCSMETADATA permissions/ownership...
+if [ -s VCSMETADATA ];then
+ echo "Fixing file/dir permissions/ownership..."
+ for ONESPEC in `cat VCSMETADATA | tr '\n' ' '`
+ do
+  ONEFILE="`echo -n "$ONESPEC" | cut -f 1 -d ':'`"
+  [ ! -e $ONEFILE ] && continue
+  ONEPERM="`echo -n "$ONESPEC" | cut -f 2 -d ':'`"
+  ONEOWNER="`echo -n "$ONESPEC" | cut -f 3 -d ':'`"
+  ONEGROUP="`echo -n "$ONESPEC" | cut -f 4 -d ':'`"
+  echo -n '.' #echo " $ONEFILE $ONEPERM $ONEOWNER $ONEGROUP"
+  chmod $ONEPERM $ONEFILE
+  #130528 change owner:group of symlink instead of what it points to...
+  [ "$ONEOWNER" != "UNKNOWN" ] && chown -h $ONEOWNER $ONEFILE
+  [ "$ONEOWNER" = "UNKNOWN" ] && chown -h root $ONEFILE
+  [ "$ONEGROUP" != "UNKNOWN" ] && chgrp -h $ONEGROUP $ONEFILE
+  [ "$ONEGROUP" = "UNKNOWN" ] && chgrp -h root $ONEFILE
+ done
+ echo
+fi
+cd $CURDIR
+sync
+
+#common dir to download pet pkgs to...
+mkdir -p ../local-repositories/${TARGETARCH}/packages-pet
+[ ! -e ../builds/quirky-out_${HOSTARCH}_${TARGETARCH}_${COMPATDISTRO}_${COMPATVERSION}/packages-pet ] && ln -s ../../local-repositories/${TARGETARCH}/packages-pet ../builds/quirky-out_${HOSTARCH}_${TARGETARCH}_${COMPATDISTRO}_${COMPATVERSION}/packages-pet #111203 check exist.
+
+#more links to common download...
+if [ -f ../builds/quirky-out_${HOSTARCH}_${TARGETARCH}_${COMPATDISTRO}_${COMPATVERSION}/DISTRO_SPECS ];then
+
+. ../builds/quirky-out_${HOSTARCH}_${TARGETARCH}_${COMPATDISTRO}_${COMPATVERSION}/DISTRO_SPECS
+
+ #111126 code from 2createpackages... also in 1download
+ BINARIES='' #141116
+ [ "$DISTRO_BINARY_COMPAT" = "t2" ] && BINARIES="bz2" #get them from packages-bz2-${DISTRO_COMPAT_VERSION}.
+ [ "$DISTRO_BINARY_COMPAT" = "slackware" ] && BINARIES="tgz_txz" #download to packages-tgz_txz-${DISTRO_COMPAT_VERSION}.
+ [ "$DISTRO_BINARY_COMPAT" = "debian" ] && BINARIES="deb" #download to packages-deb-${DISTRO_COMPAT_VERSION}.
+ [ "$DISTRO_BINARY_COMPAT" = "arch" ] && BINARIES="tar_xz" #download to packages-tar_xz-${DISTRO_COMPAT_VERSION}. 130306
+ [ "$DISTRO_BINARY_COMPAT" = "puppy" ] && BINARIES="pet" #built entirely from pet pkgs.
+ [ "$DISTRO_BINARY_COMPAT" = "scientific" ] && BINARIES="rpm" #Iguleder: download to packages-rpm-${DISTRO_COMPAT_VERSION}.
+ [ "$DISTRO_BINARY_COMPAT" = "mageia" ] && BINARIES="rpm"
+ [ "$DISTRO_BINARY_COMPAT" = "gentoo" ] && BINARIES="gentoo" #120515 download to packages-gentoo-gap6
+ [ "$DISTRO_BINARY_COMPAT" = "raspbian" ] && BINARIES="deb_raspbian" #download to packages-deb_raspbian-${DISTRO_COMPAT_VERSION}.
+ [ "$DISTRO_BINARY_COMPAT" = "ubuntu" ] && BINARIES="deb" #141116 download to packages-deb-${DISTRO_COMPAT_VERSION}.
+
+ #141116 add a general handler...
+ [ "$BINARIES" == "" ] && BINARIES="$DISTRO_BINARY_COMPAT" #ex: buildroot
+
+ BINARIES="${BINARIES}-${DISTRO_COMPAT_VERSION}" #ex: download to packages-buildroot-aug2014
+
+ mkdir -p ../local-repositories/${TARGETARCH}/packages-${BINARIES}
+ [ ! -e ../builds/quirky-out_${HOSTARCH}_${TARGETARCH}_${COMPATDISTRO}_${COMPATVERSION}/packages-${BINARIES} ] && ln -s ../../local-repositories/${TARGETARCH}/packages-${BINARIES} ../builds/quirky-out_${HOSTARCH}_${TARGETARCH}_${COMPATDISTRO}_${COMPATVERSION}/packages-${BINARIES} #111203 check exist.
+fi
+
+#record target architecture in DISTRO_SPECS (will end up in /etc/ in Puppy build)...
+if [ -f ../builds/quirky-out_${HOSTARCH}_${TARGETARCH}_${COMPATDISTRO}_${COMPATVERSION}/DISTRO_SPECS ];then
+ if [ "`grep '^DISTRO_TARGETARCH' ../builds/quirky-out_${HOSTARCH}_${TARGETARCH}_${COMPATDISTRO}_${COMPATVERSION}/DISTRO_SPECS`" = "" ];then
+  echo "DISTRO_TARGETARCH='${TARGETARCH}'" >> ../builds/quirky-out_${HOSTARCH}_${TARGETARCH}_${COMPATDISTRO}_${COMPATVERSION}/DISTRO_SPECS
+ fi
+fi
+[ "$getARCHDIR" ] && echo "$getARCHDIR" >> ../builds/quirky-out_${HOSTARCH}_${TARGETARCH}_${COMPATDISTRO}_${COMPATVERSION}/DISTRO_SPECS #140121
+
+#131209 have done it...
+##until i upgrade the woof scripts... (i was planning to rename Packages-puppy-* to Packages-pet-*, aborted). 
+#for ONEPP in `find ../builds/quirky-out_${HOSTARCH}_${TARGETARCH}_${COMPATDISTRO}_${COMPATVERSION} -mindepth 1 -maxdepth 1 -name 'Packages-pet-*' | tr '\n' ' '`
+#do
+# BASEPP="`basename $ONEPP`"
+# NEWBASE="`echo -n $BASEPP | sed -e 's%Packages-pet-%Packages-puppy-%'`"
+# ln -s $BASEPP ../builds/quirky-out_${HOSTARCH}_${TARGETARCH}_${COMPATDISTRO}_${COMPATVERSION}/${NEWBASE}
+#done
+
+#111127 make sure host puppy has these...
+[ ! -f /usr/sbin/printcols ] && cp -af quirky-arch/${HOSTARCH}/build/support/printcols /usr/sbin/ #column manipulator.
+[ ! -f /bin/vercmp ] && cp -af quirky-arch/${HOSTARCH}/target/boot/vercmp /bin/ #dotted-version compare utility, see boot/vercmp.c
+
+#111127 make sure target has these...
+cp -af quirky-arch/${TARGETARCH}/build/support/printcols ../builds/quirky-out_${HOSTARCH}_${TARGETARCH}_${COMPATDISTRO}_${COMPATVERSION}/${NEWBASE}/rootfs-skeleton/usr/sbin/
+cp -af quirky-arch/${TARGETARCH}/target/boot/vercmp ../builds/quirky-out_${HOSTARCH}_${TARGETARCH}_${COMPATDISTRO}_${COMPATVERSION}/${NEWBASE}/rootfs-skeleton/bin/
+
+#151103 want to use t2 pkgs in ubuntu builds...
+[ -f quirky-distro/${TARGETARCH}/t2/april/Packages-t2-april-official ] && cp -af quirky-distro/${TARGETARCH}/t2/april/Packages-t2-april-official ../builds/quirky-out_${HOSTARCH}_${TARGETARCH}_${COMPATDISTRO}_${COMPATVERSION}/${NEWBASE}/
+[ -f quirky-distro/${TARGETARCH}/t2/Packages-t2-april-official ] && cp -af quirky-distro/${TARGETARCH}/t2/Packages-t2-april-official ../builds/quirky-out_${HOSTARCH}_${TARGETARCH}_${COMPATDISTRO}_${COMPATVERSION}/${NEWBASE}/
+[ ! -e ../builds/quirky-out_${HOSTARCH}_${TARGETARCH}_${COMPATDISTRO}_${COMPATVERSION}/${NEWBASE}/packages-bz2-april ] && ln -s ../../local-repositories/${TARGETARCH}/packages-bz2-april ../builds/quirky-out_${HOSTARCH}_${TARGETARCH}_${COMPATDISTRO}_${COMPATVERSION}/${NEWBASE}/packages-bz2-april
+
+#151104
+mkdir -p ../builds/quirky-out_${HOSTARCH}_${TARGETARCH}_${COMPATDISTRO}_${COMPATVERSION}/${NEWBASE}/puppy
+cp -a -f ../puppy/* ../builds/quirky-out_${HOSTARCH}_${TARGETARCH}_${COMPATDISTRO}_${COMPATVERSION}/${NEWBASE}/puppy/
+sync
+echo
+echo "Directory '../builds/quirky-out_${HOSTARCH}_${TARGETARCH}_${COMPATDISTRO}_${COMPATVERSION}'
+is now normal, that is, the workarounds have been removed. Note,
+../local-repositories has been created (if not already), to be used as a common
+binary package download place. 'packages-pet' and 'packages-${BINARIES}'
+have been created that link into it, where pkgs will be downloaded to."
+
+
+###END###

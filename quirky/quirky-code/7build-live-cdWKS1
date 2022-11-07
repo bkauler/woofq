@@ -1,0 +1,254 @@
+#!/bin/sh
+#(c) Copyright Barry Kauler, Feb 12, 2015. License GPL v3 (/usr/share/doc/legal).
+#build quirky as a live-cd, running in ram.
+#150214 first release.
+#150418 support uefi booting. 150426 defer for now.
+#151128 place q.sfs outside of initrd, create file Q_ID.
+#151203 burn to CD or DVD, with auto-blank of DVD-RW. Also verify. 151205
+#151205 more files needed by /usr/local/install_quirky/install-quirky-to-drive
+#151210 help.msg has qfix=fsck,bak, not relevent to frugal or livecd.
+#151213 no longer hardcode DEV1FS. see also /sbin/initNEW, /etc/rc.d/rc.sysinit, /usr/local/install_quirky/install-quirky-to-*
+
+. ./DISTRO_SPECS
+RIGHTVER="$DISTRO_VERSION"
+
+#use xorriso if it is installed (see also functions4puppy)...
+CDRECORD='cdrecord'
+MKISOFS='mkisofs'
+if [ "`which xorriso`" != "" ];then
+ CDRECORD='xorrecord'
+ MKISOFS='xorrisofs' #growisofs reads this variable.
+fi
+export CDRECORD MKISOFS
+
+#what kernel was chosen?...
+KERNVER="`find sandbox3/rootfs-complete/lib/modules -maxdepth 1 -type d -name '[23]*' | head -n 1 | rev | cut -f 1 -d '/' | rev`"
+
+DOTCONFIG="`find sandbox3/rootfs-complete/etc/modules -maxdepth 1 -type f -name 'DOTconfig*' | head -n 1`"
+
+PREBUILD='yes'
+[ "$DOTCONFIG" = "" ] && PREBUILD='no'
+if [ "$PREBUILD" = "no" ];then
+ echo "The needed files are missing from sandbox3/build"
+ echo 'The previous scripts 0* - 3* have to be run first.'
+ echo "Quiting script..."
+ exit
+fi
+
+if [ ! -e /usr/bin/gcc ];then
+ echo
+ echo "The 'devx' SFS file must be loaded. Quiting script..."
+ exit
+fi
+
+echo 'This script will install Quirky to a CD'
+
+#150426 defer:
+##150418
+#echo
+#echo "Do you want dual-boot BIOS and UEFI, or BIOS only?"
+#echo -n "Press ENTER BIOS-only: "
+#read UEFIflag
+#if [ "UEFIflag" ];then
+# UEFIflag="yes"
+# echo " ...chose UEFI and BIOS dual-boot."
+#else
+ UEFIflag="no"
+# echo " ...chose BIOS boot only."
+#fi
+
+echo
+echo 'Please wait, copying sandbox3/rootfs-complete...'
+rm -rf sandbox4 2>/dev/null
+mkdir sandbox4
+cd sandbox4
+cp -a ../sandbox3/rootfs-complete ./
+
+#fix f.s. (as in service_pack's)... 151213 no longer required...
+#PART2FS="ext2"
+#tPTN1="s%.*MARK_DEV1FS_LINE.*%DEV1FS='${PART2FS}' #MARK_DEV1FS_LINE %"
+#sed -i -e "$tPTN1" rootfs-complete/sbin/init
+#sed -i -e "$tPTN1" rootfs-complete/etc/rc.d/rc.sysinit
+
+#create icon on desktop to save session...
+sed -i -e 's%^</pinboard>$%  <icon x="768" y="128" label="save">/usr/sbin/savesession</icon>\n</pinboard>%' rootfs-complete/root/Choices/ROX-Filer/PuppyPin
+#"install" icon on desktop...
+sed -i -e 's%^</pinboard>$%  <icon x="704" y="128" label="install">/usr/sbin/installquirky</icon>\n</pinboard>%' rootfs-complete/root/Choices/ROX-Filer/PuppyPin
+
+#record media installed to. maybe used by /usr/sbin/savesession, installquirky...
+echo 'INSTALLED_MODE=livecd' > rootfs-complete/etc/rc.d/install.log
+
+#create iso build folder...
+echo "Creating 'build' folder..."
+mkdir build
+cp -a ../sandbox3/build/* build/
+mv -f build/syslinux.cfg build/isolinux.cfg
+sed -i -e 's%^append .*%append initrd=initrd.q rootwait rw%' build/isolinux.cfg
+[ -f build/README.HTM ] && rm -f build/README.HTM
+if [ -f /usr/lib/syslinux/isolinux.bin ];then #150211
+ cp -f /usr/lib/syslinux/isolinux.bin build/
+else
+ cp -f /usr/share/syslinux/isolinux.bin build/
+fi
+
+#copy iso build files, for use by script 'savesession'...
+mkdir -p rootfs-complete/boot/iso
+cp -a -f build/boot.msg rootfs-complete/boot/iso/
+cp -a -f build/help.msg rootfs-complete/boot/iso/
+cp -a -f build/logo.16 rootfs-complete/boot/iso/
+cp -a -f build/isolinux.cfg rootfs-complete/boot/iso/
+cp -a -f build/isolinux.bin rootfs-complete/boot/iso/
+cp -a -f build/vmlinuz rootfs-complete/boot/
+
+#151210 help.msg has qfix=fsck,bak, not relevent to frugal or livecd...
+sed -i '/qfix=fsck/d' build/help.msg
+sed -i '/qfix=bak/d' build/help.msg
+
+#151205 used by /usr/local/install_quirky/install-quirky-to-drive... (same code in 3builddistro)
+ mkdir -p rootfs-complete/boot/syslinux
+ #cp -a -f ../sandbox3/build/vmlinuz rootfs-complete/boot/
+ cp -a -f ../sandbox3/build/boot.msg rootfs-complete/boot/syslinux/
+ cp -a -f ../sandbox3/build/help.msg rootfs-complete/boot/syslinux/
+ cp -a -f ../sandbox3/build/logo.16 rootfs-complete/boot/syslinux/
+ cp -a -f ../sandbox3/build/syslinux.cfg rootfs-complete/boot/syslinux/
+ #delete files...
+ for AFILE in `find ../boot/rootfs-deleted -type f | sed -e 's%../boot/rootfs-deleted/%%' | tr '\n' ' '`
+ do
+  [ -f rootfs-complete/${AFILE} ] && rm -f rootfs-complete/${AFILE}
+ done
+ echo "depmod..."
+ KERNELVER="$(find rootfs-complete/lib/modules -mindepth 1 -maxdepth 1 -type d -name '[234].*' | head -n 1 | rev | cut -f 1 -d '/' | rev)"
+ rm -f rootfs-complete/lib/modules/$KERNELVER/modules.*
+ cp -a -f rootfs-complete/etc/modules/modules.builtin rootfs-complete/lib/modules/$KERNELVER/
+ cp -a -f rootfs-complete/etc/modules/modules.order rootfs-complete/lib/modules/$KERNELVER/
+ ../sandbox3/depmod -b rootfs-complete -F ../sandbox3/System.map $KERNELVER
+ sync
+
+#150418 create a efi fat32 image...
+if [ "$UEFIflag" == "yes" ];then
+ dd if=/dev/zero of=efiboot.img bs=1M count=512 conv=fsync
+ mkdosfs -F 32 -n quirkefi efiboot.img
+ sync
+ mkdir -p efimntpt
+ busybox mount -o loop,rw efiboot.img efimntpt
+ mkdir -p efimntpt/EFI/BOOT
+ cp -a build/* efimntpt/EFI/BOOT/
+ SLPATH='/usr/share/syslinux'
+ cp ${SLPATH}/efi64/ldlinux.e64 efimntpt/EFI/BOOT/
+ cp ${SLPATH}/efi64/syslinux.efi efimntpt/EFI/BOOT/BOOTX64.EFI
+ sync
+ busybox umount efimntpt
+ mv efiboot.img build/
+fi
+
+#convert all of rootfs-complete into a sfs file...
+##150211 create uncompressed sfs file... (temp problem: t2 mksquashfs only supports gz)...
+echo 'Creating q.sfs...'
+../support/mksquashfs4.2 rootfs-complete ./q.sfs -comp xz -processors 1
+#mksquashfs rootfs-complete ./q.sfs -noI -noD -noF -noX -no-exports
+sync
+
+#151128
+echo
+echo 'Do you want q.sfs to be inside the initrd?'
+echo 'If not, at boot there will be a search for it, 1st on other
+drives, then optical.'
+echo -n 'ENTER only for no: '
+read ininitrd
+if [ "$ininitrd" == "" ];then
+ mv -f ./q.sfs ./build/
+fi
+
+#build initrd.cpio...
+echo
+echo "Building initrd.q cpio archive..."
+cp -a ../boot/initrd-tree ./
+sync
+cd initrd-tree
+if [ "$ininitrd" == "" ];then #151128
+ date +%Y%m%d%H%M > ./Q_ID #unique id, used for finding installed files. YYYMMDDHHMM
+else
+ mv -f ../q.sfs ./
+fi
+sync
+#now put it together again...
+find . | ../../boot/cpio -o -H newc > ../build/initrd.q  #.cpio
+sync
+cd ..
+
+echo
+echo "Now building live-CD ISO file..."
+ISONAME="${DISTRO_FILE_PREFIX}-${DISTRO_VERSION}.iso"
+#rm -f ./${DISTRO_FILE_PREFIX}-${DISTRO_VERSION}.iso 2> /dev/null
+if [ "$UEFIflag" == "no" ];then #150418
+ $MKISOFS -D -R -o ${ISONAME} -b isolinux.bin -c boot.cat -no-emul-boot -boot-load-size 4 -boot-info-table ./build/
+else
+ #$MKISOFS -D -R -o ${ISONAME} -b isolinux.bin -c boot.cat -no-emul-boot -boot-load-size 4 -boot-info-table -eltorito-alt-boot -e efiboot.img -no-emul-boot ./build/
+ #schillings mkisofs does not support -e option, need to do it this way:
+ $MKISOFS -D -R -o ${ISONAME} -b isolinux.bin -c boot.cat -no-emul-boot -boot-load-size 4 -boot-info-table -eltorito-alt-boot -eltorito-platform 0xEF -eltorito-boot efiboot.img -no-emul-boot ./build/
+fi
+sync
+md5sum ${ISONAME} > ${ISONAME}.md5.txt
+
+echo
+echo "${ISONAME} has been created."
+echo
+echo "Would you like to burn it to a CD or DVD? "
+echo -n "ENTER only for yes, or any printable char then ENTER not to: "
+read writeitnow
+if [ "$writeitnow" = "" ];then
+ CDR=""
+ [ -f /etc/cdburnerdevice ] && CDR="/dev/`cat /etc/cdburnerdevice`"
+ [ "$CDR" = "" ] && CDR='/dev/sr0'
+ CDDESCR="`probedisk | grep '|optical|' | grep "$CDR" | cut -f 3 -d '|'`"
+ #echo -n 'Type "y" for multisession, else just ENTER: '
+ #read BURNMULTI
+ #if [ "$BURNMULTI" = "y" ];then
+ # BURNMULTI="-multi -tao -pad"
+ #else
+  BURNMULTI="-dao"
+ #fi
+ echo "Please insert CD or DVD into ${CDR}
+(which is described as: ${CDDESCR})
+-- also be sure that it is unmounted.
+NOTE1: Blank CD-R required, CD-RW not supported.
+NOTE2: DVD-RW with prior content will be automatically blanked."
+ echo -n "Then hit ENTER key: "
+ read yayburn
+ 
+ CDTYPE='cd'
+ dvd+rw-mediainfo ${CDR} > /tmp/7buildlivecd-probe-log 2>&1
+ [ $? -eq 0 ] && CDTYPE='dvd'
+ if [ "$CDTYPE" == "dvd" ];then
+  if [ "$(grep ' Disc status: *blank' /tmp/7buildlivecd-probe-log)" == "" ];then
+   echo "Fast erasing DVD-RW on ${CDR}..."
+   dvd+rw-format -force ${CDR}
+   sync
+  fi
+  echo "Burning ${ISONAME} to DVD..."
+  growisofs -speed=1 -Z ${CDR}="${ISONAME}"
+ else
+  echo "Burning ${ISONAME} to CD-R..."
+  $CDRECORD $BURNMULTI -data -eject -v speed=4 padsize=300k dev=$CDR ${ISONAME}
+ fi
+ 
+# $CDRECORD $BURNMULTI -data -eject -v speed=4 padsize=300k dev=ATAPI:$CDR ${DISTRO_FILE_PREFIX}-${DISTRO_VERSION}${SCSIFLAG}.iso
+ sync
+ echo
+ echo -n 'Close tray, then press ENTER to verify burn: ' #151205
+ read verifyburn
+ if [ "$verifyburn" == "" ];then
+  echo "Verifying the burn..."
+  SUM2="$(dd if=${CDR} | head -c `stat --format=%s ${ISONAME}` | md5sum | cut -f 1 -d ' ')"
+  SUM1="$(md5sum ${ISONAME} | cut -f 1 -d ' ')"
+  if [ "$SUM1" == "$SUM2" ];then
+   echo ' ...verified OK'
+  else
+   echo ' ...failed verify, BAD BURN'
+  fi
+ fi
+ 
+ eject $CDR
+ echo "...done"
+fi
+

@@ -1,0 +1,59 @@
+#!/bin/sh
+#Barry Kauler. GPL3 (/usr/share/doc/legal)
+#140212 first version. called from /usr/sbin/delayedrun, before any normal snapshots taken.
+#140213 improve success window.
+
+export TEXTDOMAIN=take-reference-snapshot
+export OUTPUT_CHARSET=UTF-8
+
+. /etc/DISTRO_SPECS
+
+[ -f /audit/reference/${DISTRO_FILE_PREFIX}-${DISTRO_VERSION}.sfs ] && exit
+[ "`ls -1 /audit/snapshots`" != "" ] && exit
+
+export REFSNAP1_DLG="<window title=\"$(gettext 'Take reference snapshot')\" icon-name=\"gtk-about\" window_position=\"1\">
+ <vbox>
+  <text use-markup=\"true\"><label>\"<b>$(gettext 'Please take a reference snapshot')</b>\"</label></text>
+  <text><label>$(gettext 'A reference snapshot is a backup of your new installation, and is extremely useful for possible future recovery of a broken or compromised installation. It will take several minutes, and is optional, but very highly recommended if you intend to use this installation of Quirky for an extended period of time.')</label></text>
+  <text><label>\"$(gettext 'Technical notes:')
+$(gettext 'Normally, a snapshot of the new installation is generated at the time of installation, but not in the case of installing from a drive-image file.')
+$(gettext 'After the reference snapshot is created, it can be found at:') /audit/reference
+$(gettext 'The Quirky Snapshot Manager (see Filesystem menu) can be used to create later snapshots.')\"</label></text>
+  <hbox>
+   <button><label>$(gettext 'Take snapshot')</label><action function=\"exit\">TAKESNAPSHOT</action></button>
+   <button cancel></button>
+  </hbox>
+ </vbox>
+ </window>"
+RETVARS="$(gtkdialog --program=REFSNAP1_DLG)"
+eval "$RETVARS"
+[ "$EXIT" != "TAKESNAPSHOT" ] && exit
+
+snapshot-manager take 'reference snapshot'
+RETVAL=$?
+
+if [ $RETVAL -eq 9 ];then #not enough space in partition.
+ pupmessage -bg pink -fg black -title "$(gettext 'Reference snapshot: failure')" "$(gettext 'Sorry, but Quirky has been installed to a very small drive. There is not enough free space to create the reference snapshot. It is highly recommended to install Quirky to at least a 8GB drive.')"
+fi
+[ $RETVAL -ne 0 ] && exit
+[ ! -s /audit/snapshot-comments ] && exit
+
+DATE="`cat /audit/snapshot-comments | head -n 1 | cut -f 1 -d ' '`"
+echo -n "" > /audit/snapshot-comments
+[ -f /audit/snapshots/${DATE}.sfs ] && mv -f /audit/snapshots/${DATE}.sfs /audit/reference/${DISTRO_FILE_PREFIX}-${DISTRO_VERSION}.sfs
+
+#pupmessage -bg LightGreen -fg black -title "$(gettext 'Reference snapshot: success')" "$(gettext 'A snapshot of the installation has been created. Please explore the Quirky Snapshot Manager in the Filesystem menu to learn more about system snapshots.')"
+export REFSNAP2_DLG="<window title=\"$(gettext 'Reference snapshot: success')\" icon-name=\"gtk-about\" window_position=\"1\">
+ <vbox>
+  <text use-markup=\"true\"><label>\"<b>$(gettext 'A reference snapshot has been taken!')</b>\"</label></text>
+  <text><label>\" \"</label></text>
+  <text use-markup=\"true\"><label>\"<b>$(gettext 'Technical notes:')</b>
+<b>$(gettext '1:')</b> $(gettext 'The snapshot is saved as:') /audit/reference/${DISTRO_FILE_PREFIX}-${DISTRO_VERSION}.sfs
+<b>$(gettext '2:')</b> $(gettext 'The intended future use is to rebuild a broken installation, using the Quirky Rebuilder (see Filesystem menu).')
+<b>$(gettext '3:')</b> $(gettext 'The Quirky Snapshot Manager (see Filesystem menu) is currently a separate mechanism, and does not use the reference snapshot. Its snapshots are kept in /audit/snapshots.')\"</label><text>
+  <hbox><button ok></button></hbox>
+ </vbox>
+ </window>"
+gtkdialog --program=REFSNAP2_DLG
+
+###END###

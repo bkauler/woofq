@@ -1,0 +1,15 @@
+
+# ---------------------------------------
+# sound
+# note, /lib/udev/rules.d/50-udev-default.rules is from udev 167, has rules for
+# ownership:group and permissions when device nodes are created.
+
+# from kirk, fatdog64...
+KERNEL=="audio0",		SYMLINK+="audio"
+KERNEL=="dsp0",			SYMLINK+="dsp"
+KERNEL=="mixer0",		SYMLINK+="mixer"
+
+# sound devices (oss) -- got this from gentoo rules --needed?
+SUBSYSTEM=="snd",	GROUP="audio"
+
+# ---------------------------------------

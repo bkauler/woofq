@@ -1,0 +1,169 @@
+#!/bin/sh
+#(c) Copyright Barry Kauler, May 2017. license: GPL v3 (usr/share/doc/legal)
+#fix pkg-list to use as many compat-distro pkgs as possible, and make sure all deps present.
+
+. ./DISTRO_SPECS #has DISTRO_BINARY_COMPAT, DISTRO_COMPAT_VERSION
+. ./DISTRO_COMPAT_REPOS-${DISTRO_BINARY_COMPAT}-${DISTRO_COMPAT_VERSION}
+. ./DISTRO_PKGS_SPECS-${DISTRO_BINARY_COMPAT}-${DISTRO_COMPAT_VERSION} #has PKGS_SPECS_TABLE
+
+DATE="`date +%Y%m%d`" #ex: 20170507
+
+#for pkgs not in the compat-distro, check to see if now there, then replace...
+echo
+echo "Find if pkgs from another distro (ex: april) can be replaced with pkg in compat-distro..."
+echo -n '' > /tmp/2a-fix-pkg-list-0
+echo "$PKGS_SPECS_TABLE" |
+while read ALINE
+do
+ if [ "${ALINE:0:3}" != "yes" ];then
+  echo "$ALINE" >> /tmp/2a-fix-pkg-list-0
+  continue
+ fi
+ if [ "$(echo -n "$ALINE" | grep 'KEEPPKG')" != "" ];then #special marker to keep this pkg.
+  echo "Keeping pkg: ${ALINE}"
+  echo "$ALINE" >> /tmp/2a-fix-pkg-list-0
+  continue
+ fi
+ xFLD3="$(echo -n "$ALINE" | cut -f 3 -d '|' | tr ',' ' ')"
+ if [ "$xFLD3" == "" ];then
+  echo "Keeping pet: ${ALINE}"
+  echo "$ALINE" >> /tmp/2a-fix-pkg-list-0 #this is a pet.
+  continue
+ fi
+ FLD5="$(echo -n "$ALINE" | cut -f 5 -d '|' | cut -f 1 -d ' ')"
+ if [ "$FLD5" == "compat:${DISTRO_COMPAT_VERSION}" -o "$FLD5" == "" ];then
+  echo "Keeping compat-distro pkg: ${ALINE}"
+  echo "$ALINE" >> /tmp/2a-fix-pkg-list-0
+  continue
+ fi
+ #drop here, pkg is not a pet, and from some other distro (ex: april)...
+ FLD2="$(echo -n "$ALINE" | cut -f 2 -d '|')" #generic-name, ex: abiword
+ FLD4="$(echo -n "$ALINE" | cut -f 4 -d '|')" #ex: exe,dev,doc,nls
+ OLDNAMES=''; FLGmod=0
+ for ANAME in $xFLD3
+ do
+  PTNn="|${ANAME}|"
+  if [ "$(grep "$PTNn" Packages-${DISTRO_BINARY_COMPAT}-${DISTRO_COMPAT_VERSION}-official)" != "" ];then
+   #pkg exists in compat-distro, use it...
+   echo "REPLACING WITH: yes|${ANAME}|${ANAME}|${FLD4}|compat:${DISTRO_COMPAT_VERSION}|"
+   echo "yes|${ANAME}|${ANAME}|${FLD4}|compat:${DISTRO_COMPAT_VERSION}| #NEW${DATE}" >> /tmp/2a-fix-pkg-list-0
+   FLGmod=1
+  else
+   if [ ! "$OLDNAMES" ];then
+    OLDNAMES="${ANAME}"
+   else
+    OLDNAMES="${OLDNAMES} ${ANAME}"
+   fi
+  fi
+ done
+ [ ! "$OLDNAMES" ] && continue
+ xOLDNAMES="$(echo -n "$OLDNAMES" | tr ' ' ',')"
+ echo "keeping pkg other-distro: yes|${FLD2}|${OLDNAMES}|${FLD4}|${FLD5}|"
+ APPENDmsg=""
+ [ $FLGmod -eq 1 ] && APPENDmsg=" #MODIFIED${DATE}"
+ echo "yes|${FLD2}|${OLDNAMES}|${FLD4}|${FLD5}|${APPENDmsg}" >> /tmp/2a-fix-pkg-list-0 #keeping pkgs from another distro (ex: april).
+done
+sync
+
+#find pets that can now be replaced...
+echo
+echo "Find pets that can be replaced with compat-distro pkg..."
+echo -n '' > /tmp/2a-fix-pkg-list-1
+cat /tmp/2a-fix-pkg-list-0 |
+while read ALINE
+do
+ if [ "${ALINE:0:3}" != "yes" ];then
+  echo "$ALINE" >> /tmp/2a-fix-pkg-list-1
+  continue
+ fi
+ if [ "$(echo -n "$ALINE" | grep 'KEEPPKG')" != "" ];then #special marker to keep this pkg.
+  echo "Keeping pkg: ${ALINE}"
+  echo "$ALINE" >> /tmp/2a-fix-pkg-list-1
+  continue
+ fi
+ xFLD3="$(echo -n "$ALINE" | cut -f 3 -d '|' | tr ',' ' ')"
+ if [ "$xFLD3" != "" ];then
+  echo "Keeping, not pet: ${ALINE}"
+  echo "$ALINE" >> /tmp/2a-fix-pkg-list-1
+  continue
+ fi
+ #if field-3 empty, most likely a pet, but check...
+ FLD5="$(echo -n "$ALINE" | cut -f 5 -d '|' | cut -f 1 -d ' ')"
+ if [ "${FLD5:0:6}" == "compat" ];then
+  echo "Keeping, not pet: ${ALINE}"
+  echo "$ALINE" >> /tmp/2a-fix-pkg-list-1
+  continue
+ fi
+ #now sure it is a pet...
+ FLD2="$(echo -n "$ALINE" | cut -f 2 -d '|')" #generic-name, ex: abiword
+ FLD4="$(echo -n "$ALINE" | cut -f 4 -d '|')" #ex: exe,dev,doc,nls
+ PTNn="|${FLD2}|"
+ if [ "$(grep "$PTNn" Packages-${DISTRO_BINARY_COMPAT}-${DISTRO_COMPAT_VERSION}-official)" != "" ];then
+  #have replaced the pet...
+  if [ "$FLD4" == "exe" -o "$FLD4" == "" ];then
+   FLD4='exe,dev,doc,nls'
+  fi
+  echo "PET REPLACED: yes|${FLD2}|${FLD2}|${FLD4}|compat:${DISTRO_COMPAT_VERSION}|"
+  echo "yes|${FLD2}|${FLD2}|${FLD4}|compat:${DISTRO_COMPAT_VERSION}|" >> /tmp/2a-fix-pkg-list-1
+ else
+  echo "Keep pet: ${ALINE}"
+  echo "$ALINE" >> /tmp/2a-fix-pkg-list-1
+ fi
+done
+sync
+
+#for compat-distro pkgs, lookup deps, add any missing deps...
+echo
+echo "Add any missing deps from compat-distro..."
+echo -n '' > /tmp/2a-fix-pkg-list-2
+cat /tmp/2a-fix-pkg-list-1 |
+while read ALINE
+do
+ if [ "${ALINE:0:3}" != "yes" ];then
+  echo "$ALINE" >> /tmp/2a-fix-pkg-list-2
+  continue
+ fi
+ if [ "$(echo -n "$ALINE" | grep 'KEEPPKG')" != "" ];then #special marker to keep this pkg.
+  echo "Keeping pkg: ${ALINE}"
+  echo "$ALINE" >> /tmp/2a-fix-pkg-list-2
+  continue
+ fi
+ xFLD3="$(echo -n "$ALINE" | cut -f 3 -d '|' | tr ',' ' ')"
+ if [ "$xFLD3" == "" ];then
+  echo "Keeping pet: ${ALINE}"
+  echo "$ALINE" >> /tmp/2a-fix-pkg-list-2
+  continue
+ fi
+ echo "Keeping pkg: ${ALINE}"
+ echo "$ALINE" >> /tmp/2a-fix-pkg-list-2
+ FLD5="$(echo -n "$ALINE" | cut -f 5 -d '|' | cut -f 1 -d ' ')"
+ if [ "$FLD5" == "compat:${DISTRO_COMPAT_VERSION}" -o "$FLD5" == "" ];then
+  #look in db, at deps...
+  for ANAME in $xFLD3
+  do
+   PTNn="|${ANAME}|"
+   DEPS="$(grep "$PTNn" Packages-${DISTRO_BINARY_COMPAT}-${DISTRO_COMPAT_VERSION}-official | cut -f 9 -d '|')"
+   [ ! "$DEPS" ] && continue
+   xDEPS="$(echo -n "$DEPS" | tr ',' ' ' | tr ' ' '\n' | sed -e 's%^+%%' | tr '\n' ' ')"
+   for ADEP in $xDEPS
+   do
+    #if not already in pkg-list, then add it...
+    PTNd1='[,|]'"${ADEP}"'[,|]'
+    if [ "$(grep "$PTNd1" /tmp/2a-fix-pkg-list-1)" == "" ];then
+     PTNd2="|${ADEP}|"
+     if [ "$(grep "$PTNd2" Packages-${DISTRO_BINARY_COMPAT}-${DISTRO_COMPAT_VERSION}-official)" != "" ];then #check dep exists.
+      echo "NEW DEP: yes|${ADEP}|${ADEP}|exe,dev,doc,nls|compat:${DISTRO_COMPAT_VERSION}|"
+      echo "yes|${ADEP}|${ADEP}|exe,dev,doc,nls|compat:${DISTRO_COMPAT_VERSION}| #NEW${DATE}" >> /tmp/2a-fix-pkg-list-2
+     fi
+    fi
+   done
+  done
+ fi
+done
+sync
+
+sort -u --key=2,2 --field-separator='|' /tmp/2a-fix-pkg-list-2 > /tmp/2a-fix-pkg-list-3
+sync
+echo
+echo "The new package-list is here: /tmp/2a-fix-pkg-list-3"
+echo "if you wish, insert it into: DISTRO_PKGS_SPECS-${DISTRO_BINARY_COMPAT}-${DISTRO_COMPAT_VERSION}"

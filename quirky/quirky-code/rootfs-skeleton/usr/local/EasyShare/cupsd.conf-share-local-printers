@@ -1,0 +1,33 @@
+LogLevel info
+SystemGroup lpadmin
+# Allow remote access
+Port 631
+Listen /var/run/cups/cups.sock
+# Share local printers on the local network.
+Browsing On
+BrowseLocalProtocols 
+BrowseOrder allow,deny
+BrowseAllow all
+DefaultAuthType Basic
+<Location /admin/conf>
+  AuthType None
+  Order allow,deny
+</Location>
+<Policy default>
+  <Limit All>
+    Order deny,allow
+  </Limit>
+</Policy>
+<Location />
+  # Allow shared printing...
+  Order allow,deny
+  Allow @LOCAL
+</Location>
+<Location /admin>
+  Order allow,deny
+</Location>
+<Location /admin/log>
+  AuthType Default
+  Require user @SYSTEM
+  Order allow,deny
+</Location>

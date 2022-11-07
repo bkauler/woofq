@@ -1,0 +1,32 @@
+#!/bin/bash
+#(c) Copyright Barry Kauler, Nov. 2016, barryk.org. Licence GPL3 (ref: /usr/share/doc/legal)
+#vout selection, called from simplevp. chosen player is passed in.
+#requires bash, as uses "!" operator for indirection.
+
+PLAYER="$1" #at startup will be $CLI_PLAYER, via combobox will be $NEW_CLI. ex: VLC
+XORG_DRIVER="$(cat /tmp/simplevp/xorg_driver)" #created in simplevp.
+
+BOOT_BOARD='pc'
+[ -f /etc/rc.d/BOOTCONSTRAINED ] && . /etc/rc.d/BOOTCONSTRAINED #has BOOT_BOARD, values "raspi", "odroidx"
+. /var/local/simplevp/settings #has CLI_PLAYER, CHOICES_VOUT*, VIDEO_OUT*
+
+PTR="VIDEO_OUT_${BOOT_BOARD}_${PLAYER}_${XORG_DRIVER}" #ex: VIDEO_OUT_pc_VLC_nouveau
+DEF_VOUT="${!PTR}"
+if [ ! "$DEF_VOUT" ];then
+ PTR="VIDEO_OUT_${BOOT_BOARD}_${PLAYER}"
+ DEF_VOUT="${!PTR}"
+fi
+PTR="CHOICES_VOUT_${BOOT_BOARD}_${PLAYER}_${XORG_DRIVER}"
+CHOICES="${!PTR}"
+if [ ! "$CHOICES" ];then
+ PTR="CHOICES_VOUT_${BOOT_BOARD}_${PLAYER}"
+ CHOICES="${!PTR}"
+fi
+#although comboboxtext tag allows <default> tag, does not work when dynamic refresh,
+#so order list with $DEF_VOUT first...
+ITEMS="$(echo -n "$CHOICES" | tr ' ' '\n' | grep -v "^${DEF_VOUT}$")"
+echo "${DEF_VOUT}
+${ITEMS}" > /tmp/simplevp/vout_items
+echo -n "$DEF_VOUT" > /tmp/simplevp/def_vout
+
+###END###

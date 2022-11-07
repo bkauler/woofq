@@ -1,0 +1,64 @@
+#!/bin/sh
+#introduced v0.9.8
+#called from /root/.fvwm95rc, .jwmrc at shutdown.
+#110918 call new script 'shutdownconfig'.
+#120216 offer to set default language in initrd.
+#130221 return code 255 to abort shutdown.
+#141206 remove PUPMODE==5 test, /initrd test.
+#141206 fix if only have busybox ps.
+#150327 for frugal install, optional offer to save session.
+#151107 ditto 150327, for live-cd with saved session.
+
+. /etc/rc.d/PUPSTATE
+if [ $DISPLAY ];then #paranoid precaution, check X still running
+ true
+ 
+ #150327 for frugal install, offer to save session:
+ touch /etc/rc.d/install.log
+ . /etc/rc.d/install.log #has INSTALLED_MODE=livecd, frugal, drive (full), partition (full)
+ if [ "$INSTALLED_MODE" == "frugal" -o "$INSTALLED_MODE" == "livecd" ];then #151107
+  if [ -s /var/local/frugal-save-ask-flag ];then
+   [ "$(cat /var/local/frugal-save-ask-flag)" == "true" ] && savesession
+  fi
+ fi
+ 
+fi
+
+#/sbin/pup_event_frontend_d will quit if this file exists...
+echo -n "poweroff" > /tmp/wmexitmode.txt
+
+#v403 give time for /sbin/pup_event_frontend_d to quit.
+#w478 testing 2.6.18.1 kernel, pup_event_frontend_d did not exit when it
+#detected /tmp/wmeximode.txt, but became 'defunct'...
+KCNT=0
+#PSPEFD="`ps -C pup_event_frontend_d | grep 'pup_event_front' | grep -v 'defunct'`"
+#141206 may only have busybox ps, does not support -C ...
+PSPEFD="`busybox ps | grep -v 'grep' | grep 'pup_event_front' | grep -v 'defunct'`"
+#while [ "`pidof pup_event_frontend_d`" != "" ];do
+while [ "$PSPEFD" != "" ];do
+ sleep 0.5
+ KCNT=`expr $KCNT + 1`
+ [ $KCNT -gt 60 ] && break #30 secs.
+ #PSPEFD="`ps -C pup_event_frontend_d | grep 'pup_event_front' | grep -v 'defunct'`"
+ PSPEFD="`busybox ps | grep -v 'grep' | grep 'pup_event_front' | grep -v 'defunct'`" #141206
+done
+sleep 0.2
+
+sync
+
+if [ "`pidof xfce4-panel`" != "" ];then
+ #killall xfce4-panel
+ kill `pidof xfce4-panel`
+ exit
+fi
+
+#w003
+CURRENTWM="`cat /etc/windowmanager`"
+kill -9 `pidof $CURRENTWM`
+
+#killall X #default is SIGTERM.
+#sleep 1           #v1.0.7
+#exec killall -9 X #v1.0.7 make sure X is killed.
+
+#after exit from X, there is a return to /usr/X11R7/bin/xwin,
+#which reads /tmp/wmexitmode.txt.

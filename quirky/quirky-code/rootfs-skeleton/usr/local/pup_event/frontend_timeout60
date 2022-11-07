@@ -1,0 +1,91 @@
+#!/bin/sh
+#(c) Copyright 2018 Barry Kauler, bkhome.org
+#2018 Licence GPL v3 (/usr/share/doc/legal)
+#based on frontend_timeout. 
+#runs every 60 seconds, waitng on timeout from pup_event_frontend_d
+#called from /root/.xinitrc
+#180220 first version.
+#190216 sometimes can happen that have a lease, but nothing in resolv.conf
+#200521 networkmanager has internal dhcp client.
+
+#export TEXTDOMAIN=pup_event_frontend_d
+#export OUTPUT_CHARSET=UTF-8
+#. gettext.sh
+
+OLDLANG=$LANG
+export LANG=C
+
+. /etc/rc.d/PUPSTATE
+. /etc/eventmanager #has RAMSAVEINTERVAL, ICONDESK, HOTPLUGNOISY, ICONPARTITIONS, BACKENDON, POWERTIMEOUT
+
+#. /usr/local/pup_event/frontend_funcs
+
+###BIG LOOP###
+while [ true ];do
+echo -n '' > /tmp/pup_event_ipc/timeout60_peto
+####wait for timeout###
+pup_event_ipc "timeout60:peto" >/dev/null
+
+
+[ "$RAMSAVEINTERVAL" = "" ] && RAMSAVEINTERVAL=30 #minutes.
+[ "$POWERTIMEOUT" = "" ] && POWERTIMEOUT=0
+
+SAVECNT=0
+[ -f /tmp/pup_event_frontend_timeout_savecnt ] && SAVECNT="`cat /tmp/pup_event_frontend_timeout_savecnt`"
+SAVECNT=`expr $SAVECNT + 1`
+
+if [ $RAMSAVEINTERVAL -ne 0 -a $SAVECNT -gt $RAMSAVEINTERVAL ];then
+ touch /tmp/snapmergepuppyrequest #request to savepuppy_func.
+ SAVECNT=0
+fi
+echo -n "$SAVECNT" > /tmp/pup_event_frontend_timeout_savecnt
+
+MOUSECNT=0
+[ -f /tmp/pup_event_frontend_timeout_mousecnt ] && MOUSECNT="`cat /tmp/pup_event_frontend_timeout_mousecnt`"
+MINUTECNT=0
+[ -f /tmp/pup_event_frontend_timeout_minutecnt ] && MINUTECNT="`cat /tmp/pup_event_frontend_timeout_minutecnt`"
+
+CURPOS1=""
+[ -f /tmp/pup_event_frontend_curpos1 ] && CURPOS1="`cat /tmp/pup_event_frontend_curpos1`"
+
+if [ $POWERTIMEOUT -ne 0 ];then #power-off computer after inactivity.
+ MOUSECNT=`expr $MOUSECNT + 1`
+ echo -n "$MOUSECNT" > /tmp/pup_event_frontend_timeout_mousecnt
+ MINUTECNT=`expr $MINUTECNT + 1`
+ echo -n "$MINUTECNT" > /tmp/pup_event_frontend_timeout_minutecnt
+
+ MINUTECNT=0
+ echo -n "$MINUTECNT" > /tmp/pup_event_frontend_timeout_minutecnt
+ CURPOS2="`getcurpos`"
+ echo "MOUSECNT=$MOUSECNT CURPOS2=$CURPOS2" >> /tmp/pup_event_frontend_d_curpos.log
+ [ "$CURPOS1" = "" ] && CURPOS1="$CURPOS2"
+ if [ "$CURPOS1" != "$CURPOS2" ];then
+  MOUSECNT=0
+  echo -n "$MOUSECNT" > /tmp/pup_event_frontend_timeout_mousecnt
+ fi
+ CURPOS1="$CURPOS2"
+ echo -n "$CURPOS1" > /tmp/pup_event_frontend_curpos1
+ [ $MOUSECNT -gt $POWERTIMEOUT ] && wmpoweroff &
+fi
+
+#190216 sometimes can happen that have a lease, but nothing in resolv.conf
+if ! grep '^nameserver' /etc/resolv.conf >/dev/null; then
+ LIF="$(getlocalip | grep -o '^eth[0-9]' | head -n 1)"
+ if [ "$LIF" ];then
+  DEFCON="$(grep -o ' .*' /usr/local/bin/defaultconnect)"
+  case "$DEFCON" in
+   usns)
+    dhcp ${LIF} request
+   ;;
+   nm*) #200521 networkmanager
+    true
+   ;;
+   *)
+    dhcpcd -b -I '' -n ${LIF}
+   ;;
+  esac
+ fi
+fi
+
+done ###BIG LOOP###
+###END###

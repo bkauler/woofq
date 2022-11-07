@@ -1,0 +1,21 @@
+#!/bin/sh
+
+if [ -f /usr/sbin/childproofDOT ];then
+ mv -f /usr/sbin/childproofDOT /usr/sbin/.childproof
+ exec /usr/sbin/.childproof #run once only.
+fi
+
+export TEXTDOMAIN=childproof
+export OUTPUT_CHARSET=UTF-8
+
+rm -f /usr/sbin/.childproof
+
+WINTITLE="$(gettext 'Childproof Setup')"
+export CHILDPROOF_DLG0="<window title=\"${WINTITLE}\" window_position=\"1\" icon-name=\"gtk-preferences\">
+<vbox>
+ <text use-markup=\"true\"><label>\"<b>$(gettext 'Childproofing has already been applied')</b>\"</label></text>
+ <text><label>$(gettext 'From the point of view of the child, it is a one-way operation, and access to the hidden partitions cannot be restored.')</label></text>
+ <hbox><button ok></button></hbox>
+</vbox>
+</window>"
+gtkdialog --program=CHILDPROOF_DLG0

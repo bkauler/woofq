@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:dc="http://purl.org/dc/elements/1.1/">
+<channel><title>My News</title><link>http://somewhere.org/news/index.html</link>
+<description>Technology and Linux news</description><language>en</language>
+<lastBuildDate>Thu, 16 Nov 2017 06:52:11 +0000</lastBuildDate>
+<pubDate>Thu, 16 Nov 2017 06:52:11 +0000</pubDate>
+<atom:link href="http://somewhere.org/news/feed.rss" rel="self" type="application/rss+xml" />
+<item><title>
+First blog post, shellCMS
+</title><description><![CDATA[
+    <p>There are two installations of shellCMS on this computer, at <tt>~/.shellcms/www</tt> and <tt>~/.shellcms/www/news</tt>. The former is configured as a documentation CMS (Content Management System), the latter as a blog.<br>
+</p>
+<p>This is an arbitrary choice, a site can have any number of shellCMS installations, nested or otherwise.<br>
+</p>
+<p>A local installation of shellCMS is for creating and editing posts. 
+At any time, the local site can be uploaded to a remote site. shellCMS 
+is just static HTML pages, so uploading is just a matter of using ftp or
+ rsync.<br>
+</p>
+<p>shellCMS is run by shell scripts, that are located in <tt>/usr/local/shellcms</tt>. The main script is <tt>/usr/local/shellcms/shellcms</tt>, a CLI (commandline) app. There is also <tt>remotesync</tt>, <tt>mozeditor</tt> and <tt>shellcmsgui</tt>. These scripts are also linked from <tt>/usr/local/bin</tt>.<br>
+</p>
+<p>As the name suggests, <tt>remotesysnc</tt> is for uploading to a remote site. Script <tt>mozeditor</tt> is a wrapper for SeaMonkey Composer WYSIWYG HTML editor, and is called from <tt>shellcms</tt>. Script <tt>shellcmsgui</tt> is a GUI frontend.<br>
+</p>
+
+    Blog posts are filed by date, in folders named "yyyymm". This post is filed as <tt>~/.shellcms/www/news/201711/first-blog-post-shellcms.htmraw</tt>. The published post, with header, footer and layout, is <tt>~/.shellcms/www/news/first-blog-post-shellcms.html</tt>.<br>
+<br>
+As shown in the first documentation post, each post may have images. For this post, there is folder <tt>~/.shellcms/www/news/201711/images</tt>, so create a relative link "images/image-name.png"<br>
+<br>
+Documentation posts have just one category, however, blog posts may have
+ more than one. if you had, for example, categories "linux" and "puppy",
+ you could post to both.<br>
+<br>
+A useful technical detail: Configuration settings are managed via the 
+GUI frontend, however, you can also directly edit the configuration 
+files. The script <tt>/usr/local/shellcms/shellcms</tt> has default variables, any of which can be overridded by <tt>~/.shellcms/www/news/cms_config/config</tt> (or, for the documentation CMS, <tt>~/.shellcms/www/cms_config/config)</tt>.<br>
+<br>
+In fact, everything can be done from the commandline, if you have an 
+aversion to the GUI frontend. For example, to create a new post to this 
+blog, and upload to a remote site:<br>
+<pre># cd ~/.shellcms<br># shellcms www/news post<br># remotesync www/news<br></pre>...quite simple!<br>
+    
+<!--RawTags: admin-->
+  
+
+
+<p>Tags: <a href='../tag_admin.html'>admin</a></p>
+<!-- text end -->
+]]></description><link>http://somewhere.org/news/201711/first-blog-post-shellcms.html</link>
+<guid>http://somewhere.org/news/./201711/first-blog-post-shellcms.html</guid>
+<dc:creator>MrPerson</dc:creator>
+<pubDate>Thu, 16 Nov 2017 06:52:11 +0000</pubDate></item>
+</channel></rss>

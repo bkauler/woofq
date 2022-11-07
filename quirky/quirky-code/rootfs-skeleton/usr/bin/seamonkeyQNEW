@@ -1,0 +1,68 @@
+#!/bin/sh
+#running from usb, first startup of sm is extremely slow. popup this info msg.
+#131216 Billtoo reports this script does not self-destruct. try further measures.
+#140106 this is incredibly weird, Billtoo still reports popup stays comes back.
+#140129 this is ridiculous, others report same problem (wish they would find out why it is happening!!!). have put code into rc.shutdown
+#150108 popup persists because sm running as 'spot'. removed 140106, 140129.
+#150108 handle /usr/bin/seamonkey.bin, created when sm setup to run as spot. refer: support/setup-spot
+#150119 fix $HOMEDIR display.
+#161231 slackware 14.2 pkg, /usr/lib64/seamonkey
+#200516 sm 2.53.2 broken with profile update. new profile, copy files from old profile.
+#200528 200516 code moved to /etc/rc.d/rc.update
+
+# -icon "/usr/lib/seamonkey/chrome/icons/default/default48.png"
+
+#150108 normally this will be 'seamonkey', running as spot it will be 'seamonkey.bin':
+# refer: /usr/bin/seamonkey (seamonkeyQNEW in woof), /usr/sbin/run-as-spot, /usr/sbin/setup-spot (support/setup-spot in woof)
+#NAMEEXE="$(echo -n ${0} | rev | cut -f 1 -d '/' | rev)"
+#if [ "$NAMEEXE" == "seamonkey.bin" ];then
+#no, would rather be more precise about it:
+NAMEOFUSER="$(id -n -u)"
+if [ "$NAMEOFUSER" == "spot" ];then
+ HOMEDIR="/root/spot/.mozilla/seamonkey"
+ NAMEEXE='seamonkey.bin'
+else #called as seamonkey or mozilla...
+ HOMEDIR="/root/.mozilla/seamonkey"
+ NAMEEXE='seamonkey'
+fi
+
+MAGICDIR="$(ls -1 ${HOMEDIR} | grep 'default$' | tail -n 1)"
+if [ ! -f ${HOMEDIR}/${MAGICDIR}/places.sqlite ];then
+ SMSPLASH='yaf-splash -bg orange -fg black -close never -fontsize medium -text "SeaMonkey is starting for the very first time!
+This will take awhile, as SeaMonkey creates setup and cache files in folder ${HOMEDIR}.
+All future startups of SeaMonkey will be much faster.
+
+Technical note:
+SeaMonkey is not usable on PCs with less than 256MB RAM, minimum 512MB recommended.
+
+Please wait..." &'
+ 
+ echo "#!/bin/sh
+HOMEDIR=${HOMEDIR}
+${SMSPLASH}
+ YAFPID=\$!
+ CNT=0
+ while [ ! -f ${HOMEDIR}/${MAGICDIR}/places.sqlite ];do
+  sleep 2
+  CNT=\`expr \$CNT + 2\`
+  [ \$CNT -gt 40 ] && break
+ done
+ sleep 2
+ pupkill \$YAFPID
+ if [ -f /usr/lib/seamonkey/seamonkey ];then
+  ln -snf ../lib/seamonkey/seamonkey /usr/bin/${NAMEEXE}
+ else
+  ln -snf ../lib64/seamonkey/seamonkey /usr/bin/${NAMEEXE}
+ fi
+" > /tmp/sm-startup-wait-script
+ chmod 755 /tmp/sm-startup-wait-script
+ /tmp/sm-startup-wait-script &
+ 
+fi
+
+#note, above script restores symlink, for all subsequent startups.
+if [ -f /usr/lib/seamonkey/seamonkey ];then
+ exec /usr/lib/seamonkey/seamonkey "$@"
+else
+ exec /usr/lib64/seamonkey/seamonkey "$@"
+fi

@@ -1,0 +1,105 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html><head>
+<meta http-equiv="content-type" content="text/html; charset=windows-1252">
+<title></title>
+</head>
+<body>
+
+<table align="center" border="0" cellpadding="2" cellspacing="2" width="600">
+  <tbody>
+    <tr>
+      <td valign="top">
+        <h1>App Inventor, compiling and setup</h1>
+Usage information about App Inventor is in this file:<br>
+        <a href="../../share/doc/app-dev-setup.htm">/usr/share/doc/app-dev-setup.htm</a> <br>
+        <br>
+The packages 'jdk' and 'ant' are required to compile App Inventor. Appril has both of these.<br>
+        <br>
+Download App Inventor sources to a partition with Linux filesystem, and compile:<br>
+        <pre># git clone https://github.com/mit-cml/appinventor-sources.git<br># cd appinventor-sources<br><i>rename sample-.gitignore to .gitignore</i> <br># cd appinventor<br># ant clean<br># ant</pre>
+If you want to read more details about the above steps, see here:<br>
+
+        <a href="https://docs.google.com/document/pub?id=1Xc9yt02x3BRoq5m1PJHBr81OOv69rEBy8LVG_84j9jc">https://docs.google.com/document/pub?id=1Xc9yt02x3BRoq5m1PJHBr81OOv69rEBy8LVG_84j9jc</a> <br>
+
+        <br>
+
+I have written a script, 'ai-src2pet', that extracts all required files 
+out of folder 'appinventor-sources' and builds a folder named 
+'appinventor-&lt;date&gt;'.<br>
+The script then creates a PET package, 'appinventor-&lt;date&gt;.pet 
+(which is the native package format for Puppy Linux and derivatives).<br>
+        <br>
+The script 'ai-src2pet' and image 'appinventor.png' are in /usr/local/android_build, and need to be copied to
+ the same place as folder 'appinventor-sources' (but not in it), then 
+open a terminal and run the script:<br>
+        <pre># ./ai-src2pet</pre>
+Note: reading some of the docs at the MIT site, it is stated that 
+package 'Appengine Java SDK' is required, which has the server 
+required for the browser (that is, AI2 is a web-app, and the user 
+interface is provided via a web browser window).<br>
+However, the Appengine Java SDK is also available in the App Inventor source, 
+that is, inside folder 'appinventor-sources', and is extracted into the 
+PET.<br>
+        <h2>AI2 Companion App</h2>
+An Android phone can be used to test an app as it is being created in 
+App Inventor. The phone may be connected either via wi-fi or USB cable 
+to the PC (that is running Appril). The <i>AI2 Companion app</i> needs to be installed into the phone.<br>
+        <br>
+Note, the AI2 Companion app was built in 
+"appinventor-sources/appinventor/build/buildserver/MIT AI2 
+Companion.apk", and this is in Appril at /opt/appinventor -- it can be 
+installed in the phone, by what is known as "side loading".<br>
+        <br>
+The AI2 Companion App is available from the Google Play Store, and this 
+mode of installation is recommended as it automatically offers to update
+ the 
+installation.<br>
+<h2>USB</h2>
+An Android phone can be connected via USB cable, and an app run in realtime as it is being developed in AI2.<br>
+<br>
+This requires package <i>App Inventor Setup</i>, which is documented here:<br>
+
+<a href="http://appinventor.mit.edu/explore/ai2/linux.html">http://appinventor.mit.edu/explore/ai2/linux.html</a> <br>
+
+<br>
+I have created a very cutdown ai2-setup, read below.<br>
+<h2>Emulator</h2>
+AI2 will also work with an Android emulator. This requires that the AI2 Companion app be installed into the emulator.<br>
+This is taken care of at first startup of AI2 -- see script 
+/usr/sbin/appinventor.sh and /usr/local/android_build/ai-emulator-setup.<br>
+        <br>
+MIT provide an 'ai2-setup' package, that has the utility 'aiStarter', 
+used for connecting AI2 to a phone via USB, and various files taken from
+ the Android SDK for using AI2 with an emulator.<br>
+<br>
+I have created a skeleton 'ai2-setup', this is located at /usr/google/appinventor.<br>
+This is provided as AI2 looks there for certain files, however I have 
+replaced the script 
+/usr/google/appinventor/commands-for-Appinventor/run-emulator with my 
+own, that uses the Android SDK directly.<br>
+<br>
+In other words, my skeleton ai2-setup (that I have named 
+aistarter*.pet), does not have any files from the Android SDK, as my 
+script accesses them directly in the Android SDK (which is located at 
+/root/Android/Sdk).<br>
+        <h2>Links</h2>
+These are further instructions at the MIT App Inventor site:<br>
+        <a href="http://appinventor.mit.edu/explore/ai2/setup.html">http://appinventor.mit.edu/explore/ai2/setup.html</a><br>
+Instructions when connect phone by usb cable:<br>
+        <a href="http://appinventor.mit.edu/explore/ai2/setup-device-usb.html">http://appinventor.mit.edu/explore/ai2/setup-device-usb.html</a><br>
+Linux-specific instructions:<br>
+        <a href="http://appinventor.mit.edu/explore/ai2/linux.html">http://appinventor.mit.edu/explore/ai2/linux.html</a><br>
+        <br>
+Regards,<br>
+Barry Kauler<br>
+August 17, 2015<br>
+      </td>
+    </tr>
+    <tr>
+      <td valign="top"><small>(c) Copyright Barry Kauler, August 2015, all rights reserved.</small> <br>
+      </td>
+    </tr>
+  </tbody>
+</table>
+<br>
+</body></html>

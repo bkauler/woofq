@@ -1,0 +1,77 @@
+#!/bin/sh
+#called from pup_event_frontend_d if carrier change (ex: cable unplugged).
+#190215 first release.
+#190805 may have nm-connection-editor (in network-manager-applet pkg) instead of nmtui (in network-manager pkg).
+#190922 BK: 190805: now "nm-setup" in defaultconnect.
+#200521 pup_event_frontend_d modified to call here less often.
+#200521 rerwin has reported eth cable active but networkmanager has failed to obtain a lease.
+#200521 pup_event_frontend_d now passes 20=carrier-up, 21=carrier-down, 17=plug and unplug usb wifi dongle.
+
+#thinking about default at first bootup, with /usr/local/bin/defaultconnect has
+#"connectwizard". /etc/rc.d/rc.sysinit calls /usr/sbin/network_default-connect,
+#and if "connectwizard" then calls /etc/rc.d/rc.network_eth -- which brings up
+#the ethernet interfaces, and if a carrier then launches dhcpcd.
+
+#what we want to do here is respond dynamically to changes, such as cable unplugged
+#replugged, router turned off/on. Any such event will result in this script being
+#called, so need to find out what interface has changed...
+
+#prevent being run more than once simultaneously...
+NIP=$(pidof netchg | wc -w)
+[ $NIP -gt 2 ] && exit #get 2 even though only this instance running.
+
+PP="${1}"
+echo "/usr/local/pup_event/netchg: entered, param=${PP}" #200521
+
+DEFCON="`cat /usr/local/bin/defaultconnect | tail -n 1 | tr -s " " | cut -f 2 -d " "`"
+[ "`grep 'gprs' /usr/local/bin/defaultconnect`" != "" ] && DEFCON='pgprs-connect'
+[ "$DEFCON" = "gkdial" ] && DEFCON="pupdial" #for older pups.
+[ "`grep 'nmtui' /usr/local/bin/defaultconnect`" != "" ] && DEFCON='nmtui' #181118 networkmanager
+[ "`grep 'nm\-connection\-editor' /usr/local/bin/defaultconnect`" != "" ] && DEFCON='nm-setup' #190805 networkmanager. 190922
+[ "`grep 'nm\-setup' /usr/local/bin/defaultconnect`" != "" ] && DEFCON='nm-setup' #190922
+
+for IF in `ls -1 /sys/class/net`
+do
+ [ "${IF}" == "lo" ] && continue
+ [ -d /sys/class/net/${IF}/wireless ] && continue #only want wired.
+ CARRIER="$(cat /sys/class/net/${IF}/carrier 2>/dev/null)"
+   
+ case "$DEFCON" in
+  connectwizard|sns)
+   #if [ "$PP" == "20" ];then
+    if [ "$CARRIER" == "1" ];then
+     sleep 20 #may need time to obtain the lease.
+     LIP="$(getlocalip)" #shows what interfaces have ip lease.
+     FIP="$(echo "${LIP}" | grep -o "^${IF}")"
+     if [ ! "${FIP}" ];then
+      #-b background immediately, -I '' send default client-id
+      #-n start dhcpcd if not already, reload configuration and rebind interface.
+      echo "netchg: dhcpcd -b -I '' -n ${IF}"
+      dhcpcd -b -I '' -n ${IF}
+     fi
+    else
+     echo "netchg: dhcpcd --release ${IF}"
+     dhcpcd --release ${IF}
+    fi
+   #fi
+  ;;
+  nm-setup) #200521
+   #rerwin has reported eth cable active but networkmanager has failed to obtain a lease...
+   #if [ "$PP" == "20" ];then
+    if [ "$CARRIER" == "1" ];then
+     sleep 20 #may need time to obtain the lease.
+     LIP="$(getlocalip)" #shows what interfaces have ip lease.
+     FIP="$(echo "${LIP}" | grep -o "^${IF}")"
+     if [ ! "${FIP}" ];then
+      #try this...
+      echo "netchg: ${IF} active but no lease, try restart /etc/init.d/rc.networkmanager"
+      /etc/init.d/rc.networkmanager restart
+     fi
+    fi
+   #fi
+  ;;
+ esac
+  
+done
+
+###end###

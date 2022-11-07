@@ -1,0 +1,36 @@
+#!/bin/sh
+# t12s_msgfmt by L18L dec 2013, GPL
+# convert po file to t12s translation file
+
+if [ -z "$1" ]; then echo "usage $0 file.po [> file]"; exit 1; fi
+if [ $1 = "-h" -o $1 = "--help" ]; then echo "Format portable object (po) file to t12s translation file"; exit 0; fi 
+if [ ! -f "$1" ]; then echo "$0: $1 is not a file"; exit 1; fi
+
+echo "# created `date` by $0
+# from only temporarily existing $1"
+
+while read LINE; do
+ case "$LINE" in
+\#*_M_*) t12s_ID="${LINE:1}" # all after first char which should be a: #
+
+         read LINE                             # ex:msgid "Set System Time"
+         A=${LINE#*\"}  # all after first quote, ex:Set System Time"
+         MSGID=${A%\"*} # all before last quote, ex:Set System Time
+        
+         MSGSTR= # translator might have used several lines
+         while true; do
+          read LINE
+          [ "$LINE" ] || break
+          A=${LINE#*\"}; A=${A%\"*} # first and last quote removed
+          A=${A//\"/\\\"}           # quotes escaped
+          MSGSTR="${MSGSTR}${A}"
+         done 
+         
+         echo ""
+         echo "${t12s_ID}=\"${MSGSTR}\"" #ex:_M_4="bla bla..."
+         echo "#${MSGID}"                #ex:#foo bar...
+         ;;
+ esac
+done < $1
+
+exit 0

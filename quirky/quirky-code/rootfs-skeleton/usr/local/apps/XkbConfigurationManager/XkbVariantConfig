@@ -1,0 +1,136 @@
+#!/bin/sh
+# A script to change the XkbVariant variable in xorg.conf
+# Part of the Puppy XkbConfigurator
+#130117 rodin.s:  adding gettext
+#170105 BK: support xorg.conf.d and evdev.
+#171015 BK: apply npierce patch from 20120201: Corrected calculation of $POS.
+#171015 BK: apply npierce patch from 20120202: Pad $OLD to give it same number of fields as $LAYOUTS.
+#171015 BK: apply npierce patch from 20120203: Corrected window title.
+
+export TEXTDOMAIN=xkbconfig #xkb
+export TEXTDOMAINDIR=/usr/share/locale
+export OUTPUT_CHARSET=UTF-8
+. gettext.sh
+
+##--------variables---------->>
+#must have "XkbLayout"...
+INFILE=''
+INTEST="$(grep '"XkbLayout"' /etc/X11/xorg.conf | grep -v '#.*"XkbLayout"')"
+[ "$INTEST" ] && INFILE='/etc/X11/xorg.conf'
+if [ "$INFILE" == "" ];then
+ if [ -f /etc/X11/xorg.conf.d/10-evdev-puppy.conf ];then
+  INTEST="$(grep '"XkbLayout"' /etc/X11/xorg.conf.d/10-evdev-puppy.conf | grep -v '#.*"XkbLayout"')"
+  [ "$INTEST" ] && INFILE='/etc/X11/xorg.conf.d/10-evdev-puppy.conf'
+ fi
+fi
+if [ "$INFILE" == "" ];then
+ Xdialog --title "$(gettext 'ERROR')" --msgbox "$(gettext 'Your Xorg config files do not contain any XkbLayout options!')" 0 0
+ exit
+fi
+
+#INFILE may have XkbVariant line but commented out. uncomment...
+sed -i -e 's%#Option.*"XkbVariant"%Option    "XkbVariant"%' ${INFILE}
+
+OUTFILE='/etc/X11/xorg.conf.tmp3'
+TMPDIALOG=/tmp/XkbVariantDialog
+TMPLIST=/tmp/XkbVariantList
+LIST="/etc/X11/xkb/rules/xorg.lst"
+# exported the following from main
+#ERRMSG='Xdialog --title "ERROR" --msgbox "An Error has occured! Try again." 0 0'
+#SUCCESS='Xdialog --title "Success!" --no-buttons --infobox "Changes applied successfuly!" 0 0 2000'
+
+# the full lines containing XkbVariant and XkbLayout:
+ORIGINAL=`fgrep '"XkbVariant"' $INFILE | grep -v '^#'`
+LAYOUTSLINE=`fgrep '"XkbLayout"' $INFILE | grep -v '^#'`
+[ "$ORIGINAL" = "" ] && NEWLINE="yes"
+
+#find current variants and layouts:
+CURRENT=`echo "$ORIGINAL" | cut -d'"' -f4`
+OLD="$CURRENT" #needed if line exists but nothing in it
+LAYOUTS=`echo "$LAYOUTSLINE" | cut -d'"' -f4`
+
+# create list of variants available for our layouts:
+if [ ! `echo "$CURRENT" | tr -d ','` = "" ]; then
+	EXIST=$(echo "$CURRENT" | tr ',' '\n' | while read AVAR ;do
+POS=$(( $POS + 1 ))   #20120201
+[ "$AVAR" = "" ] && continue
+MYLAY=`echo "$LAYOUTS" | cut -d',' -f$POS`
+fgrep " $AVAR " $LIST | fgrep -w "$MYLAY:"
+done)
+	MESSAGE="$(gettext 'You are currently using the following variants'):
+"$EXIST"
+
+$(gettext 'To remove a variant, select it in the list below and press OK.
+To add a new one, select it and press OK.
+
+NOTE: if you select a variant for a layout that already has one,
+ the new one will replace the old.')"
+else
+	OLD=`echo "$LAYOUTS" | tr -d 'a-zA-Z_/'`
+	MESSAGE="$(gettext 'Please select the variant you would like to add, then press OK.')"
+fi
+
+# Pad $OLD to give it same number of fields as $LAYOUTS.   #20120202
+LAYOUTCOUNT=`echo "$LAYOUTS" | tr ',' '\n' | wc -l #grep -c ".*"`
+VARIANTCOUNT=`echo "$OLD" | tr ',' '\n' | grep -c ".*"`
+DIFFERENCE=$(( $LAYOUTCOUNT - $VARIANTCOUNT ))
+while test "$DIFFERENCE" -gt "0" ; do
+	OLD="${OLD},"
+	DIFFERENCE=$(( $DIFFERENCE - 1 ))
+done
+
+# create list of available variants:
+INDEX=1
+echo "$LAYOUTS" | tr ',' '\n' | while read ALAY;
+do fgrep " $ALAY:" $LIST | tr -s ' ' ; done | while read AVAR ; do
+	TAG=`echo "$AVAR" |cut -d' ' -f1`
+	INFO=`echo "$AVAR" |cut -d' ' -f2-`
+	echo "\"$INDEX: $TAG\" \""$INFO"\""; INDEX=`expr $INDEX + 1` ; done > $TMPLIST
+	
+# adding var for gettext
+export gtxt1="$(gettext 'Configure Xkb Variant')" #npierce 20120203
+
+# create dialog with all options (in temp file)
+echo -n '#!/bin/sh
+Xdialog --left --stdout --title "$gtxt1" --menubox "' >$TMPDIALOG
+echo -n "$MESSAGE\" 0 0 15 " >>$TMPDIALOG
+cat $TMPLIST | tr '\n' ' ' >>$TMPDIALOG
+chmod 755 $TMPDIALOG
+
+# run dialog and get choice
+CHOICE=`eval $TMPDIALOG`
+[ "$CHOICE" = "" ] && echo "cancelled" && exit
+echo "$CHOICE"
+
+# find the variant chosen and its position
+NEWVAR=`fgrep "$CHOICE" $TMPLIST | cut -d'"' -f2 | cut -d' ' -f2`
+ITSLAY=`fgrep "$CHOICE" $TMPLIST | cut -d'"' -f4 | cut -d: -f1`
+ITSPOS=`echo "$LAYOUTS" | tr ',' '\n' | fgrep -n "$ITSLAY" | cut -d: -f1`
+
+
+#the last sed is since we need to cut off the last , (echo -n doesn't work well)
+NEW=`echo "$OLD" | tr ',' '\n' | sed "${ITSPOS}s/.*/$NEWVAR/" | tr '\n' ',' | sed 's/,$//'`
+
+# if old is same as new: remove
+[ "$NEW" = "$OLD" ] && NEW=`echo "$OLD" | tr ',' '\n' | sed "${ITSPOS}s/.*//" | tr '\n' ',' | sed 's/,$//'`
+
+# add new variant to line, or entire line, if it doesn't exist:
+if [ "$NEWLINE" = "yes" ] ;then
+	ORIGINAL="$LAYOUTSLINE"
+	MODIFIED="$ORIGINAL\n	Option      \"XkbVariant\" \"$NEW\""
+else
+	MODIFIED=`echo "$ORIGINAL" | sed "s%\"$CURRENT\"%\"$NEW\"%"`
+fi
+
+# add to file
+sed "s%$ORIGINAL%$MODIFIED%" ${INFILE} > $OUTFILE
+
+if ! fgrep -q '"XkbModel"' $OUTFILE ;then
+	eval $ERRMSG
+	rm -f $OUTFILE
+else
+	mv -f $OUTFILE $INFILE
+	eval $SUCCESS
+fi
+unset gtxt1 # gettext var unset
+exit

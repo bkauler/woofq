@@ -1,0 +1,19 @@
+#!/bin/sh
+#ls -1 packages-yocto-morty | cut -f 1 -d '_' | grep -v -E '\-dbg$|\-locale-|\-doc$|\-dev$' | sort | sed -e 's%^%yes|%' -e 's%\(|.*\)%\1\1%' -e 's%$%|exe,dev,doc,nls|compat:morty%'
+#ls -1 packages-yocto-morty | cut -f 1 -d '_' | grep -v -E '\-dbg$|\-locale-|\-doc$|\-dev$' | sort | sed -e 's%\(.*\)%\1|\1,\1-dev%' -e 's%^%yes|%' -e 's%$%|exe,dev,doc,nls|compat:morty%'
+
+#for ANAME in `ls -1 packages-yocto-morty | cut -f 1 -d '_' | grep -v -E '\-dbg$|\-locale-|\-doc$|\-dev$' | sort | tr '\n' ' '`
+#do
+# echo -n "yes|${ANAME}|${ANAME}"
+# [ "$(find packages-yocto-morty -maxdepth 1 -name "${ANAME}-dev_*")" != "" ] && echo -n ",${ANAME}-dev"
+# echo "|exe,dev,doc,nls|compat:morty"
+#done
+
+for APKG in `ls -1 packages-yocto-morty | grep -v -E '\-dbg_|\-locale-|\-doc_|\-dev_' | sort | tr '\n' ' '`
+do
+ ANAME="$(echo -n $APKG | cut -f 1 -d '_')"
+ AEXTRA="$(echo -n $APKG | cut -f 2- -d '_')"
+ echo -n "yes|${ANAME}|${ANAME}"
+ [ -f packages-yocto-morty/${ANAME}-dev_${AEXTRA} ] && echo -n ",${ANAME}-dev"
+ echo "|exe,dev,doc,nls|compat:morty"
+done

@@ -1,0 +1,50 @@
+#3builddistro will read these variables, so won't have to ask questions every build.
+
+#space-separated list of xorg drivers to be moved to /usr/lib/x/drivers-alternate,
+#or "none" if none to be moved (in drivers-alternate, xorg won't use them)
+#or "<empty>" then ask.
+BUILD_CHOICE_XORG_DRIVERS_ALTERNATE='none'
+
+#the vast majority of PCs do not have true-SCSI drives. However, in the
+#1980s, 1990s it was popular in network server computers.
+#values: 'delete', 'keep', '<empty>' (latter will ask).
+BUILD_CHOICE_TRUE_SCSI_KERNEL_DRIVERS='delete'
+
+#The kernel is configured with the vesafb and console drivers builtin, which
+#is enough if it is ever required to boot in framebuffer video mode. The
+#other framebuffer modules take up over 1MB and are not normally required.
+#values: 'delete', 'keep', '<empty>' (latter will ask).
+BUILD_CHOICE_FB_KERNEL_DRIVERS='delete'
+
+#cutdown of some 'exotic' kernel modules that are unlikely to be needed.
+#values: 'delete', 'keep', '<empty>' (latter will ask).
+BUILD_CHOICE_EXOTIC_KERNEL_DRIVERS='keep'
+
+#a very radical cutdown, to a minimal set of kernel drivers.
+#values: 'delete', 'keep', '<empty>' (latter will ask).
+BUILD_CHOICE_RADICAL_KERNEL_DRIVERS='keep'
+
+#150725 build with devx merged into the main rootfs-complete, so no devx PET.
+#values: 'yes' or anything else for no.
+BUILD_CHOICE_MERGE_DEVX='no'
+
+#150726 for case of Appril (developer's build of Quirky), want desktop README.
+#values" 'yes' or anything else for no.
+BUILD_CHOICE_README_DEV_DESK_ICON='no'
+
+#150726 so don't ask this everytime. if empty or undefined, then ask.
+BUILD_CHOICE_LANG='en_US.UTF-8'
+
+#170224 for security reasons, default these /etc/init.d/ daemons to not start at bootup.
+#/etc/rc.d/rc.services runs these, if executable flags set.
+BUILD_CHOICE_INITD_DAEMON_DEFAULT_OFF='acpid dropbear hostapd neard nscd openldap pure-ftpd rc.samba rpcbind rsync saned sshd zz-x11vnc'
+
+#161003 choose the target board, options are: pc raspi odroidx (empty defaults to pc).
+BUILD_CHOICE_BOARD='pc'
+
+#170716 live-cd and frugal, true is default to ask to save at every shutdown.
+#will run /usr/sbin/savesession, which has a checkbox enabling this to be turned off.
+BUILD_CHOICE_FRUGAL_SAVE_ASK='true'
+
+#171107 whether to keep .a static lib in devx. default is yes.
+BUILD_CHOICE_DEVX_STATIC_KEEP='no'

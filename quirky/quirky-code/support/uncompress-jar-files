@@ -1,0 +1,44 @@
+#!/bin/sh
+#run this in sandbox3
+#expands and repacks .jar files without compression.
+#call this from 3builddistro
+#150810 weird unzip errors, trying to fix.
+
+[ ! -d rootfs-complete ] && exit 1
+
+export LANG=C
+
+JARS="$(find rootfs-complete -type f -name '*.jar')"
+[ ! "$JARS" ] && exit 0
+
+echo "$JARS" |
+while read AJAR
+do
+ [ -d temp3 ] && rm -rf temp3
+ sync #150810
+ mkdir -p temp3/expand1
+ ADIR="$(dirname "$AJAR")"
+ ANAME="$(basename "$AJAR" .jar)"
+ echo -n "${ANAME}.jar "
+ if [ ! -f "$AJAR" ];then #150810
+  echo "ERROR: missing ${AJAR}"
+  continue
+ fi
+ mv -f "$AJAR" temp3/${ANAME}.zip
+ cd temp3
+ unzip -X -K -o -b ${ANAME}.zip -d expand1 > /dev/null
+ if [ $? -ne 0 ];then #150810
+  sync
+  echo "ERROR: unzip fail ${ANAME}.zip"
+  mv -f ${ANAME}.zip ../${ANAME}.jar
+  cd ..
+  continue
+ fi
+ sync
+ cd expand1
+ zip -0 -y -r ../../"${ADIR}"/${ANAME}.jar * > /dev/null
+ cd ..
+ cd ..
+ sync
+done
+echo

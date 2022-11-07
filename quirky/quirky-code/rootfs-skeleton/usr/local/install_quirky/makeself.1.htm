@@ -1,0 +1,157 @@
+Content-type: text/html
+
+<HTML><HEAD><TITLE>Manpage of makeself</TITLE>
+</HEAD><BODY>
+<H1>makeself</H1>
+Section: Misc. Reference Manual Pages (1)<BR>Updated: 2.1.6<BR><A HREF="#index">Index</A>
+<A HREF="http://localhost/cgi-bin/man/man2html">Return to Main Contents</A><HR>
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+makeself - An utility to generate self-extractable archives.
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNTAX</H2>
+
+<P>
+
+<B>makeself [</B><I>options</I>] archive_dir file_name label 
+
+<B>[</B><I>startup_script</I>] [<I>args</I>]
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<P>
+
+This program is a free (GPL) utility designed to create self-extractable 
+archives from a directory. 
+<BR>
+
+<A NAME="lbAE">&nbsp;</A>
+<H2>OPTIONS</H2>
+
+<P>
+
+The following options are supported.
+<P>
+
+<DL COMPACT>
+<DT><B>-v, --version</B>
+
+<DD>
+Prints out the makeself version number and exits.
+<DT><B>-h, --help</B>
+
+<DD>
+Print out help information.
+<DT><B>--gzip</B>
+
+<DD>
+Compress using gzip (default if detected).
+<DT><B>--bzip2</B>
+
+<DD>
+Compress using bzip2.
+<DT><B>--pbzip2</B>
+
+<DD>
+Compress using pbzip2.
+<DT><B>--xz</B>
+
+<DD>
+Compress using xz.
+<DT><B>--compress</B>
+
+<DD>
+Compress using the UNIX 'compress' command.
+<DT><B>--nocomp</B>
+
+<DD>
+Do not compress the data.
+<DT><B>--complevel lvl</B>
+
+<DD>
+Specify the compression level for gzip,bzip2,pbzui2 or xz
+<DT><B>--notemp</B>
+
+<DD>
+The archive will create archive_dir in the current directory and 
+uncompress in ./archive_dir.
+<DT><B>--copy</B>
+
+<DD>
+Upon extraction, the archive will first copy itself to a temporary directory.
+<DT><B>--append</B>
+
+<DD>
+Append more files to an existing makeself archive. The label and startup scripts will then be ignored.
+<DT><B>--current</B>
+
+<DD>
+Files will be extracted to the current directory. Both --current and --target dir imply --notemp.
+<DT><B>--target dir</B>
+
+<DD>
+Extract directly to a target directory. Directory path can be either absolute or relative.
+<DT><B>--header file</B>
+
+<DD>
+Specify location of the header script. 
+<DT><B>--follow</B>
+
+<DD>
+Follow the symlinks in the archive.
+<DT><B>--noprogress</B>
+
+<DD>
+Do not show the progress during the decompression.
+<DT><B>--nox11</B>
+
+<DD>
+Disable automatic spawn of an xterm if running in X11.
+<DT><B>--nowait</B>
+
+<DD>
+Do not wait for user input after executing embedded program from an xterm.
+<DT><B>--nomd5</B>
+
+<DD>
+Do not create a MD5 checksum for the archive.
+<DT><B>--nocrc</B>
+
+<DD>
+Do not create a CRC32 checksum for the archive.
+<DT><B>--lsm file</B>
+
+<DD>
+LSM file describing the package.
+
+</DL>
+<A NAME="lbAF">&nbsp;</A>
+<H2>AUTHORS</H2>
+
+<P>
+
+Makeself has been written by Stéphane Peter &lt;<A HREF="mailto:megastep@megastep.org">megastep@megastep.org</A>&gt;.
+<B>This</B>man<B>page</B>was<B>originally</B>written<B>by</B>Bartosz<B>Fenski</B>&lt;<A HREF="mailto:fenio@o2.pl">fenio@o2.pl</A>&gt;<B>for</B>the
+
+Debian GNU/Linux distribution (but it may be used by others).
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNTAX</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">OPTIONS</A><DD>
+<DT><A HREF="#lbAF">AUTHORS</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="http://localhost/cgi-bin/man/man2html">man2html</A>,
+using the manual pages.<BR>
+Time: 07:52:19 GMT, March 20, 2015
+</BODY>
+</HTML>

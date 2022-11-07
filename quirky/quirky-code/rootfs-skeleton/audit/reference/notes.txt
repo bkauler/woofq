@@ -1,0 +1,10 @@
+recovery ramdisk
+----------------
+/sbin/init creates a cpio of the recovery ramdisk:
+   busybox find . -mindepth 1 -xdev | busybox cpio -o -H newc | busybox gzip -c > /audit/reference/ramdisk-recover.cpio.gz
+
+Note, to extract from the cpio, do this, it extracts into current directory:
+  busybox zcat /audit/reference/ramdisk-recover.cpio.gz | busybox cpio -d -m -i
+
+/audit/reference is a new place to keep static utilities, so as no need
+to have them in main f.s. /sbin/init gets them from here.

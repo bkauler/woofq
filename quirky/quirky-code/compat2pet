@@ -1,0 +1,123 @@
+#!/bin/sh
+#(c) Copyright Barry Kauler, July 2015
+#WARNING: this script currently only works when compat-distro pkg name is same as generic name used in quirky. t2 is ok. also not ok for quirky pkgs made up of more than 1 compat-distro pkg.
+#150719 pet name to have DISTRO_FILE_PREFIX.
+
+. ./DISTRO_SPECS
+
+[ ! -d packages-${DISTRO_FILE_PREFIX} ] && exit
+xCOMPREPO="${DISTRO_FILE_PREFIX}"
+COMPREPO="$DISTRO_COMPAT_VERSION" #ex:april
+CURRDIR="`pwd`"
+
+ALLPKGS="$(ls -1 packages-${xCOMPREPO} | tr '\n' ' ')"
+touch Packages-pet-${COMPREPO}-official
+#COMPATDB="$(find . -mindepth 1 -maxdepth 1 -type f -name "Packages-*-${COMPREPO}-official" | grep -v '-pet-' | head -n 1 | sed -e 's%^\./%%')" #ex: Packages-t2-april-official
+COMPATDB="Packages-${DISTRO_BINARY_COMPAT}-${COMPREPO}-official"
+[ ! -f "$COMPATDB" ] && exit
+
+echo "This script will convert all of the packages in 'packages-${xCOMPREPO}', that"
+echo "came from a compat-distro pkg (refer '${COMPATDB}'), to PETs."
+echo "The new PETs will be added to 'packages-pet' and 'Packages-pet-${COMPREPO}-official'"
+echo -n 'Press ENTER to start:'
+read startme
+
+for AGENNAME in $ALLPKGS
+do
+ [ ! -d packages-${xCOMPREPO}/$AGENNAME ] && continue
+ ANAME="$(echo -n "$AGENNAME" | sed -e 's%_DEV$%%' -e 's%_DOC$%%' -e 's%_NLS$%%')" #cut off any _DEV, _DOC, _NLS
+ AEND="$(echo -n "$AGENNAME" | grep -o -E '_DEV|_DOC|_NLS')"
+ PTN1="|${AGENNAME}|"
+ PTN2="|${ANAME}|"
+ ADB="$(grep "$PTN2" $COMPATDB)"
+ [ ! "$ADB" ] && continue #check that came from compat-distro pkg.
+ MULTIHIT="$(echo "$ADB" | wc -l)"
+ [ "$MULTIHIT" != "1" ] && continue #ignore 
+
+ PKGFULLNAME="$(echo -n "$ADB" | cut -f 8 -d '|')" #ex: t2: 915resolution-0.5.3-patched_20120521.tar.bz2
+ #PKGDIRONLY="$(basename $PKGFULLNAME .pet)" #ex: abiword-1.2.3-april
+ PKGversion="$(echo -n "$ADB" | cut -f 3 -d '|')"
+ #PKGpkgrelease="$(echo -n "$ADB" | cut -f 4 -d '|')"
+ PKGDIRONLY="${AGENNAME}-${PKGversion}" #${PKGrelease}" #ex: 915resolution-0.5.3-patched_20120521
+ [ -d ../../pet-construction/${DISTRO_TARGETARCH}/pet_packages-${COMPREPO}/${PKGDIRONLY}-${DISTRO_FILE_PREFIX} ] && continue #already exists.
+ 
+ echo -n "${AGENNAME} " #ex: abiword  ex: abiword_DEV
+ #remove old pkg(s) of same name...
+ if [ "$(grep "$PTN1" Packages-pet-${COMPREPO}-official)" != "" ];then
+  COMPATDIRS="$(grep "$PTN1" Packages-pet-${COMPREPO}-official | cut -f 8 -d '|' | sed -e 's%\.pet$%%' | tr '\n' ' ')"
+  for ADIR in $COMPATDIRS
+  do
+   [ -d ../../pet-construction/${DISTRO_TARGETARCH}/pet_packages-${COMPREPO}/${ADIR} ] && rm -rf ../../pet-construction/${DISTRO_TARGETARCH}/pet_packages-${COMPREPO}/${ADIR}
+   [ -f ../../pet-construction/${DISTRO_TARGETARCH}/pet_packages-${COMPREPO}/${ADIR}.pet ] && rm -f ../../pet-construction/${DISTRO_TARGETARCH}/pet_packages-${COMPREPO}/${ADIR}.pet
+  done
+  #remove old pkg of same name from db...
+  grep -v "$PTN1" Packages-pet-${COMPREPO}-official > /tmp/Packages-pet-${COMPREPO}-official
+  mv -f /tmp/Packages-pet-${COMPREPO}-official Packages-pet-${COMPREPO}-official
+ fi
+ 
+ #echo "Appending ${ADB} to Packages-pet-${COMPREPO}-official..."
+ #db entry: pkgname|nameonly|version|pkgrelease|category[;subcategory]|size|path|fullfilename|dependencies|description|
+ CNT=1
+ echo -n '' > /tmp/compat2pet-tmp1
+ AVERSION="$(echo -n "$ADB" | cut -f 3 -d '|')"
+ echo "$ADB" | tr '|' '\n' |
+ while read AFIELD
+ do
+  [ $CNT -eq 7 ] && AFIELD="" #empty path field.
+  #need to insert _DEV, _DOC, _NLS...
+  #if [ "$AEND" ];then
+   [ $CNT -eq 1 ] && AFIELD="${ANAME}${AEND}-${AVERSION}-${DISTRO_FILE_PREFIX}"
+   [ $CNT -eq 2 ] && AFIELD="${ANAME}${AEND}"
+   [ $CNT -eq 3 ] && AFIELD="${AVERSION}-${DISTRO_FILE_PREFIX}"
+   [ $CNT -eq 8 ] && AFIELD="${ANAME}${AEND}-${AVERSION}-${DISTRO_FILE_PREFIX}.pet"
+  #fi
+  echo -n "${AFIELD}|" >> /tmp/compat2pet-tmp1
+  CNT=`expr $CNT + 1`
+ done
+ xADB="$(cat /tmp/compat2pet-tmp1)"
+ echo "$xADB" >> Packages-pet-${COMPREPO}-official
+ 
+ #construct the pet...
+ cp -a packages-${xCOMPREPO}/${AGENNAME} ../../pet-construction/${DISTRO_TARGETARCH}/pet_packages-${COMPREPO}/${PKGDIRONLY}-${DISTRO_FILE_PREFIX}
+ echo "$xADB" > ../../pet-construction/${DISTRO_TARGETARCH}/pet_packages-${COMPREPO}/${PKGDIRONLY}-${DISTRO_FILE_PREFIX}/pet.specs
+ cd ../../pet-construction/${DISTRO_TARGETARCH}/pet_packages-${COMPREPO}
+ dir2tgz ${PKGDIRONLY}-${DISTRO_FILE_PREFIX}/
+ tgz2pet ${PKGDIRONLY}-${DISTRO_FILE_PREFIX}.tar.gz
+ sync
+ cd $CURRDIR
+ cp -a -f ../../pet-construction/${DISTRO_TARGETARCH}/pet_packages-${COMPREPO}/${PKGDIRONLY}-${DISTRO_FILE_PREFIX}.pet packages-pet/
+ 
+ if [ "$gonext" != "a" ];then
+  echo
+  echo -n "ENTER to step next pkg (or 'a' to run): "
+  read gonext
+ fi
+done
+echo
+
+#sort pet db...
+sort --field-separator='|' --key=1 Packages-pet-${COMPREPO}-official > /tmp/Packages-pet-${COMPREPO}-official-tmp
+mv -f /tmp/Packages-pet-${COMPREPO}-official-tmp Packages-pet-${COMPREPO}-official
+ 
+#offer to update the master pet db...
+if [ -f ../../quirky/woof-distro/${DISTRO_TARGETARCH}/${DISTRO_BINARY_COMPAT}/${COMPREPO}/Packages-pet-${COMPREPO}-official ];then
+ DBPATH="../../quirky/woof-distro/${DISTRO_TARGETARCH}/${DISTRO_BINARY_COMPAT}/${COMPREPO}"
+else
+ if [ -f ../../quirky/woof-distro/${DISTRO_TARGETARCH}/${DISTRO_BINARY_COMPAT}/Packages-pet-${COMPREPO}-official ];then
+  DBPATH="../../quirky/woof-distro/${DISTRO_TARGETARCH}/${DISTRO_BINARY_COMPAT}"
+ else
+  if [ -f ../../quirky/woof-distro/${DISTRO_TARGETARCH}/Packages-pet-${COMPREPO}-official ];then
+   DBPATH="../../quirky/woof-distro/${DISTRO_TARGETARCH}"
+  else
+   echo error
+   exit
+  fi
+ fi
+fi
+echo
+echo "Update '${DBPATH}/Packages-pet-${COMPREPO}-official'"
+echo -n "ENTER to update: "
+read updateme
+if [ "$updateme" == "" ];then
+ cp -f Packages-pet-${COMPREPO}-official ${DBPATH}/Packages-pet-${COMPREPO}-official
+fi

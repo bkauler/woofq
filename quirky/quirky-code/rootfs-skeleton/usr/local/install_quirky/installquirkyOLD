@@ -1,0 +1,526 @@
+#!/bin/bash
+#(c) Copyright Barry Kauler, Feb. 2015. License GPL3 (usr/share/doc/legal)
+#see also 7build-live-cd in woofQ, /usr/sbin/savesession
+#called via "install" icon on desktop.
+#150216 first release.
+#150219 removed  "-processors 1" from mksquashfs.
+#150221 introduce full install.
+#150228 need LANG=C prefix for printf.
+#150303 frugal install, improved final window.
+#150317 frugal: create a file in a partition, with ext2 f.s., working area so as not to use ram.
+#150317 frugal: move q.sfs out of initrd, save as uncompressed squashfs.
+#150318 delete temp wkg-ext2-f.s.-file after using it. tweak size of tmp file.
+#150320 able to run inside a self-extracting archive. refer: /usr/local/install_quirky
+#150322 fix sanity test. load DISTRO_SPECS if exist. offer to download quirky.
+#150323 use download_file if it exists. consider src intrd.q already has q.sfs separated.
+#150323 help for full drive install.
+#150324 use full fdisk. busybox applet outputs wrong format for gpt drive.
+#150327 frontend window. modularity of target choices.
+#150330 install-quirky-to-drive-gpt merged, renamed to install-quirky-to-drive.
+#150407 need 'xwininfo'.
+#150414 online files now in 'releases' folder. fix LANG=C
+#150415 remove frugal code to 'install-quirky-to-frugal' script.
+#150416 test for correct host arch. L18L: gettext was missing. 150418 cpu descr. fix.
+#150422 language translation files inside archive.
+#150930 neo64 has 64-bit kernel, 32-bit apps, get HOST_ARCH from /etc/DISTRO_SPECS.
+#151001 export LD_LIBRARY_PATH to libs in archive.
+#151004 revert 151001, use LD_PRELOAD. 151006 fix 150416
+#151007 test if glibc in host too old.
+#151108 the 1.2G mem requirement for live-cd/frugal can be moved down, say 0.8G.
+#151123 message changes.
+
+export TEXTDOMAIN=installquirky
+export OUTPUT_CHARSET=UTF-8
+
+#150322 must run as root:
+ME="`whoami`"
+if [ "$ME" != "root" ];then
+ echo "Must run as root user. Aborting."
+ xmessage -bg '#FF8080' -center "Sorry, must run this application as 'root' user."
+ exit 1
+fi
+
+#150320 detect if running inside a self-extracted archive:
+WDcurrent="`pwd`"
+PRE=''
+TEXTDOMAINDIR='/usr/share/locale' #150422
+if [ -f ${WDcurrent}/DISTRO_SPECS ];then
+ . ${WDcurrent}/DISTRO_SPECS
+ if [ -f ${WDcurrent}/gtkdialog ];then
+  PRE="${WDcurrent}/"
+  TEXTDOMAINDIR="${WDcurrent}/locale" #150422
+ fi
+ #if [ "$LD_LIBRARY_PATH" ];then #151001
+ # export LD_LIBRARY_PATH="${WDcurrent}:${LD_LIBRARY_PATH}"
+ #else
+ # export LD_LIBRARY_PATH="${WDcurrent}"
+ #fi
+else
+ . /etc/DISTRO_SPECS
+fi
+export TEXTDOMAINDIR #150422
+[ -f /etc/rc.d/install.log ] && . /etc/rc.d/install.log #has INSTALLED_MODE=livecd, frugal, drive (full), partition (full)
+
+#150416 must run in correct arch:
+#150930 neo64 has 64-bit kernel, 32-bit apps, get HOST_ARCH from /etc/DISTRO_SPECS...
+if [ "$PRE" ];then
+ if [ ! -f /etc/DISTRO_SPECS ];then
+  HOST_ARCH="$(uname -m)"
+  [ "$HOST_ARCH" ] || exit 1
+ else
+  HOST_ARCH="$(grep '^DISTRO_TARGETARCH' /etc/DISTRO_SPECS | cut -f 2 -d "'")"
+ fi
+ case $HOST_ARCH in
+  x86_64|amd64) HOST_ARCH=amd64 ;; #151006
+  *)      HOST_ARCH=x86   ;;
+ esac
+ if [ "$HOST_ARCH" != "$DISTRO_TARGETARCH" ];then
+  echo "ERROR: The host Linux OS must have architecture '${DISTRO_TARGETARCH}'. Please download the correct Quirky Installer. Aborting."
+  xmessage -bg '#FF6060' "ERROR: The host Linux OS must have architecture '${DISTRO_TARGETARCH}'. Please download the correct Quirky Installer. Aborting."
+  exit 1
+ fi
+fi
+
+CR='
+'
+
+#151004
+if [ "$PRE" ];then
+ LIBLZMA="$(find ${PRE} -mindepth 1 -maxdepth 1 -type f -name 'liblzma.so.*' | head -n 1)"
+ LIBF2FS="$(find ${PRE} -mindepth 1 -maxdepth 1 -type f -name 'libf2fs.so.*' | head -n 1)"
+ LIBUUID="$(find ${PRE} -mindepth 1 -maxdepth 1 -type f -name 'libuuid.so.*' | head -n 1)"
+ export LD_PRELOAD="${LIBLZMA} ${LIBF2FS} ${LIBUUID}"
+fi
+
+#150320 do some sanity checks:
+#151007 ldd will give stderr if glibc too old, ex: ./cp: /lib/libc.so.6: version `GLIBC_2.17' not found (required by ./cp) (got this with precise 5.7.1)
+errTITLE="$(gettext 'Quirky Installer: error')"
+RXVTEXE=''; errMSG=''
+[ `which urxvt` ] && RXVTEXE='urxvt'
+[ ! "$RXVTEXE" ] && [ `which rxvt` ] && RXVTEXE='rxvt'
+[ ! "$RXVTEXE" ] && [ `which xterm` ] && RXVTEXE='xterm'
+[ ! "$RXVTEXE" ] && errMSG="${errMSG}${CR}$(gettext "There is no 'urxvt', 'rxvt', or 'xterm' utility.")"
+[ `which wget` ] || errMSG="${errMSG}${CR}$(gettext "There is no 'wget' utility.")"
+[ `which xwininfo` ] || errMSG="${errMSG}${CR}$(gettext "There is no 'xwininfo' utility, needed by 'popup'.")" #150407
+echo -n "" > /tmp/installquirky-ldd-err #151007
+if [ "$PRE" ];then
+ if [ ! `which ldd` ];then
+  errMSG="${errMSG}${CR}$(gettext "The 'ldd' utility is missing.")"
+ else
+  #check bins work:
+  mLDD=''
+  for ABIN in cp gdisk gtkdialog mksquashfs popup syslinux unsquashfs vercmp
+  do
+   aLDD="$(ldd ${PRE}${ABIN} 2>/tmp/installquirky-ldd-err | ${PRE}busybox grep 'not found' | ${PRE}busybox tr -s '\t' ' ' | ${PRE}busybox tr -s ' ' | ${PRE}busybox cut -f 2 -d ' ')"
+   [ -s /tmp/installquirky-ldd-err ] && break #151007
+   [ "$aLDD" ] && mLDD="${mLDD}${CR}${aLDD}"
+  done
+  if [ "$mLDD" ];then
+   xmLDD="$(${PRE}busybox echo -n "$mLDD" | ${PRE}busybox sort -u | ${PRE}busybox tr '\n' ' ')"
+   errMSG="${errMSG}${CR}$(gettext 'These needed libraries are missing:')${CR}${xmLDD}"
+  fi
+ fi
+fi
+if [ -s /tmp/installquirky-ldd-err ];then #151007
+ errMSG="$(gettext 'Error message:')${CR}`cat /tmp/installquirky-ldd-err`${CR}${CR}$(gettext 'The version of Linux currently running is too old or wrong architecture. Aborting.')"
+ ${PRE}popup "level=top background=#FF8080 terminate=ok|<b>${errTITLE}</b>${CR}${errMSG}"
+ exit 1
+fi
+if [ "$errMSG" ];then
+ ${PRE}popup "level=top background=#FF8080 terminate=ok|<b>${errTITLE}</b>${errMSG}"
+ exit 1
+fi
+export RXVTEXE
+
+###############################################################################
+#150327 frontend window
+WELCOMEMSG1="$(gettext 'Welcome to the Quirky Installer')"
+
+CPU_VER="$(${PRE}dmidecode -s "processor-version" | ${PRE}busybox head -n 1 | ${PRE}busybox sed -e 's%[^0-9a-zA-Z .,()]%%g' -e 's%  %,%g' | ${PRE}busybox tr -s ',' | head -n 1)" #150418
+DMI_MEM="$(${PRE}dmidecode -t memory)"
+DMI_BIOS="$(${PRE}dmidecode -t bios)"
+
+HELPICON="gtk-index"
+M_close="`gettext 'Close'`"
+DATA64flag="$(${PRE}busybox echo "$DMI_MEM" | ${PRE}busybox grep '64[ -]bit')"
+if [ "$DATA64flag" ];then
+ H_size="$(gettext '<b>Your PC has a 64-bit CPU</b>, however you may downsize to 32-bit if you wish.')
+${CR}$(gettext "A 32-bit Quirky installation will run on a 64-bit CPU. The disadvantages are that it is slightly slower (you probably won't notice the difference), and can only use the first 3.6GB of RAM (again, you won't notice any limitation). However, an advantage of downsizing is that there are some applications available online that are 32-bit only (such as SoftMaker Office).")
+${CR}$(gettext "However, a big warning. Do not downsize if you are installing to a PC that runs Windows 8.x (or 10). These PCs usually have <b>UEFI firmware</b>, which will usually only boot a 64-bit operating system -- unless <b>Legacy Boot</b> (CSM) is enabled in the <b>UEFI-Setup</b>. Please click the Help button in the Firmware section for more explanation about UEFI.")"
+ export DLG_HELP_SIZE="<window resizable=\"false\" title=\"$(gettext 'Help: CPU')\" icon-name=\"${HELPICON}\" window_position=\"1\"><vbox><text use-markup=\"true\"><label>\"${H_size}\"</label><variable>DLG_HELP_SIZE</variable></text><hbox><button><label>${M_close}</label><action type=\"closewindow\">DLG_HELP_SIZE</action></button></hbox></vbox></window>"
+ RADIOXML_SIZE="<radiobutton><label>$(gettext '64-bit CPU')</label><variable>PRE_CHK_CPU64</variable></radiobutton>
+    <radiobutton><label>$(gettext '32-bit CPU')</label><variable>PRE_CHK_CPU32</variable></radiobutton>
+    <hbox><button><input file>/usr/local/lib/X11/mini-icons/mini-question.xpm</input><action type=\"launch\">DLG_HELP_SIZE</action></button></hbox>"
+else
+ H_size="$(gettext '<b>Your PC only has a 32-bit CPU</b>, it will not run 64-bit software.')
+${CR}$(gettext 'Do not change the radiobuttons. You cannot install the 64-bit version of Quirky.')
+${CR}$(gettext 'However, if you want to install to removable media, such as a USB Flash stick, that you intend to boot on a PC with 64-bit CPU, then you may click the 64-bit radiobutton. Though note, such a PC will also boot a 32-bit operating system -- read more about this via the Help button in the Firmware section.')"
+ export DLG_HELP_SIZE="<window resizable=\"false\" title=\"$(gettext 'Help: CPU')\" icon-name=\"${HELPICON}\" window_position=\"1\"><vbox><text use-markup=\"true\"><label>\"${H_size}\"</label><variable>DLG_HELP_SIZE</variable></text><hbox><button><label>${M_close}</label><action type=\"closewindow\">DLG_HELP_SIZE</action></button></hbox></vbox></window>"
+ RADIOXML_SIZE="<radiobutton><label>$(gettext '32-bit CPU')</label><variable>PRE_CHK_CPU32</variable></radiobutton>
+    <radiobutton><label>$(gettext '64-bit CPU')</label><variable>PRE_CHK_CPU64</variable></radiobutton>
+    <hbox><button><input file>/usr/local/lib/X11/mini-icons/mini-question.xpm</input><action type=\"launch\">DLG_HELP_SIZE</action></button></hbox>"
+fi
+#    <radiobutton><label>$(gettext "Don't know")</label><variable>PRE_CHK_CPU00</variable></radiobutton>
+
+MEMSIZEK=$(${PRE}busybox free -k | ${PRE}busybox grep '^Mem:' | ${PRE}busybox tr -s ' ' | ${PRE}busybox cut -f 2 -d ' ')
+if [ $MEMSIZEK -gt 1048576 ];then #1024*1024
+ xONESIZE="`LANG=C ${PRE}busybox dc $MEMSIZEK 1048576 \/ p`"
+ ONESIZE="`LANG=C ${PRE}busybox printf "%.1f" $xONESIZE`G"
+else
+ if [ $MEMSIZEK -gt 99 ];then
+  ONESIZE="`${PRE}busybox expr $MEMSIZEK \/ 1024`M"
+ else
+  xONESIZE="`LANG=C ${PRE}busybox dc $MEMSIZEK 1024 \/ p`"
+  ONESIZE="`LANG=C ${PRE}busybox printf "%.1f" $xONESIZE`M"
+ fi
+fi
+H_mem_avail="$(gettext 'NOTE: Available RAM is less than the total RAM in your PC. For example, a PC specified as having 4GB RAM may only have about 3.6GB available. One reason is that some RAM may be reserved for video, another reason is that manufacturers may equate 1GB as 1,000,000,000 bytes, which is technically incorrect')"
+if [ $MEMSIZEK -gt 838800 ];then #151108 was 1258000 (1.2GB)
+ H_mem="$(gettext '<b>Your PC has enough RAM for all of the install options</b>: full install to a removable drive, full install to a hard-drive partition, frugal and live-CD.')
+${CR}$(gettext 'If you click the under-0.8GB RAM radiobutton, the next window of the installer will not offer the frugal and live-CD options.')
+${CR}$(gettext 'Note that frugal and live-CD run totally in RAM, which is why so much is required. All downloads, including browser cache, and package installations, will be in RAM, so if your RAM is about 1GB there is not much space for ongoing usage. 2GB is better, 4GB excellent.')
+${CR}${H_mem_avail}"
+ export DLG_HELP_MEM="<window resizable=\"false\" title=\"$(gettext 'Help: RAM')\" icon-name=\"${HELPICON}\" window_position=\"1\"><vbox><text use-markup=\"true\"><label>\"${H_mem}\"</label><variable>DLG_HELP_MEM</variable></text><hbox><button><label>${M_close}</label><action type=\"closewindow\">DLG_HELP_MEM</action></button></hbox></vbox></window>"
+ RADIOXML_MEM="<radiobutton><label>$(gettext 'Over 0.8GB')</label><variable>PRE_CHK_MEM2</variable></radiobutton>
+    <radiobutton><label>$(gettext 'Under 0.8GB')</label><variable>PRE_CHK_MEM1</variable></radiobutton>
+    <hbox><button><input file>/usr/local/lib/X11/mini-icons/mini-question.xpm</input><action type=\"launch\">DLG_HELP_MEM</action></button></hbox>"
+else
+ H_mem="$(gettext '<b>Your PC does not have enough RAM for frugal and live-CD install options</b>, however, the next window will offer full install to a removable drive and full install to a hard-drive partition.')
+${CR}$(gettext 'Note that frugal and live-CD run totally in RAM, which is why so much is required. All downloads, including browser cache, and package installations, will be in RAM, so if your RAM is about 1GB there is not much space for ongoing usage. 2GB is better, 4GB excellent.')
+${CR}$(gettext 'However, if your PCs RAM size is about 1GB (or a bit less), frugal and live-CD will work, but you will have to forego large downloads and installation of packages.')
+${CR}$(gettext 'NOTE: After first bootup of the live-CD, if session is saved to hard drive (see 'save' icon on desktop), the CD will then work much better in a low-RAM situation.')
+${CR}${H_mem_avail}"
+ export DLG_HELP_MEM="<window resizable=\"false\" title=\"$(gettext 'Help: RAM')\" icon-name=\"${HELPICON}\" window_position=\"1\"><vbox><text use-markup=\"true\"><label>\"${H_mem}\"</label><variable>DLG_HELP_MEM</variable></text><hbox><button><label>${M_close}</label><action type=\"closewindow\">DLG_HELP_MEM</action></button></hbox></vbox></window>"
+ RADIOXML_MEM="<radiobutton><label>$(gettext 'Under 0.8GB')</label><variable>PRE_CHK_MEM1</variable></radiobutton>
+    <radiobutton><label>$(gettext 'Over 0.8GB')</label><variable>PRE_CHK_MEM2</variable></radiobutton>
+    <hbox><button><input file>/usr/local/lib/X11/mini-icons/mini-question.xpm</input><action type=\"launch\">DLG_HELP_MEM</action></button></hbox>"
+fi
+
+#150404 add link to online UEFI tutorial:
+if [ `which defaultbrowser` ];then
+ BROWSEREXE='defaultbrowser'
+else
+ BROWSEREXE='xdg-open'
+fi
+UEFITUTXML="<frame $(gettext 'UEFI tutorial')>
+<text><label>$(gettext "If you don't know much about UEFI and Secure Boot, or even if you do, this online introduction and guide to installing Quirky on UEFI-computers, is a nice read. It is good to understand the basic concepts before making installation decisions.")</label></text>
+<hbox><button><label>$(gettext 'Online UEFI Tutorial')</label><action>${BROWSEREXE} http://bkhome.org/quirky/uefi.htm & </action></button></hbox>
+</frame>"
+
+H_fw="$(gettext '')"
+UEFIflag="false"
+LEGACYflag="false"
+UEFIflag="$(${PRE}busybox echo "$DMI_BIOS" | ${PRE}busybox grep 'UEFI is supported')"
+[ "$UEFIflag" ] && UEFIflag="true"
+FWtype="BIOS"
+[ "$UEFIflag" == "true" ] && FWtype="UEFI"
+LEGACYflag="$(${PRE}busybox echo "$DMI_BIOS" | ${PRE}busybox grep 'USB legacy is supported')"
+[ "$LEGACYflag" ] && LEGACYflag="true"
+
+if [ "$LEGACYflag" == "true" ];then
+ if [ "$UEFIflag" == "true" ];then
+  H_fw="$(gettext 'Your PC has <b>UEFI firmware</b>, which means that it probably has Windows 8.x or 10 installed. Most PCs manufactured from 2012 are of this type.')
+${CR}$(gettext 'Note: All PCs manufactured prior to 2012, and with Windows versions 98, XP, Vista and 7, have <b>BIOS firmware</b>.')
+${CR}$(gettext 'Although your PC has UEFI firmware, it does seem to support BIOS booting, which is called <b>legacy boot</b> or <b>CSM</b> (Compatibility Support Mode). That is fine, but some PCs do not support CSM very well -- they may not support mixed-mode booting, meaning that if you enable legacy-boot in the UEFI-Setup, then Windows may no longer boot -- until you disable legacy boot. That is messy, though recent PCs seem to have sorted that out.')
+${CR}$(gettext '<b>RECOMMENDED:</b> if you have not investigated the legacy-boot setup of your UEFI-firmware, do not bother. Take the easy option and click the <b>UEFI</b> radiobutton.')
+${CR}$(gettext 'Click the <b>UEFI</b> radiobutton, the Installer will offer UEFI installation only.')
+$(gettext 'Click the <b>BIOS</b> radiobutton, the Installer will offer legacy-mode installation only.')"
+ else
+  H_fw="$(gettext 'All PCs manufactured prior to 2012, and with Windows versions prior to 8.x (98, XP, Vista and 7), have <b>BIOS firmware</b>.')
+${CR}$(gettext 'Note that most PCs manufactured from 2012 have <b>UEFI firmware</b>, and have Windows 8.x (and 10). You do not have UEFI firmware, count yourself lucky. Quirky can install to PCs with UEFI firmware, however BIOS installations are far more mature.')"
+ fi
+else
+ if [ "$UEFIflag" == "true" ];then
+  H_fw="$(gettext 'Your PC has <b>UEFI firmware</b>, which means that it probably has Windows 8.x or 10 installed. Most PCs manufactured from 2012 are of this type.')
+${CR}$(gettext 'Your PC does not seem to support <b>BIOS legacy-mode</b> booting.')"
+ else
+  H_fw="$(gettext 'A probe was unable to determine whether your PC supports UEFI-booting or BIOS-booting. Make a choice with the radiobuttons.')
+${CR}$(gettext 'Note: All PCs manufactured prior to 2012, and with Windows versions 98, XP, Vista and 7, have <b>BIOS firmware</b>.')
+$(gettext 'Most PCs manufactured from 2012, with Windows 8.x installed, have <b>UEFI firmware</b>.')"
+ fi
+fi
+H_install_flash="$(gettext 'NOTE: If you click the UEFI radiobutton and then install to USB Flash drive or a SD-card,') <span fgcolor='#000080'>$(gettext 'it will boot on <b>both</b> UEFI and BIOS PCs')</span> $(gettext '(UEFI legacy mode is not required). On the otherhand, if you click the BIOS radiobutton, the USB/SD-card installation will only boot on BIOS PCs.')"
+export DLG_HELP_FW="<window resizable=\"false\" title=\"$(gettext 'Help: firmware')\" icon-name=\"${HELPICON}\" window_position=\"1\"><vbox><text use-markup=\"true\"><label>\"${H_fw}${CR}${CR}${H_install_flash}${CR}\"</label><variable>DLG_HELP_FW</variable></text>${UEFITUTXML}<hbox><button><label>${M_close}</label><action type=\"closewindow\">DLG_HELP_FW</action></button></hbox></vbox></window>"
+
+radio_fw_bios="<radiobutton><label>$(gettext 'BIOS')</label><variable>PRE_CHK_FW1</variable></radiobutton>"
+radio_fw_uefi="<radiobutton><label>$(gettext 'UEFI')</label><variable>PRE_CHK_FW2</variable></radiobutton>"
+but_fw_help="<hbox><button><input file>/usr/local/lib/X11/mini-icons/mini-question.xpm</input><action type=\"launch\">DLG_HELP_FW</action></button></hbox>"
+if [ "$LEGACYflag" == "true" ];then
+ if [ "$UEFIflag" == "true" ];then
+  BOOTXML="<text use-markup=\"true\"><label>\"$(gettext 'Your PC supports both <b>BIOS legacy mode</b> booting, and <b>UEFI</b> booting.')\"</label></text>"
+  RADIOXML_FW="${radio_fw_uefi}${radio_fw_bios}${but_fw_help}"
+ else
+  BOOTXML="<text use-markup=\"true\"><label>\"$(gettext 'Your PC supports <b>BIOS</b> booting only. Only choose UEFI if installing to a removable drive that will be booted on a UEFI PC.')\"</label></text>"
+  RADIOXML_FW="${radio_fw_bios}${radio_fw_uefi}${but_fw_help}"
+ fi
+else
+ if [ "$UEFIflag" == "true" ];then
+  BOOTXML="<text use-markup=\"true\"><label>\"$(gettext 'Your PC supports <b>UEFI</b> booting. It seems to <i>not</i> support <b>BIOS legacy mode</b> booting. Choose BIOS only if installing to removable drive that will be booted on a BIOS PC.')\"</label></text>"
+  RADIOXML_FW="${radio_fw_uefi}${radio_fw_bios}${but_fw_help}"
+ else
+  BOOTXML="<text use-markup=\"true\"><label>\"$(gettext 'Problem, unable to determine whether this PC supports UEFI booting or BIOS booting.')\"</label></text>"
+  RADIOXML_FW="${radio_fw_bios}${radio_fw_uefi}${but_fw_help}"
+ fi
+fi
+
+# width-chars=\"60\"
+
+export IQ_DLGF="<window title=\"$(gettext "Quirky Installer")\" icon-name=\"gtk-convert\">
+<vbox>
+ <text use-markup=\"true\"><label>\"<big><b>${WELCOMEMSG1}</b></big>\"</label></text>
+ <text><label>$(gettext 'To enable the Installer to customise the installation choices to best suit your computer, please answer the following questions.')</label></text>
+ <text><label>$(gettext 'Choices are preselected to suit the PC you are currently using.')</label></text>
+ <frame $(gettext 'CPU')>
+  <text use-markup=\"true\"><label>\"<span fgcolor='#000080'>$(gettext 'CPU description:') <b>${CPU_VER}</b></span>\"</label></text>
+  <hbox>
+   <text use-markup=\"true\"><label>\"$(gettext 'Your PC needs to have a <b>x86</b> class of CPU, anything from a <b>i686</b> (Pentium Pro) up to the latest such as <b>Intel i7</b>. Some early Pentium-class CPUs are 32-bit only, so cannot run 64-bit software.')\"</label></text>
+   <vbox>
+    ${RADIOXML_SIZE}
+   </vbox>
+  </hbox>
+ </frame> 
+ <frame $(gettext 'RAM')>
+  <text use-markup=\"true\"><label>\"<span fgcolor='#000080'>$(gettext 'Available RAM:') <b>${ONESIZE}</b></span>\"</label></text>
+  <hbox>
+   <text use-markup=\"true\"><label>\"$(gettext 'A <b>full</b> installation of Quirky needs as little as 256MB, however, a <b>frugal</b> installation or <b>live-CD</b> needs at least 0.8GB.')\"</label></text>
+   <vbox>
+    ${RADIOXML_MEM}
+   </vbox>
+  </hbox>
+ </frame>
+ <frame $(gettext 'Firmware')>
+  <text use-markup=\"true\"><label>\"<span fgcolor='#000080'>$(gettext 'Type of firmware:') <b>${FWtype}</b></span>\"</label></text>
+  <hbox>
+   ${BOOTXML}
+   <vbox>
+    ${RADIOXML_FW}
+   </vbox>
+  </hbox>
+ </frame>
+ <hbox>
+  <button><label>$(gettext 'CONTINUE')</label><action type=\"exit\">continue</action></button>
+  <button cancel></button>
+ </hbox>
+</vbox>
+</window>"
+RETSTRINGF="$(${PRE}gtkdialog --program=IQ_DLGF --center)"
+[ $? -ne 0 ] && exit
+eval "$RETSTRINGF"
+[ "$EXIT" != "continue" ] && exit
+###############################################################################
+
+
+###############################################################################
+#150328 modules:
+#  <text use-markup=\"true\"><label>\"<b><span fgcolor='#008F00'>Recommended for PCs with Windows 8.1</span></b>\"</label></text>
+LEGACYWARN=""
+[ "$UEFIflag" == "true" ] && LEGACYWARN="<text use-markup=\"true\"><label>\"<b><span fgcolor='#FF0000'>$(gettext 'You need to enable legacy-boot in UEFI-Setup, which can be tricky with some Win8 PCs')</span></b>\"</label></text>"
+BMWARN="<text use-markup=\"true\"><label>\"<b><span fgcolor='#FF0000'>$(gettext 'You need to install a Boot Manager, such as GRUB, which is not done by the Quirky Installer')</span></b>\"</label></text>"
+[ "$UEFIflag" == "true" ] && BMWARN="<text use-markup=\"true\"><label>\"<b><span fgcolor='#FF0000'>$(gettext 'You need to install a Boot Manager, which is not done by the Quirky Installer. This might not be straightforward on a UEFI Win8 PC')</span></b>\"</label></text>"
+LIVECD="<frame $(gettext "Live-CD")><text><label>$(gettext 'This option installs Quirky to a CD (or DVD), which may be booted. This is known as a live-CD.')</label></text><hbox><button><label>$(gettext "INSTALL")</label><action type=\"exit\">installlivecd</action></button><button><input file>/usr/local/lib/X11/mini-icons/mini-question.xpm</input><action type=\"launch\">DLG_HELP_LIVECD</action></button></hbox></frame>"
+FRUGAL="<frame $(gettext "Frugal")><text><label>$(gettext 'This option installs Quirky in a folder in a hard-drive partition. The partition can have any filesystem: NTFS, FAT or a Linux filesystem.')</label></text><hbox><button><label>$(gettext "INSTALL")</label><action type=\"exit\">installfrugal</action></button><button><input file>/usr/local/lib/X11/mini-icons/mini-question.xpm</input><action type=\"launch\">DLG_HELP_FRUGAL</action></button></hbox></frame>"
+DRIVE="<frame $(gettext "Drive")><text><label>$(gettext 'This option is for installation to an entire drive, for example a USB Flash stick, or a SD-card. It will wipe anything prior on the drive.')</label></text><hbox><button><label>$(gettext "INSTALL")</label><action type=\"exit\">installdrive</action></button><button><input file>/usr/local/lib/X11/mini-icons/mini-question.xpm</input><action type=\"launch\">DLG_HELP_DRIVE</action></button></hbox></frame>"
+PARTITION="<frame $(gettext "Partition")><text><label>$(gettext 'This option is a full installation to a partition with a Linux filesystem in a hard drive.')</label></text><hbox><button><label>$(gettext "INSTALL")</label><action type=\"exit\">installpartition</action></button><button><input file>/usr/local/lib/X11/mini-icons/mini-question.xpm</input><action type=\"launch\">DLG_HELP_PARTITION</action></button></hbox></frame>"
+R_001="<text use-markup=\"true\"><label>\"<b>$(gettext 'No installation options for 32-bit Quirky, UEFI-booting. Suggest you go BACK and choose BIOS-booting (legacy mode)')</b>\"</label></text>"
+
+#150328 analyze PRE_* choices
+#32-bit or 64-bit CPU: PRE_CHK_CPU32 PRE_CHK_CPU64
+#under-0.8GB or over:  PRE_CHK_MEM1 PRE_CHK_MEM2
+#BIOS or UEFI booting: PRE_CHK_FW1 PRE_CHK_FW2
+PRE_CPU=0; PRE_MEM=0; PRE_FW=0
+[ "$PRE_CHK_CPU64" == "true" ] && PRE_CPU=1
+[ "$PRE_CHK_MEM2" == "true" ]  && PRE_MEM=1
+[ "$PRE_CHK_FW2" == "true" ] && PRE_FW=1
+PREall="${PRE_CPU}${PRE_MEM}${PRE_FW}"
+case $PREall in
+ 000) #32-bit, under-0.8GB, BIOS. REM=removable BM=boot-manager
+  REMXML="${LEGACYWARN}${DRIVE}"; BMXML="${PARTITION}"; Qarch=x86; Qfw=BIOS
+ ;;
+ 001) #32-bit, under-0.8GB, UEFI
+  REMXML="${R_001}"; BMXML=""; Qarch=x86; Qfw=UEFI
+ ;;
+ 010) #32-bit, over-0.8GB, BIOS
+  REMXML="${LEGACYWARN}${LIVECD}${DRIVE}"; BMXML="${FRUGAL}${PARTITION}"; Qarch=x86; Qfw=BIOS
+ ;;
+ 011) #32-bit, over-0.8GB, UEFI
+  REMXML="${R_001}"; BMXML=""; Qarch=x86; Qfw=UEFI
+ ;;
+ 100) #64-bit, under-0.8GB, BIOS
+  REMXML="${LEGACYWARN}${DRIVE}"; BMXML="${PARTITION}"; Qarch=amd64; Qfw=BIOS
+ ;;
+ 101) #64-bit, under-0.8GB, UEFI
+  REMXML="${DRIVE}"; BMXML="${PARTITION}"; Qarch=amd64; Qfw=UEFI
+ ;;
+ 110) #64-bit, over-0.8GB, BIOS
+  REMXML="${LEGACYWARN}${LIVECD}${DRIVE}"; BMXML="${FRUGAL}${PARTITION}"; Qarch=amd64; Qfw=BIOS
+ ;;
+ 111) #64-bit, over-0.8GB, UEFI
+  REMXML="${DRIVE}"; BMXML="${FRUGAL}${PARTITION}"; Qarch=amd64; Qfw=UEFI
+ ;;
+esac
+
+
+###############################################################################
+#find non-usb drives (code from rc.sysinit, also refer /etc/rc.d/PUPSTATE). 150327
+ALLDRVS0="`${PRE}busybox find /sys/block -maxdepth 1 -name 'mmc*' -o -name 'sd*' -o -name 'sr*' | ${PRE}busybox xargs readlink 2>/dev/null | ${PRE}busybox grep -v '/usb[0-9]' | ${PRE}busybox rev | ${PRE}busybox cut -f 1 -d '/' | ${PRE}busybox rev`" #all *except* usb!
+ALLDRVS="`${PRE}busybox echo "$ALLDRVS0" | ${PRE}busybox tr '\n' ' '`" #all *except* usb!
+[ "$ALLDRVS" = " " ] && ALLDRVS=""
+ATADRIVES="`${PRE}busybox echo "$ALLDRVS0" | ${PRE}busybox grep -v '^sr' | ${PRE}busybox tr '\n' ' '`"
+[ "$ATADRIVES" = " " ] && ATADRIVES=""
+ATAOPTICALDRIVES="`${PRE}busybox echo "$ALLDRVS0" | ${PRE}busybox grep '^sr' | tr '\n' ' '`"
+[ "$ATAOPTICALDRIVES" = " " ] && ATAOPTICALDRIVES=""
+export ATADRIVES #needed by probepart (when run in self-extracting archive)
+
+#USEDZM=`df -m | grep 'zram0' | tr -s ' ' | cut -f 3 -d ' '` #150317
+USEDZM=650 #150320 hack.
+
+#150317 create a file in a partition, with ext2 f.s., working area so as not to use ram.
+create_file_ext2()
+{
+ #$1=DESTDEV, $2=DESTMNTPT
+ pFREEM=`${PRE}busybox df -m | ${PRE}busybox grep "^/dev/${1} " | ${PRE}busybox tr -s ' ' | ${PRE}busybox cut -f 4 -d ' '`
+ pNEEDM3=`${PRE}busybox expr $USEDZM \* 3` #roughly how much working area needed for frugal install (and future session-saves).
+ pNEEDM2=`${PRE}busybox expr $USEDZM \* 2` #roughly how much working area needed for frugal install.
+ pMSG1="$(gettext 'Install Quirky: partition error')"
+ pMSG2="$(gettext 'Partition:')"
+ pMSG4="$(gettext 'Free:')"
+ pMSG5="$(gettext 'Need:')"
+ if [ $pFREEM -lt $pNEEDM3 ];then
+  pMSG3="$(gettext 'Sorry, but this partition needs more free space. Aborting installation.')"
+ else
+  ${PRE}busybox dd if=/dev/zero of=${2}/tmpwkgfs.q bs=1M count=${pNEEDM2} conv=fsync #150318
+  if [ $? -ne 0 ];then
+   [ -f ${2}/tmpwkgfs.q ] && ${PRE}busybox rm -f ${2}/tmpwkgfs.q
+   pMSG3="$(gettext 'Sorry, unable to create a file in this partition. Aborting installation.')"
+  else
+   ${PRE}busybox sync #redundant
+   ${PRE}busybox mkfs.ext2 -m 0 ${2}/tmpwkgfs.q
+   if [ $? -ne 0 ];then
+    [ -f ${2}/tmpwkgfs.q ] && ${PRE}busybox rm -f ${2}/tmpwkgfs.q
+    pMSG3="$(gettext 'Sorry, unable to create a file in this partition. Aborting installation.')"
+   else
+    ${PRE}busybox sync
+    return 0 #success.
+   fi
+  fi
+ fi
+ pMSG9="${pMSG2} ${1}  ${pMSG4} ${pFREEM}MB  ${pMSG5} ${pNEEDM}MB${CR}${pMSG3}"
+ ${PRE}popup "level=top background=#FF8080 terminate=ok|<b>${pMSG1}</b>${CR}${pMSG9}"
+ return 1
+}
+
+#150328 help, livecd:
+H_livecd="$(gettext 'Quirky is available online as an <b>ISO</b> file, which may be downloaded, burnt to CD, and becomes a <b>live-CD</b>.')
+${CR}$(gettext 'The live-CD is suitable for evaluation of Quirky. The main disadvantage is that everything runs in RAM, severely limiting what can be downloaded and installed. For longer-term usage, a <b>full</b> install is recommended.')
+${CR}$(gettext 'Note that you can install Quirky from the running live-CD.')
+${CR}$(gettext 'Note also, some people like to boot the live-CD, as it does not touch the drives, and does not leave any footprint on the host system. If you have 4GB or more of RAM, the live-CD is quite usable.')
+${CR}$(gettext 'It is also important to know that sessions are not automatically saved. A session can only be saved by clicking the <b>save</b> icon on the desktop, which will burn an entire new live-CD. This is a slow process, and you will need blank CD-Rs or CD-RW (DVD-R and DVD-RW will also work). As mentioned above, the Quirky live-CD does not touch the host drives, so sessions cannot be saved to a drive.')"
+export DLG_HELP_LIVECD="<window resizable=\"false\" title=\"$(gettext 'Help: Live-CD')\" icon-name=\"${HELPICON}\" window_position=\"1\"><vbox><text use-markup=\"true\"><label>\"${H_livecd}\"</label><variable>DLG_HELP_LIVECD</variable></text><hbox><button><label>${M_close}</label><action type=\"closewindow\">DLG_HELP_LIVECD</action></button></hbox></vbox></window>"
+
+#150322 help, frugal:
+H_frugal="<b>$(gettext 'The Frugal concept')</b>
+$(gettext 'Frugal installation is a special feature of Puppy Linux. Instead of a <b>full</b> installation to an entire partition, as for other Linux distributions, Puppy offers to install into a folder in a partition.')
+$(gettext 'The partition can have any filesystem, Linux or DOS/Windows, and whatever it is used for is not changed. The frugal installation just occupies one folder and does not compromise the rest of the partition in any way.')
+$(gettext 'The computer must have a <b>boot manager</b> installed, such as GRUB, GRUB4DOS, or LILO, for which an entry can be made to boot the frugal installation. The Installer does not do this, you need to install a boot manager separately.')
+${CR}<b>$(gettext 'Frugal limitations')</b>
+$(gettext 'Quirky is a fork of Puppy, and also offers a frugal install, however Quirky is mostly intended for <b>full</b> installations, and the frugal install has limitations.')
+$(gettext 'With a frugal installation, Quirky copies all of the files into RAM, in what is known as a <b>zram</b>, which is a compressed filesystem. The essential point here is that a PC with at least 0.8GB RAM is required.')
+$(gettext 'Having everything in RAM means that all applications will start and run very fast, but the downside is that any downloads and package installations must fit in the available RAM. Note, you can keep a watch on free-space by the memory icon in the tray.')
+$(gettext 'Sessions are only saved to the hard drive when you click the <b>save</b> icon on the desktop. The positive aspect of this is that it is a security feature. Note, it can be configured to ask to save at every shutdown.')"
+export DLG_HELP_FRUGAL="<window resizable=\"false\" title=\"$(gettext 'Help: Frugal')\" icon-name=\"${HELPICON}\" window_position=\"1\"><vbox><text use-markup=\"true\"><label>\"${H_frugal}\"</label><variable>DLG_HELP_FRUGAL</variable></text><hbox><button><label>${M_close}</label><action type=\"closewindow\">DLG_HELP_FRUGAL</action></button></hbox></vbox></window>"
+
+#150323 help, drive:
+if [ "$Qfw" == "UEFI" ];then
+ Hd1="$(gettext 'You chose the UEFI radiobutton in the first window of the Installer. The external drive can be used with any desktop PC or laptop with either <b>BIOS</b> or <b>UEFI firmware</b>. All computers with Windows 8.x and 10 are of the latter type, PCs with Windows 7 and earlier all have BIOS firmware.')
+$(gettext '')"
+else
+ Hd1=""
+fi
+Qcomb="${Qarch}${Qfw}"
+case $Qcomb in
+ amd64UEFI) H_drv1="$(gettext "You chose the <b>64-bit CPU</b> and <b>UEFI</b> radiobuttons in the main window of the Installer. The installation of Quirky will thus only boot on a 64-bit CPU. The drive will boot on PCs with UEFI firmware (without needing Legacy Boot), <span fgcolor='#008000'><b>however it will also boot on PCs with BIOS firmware</b></span>. This backwards-compatibility is a special feature, and means that you can plug the drive into any UEFI or BIOS PC (with 64-bit CPU) and boot Quirky.")" ;;
+ amd64BIOS) H_drv1="$(gettext "You chose the <b>64-bit CPU</b> and <b>BIOS</b> radiobuttons in the main window of the Installer. The installation of Quirky will thus only boot on a 64-bit CPU. The drive will boot on PCs with BIOS firmware. However, it <span fgcolor='#008000'><b>will also boot on PCs with UEFI firmware if Legacy Boot is enabled</b></span> in the UEFI-Setup.")" ;;
+ x86UEFI)   H_drv1="$(gettext 'NOT TENABLE')" ;;
+ x86BIOS)   H_drv1="$(gettext "You chose the <b>32-bit CPU</b> and <b>BIOS</b> radiobuttons in the main window of the Installer. The installation of Quirky will boot on any PC, regardless whether it has a 32-bit or 64-bit CPU. The drive will boot on any PC with BIOS firmware. However, it <span fgcolor='#008000'><b>will also boot on PCs with UEFI firmware if Legacy Boot is enabled</b></span> in the UEFI-Setup.")" ;;
+esac
+
+if [ $PRE_MEM -eq 1 ];then
+ #over 0.8GB RAM
+ H_mem1="<b>$(gettext 'Install to a drive')</b>
+$(gettext 'This option is for installation of Quirky to an <b>entire</b> drive. Normally, this would be an external or removable drive, such as a USB Flash stick, SD-card, or USB SSD drive.')
+$(gettext 'The external drive will have Quirky installed on it, and be made <b>bootable</b>, meaning that at power-on it will load and run, instead of the internal operating system of the computer.')
+$(gettext 'One big advantage of this is that no changes are made to the internal drive, so that will still boot and run normally if the external drive is not plugged in at power-on.')
+${CR}<b>Frugal or full install</b>${CR}$(gettext 'Quirky originally only offered <b>full</b> installation to a drive, however, the <b>frugal</b> install is an interesting alternative, if you can tolerate, or even want, the limitations, mainly that it runs totally in RAM. If you choose frugal, there will be more explanation before having to commit.')"
+else
+ H_mem1="<b>$(gettext 'Full install to a drive')</b>
+$(gettext 'This option is a <b>full</b> installation of Quirky to an <b>entire</b> drive. Normally, this would be an external or removable drive, such as a USB Flash stick, SD-card, or USB SSD drive.')
+$(gettext 'The external drive will have Quirky installed on it, and be made <b>bootable</b>, meaning that at power-on it will load and run, instead of the internal operating system of the computer.')
+$(gettext 'One big advantage of this is that no changes are made to the internal drive, so that will still boot and run normally if the external drive is not plugged in at power-on.')"
+fi
+
+H_drive="${H_mem1}
+${CR}<b>$(gettext 'CPU and firmware')</b>${CR}${H_drv1}
+${CR}<b>$(gettext 'Booting an external drive')</b>
+$(gettext 'It is possible that your computer may already be configured to detect and boot from an external drive, if detected at power-on. If not, it can be configured to do so, in the BIOS-Setup or UEFI-Setup.')
+$(gettext 'In a nutshell, the BIOS-Setup or UEFI-Setup is launched at power-on by pressing a certain key (usually F2 or DEL). The specific details for configuring the UEFI-Setup is explained via the Help button in the Firmware section of the first window of the Installer.')
+${CR}<b>$(gettext 'Get ready')</b>
+$(gettext 'Before choosing this option, have a drive ready, such as a USB Flash stick or SD-card, of at least 4GB (8GB minimum is better).')"
+export DLG_HELP_DRIVE="<window resizable=\"false\" title=\"$(gettext 'Help: Drive')\" icon-name=\"${HELPICON}\" window_position=\"1\"><vbox><text use-markup=\"true\" width-chars=\"60\"><label>\"${H_drive}\"</label><variable>DLG_HELP_DRIVE</variable></text><hbox><button><label>${M_close}</label><action type=\"closewindow\">DLG_HELP_DRIVE</action></button></hbox></vbox></window>"
+
+H_partition="$(gettext 'A <b>full</b> install to a partition is the traditional mode of installation, as offered by most other Linux distributions. It occupies an entire partition in a hard-drive, which must have a Linux filesystem.')
+${CR}$(gettext 'The Linux filesystem is not created by the Quirky Installer. You will have to use a partition manager, such as <b>Gparted</b>, to do that.')
+${CR}$(gettext 'A boot manager, such as <b>GRUB</b>, must also be installed, so that the partition can be booted. The Quirky Installer does not do this.')"
+export DLG_HELP_PARTITION="<window resizable=\"false\" title=\"$(gettext 'Help: Partition')\" icon-name=\"${HELPICON}\" window_position=\"1\"><vbox><text use-markup=\"true\"><label>\"${H_partition}\"</label><variable>DLG_HELP_PARTITION</variable></text><hbox><button><label>${M_close}</label><action type=\"closewindow\">DLG_HELP_PARTITION</action></button></hbox></vbox></window>"
+
+#150322 also offer to download:
+WELCOMEMSG2="$(gettext 'The Quirky Installer will offer to download Quirky from the Internet (if you have not already done so), and install.')"
+xBMXML=""
+[ "$BMXML" ] && xBMXML="<frame $(gettext 'Boot Manager')>${BMWARN}${BMXML}</frame>"
+export IQ_DLG1="<window title=\"$(gettext "Quirky Installer")\" icon-name=\"gtk-convert\">
+<vbox>
+ <text><label>${WELCOMEMSG2}</label></text>
+ <text use-markup=\"true\"><label>\"$(gettext 'Please choose type of installation, or click the <b>BACK</b> button to re-select the preliminary options.')\"</label></text>
+ 
+ ${REMXML}
+ ${xBMXML}
+ 
+ <hbox>
+  <button><label>$(gettext 'BACK')</label><action type=\"exit\">back</action></button>
+  <button cancel></button>
+ </hbox>
+</vbox>
+</window>"
+RETSTRING1="$(${PRE}gtkdialog --program=IQ_DLG1 --center)"
+[ $? -ne 0 ] && exit
+eval "$RETSTRING1"
+[ "$EXIT" == "back" ] && exec $0
+  
+  export Qarch Qfw #ex: amd64 UEFI
+  if [ "$PRE" ];then
+   PRE2="$PRE"
+  else
+   PRE2="/usr/local/install_quirky/"
+  fi
+  case "$EXIT" in
+   ##########################################################################
+   installfrugal)
+    ${PRE2}install-quirky-to-frugal
+   ;;
+   ##########################################################################
+   installdrive)
+    ${PRE2}install-quirky-to-drive
+   ;;
+   ##########################################################################
+   installpartition)
+    ${PRE2}install-quirky-to-partition
+   ;;
+   ##########################################################################
+   installlivecd) #150402
+    ${PRE2}install-quirky-to-cd
+   ;;
+   *)
+    exit
+   ;;
+  esac
+
+###END###

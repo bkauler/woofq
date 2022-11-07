@@ -1,0 +1,223 @@
+#!/bin/bash
+#screeny : takes screen shots of fullscreen and windows
+#DEPENDS : +xwd, +gtkdialog>=0.8
+# (c) Mick Amadio, 01micko@gmail.com LGPL 2012(see /usr/share/doc/legal)
+#L18L HELP in tmp/screenyHELP, help &
+#     splitted in smaller chunks
+#     added: File, Help,  delay, preferences, splash messages
+#     message about smaller than 600 px trashed
+. gettext.sh # enable multiple variables in message (see eval_gettext)
+# version 0.7
+
+MYPATH=$0
+MYNAME=$(basename "$0") 
+v=0.7
+export TEXTDOMAIN=screeny
+export OUTPUT_CHARSET=UTF-8
+TITLE=$(gettext "Screeny")
+
+# functions
+snap_func1()
+{
+WINDOWID="$(xwininfo -frame|grep "Window id"|tr ' ' '\n'|grep "[0-7a-f][0-7a-f]")"
+
+xwd -id "$WINDOWID" | xwdtopnm | pnmtopng > "$CAPTURE"
+}
+
+snap_func2()
+{
+WINDOWID="-root"
+
+xwd $WINDOWID | xwdtopnm | pnmtopng > "$CAPTURE"
+}
+
+forum_func1()
+{
+WININFO="$(xwininfo -frame|grep -iE "Window id|Width")"
+WINDOWID="$(echo "$WININFO"|grep "Window id"|tr ' ' '\n'|grep "[0-7a-f][0-7a-f]")"
+WINDOWWIDTH="$(echo "$WININFO"|grep Width:|cut -d':' -f2|tr -d ' ')"
+
+[ $WINDOWWIDTH -gt 600 ] && \
+xwd -id $WINDOWID | xwdtopnm | pnmscale -w 600 | pnmtojpeg > "$CAPTURE" || \
+xwd -id $WINDOWID | xwdtopnm | pnmtojpeg > "$CAPTURE" #121006
+}
+
+forum_func2()
+{
+WINDOWID="-root"
+
+xwd $WINDOWID | xwdtopnm | pnmscale -w 600 | pnmtojpeg > "$CAPTURE"
+}
+
+# set help and about
+HELP=$(gettext "SCREENY")
+HELP="$HELP 
+-------
+$(gettext "Version ") $v
+"
+HELP="$HELP 
+$(gettext "Simply make a choice whether you want to take a fullscreen 
+snap or a window snap. Fullscreen is taken automatically. 
+For a window, the cursor changes to a crosshair, just hover
+the cursor over the window and left click.")
+"
+HELP="$HELP 
+$(gettext "BE AWARE that for a window shot the window MUST be in focus.")
+
+"
+
+HELP="$HELP 
+$(gettext "Preferences")
+----------- 
+$(gettext "The Menu: File >> Preferences :")"
+HELP="$HELP 
+$(gettext "Choosing forum compatibility scales the image to 600px wide 
+for posting on forums.
+
+You can choose to open the image for editing after the shot is taken.
+
+You can choose to turn off the splash images 
+once you learn how the program works.")
+"
+
+echo "$HELP" > /tmp/screenyHELP
+
+ABOUT=$(gettext "A simple screen capture program \n\nGPLv2 See /usr/shar/doc/legal \
+\n\n(c)Mick Amadio 2012")
+
+[ ! $(which xwd) ] && \
+	echo "error: install xwd package for your distro" && exit 1
+[ ! -f $HOME/.screenyrc ] && echo -e 'CB=true \nFC=false \
+\nCBI=false' > $HOME/.screenyrc && \
+echo 'SEC=1' >> $HOME/.screenyrc
+# help and about
+. $HOME/.screenyrc
+
+# delay
+x=1
+for x in 1 2 3 4 5 6 7 8 9 10
+  do
+     DELAY="$DELAY""<item>$x</item>"
+  done
+HEADING=$(gettext "Capture Screen Shot")
+CHOICE=$(gettext "Choose window or fullscreen")
+WIN=$(gettext "window")
+FULL=$(gettext "fullscreen")
+OUT=$(gettext "Name your output file (optional)")
+TOOLTIP1=$(gettext "Check this to save as a 600px wide jpg image")
+TOOLTIP2=$(gettext "Uncheck this to avoid the splash messages (faster)")
+TOOLTIP3=$(gettext "Check this to open your screen shot for editing")
+TOOLTIP4=$(gettext "useful only for full shots")
+TOOLTIP5=$(gettext "choose a name if desired, else your shot will be capturexxx.png")
+
+#gui
+export SCREENY='<window title="'$TITLE' '$v'" resizable="false" icon-name="gtk-page-setup">
+ <vbox>
+  <menubar>
+    <menu>
+     <menu stock-id="gtk-preferences" icon="gtk-preferences">
+       <menuitem checkbox="'$FC'" tooltip-text="'$TOOLTIP1'">
+         <variable>FC</variable>
+         <label>'$(gettext "Check for forum compatibility")'</label>
+       </menuitem> 
+	   <menuitem checkbox="'$CB'" tooltip-text="'$TOOLTIP2'">
+	     <variable>CB</variable>
+         <label>'$(gettext "Uncheck to turn off messages")'</label>
+       </menuitem>
+	   <menuitem checkbox="'$CBI'" tooltip-text="'$TOOLTIP3'">
+	     <variable>CBI</variable>
+         <label>'`eval_gettext "Check to open in '\\\${DEFAULTIMAGEEDITOR}'"`'</label>
+       </menuitem>
+     </menu>
+     <menuitem stock-id="gtk-quit" accel-key="0x51" accel-mods="4">
+	   <action>exit:Quit</action>
+	 </menuitem>
+        <label>'$(gettext "File")'</label>
+    </menu>    
+    <menu>
+     <menuitem stock-id="gtk-help" icon="gtk-help">
+     
+        <action>cat /tmp/screenyHELP|defaulttextviewer &</action>
+        
+     </menuitem>
+     <menuitem stock-id="gtk-about" icon="gtk-about">
+        <action>Xdialog -title "About" -backtitle "'$TITLE' '$v'" -msgbox "'"$ABOUT"'" 0 0</action>
+     </menuitem>
+     <label>'$(gettext "Help")'</label>
+    </menu>    
+  </menubar> 
+  <text use-markup="true">
+   <label>"<span color='"'blue'"'><big><b>'$HEADING'</b></big></span>"</label>
+  </text>
+  <text><label>'$CHOICE'</label></text>
+  <frame>
+   <button>
+    <input file stock="gtk-find"></input>
+    <label>'$WIN'</label>
+    <action type="exit">window</action>
+   </button>
+  </frame>
+  <frame>
+   <button>
+    <input file stock="gtk-fullscreen"></input>
+    <label>'$FULL'</label>
+    <action type="exit">full</action>
+   </button>
+   <hbox> 
+    <text><label>'$(gettext "Set Delay")'</label></text>
+    <comboboxtext width-request="40" tooltip-text="'$TOOLTIP4'">
+     <variable>SEC</variable>
+     <default>'$SEC'</default>
+     '$DELAY'
+    </comboboxtext>
+   </hbox>
+  </frame>
+  <text><label>'$OUT'</label></text>
+  <entry tooltip-text="'$TOOLTIP5'">
+   <variable>NAME</variable>
+   <default>capture$$</default>
+  </entry> 
+  <hbox><button cancel></button></hbox>
+ </vbox>
+</window>'
+eval $(gtkdialog -p SCREENY -c)
+[ "$FC" = "false" ] && export CAPTURE="$HOME/${NAME}.png" || \
+export CAPTURE="$HOME/${NAME}.jpg"
+
+case $EXIT in
+window)[ "$CB" = "true" ] && \
+yaf-splash -bg yellow -close never -timeout 3 -text \
+"$(gettext "Hover mouse over desired window and click")"
+echo "CB=$CB" > $HOME/.screenyrc
+echo "FC=$FC" >> $HOME/.screenyrc
+echo "CBI=$CBI" >> $HOME/.screenyrc
+echo "SEC=$SEC" >> $HOME/.screenyrc 
+if [ "$FC" = "false" ];then snap_func1
+  else forum_func1
+fi
+;;
+full)
+[ "$SEC" -gt "3" ] && \
+WAIT=$((${SEC}-2))
+[ "$SEC" -gt "3" ] && \
+yaf-splash -bg yellow -close never -timeout $WAIT -text \
+"$(gettext"Waiting ...")" &
+sleep $SEC
+echo "CB=$CB" > $HOME/.screenyrc
+echo "FC=$FC" >> $HOME/.screenyrc
+echo "CBI=$CBI" >> $HOME/.screenyrc
+echo "SEC=$SEC" >> $HOME/.screenyrc 
+if [ "$FC" = "false" ];then snap_func2
+  else forum_func2
+fi
+;;
+*)exit ;;
+esac
+[ "$EXIT" = "window" ] && EXIT=$WIN || EXIT=$FULL # !!!!!!!!!!!!
+[ "$CB" = "true" ] && \
+yaf-splash -bg green -close never -timeout 4 -text \
+"`eval_gettext "Your \\\${EXIT} screen shot is saved as \\\${CAPTURE}"`"
+if [ "$CBI" = "true" ];then
+/usr/local/bin/defaultpaint "$CAPTURE" &
+fi
+exit

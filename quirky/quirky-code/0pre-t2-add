@@ -1,0 +1,194 @@
+#!/bin/sh
+#(c) Copyright 2014 Barry Kauler.
+#141213 first version.
+#150924 fix for path of db file in woofQ.
+
+export LANG=C #faster.
+. ./DISTRO_SPECS
+[ ! "$DISTRO_DB_SUBNAME" ] && DISTRO_DB_SUBNAME="$DISTRO_COMPAT_VERSION" #121102 fallback if DISTRO_DB_SUBNAME not defined in file DISTRO_SPECS.
+. ./DISTRO_COMPAT_REPOS-t2-${DISTRO_COMPAT_VERSION} #has PKG_DOCS_DISTRO_COMPAT
+. ./DISTRO_PKGS_SPECS-t2-${DISTRO_COMPAT_VERSION}
+ONE_PKGLISTS_COMPAT="`echo "$PKG_DOCS_DISTRO_COMPAT" | tr ' ' '\n' | cut -f 3 -d '|' | head -n 1`"
+#...ex: Packages-t2-${DISTRO_COMPAT_VERSION}-official, which is Packages-t2-april-official
+FIND_CAT="./support/find_cat"
+
+if [ ! -f WOOFMERGEVARS ];then
+ echo
+ echo "ERROR: file WOOFMERGEVARS is created by merge2out. not there"
+ exit
+fi
+. ./WOOFMERGEVARS #has WOOF_TARGETARCH
+
+echo
+echo "Script '0pre' has to run beforehand, once."
+echo "Script '0pre-add' is for extracting one (or more) binary package(s) from T2"
+echo "and add it/them to woofQ. A db-entry will be created for the new package."
+echo "The scenario is where you have compiled an extra package in T2, after"
+echo "the main compile, and want to add that package to woofQ target build."
+echo "This script will also detect, and offer to delete, old packages."
+
+if [ ! -f status/T2_SUPPORT ];then
+ echo
+ echo "A previous run of '0pre' will have created status/T2_SUPPORT"
+ echo "This does not exist, aborting."
+ exit
+fi
+
+. ./status/T2_SUPPORT #T2PATH, T2PROFILE
+T2OK=0
+[ ! "$T2PATH" ] && T2OK=1
+[ ! "$T2PROFILE" ] && T2OK=1
+[ ! -d ${T2PATH}/build/${T2PROFILE} ] && T2OK=1
+if [ $T2OK -eq 1 ];then
+ echo
+ echo "ERROR: T2 path wrong."
+ exit
+fi
+
+#get list of all binary pkgs already in woofQ target:
+CURRBINS="$(find packages-bz2-${DISTRO_COMPAT_VERSION}/ -mindepth 1 -maxdepth 1 -type f -name '*.bz2' | rev | cut -f 1 -d '/' | rev | sort)"
+echo "$CURRBINS" > /tmp/0pre-add1-currbins
+#get list of binary pkgs in t2:
+T2BINS="$(find ${T2PATH}/build/${T2PROFILE}/TOOLCHAIN/pkgs -mindepth 1 -maxdepth 1 -type f -name '*.bz2' | rev | cut -f 1 -d '/' | rev | sed -e '/^00\-dirtree/d' | sed -e '/^linux-[23]/d' | sort)"
+echo "$T2BINS" > /tmp/0pre-add1-t2bins
+
+T2COMPARE="$(diff /tmp/0pre-add1-currbins /tmp/0pre-add1-t2bins)"
+
+T2DUMPED="$(echo "$T2COMPARE" | grep '^< ' | cut -f 2 -d ' ')"
+T2NEW="$(echo "$T2COMPARE" | grep '^> ' | cut -f 2 -d ' ')"
+
+if [ "$T2DUMPED" ];then
+ echo
+ echo "These local binary packages, in folder packages-bz2-${DISTRO_COMPAT_VERSION}"
+ echo "are no longer in the T2 build:"
+ echo "$T2DUMPED"
+ echo
+ echo "Suggest they be deleted."
+ echo -n "Press ENTER only to delete them, any other key to keep:"
+ read oldt2keep
+ if [ "$oldt2keep" = "" ];then
+  for aoldt2 in `echo "$T2DUMPED" | tr '\n' ' '`
+  do
+   echo "Removing ${aoldt2}"
+   rm -f packages-bz2-${DISTRO_COMPAT_VERSION}/${aoldt2}
+   aPTN="|${aoldt2}|"
+   grep -v "$aPTN" ${ONE_PKGLISTS_COMPAT} > /tmp/0pre-add1-dbrem #ex: remove entry from Packages-t2-april-official
+   mv -f /tmp/0pre-add1-dbrem ${ONE_PKGLISTS_COMPAT}
+  done
+  if [ -d ../../quirky/woof-distro/${WOOF_TARGETARCH}/${WOOF_COMPATDISTRO}/${WOOF_COMPATVERSION} ];then
+  
+   #150924...
+   WOOFQMASTERPATH="../../quirky/woof-distro/${WOOF_TARGETARCH}/${WOOF_COMPATDISTRO}/${WOOF_COMPATVERSION}"
+   [ ! -f ${WOOFQMASTERPATH}/${ONE_PKGLISTS_COMPAT} ] && WOOFQMASTERPATH="../../quirky/woof-distro/${WOOF_TARGETARCH}/${WOOF_COMPATDISTRO}"
+   [ ! -f ${WOOFQMASTERPATH}/${ONE_PKGLISTS_COMPAT} ] && WOOFQMASTERPATH="../../quirky/woof-distro/${WOOF_TARGETARCH}"
+   
+   echo
+   echo "Suggest also update the master woofQ (Quirky build system) pkg-db:"
+   echo "${WOOFQMASTERPATH}/${ONE_PKGLISTS_COMPAT}"
+   #ex: ../../quirky/woof-distro/x86/t2/april/Packages-t2-april-official
+   echo -n "Press ENTER only to update this file:"
+   read t2update
+   [ "$t2update" == "" ] && cp -a -f ${ONE_PKGLISTS_COMPAT} ${WOOFQMASTERPATH}/ #150924
+  fi
+ fi
+fi
+
+if [ "$T2NEW" ];then
+ echo
+ echo "These T2 packages are not in local folder packages-bz2-${DISTRO_COMPAT_VERSION}:"
+ echo "$T2NEW"
+ echo
+ echo "Suggest they be added."
+ echo -n "Press ENTER only to add them, any other key to not:"
+ read oldt2keep
+ if [ "$oldt2keep" = "" ];then
+  for aoldt2 in `echo "$T2NEW" | tr '\n' ' '`
+  do
+   echo "Adding ${aoldt2}"
+   cp -a -f ${T2PATH}/build/${T2PROFILE}/TOOLCHAIN/pkgs/${aoldt2} packages-bz2-${DISTRO_COMPAT_VERSION}/
+   #create a db entry...
+   NAMEONLY="$(echo -n "$aoldt2" | sed -e 's%-[0-9][0-9a-zA-Z_\-\.]*%%')" #ex: seamonkey
+   nPTN=" ${NAMEONLY}-[0-9]"
+   DESCFILES="`ls -1 ${T2PATH}/build/${T2PROFILE}/var/adm/descs/* | tr '\n' ' '`"
+   T2GENERIC="$(grep '^\[D\] ' $DESCFILES | grep -i "$nPTN" | cut -f 1 -d ':' | rev | cut -f 1 -d '/' | rev | head -n 1)" #ex: seamonkey
+   echo
+   echo "Sanity check:"
+   echo "Found generic name '${T2GENERIC}' for package ${aoldt2}"
+   echo "if this is wrong, type-in the correct generic name now, or"
+   echo "type 'x' (then ENTER) to abort (which will require the pkg to"
+   echo "be imported to woofQ manually)."
+   echo -n "Press ENTER only to add new pkg, or type correct name: "
+   read t2addme
+   [ "$t2addme" == "x" ] && continue
+   [ "$t2addme" != "" ] && T2GENERIC="$t2addme"
+   if [ ! -f ${T2PATH}/build/${T2PROFILE}/var/adm/descs/${T2GENERIC} ];then
+    echo
+    echo "ERROR, you typed-in '${T2GENERIC}', which is not a valid name."
+    echo "Look here, and choose a valid generic name for the package:"
+    echo "${T2PATH}/build/${T2PROFILE}/var/adm/descs/${T2GENERIC}"
+    echo -n "Try again, ENTER-only to abort, or type generic name: "
+    read t2addme
+    [ "$t2addme" == "" ] && continue
+    [ "$t2addme" != "" ] && T2GENERIC="$t2addme"
+   fi
+   [ ! -f ${T2PATH}/build/${T2PROFILE}/var/adm/descs/${T2GENERIC} ] && continue
+   T2DESCS="${T2PATH}/build/${T2PROFILE}/var/adm/descs/${T2GENERIC}"
+   
+   #code from 0pre...
+   #get the names of all the pkgs, use below to reduce deps lists...
+   ALLPKGS="$(find ${T2PATH}/build/${T2PROFILE}/var/adm/descs -mindepth 1 -maxdepth 1 -type f | rev | cut -f 1 -d '/' | rev | grep -v -E '^00-dirtree|^linux')"
+   echo "$ALLPKGS" > /tmp/woof-0pre-allpkgs
+   for ONEDESC in $T2DESCS
+   do
+    DB_nameonly="`basename $ONEDESC`"
+    [ "$DB_nameonly" = "00-dirtree" ] && continue
+    [ "$DB_nameonly" = "linux" ] && continue #121223
+    echo "adding ${DB_nameonly}"
+    DESC="`cat $ONEDESC | tr '\t' ' ' | tr -s ' '`"
+    DB_version="`echo "$DESC" | grep '^\[V\]' | head -n 1 | cut -f 2 -d ' '`"
+    DB_pkgname="${DB_nameonly}-${DB_version}"
+    DB_description="`echo "$DESC" | grep '^\[I\]' | head -n 1 | cut -f 2-19 -d ' ' | sed -e 's/[^0-9a-zA-Z.+_= ]//g'`"
+    DB_path="${DISTRO_COMPAT_VERSION}" #puppy5
+    DB_fullfilename="${DB_pkgname}.tar.bz2"
+    DB_size=""
+    if [ -f $T2PATH/build/$T2PROFILE/var/adm/cache/$DB_nameonly ];then
+     CACHE="`cat $T2PATH/build/$T2PROFILE/var/adm/cache/$DB_nameonly | tr '\t' ' ' | tr -s ' '`"
+     SIZEM="`echo "$CACHE" | grep '^\[SIZE\]' | head -n 1 | cut -f 2 -d ' '`"
+     SIZEK=`dc $SIZEM 1024 mul p | cut -f 1 -d '.'`
+     DB_size="$SIZEK"'K'
+    fi
+    DEPSALL="`cat $T2PATH/build/$T2PROFILE/var/adm/dependencies/$DB_nameonly | grep "^${DB_nameonly}:" | tr '\t' ' ' | tr -s ' ' | cut -f 2 -d ' '`"
+    echo "$DEPSALL" > /tmp/woof-0pre-depsall
+    DEPS="$(grep -x -f /tmp/woof-0pre-allpkgs /tmp/woof-0pre-depsall)"
+    DB_dependencies="`echo "$DEPS" | tr '\n' ' ' | tr -s ' ' | sed -e 's% $%%' -e 's% %,+%g' -e 's%^%+%'`"
+    xDB_description="$DB_description"
+    [ "$DB_description" = "" ] && xDB_description="nothing"
+    DB_category="`${FIND_CAT} $DB_nameonly "$xDB_description"`" #120812 see updated find_cat
+    echo "$DB_pkgname|$DB_nameonly|$DB_version|$DB_pkgrelease|$DB_category|$DB_size|$DB_path|$DB_fullfilename|$DB_dependencies|$DB_description|$DISTRO_BINARY_COMPAT|$DISTRO_COMPAT_VERSION||" >> $ONE_PKGLISTS_COMPAT
+   done
+  
+  done
+  #sort db entries...
+  sort --key=1 --field-separator='|' $ONE_PKGLISTS_COMPAT > /tmp/0pre-$ONE_PKGLISTS_COMPAT
+  mv -f /tmp/0pre-$ONE_PKGLISTS_COMPAT $ONE_PKGLISTS_COMPAT
+  
+  if [ -d ../../quirky/woof-distro/${WOOF_TARGETARCH}/${WOOF_COMPATDISTRO}/${WOOF_COMPATVERSION} ];then
+
+   #150924...
+   WOOFQMASTERPATH="../../quirky/woof-distro/${WOOF_TARGETARCH}/${WOOF_COMPATDISTRO}/${WOOF_COMPATVERSION}"
+   [ ! -f ${WOOFQMASTERPATH}/${ONE_PKGLISTS_COMPAT} ] && WOOFQMASTERPATH="../../quirky/woof-distro/${WOOF_TARGETARCH}/${WOOF_COMPATDISTRO}"
+   [ ! -f ${WOOFQMASTERPATH}/${ONE_PKGLISTS_COMPAT} ] && WOOFQMASTERPATH="../../quirky/woof-distro/${WOOF_TARGETARCH}"
+   
+   echo
+   echo "Suggest also update the master woofQ (Quirky build system) pkg-db:"
+   echo "${WOOFQMASTERPATH}/${ONE_PKGLISTS_COMPAT}"
+   #ex: ../../quirky/woof-distro/x86/t2/april/Packages-t2-april-official
+   echo -n "Press ENTER only to update this file:"
+   read t2update
+   [ "$t2update" == "" ] && cp -a -f ${ONE_PKGLISTS_COMPAT} ${WOOFQMASTERPATH}/
+  fi
+ fi
+fi
+
+echo
+echo '...finished'

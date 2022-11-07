@@ -1,0 +1,36 @@
+#!/bin/sh
+#gui for shellCMS static site generator.
+#special version for Quirky/Easy Linux.
+
+Usage: ./shellcms path command [folder/filename]
+
+Path:
+  Relative path to shellCMS installation on local PC
+  exs: "www" "www/news"
+
+#'shellcms' cli:
+#Usage: ./shellcms path command [folder/filename]
+#Commands:
+#  post [folder/filename]  Insert a new blog post, or the filename of a draft
+#                          to continue editing it. ex: post drafts/a-post.htmraw
+#                          or forced path/name. ex: post admin/new-post.htmraw
+#                          (latter is for a new post, in document mode only)
+#  edit [-n] [folder/filename] Edit an already published .htmraw file.
+#                          (NEVER edit manually a .html or .htmraw file)
+#                          ex: 201709/this-is-an-existing-blog-post.htmraw
+#                          '-n' to give the file a new name, if title changed
+#  delete [folder/filename] Deletes the post and rebuilds the blog
+#  rebuild                  Regenerates all the pages and posts, 
+#                          preserving the content of the entries
+#  reset                   Deletes ALL posts. 
+#                          use with a lot of caution and back up first!
+#  list                    List all posts
+#  tags [-n]               List all tags in alphabetical order
+#                          use '-n' to sort list by number of posts
+
+if [ ! -d /root/.shellcms ];then
+ mkdir /root/.shellcms
+ cp -a /usr/local/shellcms/www /root/.shellcms/
+fi
+
+cd /root/.shellcms

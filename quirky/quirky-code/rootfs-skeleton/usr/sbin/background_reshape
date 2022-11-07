@@ -1,0 +1,87 @@
+#!/bin/ash
+#Barry Kauler 2009
+#the background image is at /usr/share/backgrounds/default.jpg
+#this may have the wrong dimensions to suit either a 'normal' or a 'widescreen' monitor.
+#for now, keep this simple, assume image is suitable for normal screen, truncate vertically
+#if widescreen.
+#v424 fix maths.
+#v424 move ORIGINAL-* images to /usr/share/backgrounds_original
+#110831 support png images.
+#111013 Karl Godt: 'dc' can return , instead of . in numeric values, for non-english locale.
+#130326 Karl Godt: Added MODE option to be able to switch between math by BK and math by /bin/sh.
+#130327 Double Quotes around Files and Directories to support Spaces.
+#130327 Karl Godt: Logfile is /tmp/backg.log.
+#130327 wjaguar: Rewrote unnecessarily tortuous math & string handling
+#140101 BK: leave originals in /usr/share/backgrounds. create subdirs for truncated images. see also set_bg, .xinitrc.
+#140107 fix if image not in subdir.
+
+LOG=/tmp/backg.log
+exec 1>>$LOG 2>&1
+
+#get current image...
+#this will be: /usr/share/backgrounds/<aspect ratio>/<image file>
+curIMAGEFILE=""
+[ $1 ] && curIMAGEFILE="$1"
+[ ! "$curIMAGEFILE" ] && [ -f /root/Choices/ROX-Filer/PuppyPin ] && curIMAGEFILE="`grep '<backdrop' /root/Choices/ROX-Filer/PuppyPin | cut -f 2 -d '>' | cut -f 1 -d '<'`"
+[ ! "$curIMAGEFILE" ] && [ -s /root/.config/wallpaper/bg_img ] && curIMAGEFILE="`cat /root/.config/wallpaper/bg_img`"
+[ ! "$curIMAGEFILE" ] && curIMAGEFILE="`ls -1 /usr/share/backgrounds/default.* | head -n 1`"
+[ ! "$curIMAGEFILE" ] && curIMAGEFILE="`ls -1 /usr/share/backgrounds/*.jpg | head -n 1`"
+IMAGEBASE=${curIMAGEFILE##*/}
+[ ! -f /usr/share/backgrounds/$IMAGEBASE ] && cp -f "$curIMAGEFILE" /usr/share/backgrounds/ #precaution.
+
+read ROOTDIMS ROOTHORIZ ROOTVERT << EOF
+`xwininfo -root | grep ' \-geometry ' | cut -f 1 -d '+' | tr 'x' ' '`
+EOF
+#create subdir for truncated images...
+ASPECTRATIO=`expr $ROOTHORIZ \* 100 \/ $ROOTVERT` #as a percentage. ex: 1280x800 screen is 160%
+mkdir -p /usr/share/backgrounds/${ASPECTRATIO}
+
+if [ -f /usr/share/backgrounds/${ASPECTRATIO}/${IMAGEBASE} ];then
+ #truncated image already exists.
+ echo "Already exists: /usr/share/backgrounds/${ASPECTRATIO}/${IMAGEBASE}"
+ echo "/usr/share/backgrounds/${ASPECTRATIO}/${IMAGEBASE}" > /tmp/qwallpaper_reshaped #tell set_bg, this is the one to use.
+ exit 10
+fi
+
+case $IMAGEBASE in
+*.jpg|*.jpeg|*.JPG|*.JPEG) IMAGEPNM='jpegtopnm'
+	PNMIMAGE="pnmtojpeg -quality=85" ;;
+*.png|*.PNG) IMAGEPNM='pngtopnm'
+	PNMIMAGE="pnmtopng" ;;
+*) echo "Only support for PNG and JPG files" 
+	exit 4 ;;
+esac
+
+# Safety check
+which $IMAGEPNM >/dev/null 2>&1 || { echo "No $IMAGEPNM utility!" ; exit 5 ; }
+which ${PNMIMAGE%% *} >/dev/null 2>&1 || { echo "No $PNMIMAGE utility!" ; exit 6 ; }
+
+read IMAGEHORIZ IMAGEDIMS IMAGEVERT IMAGEDIMS << EOF
+`$IMAGEPNM /usr/share/backgrounds/$IMAGEBASE 2>/dev/null | pamfile 2>&1 | grep 'stdin:' | cut -f 2 -d ','`
+EOF
+
+#v423 some math gymnastics involved here..
+IMGVERTSCALED=$(( ( $ROOTHORIZ * $IMAGEVERT ) / $IMAGEHORIZ ))
+NEWVERT=$(( ( $IMAGEHORIZ * $ROOTVERT ) / $ROOTHORIZ )) #v424 fix.
+ 
+#this method cuts equal amount from top and bottom...
+if [ "$NEWVERT" -gt "0" ] && [ $NEWVERT -lt $IMAGEVERT ] #precaution
+then
+	PAMCUT=pamcut
+	which $PAMCUT >/dev/null 2>&1 || PAMCUT=pnmcut #older netpbm.
+	which $PAMCUT >/dev/null 2>&1 || exit 7 # no netpbm at all
+	CUTVERT=$(( $IMAGEVERT - $NEWVERT ))
+	$IMAGEPNM "/usr/share/backgrounds/$IMAGEBASE" | \
+		$PAMCUT -left=0 -top=$(( $CUTVERT / 2 )) -height=$NEWVERT | \
+		$PNMIMAGE > /usr/share/backgrounds/${ASPECTRATIO}/${IMAGEBASE}
+fi
+
+#140107 fix if image not in subdir...
+if [ ! -f /usr/share/backgrounds/${ASPECTRATIO}/${IMAGEBASE} ];then
+ echo "/usr/share/backgrounds/${IMAGEBASE}" > /tmp/qwallpaper_reshaped #set_bg will read this.
+else
+ echo "/usr/share/backgrounds/${ASPECTRATIO}/${IMAGEBASE}" > /tmp/qwallpaper_reshaped #set_bg will read this.
+fi
+exit 11
+
+###END###

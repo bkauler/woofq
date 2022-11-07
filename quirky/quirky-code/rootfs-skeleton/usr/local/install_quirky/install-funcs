@@ -1,0 +1,282 @@
+#150415 detect mounted ro f.s.
+#151107 added save_session_func(), called from /usr/sbin/savesession
+#151108 exclude some dirs from s.sfs. 151110 fix a window width.
+#151123 BOOT_DEV, BOOT_FS, BOOT_FOLDER must be provide at entry save_session_frugal_func().
+#151128 save_session_frugal_func() no longer uses install_mode. BOOT_ to INSTALL_
+#151204 probepart returns /dev/zram0, exclude. aufs layer, exclude /file/tmpwkgdir (problem with mksquashfs).
+#151205 revert 151204 exclude /file/tmpwkgdir
+#151210 want save_session_frugal_func() to work without X. refer: /usr/sbin/xorgwizard-cli
+#170711 session rw folder was wrong.
+#170721 new choose_quirky_files_func, called from scripts install-quirky-to-drive|frugal|partition
+#170721 new download_iso_func, called from scripts install-quirky-to-drive|frugal|partition
+
+#return a folder or mount-point that has sufficient space to process installation:
+find_working_place_func() {
+ TMPWKG_MNTPT=""
+ TMPWKG_MNTPTflag=0
+ TMPWKG_PARTMNT=""
+ TMPWKG_PARTMNTflag=0
+ PASSED_WANTSIZEM=${1} #amount of space required.
+ PASSED_EXCLDEV="$2" #passed param, device to exclude.
+ [ "$PASSED_EXCLDEV" == "" ] && PASSED_EXCLDEV='xxx'
+ [ -d /file/tmpwkgdir ] && ${PRE}busybox rm -rf /file/tmpwkgdir #150416 moved up
+ FSSTATS="$(${PRE}busybox stat -f /)"
+ FSBLKSIZE=`${PRE}busybox echo -n "$FSSTATS" | ${PRE}busybox grep -o 'Block size: [0-9]*' | ${PRE}busybox cut -f 3 -d ' '` #ex: 4096
+ FSAVAILBLKS=`${PRE}busybox echo -n "$FSSTATS" | ${PRE}busybox grep -o 'Available: [0-9]*' | ${PRE}busybox cut -f 2 -d ' '` #ex: 847888
+ FSFREEBYTES=`${PRE}busybox expr $FSAVAILBLKS \* $FSBLKSIZE`
+ FSFREEM=`${PRE}busybox expr $FSFREEBYTES \/ 1048576` #1024*1024=1048576
+ FSNEEDMplus=`${PRE}busybox expr $PASSED_WANTSIZEM + 100`
+ #if [ "$(df | grep '/initrd/q_ro/q_sfs')" == "" ];then #151204 test if a aufs layered f.s. 151205 revert.
+  if [ $FSFREEM -ge $FSNEEDMplus ];then
+   ${PRE}busybox mkdir -p /file/tmpwkgdir
+   TMPWKG_MNTPT="/file/tmpwkgdir"
+   return 0
+  fi
+ #fi
+ #find a partition to use as wkg space, and f.s.... 151204 only allow /dev/s* or m*
+ for APART in `${PRE}probepart -m | ${PRE}busybox grep '^/dev/[sm]' | ${PRE}busybox grep -v "${PASSED_EXCLDEV}" | ${PRE}sort -n -r -k 3 -t '|' | ${PRE}busybox grep -E 'vfat|ntfs|ext2|ext3|ext4|reiserfs|xfs|f2fs' | ${PRE}busybox tr '\n' ' '`
+ do
+  PARTDEV="$(${PRE}busybox echo -n "$APART" | ${PRE}busybox cut -f 1 -d '|' | ${PRE}busybox cut -f 3 -d '/')"
+  PARTFS="$(${PRE}busybox echo -n "$APART" | ${PRE}busybox cut -f 2 -d '|')"
+  PARTSIZEM=`${PRE}busybox echo -n "$APART" | ${PRE}busybox cut -f 3 -d '|'`
+  [ $PARTSIZEM -lt $FSNEEDMplus ] && break #coz have sorted by reducing size.
+  TMPWKG_PARTMNT="$(${PRE}busybox mount | ${PRE}busybox grep "^/dev/${PARTDEV} " | ${PRE}busybox cut -f 3 -d ' ')"
+  if [ "$TMPWKG_PARTMNT" == "" ];then
+   ${PRE}busybox mkdir -p /mnt/${PARTDEV}
+   ${PRE}busybox mount -t ${PARTFS} -o rw,noatime /dev/${PARTDEV} /mnt/${PARTDEV}
+   [ $? -ne 0 ] && continue
+   TMPWKG_PARTMNT="/mnt/${PARTDEV}"
+   TMPWKG_PARTMNTflag=1
+  fi
+  if [ "$(${PRE}busybox mount | grep "^/dev/${PARTDEV} " | grep "rw")" != "" ];then #150415
+   [ -d ${TMPWKG_PARTMNT}/file/tmpwkgdir ] && ${PRE}busybox rm -rf ${TMPWKG_PARTMNT}/file/tmpwkgdir #150416 moved up.
+   [ -f ${TMPWKG_PARTMNT}/tmpwkgfs.q ] && rm -f ${TMPWKG_PARTMNT}/tmpwkgfs.q #150416 moved up.
+   PARTSTATS="$(${PRE}busybox stat -f $TMPWKG_PARTMNT)"
+   PARTBLKSIZE=`${PRE}busybox echo -n "$PARTSTATS" | ${PRE}busybox grep -o 'Block size: [0-9]*' | ${PRE}busybox cut -f 3 -d ' '` #ex: 4096
+   PARTAVAILBLKS=`${PRE}busybox echo -n "$PARTSTATS" | ${PRE}busybox grep -o 'Available: [0-9]*' | ${PRE}busybox cut -f 2 -d ' '` #ex: 847888
+   PARTFREEBYTES=`${PRE}busybox expr $PARTAVAILBLKS \* $FSBLKSIZE`
+   PARTFREEM=`${PRE}busybox expr $PARTFREEBYTES \/ 1048576` #1024*1024=1048576
+   if [ $PARTFREEM -gt $FSNEEDMplus ];then
+    if [ "$PARTFS" != "ntfs" -a "$PARTFS" != "vfat" ];then
+     ${PRE}busybox mkdir -p ${TMPWKG_PARTMNT}/file/tmpwkgdir
+     TMPWKG_MNTPT="${TMPWKG_PARTMNT}/file/tmpwkgdir"
+     return 0
+    fi
+    ${PRE}popup "level=top background='#FFE000'|<big>$(gettext 'Please wait, creating temporary working file:') ${TMPWKG_PARTMNT}/tmpwkgfs.q</big>"
+    ${PRE}busybox dd if=/dev/zero of=${TMPWKG_PARTMNT}/tmpwkgfs.q bs=1M count=$PASSED_WANTSIZEM conv=fsync
+    if [ $? -eq 0 ];then
+     ${PRE}busybox killall popup
+     ${PRE}busybox mkfs.ext2 -F -m 0 ${TMPWKG_PARTMNT}/tmpwkgfs.q #150415 add -F (force)
+     if [ $? -eq 0 ];then
+      ${PRE}busybox sync
+      ${PRE}busybox mkdir -p ${TMPWKG_PARTMNT}/tmpmntpt.q
+      ${PRE}busybox mount -o loop,rw -t ext2 ${TMPWKG_PARTMNT}/tmpwkgfs.q ${TMPWKG_PARTMNT}/tmpmntpt.q
+      TMPWKG_MNTPT="${TMPWKG_PARTMNT}/tmpmntpt.q"
+      TMPWKG_MNTPTflag=1
+      return 0
+     fi
+    fi
+    ${PRE}busybox killall popup
+   fi
+  fi
+  ${PRE}busybox sync #redundant
+  [ -f ${TMPWKG_PARTMNT}/tmpwkgfs.q ] && ${PRE}busybox rm -f ${TMPWKG_PARTMNT}/tmpwkgfs.q
+  [ $TMPWKG_PARTMNTflag -eq 1 ] && ${PRE}busybox umount ${TMPWKG_PARTMNT}
+  TMPWKG_MNTPT=""
+  TMPWKG_MNTPTflag=0
+  TMPWKG_PARTMNT=""
+  TMPWKG_PARTMNTflag=0
+ done
+ return 1 #fail.
+}
+
+#151107 called from /usr/sbin/savesession...
+save_session_frugal_func() {
+  #151123 INSTALL_DEV, INSTALL_FS, INSTALL_FOLDER must be provide at entry this func.
+  DEFASK='false'
+  [ -s /var/local/frugal-save-ask-flag ] && DEFASK="$(cat /var/local/frugal-save-ask-flag)"
+  
+  RW=''
+  [ -d /initrd/q_rw/rw ] && RW='/rw' #170711
+  
+  HELPICON="gtk-index"
+  M_close="`gettext 'Close'`"
+  
+  export SS_DLG9="<window title=\"$(gettext "Save Session")\" icon-name=\"gtk-convert\">
+  <vbox>
+   <text><label>$(gettext 'Saving the session will include all settings, downloaded files and installed packages.')</label></text>
+   
+   <frame $(gettext 'Information')>
+    <text><label>\"$(gettext 'This is where the session will be saved')${CR}$(gettext 'Partition:') ${INSTALL_DEV}${CR}$(gettext 'Folder:') ${INSTALL_FOLDER}\"</label></text>
+   </frame>
+   
+   <text><label>\"$(gettext 'Quirky is running in RAM, and sessions are not automatically saved. However, if you tick this checkbox, Quirky will ask whether you want to save at every shutdown.')${CR}$(gettext 'Note: the checkbox state will be saved even if you click the Cancel button below.')\"</label></text>
+   <hbox><checkbox><variable>CHECKASK</variable><default>${DEFASK}</default><label>$(gettext 'Ask to save at every shutdown')</label></checkbox></hbox>
+   
+   <text use-markup=\"true\"><label>\"<b>$(gettext 'The <b>save</b> icon on the desktop may be clicked at any time that you wish to save a session.')</b>\"</label></text>
+   <hbox>
+    <text><label>$(gettext "Click to save session:")</label></text>
+    <button><label>$(gettext 'SAVE')</label><action type=\"exit\">savenow</action></button>
+   </hbox>
+   
+   <hbox>
+    <button cancel></button>
+   </hbox>
+  </vbox>
+  </window>"
+  if [ $DISPLAY ];then #151210
+   RETSTRING9="$(gtkdialog --program=SS_DLG9 --center)"
+   [ $? -ne 0 ] && return 1
+   eval "$RETSTRING9"
+   echo -n "$CHECKASK" > /var/local/frugal-save-ask-flag
+   [ "$EXIT" != "savenow" -a "$EXIT" != "othersave" ] && return 1
+  else
+   EXIT='savenow'
+  fi
+  
+  if [ "$EXIT" == "savenow" ];then
+   [ ! "$INSTALL_DEV" ] && return 1 #precaution.
+   KEEPMNT=1
+   DESTMNTPT="$(mount | grep "^/dev/${INSTALL_DEV} " | cut -f 3 -d ' ')"
+   if [ "$DESTMNTPT" == "" ];then
+    mkdir -p /mnt/${INSTALL_DEV}
+    busybox mount -t ${INSTALL_FS} /dev/${INSTALL_DEV} /mnt/${INSTALL_DEV}
+    if [ $? -eq 0 ];then
+     DESTMNTPT="/mnt/${INSTALL_DEV}"
+     KEEPMNT=0
+    fi
+   fi
+   if [ "$DESTMNTPT" == "" ];then
+    errTITLE="$(gettext 'Error saving session')"
+    errMSG="$(gettext 'Sorry, unable to mount partition:') ${INSTALL_DEV}"
+    [ $DISPLAY ] && popup "level=top background=#FF8080 terminate=ok|<b>${errTITLE}</b>${CR}${errMSG}"
+    EXIT="othersave"
+   else
+    WAITMSG="$(gettext 'Partition:') ${INSTALL_DEV}${CR}$(gettext 'Folder:') ${INSTALL_FOLDER}${CR}$(gettext 'Saving session, please wait...')"
+    [ $DISPLAY ] && popup "placement=center background=#FFC080 level=top|<big>${WAITMSG}</big>" #daemonizes
+    mkdir -p ${DESTMNTPT}/${INSTALL_FOLDER}
+    rm -f ${DESTMNTPT}/${INSTALL_FOLDER}/s.sfs 2>/dev/null
+    echo -e 'dev\nproc\nsys\ntmp\nroot/.XLOADED' > /tmp/ss-excl-dirs #151108 note, do want /var, /run symlinks to be saved.
+    [ -d /file/tmpwkgdir ] && echo 'file/tmpwkgdir' >> /tmp/ss-excl-dirs #151108 refer find_working_place_func() above.
+    [ -d /initrd/q_rw/initrd ] && echo 'initrd' >> /tmp/ss-excl-dirs #151205 otherwise aufs layers stuff things up.
+    [ -d /initrd/q_rw/lost+found ] && echo 'lost+found' >> /tmp/ss-excl-dirs #151205
+    if [ $DISPLAY ];then #151210
+     urxvt -borderLess -geometry 80x3+0+0 -bg orange -fg black -title "$(gettext 'Building:') s.sfs $(gettext 'Folder:') ${DESTFOLDER}" -e mksquashfs /initrd/q_rw${RW} ${DESTMNTPT}/${INSTALL_FOLDER}/s.sfs -ef /tmp/ss-excl-dirs #170711
+    else
+     mksquashfs /initrd/q_rw${RW} ${DESTMNTPT}/${INSTALL_FOLDER}/s.sfs -ef /tmp/ss-excl-dirs #170711
+    fi
+    sync
+    [ $DISPLAY ] && killall popup
+   fi
+   [ $KEEPMNT -eq 0 ] && busybox umount $DESTMNTPT
+  fi
+  return 0
+}
+
+#170721 code extracted from install-quirky-to-frugal, to be used by other scripts...
+choose_quirky_files_func() {
+ #passed param is "frugal", "partition", or "drive" (translated)
+ itemDL='<item>Download</item>'
+ export IQ_DLG_CQFF="<window title=\"$(gettext "Quirky Installer:") ${1}\" icon-name=\"gtk-convert\">
+ <vbox>
+  <text><label>$(gettext 'You need to specify where the Quirky files are, that are to be installed.')</label></text>
+  <text use-markup=\"true\"><label>\"$(gettext "This can be a <b>live-CD</b>, a <b>ISO</b> file, or a folder that has the <b>vmlinuz</b>, <b>q.sfs</b> and <b>initrd.q</b> files.")\"</label></text>
+  <text use-markup=\"true\"><label>\"<span fgcolor='purple'><big>$(gettext 'To install from ISO, but it is not yet downloaded, select <b>Download</b> from the drop-down list.')</big></span>\"</label></text>
+  <text><label>$(gettext 'Please choose where the Quirky files are:')</label></text>
+  <hbox><combobox><variable>COMBO1</variable><item>CD/DVD</item><item>ISO file</item><item>Folder</item>${itemDL}</combobox></hbox>
+  <hbox>
+   <button><label>$(gettext "CONTINUE")</label><action type=\"exit\">continuefrugal</action></button>
+   <button cancel></button>
+  </hbox>
+ </vbox>
+ </window>"
+ RETSTRING2="$(${PRE}gtkdialog --program=IQ_DLG_CQFF --center)"
+ [ $? -ne 0 ] && return 1
+ eval "$RETSTRING2"
+ [ "$EXIT" != "continuefrugal" ] && return 2
+ echo -n "$COMBO1" > /tmp/install_quirky/COMBO1
+ return 0
+}
+
+#170721 code block extracted from install-quirky-to-frugal, called by all install-quirky-*
+download_iso_func() {
+  #passed param is "frugal", "partition", or "drive" (translated)
+  localINSTMODE="$1"
+  ${PRE}busybox ping -4 -c 1 www.google.com
+  if [ $? -ne 0 ];then
+   ${PRE}popup "terminate=ok background='#FF8080'|<b>$(gettext 'Download ISO: error')</b>${CR}$(gettext 'Sorry, there is no Internet connection. Aborting.')"
+   return 1 #exit_func 1
+  fi
+  ${PRE}popup "level=top background='#FFE000'|$(gettext 'Please wait, searching online...')"
+  #DL_URL="ftp://distro.ibiblio.org/quirky/quirky6/${DISTRO_TARGETARCH}/releases" #150414
+  DL_URL="http://distro.ibiblio.org/quirky/quirky6/${DISTRO_TARGETARCH}/releases" #151006
+  #ISOs="$(LANG=C wget -r -4 -t 2 -T 20 --waitretry=20 --spider -S --no-parent --no-directories -A '*.iso' ${DL_URL}/ 2>&1 | grep -o "${DL_URL}/.*\.iso$" | sort -u)" #ex: ftp://distro.ibiblio.org/quirky/quirky6/amd64/releases/april-7.0.2/april64-7.0.2.iso
+  #151006...
+  ISOs="$(LANG=C wget -r -4 -t 2 -T 20 --waitretry=20 --spider -S --no-parent --no-directories -A '*.iso' --recursive --level=2 ${DL_URL}/ 2>&1 | grep -o "${DL_URL}/.*\.iso$" | grep '^http://' | sort -u)" #ex: http://distro.ibiblio.org/quirky/quirky6/amd64/releases/april-7.0.2/april64-7.0.2.iso
+  ${PRE}busybox killall popup
+  if [ ! "$ISOs" ];then
+   ${PRE}popup "level=top background='#FF8080' terminate=ok|$(gettext 'Could not find any ISO files. Maybe ibiblio.org is down. Aborting.')"
+   return 1 #exit_func 1
+  fi
+  ITEMSISO=''
+  for aISO in `${PRE}busybox echo -n "$ISOs" | ${PRE}busybox tr '\n' ' '`
+  do
+   aITEM="$(${PRE}busybox basename $aISO)"
+   #if [ "$DISTRO_VERSION" ];then
+   # aVER="$(echo -n $aITEM | cut -f 2 -d '-' | rev | cut -f 2- -d '.' | rev)"
+   # if vercmp $aVER lt $DISTRO_VERSION;then
+   #  continue
+   # fi
+   #fi
+   ITEMSISO="${ITEMSISO}<item>${aITEM}</item>"
+  done
+  export IQ_DLG_DL_ISO="<window title=\"$(gettext "Quirky Installer:") ${localINSTMODE}\" icon-name=\"gtk-convert\">
+  <vbox>
+   <text><label>$(gettext 'Online ISO files have been found. You need to choose the most appropriate one to download.')</label></text>
+   <hbox>
+    <text><label>$(gettext 'Choose the ISO file:')</label></text>
+    <combobox><variable>COMBODL</variable>${ITEMSISO}</combobox>
+   </hbox>
+   <hbox>
+    <button><label>$(gettext "DOWNLOAD")</label><action type=\"exit\">downloadiso</action></button>
+    <button cancel></button>
+   </hbox>
+  </vbox>
+  </window>"
+  RETSTRINGDL="$(${PRE}gtkdialog --program=IQ_DLG_DL_ISO --center)"
+  [ $? -ne 0 ] && return 98 #exit_func 0
+  eval "$RETSTRINGDL"
+  [ "$EXIT" != "downloadiso" ] && return 98 #exit_func 0
+  URLiso="$(${PRE}busybox echo "$ISOs" | ${PRE}busybox grep "${COMBODL}$" | ${PRE}busybox head -n 1)"
+  URLdir="$(${PRE}busybox dirname $URLiso)"
+  [ -f ./sha1sums.txt ] && rm -f ./sha1sums.txt
+  if [ `which download_file` ];then #150323 in most puppies.
+   download_file ${URLdir}/sha1sums.txt
+  else
+   LANG=C wget -4 ${URLdir}/sha1sums.txt
+  fi
+  if [ $? -ne 0 ];then
+   ${PRE}popup "level=top background='#FF8080' terminate=ok|$(gettext 'Could not download ISO file. Aborting.')"
+   return 1 #exit_func 1
+  fi
+  [ -f ./${COMBODL} ] && [ ! -d ./${COMBODL} ] && rm -f ./${COMBODL}
+  if [ `which download_file` ];then #150323 in most puppies.
+   download_file $URLiso
+  else
+   DLmsg="$(gettext 'Downloading:')" #150414
+   LANG=C ${RXVTEXE} -geometry 80x3+0+0 -bg orange -fg black -title "${DLmsg} ${URLiso}" -e wget -4 $URLiso #150414
+  fi
+  ${PRE}busybox sync
+  SHA1SUMa="$(${PRE}busybox grep -w "$COMBODL" ./sha1sums.txt | ${PRE}busybox cut -f 1 -d ' ')"
+  SHA1SUMb="$(${PRE}busybox sha1sum ./${COMBODL} | cut -f 1 -d ' ')"
+  if [ "$SHA1SUMa" != "$SHA1SUMb" ];then
+   ${PRE}popup "level=top background='#FF8080' terminate=ok|$(gettext 'ISO downloaded, but checksum is wrong. Aborting.')"
+   rm -f ./sha1sums.txt
+   rm -f ./${COMBODL}
+   return 1 #exit_func 1
+  fi
+ echo -n "$COMBODL" > /tmp/install_quirky/COMBODL #name of iso file.
+ return 0
+}
+
+###END###

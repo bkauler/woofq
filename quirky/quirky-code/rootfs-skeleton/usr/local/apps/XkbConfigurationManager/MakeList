@@ -1,0 +1,39 @@
+#!/bin/sh
+# this script generates from /etc/X11/xkb/rules/base.lst
+#+a list of possible settings for one of the xkb Options.
+# The list is for use with Xdialog. It is space delimited
+#+with the first field of the original list used as tag and
+#+the second being quoted.
+#
+# It is invoked with two numbers: line # the header of our
+#+section is at and line # the next section header is at.
+# 
+# The last section of the FILE can be processed if the second
+#+number given is the number of lines in FILE (wc -l $FILE)+2.
+#+(however, since it has subsections it will have to be broken
+#+down by hand, so it might be easier to handle it differently
+#+from the beginning... 
+
+
+LIST="/etc/X11/xkb/rules/xorg.lst"
+[ "$1" = "" ] || [ "$2" = "" ] && echo "not enough parameters given" && exit
+[ $1 -ge $2 ] && echo "Second parameter should be BIGGER than the first" && exit
+
+HEAD=`expr $2 - 2`
+TAIL=`expr $HEAD - $1`
+
+mkfifo /tmp/my-fifo1 /tmp/my-fifo2
+
+# stting up a "filter to run the first field through:
+cut -d' ' -f2 - </tmp/my-fifo1 >/tmp/my-fifo2 &
+
+# the following gives a quoted list of second field
+#+then pastes it after the first one (which has gone
+#+through the "filter" above)
+ 
+head -n $HEAD $LIST | tail -n $TAIL | tr -s ' ' | tee /tmp/my-fifo1 | cut -d' ' -f3- | sed 's/^/"/' | sed 's/$/"/' | paste -d' ' /tmp/my-fifo2 - | tr '\n' ' '
+
+
+rm -f /tmp/my-fifo1 /tmp/my-fifo2
+
+exit

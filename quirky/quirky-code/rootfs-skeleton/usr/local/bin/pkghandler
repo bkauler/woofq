@@ -1,0 +1,27 @@
+#!/bin/sh
+#(c) Copyright Barry kauler 2017. license gpl v3 (ref: /usr/share/doc/legal).
+#for a tarball, such as *.tar.xz, could be a pkg to install, or could be source.
+#in former case, offer to install. latter, open in Xarchive.
+
+PKGSPEC="$@"
+[ ! -f "$PKGSPEC" ] && exit 1
+
+#oe builds, binary pkgs are .tar.xz
+case "$PKGSPEC" in
+ *.tar.xz)
+  #-t = --list, -J = --xz
+  PFILES="$(tar -t -J -f "$PKGSPEC")"
+  PKGflg="$(echo "$PFILES" | grep -E '^usr/|^opt/|^dev/|^lib/|^bin/|^sbin/|^boot/|^include/|^root/|^var/')"
+  if [ "$PKGflg" ];then
+   NAMEONLY="$(basename "$PKGSPEC")"
+   pupdialog --backtitle "${NAMEONLY}" --background "#FFC080" --yes-label "Install" --no-label "Xarchive" --yesno "Choose whether to install, or open in Xarchive" 0 0
+   if [ $? -eq 0 ];then
+    exec petget "$PKGSPEC"
+   else
+    exec pupzip "$PKGSPEC"
+   fi
+  else
+   exec pupzip "$PKGSPEC"
+  fi
+ ;;
+esac

@@ -1,0 +1,8 @@
+#!/bin/sh
+#ref: /usr/local/EasyShare/dnsmasq-notes
+
+
+LOCALIPADDRESS="$(hostname -I | cut -f 1 -d ' ')"
+
+dnsmasq -y -R -b --cache-size=0 --listen-address=${LOCALIPADDRESS} --conf-file=/etc/easyshare-dnsmasq.conf --no-hosts --addn-hosts=/etc/easyshare-hosts
+

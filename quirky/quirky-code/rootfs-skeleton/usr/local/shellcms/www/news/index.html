@@ -1,0 +1,120 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8" />
+<meta name="viewport" content="width=device-width">
+<!-- <link rel="stylesheet" href="main.css" type="text/css" /> -->
+<!-- <link rel="stylesheet" href="blog.css" type="text/css" /> -->
+<style type="text/css">
+ h3 { font-size:140%; margin-top:20px; }
+ <!-- remove underline from links... -->
+ a.ablack { color:black !important; }
+ a { text-decoration:none !important; font-weight:bold; }
+ <!-- a.all_posts { font-weight:bold; } -->
+ <!-- prevent long lines of code from widening the table -->
+ <!-- pre { word-wrap:break-word; white-space:pre-wrap; } -->
+ <!-- following creates a scrollbar: -->
+ <!-- pre { overflow:auto; width:auto; } -->
+ <!-- following causes text to flow out of right side: -->
+ pre { background-color:#f0f0f0; overflow:visible; }
+ table.maintable { table-layout:fixed; }
+ <!-- support for syntax-highlighted code exported by Geany -->
+ .style_2 { color:#d00000; }
+ .style_3 { color:#007f00; }
+ .style_4 { color:#00007f; font-weight:bold; }
+ .style_5 { color:#ff8000; }
+ .style_6 { color:#ff8000; }
+ .style_7 { color:#301010; }
+ .style_8 { color:#000000; }
+ .style_9 { color:#000000; }
+ .style_10 { color:#000080; }
+ .style_11 { color: #008000; }
+</style>
+<link rel="alternate" type="application/rss+xml" title="Subscribe to this page..." href="feed.rss" />
+<title>My News</title>
+</head><body>
+<table class="maintable" width="620" cellspacing="0" cellpadding="6" border="0" align="center">
+ <tbody>
+  <tr>
+   <td bgcolor="#ffffff" valign="top">
+<div id="divbodyholder">
+<div class="headerholder"><div class="header">
+<div id="title">
+<img src="images0/top-banner.png" />
+<br />
+<big>
+&nbsp;<a href="http://somewhere.org/"><img src="images0/home24.png" width="24" height="24" title="Website homepage" />site</a>
+&nbsp;<a href="http://somewhere.org/contact/"><img src="images0/contact24.png" width="24" height="24" title="Send email to site manager" />contact</a>
+<!--SECONDBUTTON-->
+&nbsp;<a href="./all_posts.html"><img src="images0/history24.png" width="24" height="24" title="Posts history" />history</a>
+&nbsp;<a href="./all_tags.html"><img src="images0/tag24.png" width="24" height="24" title="All categories" />index</a>
+        <!--FIFTHBUTTON-->
+        <!--SIXTHBUTTON-->
+<form action="https://www.google.com/search" target="_blank" style="float:right">   <input type="text" name="q" value="search" style="width:120">   <input type="hidden" name="sitesearch" value="somewhere.org/news">   <button type="submit">Go</button> </form> 
+        </big><br />
+</div></div></div>
+<div id="divbody"><div class="content">
+<h3><a class="ablack" href="201711/first-blog-post-shellcms.html">
+First blog post, shellCMS
+</a></h3>
+<!-- bashblog_timestamp: #201711160652.05# -->
+<div class="subtitle">November 16, 2017 &mdash; 
+MrPerson
+</div>
+<!-- text begin -->
+    <p>There are two installations of shellCMS on this computer, at <tt>~/.shellcms/www</tt> and <tt>~/.shellcms/www/news</tt>. The former is configured as a documentation CMS (Content Management System), the latter as a blog.<br>
+</p>
+<p>This is an arbitrary choice, a site can have any number of shellCMS installations, nested or otherwise.<br>
+</p>
+<p>A local installation of shellCMS is for creating and editing posts. 
+At any time, the local site can be uploaded to a remote site. shellCMS 
+is just static HTML pages, so uploading is just a matter of using ftp or
+ rsync.<br>
+</p>
+<p>shellCMS is run by shell scripts, that are located in <tt>/usr/local/shellcms</tt>. The main script is <tt>/usr/local/shellcms/shellcms</tt>, a CLI (commandline) app. There is also <tt>remotesync</tt>, <tt>mozeditor</tt> and <tt>shellcmsgui</tt>. These scripts are also linked from <tt>/usr/local/bin</tt>.<br>
+</p>
+<p>As the name suggests, <tt>remotesysnc</tt> is for uploading to a remote site. Script <tt>mozeditor</tt> is a wrapper for SeaMonkey Composer WYSIWYG HTML editor, and is called from <tt>shellcms</tt>. Script <tt>shellcmsgui</tt> is a GUI frontend.<br>
+</p>
+
+    Blog posts are filed by date, in folders named "yyyymm". This post is filed as <tt>~/.shellcms/www/news/201711/first-blog-post-shellcms.htmraw</tt>. The published post, with header, footer and layout, is <tt>~/.shellcms/www/news/first-blog-post-shellcms.html</tt>.<br>
+<br>
+As shown in the first documentation post, each post may have images. For this post, there is folder <tt>~/.shellcms/www/news/201711/images</tt>, so create a relative link "images/image-name.png"<br>
+<br>
+Documentation posts have just one category, however, blog posts may have
+ more than one. if you had, for example, categories "linux" and "puppy",
+ you could post to both.<br>
+<br>
+A useful technical detail: Configuration settings are managed via the 
+GUI frontend, however, you can also directly edit the configuration 
+files. The script <tt>/usr/local/shellcms/shellcms</tt> has default variables, any of which can be overridded by <tt>~/.shellcms/www/news/cms_config/config</tt> (or, for the documentation CMS, <tt>~/.shellcms/www/cms_config/config)</tt>.<br>
+<br>
+In fact, everything can be done from the commandline, if you have an 
+aversion to the GUI frontend. For example, to create a new post to this 
+blog, and upload to a remote site:<br>
+<pre># cd ~/.shellcms<br># shellcms www/news post<br># remotesync www/news<br></pre>...quite simple!<br>
+    
+<!--RawTags: admin-->
+  
+
+
+<p>Tags: <a href='tag_admin.html'>admin</a></p>
+<!-- text end -->
+<div id="all_posts"><a href="all_posts.html">View more posts</a> &mdash; <a href="all_tags.html">All categories</a> &mdash;  <a href="feed.rss"><img src="images0/rss24.png" width="24" height="24" title="RSS feed" />rss</a>
+</div>
+
+<div id="footer">
+ <small>
+ <br/>
+ &copy; Copyright 
+ <a href="http://bkhome.org/">Barry Kauler</a> 2017
+ <br/>
+ Generated with <a href="http://bkhome.org/shellcms">shellCMS</a> 
+ (forked from <a href="https://github.com/cfenollosa/bashblog">bashblog</a>)
+ </small>
+</div>
+</div></div>
+   </td>
+  </tr>
+ </tbody>
+</table>
+</body></html>

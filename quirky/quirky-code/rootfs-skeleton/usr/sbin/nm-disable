@@ -1,0 +1,49 @@
+#!/bin/sh
+#190926 call from any script that wants to disable networkmanager.
+#called from: /usr/sbin/connectwizard, connectwizard_2nd
+#note: this code is also in /etc/rc.d/rc.sysinit
+#note: but not setting as default here. that decision takes place elsewhere.
+
+[ ! -f /etc/init.d/rc.networkmanager ] && exit #networkmanager pkg not installed.
+
+if pidof NetworkManager >/dev/null ;then
+ /etc/init.d/rc.networkmanager stop
+fi
+chmod 644 /etc/init.d/rc.networkmanager
+
+#fix some things (see also rc.sysinit)...
+#disable nm-applet, enable network_tray...
+if [ -f /root/Startup/networkmanager_tray ];then
+ if [ -x /root/Startup/networkmanager_tray ];then
+  chmod 644 /root/Startup/networkmanager_tray
+  killall nm-applet
+  killall networkmanager_tray
+ fi
+fi
+if [ -f /root/Startup/network_tray ];then
+ if [ ! -x /root/Startup/network_tray ];then
+  chmod 755 /root/Startup/network_tray
+  if ! pidof network_tray >/dev/null;then
+   /root/Startup/network_tray &
+  fi
+ fi
+fi
+
+#make sure some menu entries are disabled...
+NMflg=0
+for aNM in nm-applet nm-connection-editor nmtui modem-manager-gui
+do
+ [ ! -f /usr/share/applications/${aNM}.desktop ] && continue
+ grep '^NoDisplay=false' /usr/share/applications/${aNM}.desktop >/dev/null
+ if [ $? -eq 0 ];then
+  sed -i -e 's%^NoDisplay=.*%NoDisplay=true%' /usr/share/applications/${aNM}.desktop
+  NMflg=1
+ fi
+done
+if [ $NMflg -eq 1 ];then
+ fixmenus
+ grep 'jwm' /etc/windowmanager >/dev/null
+ [ $? -eq 0 ] && jwm -reload
+fi
+
+###end###

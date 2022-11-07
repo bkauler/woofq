@@ -1,0 +1,7 @@
+#!/bin/sh
+
+ISONAME='quirky.iso'
+
+ xorriso -as mkisofs -o ${ISONAME} -isohybrid-mbr isohdpfx.bin \
+   -c boot.cat -b isolinux.bin -no-emul-boot -boot-load-size 4 -boot-info-table \
+   -eltorito-alt-boot -e efiboot.img -no-emul-boot -isohybrid-gpt-basdat ./build/

@@ -1,0 +1,29 @@
+#!/bin/sh
+#called from /init, partition mounted on /partition, passed params dev, f.s. ex: /dev/sda9 ext4
+#160427 first version.
+
+echo -e "\\033[1;31m"  >/dev/console #34=blue, 33=yellow, 32=green, 31=red, 35=purple, 36=aquablue, 38=black.
+echo "Performing filesystem check of partition ${1}, type ${2}, please wait..."
+echo -n -e "\\033[1;39m" #back to default foreground color.
+
+sync
+umount ${1}
+
+case $2 in
+ ext*)
+  e2fsck -p -f ${1}
+ ;;
+ f2fs)
+  fsck.f2fs ${1}
+ ;;
+ *)
+  echo 'NO, only ext2, ext3, ext4 and f2fs filesystems can currently be checked.'
+ ;;
+esac
+
+sync
+mount -t ${2} ${1} /partition
+
+echo "Filesystem check completed."
+rm -f /partition/.fsckme.flg
+sleep 5

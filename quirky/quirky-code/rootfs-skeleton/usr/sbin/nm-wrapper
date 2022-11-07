@@ -1,0 +1,25 @@
+#!/bin/sh
+#called from /usr/sbin/connectwizard
+#wrapper for NetworkManager.
+#181118 first release.
+#190805 may have nm-connection-editor (in network-manager-applet pkg) instead of nmtui (in network-manager pkg).
+#190922 BK: 190805: now "nm-setup" in in defaultconnect.
+#190927 BK: now have nm-enable script. have to set nm as default.
+
+#i think make sure everything down...
+networkdisconnect
+
+#190927
+if which nm-applet >/dev/null; then
+ echo -e '#!/bin/sh\nexec nm-setup' > /usr/local/bin/defaultconnect
+else
+ echo -e '#!/bin/sh\nexec urxvt -e nmtui' > /usr/local/bin/defaultconnect
+fi
+
+/usr/sbin/nm-enable #190927
+
+if which nm-applet >/dev/null; then #190805 instead of nmtui. 190922
+ nm-setup
+else
+ urxvt -e nmtui #gui
+fi

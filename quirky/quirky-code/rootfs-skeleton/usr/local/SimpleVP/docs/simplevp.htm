@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html><head>
+<meta content="text/html; charset=UTF-8" http-equiv="Content-Type">
+<title>Minimalist lightweight ultralight traveling</title>
+<meta content="Barry Kauler" name="author">
+<meta content="minimalist lightweight ultralight hiking trekking
+      backpacking traveling" name="description">
+<!-- BK makes table width scale to fit device screen width... -->
+<meta name="viewport" content="width=device-width">
+<!-- BK ensure font looks approx the same on all platforms and orientation ... -->
+<!-- the 1090px test is for my linux desktop -->
+<style type="text/css">
+  * { font-size: 24px; }
+  @media (min-width:1090px) {
+    * { font-size: 18px; }
+  }
+  h1 { font-size:230% }
+  h2 { font-size:170% }
+  h3 { font-size:120% }
+  p { font-size: 100%; }
+  big { font-size: 110%; }
+  big big { font-size: 120%; }
+  small { font-size: 90%; }
+  small small { font-size: 80%; }
+  @media (orientation:portrait) {
+    * { font-size: 44px; }
+    h1 { font-size:150% }
+    h2 { font-size:130% }
+    h3 { font-size:110% }
+    big { font-size: 106%; }
+    big big { font-size: 112%; }
+    small { font-size: 94%; }
+    small small { font-size: 88%; }
+  }
+  body { font-family: sans-serif; line-height: 1.2; }
+</style>
+  </head>
+  <body text="#000000" vlink="#551A8B" alink="#EE0000" bgcolor="#cccccc" link="#0000EE">
+    
+
+
+
+<table cellpadding="2" cellspacing="2" width="600" align="center" bgcolor="#ffffff" border="0">
+  <tbody>
+    <tr>
+      <td valign="top"><img alt="simplevp" src="../images/simplevp.png" width="64" align="middle" height="64"> <b><big><big><big>SimpleVP</big></big></big></b><br>
+      </td>
+    </tr>
+    <tr>
+      <td valign="top"><h2>Overview</h2>
+SimpleVP (SVP) is a video player, that also plays audio media. SVP is a 
+simple GUI frontend for CLI (commandline) media players, such as VLC, 
+FFplay and Omxplayer.<br>
+        SVP is written in Bash shell script, and uses GTKDialog to 
+achieve the graphical windows (requiring GTK+2), and utilities xdotool, 
+wmctrl, xwininfo and xprop to interact with the CLI player.<br>
+        <br>
+SVP is intended to be very easy to use, with a fairly minimal user 
+interface. There is a simple main window, and when a video or audio file
+ is played, there is an On-Screen Controls (OSC) window with buttons for
+ play, pause, stop, etc.<br>
+<h2>The GUI</h2>
+When launched, this is the main window:<br>
+<br>
+<img alt="main-window" src="simplevp-main.png" width="488" height="350"><br>
+<br>
+<table cellpadding="2" cellspacing="0" width="100%" border="0">
+  <tbody>
+    <tr>
+      <td valign="top"><img alt="history" src="../images/book.svg" width="48" height="48"><br>
+      </td>
+      <td valign="top"><b>History list</b><br>
+This brings up a list of previous selections, so can quickly choose a file that was played before.<br>
+      </td>
+    </tr>
+    <tr>
+      <td valign="top"><img alt="streaming" src="../images/internet.svg" width="48" height="48"><br>
+      </td>
+      <td valign="top"><b>Stream</b><br>
+Not yet implemented.<br>
+      </td>
+    </tr>
+    <tr>
+      <td valign="top"><img alt="optical" src="../images/cdrom.svg" width="48" height="48"><br>
+      </td>
+      <td valign="top"><b>Optical</b><br>
+Automatically determines type of optical media and creates appropriate 
+entry in edit-box. Handles audio-CD, video-DVD, or CD/DVD with 
+individual audio/video files.<br>
+      </td>
+    </tr>
+    <tr>
+      <td valign="top"><img alt="file" src="../images/folder.svg" width="48" height="48"><br>
+      </td>
+      <td valign="top"><b>File</b><br>
+Choose a file or folder, which will be placed in the edit-box. If a 
+folder is chosen, then all audio and video files in that folder will 
+play.<br>
+      </td>
+    </tr>
+    <tr>
+      <td valign="top"><img alt="play" src="../images/play.svg" width="48" height="48"><br>
+      </td>
+      <td valign="top"><b>Play</b><br>
+Play whatever is specified in the edit-box.<br>
+      </td>
+    </tr>
+    <tr>
+      <td valign="top"><img alt="loop" src="../images/play-infinite.svg" width="48" height="48"><br>
+      </td>
+      <td valign="top"><b>Play-loop</b><br>
+Play in an endless loop. For a folder, will play all media files in the folder, then repeat, endlessly.<br>
+      </td>
+    </tr>
+  </tbody>
+</table>
+<br>
+The Setup section is self-explanatory. Options are automatically 
+configured to suit the CLI player chosen and the Xorg, audio and 
+hardware setup. For example, if the Omxplayer is chosen in the Raspberry
+ Pi, only "OpenMAX" (hardware accelerated video output) is offered for 
+the "Video out" drop-down list, and only "Analog" and "HDMI" offered for
+ the "Audio output".<br>
+<br>
+Similarly, the "Size" drop-down list only offers options appropriate for
+ the chosen CLI player and video Xorg-driver and hardware.<br>
+<h2>OSC</h2>
+This will vary, but basically looks like this when a video is playing:<br>
+<br>
+<img alt="osc" src="simplevp-osc.png" width="287" height="52"><br>
+<br>
+The OSC window displays when a video is playing in a window, not when 
+playing fullscreen. In the latter case, keyboard hot-keys can be used, 
+such as the space-bar to pause and "q" to quit.<br>
+<h2>
+Raspberry Pi</h2>
+Quirky Linux 8.1+ runs on the Pi2 and Pi3, and includes SimpleVP, with the CLI players FFplay, VLC and Omxplayer.<br>
+<br>
+VLC has been compiled especially for the Pi, with hardware acceleration 
+using OpenMAX, as well as software rendering with X11 and SDL output 
+modes.<br>
+OpenMAX video output mode is fullscreen only and there is no OSC, and the hot-keys do not work. <br>
+<br>
+Omxplayer uses OpenMAX only. OpenMAX renders direct to the screen, 
+bypassing Xorg, so is normally used for fullscreen playing. However, 
+Omxplayer can render in a portion of the screen, giving a window-like 
+effect and allowing the OSC.<br>
+<br>
+For low-resolution videos, up to about 480p, software rendering works OK
+ with VLC. Omxplayer will play up to 1080p smoothly, whereas VLC (with 
+OpenMAX) experiences some stuttering at 1080p and should be limited to 
+720p. This is testing on the Pi2.<br>
+<br>
+<br>
+<br>
+<br>
+      </td>
+    </tr>
+  </tbody>
+</table>
+<br>
+
+
+
+<br>
+
+
+
+<br>
+
+
+
+<br>
+
+
+
+
+<br>
+
+
+
+
+
+
+</body></html>

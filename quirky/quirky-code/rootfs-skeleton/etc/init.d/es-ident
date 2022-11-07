@@ -1,0 +1,22 @@
+#!/bin/sh
+#easyshare uses this to export hostname over local network.
+#ref: /usr/local/EasyShare/easyshare
+
+case "$1" in
+ start)
+  LOCALHOSTNAME="$(hostname)"
+  #fakeidentd is a busybox applet, a cutdown identd, listens on port 113,
+  #there is a script /usr/sbin/ident-user-enum.pl that can query this daemon,
+  # and the string will be returned. easyshare uses this to identify computers.
+  fakeidentd ES${LOCALHOSTNAME}
+ ;;
+ stop)
+  killall fakeidentd
+ ;;
+ restart)
+  killall fakeidentd
+  LOCALHOSTNAME="$(hostname)"
+  fakeidentd ES${LOCALHOSTNAME}
+ ;;
+esac
+

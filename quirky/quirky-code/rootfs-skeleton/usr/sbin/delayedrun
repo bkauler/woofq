@@ -1,0 +1,342 @@
+#!/bin/sh
+#(c) copyright 2007 Barry Kauler
+#2007 Lesser GPL licence v2 (http://www.fsf.org/licensing/licenses/lgpl.html)
+#launched from ~/.xinitrc, so X is running.
+#note, see also /usr/sbin/savepuppyd, launched from /etc/rc.d/rc.local0.
+#v3.91 BK oct,nov 2007, upated for Dingo.
+#v3.94 BK 15 dec 2007, updated.
+#v4.01 BK 19may2008: don't think loading usb-storage reqd here anymore.
+#v4.01 BK 19may2008: note the new pup_eventd also launched from .xinitrc.
+#w007 path fix for Xorg.
+#w481 warning if modules cannot be loaded.
+#100404 fix load applets for fbpanel. 100413 think needs some 'sleep 0.1'
+#100504 background color for retrovol.
+#100511 for ram-challenged pc, better to display welcome1stboot.png.
+#100513 jwm tray now uses freememapplet_tray and blinky_tray. NOTE: future, move these to /root/Startup.
+#100517 freememapplet_tray moved to /root/Startup.
+#100522 'surfer' is a simple viewer (uses libgtkhtml).
+#100608 if yaf-splash symlink to gtkdialog-splash, use '-fontsize large' parameter.
+#100821 01micko: fixes for background color in tray apps, also launch first-run.sh.
+#100917 have removed -font parameter from yaf-splash (see /usr/share/doc/yaf-splash-new.htm).
+#101004 jemimah has disabled tray applet in retrovol, now using obmixer_tray.
+#101007 sound alias modprobe info may have moved.
+#101009 problem as tray applets only got launched after welcome msg exited.
+#101017 Alsa modprobe file now /etc/modprobe.d/alsa.conf.
+#101019 welcome1stboot is now a gtkdialog app...
+#101112 alsa info in two different places.
+#101120, 101121 fix sound test, rewritten /sbin/pup_event_backend_modprobe.
+#101210 pup_event_alsa_cnt* are now in /tmp/pup_event_backend.
+#110113 test /dev/mixer for sound ready, see /etc/init.d/10alsa.
+#20110328 if mouse not working, popup dialog.
+#110412 welcome1stboot now written in BaCon, in /usr/sbin.
+#110516 only popup dlg for mouse not working, if DISTRO_XORG_AUTO='yes' (in /etc/DISTRO_SPECS)
+#110807 take out pngoverlay code, doing it in woof 3builddistro.
+#110925 fix, improvements, for flash player download.
+#111010 create /tmp/delayedrun_finished_flag to flag when this script exited.
+#111019 DISTRO_XORG_AUTO==yes and PUPMODE==5, run 'quickcountry'. mouse-checking moved to 'mousecheck'.
+#111026 decided not to run 'mousecheck' from here. instead, a button in 'quicksetup'.
+#111110 ping 64.233.169.103 address no longer responding. 01micko: use 8.8.8.8
+#111112 delay a bit more before flashplayer popup.
+#111113 fix for download url for flash player. 111117 fix.
+#120110 added sudo line. see also /etc/sudoers -- set delayedrun does not require password, probably a security hole, need to look at it again later.
+#120201 rodin.s: internationalized.
+#120227 call external /usr/sbin/check_internet
+#120329 shinobar: download tweaks.
+#120401 added warning flash player may not work.
+#120403 removed adobe flash download. no, have changed to older version.
+#120620 removed adobe flash download. want quicksetup/welcome1stboot for any PUPMODE at first startup.
+#120708 run 'quickarm' instead of 'quicksetup' on arm boards. see 3builddistro, /usr/sbin/quicksetup.
+#120714 revert 120708.
+#120718 modify initial sleep.
+#120823 rerwin: skip quicksetup if /etc/personal_settings_popup_disabled file created by remasterpup2 (modified by rerwin).
+#120823 rerwin: use distro-specific delayedrun if available.
+#120830 quicksetup restarts X, welcome1stboot did not run.
+#130709 precise pup now has two web browsers. 130711. 130719. 130723. 130725.
+#140207 check network connection. see also: check_internet, welcome1stboot.bac, network_tray.c, quicksetup.
+#140212 fix calling multiple sound card wizard.
+#140216 popup warning not to unplug removable drive.
+#150212 won't bother to create a ref. snapshot at all.
+#150214 popup msg when booted from live-cd or frugal.
+#150413 modify warning msg.
+#150422 language selector for quicksetup. refer: http://bkhome.org/news/?viewDetailed=00192
+#150423 revert 150422
+#150425 want to run welcome1stboot with locale chosen in quicksetup. 150429 fix.
+#150724 msg for special developer build of quirky.
+#150816 add LiveCode to welcome msg.
+#151106 hide error msg when PDEV1=zram0
+#151109 improve livecd/frugal warning msg.
+#160419 improve warning message, iso boot can now be optical or usb-flash media.
+#170528 moved "woof woof" bark to separate process, /usr/sbin/woofwoof
+#180410 remove old alsa code.
+
+[ "`whoami`" != "root" ] && exec sudo -A ${0} ${@} #120110
+
+export TEXTDOMAIN=delayedrun
+export OUTPUT_CHARSET=UTF-8
+. gettext.sh
+
+#variables created at bootup by 'init' in initramfs...
+. /etc/rc.d/PUPSTATE
+. /etc/DISTRO_SPECS
+[ -x ${0}-${DISTRO_FILE_PREFIX} ] && exec ${0}-${DISTRO_FILE_PREFIX} #120823 rerwin: use distro-specific delayedrun if available.
+. /etc/rc.d/BOOTCONSTRAINED #120708
+. /etc/rc.d/install.log #150214 has INSTALLED_MODE=livecd, frugal, full
+
+BGOPT=""
+#100821 start...
+WINDOWMANAGER="`cat /etc/windowmanager`"
+case $WINDOWMANAGER in
+ icewm*) #icewm or icewm-session.
+  #micko for icewm, not sure why it's needed but it doesn't work without killing the ice tray. It's mainly so freememapplet_tray, network_tray and retrovol work.
+  killall icewmtray
+  icewmtray & 2>/dev/null 
+  . $HOME/.icewm/theme
+  THEMEDIR="/usr/share/icewm/themes"
+  . ${THEMEDIR}/${Theme} 2>/dev/null
+  NUMCOLOR=`echo $ColorNormalTaskBarApp|grep "rgb:"`
+  if [[ $NUMCOLOR = "" ]];then BG=""
+  else PRE_BG=`echo $ColorNormalTaskBarApp|cut -d ':' -f2|sed 's%/%%g'`
+   BG="#${PRE_BG}"   #this is more generic and works with many themes.
+  fi
+  if [[ $Theme = "GoldenSand/default.theme" ]];then 
+   BG="#C6AD73" #this is particular to 5.1, it can be removed for cleanliness
+  fi
+  if [ "$BG" = "" ];then 
+   BGOPT=""
+  else 
+   BGOPT="-bg ${BG}"
+  fi
+ ;;
+ *) 
+  if [ -f /root/.jwm/jwm_colors ];then #100504
+   . /root/.jwm/jwm_colors
+    BGOPT="-bg ${MENU_BG}"
+  fi
+ ;;
+esac
+#10821 end.
+export BGOPT #101013 for use in /root/Startup/retrovol_tray
+
+KERNVER="`uname -r`" #w481
+
+sleep 2 #1 #let the dust settle first. 120718 reduce 2 to 1. 121105 try 2, see also /sbin/pup_event_frontend_d.
+#120718 slow cpus need more delay...
+DELAYFACTOR=0
+CPUMHZ=`grep -m 1 -i '^cpu MHz' /proc/cpuinfo | tr -d ' ' | cut -f 2 -d ':' | cut -f 1 -d '.'` #my laptop: 933.000
+if [ $CPUMHZ ];then
+ [ $CPUMHZ -gt 100 ] && DELAYFACTOR=`expr 900 \/ $CPUMHZ`
+else #120718 raspi: 697.95  my laptop: 4789.47
+ BOGOMIPS=`grep -m 1 -i '^bogomips' /proc/cpuinfo | tr -d ' ' | cut -f 2 -d ':' | cut -f 1 -d '.'`
+ [ $BOGOMIPS ] && [ $BOGOMIPS -gt 200 ] && DELAYFACTOR=`expr 800 \/ $BOGOMIPS`
+fi
+[ $DELAYFACTOR -gt 0 ] && sleep $DELAYFACTOR
+
+#this goes into the tray...
+CURRPS="`ps`"
+if [ "`which blinky_tray`" != "" ];then #100821
+ blinky_tray ${BGOPT} & #created by Lior Tubi and MU.
+ sleep 0.1
+fi
+#101004 jemimah has disabled tray applet in retrovol, now using obmixer_tray...
+if [ ! -f /root/Startup/obmixer_tray ];then
+ if [ ! -f /root/Startup/retrovol_tray ];then #101013
+  if [ "`which retrovol`" != "" ];then
+   if [ "`retrovol -help 2>&1 | grep '\-show'`" != "" ];then
+    retrovol ${BGOPT} & #100119 tray volume control by pizzasgood. 100504
+   else
+    retrovol -hide ${BGOPT} & #100413 versions after 0.2. 100504
+   fi
+  fi
+ fi
+fi
+
+#offer to popup a getting-started html page...
+#120620 change logic so get these when first boot full install...
+#the test for /etc/videomode is for when Xvesa has finished choosing a resolution...
+preLANG="" #150429
+if [ "`readlink /usr/bin/X`" = "Xorg" -o -e /etc/videomode ];then #w007
+ if [ ! -f /var/local/delayedrun_firstboot_flag ];then
+  if [ ! -f /tmp/delayedrun_firstboot_flag ];then #120830 if quicksetup restarts X, reenter here jumps this...
+   touch /tmp/delayedrun_firstboot_flag
+   if [ "$DISTRO_XORG_AUTO" = "yes" ];then #see /etc/DISTRO_SPECS 111019
+    #quick setup window for country and language and X resolution...
+    #QUICKSETUP="launch_app_in_another_LANGUAGE quicksetup" #150422
+    #[ "`readlink /usr/bin/X | grep 'Xorg'`" = "" ] && QUICKSETUP="launch_app_in_another_LANGUAGE quickcountry" #probably Xvesa, offer country settings only. 150422
+    QUICKSETUP="quicksetup" #150423
+    [ "`readlink /usr/bin/X | grep 'Xorg'`" = "" ] && QUICKSETUP="quickcountry" #probably Xvesa, offer country settings only. 150423
+    ${QUICKSETUP}
+
+    #150425 want to run welcome1stboot with locale chosen in quicksetup... 150429 fix.
+    NEWLANG="`grep '^LANG=' /etc/profile | tr -d "'" | tr -d '"' | cut -f 2 -d '='`"
+    xNEWLANG=${NEWLANG:0:2} #ex: de
+    xLANG=${LANG:0:2}
+    if [ "$xNEWLANG" != "$xLANG" -a "$xNEWLANG" != "en" ];then
+     [ -f /usr/share/locale/${xNEWLANG}/LC_MESSAGES/welcome1stboot.mo ] && preLANG="$xNEWLANG"
+    fi
+
+   fi
+  fi
+  
+  ALTBROWSER=''
+  #the pinstall.sh script in qtweb and opera pets create separate desktop icon if there is another major browser...
+  [ "`grep 'QtWeb' /root/Choices/ROX-Filer/PuppyPin`" != "" ] && ALTBROWSER='QtWeb'
+  [ "`grep 'opera' /root/Choices/ROX-Filer/PuppyPin`" != "" ] && ALTBROWSER='opera'
+  if [ "$ALTBROWSER" != "" ];then
+   xALTBROWSER="`grep "$ALTBROWSER" /root/Choices/ROX-Filer/PuppyPin | grep -o 'label=.*' | cut -f 2 -d '"'`" #'
+   FIRSTCHAR="`echo -n "$ALTBROWSER" | cut -c 1 | tr '[a-z]' '[A-Z]'`"
+   RESTCHARS="`echo -n "$ALTBROWSER" | cut -c 2- | cut -f 1 -d '-'`"
+   zALTBROWSER="${FIRSTCHAR}${RESTCHARS}" #ex: Opera
+   MAINBROWSER="`grep '^exec' /usr/local/bin/defaultbrowser | tr '\t' ' ' | tr -s ' ' | cut -f 2 -d ' '`"
+   if [ "$MAINBROWSER" != "$ALTBROWSER" ];then
+    case $MAINBROWSER in
+     mozstart)  zMAINBROWSER='SeaMonkey' ;;
+     seamonkey) zMAINBROWSER='SeaMonkey' ;;
+     *)
+      FIRSTCHAR="`echo -n "$MAINBROWSER" | cut -c 1 | tr '[a-z]' '[A-Z]'`"
+      RESTCHARS="`echo -n "$MAINBROWSER" | cut -c 2- | cut -f 1 -d '-'`"
+      zMAINBROWSER="${FIRSTCHAR}${RESTCHARS}"
+     ;;
+    esac
+    pupdialog --ok-label "$(gettext 'OK')" --backtitle "$(gettext 'Web browser announcement')" --colors --background yellow --msgbox "$(gettext 'This build of Puppy has two web browsers:')
+$(eval_gettext '\Zb${zMAINBROWSER}\ZB and \Zb${zALTBROWSER}\ZB')
+
+$(eval_gettext 'The \Zbbrowse\ZB icon on the desktop will launch ${zMAINBROWSER}. There is a separate icon labeled \Zb${xALTBROWSER}\ZB for the ${zALTBROWSER} browser.')
+
+$(eval_gettext '${zALTBROWSER} is a small and fast browser, that uses less system resources. It is recommended that you use this browser on very slow computers or with not much RAM. In fact, for any PC with less than 256MB, please choose ${zALTBROWSER}.')" 0 0
+   fi
+  fi
+
+  #180410 remove old alsa code.
+  ##101121 handle multiple sound cards...
+  #if [ -f /tmp/rc_d_rc_services_alsa_ok ];then #see /etc/rc.d/rc.services
+  # if [ `find /tmp/pup_event_backend -maxdepth 1 -type f -name 'pup_event_alsa_cnt*' | wc -l` -gt 1 ];then
+  #  #run kirk's Multiple Sound Card Wizard...
+  #  Multiple-Sound-Card-Wizard
+  # fi
+  #fi
+  
+  #150212 in fact, think won't bother to create a ref. snapshot at all...
+  ##140212
+  ##the install scripts normally create this, but not if dd'ed from 8GB image file...
+  #if [ ! -f /audit/reference/${DISTRO_FILE_PREFIX}-${DISTRO_VERSION}.sfs ];then
+  # #150212 but only want to take snapshot if installed, not if running live-CD...
+  # if [ "$(grep '^/dev/zram0 / ' /proc/mounts)" == "" ];then
+  #  take-reference-snapshot
+  # fi
+  #fi
+  
+  #if [ -c /dev/mixer ];then #110113 test for sound ready, see /etc/init.d/10alsa.
+  # aplay /usr/share/audio/2barks.au &
+  # #wavplay /usr/share/audio/2barks.wav &
+  # RETAPLAY=$?
+  # PIDAPLAY=$!
+  #fi
+  /usr/sbin/woofwoof & #170528
+  
+  #140207 before bring up the welcome window, test if network connection...
+  #ex subdirs: eth0 lo ppp0 wlan0
+  #file 'dormant' returns "0" if interface up. screen out "lo" interface...
+  ACTIVEIFS="$(grep -H -x '0' /sys/class/net/[^l]*/dormant 2>/dev/null | cut -f 5 -d '/')" #ex: /sys/class/net/ppp0/dormant:0
+  if [ "$ACTIVEIFS" ];then
+   echo -n "$ACTIVEIFS" > /tmp/delayedrun-active-interfaces
+   ping -4 -c 1 www.google.com
+   [ $? -eq 0 ] && touch /tmp/delayedrun-internet-working
+  fi
+  
+  if [ "$preLANG" ];then #150425
+   LANGUAGE=${preLANG}:en welcome1stboot &
+  else
+   welcome1stboot & #110412 now in /usr/sbin
+  fi
+  
+  #150214 msg warning running in ram... 150413
+  if [ "$INSTALLED_MODE" == "livecd" -o "$INSTALLED_MODE" == "frugal" ];then
+   sleep 0.3
+   #151109 show free ram in warning message...
+   ZRAMK=`df -k | grep '^/dev/zram0' | tr -s ' ' | cut -f 4 -d ' '`
+   if [ $ZRAMK -gt 1048576 ];then #1024*1024
+    ZFREE="`LANG=C busybox dc $ZRAMK 1048576 \/ p`"
+    ZFREE="`LANG=C busybox printf "%.1f" $ZFREE`G"
+   else
+    if [ $ZRAMK -gt 99 ];then
+     ZFREE="`expr $ZRAMK \/ 1024`M"
+    else
+     ZFREE="`LANG=C busybox dc $ZRAMK 1024 \/ p`"
+     ZFREE="`LANG=C busybox printf "%.1f" $ZFREE`M"
+    fi
+   fi
+   P0_IM="$(gettext 'Free space in RAM:')"
+   TITLE_IM="$(gettext 'Important notice')"
+   if [ "$INSTALLED_MODE" == "livecd" ];then
+    P2_IM="$(gettext 'Quirky is currently running from an ISO')"
+    P1_IM="$(gettext 'Quirky is intended to run as a <i>full</i> installation, either in an entire drive such as Flash memory, or a hard-drive partition.')
+$(gettext 'Running from an ISO is <i>not</i> an installation, However, there is a limited session-save capability, so this mode can be used on an ongoing basis.')"
+    P2b_IM="$(gettext 'The main limitation to be aware of, is, when booted from an ISO, Quirky will be running <b>totally in RAM</b>. This means that you need to be <span color="red" weight="bold">very cautious</span> about downloading files or installing packages.')"
+    P3_IM="$(gettext 'You will see a <b>save</b> icon on the desktop. This will enable you to save a session when booted from ISO. Click the <b>save</b> icon for further information.')"
+   fi
+   if [ "$INSTALLED_MODE" == "frugal" ];then
+    P2_IM="$(gettext 'Quirky is currently running from a frugal installation')"
+    P1_IM="$(gettext 'Quirky is intended to run as a <i>full</i> installation, either in an entire drive such as Flash memory, or a hard-drive partition.')
+$(gettext 'However, <i>frugal</i> installations) work, with some restrictions.')"
+    P2b_IM="$(gettext 'The main limitation is, when booted from a frugal installation, Quirky will be running <b>totally in RAM</b>. This means that you need to be <span color="red" weight="bold">very cautious</span> about downloading files or installing packages.')"
+    P3_IM="$(gettext 'You will see a <b>save</b> icon on the desktop. This will enable you to save a session when booted from a frugal install. Click the <b>save</b> icon for further information.')"
+   fi
+   IMSG="<big><big><b>${TITLE_IM}</b></big></big>
+
+<b>${P2_IM}</b>
+
+${P1_IM}
+
+${P2b_IM}
+
+<span fgcolor='#000080'>${P0_IM} <b>${ZFREE}</b></span>
+$(gettext 'Note that free space in RAM is high due to zram compression. Note also, you can check free space at any time by mouse-over the memory-icon in the tray.')
+
+${P3_IM}"
+   popup "terminate=ok background=#E0D0FF level=top|${IMSG}"
+  fi
+  
+  #150724 special developer build of quirky. 150816
+  if [ -d /opt/ant -o -d /opt/qtcreator ];then
+   DEVMSG="<big><b>${DISTRO_NAME}</b></big>
+
+This is a special programmer's edition of <b>Quirky Linux</b> (which is a fork of <b>Puppy Linux</b>).
+You will find icons in the centre of the desktop, to launch GUI Software Development Kits:
+
+<b>Android Studio</b>: create Java apps for Android
+<b>App Inventor2</b>: easy visual creation of apps for Android
+<b>QtCreator</b>: create Qt Linux/Android apps with QML or C++
+<b>LiveCode</b>: easy creation of apps for multiple platforms
+
+A small amount of configuration is required for each of these tools when you first start them. Please click the <i>README</i> icon in the centre of the desktop for further information."
+   popup "terminate=ok background=#F0D0FF level=top|${DEVMSG}"
+  fi
+
+  sleep 3 #101009
+  #[ $RETAPLAY -eq 0 ] && kill $PIDAPLAY 2> /dev/null
+  #[ "`pidof aplay`" != "" ] && killall aplay
+  touch /var/local/delayedrun_firstboot_flag
+
+ fi
+fi
+
+
+#v2.16 popup a warning if booting from usb flash... 140216...
+[ "$PDEV1" ] && QDRV="$(echo -n "$PDEV1" | sed -e 's%[0-9][0-9]$%%' -e 's%[0-9]$%%' -e 's%p$%%')"
+#151106 PDEV1=zram0, above gives QDRV=zram, so put 2>/dev/null...
+if [ "`cat /sys/block/${QDRV}/removable 2>/dev/null`" = "1" ];then
+ yaf-splash -close never -fontsize large -bg yellow -timeout 3 -text "$(gettext 'WARNING! Do not unplug drive') ${QDRV}" & #101009
+fi
+
+#v2.17 suggested by andrei...
+if [ -d /root/Startup ];then
+ for a in /root/Startup/*
+ do
+  [ -x "$a" ] && $a &
+  sleep 0.2
+ done
+fi
+
+
+touch /tmp/delayedrun_finished_flag #111010
+###END###

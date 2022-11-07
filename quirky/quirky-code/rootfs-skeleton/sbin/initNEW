@@ -1,0 +1,92 @@
+#!/bin/ash
+#(c) Copyright Barry Kauler 2016, barryk.org
+#Lesser GPL license v3 (/usr/share/doc/legal/)
+#161209 complete rewrite. now have a ready-made initramfs|ramdisk, /boot/easyinit, a cpio archive.
+#161211 use all busybox applets, as busybox is static. 161212 fixes.
+#170103 fix /usr/lib/locale path.
+#170713 do not remount / read-write (might help with switch_root). 170727 fix.
+#180408 support nvme drives.
+
+INITEXE='/bin/busybox init'
+[ -f /sbin/minit ] && INITEXE='/sbin/minit'
+
+#boot parameter...
+QFSCK=0; RECOVER=0
+[ "$qfix" ] && QFIX="$qfix"
+for AFIX in `echo -n "$QFIX" | busybox tr ',' ' '`
+do
+ case $AFIX in
+  fsck|FSCK)         QFSCK=1 ;;
+  back|BACK|bak|BAK) RECOVER=1 ;;
+ esac
+done
+[ -e /recover.flg ] && RECOVER=2 #ref: snapshot-manager
+[ -e /.fsckme.flg ] && QFSCK=2   #ref: rc.shutdown, rc.sysinit
+
+if [ $QFSCK -eq 0 -a $RECOVER -eq 0 ];then
+ exec ${INITEXE} ###NORMAL STARTUP###
+fi
+
+#170713 busybox mount /dev/root -o remount,rw /
+busybox mount -t proc none /proc
+
+PDEV1="`busybox rdev | busybox grep ' /$' | busybox cut -f 1 -d ' ' | busybox grep -E '/dev/sd|/dev/hd|/dev/mmc|/dev/nvme' | busybox cut -f 3 -d '/'`" #180408
+#151106 note, live-cd and frugal, rdev returns nothing.
+if [ ! "$PDEV1" ];then
+ busybox umount /proc
+ exec ${INITEXE} #sanity check. ###NORMAL STARTUP###
+fi
+DEV1FS="$(busybox guess_fstype /dev/${PDEV1})"
+
+PATH='/bin:/sbin'
+export LANG=C
+
+#easyinit is ready-made OS, to run in ramdisk...
+#create a ramdisk... 
+#note, Puppy kernels are compiled with 32MB ramdisk, so need to be careful not to fill it up...
+echo 'Creating a ramdisk and populating with a Linux environment...'  >/dev/console
+busybox mke2fs -m 0 /dev/ram0 > /dev/null 2>&1
+busybox mount -t ext2 /dev/ram0 /mnt/ram0
+#populate the ramdisk...
+cd /mnt/ram0
+busybox cpio -i -d -m -F /boot/easyinit #easyinit is uncompressed cpio archive.
+busybox sync
+cd /
+busybox mkdir -p /mnt/ram0/old_root
+#e2fsck and e2resize will probably need this info...
+LOCALTIME="/usr/share`busybox readlink /etc/localtime | busybox sed 's%^.*/zoneinfo%/zoneinfo%'`"
+LOCALTDIR="`busybox dirname $LOCALTIME`"
+busybox mkdir -p /mnt/ram0/$LOCALTDIR
+busybox cp -a $LOCALTIME /mnt/ram0/$LOCALTDIR/
+busybox cp -a /etc/localtime /mnt/ram0/etc/
+busybox cp -a /etc/clock /mnt/ram0/etc/ #specifies hardware clock set to local or utc.
+#tell ramdisk what is system partition...
+busybox mkdir -p /mnt/ram0/etc/rc.d
+echo "PDEV1='${PDEV1}'" > /mnt/ram0/etc/rc.d/PUPSTATE
+echo "DEV1FS='${DEV1FS}'" >> /mnt/ram0/etc/rc.d/PUPSTATE
+#170713 /init in easyinit will read these files...
+[ $QFSCK -eq 1 ] && echo "${PDEV1},${DEV1FS},REQUEST" > /mnt/ram0/.fsckme.flg
+[ $RECOVER -eq 1 ] && busybox touch /mnt/ram0/recover.flg #empty. ref: /sbin/rollback in easyinit.
+#170727 they may already exist in main f.s...
+[ $QFSCK -eq 2 ] && busybox cp -a -f /.fsckme.flg /mnt/ram0/
+[ $RECOVER -eq 2 ] && busybox cp -a -f /recover.flg /mnt/ram0/
+#scripts in easyinit have 'gettext', so put in locale stuff...
+myLANG="$(busybox grep '^LANG=' /etc/profile | busybox cut -f 2 -d '=')"
+echo "export LANG=${myLANG}" >> /mnt/ram0/etc/profile
+if [ -d /usr/lib/locale ];then
+ busybox cp -a /usr/lib/locale/* /mnt/ram0/usr/lib/locale/
+else
+ busybox cp -a /usr/lib64/locale/* /mnt/ram0/usr/lib/locale/ #170103 slackware 14.2
+fi
+busybox sync
+#pivot_root to the ramdisk...
+echo 'Performing a pivot_root to the ramdisk...'  >/dev/console
+#mount -t devtmpfs devtmpfs /mnt/ram0/dev #not sure about this. alternative is to have a pre-populated /dev, or, will the kernel auto-mount it?
+busybox umount /proc
+cd /mnt/ram0
+pivot_root . old_root
+exec chroot . sh -c "exec /bin/busybox init" <dev/console >dev/console 2>&1
+#... 'init' script in ramdisk will now run.
+
+exit 0
+###END###

@@ -1,0 +1,35 @@
+#!/bin/sh
+#(c) Copyright Barry kauler, March 3 2018. bkhome.org
+#License GPL v3 (/usr/share/doc/legal)
+#qsync sets time from the internet. calls /usr/sbin/qsync
+#180303 first release.
+
+#notes:
+#pre-march-2018, /root/Startup/network_tray (v3.2.1) calls /usr/sbin/qsync
+#however, now have pup_event service manager, and /etc/eventmanager has this:
+# PE_SERVICE_MANAGER='network%cups-net-fixONESHOT:qsyncONESHOT'
+#/etc/rc.services will call /etc/init.d/qsync when network is up.
+#now using network_tray 3.3, without call to qsync.
+
+[ "$1" != "start" ] && exit
+[ -e /tmp/qsync/have-run ] && exit
+
+mkdir -p /var/local/qsync
+touch /var/local/qsync/qsync_active
+
+QSYNCACTIVE="$(cat /var/local/qsync/qsync_active)"
+
+if [ "$QSYNCACTIVE" == "true" ];then
+ CNT=0
+ while [ ! -f /tmp/qsync/have-run ];do
+  /usr/sbin/qsync true #param to run without X UI.
+  [ $? -ne 0 ] && break
+  #/usr/sbin/qsync will create /tmp/qsync/have-run if ntpdate succeeds.
+  #if not, probably not yet have internet access, so keep trying...
+  sleep 6
+  CNT=`expr $CNT + 1`
+  [ $CNT -gt 100 ] && break
+ done
+fi
+
+###end###

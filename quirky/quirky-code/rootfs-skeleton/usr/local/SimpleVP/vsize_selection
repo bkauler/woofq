@@ -1,0 +1,32 @@
+#!/bin/bash
+#(c) Copyright Barry Kauler, Nov. 2016, barryk.org. Licence GPL3 (ref: /usr/share/doc/legal)
+#vout selection, called from simplevp. chosen player is passed in.
+#requires bash, as uses "!" operator for indirection.
+
+PLAYER="$1" #at startup will be $CLI_PLAYER, via combobox will be $NEW_CLI. ex: VLC
+VOUT="$2"   #at startup will be $DEF_VOUT, via combobox will be $NEW_VOUT. ex: SDL
+
+BOOT_BOARD='pc'
+[ -f /etc/rc.d/BOOTCONSTRAINED ] && . /etc/rc.d/BOOTCONSTRAINED #has BOOT_BOARD, values "raspi", "odroidx"
+. /var/local/simplevp/settings #has CLI_PLAYER, CHOICES_VOUT*, VIDEO_OUT*, VIDEO_SIZE*
+
+PTR="VIDEO_SIZE_${BOOT_BOARD}_${PLAYER}_${VOUT}" #ex: CHOICES_VSIZE_raspi_VLC_OpenMAX
+DEF_VSIZE="${!PTR}"
+if [ ! "$DEF_VSIZE" ];then
+ PTR="VIDEO_SIZE_${BOOT_BOARD}_${PLAYER}" #ex: CHOICES_VSIZE_raspi_VLC
+ DEF_VSIZE="${!PTR}"
+fi
+PTR="CHOICES_VSIZE_${BOOT_BOARD}_${PLAYER}_${VOUT}"
+CHOICES="${!PTR}"
+if [ ! "$xCHOICES" ];then
+ PTR="CHOICES_VSIZE_${BOOT_BOARD}_${PLAYER}"
+ CHOICES="${!PTR}"
+fi
+#although comboboxtext tag allows <default> tag, does not work when dynamic refresh,
+#so order list with $DEF_VSIZE first...
+ITEMS="$(echo -n "$CHOICES" | tr ' ' '\n' | grep -v "^${DEF_VSIZE}$")"
+echo "${DEF_VSIZE}
+${ITEMS}" > /tmp/simplevp/vsize_items
+echo -n "$DEF_VSIZE" > /tmp/simplevp/def_vsize
+
+###END###

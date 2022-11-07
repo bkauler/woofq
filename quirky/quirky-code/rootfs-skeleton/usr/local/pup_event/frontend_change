@@ -1,0 +1,232 @@
+#!/bin/ash
+#(c) Copyright 2013 Barry Kauler, bkhome.org
+#2013 Licence GPL3 (/usr/share/doc/legal)
+#called from /usr/local/pup_event/pup_event_frontend_d
+#a change detected in block devices, parameters are passed in
+#ex1: add:sdc  ex2: rem:sdc (pre-2018, pup_event_frontend_d sent the partitions also, ex: add:sdc add:sdc1 add:sdc2)
+#ex3: cha:sr0  ...does not distinguish between optical insert or remove. also, get two of these msgs when insert a disc (this script gets called twice), three when remove.
+#130609 first version.
+#130610 bug fixes. fix for 'floppy' and 'optical' probing.
+#130614 rewrote most of script.
+#130722 update drive icons (after running gparted, bootflash, puppyinstaller).
+#130729 kernel detects plugin external optical driver, but unfortunately not when insert media.
+#130807 L18L: gettext declaration moved to frontend_funcs.
+#150324 guess_fstype fails sometimes, use blkid.
+#170310 support exfat. note, guessfs_type and blkid are busybox applets, do support exfat.
+#180220 general overhaul of pup_event.
+#180408 support nvme drives.
+
+#130614 the uevents can be complicated. this is what comes in here when I plugin my optus 3g usb stick:
+#add:sdb add:sr1 cha:sdb cha:sr1
+#cha:sdb
+#and when I unplug it:
+#rem:sr1 rem:sdb
+#180220 vodafone usb stick, 
+#insert: add:sr1\ncha:sr1  remove: cha:sr1\nrem:sr1
+
+#some scripts, ex gparted_shell, do this:
+# echo 'change' > /sys/block/${THEDRIVE}/uevent
+#and /usr/local/pup_event/pup_event_d binary daemon reads the uevent and calls frontend_change, with passed param "cha:${THEDRIVE}". ex: cha:sdb
+
+OLDLANG=$LANG
+export LANG=C
+
+. /etc/rc.d/PUPSTATE #ATADRIVES is all ide/pata/sata drives (not usb, not optical).
+. /etc/eventmanager #has RAMSAVEINTERVAL, ICONDESK, HOTPLUGNOISY, ICONPARTITIONS, BACKENDON, POWERTIMEOUT
+. /etc/rc.d/functions4puppy4
+. /usr/local/pup_event/frontend_funcs
+
+PARAMS="$@"
+
+#180220 i think, remove existing desktop drive icons...
+for aPARAM in $PARAMS
+do
+ DRV_NAME="${aPARAM/*:/}"
+ if [ -e /root/.pup_event/drive_${DRV_NAME} ];then
+  remove_pinboard_func #needs DRV_NAME
+  rm -rf /root/.pup_event/drive_${DRV_NAME}* 2>/dev/null
+ fi
+done
+
+SCRN_X="`cat /tmp/pup_event_frontend_scrn_x`" #written by frontend_startup.
+SCRN_Y="`cat /tmp/pup_event_frontend_scrn_y`" #  "
+
+DRV_NAMES="$(echo -n "$PARAMS" | tr ' ' '\n' | cut -f 2 -d ':' | grep -E '^[hs]d[a-z]$|^mmcblk[0-9]$|^sr|^fd|^nvme[0-9]n[1-9]$' | sort -u)" #dump partitions. 130614 180408
+[ ! "$DRV_NAMES" ] && continue #paranoid precaution.
+
+#180220 event now only has drive-name, no partitions. so, reconstitute:
+for aDN in $DRV_NAMES
+do
+ [ "$aDN" == "" ] && continue #paranoid precaution
+ #probably don't need this. probepart has this, as /proc/partitions was slow to update
+ busybox dd if=/dev/${aDN} of=/dev/null bs=512 count=1 >/dev/null 2>&1
+done
+#this is from /sbin/probepart...
+#[^k] is to eliminate mmcblk0 device -- allow mmcblk0p1 etc. eliminate ram...
+#[^kr] screens out sr0-sr9. early kernels do not have these in /proc/partitions, 3.2+ do, which causes desktop icon to not appear when audio-cd inserted.
+#screen out zram[0-9], "[^krm][0-9]$" (will also filter out sdm)...
+#180408 nvme0n1p3 filter out the drive "nvme0n1", insert "n"...
+PARTITIONS="$(busybox grep '^ .*[^krmn][0-9]$' /proc/partitions | tr -s ' ' | cut -f 4-5 -d ' ' | busybox grep -vE ' loop| ram')" #each line ex: 16076800 sda5
+PARTNAMES="$(echo "$PARTITIONS" | cut -f 2 -d ' ')"
+xALLDEVS="${PARTNAMES}
+${DRV_NAMES}"
+ALL_DEVSS="$(echo "$xALLDEVS" | sort -V -u | tr '\n' ' ' | tr -s ' ' | tr ' ' '\n')"
+
+for DRV_NAME in $DRV_NAMES #precaution, uevents might have more than one drive mixed in.
+do
+ ALL_DEVS="$(echo -n "$ALL_DEVSS" | grep "$DRV_NAME" | tr '\n' ' ')"
+ 
+ case $DRV_NAME in
+  sr*)
+   #special case...
+   ACTION='remove'
+   #130729 external USB optical drive needs more time. 6 worked, but make it 7...
+   for ATIME in 1 2 3 4 5 6 7 #my optus stick takes awhile.
+   do
+    sleep 1
+    cddetect_quick -d/dev/${DRV_NAME} >/dev/null 2>&1 #very fast.
+    if [ $? -eq 0 ];then
+     ACTION='add'
+     break
+    fi
+   done
+  ;;
+  hd*) #old kernel.
+   ACTION='remove'
+   if [ "`cat /proc/ide/${DRV_NAME}/media`" = "cdrom" ];then #MEDIATYPE="optical"
+    for ATIME in 1 2 3 4 5
+    do
+     sleep 1
+     cddetect_quick -d/dev/${DRV_NAME} >/dev/null 2>&1 #very fast.
+     if [ $? -eq 0 ];then
+      ACTION='add'
+      break
+     fi
+    done
+   else
+    [ -e /sys/block/${DRV_NAME} ] && ACTION='add'
+   fi
+  ;;
+  sd*|mmc*|nvme*) #180408
+   if [ -e /sys/block/${DRV_NAME} ];then
+    ACTION='add'
+   else
+    ACTION='remove'
+   fi
+  ;;
+  *)
+   continue #precaution.
+  ;;
+ esac
+ 
+ ALL_CNT=`echo -n "$ALL_DEVS" | wc -w` #=1 then no partitions.
+ if [ $ALL_CNT -eq 1 ];then #precaution
+  [ "$(echo -n "$ALL_DEVS" | grep -v -E '^[hs]d[a-z]$|^mmcblk[0-9]$|^sr|^fd|^nvme[0-9]n[1-9]$')" != "" ] && ALL_CNT=99 #any non-0 number. 180408
+ fi
+ 
+ #code extracted from /sbin/probepart...
+ xPROBEPART=""
+ for DEVICE in $ALL_DEVS
+ do
+  SIZE=0
+  if [ $ALL_CNT -eq 1 ];then #no partitions...
+   if [ "$ACTION" = "add" ];then
+    FSTYPE="`guess_fstype /dev/$DEVICE 2>/dev/null`" #note, audio-cd returns "unknown", as no f.s.
+    [ "$FSTYPE" = "unknown" ] && FSTYPE="none"
+    SIZE=`cat /sys/block/${DEVICE}/size`
+    SIZE=$(($SIZE/2)) #get KB.
+    xPROBEPART="/dev/${DEVICE}|${FSTYPE}|${SIZE} "
+   fi
+  else
+   [ "$DEVICE" = "$DRV_NAME" ] && continue #ignore drive, ex: sdc, only want partitions.
+   if [ "$ACTION" = "add" ];then
+    #FSTYPE="`guess_fstype /dev/$DEVICE 2>/dev/null`" #130128 note, audio-cd returns "unknown", as no f.s.
+    FSTYPE="$(blkid /dev/$DEVICE 2>/dev/null | grep -o 'TYPE=.*' | cut -f 2 -d '"')" #150324 guess_fstype fails sometimes.
+    [ "$FSTYPE" = "unknown" ] && FSTYPE="none"
+    SIZE=`cat /sys/block/${DRV_NAME}/${DEVICE}/size`
+    SIZE=$(($SIZE/2)) #get KB.
+    xPROBEPART="${xPROBEPART}/dev/${DEVICE}|${FSTYPE}|${SIZE} "
+   fi
+  fi
+ done
+ PROBEPART="`echo -n "$xPROBEPART" | tr ' ' '\n' | grep -E 'exfat|ext2|ext3|ext4|f2fs|ntfs|msdos|vfat|reiser|iso9660|udf|audiocd|xfs'`" #130610 screen out unwanted filesystems. 170310 exfat.
+ 
+ #also find PROBEDISK, extract code from /sbin/probedisk...
+ PROBEDISK=''
+ if [ "$ACTION" = "add" ];then
+  ONEDRV="$DRV_NAME"
+  case $ONEDRV in
+   hd*) # ide device, look in /proc/ide for info
+    MEDIA="`cat /proc/ide/$ONEDRV/media`"
+    [ "$MEDIA" = "disk" ] && MEDIA="drive"
+    [ "$MEDIA" = "cdrom" ] && MEDIA="optical"
+    INFO="`cat /proc/ide/$ONEDRV/model`"
+   ;;
+   sd*|nvme*) # scsi devices, look in /sys/block (all appear as Direct-Access) 180408 nvme ***might need to be fixed***
+    MEDIA="drive"
+    VENDOR="`cat /sys/block/$ONEDRV/device/vendor | tr -s ' '`"
+    MODEL="`cat /sys/block/$ONEDRV/device/model | tr -s ' '`"
+    INFO="$VENDOR$MODEL"
+    DRVNAMES="$DRVNAMES `echo -n "$ONEDRV" | cut -b 1-3` "
+    #is it a usb drive (not a ata drive)...
+    if [ "`echo "$ATADRIVES" | grep "$ONEDRV"`" = "" ];then
+     MEDIA="usbdrv"
+     #find out if a usb floppy drive...
+     if [ -e /sys/block/${ONEDRV}/size ];then
+      [ "`cat /sys/block/${ONEDRV}/size`" = "2880" ] && MEDIA="floppy"
+     fi
+     #if the floppy diskette not inserted, try this fallback test...
+     #some examples: Vendor: NEC Model: USB UF000x Rev: 1.50, Sony USB Floppy Drive, rev 1.10/5.01,
+     # MITUMI USB FDD, VenDor: TEAC Model: FD-05PUB, Vendor: COMPAQ Model: USB EXT FLOPPY
+     if [ -e /sys/block/${ONEDRV}/device/model ];then
+      [ "`grep -E ' FDD| UF000x|Floppy|USB\-FDU|^FD\-|FLOPPY' /sys/block/${ONEDRV}/device/model`" != "" ] && MEDIA="floppy"
+     fi
+    else
+     #find out if it is a removable internal drive (zip, ls120, etc)...
+     if [ -e /sys/block/${ONEDRV}/removable ];then
+      [ "`cat /sys/block/${ONEDRV}/removable`" = "1" ] && MEDIA="floppy"
+     fi
+    fi
+   ;;
+   scd*|sr*) #  scsi cdroms
+    MEDIA="optical"
+    VENDOR="`cat /sys/block/$ONEDRV/device/vendor | tr -s ' '`"
+    MODEL="`cat /sys/block/$ONEDRV/device/model | tr -s ' '`"
+    INFO="$VENDOR$MODEL"
+   ;;
+   mmc*) #/dev/mmcblk0
+    MEDIA="card"
+    INFO="MMC/SD: `cat /sys/block/$ONEDRV/device/name`"
+   ;;
+   *)
+    continue
+   ;;
+  esac
+  PROBEDISK="/dev/$ONEDRV|$MEDIA|$INFO"
+ fi
+ 
+ #create or remove desktop drive icons...
+ DEVPATH=/block/$DRV_NAME
+ case $ACTION in
+  add)
+   [ "$MEDIA" = "floppy" ] && [ "`grep "$DRV_NAME" /tmp/pup_event_drvs_floppy`" != "" ] && sed -i -e "/${DRV_NAME}/d" /tmp/pup_event_drvs_floppy
+   DRV_CATEGORY="$MEDIA"
+   DRV_DESCRIPTION="$INFO"
+   #'startup' param just prevents func from running 'probepart'...
+   [ "$ICONDESK" = "true" ] && create_icon_func startup #uses DRV_NAME, DRV_CATEGORY, DRV_DESCRIPTION
+   [ "$HOTPLUGNOISY" = "true" ] && /root/.pup_event/drive_${DRV_NAME}/AppRun ${DRV_CATEGORY} & #handler script.
+  ;;
+  remove)
+   if [ "`pidof gtkdialog_pmount`" != "" ];then #if pmount running, refresh it.
+    killall gtkdialog_pmount 2>/dev/null
+    sleep 0.1
+    LANG=$OLDLANG pmount & #100613 fix from shinobar.
+   fi
+   remove_pinboard_func #needs DRV_NAME
+   rm -rf /root/.pup_event/drive_${DRV_NAME}* 2>/dev/null
+  ;;
+ esac
+ 
+done
+
+###END###

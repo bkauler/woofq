@@ -1,0 +1,44 @@
+[general]
+#3buildistro script in Woof separates out the sections into separate early-boot translations.
+#for example the [init] section becomes file /locales/de/init in the initrd, and 
+#the target file (that gets translated at bootup) is /init (the init script translates
+#itself at startup, and knows where the translation files are located).
+#Please type translation only between the last two % characters. For example: s%"done"%"fertig"%
+#Keep all formatting exactly the same, that is retain all " ' < > / \ characters.
+# -- do not replace the " and ' with left-side or right-side quote characters.
+#Keep all variables as-is, exs: ${DROPOUT} $DROPOUT -- do not translate!
+#140119 [init] category removed, no longer any initrd.
+
+[boot.msg]
+#3builddistro (in Woof) reads this section and translates the first bootup splash screen,
+#if a non-English build of Puppy. This will be file 'boot.msg' in the live-CD.
+s%Just wait 5 seconds for normal startup!%%
+s%For basic help press the <F2> key, for advanced help press <F3> key.%%
+
+[help.msg]
+#3builddistro (in Woof) reads this section and translates the first bootup help screen,
+#if a non-English build of Puppy. This will be file 'help.msg' in the live-CD.
+#Note: be careful that all translations no more than 67 chars to fit nicely in splash screen.
+s%Press <F3> key to go to advanced help%%
+#LINE: For boot options, type puppy then a space, then each option. Some options:
+s%For boot options, type%%
+s%then a space, then each option. Some options:%%
+s%Default on for PCs >2001, may give boot/shutdown probs.%%
+s%Run totally in RAM ignore saved sessions,%%
+s%number of saved sessions to ignore (multisession-CD),%%
+s%commandline only, do not start X (graphical desktop),%%
+s%copy .sfs files to RAM (slower boot, faster running),%%
+s%do not copy .sfs files to RAM (faster boot, slower running),%%
+#LINE: do filesystem check on <save-file> (and host partition)
+s%do filesystem check on%%
+s%(and host partition)%%
+s%file cleanup (simulate version upgrade),%%
+s%Locale -- not normally required as asked after bootup.%%
+s%Keyboard layout, choices:%%
+s%Ignore ACPI, French keyboard layout.%%
+s%Run in RAM, do not start X.%%
+s%DESKTOP FAIL: Black-screen/hangs, press reset or hold power-button down 4 secs:%%
+s%next bootup will force run of Video Wizard: choose alternate driver/settings.%%
+#LINE: next startup type boot param "puppy pfix=nox" to enable run of Video Wizard.
+s%next startup type boot param%%
+s%to enable run of Video Wizard.%%

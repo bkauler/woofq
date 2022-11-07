@@ -1,0 +1,382 @@
+#!/bin/sh
+#(c) Copyright Barry Kauler, Dec. 28, 2013. bkhome.org
+#from the quirky-*.usfs.xz files, create service packs, for upgrading existing quirky installation.
+#140103 make sure 2nd-partition f.s. set correctly. fix for "p" in mmcklb0p1.
+#140106 fix sort.
+#140107 cmptree: detect changed symlinks.
+#140120 work in new quirky build system.
+#140203 fix a path.
+#140203 hack, as 6.0_TO_6.0.1 service pack did not delete /home
+#140204 delete subdirs in /usr/share/backgrounds
+#140216 please wait msg in pinstall.sh
+#141026 change format service_pack-${VER1}_TO_${VER2}-${DISTRO_FILE_PREFIX}.pet to service_pack-${VER1}_TO_${VER2}-[${OLD_FILE_PREFIX}_TO_]${DISTRO_FILE_PREFIX}.pet
+#       in other words, optional extra field when upgrade from, say, tahr to unicorn.
+#150302 new console keymap file. refer: quicksetup
+#151115 handle live-CD. hack for now.
+#151116 handle frugal installation.
+#151117 guess_fstype broken, reported 'unknown' for 'vfat' partition. (see also snapshot-manager)
+#151213 no longer hardcode DEV1FS. see also /sbin/initNEW, /etc/rc.d/rc.sysinit, /usr/local/install_quirky/install-quirky-to-*
+#161123 sd-card build (ex: raspberry pi), need to update 1st partition also. ref: 3builddistro.
+#161124 need puninstall.sh for sd-card builds. 161125 preserve 'config.txt'. 161126
+#161127 cmptree: mntpt2 "does not exist" needs careful checking before deleting.
+#161128 /var/cache/ldconfig/aux-cache was in SP 8.1.2-to-8.1.3 Pi2, can break an install.
+#161128 delete empty folders.
+
+[ ! -f DISTRO_SPECS ] && exit
+. ./DISTRO_SPECS
+
+[ ! -d rootfs-skeleton ] && exit
+#running in quirky build system.
+if [ -d sandbox3 ];then
+ cd sandbox3
+ mkdir -p mntpt1
+ mkdir -p mntpt2
+else
+ echo
+ echo "You need to run 3builddistro first, to build sandbox3/*.usfs.xz"
+ exit
+fi
+
+#true version-number sort...
+FLG=1
+#QLIST="$(ls -1 ${DISTRO_FILE_PREFIX}-*.usfs.xz | tr '\n' ' ')"
+QLIST="$(ls -1 ${DISTRO_FILE_PREFIX}-*.usfs.xz | sort --version-sort --key=3 --field-separator='_' | tr '\n' ' ')"
+echo -n "$QLIST" > /tmp/audit-qlist
+
+#141026 find out if any earlier-series builds to upgrade...
+OLDLIST="$(ls -1 *.usfs.xz | grep -v "${DISTRO_FILE_PREFIX}-" | sort --version-sort --key=3 --field-separator='_' | tr '\n' ' ')"
+echo -n "$OLDLIST" >> /tmp/audit-qlist
+
+
+for AQ in `cat /tmp/audit-qlist`
+do
+ VER1="$(echo -n "$AQ" | cut -f 2 -d '-' |  rev | cut -f 3- -d '.' | rev)"
+ PREFIX1="$(echo -n "$AQ" | cut -f 1 -d '-')" #141026
+ for NEXTQ in `cat /tmp/audit-qlist`
+ do
+  [ "$NEXTQ" = "$AQ" ] && continue
+  VER2="$(echo -n "$NEXTQ" | cut -f 2 -d '-' |  rev | cut -f 3- -d '.' | rev)"
+  PREFIX2="$(echo -n "$NEXTQ" | cut -f 1 -d '-')" #141026
+  if vercmp $VER2 le $VER1;then continue; fi
+  if [ "$PREFIX1" != "$PREFIX2" ];then #141026
+    [ -f service_pack-${VER1}_TO_${VER2}-${PREFIX1}_TO_${PREFIX2}.pet ] && continue
+    echo
+    echo "Do you want to create service_pack-${VER1}_TO_${VER2}-${PREFIX1}_TO_${PREFIX2}.pet?"
+    echo -n "ENTER only for yes: "
+    read yeswant
+  else
+    [ -f service_pack-${VER1}_TO_${VER2}-${PREFIX1}.pet ] && continue #${DISTRO_FILE_PREFIX}
+    echo
+    echo "Do you want to create service_pack-${VER1}_TO_${VER2}-${PREFIX2}.pet?"
+    echo -n "ENTER only for yes: "
+    read yeswant
+  fi
+  [ "$yeswant" != "" ] && continue
+  #if [ ! -f service_pack-${VER1}_TO_${VER2}-${DISTRO_FILE_PREFIX}.pet ];then
+   BASEAQ="`basename $AQ .xz`"
+   if [ ! -f $BASEAQ ];then
+    echo "Uncompressing ${AQ}..."
+    xz --decompress --stdout ${AQ} > ${BASEAQ}
+    sync
+   fi
+   BASENEXTQ="`basename $NEXTQ .xz`"
+   if [ ! -f $BASENEXTQ ];then
+    echo "Uncompressing ${NEXTQ}..."
+    xz --decompress --stdout ${NEXTQ} > ${BASENEXTQ}
+    sync
+   fi
+   busybox mount -t squashfs -o loop,ro ${BASEAQ} mntpt1
+   busybox mount -t squashfs -o loop,ro ${BASENEXTQ} mntpt2
+
+   echo "Running 'cmptree' utility..."
+   cmptree mntpt1 mntpt2 > /tmp/csp-cmptree
+   sync
+   
+   if [ "$PREFIX1" != "$PREFIX2" ];then #141026
+    rm -rf service_pack-${VER1}_TO_${VER2}-${PREFIX1}_TO_${PREFIX2} 2>/dev/null
+    mkdir service_pack-${VER1}_TO_${VER2}-${PREFIX1}_TO_${PREFIX2}
+    REALDIR="service_pack-${VER1}_TO_${VER2}-${PREFIX1}_TO_${PREFIX2}"
+   else
+    rm -rf service_pack-${VER1}_TO_${VER2}-${PREFIX1} 2>/dev/null
+    mkdir service_pack-${VER1}_TO_${VER2}-${PREFIX1}
+    REALDIR="service_pack-${VER1}_TO_${VER2}-${PREFIX1}"
+   fi
+   
+   #files to be deleted...
+   grep '^mntpt2/.*does not exist.$' /tmp/csp-cmptree > /tmp/csp-removed-files
+   #changed files...
+   grep ' different from ' /tmp/csp-cmptree > /tmp/csp-changed-files
+   #140107 symlinks have changed...
+   grep 'different link targets ' /tmp/csp-cmptree > /tmp/csp-relinked-files
+   #new files...
+   grep '^mntpt1/.*does not exist.$' /tmp/csp-cmptree > /tmp/csp-new-files
+   
+   #changed and new files...
+   echo "Installing changed and new dirs/files from mntpt2..."
+   echo -n '' > /tmp/csp-install-err-log
+   #i don't think will try to fix hyperlinks, as they get fixed when pet installed...
+   sed -e 's%^mntpt2%%' -e 's%^mntpt1%%' /tmp/csp-changed-files /tmp/csp-new-files | cut -f 1 -d ' ' |
+   while read ACHG
+   do
+    APATH="$(dirname "$ACHG")"
+    mkdir -p ${REALDIR}"$APATH" #141026
+    cp -a -f --remove-destination mntpt2"${ACHG}" ${REALDIR}"${APATH}"/ 2>> /tmp/csp-install-err-log #141026
+   done
+   sync
+   #140107 symlinks changed...
+   sed -e 's% mntpt2/% /%' -e 's% mntpt1/% /%' /tmp/csp-relinked-files | cut -f 4 -d ' ' |
+   while read ACHG
+   do
+    APATH="$(dirname "$ACHG")"
+    mkdir -p ${REALDIR}"$APATH" #141026
+    cp -a -f --remove-destination mntpt2"${ACHG}" ${REALDIR}"${APATH}"/ 2>> /tmp/csp-install-err-log #141026
+   done
+   sync
+
+   #delete files, put into pinstall.sh... 141026...
+   echo "Creating the pinstall.sh script..."
+   echo '#!/bin/ash' > ${REALDIR}/pinstall.sh
+   echo "#post-install script, upgrading Quirky from ${VER1} to ${VER2}." >> ${REALDIR}/pinstall.sh
+   echo "yaf-splash -bg orange -fg black -close never -fontsize large -text \"Running post-install script, please wait...\" &" >> ${REALDIR}/pinstall.sh
+   echo 'YPID=$!' >> ${REALDIR}/pinstall.sh
+   echo '' >> ${REALDIR}/pinstall.sh
+   
+   #151115
+   cat << 'EX0' >> ${REALDIR}/pinstall.sh
+. /etc/rc.d/PUPSTATE #want PDEV1
+[ -f /etc/rc.d/install.log ] && . /etc/rc.d/install.log #has INSTALLED_MODE
+KEEPOLDKERNEL=0
+if [ "$INSTALLED_MODE" == "livecd" ];then
+ #note, if file /boot/initrd-tree/BOOT_SPECS exists, then there is a session saved to hard-drive.
+ #whatever, the live-cd is difficult to upgrade if the kernel has changed, or anything in the initrd.
+ #for now, just a hack, keep using old kernel...
+ KEEPOLDKERNEL=1
+ HACKMOD="$(find /lib/modules -mindepth 1 -maxdepth 1 -type d -name '4.*' | head -n 1)"
+ cp -a -f ${HACKMOD} ${HACKMOD}old
+fi
+EX0
+
+   echo '' >> ${REALDIR}/pinstall.sh
+   
+   echo "#These directories and files were in ${VER1}, not in ${VER2}..." >> ${REALDIR}/pinstall.sh
+   echo "#Note: /usr/local/petget/installpkg.sh creates an alias for 'rm' to /usr/local/petget/rm.sh"  >> ${REALDIR}/pinstall.sh
+   #NOTE, only deletes files...
+   sed -e 's%^mntpt2%%' /tmp/csp-removed-files | cut -f 1 -d ' ' |
+   while read ADEL
+   do
+    [ "$ADEL" == "" ] && continue #precaution
+    if [ -d "mntpt1${ADEL}" ];then    #140203 fix path.
+     #161127 do not just delete folder, do more checking...
+     #find mntpt1${ADEL} -mindepth 1 | sed -e 's%^mntpt1%%' |
+     while read ONE_DEL
+     do
+      [ ! -d mntpt1"$ONE_DEL" ] && echo "rm -f \"${ONE_DEL}\""  >> ${REALDIR}/pinstall.sh
+     done<<_END1
+$(find mntpt1${ADEL} -mindepth 1 | sed -e 's%^mntpt1%%')
+_END1
+    else
+     echo "rm -f \"${ADEL}\""  >> ${REALDIR}/pinstall.sh
+    fi
+    #161128 remove empty folders... worried about doing this...
+    if [ -d mntpt1"$ADEL" ];then
+     #need the full 'find'...
+     echo "find \"$ADEL\" -mindepth 1 -type d -empty -delete" >> ${REALDIR}/pinstall.sh
+    fi
+   done
+   
+   #140203 hack, as 6.0_TO_6.0.1 service pack did not delete /home...
+   echo '[ -d /home ] && rm -rf /home' >> ${REALDIR}/pinstall.sh
+   
+   cat << 'EX1' >> ${REALDIR}/pinstall.sh
+
+#got this code from snapshot-manager... 140103 fix for "p"...
+PRE=""
+ #update vmlinuz and logo.16 in 1st partition, if full-drive installation...
+ FLAGP1=0
+ PPARTNUM="$(echo -n "$PDEV1" | grep -o -E '[a-z][0-9]$|[a-z][0-9][0-9]$' | cut -c 2-)" #ex: 2
+ PDRIVE="$(echo -n "$PDEV1" | sed -e "s%${PPARTNUM}$%%" -e 's%p$%%')" #ex: sdb
+ P=''
+ [ "$(echo -n "$PDEV1" | grep '[0-9]p[0-9]')" != "" ] && P='p' #ex: mmcblk0p1
+ if [ "$PPARTNUM" = "2" ];then
+  #PART1FS="$(guess_fstype /dev/${PDRIVE}${P}1)"
+  PART1FS="$(busybox blkid /dev/${PDRIVE}${P}1 | grep -o ' TYPE=.*' | cut -f 2 -d '"')" #151117
+  if [ "$PART1FS" = "vfat" ];then
+   P1MNTPT="$(busybox mount | grep "^/dev/${PDRIVE}${P}1 " | tr -s ' ' | cut -f 3 -d ' ')"
+   if [ ! "$P1MNTPT" ];then
+    mkdir -p /mnt/${PDRIVE}${P}1
+    busybox mount -t ${PART1FS} /dev/${PDRIVE}${P}1 /mnt/${PDRIVE}${P}1
+    if [ $? -eq 0 ];then
+     P1MNTPT="/mnt/${PDRIVE}${P}1"
+     FLAGP1=1
+    fi
+   fi
+   if [ "$P1MNTPT" ];then
+    if [ -f ${P1MNTPT}/logo.16 ];then
+     echo "Copying logo.16 and vmlinuz into first partition..."
+     cp -a -f ${PRE}/boot/syslinux/logo.16 ${P1MNTPT}/
+     cp -a -f ${PRE}/boot/syslinux/help.msg ${P1MNTPT}/
+     cp -a -f ${PRE}/boot/vmlinuz ${P1MNTPT}/
+     sync
+    fi
+    #161123 sd-card update, ex raspberry-pi...
+    if [ -d ${PRE}/boot/part1 ];then #see 3builddistro
+     echo "Copying ${PRE}/boot/part1/* into first partition /dev/${PDRIVE}${P}1 ..."
+     [ -f ${P1MNTPT}/config.txt ] && mv -f ${P1MNTPT}/config.txt /tmp/sp-config.txt-part1 #161125
+     cp -a -f ${PRE}/boot/part1/* ${P1MNTPT}/
+     [ -f /tmp/sp-config.txt-part1 ] && mv -f /tmp/sp-config.txt-part1 ${P1MNTPT}/config.txt #161125
+     sync
+     #rm -rf /boot/part1
+     #sync
+    fi
+    [ $FLAGP1 -eq 1 ] && busybox umount ${P1MNTPT}
+   fi
+  fi
+ fi
+EX1
+
+   #151115
+   cat << 'EX3' >> ${REALDIR}/pinstall.sh
+
+if [ $KEEPOLDKERNEL -eq 1 ];then
+ mkdir -p ${HACKMOD}
+ cp -a -u ${HACKMOD}old/* ${HACKMOD}/
+ sync
+ rm -rf ${HACKMOD}old
+fi
+EX3
+
+   #151116 frugal
+   cat << 'EX4' >> ${REALDIR}/pinstall.sh
+
+#proper handling of frugal installation...
+if [ "$INSTALLED_MODE" == "frugal" ];then
+ if [ -f /boot/initrd-tree/BOOT_SPECS ];then #must exist.
+  FLAGX=0; BOOTMNTPT=''
+  . /boot/initrd-tree/BOOT_SPECS #BOOT_DEV, BOOT_FS, BOOT_FOLDER
+  BOOTMNTPT="$(busybox mount | grep "^/dev/${BOOT_DEV} " | tr -s ' ' | cut -f 3 -d ' ')"
+  if [ ! "$BOOTMNTPT" ];then
+   mkdir -p /mnt/${BOOT_DEV}
+   busybox mount -t ${BOOT_FS} /dev/${BOOT_DEV} /mnt/${BOOT_DEV}
+   if [ $? -eq 0 ];then
+    BOOTMNTPT="/mnt/${BOOT_DEV}"
+    FLAGX=1
+   fi
+  fi
+  if [ "$BOOTMNTPT" ];then
+   if [ -f ${BOOTMNTPT}/logo.16 ];then
+    echo "Copying logo.16 and vmlinuz into first partition..."
+    cp -a -f /boot/syslinux/logo.16 ${BOOTMNTPT}/
+    cp -a -f /boot/syslinux/help.msg ${BOOTMNTPT}/
+    cp -a -f /boot/vmlinuz ${BOOTMNTPT}/
+    sync
+   fi
+   [ $FLAGX -eq 1 ] && busybox umount ${BOOTMNTPT}
+  fi
+ fi
+fi
+EX4
+   
+   #140103 check that the partition-2 f.s. is correct... 151213 no longer required...
+#   cat << 'EX2' >> ${REALDIR}/pinstall.sh
+#
+#if [ "$INSTALLED_MODE" != "frugal" -a "$INSTALLED_MODE" != "livecd" ];then #151116
+# #make sure f.s. set correctly... note, default in case guess_fstype unable detect f2fs...
+# PART2FS="$(guess_fstype /dev/${PDEV1} | sed -e 's%unknown%f2fs%')"
+# tPTN1="s%.*MARK_DEV1FS_LINE.*% DEV1FS='${PART2FS}' #MARK_DEV1FS_LINE%"
+# tPTN2="s%DEV1FS='f2fs'.*%DEV1FS='${PART2FS}' #MARK_DEV1FS_LINE%"
+# sed -i -e "$tPTN1" ${PRE}/sbin/init
+# sed -i -e "$tPTN2" ${PRE}/etc/rc.d/rc.sysinit
+#fi
+#EX2
+   
+   #remove this file, if there...
+   echo "[ -f /audit/${PREFIX1}-6.0.1.usfs ] && rm -f /audit/${PREFIX1}-6.0.1.usfs" >> ${REALDIR}/pinstall.sh
+   
+   #140204 delete subdirs in /usr/share/backgrounds...
+   #this ensures that background_reshape returns exitcode=11 in /root/.xinitrc
+   #otherwise, /root/Choices/ROX-Filer may have original unshaped wallpaper in it.
+   echo 'find /usr/share/backgrounds -mindepth 1 -maxdepth 1 -type d | xargs rm -rf' >> ${REALDIR}/pinstall.sh
+   
+   #150302 new console keymap file... refer: quicksetup
+   if [ "$(grep 'lib/keymaps/' /tmp/csp-removed-files /tmp/csp-new-files)" != "" ];then
+    echo 'rm -f /var/local/quickset-keyboard-list' >> ${REALDIR}/pinstall.sh
+   fi
+   
+   echo '
+pupkill $YPID' >> ${REALDIR}/pinstall.sh
+   echo "pupmessage -bg '#80FF80' -title \"Service Pack installed\" \"Quirky has been updated from version ${VER1} to ${VER2}.
+
+Note: To see what files have been installed by this Service Pack, look at the contents of file /root/.packages/${REALDIR}.files
+To see what files have been removed or overwritten, look at /audit/deposed/${REALDIR}DEPOSED.sfs
+
+It is essential that you reboot now, for changes to take effect. Please reboot now, do not keep using Quirky (after clicking the 'OK' button, wait a few minutes though, for the upgrade to fully complete).\"" >> ${REALDIR}/pinstall.sh #140216
+   chmod 755 ${REALDIR}/pinstall.sh
+   
+   #161124 need puninstall.sh in case of sd-card image...
+   cat << 'EX9' >> ${REALDIR}/puninstall.sh
+#!/bin/ash
+#previous /boot/part1 has been restored, must copy it to 1st partition...
+. /etc/rc.d/PUPSTATE #want PDEV1
+. /etc/DISTRO_SPECS  #want version have rolled-back to.
+[ ! -d /boot/part1 ] && exit 0
+yaf-splash -bg orange -fg black -close never -fontsize large -text "Rolling back kernel and firmware in first partition, please wait..." &
+YPID=$!
+PRE=""
+ FLAGP1=0
+ PPARTNUM="$(echo -n "$PDEV1" | grep -o -E '[a-z][0-9]$|[a-z][0-9][0-9]$' | cut -c 2-)" #ex: 2
+ PDRIVE="$(echo -n "$PDEV1" | sed -e "s%${PPARTNUM}$%%" -e 's%p$%%')" #ex: sdb
+ P=''
+ [ "$(echo -n "$PDEV1" | grep '[0-9]p[0-9]')" != "" ] && P='p' #ex: mmcblk0p1
+ if [ "$PPARTNUM" = "2" ];then
+  #PART1FS="$(guess_fstype /dev/${PDRIVE}${P}1)"
+  PART1FS="$(busybox blkid /dev/${PDRIVE}${P}1 | grep -o ' TYPE=.*' | cut -f 2 -d '"')" #151117
+  if [ "$PART1FS" = "vfat" ];then
+   P1MNTPT="$(busybox mount | grep "^/dev/${PDRIVE}${P}1 " | tr -s ' ' | cut -f 3 -d ' ')"
+   if [ ! "$P1MNTPT" ];then
+    mkdir -p /mnt/${PDRIVE}${P}1
+    busybox mount -t ${PART1FS} /dev/${PDRIVE}${P}1 /mnt/${PDRIVE}${P}1
+    if [ $? -eq 0 ];then
+     P1MNTPT="/mnt/${PDRIVE}${P}1"
+     FLAGP1=1
+    fi
+   fi
+   if [ "$P1MNTPT" ];then
+    echo "Copying ${PRE}/boot/part1/* into first partition /dev/${PDRIVE}${P}1 ..."
+    [ -f ${P1MNTPT}/config.txt ] && mv -f ${P1MNTPT}/config.txt /tmp/sp-config.txt-part1 #161125
+    cp -f ${PRE}/boot/part1/* ${P1MNTPT}/
+    [ -f /tmp/sp-config.txt-part1 ] && mv -f /tmp/sp-config.txt-part1 ${P1MNTPT}/config.txt #161125
+    sync
+    [ $FLAGP1 -eq 1 ] && busybox umount ${P1MNTPT}
+   fi
+  fi
+ fi
+pupkill $YPID
+pupmessage -bg "#80FF80" -title "Service Pack uninstalled" "Quirky has been rolled back to version ${DISTRO_VERSION}.
+
+It is essential that you reboot now, for changes to take effect. Please reboot now, do not keep using Quirky (after clicking the 'OK' button, wait a few minutes though, for the upgrade to fully complete)."
+EX9
+
+   chmod 755 ${REALDIR}/puninstall.sh
+   
+   #161128
+   [ -d ${REALDIR}/var/cache ] && rm -rf ${REALDIR}/var/cache
+
+   sync
+   umount mntpt1
+   umount mntpt2
+   echo "Directory ${REALDIR} fully populated."
+   
+   SIZEK="$(du -s -k ${REALDIR} | cut -f 1)"
+   REALEXT="$(echo -n "$REALDIR" | cut -f 2- -d '-')" #141026
+   echo "${REALDIR}|service_pack|${REALEXT}||Setup|${SIZEK}K||${REALDIR}.pet||upgrade Quirky from ${PREFIX1} ${VER1} to ${PREFIX2} ${VER2}|${DISTRO_BINARY_COMPAT}|${DISTRO_COMPAT_VERSION}||" > ${REALDIR}/pet.specs
+   
+   [ -f ${REALDIR}.pet ] && rm -f ${REALDIR}.pet
+   dir2tgz ${REALDIR}/
+   tgz2pet ${REALDIR}.tar.gz
+   sync
+   echo "PET ${REALDIR}.pet created."
+  #fi
+ done
+
+done
+

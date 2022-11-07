@@ -1,0 +1,148 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html><head>
+<meta http-equiv="content-type" content="text/html; charset=windows-1252">
+<title>app-dev-setup</title>
+<meta content="Barry Kauler" name="author">
+</head>
+<body>
+
+<table align="center" border="0" cellpadding="2" cellspacing="2" width="600">
+  <tbody>
+    <tr>
+      <td valign="top">
+        <h1>App development setup</h1>
+If you are interested in creating apps, Appril gives you a plethora of choices! <br>
+The traditional technique to create Android apps is to code in Java, and for this <b>Android Studio</b> is provided.<br>
+        <b>Qt Creator</b> is an alternative, where you can code in QML 
+and/or C++ to create Android or Linux apps (may also be extended to 
+other platforms).<br>
+Or, if you are a non-programmer, or just want to create Android apps the
+ easiest possible way, with minimal learning-curve, visual design 
+with <b>App Inventor</b> is the way to go.<br>
+Then there is <b>LiveCode</b>, with an easy GUI designer and simple scripting language, targeting multiple platforms (including Linux and Android).<br>
+        <br>
+Note that these tools are under various GPL licenses, and you need to 
+understand those if you want to create an app to sell. Yes, it is 
+allowed, including closed-source apps, however there are various 
+conditions.<br>
+        <h2><img alt="Android Studio logo" src="../pixmaps/astudio.png" height="48" align="middle" width="48">&nbsp;Android Studio</h2>
+Android Studio is a powerful tool for creating Android apps. It has a 
+GUI drag-and-drop user-interface designer, and supports real-time 
+evaluation of the app in an emulator or on an actual phone (via USB 
+cable).<br>
+<br>
+Android Studio requires the <b>Oracle Java Development Kit</b> (JDK) and the <b>Android SDK</b>.
+ Both of these are in Appril. However, at first startup, Android Studio 
+is not able to automatically locate them. Thus, it is highly recommended
+ to click on the "AStudio" icon on the desktop right now, before doing 
+anything else, and setup the paths.<br>
+<br>
+At first startup of Android Studio, you will see this window, just accept the default:<br>
+<img alt="startup1" src="astudio/startup1.png" height="192" width="622"><br>
+<br>
+        The next window is a menu, and navigate <i>Configure -&gt; Project Defaults -&gt; Project Structure</i>, and then you will see this:<br>
+<img alt="structure" src="astudio/structure.png" height="276" width="619"><br>
+<br>
+Manually enter the paths as shown. <font color="#ff0000"><b>PLEASE DO THIS NOW</b></font><br>
+<br>
+Navigating back through the menu, you will find the <i>SDK Manager</i>. There is no need to run this just now. It populates the Android SDK, which is located at /root/Android/Sdk.<br>
+The Android SDK is already populated with support for Android 4.0.3 
+(API-15) and with an armv7 emulator. This is fine as the lowest version 
+that you can design an app to run on -- which will cover 90% of the 
+phones that are recorded as accessing the Google Play Store.<br>
+<br>
+Note, when you do decide to run the SDK Manager, make sure that you have
+ a fast Internet connection, and be prepared for the automatic selection of 
+huge packages to download.<br>
+I repeat though, this is not required to get going and use Android Studio.<br>
+        <br>
+        <h2><img alt="QtCreator logo" src="../pixmaps/qtcreator.png" height="48" align="middle" width="48">&nbsp;Qt Creator</h2>
+After the first startup, go to the menu <i>Tools -&gt; Options...</i> <br>
+<br>
+Click on <i>Build &amp; Run</i>, and then the <i>Qt Versions</i> tab, and you will see this:<br>
+<img alt="qt-versions" src="qtcreator/options-buildandrun.png" height="354" width="620"><br>
+<br>
+...make sure that the entry is there, 
+"/opt/android/ndk-api15-armv7/platforms/android-15/arch-arm/opt/qt5a/bin/qmake".
+ This is the Android build of Qt. Then click the <i>Apply</i> button.<br>
+<br>
+Click on <i>Android</i>, and make sure that <i>JDK location</i>, <i>Android SDK location</i>, <i>Android NDK location</i> and <i>Ant executable</i> fields have entries exactly as shown here:<br>
+<img alt="android" src="qtcreator/options-android.png" height="354" width="620"><br>
+        <br>
+        <br>
+        <h2><img alt="AI2 logo" src="../pixmaps/appinventor.png" height="48" align="middle" width="48">&nbsp;App Inventor</h2>
+        App Inventor (AI2) normally runs online, from the MIT servers, 
+however, I have set it up to run offline, without needing an Internet 
+connection.<br>
+<br>
+Note, this also means you can run Appril's AI2 as a server over a local 
+network. However, that is a more advanced topic. Just getting started 
+for now...<br>
+<br>
+You can visually design an app with the superb GUI on your PC, and you 
+can at the same time see the app running in an emulator, or on your phone by simply 
+connecting the phone via a USB cable.<br>
+<br>
+In the phone, you need to install <i>App Inventor Companion App</i> from the Google Play Store, and enable <i>USB debugging</i> in the phone's <i>Settings</i>.<br>
+If you cannot find the setting to enable USB debugging, see here:<br>
+<a href="http://appinventor.mit.edu/explore/ai2/setup-device-usb.html">http://appinventor.mit.edu/explore/ai2/setup-device-usb.html</a> <br>
+<br>
+Then, plug in the USB cable and start App Inventor in your PC (the icon on the desktop labeled "AI2"). Choose the menu <i>Connect -&gt; USB</i>, and that's it, you are in business.<br>
+<br>
+Create your first app and see it run on your phone:<br>
+<a href="http://appinventor.mit.edu/explore/ai2/hellopurr.html">http://appinventor.mit.edu/explore/ai2/hellopurr.html</a> <br>
+<br>
+You choose <i>Connect -&gt; Emulator</i> to use the emulator. Note though, that this is a bit slow and lacks some functionality of an actual physical device.<br>
+<br>
+For further technical information about how I compiled AI2 and set it up to run in Appril, see here: <br>
+
+<a href="file:///mnt/sda10/projects/woof-project/quirky/woof-code/rootfs-skeleton/usr/local/android_build/ai-build-readme.htm">/usr/local/android_build/ai-build-readme.htm</a> &nbsp;
+<h2>
+        <img alt="livecode" src="../pixmaps/livecode.png" height="48" align="middle" width="48"> LiveCode</h2>
+LiveCode is an IDE with GUI drag-and-drop user-interface designer, and a
+ simple scripting language for the backend glue. A major feature of 
+LiveCode is that it will create standalone executables for Linux, 
+Windows, Mac, iOS and Android.<br>
+<br>
+Note however, the LiveCode bundled in Appril is cut-down and only targets Linux (x86) and Android (armv7).<br>
+<br>
+The main thrust of Appril is to offer a variety of coding tools 
+targeting Linux and Android. The cut-down LiveCode is adequate for this 
+purpose, however, you may at any time download the full version.<br>
+<br>
+It is recommended to register, and you will then be able to upgrade, and
+ access other online resources. Appril has the GPL open source version 
+of LiveCode, but for a fee there is a commercial version, with many more
+ features.<br>
+<br>
+To deploy to Android, the path to the SDK needs to be set in <i>Preferences -&gt; Mobile Support</i>: <br>
+<img alt="mobile" src="livecode/preferences-mobile.png" height="425" width="550"><br>
+<br>
+LiveCode is a bit different from the others. It does not use a 
+phone-emulator, nor can it connect to a phone via USB. It does run 
+applications in realtime within the IDE, however this is in the host 
+environment, in this case Linux -- in other words, it does not emulate a
+ phone at all.<br>
+<br>
+<hr size="2" width="100%">
+<h2>Further links</h2>
+There are many other ways to create applications for Linux, see the online file <a href="http://puppylinux.com/howto/programming.htm">http://puppylinux.com/howto/programming.htm</a> <br>
+
+        <br>
+LiveCode links:<br>
+<a href="http://livecode.com/">http://livecode.com/</a>&nbsp; <br>
+<a href="http://bkhome.org/news/?viewDetailed=00209">http://bkhome.org/news/?viewDetailed=00209</a><br>
+<br>
+        Regards,<br>
+Barry Kauler<br>
+August 17, 2015<br>
+      </td>
+    </tr>
+    <tr>
+      <td valign="top"><small>(c) Copyright Barry Kauler 2015, all rights reserved</small> <br>
+      </td>
+    </tr>
+  </tbody>
+</table>
+<br>
+</body></html>

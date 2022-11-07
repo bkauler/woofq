@@ -1,0 +1,698 @@
+#!/bin/bash
+#(c) Copyright Barry Kauler, Oct.2016, license GPL3 (/usr/share/doc/legal)
+#simple GUI for the CLI vlc.
+#optional, pass in a folder or file to play. if folder, play all files in it.
+#needs bash. note, quirky has 'sh' a symlink to 'bash'.
+#161015 first release, very very basic.
+#161021 layout changes suggested by don570. test 'xprop' exists. 161028
+#161030 changed name from SimpleVLC to SimpleVP, now frontend for both VLC and Omxplayer.
+#161101 add support for x86 and x86_64 PC quirkies. handle audio-cd and dvd. 161103 refined. 161104 refined.
+#161108 sed line delete broken due to / chars, need to escape them. native dim fix. scaling fix.
+#161109 omxplayer -o options can only be 'local', 'hdmi', 'both' or 'alsa'
+#161109 disable osc when fullscreen, as takes away focus.
+#161109 improved screening of audio and video files in a folder.
+#161109 force use vlc for visualising when play audio file. more fully support ffplay.
+
+export TEXTDOMAIN=simplevp
+export OUTPUT_CHARSET=UTF-8
+. gettext.sh
+
+[ ! $DISPLAY ] && exit #need X
+mkdir -p /tmp/simplevp
+[ "$(find /tmp/simplevp -maxdepth 1 -type f -name 'pid-vp*')" != "" ] && exit #already running
+echo -n '' > /tmp/simplevp/osc-exit-status
+mkdir -p /var/local/simplevp
+MEDIAFILE=""
+[ $1 ] && MEDIAFILE="$@"
+CR='
+'
+touch /var/local/simplevp/media_history
+HISTORY="$(tail -n 20 /var/local/simplevp/media_history | sed '/^$/d')" #limit history to 20 items
+echo "$HISTORY" > /var/local/simplevp/media_history
+
+#mostly relevant on a pc, find out which xorg driver is in use (code from /usr/sbin/report-video)...
+Xexe="$(which X)"
+XRUN="$(readlink -e $Xexe)"
+if [ "$XRUN" == "Xvesa" ];then #old kdrive xorg driver
+ XORG_DRIVER='Xvesa'
+else
+ LOADED="$(grep 'Loading .*/xorg/modules/drivers/.*_drv.so' /var/log/Xorg.0.log | rev | cut -f 1 -d '/' | rev | cut -f 1 -d '_' | tr '\n' ' ')"
+ for ALOADED in $LOADED
+ do
+  aPTN="UnloadModule: \"$ALOADED\""
+  bPTN="LoadModule: \"$ALOADED\""
+  #precaution, in case a module gets loaded, unloaded, then loaded again...
+  #Xorg loaded noauveau, then tried to load it again, failed, then unloaded, so count them...
+  CNTload=`grep "$bPTN" /var/log/Xorg.0.log | wc -l`
+  CNTunload=`grep "$aPTN" /var/log/Xorg.0.log | wc -l`
+  [ $CNTload -eq 0 ] && continue
+  [ $CNTunload -ge $CNTload ] && continue
+  XORG_DRIVER="$ALOADED"
+  break
+ done
+fi
+[ ! "$XORG_DRIVER" ] && XORG_DRIVER='vesa' #precaution.
+echo -n "$XORG_DRIVER" > /tmp/simplevp/xorg_driver
+
+#is SDL installed?
+SDL=""
+[ "`ldconfig -p | grep libSDL`" != "" ] && SDL="SDL "
+
+BOOT_BOARD='pc'
+[ -f /etc/rc.d/BOOTCONSTRAINED ] && . /etc/rc.d/BOOTCONSTRAINED #has BOOT_BOARD, values "raspi", "odroidx"
+
+#any special settings for the audio?
+/usr/local/SimpleVP/audio_hw $BOOT_BOARD
+AUDIO_HW="$(cat /tmp/simplevp/audio_hw)" #ex: raspi can have Auto, Analog, or HDMI
+
+touch /var/local/simplevp/settings
+. /var/local/simplevp/settings
+#first-run defaults...
+[ ! "$CLI_PLAYER" ] && echo "CLI_PLAYER='VLC'" >> /var/local/simplevp/settings
+
+[ ! "$CHOICES_VOUT_raspi_VLC" ] && echo "CHOICES_VOUT_raspi_VLC='X11 ${SDL}GLX OpenMAX'" >> /var/local/simplevp/settings
+[ ! "$VIDEO_OUT_raspi_VLC" ] && echo "VIDEO_OUT_raspi_VLC='X11'" >> /var/local/simplevp/settings
+[ ! "$CHOICES_VOUT_raspi_Omxplayer" ] && echo "CHOICES_VOUT_raspi_Omxplayer='OpenMAX'" >> /var/local/simplevp/settings
+[ ! "$VIDEO_OUT_raspi_Omxplayer" ] && echo "VIDEO_OUT_raspi_Omxplayer='OpenMAX'" >> /var/local/simplevp/settings
+
+[ ! "$CHOICES_VOUT_pc_VLC_Xvesa" ] && echo "CHOICES_VOUT_pc_VLC_Xvesa='X11 ${SDL}GLX'" >> /var/local/simplevp/settings #Kdrive, no XVideo
+[ ! "$VIDEO_OUT_pc_VLC_Xvesa" ] && echo "VIDEO_OUT_pc_VLC_Xvesa='X11'" >> /var/local/simplevp/settings
+[ ! "$CHOICES_VOUT_pc_VLC_vesa" ] && echo "CHOICES_VOUT_pc_VLC_vesa='X11 ${SDL}GLX'" >> /var/local/simplevp/settings #no XVideo
+[ ! "$VIDEO_OUT_pc_VLC_vesa" ] && echo "VIDEO_OUT_pc_VLC_vesa='X11'" >> /var/local/simplevp/settings
+[ ! "$CHOICES_VOUT_pc_VLC" ] && echo "CHOICES_VOUT_pc_VLC='XVideo X11 ${SDL}GLX'" >> /var/local/simplevp/settings
+[ ! "$VIDEO_OUT_pc_VLC" ] && echo "VIDEO_OUT_pc_VLC='XVideo'" >> /var/local/simplevp/settings
+
+[ ! "$CHOICES_VOUT_raspi_FFplay" ] && echo "CHOICES_VOUT_raspi_FFplay='SDL'" >> /var/local/simplevp/settings
+[ ! "$VIDEO_OUT_raspi_FFplay" ] && echo "VIDEO_OUT_raspi_FFplay='SDL'" >> /var/local/simplevp/settings
+[ ! "$CHOICES_VOUT_pc_FFplay" ] && echo "CHOICES_VOUT_pc_FFplay='SDL'" >> /var/local/simplevp/settings
+[ ! "$VIDEO_OUT_pc_FFplay" ] && echo "VIDEO_OUT_pc_FFplay='SDL'" >> /var/local/simplevp/settings
+
+[ ! "$CHOICES_AOUT_raspi_VLC" ] && echo "CHOICES_AOUT_raspi_VLC='ALSA'" >> /var/local/simplevp/settings
+[ ! "$AUDIO_OUT_raspi_VLC" ] && echo "AUDIO_OUT_raspi_VLC='ALSA'" >> /var/local/simplevp/settings
+[ ! "$CHOICES_AOUT_raspi_Omxplayer" ] && echo "CHOICES_AOUT_raspi_Omxplayer='Auto Headphone HDMI Both ALSA'" >> /var/local/simplevp/settings
+[ ! "$AUDIO_OUT_raspi_Omxplayer" ] && echo "AUDIO_OUT_raspi_Omxplayer='Auto'" >> /var/local/simplevp/settings
+[ ! "$CHOICES_AOUT_pc_VLC" ] && echo "CHOICES_AOUT_pc_VLC='ALSA'" >> /var/local/simplevp/settings
+[ ! "$CHOICES_AOUT_raspi_FFplay" ] && echo "CHOICES_AOUT_raspi_FFplay='ALSA'" >> /var/local/simplevp/settings
+[ ! "$AUDIO_OUT_raspi_FFplay" ] && echo "AUDIO_OUT_raspi_FFplay='ALSA'" >> /var/local/simplevp/settings
+[ ! "$AUDIO_OUT_pc_VLC" ] && echo "AUDIO_OUT_pc_VLC='ALSA'" >> /var/local/simplevp/settings
+[ ! "$CHOICES_AOUT_pc_FFplay" ] && echo "CHOICES_AOUT_pc_FFplay='ALSA'" >> /var/local/simplevp/settings
+[ ! "$AUDIO_OUT_pc_FFplay" ] && echo "AUDIO_OUT_pc_FFplay='ALSA'" >> /var/local/simplevp/settings
+
+[ ! "$CHOICES_VSIZE_raspi_VLC" ] && echo "CHOICES_VSIZE_raspi_VLC='Original Fullscreen'" >> /var/local/simplevp/settings
+[ ! "$CHOICES_VSIZE_raspi_VLC_OpenMAX" ] && echo "CHOICES_VSIZE_raspi_VLC_OpenMAX='Fullscreen'" >> /var/local/simplevp/settings
+[ ! "$CHOICES_VSIZE_raspi_Omxplayer" ] && echo "CHOICES_VSIZE_raspi_Omxplayer='Original Halfscreen Fullscreen'" >> /var/local/simplevp/settings
+[ ! "$VIDEO_SIZE_raspi_VLC" ] && echo "VIDEO_SIZE_raspi_VLC='Original'" >> /var/local/simplevp/settings
+[ ! "$VIDEO_SIZE_raspi_VLC_OpenMAX" ] && echo "VIDEO_SIZE_raspi_VLC_OpenMAX='Fullscreen'" >> /var/local/simplevp/settings
+[ ! "$VIDEO_SIZE_raspi_Omxplayer" ] && echo "VIDEO_SIZE_raspi_Omxplayer='Original'" >> /var/local/simplevp/settings
+[ ! "$CHOICES_VSIZE_raspi_FFplay" ] && echo "CHOICES_VSIZE_raspi_FFplay='Original Halfscreen Fullscreen'" >> /var/local/simplevp/settings
+[ ! "$VIDEO_SIZE_raspi_FFplay" ] && echo "VIDEO_SIZE_raspi_FFplay='Original'" >> /var/local/simplevp/settings
+[ ! "$CHOICES_VSIZE_pc_VLC" ] && echo "CHOICES_VSIZE_pc_VLC='Original Fullscreen'" >> /var/local/simplevp/settings
+[ ! "$VIDEO_SIZE_pc_VLC" ] && echo "VIDEO_SIZE_pc_VLC='Original'" >> /var/local/simplevp/settings
+[ ! "$CHOICES_VSIZE_pc_FFplay" ] && echo "CHOICES_VSIZE_pc_FFplay='Original Halfscreen Fullscreen'" >> /var/local/simplevp/settings
+[ ! "$VIDEO_SIZE_pc_FFplay" ] && echo "VIDEO_SIZE_pc_FFplay='Original'" >> /var/local/simplevp/settings
+
+. /var/local/simplevp/settings
+
+MISSING=""
+if ! which xdotool >/dev/null;then MISSING='xdotool'; fi
+if ! which gtkdialog >/dev/null;then MISSING="${MISSING} gtkdialog"; fi
+if ! which ffprobe >/dev/null;then MISSING="${MISSING} ffprobe"; fi
+if ! which wmctrl >/dev/null;then MISSING="${MISSING} wmctrl"; fi
+if ! which xprop >/dev/null;then MISSING="${MISSING} xprop"; fi
+if ! which xwininfo >/dev/null;then MISSING="${MISSING} xwininfo"; fi
+if ! which popup >/dev/null;then MISSING="${MISSING} popup"; fi
+if ! which cddetect >/dev/null;then MISSING="${MISSING} cddetect"; fi
+if ! which 'dvd+rw-mediainfo' >/dev/null;then MISSING="${MISSING} dvd+rw-mediainfo"; fi
+if [ "$MISSING" ];then
+ E_msg="$(gettext '<big>SORRY</big>, these utilities needed by SimpleVP are missing:')"
+ if which popup >/dev/null;then
+  popup "placement=middle level=top terminate=ok background='#FF8080'|${E_msg}
+<i>${MISSING}</i>"
+ else
+  xmessage -bg '#FF8080' "SORRY, these utilities needed by SimpleVP are missing:
+${MISSING}"
+ fi
+ exit
+fi
+
+#get dimensions of screen...
+ROOT_STATS="$(xwininfo -root -stats)"
+ROOT_WIDTH="$(echo "$ROOT_STATS" | grep 'Width: ' | rev | cut -f 1 -d ' ' | rev)"   #ex: 1024
+ROOT_HEIGHT="$(echo "$ROOT_STATS" | grep 'Height: ' | rev | cut -f 1 -d ' ' | rev)" #ex: 768
+ROOT_DEPTH="$(echo "$ROOT_STATS" | grep 'Depth: ' | rev | cut -f 1 -d ' ' | rev)"   #ex: 24
+
+#there are various ways of finding the window id. 
+#if know it's name: xwininfo -name "$WINTITLE" -int
+# or: xdotool search --name "$WINTITLE"
+#this will list all windows:  xwininfo -root -children
+#ditto: wmctrl -l
+wait_start_wid_func() {
+ WAITLIMIT=$1
+ WID=""; wCNT=0
+ while [ 1 ];do
+  sleep 0.5
+  wCNT=$(($wCNT+1))
+  WID="$(wmctrl -l | grep -E ' VLC[ :]|RxvtOmxplayer|FFplay: ' | cut -f 1 -d ' ')"
+  [ "$WID" ] && break
+  [ $wCNT -gt $WAITLIMIT ] && return 1 #5sec timeout
+ done
+ return 0
+}
+
+wait_end_wid_func() {
+ while [ 1 ];do
+  xprop -id ${WID} -spy > /dev/null 2>&1
+  #when vlc plays a dvd, it is a series of files, with different window-ids...
+  wait_start_wid_func 2 #2= 1sec timeout
+  [ $? -ne 0 ] && break
+  echo "$WID" >> /tmp/simplevp/wids.log #simpleosc will have to read last line for current WID.
+ done
+}
+
+kill_func() {
+ #having some trouble killing these. definite kill this way...
+ killall gtkdialog
+ killall vlc
+ rm -f /tmp/simplevp/pid-vp*
+}
+
+#choose cli player...
+CLI_PLAYER_ITEMS=""
+for ACLI in vlc omxplayer ffplay
+do
+ [ "`which ${ACLI}`" == "" ] && continue
+ case $ACLI in
+  vlc)       PLAYER=VLC ;;
+  omxplayer) PLAYER=Omxplayer ;;
+  ffplay)    PLAYER=FFplay ;;
+ esac
+ CLI_PLAYER_ITEMS="${CLI_PLAYER_ITEMS}<item>${PLAYER}</item>"
+done
+if [ ! "$CLI_PLAYER_ITEMS" ];then
+ E_msg="$(gettext '<big>SORRY</big>, there are no suitable CLI media players.')"
+ popup "placement=middle level=top terminate=ok background='#FF8080'|${E_msg}"
+ exit
+fi
+CLI_PLAYER_XML="<comboboxtext>
+  <variable>NEW_CLI</variable>
+  <default>${CLI_PLAYER}</default>
+  ${CLI_PLAYER_ITEMS}
+  <action>/usr/local/SimpleVP/vout_selection \$NEW_CLI</action>
+  <action function=\"refresh\">NEW_VOUT</action>
+  <action>/usr/local/SimpleVP/aout_selection \$NEW_CLI</action>
+  <action function=\"refresh\">NEW_AOUT</action>
+  <action>/usr/local/SimpleVP/vsize_selection \$NEW_CLI \$NEW_VOUT</action>
+  <action function=\"refresh\">NEW_VSIZE</action>
+</comboboxtext>"
+
+#choose video output
+/usr/local/SimpleVP/vout_selection $CLI_PLAYER #writes to /tmp/simplevp/vout_items, def_vout
+NEW_VOUT="$(cat /tmp/simplevp/def_vout)" #need this if do not have gui, file on commandline.
+VIDEO_OUT_XML="<comboboxtext>
+  <variable>NEW_VOUT</variable>
+  <input file>/tmp/simplevp/vout_items</input>
+  <action>/usr/local/SimpleVP/vsize_selection \$NEW_CLI \$NEW_VOUT</action>
+  <action function=\"refresh\">NEW_VSIZE</action>
+</comboboxtext>"
+
+#choose audio output
+/usr/local/SimpleVP/aout_selection $CLI_PLAYER #writes to /tmp/simplevp/aout_items, def_aout
+NEW_AOUT="$(cat /tmp/simplevp/def_aout)" #need this if do not have gui, file on commandline.
+AUDIO_OUT_XML="<comboboxtext>
+  <variable>NEW_AOUT</variable>
+  <input file>/tmp/simplevp/aout_items</input>
+</comboboxtext>"
+
+#choose video size
+/usr/local/SimpleVP/vsize_selection $CLI_PLAYER $NEW_VOUT #writes to /tmp/simplevp/def_vsize, vsize_items
+DEF_VSIZE="$(cat /tmp/simplevp/def_vsize)"
+NEW_VSIZE="$DEF_VSIZE"
+VIDEO_SIZE_XML="<comboboxtext>
+  <variable>NEW_VSIZE</variable>
+  <input file>/tmp/simplevp/vsize_items</input>
+</comboboxtext>"
+
+#want invisible buttons, only showing embedded images...
+export GTK2_RC_FILES=/root/.gtkrc-2.0:/usr/local/SimpleVP/gtkrc/gtkrc-2.0
+
+if [ ! "$MEDIAFILE" ];then #put up a gui to choose a file
+ lastMEDIAFILE=""
+ [ -s /var/local/simplevp/file_last ] && lastMEDIAFILE="$(cat /var/local/simplevp/file_last)"
+ if [ -d "$lastMEDIAFILE" ];then
+  lastPATH="$lastMEDIAFILE"
+ else
+  if [ ! -f "$lastMEDIAFILE" ];then
+   rm -f /var/local/simplevp/file_last 2>/dev/null
+   smallVIDEO="$(ls -1 /usr/share/examples/video | head -n 1)"
+   [ ! "$smallVIDEO" ] && exit #precaution
+   cp -a -f /usr/share/examples/video/${smallVIDEO} /file/media/video/
+   lastMEDIAFILE="/file/media/video/${smallVIDEO}"
+  fi
+  lastPATH="$(dirname "$lastMEDIAFILE")"
+ fi
+ echo -n "$lastMEDIAFILE" > /tmp/simplevp/lastMEDIAFILE
+ 
+ WINICON="gtk-preferences"; HELPICON="gtk-index"
+ M_close="`gettext 'Close'`"
+
+ #choose an internet stream...
+ export SIMPLEVP_DLG_STREAM="
+ <window title=\"$(gettext 'SimpleVP media player')\" icon-name=\"gtk-file\">
+ <vbox>
+
+  <text><label>Coming soon...</label></text>
+  <text><label>What to put in here? List of TV stations?</label></text>
+  
+  <hbox>
+   <button ok>
+     <action>echo -n \$STREAM_ITEM > /tmp/simplevp/lastMEDIAFILE</action>
+     <action>refresh:MEDIAFILE</action>
+     <action function=\"closewindow\">SIMPLEVP_DLG_STREAM</action>
+   </button>
+   <button cancel>
+     <action function=\"closewindow\">SIMPLEVP_DLG_STREAM</action>
+   </button>
+  </hbox>
+ </vbox>
+ <variable>SIMPLEVP_DLG_STREAM</variable>
+ </window>"
+
+ #choose from history list...
+ export SIMPLEVP_DLG_HISTORY="
+ <window title=\"$(gettext 'SimpleVP media player')\" icon-name=\"gtk-file\">
+ <vbox>
+  <text><label>\"   \"</label></text>
+  <text><label>$(gettext 'Choose from history log:')</label></text>
+  <comboboxtext>
+    <variable>HISTORY_ITEM</variable>
+    <input file>/var/local/simplevp/media_history</input>
+  </comboboxtext>
+  <text><label>\"   \"</label></text>
+  <hbox>
+   <button ok>
+     <action>echo -n \$HISTORY_ITEM > /tmp/simplevp/lastMEDIAFILE</action>
+     <action>refresh:MEDIAFILE</action>
+     <action function=\"closewindow\">SIMPLEVP_DLG_HISTORY</action>
+   </button>
+   <button cancel>
+     <action function=\"closewindow\">SIMPLEVP_DLG_HISTORY</action>
+   </button>
+  </hbox>
+ </vbox>
+ <variable>SIMPLEVP_DLG_HISTORY</variable>
+ </window>"
+
+ #file chooser...
+  export SIMPLEVP_DLG_CHOOSER="
+ <window title=\"$(gettext 'SimpleVP media player')\" icon-name=\"gtk-file\">
+ <vbox>
+
+  <chooser>
+  <width>600</width>
+  <height>400</height>
+  <variable>FILECHOOSER</variable>
+  <default>${lastPATH}</default>
+  </chooser>
+  
+  <hbox>
+   <button ok>
+     <action>echo -n \$FILECHOOSER > /tmp/simplevp/lastMEDIAFILE</action>
+     <action>refresh:MEDIAFILE</action>
+     <action function=\"closewindow\">SIMPLEVP_DLG_CHOOSER</action>
+   </button>
+   <button cancel>
+     <action function=\"closewindow\">SIMPLEVP_DLG_CHOOSER</action>
+   </button>
+  </hbox>
+ </vbox>
+ <variable>SIMPLEVP_DLG_CHOOSER</variable>
+ </window>"
+
+H_svlc="$(gettext '<b>SimpleVP</b> is a GUI frontend for the CLI (commandline) version of VLC, the audio and video media player.
+
+Development is currently at a very early stage, with simple playing of local audio and video files, audio CDs and video DVDs. Usage should be self-explanatory, however, these notes will assist:
+
+There is no playlist, rather, if you choose a folder rather than an individual file, then all audio and video files in that folder will play.
+
+The <b>OSC</b> (On-Screen Controls) have a full-screen button, and the OSC remains visible in full-screen. Just click anywhere on the screen to make it go away. Hit the ESC key on the keyboard to turn off full-screen.
+
+The <b>Raspberry Pi</b> has the option of OpenMAX hardware accelerated display, which is full-screen only, without OSC, no keyboard control either.')"
+export DLG_HELP_SVLC="
+<window resizable=\"false\" title=\"$(gettext 'Help: SimpleVP')\" icon-name=\"${HELPICON}\" window_position=\"1\">
+<vbox>
+  <text use-markup=\"true\"><label>\"${H_svlc}\"</label><variable>VAR_HELP_SVLC</variable></text>
+  <hbox><button><label>${M_close}</label>
+  <action type=\"closewindow\">VAR_HELP_SVLC</action></button></hbox>
+</vbox>
+<variable>DLG_HELP_SVLC</variable>
+</window>"
+#       <action type=\"launch\">DLG_HELP_SVLC</action>
+ 
+ export SIMPLEVP_DLG_MAIN="
+ <window title=\"$(gettext 'SimpleVP media player')\" image-name=\"/usr/share/pixmaps/simplevp.png\">
+ <vbox>
+   <frame $(gettext 'Play')>
+     <hbox>
+       <text use-markup=\"true\" wrap=\"false\"><label>\"<b>`gettext \"Drag and drop a CD, DVD, URL, folder or file here\"` ↓    </b>\"</label></text>
+       <button tooltip-text=\"$(gettext 'Choose previous')\" relief=\"2\">
+         <width>24</width>
+         <input file>/usr/local/SimpleVP/images/book.svg</input>
+         <action function=\"launch\">SIMPLEVP_DLG_HISTORY</action>
+       </button>
+     </hbox>
+
+     <entry accept=\"directory\" width_chars=\"45\" name=\"mono\" is-focus=\"true\">
+       <input>cat /tmp/simplevp/lastMEDIAFILE</input>
+       <variable>MEDIAFILE</variable>
+     </entry>
+     
+     <hbox>
+       <button  tooltip-text=\"$(gettext 'Choose Internet stream')\"  space-expand=\"false\" space-fill=\"false\" relief=\"2\">
+        <width>48</width>
+        <input file>/usr/local/SimpleVP/images/internet.svg</input>
+        <action function=\"launch\">SIMPLEVP_DLG_STREAM</action>
+       </button>
+       <button  tooltip-text=\"$(gettext 'Choose optical media')\"  space-expand=\"false\" space-fill=\"false\" relief=\"2\">
+        <width>48</width>
+        <input file>/usr/local/SimpleVP/images/cdrom.svg</input>
+        <action>/usr/local/SimpleVP/optical_handler \$NEW_CLI sr0</action>
+        <action>if [ ! -s /tmp/simplevp/optical_uri ];then echo 'ERROR no playable optical media' > /tmp/simplevp/optical_uri; fi</action>
+        <action>cp -f /tmp/simplevp/optical_uri /tmp/simplevp/lastMEDIAFILE</action>
+        <action>refresh:MEDIAFILE</action>
+       </button>
+       <button  tooltip-text=\"$(gettext 'Choose a folder or file to play')\"  space-expand=\"false\" space-fill=\"false\" relief=\"2\">
+        <width>48</width>
+        <input file>/usr/local/SimpleVP/images/folder.svg</input>
+        <action function=\"launch\">SIMPLEVP_DLG_CHOOSER</action>
+       </button>
+
+       <text space-expand=\"true\" space-fill=\"true\"><label>\"    \"</label></text>
+
+       <button tooltip-text=\"$(gettext 'Play')\" relief=\"2\">
+         <width>48</width>
+         <input file>/usr/local/SimpleVP/images/play.svg</input>
+         <action type=\"exit\">play_file</action>
+       </button>
+       <button  tooltip-text=\"$(gettext 'Play endlessly')\" relief=\"2\">
+         <width>48</width>
+         <input file>/usr/local/SimpleVP/images/play-infinite.svg</input>
+         <action type=\"exit\">play_file_loop</action>
+       </button>
+     </hbox>
+   </frame>
+   
+   <frame $(gettext 'Setup')>
+     <hbox>
+      <vbox><text><label>$(gettext 'Player:')</label></text>${CLI_PLAYER_XML}</vbox>
+      <vbox><text><label>$(gettext 'Video:')</label></text>${VIDEO_OUT_XML}</vbox>
+      <vbox><text><label>$(gettext 'Audio:')</label></text>${AUDIO_OUT_XML}</vbox>
+      <vbox><text><label>$(gettext 'Size:')</label></text>${VIDEO_SIZE_XML}</vbox>
+     </hbox>
+   </frame>
+   
+   <hbox>
+     <button space-expand=\"false\" space-fill=\"false\" relief=\"2\" tooltip-text=\"$(gettext 'Help')\">
+       <width>32</width>
+       <input file>/usr/local/SimpleVP/images/help.svg</input>
+       <action>defaultbrowser file:///usr/local/SimpleVP/docs/simplevp.htm & </action>
+     </button>
+     <text space-expand=\"true\" space-fill=\"true\"><label>\"    \"</label></text>
+     <button relief=\"2\" tooltip-text=\"$(gettext 'Exit')\">
+       <width>32</width>
+       <input file>/usr/local/SimpleVP/images/quit.svg</input>
+       <action type=\"exit\">exited</action>
+     </button>
+   </hbox>
+ </vbox>
+ </window>"
+ #echo "$SIMPLEVP_DLG_MAIN" > /tmp/zzzzz #TEST
+ RETVALS="`gtkdialog --program=SIMPLEVP_DLG_MAIN --center`"
+ eval "$RETVALS"
+ [ "$EXIT" != "play_file" -a "$EXIT" != "play_file_loop" ] && exit
+fi
+
+sed -i '/^CLI_PLAYER/d' /var/local/simplevp/settings
+echo "CLI_PLAYER='${NEW_CLI}'" >> /var/local/simplevp/settings
+case "$NEW_CLI" in
+ Omxplayer) PLAYER="omxplayer" ;;
+ FFplay)    PLAYER="ffplay" ;; #161109
+ *)         PLAYER="vlc" ;; #VLC
+esac
+
+sed -i "/^VIDEO_OUT_${BOOT_BOARD}_${NEW_CLI}/d" /var/local/simplevp/settings
+echo "VIDEO_OUT_${BOOT_BOARD}_${NEW_CLI}='${NEW_VOUT}'" >> /var/local/simplevp/settings
+case "$NEW_VOUT" in
+ X11)     VOUT="xcb_x11" ;;
+ XVideo)  VOUT="xcb_xv" ;;
+ SDL)     VOUT="vout_sdl" ;;
+ GLX)     VOUT="xcb_glx" ;;
+ SVGAlib) VOUT="svgalib" ;;
+ OpenMAX) VOUT="omxil_vout" ;;
+ *)       VOUT="xcb_x11" ;;
+esac
+
+#ditto for audio output...
+sed -i "/^AUDIO_OUT_${BOOT_BOARD}_${NEW_CLI}/d" /var/local/simplevp/settings
+echo "AUDIO_OUT_${BOOT_BOARD}_${NEW_CLI}='${NEW_AOUT}'" >> /var/local/simplevp/settings
+case "$NEW_AOUT" in
+ Headphone) AOUT="local" ;;
+ HDMI)      AOUT="hdmi" ;;
+ ALSA)      AOUT="alsa" ;;
+ Both)      AOUT="both" ;;
+ *)         AOUT="auto" ;; #Auto
+esac
+
+#ditto for video size...
+VAR_NAME="VIDEO_SIZE_${BOOT_BOARD}_${NEW_CLI}_${NEW_VOUT}"
+if [ "${!VAR_NAME}" ];then #this requires bash, VAR_NAME is a pointer.
+ sed -i "/^VIDEO_SIZE_${BOOT_BOARD}_${NEW_CLI}_${NEW_VOUT}/d" /var/local/simplevp/settings
+ echo "VIDEO_SIZE_${BOOT_BOARD}_${NEW_CLI}_${NEW_VOUT}='${NEW_VSIZE}'" >> /var/local/simplevp/settings
+else
+ sed -i "/^VIDEO_SIZE_${BOOT_BOARD}_${NEW_CLI}/d" /var/local/simplevp/settings
+ echo "VIDEO_SIZE_${BOOT_BOARD}_${NEW_CLI}='${NEW_VSIZE}'" >> /var/local/simplevp/settings
+fi
+
+if [ "$MEDIAFILE" ];then
+ #may have drag-and-dropped an optical drive (puppy-specific code here)...
+ upMEDIAFILE="$(dirname "$MEDIAFILE")" #ex: MEDIAFILE=/root/.pup_event/drive_sr0
+ if [ "$upMEDIAFILE" == "/root/.pup_event" ];then
+  DRVNAME="$(echo -n "$MEDIAFILE" | rev | cut -f 1 -d '_' | rev)"
+  /usr/local/SimpleVP/optical_handler $NEW_CLI $DRVNAME
+  if [ -s /tmp/simplevp/optical_uri ];then
+   MEDIAFILE="$(cat /tmp/simplevp/optical_uri)"
+  else
+   popup "background='#FF8080' level=top terminate=ok|<big>ERROR: ${DRVNAME}</big>${CR}This drive does not seem to have anything playable."
+   MEDIAFILE=''
+  fi
+ fi
+fi
+
+if [ "$MEDIAFILE" ];then
+ 
+ #MEDIAFILE may be [file://]<path>/<filename>, [file://]<path>, dvd://, dvdnav://, cdda://
+ PATHSPECflag='yes'
+ case "$MEDIAFILE" in
+  file://*) MEDIAFILE="$(echo -n "$MEDIAFILE" | sed -e 's%^file://%%')" ;;
+  *://*)    PATHSPECflag='no' ;;
+ esac
+ 
+ ALLFILES="$MEDIAFILE"
+ if [ "$PATHSPECflag" == "yes" ];then
+  #check file or folder exists (will only happen if user has typed something into entry box)...
+  zMEDIAFILE="$(realpath "$MEDIAFILE")" #make sure have full path.
+  if [ $? -ne 0 ];then
+   popup "placement=middle level=top terminate=ok background='#FF8080'|<big>ERROR:</big> this folder or file does not exist:
+${MEDIAFILE}
+Click <b>OK</b> button to try again"
+   exec simplevp
+  fi
+  MEDIAFILE="$zMEDIAFILE"
+  echo -n "$MEDIAFILE" > /var/local/simplevp/file_last #remember for next time.
+  #also append to history file...
+  yPTN="/^$(echo -n "${MEDIAFILE}" | sed -e 's%/%\\/%g')/d" #161108
+  sed -i "$yPTN" /var/local/simplevp/media_history
+  echo "$MEDIAFILE" >> /var/local/simplevp/media_history
+ 
+  #may have chosen a folder, then play all files in it...
+  if [ -d "$MEDIAFILE" ];then
+   vALLFILES="$(find "$MEDIAFILE" -maxdepth 1 -type f | grep -i -E '\.vob$|\.mp4$|\.ogv$|\.webm$|\.flv$|\.avi$|\.rm$|\.wmv$|\.mpg$|\.mov$|\.mkv$|\.ts$|\.h264$|\.m2p$|\.m2ts$|\.xvid$|\.vp6$|\.asx$|\.mod$|\.evo$|\.vid$|\.m4v$|\.mpg4$|\.h265$|\.vp3$|\.mtv$|\.mpv$|\.dv$|\.mpeg$|\.ogm$')" #161109
+   aALLFILES="$(find "$MEDIAFILE" -maxdepth 1 -type f | grep -i -E '\.ogg$|\.wav$|\.flac$|\.mp3$|\.m4a$|\.au$|\.mp4a$|\.ram$|\.aac$|\.mka$|\.pcm$|\.wma$|\.snd$|\.omf$|\.ra$|\.acm$|\.rmp$|\.raw$')" #161109
+   ALLFILES="${vALLFILES}${aALLFILES}" #161109
+   if [ ! "$ALLFILES" ];then
+    popup "placement=middle background='#FF8080' terminate=ok level=top|<big>ERROR:</big> there are no audio or video files in this folder:
+${MEDIAFILE}
+Click <b>OK</b> button to try again."
+    exec simplevp
+   fi
+  else
+   ALLFILES="$MEDIAFILE"
+  fi
+ else
+  echo -n "$MEDIAFILE" > /var/local/simplevp/file_last #remember for next time.
+  #also append to history file...
+  yPTN="/^$(echo -n "${MEDIAFILE}" | sed -e 's%/%\\/%g')/d" #161108
+  sed -i "$yPTN" /var/local/simplevp/media_history
+  echo "$MEDIAFILE" >> /var/local/simplevp/media_history
+ fi
+ 
+ PLAYLIST_NUM="$(echo "$ALLFILES" | wc -l)"
+ REPEAT=''
+ [ "$EXIT" == "play_file_loop" ] && REPEAT='--repeat'
+ 
+ yPLAYER="$PLAYER" #161109
+ yNEW_VSIZE="$NEW_VSIZE" #161109
+ 
+ xset s off -dpms #turn off screensaver.
+
+ echo "$ALLFILES" |
+ while read MEDIAFILE
+ do
+  PLAYER="$yPLAYER" #161109
+  NEW_VSIZE="$yNEW_VSIZE" #161109
+  
+  FILE_TYPE='video'; AUDIO_OPTIONS=''
+  if [ "$PATHSPECflag" == "yes" ];then
+   baseMEDIAFILE="$(basename "$MEDIAFILE")"
+   WINTITLE="VLC: ${baseMEDIAFILE}" #does not always work, but window name will always have "VLC[ :]" in it.
+   
+   #want to know if audio or video file...
+   NATIVE_DIM='640x480' #161109
+   if [ -s /var/local/simplevp/TYPE_${baseMEDIAFILE} ];then
+    FILE_TYPE="$(cat /var/local/simplevp/TYPE_${baseMEDIAFILE})"
+    NATIVE_DIM="$(cat /var/local/simplevp/DIM_${baseMEDIAFILE})" #ex: 1280x720
+   else
+    #a bit slow, hence the caching...
+    FILE_STREAMS="$(ffprobe "$MEDIAFILE" 2>&1)" #ex: Stream #0:2: Audio: vorbis, 22000 Hz, stereo, fltp, 96 kb/s
+    [ "$(echo "$FILE_STREAMS" | grep 'Video')" == "" ] && FILE_TYPE='audio'
+    echo -n "$FILE_TYPE" > /var/local/simplevp/TYPE_${baseMEDIAFILE}
+    NATIVE_DIM="$(echo "$FILE_STREAMS" | grep "Stream" | grep " Video:" | grep -o ' [0-9]*x[0-9]* ' | tr -d ' ')" #ex: 1280x720. 161108 fix.
+    echo -n "$NATIVE_DIM" > /var/local/simplevp/DIM_${baseMEDIAFILE}
+   fi
+  else
+   WINTITLE="VLC: ${MEDIAFILE}"
+   baseMEDIAFILE="$MEDIAFILE" #161109b
+   case "$MEDIAFILE" in
+    cdda://*) FILE_TYPE='audio' ;;
+    *) FILE_TYPE='video' ;; ####NEEDS WORK HERE###
+   esac
+  fi
+  if [ "$FILE_TYPE" == "audio" ];then
+   AUDIO_OPTIONS='--audio-visual visualizer --effect-list scope'
+   VOUT='vout_sdl' #x11 does not play visuals properly.
+   NEW_VSIZE='Original' #161109
+   PLAYER='vlc' #161109
+  fi
+  
+  #size...
+  NATIVE_WIDTH="$(echo -n "$NATIVE_DIM" | cut -f 1 -d 'x')"
+  NATIVE_HEIGHT="$(echo -n "$NATIVE_DIM" | cut -f 2 -d 'x')"
+  case "$NEW_VSIZE" in #Original, 50% screen, Maximized, Fullscreen
+   Original)
+    #play video in a window at its native size
+    SIZE_WIDTH="$NATIVE_WIDTH"
+    SIZE_HEIGHT="$NATIVE_HEIGHT"
+   ;;
+   "50%"|Halfscreen) #want a window about 50% of screen size. 161108
+    xSIZE_WIDTH="`expr ${ROOT_WIDTH} \/ 4`"
+    xSIZE_HEIGHT="`expr ${ROOT_HEIGHT} \/ 4`"
+    SIZE_WIDTH="`expr ${xSIZE_WIDTH} \* 3`"
+    SIZE_HEIGHT="`expr ${xSIZE_HEIGHT} \* 3`"
+   ;;
+   Maximized|Fullscreen)
+    SIZE_WIDTH="$ROOT_WIDTH"
+    SIZE_HEIGHT="$ROOT_HEIGHT"
+   ;;
+  esac
+  
+  if [ "$VOUT" == "omxil_vout" -a "$PLAYER" == "vlc" ];then
+   vlc -I "dummy" --play-and-exit ${REPEAT} --vout ${VOUT} "${MEDIAFILE}"
+  else
+   case $PLAYER in
+    omxplayer)
+     case "$AOUT" in #161109
+      auto) OAOUT="" ;;
+      *)    OAOUT="-o ${AOUT}" ;;
+     esac
+     case $NEW_VSIZE in
+      Fullscreen)
+       #needs to be run in a terminal, with keyboard focus, for hot-keys to work...
+       urxvt -title RxvtOmxplayer -geometry 1x1+0+0 -bg black -fg black -e omxplayer ${OAOUT} "${MEDIAFILE}" &
+      ;;
+      *)
+       XY="0 100 ${SIZE_WIDTH} ${SIZE_HEIGHT}"
+       #needs to be run in a terminal, with keyboard focus, for hot-keys to work...
+       #echo "EXECUTING: urxvt -title RxvtOmxplayer -geometry 1x1+0+0 -bg black -fg black -e omxplayer --win \"${XY}\" -o ${AOUT} \"${MEDIAFILE}\" &" #TEST
+       urxvt -title RxvtOmxplayer -geometry 1x1+0+0 -bg black -fg black -e omxplayer --win "${XY}" ${OAOUT} "${MEDIAFILE}" &
+      ;;
+     esac
+    ;;
+    ffplay) #161109b
+     case $NEW_VSIZE in
+      Fullscreen) OSIZE='-fs' ;;
+      Original)   OSIZE="" ;;
+      *)          OSIZE="-x ${SIZE_WIDTH} -y ${SIZE_HEIGHT}" ;;
+     esac
+     ffplay -autoexit -window_title "FFplay: ${baseMEDIAFILE}" ${OSIZE} "${MEDIAFILE}" &
+    ;;
+    *) #VLC
+     case $NEW_VSIZE in
+      Fullscreen)
+       vlc -I "dummy" --fullscreen --video-title "$WINTITLE" --daemon --pidfile "/tmp/simplevp/pid-vp-${$}" ${AUDIO_OPTIONS} ${REPEAT} --vout ${VOUT} "$MEDIAFILE"
+      ;;
+      *)
+       #unfortunately, --width= and --height= have not worked since version 2.0.8. this remains as an open bug.
+       #also, --video-x= and --video-y= to set top-left corner, doesn't work properly.
+       X_OFFSET="-`expr ${ROOT_WIDTH} \/ 2`"
+       Y_OFFSET="-`expr ${ROOT_HEIGHT} \/ 2`"
+       vlc -I "dummy" --video-x "$X_OFFSET" --video-y "$Y_OFFSET" --video-title "$WINTITLE" --daemon --pidfile "/tmp/simplevp/pid-vp-${$}" ${AUDIO_OPTIONS} ${REPEAT} --vout ${VOUT} "$MEDIAFILE"
+      ;;
+     esac
+    ;;
+   esac
+   
+   wait_start_wid_func 12 #12= 6sec timeout.
+   if [ $? -ne 0 ];then
+    popup "placement=middle background='#FF8080' level=top terminate=ok|<big>ERROR:</big> it seems the video has failed to start. Aborting."
+    kill_func
+    exit
+   fi
+   if [ "$PLAYER" == "omxplayer" ];then
+    #omxplayer is launched from a terminal window, make it fullscreen and black, to hide anything else...
+    [ "$NEW_VSIZE" == "Fullscreen" ] && wmctrl -i -r ${WID} -b toggle,fullscreen
+    #this prevents the terminal from appearing in the tray...
+    wmctrl -i -r ${WID} -b toggle,skip_taskbar
+   fi
+   echo "Window ID: ${WID}"
+   
+   echo "$WID" > /tmp/simplevp/wids.log
+   #161109 omxplayer fullscreen, simpleosc will grab focus, so do not run it 
+   # not used anyway...
+   OSCflag=1
+   case "$PLAYER" in
+    omxplayer)
+     [ "$NEW_VSIZE" == "Fullscreen" ] && OSCflag=0
+    ;;
+   esac
+   [ $OSCflag -eq 1 ] && simpleosc $NEW_CLI $NEW_VOUT $PLAYLIST_NUM & #display control buttons. ex params: VLC SDL 1
+   
+   echo 'waiting for window to end'
+   wait_end_wid_func
+   echo '...end'
+   kill_func
+   OSC_EXIT_STATUS="$(cat /tmp/simplevp/osc-exit-status)" #close stop, next
+  fi
+  
+  case "$OSC_EXIT_STATUS" in
+   close) break ;;
+   stop) break ;;
+  esac
+  #'next' will play next file in playlist.
+  PLAYLIST_NUM=$(($PLAYLIST_NUM - 1))
+ done
+ 
+ xset s on #turn screensaver back on.
+ OSC_EXIT_STATUS="$(cat /tmp/simplevp/osc-exit-status)" #again, as above while-loop is a separate process.
+ [ "$OSC_EXIT_STATUS" != "close" ] && exec simplevp
+fi
+
+###end###

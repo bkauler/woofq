@@ -1,0 +1,128 @@
+#!/bin/sh
+# t12s_xgettext by L18L dec 2013
+# based upon technosaurus' hints
+# Creates portable object template file app.pot
+# One textdomain for several scripts
+# Variables are of this kind: ${_M_nnn:-default English mesage} 
+# where number n ist automatically created.
+
+if [ $# -lt 1 ]; then echo "usage $0 script [other_script ...]"; exit 1; fi
+if [ $1 = "-h" -o $1 = "--help" ]; then echo "Create portable object template (pot) TEXTDOMAIN.pot 
+containing messages like
+#_M_3
+msgid \"Set System Time\"
+msgstr \"\"
+
+Scripts must define TEXTDOMAIN at beginning of a line, ex:export TEXTDOMAIN=control-panel 
+
+Translatable messages are of this kind: \${_M_n:-default English mesage} 
+where number n ist automatically created by this tool.
+"; exit 0; fi 
+#" #makes geany happy
+
+for x in $@ ; do
+ if [ ! -f "$x" ]; then echo "$0: $x is not a file"; exit 1; fi
+done 
+
+#echo '$@='$@
+
+TEXTDOMAINVALUE="`grep -E '^export TEXTDOMAIN=' $@ | head -n 1 | cut -d'=' -f2`"
+#create translation file with ID (ex:_M_5) and without ID (ex:_M_)
+rm bla 2>/dev/null
+for x in $@ ; do
+ # while read -d$ A || [ "$A" ]; do  #no: I want to emulate eval_gettext too !!
+ while read  A || [ "$A" ]; do
+  case "$A" in
+   *{_M_*) B=_M${A##*_M};B=${B%%\}*}\";echo "${B//:-/=\"}"  >> bla ;;
+  esac
+ done < $x | sort  -n -t '_' --key=3  -r >> bla
+done
+sort -n -t '_' --key=3  -r bla > $TEXTDOMAINVALUE.i18n
+
+#============================================================
+# create ID numbers
+while [ "`grep -e '_M_=' ${TEXTDOMAINVALUE}.i18n`" ]; do
+ #last (highest) ID
+ read ID < $TEXTDOMAINVALUE.i18n #ex:_M_4="Please set the date..."
+ ID=${ID%=*};ID=${ID##*_}        #ex:4
+ LAST_ID=$ID # 1st line is highest number because they have been sorted -n -r
+ #echo LAST_ID=$LAST_ID
+ #provide 1 ID
+ grep '_M_=' $TEXTDOMAINVALUE.i18n | while read LINE # LINEs without ID
+ do
+  CONTENT=${LINE#*\"}     #ex:Please set the date..."
+  CONTENT=${CONTENT%%\"*} #ex:Please set the date...
+  #ID already exists?
+  PATTERN="_M_[0-9]+\=\"${CONTENT}\""
+  id=`grep -E --only-matching "$PATTERN" $TEXTDOMAINVALUE.i18n`; id=${id%=*} ; ID=${id##*_}
+  if [ "$ID" ]; then
+   #echo ">>> set existing ID=$ID for ${LINE}" 
+   sed -i "s#_M_:-${CONTENT}#_M_${ID}:-${CONTENT}#" $x
+   for SCRIPT in $@; do
+    sed -i "s#_M_:-${CONTENT}#_M_${ID}:-${CONTENT}#" $SCRIPT
+   done 
+   LAST_ID=$ID
+  else
+    ID=$(($LAST_ID + 1)) #new ID
+    #echo ">>> set ID=$ID for ${CONTENT}" 
+    sed -i "s#_M_:-${CONTENT}#_M_${ID}:-${CONTENT}#" $x
+    for SCRIPT in $@; do
+     sed -i "s#_M_:-${CONTENT}#_M_${ID}:-${CONTENT}#" $SCRIPT
+    done 
+    break
+  fi
+ done
+ rm bla 2>/dev/null
+ for x in $@ ; do
+  #while read -d$ A || [ "$A" ]; do
+  while read A || [ "$A" ]; do
+   case "$A" in
+    *{_M_*) B=_M${A##*_M};B=${B%%\}*}\";echo "${B//:-/=\"}" >> bla ;;
+   esac
+  done < $x
+ sort -n -t '_' --key=3  -r bla > $TEXTDOMAINVALUE.i18n
+ done
+done
+#============================================================
+rm bla 2>/dev/null
+for x in $@ ; do
+ #while read -d$ A || [ "$A" ]; do
+ while read A || [ "$A" ]; do
+  case "$A" in
+   *{_M_*) 
+
+#    echo "A=
+#$A
+#"
+
+   B=_M${A##*_M};B=${B%%\}*}\";echo "${B//:-/=\"}" >> bla ;;
+  esac
+ done < $x
+done
+sort -u -n -t '_' --key=3  bla > $TEXTDOMAINVALUE.i18n
+
+#convert to .pot
+echo "# ${TEXTDOMAINVALUE}.pot
+# created by $0 
+# on `date` 
+# from $@
+msgid \"\"
+msgstr \"\"
+\"Project-Id-Version: ${TEXTDOMAINVALUE}\n\"
+\"Language: $transLANG\n\"
+\"MIME-Version: 1.0\n\"
+\"Content-Type: text/plain; charset=UTF-8\"" 
+
+while read LINE; do              #ex:_M_4="Please set the date..."
+ MSG=${LINE#*\"}; MSG=${MSG%\"*} # first and last quote removed
+ MSG=${MSG//\"/\\\"}             # quotes escaped
+ # echo "msgid ${LINE#*=}" #ex:msgid "Please set the date..."
+ echo ""
+ echo "#${LINE%=*}"      #ex:#_M_4
+ echo 'msgid "'${MSG}'"' #ex:msgid "Please set the date..."
+ echo "msgstr \"\""      #ex:msgstr "" 
+done < $TEXTDOMAINVALUE.i18n
+
+#rm $TEXTDOMAINVALUE.i18n bla
+
+exit 0

@@ -1,0 +1,89 @@
+
+dnsmasq
+-------
+this is an outline how to setup dnsmasq to supply the hostname (or any string)
+to another pc on the network.
+
+If the other pc know the ip-address of the pc which has the dnsmasq server,
+it can query the server and get back the "hostname".
+
+
+default is port 53
+$IP is ip-address of current computer.
+ex: 192.168.0.3
+
+/etc/easyshare-dnsmasq.conf is empty.
+
+example /etc/easyshare-hosts:
+192.168.1.254 EASYPC1234
+
+...where 192.168.1.254 is an arbitrary choice, can be anything.
+...ditto, EASYPC1234 can be anything (can put hostname here).
+
+then run the dnsmasq server...
+
+########
+
+# dnsmasq -y -R -b --cache-size=0 --listen-address=$IP --conf-file=/etc/easyshare-dnsmasq.conf --no-hosts --addn-hosts=/etc/easyshare-hosts
+
+also:
+--no-dhcp-interface=eth0 --bind-interfaces --no-ping
+and:
+--interface=eth0 --except-interface=lo
+########
+
+-2, --no-dhcp-interface=<interface name>
+    Do not provide DHCP or TFTP on the specified interface, but do provide DNS service. 
+
+-y, --localise-queries
+    Return answers to DNS queries from /etc/hosts and --interface-name which depend on the interface over which the query was received. If a name has more than one address associated with it, and at least one of those addresses is on the same subnet as the interface to which the query was sent, then return only the address(es) on that subnet. This allows for a server to have multiple addresses in /etc/hosts corresponding to each of its interfaces, and hosts will get the correct address based on which network they are attached to. Currently this facility is limited to IPv4.
+
+-R, --no-resolv
+    Don't read /etc/resolv.conf. Get upstream servers only from the command line or the dnsmasq configuration file.
+
+-b, --bogus-priv
+    Bogus private reverse lookups. All reverse lookups for private IP ranges (ie 192.168.x.x, etc) which are not found in /etc/hosts or the DHCP leases file are answered with "no such domain" rather than being forwarded upstream. The set of prefixes affected is the list given in RFC6303, for IPv4 and IPv6.
+
+-c, --cache-size=<cachesize>
+    Set the size of dnsmasq's cache. The default is 150 names. Setting the cache size to zero disables caching.
+
+-a, --listen-address=<ipaddr>
+    Listen on the given IP address(es). Both --interface and --listen-address options may be given, in which case the set of both interfaces and addresses is used. Note that if no --interface option is given, but --listen-address is, dnsmasq will not automatically listen on the loopback interface. To achieve this, its IP address, 127.0.0.1, must be explicitly given as a --listen-address option.
+
+-E, --expand-hosts
+    Add the domain to simple names (without a period) in /etc/hosts in the same way as for DHCP-derived names. Note that this does not apply to domain names in cnames, PTR records, TXT records etc.
+
+-z, --bind-interfaces
+    On systems which support it, dnsmasq binds the wildcard address, even when it is listening on only some interfaces. It then discards requests that it shouldn't reply to. This has the advantage of working even when interfaces come and go and change address. This option forces dnsmasq to really bind only the interfaces it is listening on. About the only time when this is useful is when running another nameserver (or another instance of dnsmasq) on the same machine. Setting this option also enables multiple instances of dnsmasq which provide DHCP service to run in the same machine. 
+
+-p, --port=<port>
+    Listen on <port> instead of the standard DNS port (53). Setting this to zero completely disables DNS function, leaving only DHCP and/or TFTP.
+
+-C, --conf-file=<file>
+    Specify a different configuration file. The conf-file option is also allowed in configuration files, to include multiple configuration files. A filename of "-" causes dnsmasq to read configuration from stdin.
+
+-h, --no-hosts
+    Don't read the hostnames in /etc/hosts. 
+-H, --addn-hosts=<file>
+    Additional hosts file. Read the specified file as well as /etc/hosts. If -h is given, read only the specified file. This option may be repeated for more than one additional hosts file. If a directory is given, then read all the files contained in that directory. 
+
+----------------------------------------------------
+
+on another pc on the network
+----------------------------
+
+# mpscan -p 53 192.168.0.3
+...returns "OK"
+
+# nmap --dns-servers 192.168.0.3 -R -sL 192.168.1.254
+...returns "EASYPC1234"
+
+could also use the full 'nslookup' from 'bind' pkg (busybox 'nslookup' no good):
+
+# nslookup 192.168.1.254 192.168.0.3
+
+or, the 'drill' utility from the 'ldns' pkg;
+
+# drill -x 192.168.1.254 @192.168.0.3
+
+

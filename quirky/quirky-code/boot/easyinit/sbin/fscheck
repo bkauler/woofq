@@ -1,0 +1,116 @@
+#!/bin/sh
+#(c) Copyright Barry Kauler, December 2016. License: GPL v3 (ref: /usr/share/doc/legal)
+#called from /etc/init.d/rcS
+#passed-in params PDEV1, DEV1FS, mount-point-of-system-filesystem
+#161209 created for Easy Linux. 161212 fixes. 161231 fixes.
+#170110 need full 'fdisk' (from util-linux, i compiled statically in buildroot) for gpt partitions.
+#170113 precaution, run with LANG=C (though most static binaries compiled without nls support).
+#170713 currently only doing reboot after exit, so do not remount system partition.
+#170727 mbr, when recreate partition, asks if primary (p) or extended (e).
+
+export TEXTDOMAIN=easyinit
+export OUTPUT_CHARSET=UTF-8
+
+ALANG=$LANG
+export LANG=C
+
+P=""
+PDEV1="$1"
+DEV1FS="$2"
+FSMNTPT="$3" #/old_root
+CHECK="`cat /.fsckme.flg | cut -f 3 -d ','`" #"MAXIMAL" or "MAXSIZE", see rc.shutdown, quicksetup.
+if [ "$CHECK" == "MAXSIZE" ];then
+ START_PDEV1="`cat /.fsckme.flg | cut -f 4 -d ','`" #start of partition, in sectors.
+ END_DRV="`cat /.fsckme.flg | cut -f 5 -d ','`" #end of drive, in sectors.
+ PDRV="$(echo -n "$PDEV1" | sed -e 's%[0-9]$%%' -e 's%[0-9]$%%' -e 's%p$%%')" #ex: mmcblk0p2 becomes mmcblk0
+ PART_NUM="$(echo -n "$PDEV1" | sed -e "s%^${PDRV}%%" -e 's%^p%%')" #ex: mmcblk0p2 becomes 2
+ NEW_END_PART="`busybox expr $END_DRV - 1024`" #leave 512K unallocated. 161010 cannot find expr
+fi
+#note, .fsckme.flg also has PDEV1 and DEV1FS, but don't believe it.
+
+#unmount the system f.s....
+umount $FSMNTPT
+if [ $? -ne 0 ];then
+ echo 'Not so good, was unable to unmount ${PDEV1}. Trying forced unmount...'
+ umount -f $FSMNTPT #try force unmount.
+ if [ $? -ne 0 ];then
+  echo 'Unable to unmount, aborting.'
+  exit 1
+ else
+  echo 'Unmount successful, continuing...'
+ fi
+fi
+
+echo -e "\\033[1;35m" #purple. 34=blue, 33=yellow, 32=green, 31=red, 35=purple, 36=aquablue, 38=black.
+echo "$(LANG=${ALANG} gettext 'Now running in ramdisk.')"
+echo "$(LANG=${ALANG} gettext 'Filesystem operations are to be performed upon the operating system partition.')"
+echo "$(LANG=${ALANG} gettext 'Operating System partition:') ${PDEV1}"
+echo -en "\\033[0;39m"
+
+#peform f.s. check and optional resize... 170727...
+if [ "${CHECK}" == "MAXSIZE" ];then
+ echo "$(LANG=${ALANG} gettext 'Growing partition to fill drive...')"
+ REPLYPRIMARY=''
+ DISK_INFO="$(fdisk -u -l /dev/${PDRV} 2>/dev/null)"
+ GPTflg="$(echo "$DISK_INFO" | grep '^Disklabel type: gpt')"
+ #sanity check...
+ if [ -h /bin/fdisk ];then #170110
+  REAL_START="$(echo "$DISK_INFO" | busybox tr -s ' ' | grep "^ ${PART_NUM} " | cut -f 3 -d ' ')" #161231
+ else
+  REAL_START="$(echo "$DISK_INFO" | busybox tr -s ' ' | grep "^/dev/${PDEV1} " | cut -f 2 -d ' ')" #full fdisk.
+ fi
+ if [ "$REAL_START" != "${START_PDEV1}" ];then
+  echo
+  echo "ERROR: ${PDEV1} seems to be the wrong partition."
+  echo "Start of ${PDEV1}: ${REAL_START} sectors. Expected start: ${START_PDEV1} sectors."
+  echo 'Have you changed the removable drives since the last bootup?'
+  echo 'ABORTING resizing of partition to fill drive.'
+  mount -t ${DEV1FS} /dev/${PDEV1} ${FSMNTPT}
+  exit 1
+ fi
+ #weird, but have to delete partition then create a new one...
+ if [ "$GPTflg" ];then
+  echo -e "d\n${PART_NUM}\nn\n${PART_NUM}\n${START_PDEV1}\n${NEW_END_PART}\nw" | fdisk -u /dev/${PDRV} #> /dev/null
+ else #asks for primary or extended...
+  echo -e "d\n${PART_NUM}\nn\np\n${PART_NUM}\n${START_PDEV1}\n${NEW_END_PART}\nw" | fdisk -u /dev/${PDRV} #> /dev/null
+ fi
+ sync
+ if [ ! -h /bin/fdisk ];then #170110
+  #gpt, when erase partition then recreate, PARTUUID changes. restore...
+  newPARTUUID="$(echo -e "i\n${PART_NUM}\nq" | fdisk /dev/${PDRV} | tr -s ' ' | grep ' UUID: ' | cut -f 3 -d ' ')"
+  if [ "$newPARTUUID" ];then
+   #choice here, can either change it, or write the new value.
+   #fdisk x (expert), u (change partition UUID) will do the former.
+   echo "Restoring PARTUUID to previous value"
+   oldPARTUUID="$(dmesg | grep -o 'PARTUUID=[A-Z0-9-]*' | head -n 1 | cut -f 2 -d '=')"
+   if [ "$oldPARTUUID" ];then
+    echo -e "x\nu\n2\n${oldPARTUUID}\nr\nw" | fdisk -u /dev/${PDRV}
+   fi
+  fi
+  sync
+ fi
+fi
+
+case "$CHECK" in
+ MAXIMAL) echo "$(LANG=${ALANG} gettext 'Performing filesystem check, maximal mount count...')" ;;
+ MAXSIZE) echo "$(LANG=${ALANG} gettext 'Performing filesystem check, prior to growing it...')" ;;
+ REQUEST) echo "$(LANG=${ALANG} gettext 'Performing filesystem check, on request...')" ;;
+ *) echo "$(LANG=${ALANG} gettext 'Performing filesystem check, after improper shutdown...')" ;;
+esac
+
+e2fsck -p -f /dev/${PDEV1}
+busybox sync
+echo "$(LANG=${ALANG} gettext 'Filesystem check completed!')"
+
+if [ "${CHECK}" == "MAXSIZE" ];then
+ echo "$(LANG=${ALANG} gettext 'Resizing filesystem to fill partition...')"
+ resize2fs /dev/${PDEV1}
+ busybox sync
+ echo "$(LANG=${ALANG} gettext '...done')"
+fi
+
+#170713 currently doing reboot after return to rcS, so no need to mount this...
+#mount -t ${DEV1FS} /dev/${PDEV1} ${FSMNTPT}
+
+exit 0
+###end###

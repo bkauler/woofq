@@ -1,0 +1,42 @@
+#!/bin/sh
+#(c) Copyright Dec. 2018, Barry Kauler, www.bkhome.org
+#license: gpl v3 (ref: /usr/share/doc/legal)
+#called from rc.sysinit
+#for use with networkmanager. ref: /etc/init.d/rc.networkmanager
+#181113 first release. 181120 some info.
+#200521 do not bring up eth interfaces, networkmanager daemon is supposed to do it.
+
+exit 0 #200521
+
+#how to test for carrier (need to bring i/f up first):
+# CARRIERflg="$(ip link show dev ${INTERFACE} | grep -o "LOWER_UP")"
+#how to test for interface up:
+# UPflg="$(ip link show dev ${INTERFACE} | grep -o ",UP")"
+#the flags "LOWER_UP" etc., explained in "netdevice" man page.
+
+export LANG='C'
+
+#wait for eth...
+ifCNT=0; loopCNT=0
+while [ 1 ];do #180831
+ [ -e /sys/class/net/eth0 ] && break
+ sleep 1
+ loopCNT=$(($loopCNT+1))
+ [ $loopCNT -ge 20 ] && break 
+done
+[ $loopCNT -gt 0 ] && echo "rc.network_eth_nm: waited for ethernet interfaces: seconds = ${loopCNT}" #>&2
+
+#INTERFACES="`ifconfig -a | grep -F 'Link encap:Ethernet' | cut -f1 -d' ' | tr '\n' ' '`"
+INTERFACES="$(ip -o link show | tr -s ' ' | grep '^[0-9]: ' | cut -f 2 -d ' ' | cut -f 1 -d ':' | tr '\n' ' ')"
+for INTERFACE in $INTERFACES #exs: wlan0 eth0
+do
+ [ -d /sys/class/net/${INTERFACE}/wireless ] && continue #only want wired.
+
+ #ifconfig $INTERFACE up
+ #it doesn't seem to matter if NetworkManager has already brought this up...
+ ip link set ${INTERFACE} up
+ [ $? -ne 0 ] && continue
+ echo "rc.network_eth_nm: ip link set ${INTERFACE} up"
+
+done
+###end###

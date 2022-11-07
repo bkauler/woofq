@@ -1,0 +1,39 @@
+#want invisible buttons, so only the images show.
+#161102 don't need this, use relief="2" instead in <button> tags.
+#161102 want mono font in text entry box.
+
+style "button_svp"
+{
+ engine "pixmap"
+ {
+ image 
+      {
+        function        = BOX
+	recolorable     = TRUE
+	state		= PRELIGHT
+	file            = "tab3.png"
+	border          = { 6,6,6,6 }
+	stretch         = TRUE
+      }
+ image 
+      {
+        function        = BOX
+	recolorable     = TRUE
+	file            = "invisible27x27.png"
+	border          = { 6,6,6,6 }
+	stretch         = TRUE
+      }
+   }
+}
+
+style "specialmono"
+{
+  font_name="Mono 12"
+}
+
+#161102 removed...
+#class "GtkButton" style "button_svp"
+
+#161102 added...
+widget "*mono" style "specialmono"
+class "GtkText*" style "specialmono"

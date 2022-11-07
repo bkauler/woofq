@@ -1,0 +1,1171 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>xdotool - command-line X11 automation tool</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@localhost" />
+</head>
+
+<body style="background-color: white">
+
+
+<!-- INDEX BEGIN -->
+<div name="index">
+<p><a name="__index__"></a></p>
+
+<ul>
+
+	<li><a href="#name">NAME</a></li>
+	<li><a href="#synopsis">SYNOPSIS</a></li>
+	<li><a href="#keyboard_commands">KEYBOARD COMMANDS</a></li>
+	<li><a href="#mouse_commands">MOUSE COMMANDS</a></li>
+	<li><a href="#window_commands">WINDOW COMMANDS</a></li>
+	<li><a href="#desktop_and_window_commands">DESKTOP AND WINDOW COMMANDS</a></li>
+	<li><a href="#miscellaneous_commands">MISCELLANEOUS COMMANDS</a></li>
+	<li><a href="#scripts">SCRIPTS</a></li>
+	<li><a href="#clearmodifiers">CLEARMODIFIERS</a></li>
+	<li><a href="#sendevent_notes">SENDEVENT NOTES</a></li>
+	<li><a href="#window_stack">WINDOW STACK</a></li>
+	<li><a href="#command_chaining">COMMAND CHAINING</a></li>
+	<li><a href="#extended_window_manager_hints">EXTENDED WINDOW MANAGER HINTS</a></li>
+	<li><a href="#supported_features">SUPPORTED FEATURES</a></li>
+	<li><a href="#see_also">SEE ALSO</a></li>
+	<li><a href="#contact">CONTACT</a></li>
+	<li><a href="#author">AUTHOR</a></li>
+</ul>
+
+<hr name="index" />
+</div>
+<!-- INDEX END -->
+
+<p>
+</p>
+<hr />
+<h1><a name="name">NAME</a></h1>
+<p>xdotool - command-line X11 automation tool</p>
+<p>
+</p>
+<hr />
+<h1><a name="synopsis">SYNOPSIS</a></h1>
+<p><strong>xdotool</strong> <em>cmd</em> <em>args...</em></p>
+<p>Notation: Some documentation uses <em>[window]</em> to denote an optional
+window argument. This case means that the argument, if not present, will
+default to &quot;%1&quot;. See <a href="#window_stack">WINDOW STACK</a> for what &quot;%1&quot; means.</p>
+<pre>
+
+=head1 DESCRIPTION</pre>
+<p><strong>xdotool</strong> lets you programatically (or manually) simulate keyboard input and
+mouse activity, move and resize windows, etc. It does this using X11's
+XTEST extension and other Xlib functions.</p>
+<p>There is some support for Extended Window Manager Hints (aka EWMH or NetWM).
+See the <a href="#extended_window_manager_hints">EXTENDED WINDOW MANAGER HINTS</a> section for more information.</p>
+<p>
+</p>
+<hr />
+<h1><a name="keyboard_commands">KEYBOARD COMMANDS</a></h1>
+<dl>
+<dt><strong><a name="key_options_keystroke_keystroke" class="item"><strong>key</strong> <em>[options]</em> <em>keystroke</em> [<em>keystroke</em> ...]</a></strong></dt>
+
+<dd>
+<p>Options:</p>
+<dl>
+<dt><strong><a name="window_window" class="item"><strong>--window window</strong></a></strong></dt>
+
+<dd>
+<p>Send keystrokes to a specific window id. You can use
+<a href="#window_stack">WINDOW STACK</a> references like &quot;%1&quot; and &quot;%@&quot; here. If there is a window stack,
+then &quot;%1&quot; is the default, otherwise the current window is used.</p>
+<p>See also: <a href="#sendevent_notes">SENDEVENT NOTES</a> and <a href="#window_stack">WINDOW STACK</a></p>
+</dd>
+<dt><strong><a name="clearmodifiers" class="item"><strong>--clearmodifiers</strong></a></strong></dt>
+
+<dd>
+<p>Clear modifiers before sending keystrokes. See <em>CLEARMODIFIERS</em> below.</p>
+</dd>
+<dt><strong><a name="delay_milliseconds" class="item"><strong>--delay milliseconds</strong></a></strong></dt>
+
+<dd>
+<p>Delay between keystrokes. Default is 12ms.</p>
+</dd>
+</dl>
+<p>Type a given keystroke. Examples being &quot;alt+r&quot;, &quot;Control_L+J&quot;,
+&quot;ctrl+alt+n&quot;, &quot;BackSpace&quot;.</p>
+<p>Generally, any valid X Keysym string will work. Multiple keys are
+separated by '+'. Aliases exist for &quot;alt&quot;, &quot;ctrl&quot;, &quot;shift&quot;, &quot;super&quot;,
+and &quot;meta&quot; which all map to Foo_L, such as Alt_L and Control_L, etc.</p>
+<p>In cases where your keyboard doesn't actually have the key you want to type,
+xdotool will automatically find an unused keycode and use that to type the key.</p>
+<p>With respect to <a href="#command_chaining">COMMAND CHAINING</a>, this command consumes the remainder of the
+arguments or until a new xdotool command is seen, because no xdotool commands
+are valid keystrokes.</p>
+<p>Example: Send the keystroke &quot;F2&quot;
+ xdotool key F2</p>
+<p>Example: Send 'a' with an accent over it (not on english keyboards, but still
+works with xdotool)
+ xdotool key Aacute</p>
+<p>Example: Send ctrl+l and then BackSpace as separate keystrokes:
+ xdotool key ctrl+l BackSpace</p>
+<p>Example: Send ctrl+c to all windows matching title 'gdb' (See <a href="#command_chaining">COMMAND CHAINING</a>)
+ xdotool search --name gdb key ctrl+c</p>
+</dd>
+<dt><strong><a name="keydown_options_keystroke" class="item"><strong>keydown</strong> <em>[options]</em> <em>keystroke</em></a></strong></dt>
+
+<dd>
+<p>Same as above, except only keydown (press) events are sent.</p>
+</dd>
+<dt><strong><a name="keyup_keystroke" class="item"><strong>keyup</strong> <em>keystroke</em></a></strong></dt>
+
+<dd>
+<p>Same as above, except only keyup (release) events are sent.</p>
+</dd>
+<dt><strong><a name="type_options_something_to_type" class="item"><strong>type</strong> <em>[options]</em> <em>something to type</em></a></strong></dt>
+
+<dd>
+<p>Options:</p>
+<dl>
+<dt><strong><a name="window_windowid" class="item"><strong>--window windowid</strong></a></strong></dt>
+
+<dd>
+<p>Send keystrokes to a specific window id. See <a href="#sendevent_notes">SENDEVENT NOTES</a> below. The
+default, if no window is given, depends on the window stack. If the window
+stack is empty the current window is typed at using XTEST. Otherwise, the
+default is &quot;%1&quot; (see <a href="#window_stack">WINDOW STACK</a>).</p>
+</dd>
+<dt><strong><a name="delay_milliseconds2" class="item"><strong>--delay milliseconds</strong></a></strong></dt>
+
+<dd>
+<p>Delay between keystrokes. Default is 12ms.</p>
+</dd>
+<dt><strong><a name="clearmodifiers2" class="item"><strong>--clearmodifiers</strong></a></strong></dt>
+
+<dd>
+<p>Clear modifiers before sending keystrokes. See <em>CLEARMODIFIERS</em> below.</p>
+</dd>
+</dl>
+<p>Types as if you had typed it. Supports newlines and tabs (ASCII newline and
+tab). Each keystroke is separated by a delay given by the <strong>--delay</strong> option.</p>
+<p>With respect to <a href="#command_chaining">COMMAND CHAINING</a>, this command consumes the remainder of the
+arguments and types them. That is, no commands can chain after 'type'.</p>
+<p>Example: to type 'Hello world!' you would do:
+ xdotool type 'Hello world!'</p>
+</dd>
+</dl>
+<p>
+</p>
+<hr />
+<h1><a name="mouse_commands">MOUSE COMMANDS</a></h1>
+<dl>
+<dt><strong><a name="mousemove_options_x_y_or_restore" class="item"><strong>mousemove</strong> <em>[options]</em> <em>x y OR 'restore'</em></a></strong></dt>
+
+<dd>
+<p>Move the mouse to the specific X and Y coordinates on the screen.</p>
+<p>You can move the mouse to the previous location if you specify 'restore'
+instead of an X and Y coordinate. Restoring only works if you have moved
+previously in this same command invocation. Further, it does not work with the
+--window option.</p>
+<p>For example, to click the top-left corner of the screen and move the mouse to
+the original position before you moved it, use this:
+ xdotool mousemove 0 0 click 1 mousemove restore</p>
+<dl>
+<dt><strong><a name="window_window" class="item"><strong>--window WINDOW</strong></a></strong></dt>
+
+<dd>
+<p>Specify a window to move relative to. Coordinates 0,0 are at the top left of
+the window you choose.</p>
+<p><a href="#window_stack">WINDOW STACK</a> references are valid here, such as %1 and %@. Though, using %@
+probably doesn't make sense.</p>
+</dd>
+<dt><strong><a name="screen_screen" class="item"><strong>--screen SCREEN</strong></a></strong></dt>
+
+<dd>
+<p>Move the mouse to the specified screen to move to. This is only useful if you
+have multiple screens and ARE NOT using Xinerama.</p>
+<p>The default is the current screen. If you specify --window, the --screen flag
+is ignored.</p>
+</dd>
+<dt><strong><a name="polar" class="item"><strong>--polar</strong></a></strong></dt>
+
+<dd>
+<p>Use polar coordinates. This makes 'x' an angle (in degrees, 0-360, etc) and 'y'
+the distance.</p>
+<p>Rotation starts at 'up' (0 degrees) and rotates clockwise: 90 = right, 180 =
+down, 270 = left.</p>
+<p>The origin defaults to the center of the current screen. If you specify a
+--window, then the origin is the center of that window.</p>
+</dd>
+<dt><strong><a name="clearmodifiers3" class="item"><strong>--clearmodifiers</strong></a></strong></dt>
+
+<dd>
+<p>See <em>CLEARMODIFIERS</em></p>
+</dd>
+<dt><strong><a name="sync" class="item"><strong>--sync</strong></a></strong></dt>
+
+<dd>
+<p>After sending the mouse move request, wait until the mouse is actually
+moved. If no movement is necessary, we will not wait. This is useful for
+scripts that depend on actions being completed before moving on.</p>
+<p>Note: We wait until the mouse moves at all, not necessarily that it
+actually reaches your intended destination. Some applications lock the 
+mouse cursor to certain regions of the screen, so waiting for any movement is
+better in the general case than waiting for a specific target.</p>
+</dd>
+</dl>
+</dd>
+<dt><strong><a name="mousemove_relative_options_x_y" class="item"><strong>mousemove_relative</strong> [options] <em>x</em> <em>y</em></a></strong></dt>
+
+<dd>
+<p>Move the mouse x,y pixels relative to the current position of the mouse cursor.</p>
+<dl>
+<dt><strong><a name="polar2" class="item"><strong>--polar</strong></a></strong></dt>
+
+<dd>
+<p>Use polar coordinates. This makes 'x' an angle (in degrees, 0-360, etc) and 'y'
+the distance.</p>
+<p>Rotation starts at 'up' (0 degrees) and rotates clockwise: 90 = right, 180 =
+down, 270 = left.</p>
+</dd>
+<dt><strong><a name="sync2" class="item"><strong>--sync</strong></a></strong></dt>
+
+<dd>
+<p>After sending the mouse move request, wait until the mouse is actually
+moved. If no movement is necessary, we will not wait. This is useful for
+scripts that depend on actions being completed before moving on.</p>
+<p>Note that we wait until the mouse moves at all, not necessarily that it
+actually reaches your intended destination. Some applications lock the mouse
+cursor to certain regions of the screen, so waiting for any movement is better
+in the general case than waiting for a specific target.</p>
+</dd>
+<dt><strong><a name="clearmodifiers4" class="item"><strong>--clearmodifiers</strong></a></strong></dt>
+
+<dd>
+<p>See <em>CLEARMODIFIERS</em></p>
+</dd>
+</dl>
+</dd>
+<dt><strong><a name="click_options_button" class="item"><strong>click</strong> <em>[options]</em> <em>button</em></a></strong></dt>
+
+<dd>
+<p>Send a click, that is, a mousedown followed by mouseup for the given button
+with a short delay between the two (currently 12ms).</p>
+<p>Buttons generally map this way: Left mouse is 1, middle is 2, right is 3,
+wheel up is 4, wheel down is 5.</p>
+<dl>
+<dt><strong><a name="clearmodifiers5" class="item"><strong>--clearmodifiers</strong></a></strong></dt>
+
+<dd>
+<p>Clear modifiers before clicking. See <em>CLEARMODIFIERS</em> below.</p>
+</dd>
+<dt><strong><a name="repeat_repeat" class="item"><strong>--repeat</strong> REPEAT</a></strong></dt>
+
+<dd>
+<p>Specify how many times to click. Default is 1. For a double-click, use
+'--repeat 2'</p>
+</dd>
+<dt><strong><a name="delay_milliseconds" class="item"><strong>--delay</strong> MILLISECONDS</a></strong></dt>
+
+<dd>
+<p>Specify how long, in milliseconds, to delay between clicks. This option is not
+used if the <em>--repeat</em> flag is set to 1 (default).</p>
+</dd>
+<dt><strong><a name="window_window2" class="item"><strong>--window</strong> WINDOW</a></strong></dt>
+
+<dd>
+<p>Specify a window to send a click to. See <a href="#sendevent_notes">SENDEVENT NOTES</a> below for caveats. Uses the
+current mouse position when generating the event.</p>
+<p>The default, if no window is given, depends on the window stack. If the window
+stack is empty the current window is typed at using XTEST. Otherwise, the
+default is &quot;%1&quot; (see <a href="#window_stack">WINDOW STACK</a>).</p>
+</dd>
+</dl>
+</dd>
+<dt><strong><a name="mousedown_options_button" class="item"><strong>mousedown</strong> <em>[options]</em> <em>button</em></a></strong></dt>
+
+<dd>
+<p>Same as <strong>click</strong>, except only a mouse down is sent.</p>
+</dd>
+<dt><strong><a name="mouseup_options_button" class="item"><strong>mouseup</strong> <em>[options]</em> <em>button</em></a></strong></dt>
+
+<dd>
+<p>Same as <strong>click</strong>, except only a mouse up is sent.</p>
+</dd>
+<dt><strong><a name="getmouselocation_shell" class="item"><strong>getmouselocation</strong> <em>[--shell]</em></a></strong></dt>
+
+<dd>
+<p>Outputs the x, y, screen, and window id of the mouse cursor. Screen numbers will
+be nonzero if you have multiple monitors and are not using Xinerama.</p>
+<dl>
+<dt><strong><a name="shell" class="item"><strong>--shell</strong></a></strong></dt>
+
+<dd>
+<p>This makes getmouselocation output shell data you can eval. Example:</p>
+<pre>
+ % xdotool getmouselocation --shell
+ X=880
+ Y=443
+ SCREEN=0
+ WINDOW=16777250</pre>
+<pre>
+ % eval $(xdotool getmouselocation --shell)
+ % echo $X,$Y
+ 714,324</pre>
+</dd>
+</dl>
+</dd>
+<dt><strong><a name="behave_screen_edge_options_where_command" class="item"><strong>behave_screen_edge</strong> <em>[options]</em> <em>where</em> <em>command ...</em></a></strong></dt>
+
+<dd>
+<p>Bind an action to events when the mouse hits the screen edge or corner.</p>
+<p>Options are:</p>
+<dl>
+<dt><strong><a name="delay_milliseconds2" class="item"><em>--delay MILLISECONDS</em></a></strong></dt>
+
+<dd>
+<p>Delay in milliseconds before running the command. This allows you to require
+a given edge or corner to be held for a short period before your command will
+run. If you leave the edge or corner before the delay expires then the time
+will reset.</p>
+</dd>
+<dt><strong><a name="quiesce_milliseconds" class="item"><em>--quiesce MILLISECONDS</em></a></strong></dt>
+
+<dd>
+<p>Delay in milliseconds before the next command will run. This helps prevent
+accidentally running your command extra times; especially useful if you have
+a very short --delay (like the default of 0).</p>
+</dd>
+</dl>
+<p>Event timeline</p>
+<pre>
+ * Mouse hits an edge or corner.
+ * If delay is nonzero, the mouse must stay in this edge or corner until delay time expires.
+ * If still in the edge/corner, trigger.
+ * If quiesce is nonzero, then there is a cool-down period where the next
+   trigger cannot occur</pre>
+<p>Valid 'where' values are:</p>
+<dl>
+<dt><strong><a name="left" class="item">left</a></strong></dt>
+
+<dt><strong><a name="top_left" class="item">top-left</a></strong></dt>
+
+<dt><strong><a name="top" class="item">top</a></strong></dt>
+
+<dt><strong><a name="top_right" class="item">top-right</a></strong></dt>
+
+<dt><strong><a name="right" class="item">right</a></strong></dt>
+
+<dt><strong><a name="bottom_left" class="item">bottom-left</a></strong></dt>
+
+<dt><strong><a name="bottom" class="item">bottom</a></strong></dt>
+
+<dt><strong><a name="bottom_right" class="item">bottom-right</a></strong></dt>
+
+</dl>
+<p>Examples:
+ # Activate google-chrome when you move the mouse to the bottom-left corner:
+ xdotool behave_screen_edge bottom-left \
+   search --class google-chrome windowactivate</p>
+<pre>
+ # Go to the next workspace (right). Known to work in GNOME (metacity and compiz)
+ xdotool behave_screen_edge --delay 500 bottom-right key XF86Forward</pre>
+<pre>
+ # Activate firefox and do a web search in a new tab for text in your clipboard
+ xdotool behave_screen_edge --delay 1000 top-left \
+     search --classname Navigator \
+     windowactivate --sync key --delay 250 ctrl+t ctrl+k ctrl+v Return</pre>
+</dd>
+</dl>
+<p>
+</p>
+<hr />
+<h1><a name="window_commands">WINDOW COMMANDS</a></h1>
+<dl>
+<dt><strong><a name="search_options_pattern" class="item"><strong>search</strong> <em>[options]</em> <em>pattern</em></a></strong></dt>
+
+<dd>
+<p>Search for windows with titles, names, or classes with a regular expression
+pattern. The output is line-delimited list of X window identifiers. If you
+are using <a href="#command_chaining">COMMAND CHAINING</a>, the <em>search</em> command will only write window
+ids to stdout if it is the last (or only) command in the chain; otherwise, it
+is silent.</p>
+<p>The result is saved to the window stack for future chained commands. See
+<a href="#window_stack">WINDOW STACK</a> and <a href="#command_chaining">COMMAND CHAINING</a> for details.</p>
+<p>The default options are <code>--name --class --classname</code> (unless you specify one
+one or more of --name --class or --classname).</p>
+<p>The options available are:</p>
+<dl>
+<dt><strong><a name="class" class="item"><strong>--class</strong></a></strong></dt>
+
+<dd>
+<p>Match against the window class.</p>
+</dd>
+<dt><strong><a name="classname" class="item"><strong>--classname</strong></a></strong></dt>
+
+<dd>
+<p>Match against the window classname.</p>
+</dd>
+<dt><strong><a name="maxdepth_n" class="item"><strong>--maxdepth</strong> N</a></strong></dt>
+
+<dd>
+<p>Set recursion/child search depth. Default is -1,
+meaning infinite. 0 means no depth, only root windows will be searched. If you
+only want toplevel windows, set maxdepth of 1 (or 2, depending on how your
+window manager does decorations).</p>
+</dd>
+<dt><strong><a name="name" class="item"><strong>--name</strong></a></strong></dt>
+
+<dd>
+<p>Match against the window name. This is the same string that is displayed in the
+window titlebar.</p>
+</dd>
+<dt><strong><a name="onlyvisible" class="item"><strong>--onlyvisible</strong></a></strong></dt>
+
+<dd>
+<p>Show only visible windows in the results. This means ones with map state
+IsViewable.</p>
+</dd>
+<dt><strong><a name="pid_pid" class="item"><strong>--pid PID</strong></a></strong></dt>
+
+<dd>
+<p>Match windows that belong to a specific process id. This may not work for some
+X applications that do not set this metadata on its windows.</p>
+</dd>
+<dt><strong><a name="screen_n" class="item"><strong>--screen N</strong></a></strong></dt>
+
+<dd>
+<p>Select windows only on a specific screen. Default is to
+search all screens. Only meaningful if you have multiple displays and are not
+using Xinerama.</p>
+</dd>
+<dt><strong><a name="desktop_n" class="item"><strong>--desktop N</strong></a></strong></dt>
+
+<dd>
+<p>Only match windows on a certain desktop. 'N' is a number. The default
+is to search all desktops.</p>
+</dd>
+<dt><strong><a name="limit_n" class="item"><strong>--limit N</strong></a></strong></dt>
+
+<dd>
+<p>Stop searching after finding N matching windows. Specifying a limit will help
+speed up your search if you only want a few results.</p>
+<p>The default is no search limit (which is equivalent to '--limit 0')</p>
+</dd>
+<dt><strong><a name="title" class="item"><strong>--title</strong></a></strong></dt>
+
+<dd>
+<p>DEPRECATED. See --name.</p>
+</dd>
+<dt><strong><a name="all" class="item"><strong>--all</strong></a></strong></dt>
+
+<dd>
+<p>Require that all conditions be met. For example:</p>
+<pre>
+ xdotool search --all --pid 1424 --name &quot;Hello World&quot;</pre>
+<p>This will match only windows that have &quot;Hello World&quot; as a name and are owned by
+pid 1424.</p>
+</dd>
+<dt><strong><a name="any" class="item"><strong>--any</strong></a></strong></dt>
+
+<dd>
+<p>Match windows that match any condition (logically, 'or'). This is on by
+default. For example:</p>
+<pre>
+ xdotool search --any --pid 1424 --name &quot;Hello World&quot;</pre>
+<p>This will match any windows owned by pid 1424 or windows with name &quot;Hello
+World&quot;</p>
+</dd>
+<dt><strong><a name="sync3" class="item"><strong>--sync </strong></a></strong></dt>
+
+<dd>
+<p>Block until there are results. This is useful when you are launching an
+application want want to wait until the application window is visible.
+For example:</p>
+<pre>
+ google-chrome &amp;
+ xdotool search --sync --onlyvisible --class &quot;google-chrome&quot;</pre>
+</dd>
+</dl>
+</dd>
+<dt><strong><a name="selectwindow" class="item"><strong>selectwindow</strong></a></strong></dt>
+
+<dd>
+<p>Get the window id (for a client) by clicking on it. Useful for having scripts
+query you humans for what window to act on. For example, killing a window by
+clicking on it:</p>
+<pre>
+ xdotool selectwindow windowkill</pre>
+</dd>
+<dt><strong><a name="behave_window_action_command" class="item"><strong>behave</strong> <em>window</em> <em>action</em> <em>command ...</em></a></strong></dt>
+
+<dd>
+<p>Bind an action to an event on a window. This lets you run additional xdotool
+commands whenever a matched event occurs.</p>
+<p>The command run as a result of the behavior is run with %1 being the window
+that was acted upon. Examples follow after the event list.</p>
+<p>The following are valid events:</p>
+<dl>
+<dt><strong><a name="mouse_enter" class="item"><strong>mouse-enter</strong></a></strong></dt>
+
+<dd>
+<p>Fires when the mouse enters a window. This is similar to 'mouse over' events in
+javascript, if that helps.</p>
+</dd>
+<dt><strong><a name="mouse_leave" class="item"><strong>mouse-leave</strong></a></strong></dt>
+
+<dd>
+<p>Fires when the mouse leaves a window. This is the opposite of 'mouse-enter'</p>
+</dd>
+<dt><strong><a name="mouse_click" class="item"><strong>mouse-click</strong></a></strong></dt>
+
+<dd>
+<p>Fires when the mouse is clicked. Specifically, when the mouse button is released.</p>
+</dd>
+<dt><strong><a name="focus" class="item"><strong>focus</strong></a></strong></dt>
+
+<dd>
+<p>Fires when the window gets input focus.</p>
+</dd>
+<dt><strong><a name="blur" class="item"><strong>blur</strong></a></strong></dt>
+
+<dd>
+<p>Fires when the window loses focus.</p>
+</dd>
+</dl>
+<p>Examples:</p>
+<pre>
+ # Print the cursor location whenever the mouse enters a currently-visible
+ # window:
+ xdotool search --onlyvisible . behave %@ mouse-enter getmouselocation</pre>
+<pre>
+ # Print the window title and pid whenever an xterm gets focus
+ xdotool search --class xterm behave %@ focus getwindowname getwindowpid</pre>
+<pre>
+ # Emulate focus-follows-mouse
+ xdotool search . behave %@ mouse-enter windowfocus</pre>
+</dd>
+<dt><strong><a name="getwindowpid_window" class="item"><strong>getwindowpid</strong> <em>[window]</em></a></strong></dt>
+
+<dd>
+<p>Output the PID owning a given window. This requires effort from the application
+owning a window and may not work for all windows. This uses _NET_WM_PID
+property of the window. See <a href="#extended_window_manager_hints">EXTENDED WINDOW MANAGER HINTS</a> below for more
+information.</p>
+<p>If no window is given, the default is '%1'. If no windows are on the stack, then
+this is an error. See <a href="#window_stack">WINDOW STACK</a> for more details.</p>
+<p>Example: Find the PID for all xterms:
+ xdotool search --class xterm getwindowpid %@</p>
+</dd>
+<dt><strong><a name="getwindowname_window" class="item"><strong>getwindowname</strong> <em>[window]</em></a></strong></dt>
+
+<dd>
+<p>Output the name of a given window, also known as the title. This is the text
+displayed in the window's titlebar by your window manager.</p>
+<p>If no window is given, the default is '%1'. If no windows are on the stack, then
+this is an error. See <a href="#window_stack">WINDOW STACK</a> for more details.</p>
+</dd>
+<dt><strong><a name="getwindowgeometry_options_window" class="item"><strong>getwindowgeometry</strong> [options] <em>[window]</em></a></strong></dt>
+
+<dd>
+<p>Output the geometry (location and position) of a window. The values include: x,
+y, width, height, and screen number.</p>
+<dl>
+<dt><strong><a name="shell2" class="item"><strong>--shell</strong></a></strong></dt>
+
+<dd>
+<p>Output values suitable for 'eval' in a shell.</p>
+</dd>
+</dl>
+</dd>
+<dt><strong><a name="getwindowfocus_f" class="item"><strong>getwindowfocus</strong> [-f]</a></strong></dt>
+
+<dd>
+<p>Prints the window id of the currently focused window. Saves the result to the
+window stack. See <a href="#window_stack">WINDOW STACK</a> for more details.</p>
+<p>If the current window has no WM_CLASS property, we assume it is not a normal
+top-level window and traverse up the parents until we find a window with a
+WM_CLASS set and return that window id.</p>
+<p>If you really want the window currently having focus and don't care if it has a
+WM_CLASS setting, then use 'getwindowfocus -f'</p>
+</dd>
+<dt><strong><a name="windowsize_options_window_width_height" class="item"><strong>windowsize</strong> [options] [window] width height</a></strong></dt>
+
+<dd>
+<p>Set the window size of the given window. If no window is given, %1 is the
+default.  See <a href="#window_stack">WINDOW STACK</a> and <a href="#command_chaining">COMMAND CHAINING</a> for more details.</p>
+<p>Percentages are valid for width and height. They are relative to the geometry
+of the screen the window is on. For example, to make a window the full width of
+the screen, but half height:</p>
+<pre>
+ xdotool windowsize I&lt;window&gt; 100% 50%</pre>
+<p>Percentages are valid with --usehints and still mean pixel-width relative to
+the screen size.</p>
+<p>The options available are:</p>
+<dl>
+<dt><strong><a name="usehints" class="item"><strong>--usehints</strong></a></strong></dt>
+
+<dd>
+<p>Use window sizing hints (when available) to set width and height.  This is
+useful on terminals for setting the size based on row/column of text rather
+than pixels.</p>
+</dd>
+<dt><strong><a name="sync4" class="item"><strong>--sync</strong></a></strong></dt>
+
+<dd>
+<p>After sending the window size request, wait until the window is actually
+resized. If no change is necessary, we will not wait. This is useful for
+scripts that depend on actions being completed before moving on.</p>
+<p>Note: Because many window managers may ignore or alter the original resize
+request, we will wait until the size changes from its original size, not 
+necessary to the requested size.</p>
+</dd>
+</dl>
+<p>Example: To set a terminal to be 80x24 characters, you would use:
+ xdotool windowsize --usehints <em>some_windowid</em> 80 24</p>
+</dd>
+<dt><strong><a name="windowmove_options_window_x_y" class="item"><strong>windowmove</strong> <em>[options]</em> <em>[window]</em> <em>x</em> <em>y</em></a></strong></dt>
+
+<dd>
+<p>Move the window to the given position. If no window is given, %1 is the
+default. See <a href="#window_stack">WINDOW STACK</a> and <a href="#command_chaining">COMMAND CHAINING</a> for more details.</p>
+<p>If the given x coordinate is literally 'x', then the window's current x
+position will be unchanged. The same applies for 'y'.</p>
+<p>Examples:</p>
+<pre>
+ xdotool getactivewindow windowmove 100 100    # Moves to 100,100
+ xdotool getactivewindow windowmove x 100      # Moves to x,100
+ xdotool getactivewindow windowmove 100 y      # Moves to 100,y
+ xdotool getactivewindow windowmove 100 y      # Moves to 100,y</pre>
+<dl>
+<dt><strong><a name="sync5" class="item"><strong>--sync</strong></a></strong></dt>
+
+<dd>
+<p>After sending the window move request, wait until the window is actually
+moved. If no movement is necessary, we will not wait. This is useful for
+scripts that depend on actions being completed before moving on.</p>
+</dd>
+<dt><strong><a name="relative" class="item"><strong>--relative</strong></a></strong></dt>
+
+<dd>
+<p>Make movement relative to the current window position.</p>
+</dd>
+</dl>
+</dd>
+<dt><strong><a name="windowfocus_options_window" class="item"><strong>windowfocus</strong> <em>[options]</em> <em>[window]</em></a></strong></dt>
+
+<dd>
+<p>Focus a window. If no window is given, %1 is the default. See <a href="#window_stack">WINDOW STACK</a>
+and <a href="#command_chaining">COMMAND CHAINING</a> for more details.</p>
+<p>Uses <em>XSetInputFocus</em> which may be ignored by some window managers or programs.</p>
+<dl>
+<dt><strong><a name="sync6" class="item"><strong>--sync</strong></a></strong></dt>
+
+<dd>
+<p>After sending the window focus request, wait until the window is actually
+focused. This is useful for scripts that depend on actions being completed
+before moving on.</p>
+</dd>
+</dl>
+</dd>
+<dt><strong><a name="windowmap_options_window" class="item"><strong>windowmap</strong> <em>[options]</em> <em>[window]</em></a></strong></dt>
+
+<dd>
+<p>Map a window. In X11 terminology, mapping a window means making it visible on
+the screen. If no window is given, %1 is the default. See <a href="#window_stack">WINDOW STACK</a> and
+<a href="#command_chaining">COMMAND CHAINING</a> for more details.</p>
+<dl>
+<dt><strong><a name="sync7" class="item"><strong>--sync</strong></a></strong></dt>
+
+<dd>
+<p>After requesting the window map, wait until the window is actually mapped
+(visible). This is useful for scripts that depend on actions being completed
+before moving on.</p>
+</dd>
+</dl>
+</dd>
+<dt><strong><a name="windowminimize_options_window" class="item"><strong>windowminimize</strong> <em>[options]</em> <em>[window]</em></a></strong></dt>
+
+<dd>
+<p>Minimize a window. In X11 terminology, this is called 'iconify.'
+If no window is given, %1 is the default. See <a href="#window_stack">WINDOW STACK</a> and
+<a href="#command_chaining">COMMAND CHAINING</a> for more details.</p>
+<dl>
+<dt><strong><a name="sync8" class="item"><strong>--sync</strong></a></strong></dt>
+
+<dd>
+<p>After requesting the window minimize, wait until the window is actually
+minimized. This is useful for scripts that depend on actions being completed
+before moving on.</p>
+</dd>
+</dl>
+</dd>
+<dt><strong><a name="windowraise_window_id_1" class="item"><strong>windowraise</strong> <em>[window_id=%1]</em></a></strong></dt>
+
+<dd>
+<p>Raise the window to the top of the stack. This may not work on all window
+managers. If no window is given, %1 is the default. See <a href="#window_stack">WINDOW STACK</a> and
+<a href="#command_chaining">COMMAND CHAINING</a> for more details.</p>
+</dd>
+<dt><strong><a name="windowreparent_source_window_destination_window" class="item"><strong>windowreparent</strong> <em>[source_window]</em> <em>destination_window</em></a></strong></dt>
+
+<dd>
+<p>Reparent a window. This moves the <em>source_window</em> to be a child window of
+<em>destination_window</em>. If no source is given, %1 is the default. 
+<a href="#window_stack">WINDOW STACK</a> window references (like %1) are valid for both <em>source_window</em>
+and <em>destination_window</em> See <a href="#window_stack">WINDOW STACK</a> and <a href="#command_chaining">COMMAND CHAINING</a> for more
+details.</p>
+</dd>
+<dt><strong><a name="windowkill_window" class="item"><strong>windowkill</strong> <em>[window]</em></a></strong></dt>
+
+<dd>
+<p>Kill a window. This action will destroy the window and kill the client
+controlling it. If no window is given, %1 is the default. See <a href="#window_stack">WINDOW STACK</a> and <a href="#command_chaining">COMMAND CHAINING</a> for more details.</p>
+</dd>
+<dt><strong><a name="windowunmap_options_window_id_1" class="item"><strong>windowunmap</strong> <em>[options]</em> <em>[window_id=%1]</em></a></strong></dt>
+
+<dd>
+<p>Unmap a window, making it no longer appear on your screen. If no window is
+given, %1 is the default. See <a href="#window_stack">WINDOW STACK</a> and <a href="#command_chaining">COMMAND CHAINING</a> for more
+details.</p>
+<dl>
+<dt><strong><a name="sync9" class="item"><strong>--sync</strong></a></strong></dt>
+
+<dd>
+<p>After requesting the window unmap, wait until the window is actually unmapped
+(hidden). This is useful for scripts that depend on actions being completed
+before moving on.</p>
+</dd>
+</dl>
+</dd>
+<dt><strong><a name="set_window_options_windowid_1" class="item"><strong>set_window</strong> <em>[options]</em> <em>[windowid=%1]</em></a></strong></dt>
+
+<dd>
+<p>Set properties about a window. If no window is given, %1 is the default. See
+<a href="#window_stack">WINDOW STACK</a> and <a href="#command_chaining">COMMAND CHAINING</a> for more details.</p>
+<p>Options:</p>
+<dl>
+<dt><strong><a name="name_newname" class="item"><strong>--name newname</strong></a></strong></dt>
+
+<dd>
+<p>Set window WM_NAME (the window title, usually)</p>
+</dd>
+<dt><strong><a name="icon_name_newiconname" class="item"><strong>--icon-name newiconname</strong></a></strong></dt>
+
+<dd>
+<p>Set window WM_ICON_NAME (the window title when minimized, usually)</p>
+</dd>
+<dt><strong><a name="role_newrole" class="item"><strong>--role newrole</strong></a></strong></dt>
+
+<dd>
+<p>Set window WM_WINDOW_ROLE</p>
+</dd>
+<dt><strong><a name="classname_newclassname" class="item"><strong>--classname newclassname</strong></a></strong></dt>
+
+<dd>
+<p>Set window class name (not to be confused with window class)</p>
+</dd>
+<dt><strong><a name="class_newclass" class="item"><strong>--class newclass</strong></a></strong></dt>
+
+<dd>
+<p>Set window class (not to be confused with window class name)</p>
+</dd>
+<dt><strong><a name="overrideredirect_value" class="item"><strong>--overrideredirect value</strong></a></strong></dt>
+
+<dd>
+<p>Set window's override_redirect value. This value is a hint to the window
+manager for whether or not it should be managed. If the redirect value is 0,
+then the window manager will draw borders and treat this window normally. If
+the value is 1, the window manager will ignore this window.</p>
+<p>If you change this value, your window manager may not notice the change until
+the window is mapped again, so you may want to issue 'windowunmap' and
+'windowmap' to make the window manager take note.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p>
+</p>
+<hr />
+<h1><a name="desktop_and_window_commands">DESKTOP AND WINDOW COMMANDS</a></h1>
+<p>These commands follow the EWMH standard. See the section <a href="#extended_window_manager_hints">EXTENDED WINDOW MANAGER HINTS</a> for more information.</p>
+<dl>
+<dt><strong><a name="windowactivate_options_window" class="item"><strong>windowactivate</strong> <em>[options]</em> <em>[window]</em></a></strong></dt>
+
+<dd>
+<p>Activate the window. This command is different from windowfocus:
+if the window is on another desktop, we will switch to that desktop. It also
+uses a different method for bringing the window up. I recommend trying this
+command before using windowfocus, as it will work on more window managers.</p>
+<p>If no window is given, %1 is the default. See <a href="#window_stack">WINDOW STACK</a> and
+<a href="#command_chaining">COMMAND CHAINING</a> for more details.</p>
+<dl>
+<dt><strong><a name="sync10" class="item"><strong>--sync</strong></a></strong></dt>
+
+<dd>
+<p>After sending the window activation, wait until the window is actually
+activated. This is useful for scripts that depend on actions being completed
+before moving on.</p>
+</dd>
+</dl>
+</dd>
+<dt><strong><a name="getactivewindow" class="item"><strong>getactivewindow</strong></a></strong></dt>
+
+<dd>
+<p>Output the current active window. This command is often more reliable than
+getwindowfocus. The result is saved to the window stack. See <a href="#window_stack">WINDOW STACK</a>
+for more details.</p>
+</dd>
+<dt><strong><a name="set_num_desktops_number" class="item"><strong>set_num_desktops</strong> <em>number</em></a></strong></dt>
+
+<dd>
+<p>Changes the number of desktops or workspaces.</p>
+</dd>
+<dt><strong><a name="get_num_desktops" class="item"><strong>get_num_desktops</strong></a></strong></dt>
+
+<dd>
+<p>Output the current number of desktops.</p>
+</dd>
+<dt><strong><a name="get_desktop_viewport_shell" class="item"><strong>get_desktop_viewport</strong> <em>[--shell]</em></a></strong></dt>
+
+<dd>
+<p>Report the current viewport's position. If --shell is given, the output is
+friendly to shell eval.</p>
+<p>Viewports are sometimes used instead of 'virtual desktops' on some window
+managers. A viewport is simply a view on a very large desktop area.</p>
+</dd>
+<dt><strong><a name="set_desktop_viewport_x_y" class="item"><strong>set_desktop_viewport</strong> <em>x</em> <em>y</em></a></strong></dt>
+
+<dd>
+<p>Move the viewport to the given position. Not all requests will be obeyed - some
+windowmangers only obey requests that align to workspace boundaries, such as
+the screen size.</p>
+<p>For example, if your screen is 1280x800, you can move to the 2nd workspace by doing:
+ xdotool set_desktop_viewport 1280 0</p>
+</dd>
+<dt><strong><a name="set_desktop_options_desktop_number" class="item"><strong>set_desktop</strong> <em>[options]</em> <em>desktop_number</em></a></strong></dt>
+
+<dd>
+<p>Change the current view to the specified desktop.</p>
+<dl>
+<dt><strong><a name="relative2" class="item"><strong>--relative</strong></a></strong></dt>
+
+<dd>
+<p>Use relative movements instead of absolute. This lets you move relative to the
+current desktop.</p>
+</dd>
+</dl>
+</dd>
+<dt><strong><a name="get_desktop" class="item"><strong>get_desktop</strong></a></strong></dt>
+
+<dd>
+<p>Output the current desktop in view.</p>
+</dd>
+<dt><strong><a name="set_desktop_for_window_window_desktop_number" class="item"><strong>set_desktop_for_window</strong> <em>[window]</em> <em>desktop_number</em></a></strong></dt>
+
+<dd>
+<p>Move a window to a different desktop. If no window is given, %1 is the
+default. See <a href="#window_stack">WINDOW STACK</a> and <a href="#command_chaining">COMMAND CHAINING</a> for more details.</p>
+</dd>
+<dt><strong><a name="get_desktop_for_window_window" class="item"><strong>get_desktop_for_window</strong> <em>[window]</em></a></strong></dt>
+
+<dd>
+<p>Output the desktop currently containing the given window. Move a window to a
+different desktop. If no window is given, %1 is the default. See <a href="#window_stack">WINDOW STACK</a> and <a href="#command_chaining">COMMAND CHAINING</a> for more details.</p>
+</dd>
+</dl>
+<p>
+</p>
+<hr />
+<h1><a name="miscellaneous_commands">MISCELLANEOUS COMMANDS</a></h1>
+<pre>
+ 
+=over</pre>
+<dl>
+<dt><strong><a name="exec_options_command" class="item"><strong>exec</strong> <em>[options]</em> <em>command</em> <em>[...]</em></a></strong></dt>
+
+<dd>
+<p>Execute a program. This is often useful when combined with behave_screen_edge
+to do things like locking your screen.</p>
+<p>Options:</p>
+<dl>
+<dt><strong><a name="sync11" class="item"><strong>--sync</strong></a></strong></dt>
+
+<dd>
+<p>Block until the child process exits. The child process exit status is then
+passed to the parent process (xdotool) which copies it.</p>
+</dd>
+</dl>
+<p>Examples:
+ # Lock the screen when the mouse sits in the top-right corner
+ xdotool behave_screen_edge --delay 1000 top-right \
+   exec gnome-screensaver-command --lock
+ # Substitute 'xscreensaver-command -lock' if you use that program.</p>
+<pre>
+ # The following will fail to move the mouse because we use '--sync' and
+ # /bin/false exits nonzero:
+ xdotool exec --sync /bin/false mousemove 0 0</pre>
+<pre>
+ # This succeeds, though, since we do not use --sync on the exec command.
+ xdotool exec /bin/false mousemove 0 0</pre>
+</dd>
+<dt><strong><a name="sleep_seconds" class="item"><strong>sleep</strong> <em>seconds</em></a></strong></dt>
+
+<dd>
+<p>Sleep for a specified period. Fractions of seconds (like 1.3, or 0.4) are
+valid, here.</p>
+</dd>
+</dl>
+<p>
+</p>
+<hr />
+<h1><a name="scripts">SCRIPTS</a></h1>
+<p>xdotool can read a list of commands via stdin or a file if you want. A script
+will fail when any command fails.</p>
+<p>Truthfully, 'script' mode isn't fully fleshed out and may fall below your
+expectations. If you have suggestions, please email the list or file a bug (See
+<em>CONTACT</em>).</p>
+<p>Scripts can use positional arguments (Represented by $1, $2, ...) and
+environment variables (like $HOME or $WINDOWID). Quoting arguments should work
+as expected.</p>
+<p>Scripts are processed for parameter and environment variable expansion and then
+run as if you had invoked xdotool with the entire script on one line (using
+COMMAND CHAINING).</p>
+<ul>
+<li><strong><a name="read_commands_from_a_file" class="item">Read commands from a file:</a></strong>
+
+<pre>
+ xdotool filename</pre>
+</li>
+<li><strong><a name="read_commands_from_stdin" class="item">Read commands from stdin:</a></strong>
+
+<pre>
+ xdotool -</pre>
+</li>
+<li><strong><a name="read_commands_from_a_redirected_file" class="item">Read commands from a redirected file</a></strong>
+
+<pre>
+ xdotool - &lt; myfile</pre>
+</li>
+</ul>
+<p>You can also write scripts that only execute xdotool. Example:</p>
+<pre>
+ #!/usr/local/bin/xdotool
+ search --onlyvisible --classname $1</pre>
+<pre>
+ windowsize %@ $2 $3
+ windowraise %@</pre>
+<pre>
+ windowmove %1 0 0
+ windowmove %2 $2 0
+ windowmove %3 0 $3
+ windowmove %4 $2 $3</pre>
+<p>This script will take all windows matched by the classname query given by arg1
+($1) and sizes/moves them into a 2x2 grid with windows sized by the 2nd and 3rd
+parameters.</p>
+<p>Here's an example usage:</p>
+<pre>
+ % ./myscript xterm 600 400</pre>
+<p>Running it like this will take 4 visible xterms, raise them, and move them into
+a 2x2 tile grid with each window 600x400 pixels in size.</p>
+<p>
+</p>
+<hr />
+<h1><a name="clearmodifiers">CLEARMODIFIERS</a></h1>
+<p>Any command taking the <em>--clearmodifiers</em> flag will attempt to clear any
+active input modifiers during the command and restore them afterwards.</p>
+<p>For example, if you were to run this command:
+ xdotool key a</p>
+<p>The result would be 'a' or 'A' depending on whether or not you were holding the
+shift key on your keyboard. Often it is undesirable to have any modifiers
+active, so you can tell xdotool to clear any active modifiers.</p>
+<p>The order of operations if you hold shift while running 'xdotool key --clearmodifiers a' is this:</p>
+<ol>
+<li><strong><a name="modifiers" class="item">Query for all active modifiers (finds shift, in this case)</a></strong>
+
+</li>
+<li><strong><a name="try_to_clear_shift_by_sending_key_up_for_the_shift_key" class="item">Try to clear shift by sending 'key up' for the shift key</a></strong>
+
+</li>
+<li><strong><a name="runs_normal_xdotool_key_a" class="item">Runs normal 'xdotool key a'</a></strong>
+
+</li>
+<li><strong><a name="restore_shift_key_by_sending_key_down_for_shift" class="item">Restore shift key by sending 'key down' for shift</a></strong>
+
+</li>
+</ol>
+<p>The <em>--clearmodifiers</em> flag can currently clear of the following:</p>
+<ul>
+<li><strong><a name="xmodmap" class="item">any key in your active keymap that has a modifier associated with it.
+(See <a href="#xmodmap">xmodmap(1)</a>'s 'xmodmap -pm' output)</a></strong>
+
+</li>
+<li><strong><a name="buttons" class="item">mouse buttons (1, 2, 3, 4, and 5)</a></strong>
+
+</li>
+<li><strong><a name="caps_lock" class="item">caps lock</a></strong>
+
+</li>
+</ul>
+<p>
+</p>
+<hr />
+<h1><a name="sendevent_notes">SENDEVENT NOTES</a></h1>
+<p>If you are trying to send key input to a specific window, and it does not
+appear to be working, then it's likely your application is ignoring the events
+xdotool is generating. This is fairly common.</p>
+<p>Sending keystrokes to a specific window uses a different API than simply typing
+to the active window. If you specify 'xdotool type --window 12345 hello'
+xdotool will generate key events and send them directly to window 12345.
+However, X11 servers will set a special flag on all events generated in this
+way (see XEvent.xany.send_event in X11's manual). Many programs observe this
+flag and reject these events.</p>
+<p>It is important to note that for key and mouse events, we only use
+<em>XSendEvent</em> when a specific window is targeted. Otherwise, we use <a href="#xtest">XTEST</a>.</p>
+<p>Some programs can be configured to accept events even if they are generated by
+xdotool. Seek the documentation of your application for help.</p>
+<p>Specific application notes (from the author's testing):
+* Firefox 3 seems to ignore all input when it does not have focus.
+* xterm can be configured while running with ctrl+leftclick, 'Allow SendEvents'
+* gnome-terminal appears to accept generated input by default.</p>
+<p>
+</p>
+<hr />
+<h1><a name="window_stack">WINDOW STACK</a></h1>
+<p>Certain commands (search, getactivewindow, getwindowfocus) will find windows
+for you. These results generally printed to stdout, but they are also saved
+to memory for future use during the lifetime of the xdotool process. See
+<a href="#command_chaining">COMMAND CHAINING</a> for more information.</p>
+<p>The only modifications support for the window stack are to replace it. That is,
+two of two sequential searches, only the last one's results will be the window
+stack.</p>
+<p>
+</p>
+<hr />
+<h1><a name="command_chaining">COMMAND CHAINING</a></h1>
+<p>xdotool supports running multiple commands on a single invocation. Generally,
+you'll start with a search command (see <a href="#window_stack">WINDOW STACK</a>) and then perform a 
+set of actions on those results.</p>
+<p>To query the window stack, you can use special notation &quot;%N&quot; where N is a
+number or the '@' symbol. If %N is given, the Nth window will be selected from
+the window stack. Generally you will only want the first window or all windows.
+Note that the order of windows in the window stack corresponds to the window
+stacking order, i.e. the bottom-most window will be reported first (see
+XQueryTree(3)). Thus the order of the windows in the window stack may not be
+consistent across invocations.</p>
+<p>The notation described above is used as the &quot;window&quot; argument for any given
+command.</p>
+<p>For example, to resize all xterms to 80x24:</p>
+<pre>
+ xdotool search --class xterm -- windowsize --usehints %@ 80 24</pre>
+<p>Resize move the current window:</p>
+<pre>
+ xdotool getactivewindow windowmove 0 0</pre>
+<p>In all cases, the default window argument, if omitted, will default to &quot;%1&quot;. It is
+obviously an error if you omit the window argument and the window stack is empty. If you
+try to use the window stack and it is empty, it is also an error.</p>
+<p>To activate the first firefox window found:</p>
+<pre>
+ xdotool search --class firefox windowactivate</pre>
+<p>These would error:</p>
+<pre>
+ xdotool windowactivate
+ xdotool windowactivate %1
+ xdotool windowactivate %@</pre>
+<p>When xdotool exits, the current window stack is lost.</p>
+<p>Additinally, commands that modify the <a href="#window_stack">WINDOW STACK</a> will not print the
+results if they are not the last command. For example:</p>
+<pre>
+ # Output the active window:
+ % xdotool getactivewindow 
+ 20971533</pre>
+<pre>
+ # Output the pid of the active window, but not the active window id:
+ % xdotool getactivewindow getwindowpid
+ 4686</pre>
+<p>
+</p>
+<hr />
+<h1><a name="extended_window_manager_hints">EXTENDED WINDOW MANAGER HINTS</a></h1>
+<p>The following pieces of the EWMH standard are supported:</p>
+<dl>
+<dt><strong><a name="net_supported" class="item">_NET_SUPPORTED</a></strong></dt>
+
+<dd>
+<p>Asks the window manager what is supported</p>
+</dd>
+<dt><strong><a name="net_current_desktop" class="item">_NET_CURRENT_DESKTOP</a></strong></dt>
+
+<dd>
+<p>Query and set the current desktop. Support for this enables these commands:
+<code>set_desktop</code>, <a href="#get_desktop"><code>get_desktop</code></a>.</p>
+</dd>
+<dt><strong><a name="net_wm_desktop" class="item">_NET_WM_DESKTOP</a></strong></dt>
+
+<dd>
+<p>Query and set what desktop a window is living in. Support for this enables
+these commands: <code>set_desktop_for_window</code>, <code>get_desktop_for_window</code>.</p>
+</dd>
+<dt><strong><a name="net_active_window" class="item">_NET_ACTIVE_WINDOW</a></strong></dt>
+
+<dd>
+<p>Allows you to query and set the active window by asking the window manager to
+bring it forward. Support for this enables these commands: <code>windowactivate</code>, <a href="#getactivewindow"><code>getactivewindow</code></a>.</p>
+</dd>
+<dt><strong><a name="net_wm_pid" class="item">_NET_WM_PID</a></strong></dt>
+
+<dd>
+<p>This feature is application dependent, not window-manager dependent. Query the
+PID owning a given window. Support for this enables these commands:
+<code>getwindowpid</code>.</p>
+</dd>
+</dl>
+<p>
+</p>
+<hr />
+<h1><a name="supported_features">SUPPORTED FEATURES</a></h1>
+<p>xdotool (and libxdo) will try to function under all circumstances. However, there may
+be some cases where functionality is not provided by your X server or by your
+window manager. In these cases, xdotool will try to detect and tell you if an action
+requires a feature not currently supported by your system.</p>
+<p>For window-manager specific features, see <a href="#extended_window_manager_hints">EXTENDED WINDOW MANAGER HINTS</a>.</p>
+<dl>
+<dt><strong><a name="xtest" class="item">XTEST</a></strong></dt>
+
+<dd>
+<p>If your X server does not support XTEST, then some typing and mouse movement
+features may not work. Specifically, typing and mouse actions that act on the
+&quot;current window&quot; (window 0 in libxdo) are unlikely to work.</p>
+<p>In most cases, XTEST is a feature you can enable on your X server if it is
+not enabled by default.</p>
+<p>You can see the list of supported X extensions by typing 'xdpyinfo' and looking
+the text 'number of extensions: ...'</p>
+</dd>
+</dl>
+<p>
+</p>
+<hr />
+<h1><a name="see_also">SEE ALSO</a></h1>
+<p><em>xprop(1)</em>, <em>xwininfo(1)</em>,</p>
+<p>Project site: <a href="http://www.semicomplete.com/projects/xdotool">http://www.semicomplete.com/projects/xdotool</a></p>
+<p>Google Code: <a href="http://semicomplete.googlecode.com/">http://semicomplete.googlecode.com/</a></p>
+<p>EWMH specification: <a href="http://standards.freedesktop.org/wm-spec/wm-spec-1.3.html">http://standards.freedesktop.org/wm-spec/wm-spec-1.3.html</a></p>
+<p>
+</p>
+<hr />
+<h1><a name="contact">CONTACT</a></h1>
+<p>Please send questions to <a href="/cdn-cgi/l/email-protection#067e62697269696a2b737563747546616969616a636174697376752865696b28"><span class="__cf_email__" data-cfemail="0f776b607b606063227a7c6a7d7c4f68606068636a687d607a7f7c216c606221">[email&#160;protected]</span><script data-cfhash='f9e31' type="text/javascript">/* <![CDATA[ */!function(t,e,r,n,c,a,p){try{t=document.currentScript||function(){for(t=document.getElementsByTagName('script'),e=t.length;e--;)if(t[e].getAttribute('data-cfhash'))return t[e]}();if(t&&(c=t.previousSibling)){p=t.parentNode;if(a=c.getAttribute('data-cfemail')){for(e='',r='0x'+a.substr(0,2)|0,n=2;a.length-n;n+=2)e+='%'+('0'+('0x'+a.substr(n,2)^r).toString(16)).slice(-2);p.replaceChild(document.createTextNode(decodeURIComponent(e)),c)}p.removeChild(t)}}catch(u){}}()/* ]]> */</script></a> File bugs and feature requests at the following URL:</p>
+<p><a href="http://code.google.com/p/semicomplete/issues/list">http://code.google.com/p/semicomplete/issues/list</a></p>
+<p>Alternately, if you prefer email, feel free to file bugs by emailing the list.
+What works for you :)</p>
+<p>
+</p>
+<hr />
+<h1><a name="author">AUTHOR</a></h1>
+<p>xdotool was written by Jordan Sissel.</p>
+<p>This manual page was written originally by Daniel Kahn Gillmor
+&lt;<a href="/cdn-cgi/l/email-protection#cfaba4a88fa9a6a9bba7a7a0bdbcaaa2aea1e1a1aabb"><span class="__cf_email__" data-cfemail="d8bcb3bf98beb1beacb0b0b7aaabbdb5b9b6f6b6bdac">[email&#160;protected]</span><script data-cfhash='f9e31' type="text/javascript">/* <![CDATA[ */!function(t,e,r,n,c,a,p){try{t=document.currentScript||function(){for(t=document.getElementsByTagName('script'),e=t.length;e--;)if(t[e].getAttribute('data-cfhash'))return t[e]}();if(t&&(c=t.previousSibling)){p=t.parentNode;if(a=c.getAttribute('data-cfemail')){for(e='',r='0x'+a.substr(0,2)|0,n=2;a.length-n;n+=2)e+='%'+('0'+('0x'+a.substr(n,2)^r).toString(16)).slice(-2);p.replaceChild(document.createTextNode(decodeURIComponent(e)),c)}p.removeChild(t)}}catch(u){}}()/* ]]> */</script></a>&gt; for the Debian project (but may be
+used by others). It is maintained by Jordan Sissel.</p>
+<p>Patches, ideas, and other contributions by many, nice folks. See the CHANGELIST
+file for who provided what.</p>
+
+<script type="text/javascript">/* <![CDATA[ */(function(d,s,a,i,j,r,l,m,t){try{l=d.getElementsByTagName('a');t=d.createElement('textarea');for(i=0;l.length-i;i++){try{a=l[i].href;s=a.indexOf('/cdn-cgi/l/email-protection');m=a.length;if(a&&s>-1&&m>28){j=28+s;s='';if(j<m){r='0x'+a.substr(j,2)|0;for(j+=2;j<m&&a.charAt(j)!='X';j+=2)s+='%'+('0'+('0x'+a.substr(j,2)^r).toString(16)).slice(-2);j++;s=decodeURIComponent(s)+a.substr(j,m-j)}t.innerHTML=s.replace(/</g,'&lt;').replace(/>/g,'&gt;');l[i].href='mailto:'+t.value}}catch(e){}}}catch(e){}})(document);/* ]]> */</script></body>
+
+</html>

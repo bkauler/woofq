@@ -1,0 +1,146 @@
+#!/bin/sh
+#(c) Copyright Barry Kauler, Feb 12, 2015. License GPL v3 (/usr/share/doc/legal).
+#build quirky as a live-cd, running in ram.
+
+. ./DISTRO_SPECS
+RIGHTVER="$DISTRO_VERSION"
+
+#use xorriso if it is installed (see also functions4puppy)...
+CDRECORD='cdrecord'
+MKISOFS='mkisofs'
+if [ "`which xorriso`" != "" ];then
+ CDRECORD='xorrecord'
+ MKISOFS='xorrisofs' #growisofs reads this variable.
+fi
+export CDRECORD MKISOFS
+
+#what kernel was chosen?...
+KERNVER="`find sandbox3/rootfs-complete/lib/modules -maxdepth 1 -type d -name '[23]*' | head -n 1 | rev | cut -f 1 -d '/' | rev`"
+
+DOTCONFIG="`find sandbox3/rootfs-complete/etc/modules -maxdepth 1 -type f -name 'DOTconfig*' | head -n 1`"
+
+PREBUILD='yes'
+[ "$DOTCONFIG" = "" ] && PREBUILD='no'
+if [ "$PREBUILD" = "no" ];then
+ echo "The needed files are missing from sandbox3/build"
+ echo 'The previous scripts 0* - 3* have to be run first.'
+ echo "Quiting script..."
+ exit
+fi
+
+if [ ! -e /usr/bin/gcc ];then
+ echo
+ echo "The 'devx' SFS file must be loaded. Quiting script..."
+ exit
+fi
+
+#fix f.s. (as in service_pack's)...
+PRE="sandbox3/rootfs-complete"
+PART2FS="ext2"
+tPTN1="s%.*MARK_DEV1FS_LINE.*%DEV1FS='${PART2FS}' #MARK_DEV1FS_LINE %"
+sed -i -e "$tPTN1" ${PRE}/sbin/init
+sed -i -e "$tPTN1" ${PRE}/etc/rc.d/rc.sysinit
+
+#build initrd.cpio...
+echo
+echo "Building initrd.cpio..."
+[ -f /usr/src/linux-${KERNVER}/initrd.cpio ] && mv -f /usr/src/linux-${KERNVER}/initrd.cpio /tmp/
+rm -rf sandbox4 2>/dev/null
+mkdir sandbox4
+cp -a boot/initrd-tree sandbox4/
+sync
+cd sandbox4
+cd initrd-tree
+##150211 create uncompressed sfs file...
+mksquashfs ../../sandbox3/rootfs-complete ./q.sfs -comp xz
+#mksquashfs ../../sandbox3/rootfs-complete ./q.sfs -noI -noD -noF -noX -no-exports
+sync
+#now put it together again...
+rm -f ../initrd.cpio 2> /dev/null
+find . | ../../boot/cpio -o -H newc > ../initrd.q  #.cpio
+sync
+cd ..
+
+echo
+echo "Now building live-CD..."
+rm -rf build
+mkdir build
+cp -a ../sandbox3/build/* build/
+cp -a initrd build/
+
+mv -f build/syslinux.cfg build/isolinux.cfg
+sed -i -e 's%^append .*%append initrd=initrd.q rootwait rw%' build/isolinux.cfg
+
+[ -f build/README.HTM ] && rm -f build/README.HTM
+if [ -f /usr/lib/syslinux/isolinux.bin ];then #150211
+ cp -f /usr/lib/syslinux/isolinux.bin build/
+else
+ cp -f /usr/share/syslinux/isolinux.bin build/
+fi
+sync
+
+#build now has everything to burn to cd...
+echo
+echo "Creating a udf filesystem on CD..."
+echo -n "Insert blank CD-R, then press ENTER: "
+read wantcdnow
+
+#ref: http://osdir.com/ml/linux.suse.packet-writing/2003-01/msg00090.html
+#mkisofs -o session.iso -R -b boot.img -c boot.catalog $MS_INFO chroot/
+#mkudffs -r 0x0150 --media-type=cdrw /dev/pktcdvd0 $UDF_SIZE
+#dd if=session.iso bs=2k skip=17 count=1 | \
+#dd of=/dev/pktcdvd0 bs=2k seek=17 count=1 conv=notrunc
+
+
+#do this for a CD-R, CD-RW, or DVD-R:
+#cdrwtool -d /dev/sr0 -q
+#or this for DVD-RW:
+growisofs -Z /dev/sr0=/dev/zero
+sync
+pktsetup pktcdvd0 /dev/sr0 #creates /dev/pktcdvd/pktcdvd0
+#...note, when finished: pktsetup -d pktcdvd0
+#media-type: hd dvd dvdram dvdrw worm mo cdrw cdr
+#udfrev: 0x0150 0x0201
+mkudffs --udfrev=0x0150 --spartable=2 --media-type=cdr /dev/pktcdvd/pktcdvd0
+sync
+
+growisofs -use-the-force-luke=notray  -Z /dev/sr0  -udf -V "Quirky" -p root -publisher "BK"  -b isolinux.bin -c boot.cat -no-emul-boot -boot-load-size 4 -boot-info-table ./build/
+growisofs -use-the-force-luke=notray  -Z /dev/pktcdvd/pktcdvd0  -udf -V "Quirky" -p root -publisher "BK"  -b isolinux.bin -c boot.cat -no-emul-boot -boot-load-size 4 -boot-info-table ./build/
+mount -t udf -o rw,noatime /dev/pktcdvd/pktcdvd0 /mnt/sr0
+
+
+ISONAME="${DISTRO_FILE_PREFIX}-${DISTRO_VERSION}.iso"
+#rm -f ./${DISTRO_FILE_PREFIX}-${DISTRO_VERSION}.iso 2> /dev/null
+$MKISOFS -D -R -o ${ISONAME} -b isolinux.bin -c boot.cat -no-emul-boot -boot-load-size 4 -boot-info-table ./build/
+sync
+md5sum ${ISONAME} > ${ISONAME}.md5.txt
+echo
+echo "${ISONAME} has been created."
+echo
+echo "Would you like to burn it to a CD? "
+echo -n "ENTER only for yes, or any printable char then ENTER not to: "
+read writeitnow
+if [ "$writeitnow" = "" ];then
+ CDR=""
+ [ -f /etc/cdburnerdevice ] && CDR="/dev/`cat /etc/cdburnerdevice`"
+ [ "$CDR" = "" ] && CDR='/dev/sr0'
+ CDDESCR="`probedisk | grep '|optical|' | grep "$CDR" | cut -f 3 -d '|'`"
+ echo -n 'Type "y" for multisession, else just ENTER: '
+ read BURNMULTI
+ if [ "$BURNMULTI" = "y" ];then
+  BURNMULTI="-multi -tao -pad"
+ else
+  BURNMULTI="-dao"
+ fi
+ echo "Please insert blank CD into $CDR
+(which is described as: ${CDDESCR})
+-- also be sure that it is unmounted."
+ echo -n "Then hit ENTER key: "
+ read yayburn
+# $CDRECORD $BURNMULTI -data -eject -v speed=4 padsize=300k dev=ATAPI:$CDR ${DISTRO_FILE_PREFIX}-${DISTRO_VERSION}${SCSIFLAG}.iso
+ $CDRECORD $BURNMULTI -data -eject -v speed=4 padsize=300k dev=$CDR ${ISONAME}
+ sync
+ eject $CDR
+ echo "...done"
+fi
+
