@@ -1,0 +1,249 @@
+
+# Variables
+INCLUDE = "vars"
+
+RootMenu = "Pekwm" {
+
+Submenu = "Desktop" {
+	Entry = "Chooselocale country localisation" { Actions = "Exec chooselocale &" }
+		Entry = "Desktop drive icons manager" { Actions = "Exec eventmanager desktop &" }
+		Entry = "Psync time server synchronisation" { Actions = "Exec /usr/local/psync/psync &" }
+		Entry = "ScreenSaver Control" { Actions = "Exec /usr/local/sscontrol/sscontrol &" }
+		Entry = "Set date and time" { Actions = "Exec set-time-for-puppy &" }
+		Entry = "Set hardware-clock type" { Actions = "Exec set_hwclock_type &" }
+		Entry = "Set timezone" { Actions = "Exec timezone-set &" }
+		Entry = "Xclipboard" { Actions = "Exec xclipboard &" }
+		Entry = "Xfontsel font viewer" { Actions = "Exec xfontsel -bg '#e0ffe0' &" }
+		Entry = "Gfontsel font viewer" { Actions = "Exec gfontsel &" }
+		Entry = "JWMDesk Manager" { Actions = "Exec jwmdesk &" }
+		Entry = "Qsync set time from Internet" { Actions = "Exec qsync &" }
+		
+}
+Submenu = "System" {
+	Entry = "Pup-SysInfo system information" { Actions = "Exec Pup-SysInfo &" }
+		Entry = "Puppy Event Manager" { Actions = "Exec eventmanager &" }
+		Entry = "HardInfo hardware information" { Actions = "Exec hardinfo &" }
+		Entry = "Pprocess process manager" { Actions = "Exec pprocess &" }
+		Entry = "Wcpufreq CPU frequency scaling tool" { Actions = "Exec wcpufreq &" }
+		Entry = "Calibrate Touchscreen" { Actions = "Exec /bin/sh -c 'xinput_calibrator; cat' &" }
+		
+}
+Submenu = "Setup" {
+	Entry = "Multiple Sound Card Wizard" { Actions = "Exec Multiple-Sound-Card-Wizard &" }
+		Entry = "Check dependencies installed pkg" { Actions = "Exec /usr/local/petget/check_deps.sh &" }
+		Entry = "Xorg Video Wizard" { Actions = "Exec xorgwizard &" }
+		Entry = "Firewall Setup Wizard" { Actions = "Exec firewall_ng &" }
+		Entry = "Remove builtin packages" { Actions = "Exec /usr/sbin/remove_builtin &" }
+		
+}
+Submenu = "Utility" {
+	Entry = "EasyApps launch favorite apps" { Actions = "Exec PupApps &" }
+		Entry = "Pudd copy drive/partition" { Actions = "Exec Pudd &" }
+		Entry = "PupControl panel" { Actions = "Exec PupControl &" }
+		Entry = "Urxvt terminal emulator" { Actions = "Exec rxvt &" }
+		Entry = "Urxvt in container sh0" { Actions = "Exec ec-chroot sh0 &" }
+		Entry = "FLUID" { Actions = "Exec fluid %F &" }
+		Entry = "gHasher calculate file hashes" { Actions = "Exec ghasher &" }
+		Entry = "ghostview" { Actions = "Exec ghostview &" }
+		Entry = "GTK+ Demo" { Actions = "Exec gtk3-demo &" }
+		Entry = "Icon Browser" { Actions = "Exec gtk3-icon-browser &" }
+		Entry = "Widget Factory" { Actions = "Exec gtk3-widget-factory &" }
+		Entry = "Pbackup Backup and Sync" { Actions = "Exec pbackup &" }
+		Entry = "Pmirror backup a directory" { Actions = "Exec /usr/local/pmirror/pmirror &" }
+		Entry = "Sakura terminal emulator" { Actions = "Exec sakura &" }
+		Entry = "Xconsole monitor console" { Actions = "Exec xconsole -verbose &" }
+		
+}
+Submenu = "Filesystem" {
+	Entry = "GParted partition manager" { Actions = "Exec gparted_shell &" }
+		
+}
+Submenu = "Graphic" {
+	Entry = "mtPaint-snapshot screen capture" { Actions = "Exec mtpaintsnapshot.sh &" }
+		Entry = "mtPaint image editor" { Actions = "Exec mtpaint &" }
+		Entry = "PeasyScale JPEG resizer" { Actions = "Exec peasyscale &" }
+		Entry = "Screeny Capture Windows and Fullscreen" { Actions = "Exec screeny &" }
+		Entry = "Libreoffice Impress presentations" { Actions = "Exec simpress &" }
+		
+}
+Submenu = "Document" {
+	Entry = "Leafpad text editor" { Actions = "Exec leafpad &" }
+		Entry = "MP console editor" { Actions = "Exec rxvt -geometry 80x25 -e mp &" }
+		Entry = "PeasyPDF convert/join/extract" { Actions = "Exec peasypdf &" }
+		Entry = "SeaMonkey Composer html editor" { Actions = "Exec mozedit &" }
+		Entry = "Geany text editor" { Actions = "Exec geany &" }
+		Entry = "Libreoffice Writer word processor" { Actions = "Exec swriter &" }
+		
+}
+Submenu = "Business" {
+	Entry = "Xcalc scientific calculator" { Actions = "Exec xcalc &" }
+		Entry = "Cgtkcalc complex numbers" { Actions = "Exec cgtkcalc &" }
+		Entry = "Galculator scientific calculator" { Actions = "Exec galculator &" }
+		Entry = "Gmeasures units converter" { Actions = "Exec gmeasures_wrapper &" }
+		Entry = "HomeBank finance management" { Actions = "Exec homebank &" }
+		
+}
+Submenu = "Personal" {
+	Entry = "SeaMonkey Addressbook" { Actions = "Exec mozaddressbook &" }
+		Entry = "pStopWatch stop watch" { Actions = "Exec pstopwatch &" }
+		Entry = "Ptimer StopWatch AlarmClock" { Actions = "Exec ptimer &" }
+		
+}
+Submenu = "Network" {
+	Entry = "Firewall Setup" { Actions = "Exec firewall_ng &" }
+		
+}
+Submenu = "Internet" {
+	Entry = "Pcreatetorrent torrent creator" { Actions = "Exec /usr/sbin/pcreatetorrent &" }
+		Entry = "Pctorrent torrent download" { Actions = "Exec /usr/sbin/pctorrent &" }
+		Entry = "Puppy-Podcast-Grabber" { Actions = "Exec /usr/local/bin/ppg-gui.sh &" }
+		Entry = "SeaMonkey mail and news" { Actions = "Exec mozmail &" }
+		Entry = "SeaMonkey web browser" { Actions = "Exec mozilla &" }
+		Entry = "SeaMonkey web browser, in container" { Actions = "Exec ec-chroot seamonkey &" }
+		Entry = "GetFlash - install Flashplayer" { Actions = "Exec getflash &" }
+		Entry = "YouTubeDL YouTube downloader" { Actions = "Exec /usr/local/youtubedl/youtubedl &" }
+		
+}
+Submenu = "Multimedia" {
+	Entry = "Burniso2cd burn iso file to CD/DVD" { Actions = "Exec burniso2cd &" }
+		Entry = "Audacious music player" { Actions = "Exec audacious &" }
+		Entry = "ISOMaster iso file editor" { Actions = "Exec isomaster &" }
+		Entry = "Pburn CD/DVD/Blu-ray writer" { Actions = "Exec pburn &" }
+		Entry = "pCD CD-audio player" { Actions = "Exec pcd &" }
+		Entry = "Pcdripper CD song ripper" { Actions = "Exec /usr/sbin/pcdripper &" }
+		Entry = "PeasyDisc optical disc tools" { Actions = "Exec peasydisc &" }
+		Entry = "Pmetatagger audio file tag editor" { Actions = "Exec /usr/sbin/pmetatagger &" }
+		Entry = "Precord mp3,ogg,wav recorder/player" { Actions = "Exec precord &" }
+		
+}
+Submenu = "Fun" {
+	
+}
+Submenu = "Other" {
+	Entry = "Bcrypt file encryption" { Actions = "Exec bcrypt_gui &" }
+		Entry = "BootManager configure bootup" { Actions = "Exec bootmanager &" }
+		Entry = "CD/DVD drive Wizard" { Actions = "Exec cdburner-wizard &" }
+		Entry = "Chtheme GTK/Qt theme chooser" { Actions = "Exec gtk_chtheme_wrapper &" }
+		Entry = "Glipper clipboard manager" { Actions = "Exec glipper_shell &" }
+		Entry = "Icon Finder" { Actions = "Exec iconfinder &" }
+		Entry = "Internet Connection Wizard" { Actions = "Exec connectwizard &" }
+		Entry = "MoManager create non-English Puppy" { Actions = "Exec momanager &" }
+		Entry = "MoManager translation manager, old version" { Actions = "Exec momanager0 &" }
+		Entry = "Mouse/keyboard Wizard" { Actions = "Exec input-wizard &" }
+		Entry = "PETget Package Manager" { Actions = "Exec /usr/local/petget/ppm &" }
+		Entry = "Partview free space in drives" { Actions = "Exec partview &" }
+		Entry = "Pdict online dictionary" { Actions = "Exec pdict &" }
+		Entry = "Pdisk partition manager" { Actions = "Exec Pdisk &" }
+		Entry = "Pmount mount/unmount drives" { Actions = "Exec pmount &" }
+		Entry = "PupScan interface information" { Actions = "Exec pupscan &" }
+		Entry = "Pwsget secure file downloader" { Actions = "Exec pwsget &" }
+		Entry = "QuickSetup first-run settings" { Actions = "Exec quicksetup &" }
+		Entry = "ROX-Filer file manager" { Actions = "Exec rox &" }
+		Entry = "SeaMonkey IRC chat client" { Actions = "Exec mozchat &" }
+		Entry = "Secure ssh remote login" { Actions = "Exec securetelnetshell &" }
+		Entry = "Set global font size" { Actions = "Exec set-xftdpi &" }
+		Entry = "Top view running processes" { Actions = "Exec rxvt -font 7x14 -bg '#c0c0c0' -fg black -T Top -n Top -e top &" }
+		Entry = "UrxvtControl terminal configuration" { Actions = "Exec urxvtcontrol &" }
+		Entry = "Wizard Wizard" { Actions = "Exec wizardwizard &" }
+		Entry = "Xdelta file difference manager" { Actions = "Exec xdelta_gui &" }
+		Entry = "Xlock lock screen" { Actions = "Exec /usr/local/apps/Xlock/AppRun -locknow &" }
+		Entry = "Configure Xlock screen locking" { Actions = "Exec /usr/local/apps/Xlock/AppRun -configure &" }
+		Entry = "Xsoldier space war" { Actions = "Exec xsoldier &" }
+		Entry = "Aumix audio mixer" { Actions = "Exec aumix &" }
+		Entry = "BaconGUI" { Actions = "Exec bacongui-gtk &" }
+		Entry = "BluePup Bluetooth management" { Actions = "Exec bluepup &" }
+		Entry = "Quirky Childproof Setup" { Actions = "Exec childproof &" }
+		Entry = "CUPS manage printing" { Actions = "Exec cups_shell &" }
+		Entry = "defaultmediaplayer" { Actions = "Exec defaultmediaplayer &" }
+		Entry = "defaultbrowser" { Actions = "Exec defaultbrowser &" }
+		Entry = "defaultchmviewer" { Actions = "Exec defaultchmviewer &" }
+		Entry = "defaultimageviewer" { Actions = "Exec defaultimageviewer &" }
+		Entry = "defaultmediaplayer" { Actions = "Exec defaultmediaplayer &" }
+		Entry = "defaultpdfviewer" { Actions = "Exec defaultpdfviewer &" }
+		Entry = "Default Applications Chooser" { Actions = "Exec defaults-chooser &" }
+		Entry = "defaultspreadsheet" { Actions = "Exec defaultspreadsheet &" }
+		Entry = "defaulttexteditor" { Actions = "Exec defaulttexteditor &" }
+		Entry = "defaultwordprocessor" { Actions = "Exec defaultwordprocessor &" }
+		Entry = "Dia diagram editor" { Actions = "Exec dia &" }
+		Entry = "DidiWiki personal wiki" { Actions = "Exec didiwiki-gui &" }
+		Entry = "DropboxGUI file manager" { Actions = "Exec dropbox_gui &" }
+		Entry = "Easy BootManager configure bootup" { Actions = "Exec easy-bootmanager &" }
+		Entry = "Easy Container Management" { Actions = "Exec easy-containers &" }
+		Entry = "Easy OS Installer" { Actions = "Exec easy-installer &" }
+		Entry = "Remaster Easy Linux" { Actions = "Exec /usr/sbin/easy-remaster &" }
+		Entry = "Easy Version Control" { Actions = "Exec easy-version-control &" }
+		Entry = "EasyDD frontend for dd" { Actions = "Exec easydd &" }
+		Entry = "EasyShare network file and printer sharing" { Actions = "Exec /usr/local/EasyShare/easyshare &" }
+		Entry = "Evince PDF viewer" { Actions = "Exec evince &" }
+		Entry = "FFConvert multimedia converter" { Actions = "Exec ffconvert &" }
+		Entry = "filemnt" { Actions = "Exec filemnt &" }
+		Entry = "FloppyFormat format floppy disk" { Actions = "Exec Floppy_Formatter &" }
+		Entry = "FlSynclient configure your touchpad" { Actions = "Exec flsynclient &" }
+		Entry = "Figaros Password Manager 2" { Actions = "Exec fpm2 &" }
+		Entry = "Frisbee" { Actions = "Exec frisbee &" }
+		Entry = "gFnRename batch file renamer" { Actions = "Exec gfnrename &" }
+		Entry = "Gcolorsel color chooser" { Actions = "Exec gcolorsel &" }
+		Entry = "Gdmap graphical disk usage" { Actions = "Exec gdmap &" }
+		Entry = "gFTP ftp client" { Actions = "Exec gftp &" }
+		Entry = "GIMP image editor" { Actions = "Exec gimp &" }
+		Entry = "Gpicview image viewer" { Actions = "Exec gpicview &" }
+		Entry = "Gpptp PPTP VPN client" { Actions = "Exec gpptp &" }
+		Entry = "Grisbi finance management" { Actions = "Exec grisbi &" }
+		Entry = "GtkLP file printing" { Actions = "Exec gtklp &" }
+		Entry = "GtkLPQ printer queue manager" { Actions = "Exec gtklpq &" }
+		Entry = "GWhere disk cataloger" { Actions = "Exec gwhere &" }
+		Entry = "Desktop icon switcher" { Actions = "Exec icon_switcher &" }
+		Entry = "Inkscape vector editor" { Actions = "Exec inkscape &" }
+		Entry = "New Window" { Actions = "Exec gnome-mpv --new-window &" }
+		Entry = "IPInfo network information" { Actions = "Exec ipinfo &" }
+		Entry = "LMarbles puzzle game" { Actions = "Exec lmarbles &" }
+		Entry = "Login and Security Manager" { Actions = "Exec loginmanager &" }
+		Entry = "MAAG make an animated GIF" { Actions = "Exec maag &" }
+		Entry = "mhWaveEdit audio recorder/editor" { Actions = "Exec mhwaveedit &" }
+		Entry = "MTR network trace route" { Actions = "Exec mtr &" }
+		Entry = "NoteCase notes manager" { Actions = "Exec notecase &" }
+		Entry = "Osmo personal organizer" { Actions = "Exec osmo &" }
+		Entry = "pRun application launcher" { Actions = "Exec /usr/local/prun/prun &" }
+		Entry = "Pcur cursor selector" { Actions = "Exec pcur &" }
+		Entry = "Pdvdrsab DVD rip/shrink/author/burn" { Actions = "Exec pdvdrsab &" }
+		Entry = "PeasyPort LAN scanner" { Actions = "Exec peasyport &" }
+		Entry = "PeasyPrint graphic/photo printing" { Actions = "Exec /usr/sbin/peasyprint &" }
+		Entry = "PeasyScan simple image scanner" { Actions = "Exec /usr/local/peasyscan/peasyscan &" }
+		Entry = "pet2dir" { Actions = "Exec urxvt -hold -title pet2dir -e pet2dir &" }
+		Entry = "petget" { Actions = "Exec petget &" }
+		Entry = "pFind file finder" { Actions = "Exec pfind &" }
+		Entry = "PicPuz jigsaw puzzle" { Actions = "Exec picpuz-wrapper &" }
+		Entry = "Pidgin multi-protocol chat client" { Actions = "Exec pidginshell &" }
+		Entry = "Planner project management" { Actions = "Exec planner &" }
+		Entry = "PMirrorget website downloader" { Actions = "Exec pmwget &" }
+		Entry = "PPLOG personal blog" { Actions = "Exec pplog_gui &" }
+		Entry = "CUPS Printer Wizard" { Actions = "Exec cups_shell &" }
+		Entry = "Pschedule task on time" { Actions = "Exec /usr/local/bin/pschedule &" }
+		Entry = "Pup-Advert-Blocker block online ads" { Actions = "Exec pup-advert-blocker &" }
+		Entry = "pupRadio/pupTelly streaming media" { Actions = "Exec pupradio &" }
+		Entry = "pupX set properties of X" { Actions = "Exec pupx &" }
+		Entry = "PupCamera digital camera access" { Actions = "Exec pupcamera &" }
+		Entry = "puppyPDF convert file to PDF" { Actions = "Exec puppypdf &" }
+		Entry = "PupWhoIs domain lookup" { Actions = "Exec pupwhois &" }
+		Entry = "pupzip" { Actions = "Exec pupzip &" }
+		Entry = "Rubix cube" { Actions = "Exec rubix &" }
+		Entry = "Libreoffice Base database" { Actions = "Exec sbase &" }
+		Entry = "Libreoffice Calc spreadsheet editor" { Actions = "Exec scalc &" }
+		Entry = "Scribus desktop publishing" { Actions = "Exec scribus &" }
+		Entry = "Libreoffice Draw vector editor" { Actions = "Exec sdraw &" }
+		Entry = "SFSget download SFS combo-packages" { Actions = "Exec /usr/sbin/sfsget &" }
+		Entry = "Ssh-gui secure remote login" { Actions = "Exec ssh-gui &" }
+		Entry = "Symphytum simple database" { Actions = "Exec symphytum &" }
+		Entry = "Toppler arcade game" { Actions = "Exec /usr/bin/toppler &" }
+		Entry = "uGet download manager" { Actions = "Exec uget-gtk &" }
+		Entry = "Video Upgrade Wizard" { Actions = "Exec video_upgrade_wizard &" }
+		Entry = "Qwallpaper background image chooser" { Actions = "Exec qwallpaper &" }
+		Entry = "XArchive archiver" { Actions = "Exec xarchive &" }
+		Entry = "Xfdiff-cut compare two files" { Actions = "Exec xfdiff-cut &" }
+		Entry = "Xine multimedia player" { Actions = "Exec xinewrapper &" }
+		Entry = "Xsane image scanner" { Actions = "Exec xsaneshell &" }
+		Entry = "XVkbd virtual keyboard" { Actions = "Exec xvkbd-wrapper &" }
+		Entry = "Ycalc TI-59 scientific calculator" { Actions = "Exec ycalc &" }
+		
+}
+}

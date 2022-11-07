@@ -1,0 +1,51 @@
+#!/bin/sh
+#Barry Kauler 2008, for Puppy Linux. Totally free script.
+#130118 rodin.s: adding gettext
+
+export TEXTDOMAIN=rp_pppoe #pppoe
+export TEXTDOMAINDIR=/usr/share/locale
+export OUTPUT_CHARSET=UTF-8
+eval_gettext () {
+  local myMESSAGE=$(gettext "$1")
+  eval echo \"$myMESSAGE\"
+}
+export LANGORG=$LANG
+
+export MAIN_DIALOG='
+<window title="PPPOE" icon-name="gtk-network">
+ <vbox>
+  <hbox>
+   <text><label>'$(gettext 'Initial configuration:')'</label></text>
+   <button>
+    <label>'$(gettext 'SETUP')'</label>
+    <action>rxvt -e pppoe-setup &</action>
+   </button>
+  </hbox>
+  <hbox>
+   <text><label>'$(gettext 'Connect now:')'</label></text>
+   <button>
+    <label>'$(gettext 'START')'</label>
+    <action>rxvt -e pppoe-start_shell &</action>
+   </button>
+  </hbox>
+  <hbox>
+   <text><label>'$(gettext 'Disconnect now:')'</label></text>
+   <button>
+    <label>'$(gettext 'STOP')'</label>
+    <action>rxvt -e pppoe-stop_shell &</action>
+   </button>
+  </hbox>
+  <hbox>
+   <text><label>'$(gettext 'View status:')'</label></text>
+   <button>
+    <label>'$(gettext 'STATUS')'</label>
+    <action>rxvt -e pppoe-status_shell &</action>
+   </button>
+  </hbox>
+ </vbox>
+</window>
+'
+
+gtkdialog3 --program=MAIN_DIALOG
+
+###END###

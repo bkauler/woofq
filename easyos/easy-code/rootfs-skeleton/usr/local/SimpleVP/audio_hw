@@ -1,0 +1,20 @@
+#!/bin/sh
+#(c) Copyright Barry Kauler, Nov. 2016, barryk.org. Licence GPL3 (ref: /usr/share/doc/legal)
+#called from simplevp. return a string that identifies how audio is configured.
+
+[ ! $1 ] && exit 1
+BOOT_BOARD="$1"
+
+AUDIO_HW=''
+case $BOOT_BOARD in
+ raspi)
+  nAUDIO_HW="`grep 'amixer cset numid' /etc/init.d/11alsa_raspi | rev | cut -f 1 -d ' ' | rev`" #0=auto, 1=analog, 2=hdmi.
+  case "$nAUDIO_HW" in
+   1) AUDIO_HW='Analog' ;;
+   2) AUDIO_HW='HDMI' ;;
+   *) AUDIO_HW='Auto' ;;
+  esac
+ ;;
+esac
+
+echo -n "$AUDIO_HW" > /tmp/simplevp/audio_hw

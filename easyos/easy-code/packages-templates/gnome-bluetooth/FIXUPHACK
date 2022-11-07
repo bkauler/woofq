@@ -1,0 +1,15 @@
+
+#20201024 oe dunfell
+if [ -e usr/bin/bluetooth-sendto ];then
+ mkdir -p usr/share/applications
+ echo '[Desktop Entry]
+Name=BluetoothSendto send files via bluetooth
+Comment=Send files via Bluetooth
+Icon=bluetooth.png
+Exec=bluetooth-sendto
+Terminal=false
+Type=Application
+Categories=X-Network-transfer
+StartupNotify=true
+NoDisplay=false' > usr/share/applications/bluetooth-sendto.desktop
+fi

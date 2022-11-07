@@ -1,0 +1,38 @@
+#20190711 no longer using 'eee-acpi-scripts' pkg. this instead...
+
+mkdir -p etc/acpi/events
+
+#put laptop to sleep when lid closed...
+cat > etc/acpi/events/lid << "EOF"
+event=button/lid
+action=/etc/acpi/lid.sh
+EOF
+
+cat > etc/acpi/lid.sh << "EOF"
+#!/bin/sh
+/bin/grep -q open /proc/acpi/button/lid/LID/state && exit 0
+/usr/sbin/pm-suspend
+EOF
+# note: rufwoof posted: http://murga-linux.com/puppy/viewtopic.php?p=1025945#1025945
+
+chmod 755 etc/acpi/lid.sh
+
+#turn off when power button pressed...
+cat > etc/acpi/events/powerbtn << "EOF"
+event=button/power PWRF
+action=/etc/acpi/actions/power.sh
+EOF
+
+cat > etc/acpi/power.sh << "EOF"
+#!/bin/sh
+/usr/bin/wmpoweroff
+EOF
+
+chmod 755 etc/acpi/power.sh
+
+#200212 no...
+##200211 ref: https://bkhome.org/news/202002/a-twisted-tale-of-bluetoothd-failing.html
+##/etc/init.d/messagebus is now 95-messagebus (see dbus template)
+##want acpid to start before...
+#[ -f etc/init.d/acpid ] && mv -f etc/init.d/acpid etc/init.d/90-acpid
+

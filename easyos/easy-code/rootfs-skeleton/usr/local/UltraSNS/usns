@@ -1,0 +1,384 @@
+#!/bin/sh
+#management gui for UltraSNS. This is based on the network utilities of minibase.
+#190211 first release.
+#190216 think need to bring down dhcpcd if running. no. 190218
+#190303 radiobuttons list of APs, now scrollable. see variable RAD_SSIDS
+#190308 ssid may have a space char in it.
+#190319 change wifi password. pass in notebook index.
+
+export TEXTDOMAIN=usns
+export OUTPUT_CHARSET=UTF-8
+
+[ "`whoami`" != "root" ] && exec sudo -A ${0} ${@} #well, have this in sns.
+
+#DIF="$(busybox ps | grep 'dhcpcd \-b' | rev | cut -f 1 -d ' ' | rev | tr '\n' ' ')" #ex: eth0
+#for aDIF in $DIF
+#do
+# dhcpcd --release ${aDIF}
+#done
+
+NB_INDEX=""
+[ $1 ] && NB_INDEX="${1}" #190319
+
+mkdir -p /tmp/UltraSNS
+mkdir -p /run/ctrl
+if ! pidof ifmon wsupp >/dev/null ;then
+ /usr/local/UltraSNS/rc.network start
+fi
+
+########################
+#find all existing interfaces... (code from /usr/local/simple_network_setup/sns)
+CLICKMSG="<text><label>$(gettext 'These network interfaces exist on your computer:')</label></text>"
+BIGGESTCNT=0
+echo -n '' > /tmp/UltraSNS/usns_interfaces
+INTERFACES="`ifconfig -a | grep -F 'Link encap:Ethernet' | cut -f1 -d' ' | tr '\n' ' '`"
+for INTERFACE in $INTERFACES #exs: wlan0 eth0
+do
+ #actual bus may differ from that in /etc/networkmodules...
+ IF_BUS=''
+ IF_INFO=''
+ DRVR_PATH="`readlink /sys/class/net/$INTERFACE/device/driver`"
+ IF_DRIVER="`echo -n "$DRVR_PATH" | rev | cut -f1 -d'/' | rev`" #ex: ath5k
+ REAL_BUS="`echo -n "$DRVR_PATH" | grep -o '/bus/[a-z]*/drivers/' | cut -f 3 -d '/'`" #ex: sdio
+ CUT_DRVR="`basename $IF_DRIVER _${REAL_BUS}`" #ex: brcmfmac_sdio becomes brcmfmac
+ dPATTERN="^${IF_DRIVER} "
+ WHATWEWANT="`grep "$dPATTERN" /etc/networkmodules | tr '|' '_' | tr '"' '|'`" #'geany
+ if [ "$WHATWEWANT" ];then
+  #IF_BUS="`echo -n "$WHATWEWANT" | cut -f 2 -d '|' | cut -f 1 -d ':'`" #ex: usb
+  IF_INFO="`echo -n "$WHATWEWANT" | cut -f 2 -d '|' | tr -s ' ' | cut -f 2-29 -d ' '`" #ex: Ralink RT73 USB Wireless LAN driver
+ else
+  dPATTERN="^${CUT_DRVR} "
+  WHATWEWANT="`grep "$dPATTERN" /etc/networkmodules | tr '|' '_' | tr '"' '|'`" #'geany
+  if [ "$WHATWEWANT" ];then
+   IF_INFO="`echo -n "$WHATWEWANT" | cut -f 2 -d '|' | tr -s ' ' | cut -f 2-29 -d ' '`" #ex: Ralink RT73 USB Wireless LAN driver
+  fi
+ fi
+ IF_BUS="$REAL_BUS"
+
+ [ "$IF_BUS" = "" ] && IF_BUS="x"
+ [ "$IF_INFO" = "" ] && IF_INFO="x"
+ if [ "$IF_DRIVER" == "ndiswrapper" ];then
+  WINDRVR="`ndiswrapper -l | grep '^[a-zA-Z0-9]' | cut -f 1 -d ' '`"
+  IF_INFO="MS Windows driver '${WINDRVR}'"
+  FINDTYPE="`readlink /sys/class/net/$INTERFACE/device/driver`"
+  if [ "$FINDTYPE" ];then
+   case $FINDTYPE in
+    */bus/usb*) IF_BUS="usb" ;;
+    */bus/pci*) IF_BUS="pci" ;;
+    */bus/sdio*) IF_BUS="sdio" ;; #160922
+   esac
+  fi
+ fi
+
+ #want to manipulate the info string for display purposes...
+ CNTLINE=0;FINALINFO=""
+ for ONEWORD in $IF_INFO
+ do
+  CNTWORD=`echo "$ONEWORD" | wc -c`
+  CNTLINE=`expr $CNTLINE + $CNTWORD`
+  [ $CNTLINE -gt $BIGGESTCNT ] && BIGGESTCNT=$CNTLINE #use for window width.
+  [ $CNTLINE -gt 60 ] && break
+  FINALINFO="${FINALINFO}${ONEWORD} " #ensures whole words only in string.
+ done
+ IF_INFO="`echo -n "$FINALINFO"  | tr '[&|"<>]' ' ' | tr -s ' '`" #'geany. filter out chars that mess up xml.
+ 
+ #precaution, IF_DRIVER should match a kernel module name...
+ if ! modinfo $IF_DRIVER > /dev/null 2>&1;then IF_DRIVER="$CUT_DRVR"; fi
+ 
+ IF_INTTYPE='Wired'
+ ePATTERN="${INTERFACE}:"
+ [ "`grep "$ePATTERN" /proc/net/wireless`" != "" ] && IF_INTTYPE='Wireless'
+ [ "$IF_DRIVER" = "prism2_usb" ] && IF_INTTYPE='Wireless'
+ [ -d /sys/class/net/${INTERFACE}/wireless ] && IF_INTTYPE='Wireless'
+ #accumulate the results into columns...
+ ALL_IF_INTERFACE="${ALL_IF_INTERFACE}|${INTERFACE}"
+ ALL_IF_INTTYPE="${ALL_IF_INTTYPE}|${IF_INTTYPE}"
+ ALL_IF_DRIVER="${ALL_IF_DRIVER}|${IF_DRIVER}"
+ ALL_IF_BUS="${ALL_IF_BUS}|${IF_BUS}"
+ ALL_IF_INFO="${ALL_IF_INFO}|${IF_INFO}"
+ INTERFACEBUTTONS="${INTERFACEBUTTONS} 
+  <button><label>${INTERFACE}</label><action type=\"exit\">Interface_${INTERFACE}</action></button>"
+ #save all data about each interface on one line...
+ #ex: wlan1|Wireless|ath5k|pci|Support for 5xxx series of Atheros 802.11 wireless LAN cards
+ echo "${INTERFACE}|${IF_INTTYPE}|${IF_DRIVER}|${IF_BUS}|${IF_INFO}" >> /tmp/UltraSNS/usns_interfaces
+done
+ALL_IF_INTERFACE="`echo -n "$ALL_IF_INTERFACE" | sed -e 's%^|%%' | tr '|' '\n'`"
+ALL_IF_INTTYPE="`echo -n "$ALL_IF_INTTYPE" | sed -e 's%^|%%' | tr '|' '\n'`"
+ALL_IF_DRIVER="`echo -n "$ALL_IF_DRIVER" | sed -e 's%^|%%' | tr '|' '\n'`"
+ALL_IF_BUS="`echo -n "$ALL_IF_BUS" | sed -e 's%^|%%' | tr '|' '\n'`"
+ALL_IF_INFO="`echo -n "$ALL_IF_INFO" | sed -e 's%^|%%' | tr '|' '\n'`"
+INTERFACEDESCR="    <hbox spacing=\"10\">
+      <text use-markup=\"true\"><label>\"<b>$(gettext 'Interface')</b>
+$ALL_IF_INTERFACE\"</label></text>
+      <text use-markup=\"true\"><label>\"<b>$(gettext 'Type')</b>
+$ALL_IF_INTTYPE\"</label></text>
+      <text use-markup=\"true\"><label>\"<b>$(gettext 'Driver')</b>
+$ALL_IF_DRIVER\"</label></text>
+      <text use-markup=\"true\"><label>\"<b>$(gettext 'Bus')</b>
+$ALL_IF_BUS\"</label></text>
+      <text use-markup=\"true\"><label>\"<b>$(gettext 'Description')</b>
+$ALL_IF_INFO\"</label></text>
+    </hbox>"
+
+
+###############################
+#test if connected to internet...
+INTERNETIF=""
+WORKINGIF="$(getlocalip | grep -v '^lo' | cut -f 1 -d ':' | tr '\n' ' ' | sed -e 's% $%%')"
+if [ "$WORKINGIF" ];then
+ for aIF in $WORKINGIF
+ do
+  ping -4 -c 1 -W 3 -q -I ${aIF} google.com
+  [ $? -eq 0 ] && INTERNETIF="${INTERNETIF}${aIF} "
+ done
+ INTERNETIF="${INTERNETIF% }" #remove trailing space.
+ IFcnt="$(echo -n "$WORKINGIF" | wc -w)"
+ if [ "$IFcnt" == "1" ];then
+   if [ "$INTERNETIF" ];then
+    MSGSTATUS0="<span color='green'>$(gettext 'It has connection to the Internet')</span>"
+   else
+    MSGSTATUS0="<span color='red'>$(gettext 'It does not have connection to the Internet')</span>"
+   fi
+   MSGSTATUS="<text width-chars=\"65\" use-markup=\"true\"><label>\"<b><span color='green'>$(gettext 'There is a working network connection, on interface') ${WORKINGIF}</span>
+${MSGSTATUS0}</b>\"</label></text>"
+ else
+   if [ "$INTERNETIF" ];then
+    MSGSTATUS0="<span color='green'>$(gettext 'These interfaces have connection to the Internet:') ${INTERNETIF}</span>"
+   else
+    MSGSTATUS0="<span color='red'>$(gettext 'They do not have connection to the Internet')</span>"
+   fi
+   MSGSTATUS="<text width-chars=\"65\" use-markup=\"true\"><label>\"<b><span color='green'>$(gettext 'There are working network connections, on interfaces') ${WORKINGIF}</span>
+${MSGSTATUS0}</b>\"</label></text>"
+ fi
+else
+ MSGSTATUS="<text width-chars=\"65\" use-markup=\"true\"><label>\"<b><span color='red'>$(gettext 'There is no network connection')</span></b>\"</label></text>"
+fi
+
+#sort notebook tabs according to which i/f has internet access...
+if [ ! "$NB_INDEX" ];then #190319
+ NB_INDEX="0" #0=wired 1=wireless tab
+ for aIF in $INTERNETIF
+ do
+  if [ -d /sys/class/net/${aIF}/wireless ];then
+   NB_INDEX="1"
+   break
+  fi
+ done
+fi
+
+#choose which wlan<n> to use...
+wifi scan #may need to update.
+WIFI="$(wifi)"
+WID="$(cat /var/local/usns-wifi-id-selected 2>/dev/null)" #ref: /etc/net/mode-wifi
+Wflg=0; WIFS_XML=""; Wfnd=0
+for aW in `grep '|Wireless|' /tmp/UltraSNS/usns_interfaces | cut -f 1 -d '|' | tr '\n' ' '`
+do
+ Wfnd=1
+ aWID="$(ifctl ${aW} id)"
+ ACT="<action type=\"exit\">wrestart</action>"
+ if [ "$WID" == "" ];then #190218 precaution.
+  echo -n "$aWID" > /var/local/usns-wifi-id-selected
+  WID="$aWID"
+ fi
+ if [ "$aWID" == "$WID" ];then
+  XML1="<radiobutton>
+   <label>${aW}</label><variable>RAD_WIF_${aW}</variable>
+   ${ACT}
+  </radiobutton>"
+  Wflg=1
+  continue
+ fi
+ WIFS_XML="${WIFS_XML}
+ <radiobutton>
+  <label>${aW}</label><variable>RAD_WIF_${aW}</variable>
+  ${ACT}
+ </radiobutton>"
+done
+if [ $Wflg -eq 1 ];then
+ WIFS_XML="${XML1}${WIFS_XML}"
+fi
+if [ $Wfnd -eq 1 ];then
+ WIFS_XML="<vbox>${WIFS_XML}</vbox><text><label>\"   \"</label></text>"
+fi
+
+#find out wifi status...
+#190217 ssid's with assigned psk has a "*" appended, the sed removes it...
+#190308 ssid may have a space char in it...
+#SSIDS="$(echo "$WIFI" | grep '^AP ' | sed -e 's% \*$%%' | rev | cut -f 1 -d ' ' | rev)"
+SSIDS="$(echo "$WIFI" | grep '^AP ' | sed -e 's% \*$%%' | tr -s ' ' | cut -f 5- -d ' ')"
+RAD_SSIDS=""; CNT=1; PWsens='true'
+PWdef="$(gettext 'mypassword')"
+echo -n '' > /tmp/UltraSNS/rad-cnt-ssids
+#190308 ssid may have a space char...
+#for aSSID in $SSIDS
+while read aSSID
+do
+ [ "$aSSID" == "" ] && continue
+ #test if already has password assigned...
+ PWflg="$(echo "$WIFI" | grep -o " ${aSSID} ")"
+ if [ "$PWflg" ];then
+  PWact="<action signal=\"button-release-event\" function=\"disable\">WPW</action>"
+  [ $CNT -eq 1 ] && PWsens='false' #pw box must be disabled.
+ else
+  PWact="<action signal=\"button-release-event\" function=\"enable\">WPW</action>"
+ fi
+ RAD_SSIDS="${RAD_SSIDS}<radiobutton><label>${aSSID}</label><variable>RAD_SSID_${CNT}</variable>${PWact}</radiobutton>"
+ echo "${CNT} ${aSSID}" >> /tmp/UltraSNS/rad-cnt-ssids
+ CNT=$(($CNT+1))
+ #[ $CNT -gt 26 ] && break
+done <<_END1
+$(echo "${SSIDS}")
+_END1
+
+#190319 button to change password...
+CHPWxml=""
+if [ "$PWsens" == "false" ];then
+ CHPWxml="<hbox><button><label>Change password</label><variable>BUT_CHPW</variable><action>exit:CHPW</action></button></hbox>"
+fi
+
+#echo -n "" > /var/local/usns-wifi-ssid-connected
+if [ $CNT -eq 1 ];then
+ WIFI_XML="
+ <hbox>
+  ${WIFS_XML}
+  <text use-markup=\"true\"><label>\"$(gettext 'Wifi interface not working')\"</label></text>
+ </hbox>"
+else
+ WCN="$(echo "$WIFI" | grep '^Connected ')"
+ if [ "$WCN" ];then
+  CN1="$(gettext 'Connected to:')"
+  CN2="$(echo "$WCN" | cut -f 3 -d ' ')" #190218 o/p has changed.
+  CN2a="$(echo "$WCN" | cut -f 3 -d ' ')" #190218 log ssid. ref: /etc/net/mode-wifi
+  echo -n "$CN2a" > /var/local/usns-wifi-ssid-connected
+  WPW_XML="<text><label>\"${CN1}
+${CN2}\"</label></text>
+  <hbox>
+   <button>
+    <label>$(gettext 'DISCONNECT')</label>
+    <action type=\"exit\">wdiscon</action>
+   </button>
+  </hbox>"
+ else
+  WPW_XML="
+ <hbox>
+  <text><label>$(gettext 'Password:')</label></text>
+  <entry><default>${PWdef}</default><variable>WPW</variable><sensitive>${PWsens}</sensitive></entry>
+ </hbox>
+ ${CHPWxml}
+ <hbox>
+ <button>
+  <label>$(gettext 'CONNECT')</label><variable>WCON</variable>
+  <action type=\"exit\">wpw</action>
+ </button>
+ </hbox>"
+ fi
+ 
+ WIFI_XML="
+ <hbox>
+  ${WIFS_XML}
+  <vbox scrollable=\"true\" height=\"200\">
+   ${RAD_SSIDS}
+  </vbox>
+  <text><label>\"   \"</label></text>
+  <vbox>
+   ${WPW_XML}
+  </vbox>
+ </hbox>"
+fi
+
+#bring up the main window...
+export USNS_DLG1="<window title=\"$(gettext 'Ultra Simple Network Setup')\" icon-name=\"gtk-network\" resizable=\"false\">
+ <vbox>
+  <text use-markup=\"true\"><label>\"<b>$(gettext "Welcome to Ultra Simple Network Setup!")</b>\"</label></text>
+  
+  <frame $(gettext 'Current status')>
+   ${MSGSTATUS}
+   <hbox>
+     <text><label>$(gettext 'Detailed network interface Information:')</label></text>
+     <button><input file>/usr/local/lib/X11/mini-icons/info16.xpm</input><action>ipinfo & </action></button>
+   </hbox>
+  </frame>
+  
+  <frame $(gettext 'Interfaces')>
+   ${CLICKMSG}
+   ${INTERFACEDESCR}
+  </frame>
+  
+  <frame $(gettext 'Configuration')>
+   <notebook page=\"${NB_INDEX}\" labels=\"$(gettext 'Wired')|$(gettext 'Wireless')\">
+    
+    <vbox>
+     <text use-markup=\"true\"><label>\"$(gettext 'Ethernet network connection is intended to be completely automatic. Scripts are automatically created at /etc/net, named <b>mode-lan0</b>, <b>mode-lan1</b>, etc., corresponding to eth0, eth1, etc. You may edit these if you want anything other than the default behaviour')
+     
+$(gettext 'It is important to know that these scripts are locked to the physical interface, so it will not matter if the interface name changes in the future, for example eth0 changes to eth1. The correct interface name is passed-in when the script is called.')\"</label></text>
+    </vbox>
+    
+    <vbox>
+     <text use-markup=\"true\"><label>\"$(gettext 'Ditto, wireless scripts <b>mode-wifi0</b>, <b>mode-wifi1</b>, etc., are automatically created, locked to the physical interface. These may be edited.')\"</label></text>
+     ${WIFI_XML}
+    </vbox>
+    
+   </notebook>
+  </frame>
+
+  <hbox>
+   <button  space-expand=\"false\" space-fill=\"false\">
+    <label>$(gettext 'Internet Connection Wizard')</label>
+    <action type=\"exit\">icw</action>
+   </button>
+   <text space-expand=\"true\" space-fill=\"true\"><label>\" \"</label></text>
+   <button>
+    <label>$(gettext 'Exit')</label>
+    <action type=\"exit\">guiexit</action>
+   </button>
+  </hbox>
+
+ </vbox>
+</window>"
+
+echo "$USNS_DLG1" > /tmp/UltraSNS/USNS_DLG1
+RETSTRING="`gtkdialog --program=USNS_DLG1 --center`" ###main window###
+[ $? -ne 0 ] && exit
+
+#echo "$RETSTRING" #TEST
+EXIT="$(echo "$RETSTRING" | grep '^EXIT=' | cut -f 2 -d '"')"
+
+if [ "$EXIT" == "CHPW" ];then #190319 change password.
+ CNT="$(echo "$RETSTRING" | grep '^RAD_SSID_' | grep '"true"' | cut -f 1 -d '=' | cut -f 3 -d '_')"
+ SSID="$(grep "^${CNT} " /tmp/UltraSNS/rad-cnt-ssids | cut -f 2- -d ' ')"
+ wifi forget ${SSID}
+ exec usns "1" #want wireless tab.
+fi
+
+if [ "$EXIT" == "wrestart" ];then
+ #radiobutton selected RAD_WIF_wlan<n>
+ aW="$(echo "$RETSTRING" | grep '^RAD_WIF_' | grep '"true"' | cut -f 1 -d '=' | cut -f 3 -d '_')"
+ echo "Radiobutton ${aW} selected"
+ aWID="$(ifctl ${aW} id)"
+ wifi disconnect
+ wifi detach
+ wifi device ${aW}
+ echo -n "${aWID}" > /var/local/usns-wifi-id-selected
+ sleep 2
+ exec usns
+fi
+
+if [ "$EXIT" == "icw" ];then
+ exec connectwizard
+fi
+
+if [ "$EXIT" == "wpw" ];then
+ CNT="$(echo "$RETSTRING" | grep '^RAD_SSID_' | grep '"true"' | cut -f 1 -d '=' | cut -f 3 -d '_')"
+ WPW="$(echo "$RETSTRING" | grep '^WPW=' | cut -f 2 -d '"')"
+ SSID="$(grep "^${CNT} " /tmp/UltraSNS/rad-cnt-ssids | cut -f 2- -d ' ')"
+ echo "usns: echo \"${WPW}\" | wifi connect \"${SSID}\""
+ echo "${WPW}" | wifi connect "${SSID}"
+ #assume success. /etc/net/mode-wifi reads this...
+ echo -n "${SSID}" > /var/local/usns-wifi-ssid-connected
+fi
+
+if [ "$EXIT" == "wdiscon" ];then
+ wifi disconnect
+fi
+
+###end###

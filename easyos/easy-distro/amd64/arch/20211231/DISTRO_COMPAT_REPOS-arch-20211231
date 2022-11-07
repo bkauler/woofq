@@ -1,0 +1,14 @@
+#DISTRO_BINARY_COMPAT=arch DISTRO_COMPAT_VERSION=20211231
+DCV="${DISTRO_COMPAT_VERSION}"
+YYYY="${DCV:0:4}"
+MM="${DCV:4:2}"
+DD="${DCV:6:2}"
+
+#where to get pkg docs, format: domain|uri|localfilename...
+
+PKG_DOCS_DISTRO_COMPAT="archive.archlinux.org|https://archive.archlinux.org/repos/${YYYY}/${MM}/${DD}/core/os/x86_64/core.files.tar.gz|Packages-${DISTRO_BINARY_COMPAT}-${DISTRO_COMPAT_VERSION}-core archive.archlinux.org|https://archive.archlinux.org/repos/${YYYY}/${MM}/${DD}/extra/os/x86_64/extra.files.tar.gz|Packages-${DISTRO_BINARY_COMPAT}-${DISTRO_COMPAT_VERSION}-extra archive.archlinux.org|https://archive.archlinux.org/repos/${YYYY}/${MM}/${DD}/community/os/x86_64/community.files.tar.gz|Packages-${DISTRO_BINARY_COMPAT}-${DISTRO_COMPAT_VERSION}-community"
+
+#note, the local pkgs database file (or partname) is also appended to these entries, so know which url to download a particular pkg from (glob wildcard allowed)...
+#note, didn't put "dunfell" subdir here, as it is specified in the db entries...
+
+REPOS_DISTRO_COMPAT="archive.archlinux.org|https://archive.archlinux.org/repos/${YYYY}/${MM}/${DD}/core/os/x86_64|Packages-${DISTRO_BINARY_COMPAT}-${DISTRO_COMPAT_VERSION}-core archive.archlinux.org|https://archive.archlinux.org/repos/${YYYY}/${MM}/${DD}/extra/os/x86_64|Packages-${DISTRO_BINARY_COMPAT}-${DISTRO_COMPAT_VERSION}-extra archive.archlinux.org|https://archive.archlinux.org/repos/${YYYY}/${MM}/${DD}/community/os/x86_64|Packages-${DISTRO_BINARY_COMPAT}-${DISTRO_COMPAT_VERSION}-community"

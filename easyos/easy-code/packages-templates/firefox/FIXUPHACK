@@ -1,0 +1,51 @@
+
+#t2 compiled, some things missing...
+
+OPTDIR=''
+[ -d opt ] && OPTDIR='opt' #leave out for now.
+
+FFEXE="$(find usr/lib -mindepth 2 -maxdepth 2 -type f -name firefox)"
+if [ "$FFEXE" ];then
+ FFFOLDER="$(echo -n "$FFEXE" | cut -f 3 -d '/')" #ex: firefox-33.1.1
+ ln -s $FFFOLDER usr/lib/firefox
+ if [ ! -e usr/bin/firefox ];then
+  mkdir -p usr/bin
+  ln -s ../lib/firefox/firefox usr/bin/firefox
+ fi
+fi
+
+FFDEV="$(find usr/lib -mindepth 1 -maxdepth 1 -type d -name 'firefox-devel-*')"
+if [ "$FFDEV" ];then
+ mkdir -p ../firefox_DEV/usr/lib
+ cp -a -f --remove-destination "$FFDEV" ../firefox_DEV/usr/lib/
+ sync
+ rm -rf ./"$FFDEV"
+fi
+
+if [ -d usr/share/idl ];then
+ mkdir -p ../firefox_DEV/usr/share/idl
+ cp -a -f --remove-destination usr/share/idl/* ../firefox_DEV/usr/share/idl/
+ sync
+ rm -rf usr/share/idl
+fi
+
+#t2 build doesn't even have .desktop file...
+if [ ! -f usr/share/applications/firefox.desktop ];then
+ mkdir -p usr/share/applications
+ echo '[Desktop Entry]
+Encoding=UTF-8
+Name=Firefox web browser
+Icon=firefox.png
+Comment=Firefox web browser
+Exec=firefox
+Terminal=false
+Type=Application
+Categories=X-Internet-browser
+GenericName=Firefox' > usr/share/applications/firefox.desktop
+fi
+
+#170427 yocto pyro, poppler wants this...
+[ -f usr/lib/firefox/libmozsqlite3.so ] && ln -s firefox/libmozsqlite3.so usr/lib/libmozsqlite3.so
+
+#170511 oe build
+rm -f usr/share/applications/mozilla-firefox.desktop 2>/dev/null

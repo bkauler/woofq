@@ -1,0 +1,7 @@
+#!/bin/ash
+#20220214 remove icons from the tray.
+# called from /root/.xinitrc
+
+sed -i -e '/STARTICONS/,/ENDICONS/{/STARTICONS/!{/ENDICONS/!d}}' /root/.jwmrc-tray
+
+###end###

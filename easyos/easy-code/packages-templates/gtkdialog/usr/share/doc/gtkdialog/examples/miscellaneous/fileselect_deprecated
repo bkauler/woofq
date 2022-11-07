@@ -1,0 +1,87 @@
+#!/bin/sh
+
+# Thunor: The FILE_BROWSE_NEWDIRECTORY example crashes if a directory
+# name isn't supplied.
+
+GTKDIALOG=gtkdialog
+
+MAIN_DIALOG='
+<window>
+	<vbox>
+		<frame Simple>
+			<hbox>
+				<entry>
+					<variable>FILE</variable>
+				</entry>
+				<button>
+					<input file stock="gtk-open"></input>
+					<variable>FILE_BROWSE</variable>
+					<action function="fileselect">FILE</action>
+				</button>
+			</hbox>
+		</frame>
+		<frame Filename>
+			<hbox>
+				<entry accept="filename">
+					<label>Select an Existing File</label>
+					<variable>FILE_FILENAME</variable>
+				</entry>
+				<button>
+					<input file stock="gtk-open"></input>
+					<variable>FILE_BROWSE_FILENAME</variable>
+					<action function="fileselect">FILE_FILENAME</action>
+				</button>
+			</hbox>
+		</frame>
+		<frame Filename for Save>
+			<hbox>
+				<entry accept="savefilename">
+					<label>Select a Filename</label>
+					<variable>FILE_SAVEFILENAME</variable>
+				</entry>
+				<button>
+					<input file stock="gtk-open"></input>
+					<variable>FILE_BROWSE_SAVEFILENAME</variable>
+					<action function="fileselect">FILE_SAVEFILENAME</action>
+				</button>
+			</hbox>
+		</frame>
+		<frame Directory>
+			<hbox>
+				<entry accept="directory">
+					<label>Select a Directory</label>
+					<variable>FILE_DIRECTORY</variable>
+				</entry>
+				<button>
+					<input file stock="gtk-open"></input>
+					<variable>FILE_BROWSE_DIRECTORY</variable>
+					<action function="fileselect">FILE_DIRECTORY</action>
+				</button>
+			</hbox>
+		</frame>
+		<frame New Directory>
+			<hbox>
+				<entry accept="newdirectory">
+					<label>Create New Directory (really)</label>
+					<variable>FILE_NEWDIRECTORY</variable>
+				</entry>
+				<button>
+					<input file stock="gtk-open"></input>
+					<variable>FILE_BROWSE_NEWDIRECTORY</variable>
+					<action function="fileselect">FILE_NEWDIRECTORY</action>
+				</button>
+			</hbox>
+		</frame>
+		<hbox>
+			<button ok></button>
+			<button cancel></button>
+		</hbox>
+	</vbox>
+</window>
+'
+export MAIN_DIALOG
+
+case $1 in
+	-d | --dump) echo "$MAIN_DIALOG" ;;
+	*) $GTKDIALOG --program=MAIN_DIALOG ;;
+esac

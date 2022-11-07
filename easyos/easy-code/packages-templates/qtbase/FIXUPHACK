@@ -1,0 +1,40 @@
+#note, pkg has already been split into EXE, _DEV, _DOC, _NLS components.
+
+#180716 qtbase compiled in OE has this wrong path:
+if [ -f ../qtbase_DEV/usr/lib/qt5/mkspecs/qmodule.pri ];then
+ sed -i -e 's%/bin/qt5%/bin%' ../qtbase_DEV/usr/lib/qt5/mkspecs/qmodule.pri
+ sed -i -e 's%/bin/qt5%/bin%' ../qtbase_DEV/usr/lib/pkgconfig/Qt5Core.pc
+fi
+if [ -d usr/bin/qt5 ];then
+ sed -i -e 's%/bin/qt5%/bin%' usr/bin/qt5/qt.conf
+ mkdir -p ../qtbase_DEV/usr/bin
+ cp -a -f usr/bin/qt5/* ../qtbase_DEV/usr/bin/
+ rm -rf usr/bin/qt5
+fi
+#qt5 built in oe, has an unwanted paragraph in some .cmake files...
+if [ -d ../qtbase_DEV/usr/lib/cmake ];then
+ for aFILE in `find ../qtbase_DEV/usr/lib/cmake -type f -name '*.cmake'`
+ do
+  #remove paragraph with this in it:
+  sed -i '/NOT DEFINED OE_QMAKE_PATH_EXTERNAL_HOST_BINS/,/^\s*$/{d}' ${aFILE}
+  #exported OE_QMAKE_PATH_EXTERNAL_HOST_BINS but not read in .cmake files, so delete all...
+  sed -i -e 's%\${OE_QMAKE_PATH_EXTERNAL_HOST_BINS}%/usr/bin%' ${aFILE}
+  #some .cmake files have a wrong path from original host...
+  #ex: _qt5gui_find_extra_libs(EGL "EGL" "" "/mnt/sdb1/projects/oe/pyro/oe-quirky/buildPC/tmp-glibc/work/nocona-64-oe-linux/qtbase/5.10.1+gitAUTOINC+6c6ace9d23-r0/recipe-sysroot/usr/include/libdrm")
+  sed -i -e 's%"/mnt/[a-zA-Z0-9+._/-]*/recipe\-sysroot/%"/%' ${aFILE}
+  #Qt5Core/Qt5CoreConfigExtrasMkspecDir.cmake, change linux-oe-g++ to linux-g++ ...
+  sed -i -e 's%/lib/qt5//mkspecs/linux\-oe\-g%/lib/qt5/mkspecs/linux-g%' ${aFILE}
+  sed -i -e 's%/lib/qt5/mkspecs/linux\-oe\-g%/lib/qt5/mkspecs/linux-g%' ${aFILE}
+ done
+fi
+
+#20211218
+mkdir -p ../qtbase_DEV/usr/bin
+cp -a -f usr/bin/* ../qtbase_DEV/usr/bin/
+mkdir -p ../qtbase_DEV/usr/lib
+cp -a -f usr/lib/*.prl ../qtbase_DEV/usr/lib/
+sync
+rm -rf usr/bin
+rm -f usr/lib/*.prl
+
+

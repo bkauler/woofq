@@ -1,0 +1,22 @@
+#20211018 easyos llvm compiled in oe
+
+DIRNAME="$(find usr/include -mindepth 1 -maxdepth 1 -type d | head -n 1 | rev | cut -f 1 -d '/' | rev)" #ex: llvm9.0.1
+if [ "$DIRNAME" ];then
+
+ cp -a -f usr/bin/${DIRNAME}/* usr/bin/
+ 
+ rm -rf usr/include/${DIRNAME}/llvm
+ rm -rf usr/include/${DIRNAME}/llvm-c
+ 
+ cp -a -f --remove-destination usr/lib/${DIRNAME}/* usr/lib/
+ sync
+ 
+ rm -f usr/lib/libLLVM*
+ rm -f usr/lib/libLTO*
+ rm -f usr/lib/libRemarks*
+ rm -f usr/lib/llvm-config
+ 
+ 
+
+fi
+

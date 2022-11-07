@@ -1,0 +1,18 @@
+# BK 20141220
+
+sed -i -e 's%^EnableLogging=.*%EnableLogging=1%' etc/usb_modeswitch.conf
+
+#150123 need this when 3g modem plugged into a usb3 port:
+#150129 report that uncommenting this caused a usb3 ssd drive to not boot. leave commented for now:
+#sed -i -e 's%^#SetStorageDelay%SetStorageDelay%' etc/usb_modeswitch.conf
+
+#/lib/udev/usb_modeswitch
+#inserted this line:
+#			[ "`/bin/pidof usb_modeswitch_status`" = "" ] && /usr/sbin/usb_modeswitch_status & #BK 20141022
+#this should do it:
+
+umPTN='s%exec /usr/sbin/usb_modeswitch_dispatcher%[ "`/bin/pidof usb_modeswitch_status`" = "" ] \&\& /usr/sbin/usb_modeswitch_status \& #BK\nexec /usr/sbin/usb_modeswitch_dispatcher%'
+sed -i -e "$umPTN" lib/udev/usb_modeswitch
+
+mkdir -p var/lib/usb_modeswitch
+mkdir -p var/log

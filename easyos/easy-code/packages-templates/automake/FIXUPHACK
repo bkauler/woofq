@@ -1,0 +1,47 @@
+#note: DISTRO_BINARY_COMPAT and DISTRO_FILE_PREFIX are visible here, exported in 2createpackages.
+#140117 xARCHDIR, ARCHDIR and DISTRO_ARCHDIR_SYMLINKS exported in 2createpackages.
+
+#ubuntu is the problem, these symlinks are missing...
+
+if [ "$xARCHDIR" ];then #140117
+ if [ -d usr/bin/${ARCHDIR} ];then #161229
+  if [ ! -e usr/bin/${ARCHDIR}/aclocal ];then
+   REALFILE="`ls -1 usr/bin/${ARCHDIR}/aclocal* | head -n 1 | rev | cut -f 1 -d '/' | rev`"
+   [ "$REALFILE" ] && ln -s $REALFILE usr/bin/${ARCHDIR}/aclocal
+  fi
+  if [ ! -e usr/bin/${ARCHDIR}/automake ];then
+   REALFILE="`ls -1 usr/bin/${ARCHDIR}/automake* | head -n 1 | rev | cut -f 1 -d '/' | rev`"
+   [ "$REALFILE" ] && ln -s $REALFILE usr/bin/${ARCHDIR}/automake
+  fi
+ fi
+fi
+
+if [ ! -e usr/bin/aclocal ];then
+ REALFILE="`ls -1 usr/bin/aclocal* | head -n 1 | rev | cut -f 1 -d '/' | rev`"
+ [ "$REALFILE" ] && ln -s $REALFILE usr/bin/aclocal
+fi
+if [ ! -e usr/bin/automake ];then
+ REALFILE="`ls -1 usr/bin/automake* | head -n 1 | rev | cut -f 1 -d '/' | rev`"
+ [ "$REALFILE" ] && ln -s $REALFILE usr/bin/automake
+fi
+
+#if [ ! -e usr/share/aclocal ];then
+# REALDIR="`find usr/share/ -maxdepth 1 -type d -name aclocal* | head -n 1 | rev | cut -f 1 -d '/' | rev`"
+# ln -s $REALDIR usr/share/aclocal
+#fi
+
+if [ ! -e usr/share/automake ];then
+ REALDIR="`find usr/share/ -maxdepth 1 -type d -name automake* | head -n 1 | rev | cut -f 1 -d '/' | rev`"
+ ln -s $REALDIR usr/share/automake
+fi
+
+#160420 ubuntu xerus, bring this back...
+#110402: dpup: iguleder reported these are in /usr/share/misc, so need symlinks...
+if [ ! -e usr/share/automake/config.guess ];then
+ [ -e usr/share/misc/config.guess ] && ln -s ../misc/config.guess usr/share/automake/config.guess
+fi
+if [ ! -e usr/share/automake/config.sub ];then
+ [ -e usr/share/misc/config.sub ] && ln -s ../misc/config.sub usr/share/automake/config.sub
+fi
+
+

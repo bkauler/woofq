@@ -1,0 +1,46 @@
+#!/bin/bash
+#1st param: command that has been executed.
+#2nd param: numeric exit value of completed operation, or file to wait for operation to finish.
+#           if 2nd param empty, wait on /tmp/bluepup/btc-exit-value
+
+export TEXTDOMAIN=bluepup
+export TEXTDOMAINDIR=/usr/share/locale
+export OUTPUT_CHARSET=UTF-8
+
+CR='
+'
+
+LASTCMD="${1}"
+RETval="${2}"
+
+if [ "$RETval" == "0" ];then
+ exit 0
+fi
+
+if [ "$RETval" == "" ];then
+ RETval='/tmp/bluepup/btc-exit-value'
+fi
+if [[ $RETval =~ ^[0-9]+$ ]];then #reg-expr test
+ #it is a number, so operation has already completed.
+ true
+else
+ WAITfile="$RETval"
+ inotifywait --event modify --timeout 60 ${WAITfile}
+ if [ $? -ne 0 ];then
+  RETval="1" #error or timeout.
+  killall bluetoothctl
+ else
+  RETval="$(cat ${WAITfile})"
+ fi
+fi
+
+if [ "$RETval" == "0" ];then
+ exit 0
+fi
+#fail...
+ERR1="$(gettext 'Command:')"
+ERR2="$(gettext 'Has failed.')"
+echo "<b><span color='red'>${ERR1}${CR}${LASTCMD}${CR}${ERR2}</span></b>" > /tmp/bluepup/frame-status.msg
+exit 1
+
+###end###

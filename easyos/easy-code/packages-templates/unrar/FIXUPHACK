@@ -1,0 +1,10 @@
+
+#200117 debian buster...
+if [ ! -e usr/bin/unrar ];then
+ if [ -f usr/bin/unrar-nonfree ];then
+  ln -s unrar-nonfree usr/bin/unrar
+ fi
+ if [ -f usr/bin/unrar-free ];then
+  ln -s unrar-free usr/bin/unrar
+ fi
+fi

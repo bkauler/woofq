@@ -1,0 +1,63 @@
+#!/bin/sh
+# generic wrapper to run as spot (when currently running as root)
+# (C) James Budiono 2012
+# License: GPL version 3 or later
+#130604 BK: slight mods. see also /usr/sbin/setup-spot (support/setup-spot in woof).
+#20210906 /root/spot moved to /clients/spot
+#20210912 need to allow write inside encrypted fs. see also rc.sysinit.
+#20210919 now /home/spot
+
+[ ! $1 ] && exit
+CWD=$(pwd)
+APP="$1"; shift
+ARGS=""
+#[ $1 ] && while [ "$1" ]; do ARGS="$ARGS \"$1\""; shift; done
+if [ $1 ];then
+ while [ "$1" ]
+ do
+  #do not put quotes around if a single word. example is "-edit" for seamonkey, the quotes stuff it up entirely...
+  if [ "${1/ /}" == "${1}" ];then
+   ARGS="${ARGS} ${1}"
+  else
+   ARGS="${ARGS} \"${1}\""
+  fi
+  shift
+ done
+fi
+
+if [ $(id -u) -ne 0 ]; then
+ exec "$APP" "$ARGS"
+fi
+ 
+#this is a method to authorize x server to run by user spot. works when server running.
+#note: this setting does not seem to be stored in a file. it affects the currently running
+#      x server and will be lost when x quits.
+ALLOWflg="$(xhost | grep -o ":spot$")"
+if [ ! "$ALLOWflg" ];then
+ xhost +SI:localuser:spot
+fi
+
+#[ $XAUTHORITY ] && cp $XAUTHORITY /home/spot/.Xauthority 2>/dev/null
+#touch /home/spot/.Xauthority
+
+#following line is mostly there to catch any root:root files that may have got copied in...
+chown -R spot:spot /home/spot &
+sleep 0.1
+export XAUTHORITY=/home/spot/.Xauthority  
+export XDG_CONFIG_HOME=/home/spot/.config
+export XDG_CACHE_HOME=/home/spot/.cache
+export XDG_DATA_HOME=/home/spot/.local/share
+ 
+#20210912 need to allow write inside encrypted fs...
+which keyctl >/dev/null
+if [ $? -eq 0 ];then
+ IDflg="$(grep -o ' logon ' /proc/keys)"
+else
+ IDflg=""
+fi
+if [ "$IDflg" ];then
+ exec su -l spot -s /bin/sh -c "DISPLAY=${DISPLAY} /usr/local/clients/run-client-indirect \"$APP\" $ARGS"
+else
+ exec su -l spot -s /bin/sh -c "DISPLAY=${DISPLAY} \"$APP\" $ARGS"
+fi
+###end###

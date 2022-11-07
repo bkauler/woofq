@@ -1,0 +1,601 @@
+#!/bin/bash
+#(c) Copyright Barry Kauler, 31 January 2017. License: GPL V3 (/usr/share/doc/legal)
+#Easy Linux script for Easy Containers, to run an isolated application.
+#passed in parameter is name of executable, may have arguments $2 etc.
+#if passed-in param is "sh[0-9]" then just run shell in a terminal
+#170804 moved umount container/dev/* to stop-container
+#180427 linux capabilities, using capsh. fix namespace options. 180506 fix.
+#180524 have patched kernel cap_sys_mount, split out from cap_sys_admin
+#180619 make sure EC_CAP_DROP exported.
+#180624 not using libcap patched for cap_sys_mount anymore.
+#180630 putting quotes around passed params breaks things.
+#180702 support xephyr server option.
+#180703 set timezone. new variables EC_XSOCKET, EC_XSERVER. pass XDG variables.
+#180720 detect if container already running, just switch into it.
+#180720 if Xephyr not running, start it.
+#180721 /mnt/wkg and /mnt/$WKG_DEV do not exist in container.
+#180722 if $EXE is running in xephyr, then need different window search.
+#180928 optional 'pflask' utility. ref: http://bkhome.org/news/201809/pflask-chroot-on-steroids.html 180929 180930
+#181001 macvlan network bridge.
+#181002 new "Access" security section. 181006 sound.
+#181008 option to run as zeus in container. 181013 add zeus to audio group. more env vars.
+#181014 tweak. need to avoid some dirs in /mnt/wkg/files
+#181017 mixer utility 'aumix' requires /dev/mixer.
+#181104 support multiple instances of xephyr.
+#181105 in some old pups, 'keymaps' & 'consolefonts' folders missing (is in initrd).
+#181110 support ipvlan for wifi.
+#181117 kill container, kills dhcpcd that serviced the container, which empties /etc/rsolv.conf
+#181117 start-up scripts in /.control in sfs. 181118 fix layers. 181123 fix test.
+#190125 check sound device nodes exist.
+#190220 minibase-net (UltraSNS) uses 'dhcp', not 'dhcpcd'.
+#190806 buster, Xephyr DEB compiled without -zap (terminate server on crtl-alt-backspace).
+#190806 buster, xdotool search WM_CLASS fails.
+#190829 changed from /shared-folder to /files/shared, so same path as in main desktop.
+#190829 now have /files symlink in container to /mnt/wkg/files
+#190830 detect least-secure level 1, and run ec-chroot-admin (ref: easy-containers). 190903 fix.
+#190911 "easy" container name changed to "pyro" or "buster".
+#190913 changed mount path /files/shared inside container to /mnt/wkg/files/shared
+#191201 /mnt/wkg/files/shared was not getting created.
+#191223 /mnt/wkg inside container broken if there is a $WKG_DIR
+#191226 Feodor reported german keyboard wrong in containers.
+#200529 buster iproute2 deb has /bin/ip and symlink /sbin/ip.
+#200607 hdmi sound not working in container.
+#20201215 5.10 kernel has cap_sys_mount patch (#41), have also patched capsh.
+#20201217 5.4.84 kernel has cap_sys_mount patch (#38), have also patched capsh and pflask (buster).
+#20210116 rufwoof: Xephyr add -no-host-grab  20210119 reverted.
+#20210118 add test for dunfell container.
+#20210503 cannot copy /usr/lib/locale/* into container. not compatible older glibc, as in racy and xenialpup.
+#20210916 crippled-root in container, to run app as client, setup-client defers some operations to here.
+#20211104 support pulseaudio in containers (Unix Domain Socket method).
+#20211205 simplified /files, not a symlink. /files is in easy.sfs
+#20211206 do not run chown on Downloads folder (may not exist anyway).
+#20211214 buster 2.6.2, /files/shared does not exist.
+#20220211 choice icons on desktop or icon-free
+#20220604 fix run *.run-once-top
+#20220630 copy /etc/hosts so that pup-advert-blocker will work in container.
+#20220923 support run as spot in container.
+#20221006 new EC_ACCESS_DRI enable 3D graphics.
+#20221031 if running as zeus, think need to bump up to root.
+
+WHOIAM="$(whoami)"
+[ "${WHOIAM}" != "root" ] && exec sudo -A ${0} ${@} #20221031
+
+[ ! $1 ] && exit 1
+EXE="$1"; shift
+#ARGS=''
+#[ $1 ] && while [ "$1" ]; do ARGS="$ARGS \"${1}\""; shift; done #put quotes around each argument.
+
+. /etc/DISTRO_SPECS #190911
+. /etc/rc.d/PUPSTATE #has BOOT_DEV, BOOT_FS, BOOT_DIR, WKG_DEV, WKG_FS, WKG_DIR, QSFS_PATH
+
+#setup-container must have already been run.
+CONTAINER="/mnt/${WKG_DEV}/${WKG_DIR}containers/${EXE}/container"
+[ ! -d /mnt/${WKG_DEV}/${WKG_DIR}containers/${EXE}/container ] && exit 1 #precaution
+
+. /usr/local/easy_containers/config #180928 has EC_GLOBAL_CHROOT
+. /mnt/${WKG_DEV}/${WKG_DIR}containers/${EXE}/configuration #has EC_XSOCKET, EC_XSERVER
+
+#190830 security-level 1 is no security...
+case "$EC_SEC_PRESET" in
+ seclevel_1)
+  exec /usr/local/easy_containers/ec-chroot-admin "$EXE" ${1} #$1 is actually $2, see shift above.
+ ;;
+esac
+
+#180720 if container is already running, minimized, then just switch into it...
+#note, 'start-container' mounts the layers with aufs, but that is not "running".
+busybox ps > /tmp/ec-chroot-ps
+grep "/ec\-run ${EXE}" /tmp/ec-chroot-ps > /dev/null #181123 fix test.
+if [ $? -eq 0 ];then
+ #WID="$(xdotool search -name ${EXE})"
+ #...this returns hits for other windows with same sub-string in name!!!
+ #WID="$(xwininfo -name ${EXE} -int | grep '^xwininfo: ' | head -n 1 | tr -s ' ' | cut -f 4 -d ' ')"
+ #ah, can uses regex in name, to screen out file-manager window titles (such as ".../desk0")...
+ #180722 if $EXE is running in xephyr, then need different search...
+ if [ "$EC_XSERVER" == "xephyr" ];then #181104...
+  touch /tmp/easy_containers/xephyr-windows
+  DISPnum="$(grep " ${EXE}$" /tmp/easy_containers/xephyr-windows | cut -f 1 -d ' ' | tail -n 1)" #ex: 1
+  WID="$(xdotool search -name "^Xephyr${DISPnum}$" | tail -n 1)"
+  #190806 ...doesn't work in buster. xprop shows: WM_CLASS(STRING) = "Xephyr1", "Xephyr"
+  # so, this hack...
+  if [ ! "$WID" ];then
+   WIDs="$(xdotool search --class "^Xephyr$" | tr '\n' ' ')"
+   for aWID in $WIDs
+   do
+    fndWID="$(xprop -id ${aWID} | grep "\"Xephyr${DISPnum}\"")"
+    if [ "$fndWID" ];then
+     WID="$aWID"
+     break
+    fi
+   done
+  fi
+ else
+  WID="$(xdotool search -name "^${EXE}$" | head -n 1)"
+  #180723 see further down, this file gets created...
+  [ ! "$WID" ] && [ -f /tmp/easy_containers/activewindows.log ] && WID="$(grep "^${EXE} " /tmp/easy_containers/activewindows.log | tail -n 1 | cut -f 2 -d ' ')"
+ fi
+ [ "$WID" ] && xdotool windowactivate ${WID}
+ exit
+fi
+
+#170225 start container, if not already... 181014...
+#if [ "$(mount | grep "containers/${EXE}")" == "" ];then
+if [ "$(grep "containers/${EXE}/container" /proc/mounts)" == "" ];then
+ start-container ${EXE}
+ [ $? -ne 0 ] && exit 1
+fi
+#...now, must not write directly to .session, as aufs layers mounted.
+
+#181105 in some old pups, 'keymaps' & 'consolefonts' folders missing (is in initrd)...
+if [ ! -d /mnt/${WKG_DEV}/${WKG_DIR}containers/${EXE}/container/lib/keymaps ];then
+ cp -a /lib/keymaps /mnt/${WKG_DEV}/${WKG_DIR}containers/${EXE}/container/lib/
+fi
+if [ ! -d /mnt/${WKG_DEV}/${WKG_DIR}containers/${EXE}/container/lib/consolefonts ];then
+ cp -a /lib/consolefonts /mnt/${WKG_DEV}/${WKG_DIR}containers/${EXE}/container/lib/
+fi
+
+#191226 Feodor reported german keyboard wrong in containers: http://murga-linux.com/puppy/viewtopic.php?p=1044279#1044279
+# hmmm, try this...
+#20210503 folder does not exist in racy...
+if [ ! -d ${CONTAINER}/etc/X11/xorg.conf.d ];then
+ mkdir ${CONTAINER}/etc/X11/xorg.conf.d
+fi
+cp -a -f /etc/X11/xorg.conf.d/*.conf ${CONTAINER}/etc/X11/xorg.conf.d/
+
+#170317 seamonkey wants this...
+if [ ! -s /mnt/${WKG_DEV}/${WKG_DIR}containers/${EXE}/container/etc/machine-id ];then
+ cp -a -f /etc/machine-id /mnt/${WKG_DEV}/${WKG_DIR}containers/${EXE}/container/etc/
+fi
+
+#20211205 now have /files in easy.sfs, no need for all of this...
+##180721 rox and other apps will try open /mnt/wkg/home... $WKG_DEV will have to be a symlink... 191223 no, wkg is a symlink...
+##191223 note: when easy-containers creates a new container, creates <container>/.session/mnt/$WKG_DEV but not $WKG_DEV/$WKG_DIR ...can't see where that happens, but fix it here...
+#if [ "$WKG_DIR" ];then #191223...
+# mkdir -p /mnt/${WKG_DEV}/${WKG_DIR}containers/${EXE}/container/mnt/${WKG_DEV}/${WKG_DIR}
+# ln -snf ${WKG_DEV}/${WKG_DIR} /mnt/${WKG_DEV}/${WKG_DIR}containers/${EXE}/container/mnt/wkg
+#else
+# mkdir -p /mnt/${WKG_DEV}/containers/${EXE}/container/mnt/${WKG_DEV}
+# ln -snf ${WKG_DEV} /mnt/${WKG_DEV}/${WKG_DIR}containers/${EXE}/container/mnt/wkg
+#fi
+#if [ ! -d /mnt/${WKG_DEV}/${WKG_DIR}containers/${EXE}/container/mnt/wkg/files/shared ];then
+# #for aDIR in `find /mnt/wkg/files -maxdepth 2 -type d | tr '\n' ' '`
+# #181014 need to avoid some dirs... 190903 add shared...
+# for aDIR in shared other archive media/audio media/images media/video downloads personal projects grisbi grisbi/grisbi-backup portable
+# do
+#  mkdir -p /mnt/${WKG_DEV}/${WKG_DIR}containers/${EXE}/container/mnt/wkg/files/${aDIR}
+# done
+#fi
+
+#181006 for sound output (see also $SND below):
+cp -a -f /etc/asound.state ${CONTAINER}/etc/
+#200607 hdmi sound not working in container, fix...
+cp -a -f /etc/asound.conf ${CONTAINER}/etc/
+[ -f /root/.asoundrc ] && cp -a -f /root/.asoundrc ${CONTAINER}/root/
+
+#20220211 choice icons on desktop or icon-free
+if [ -f /etc/uimanager ];then
+ if [ -f ${CONTAINER}/etc/uimanager ];then
+  cp -a -f /etc/uimanager ${CONTAINER}/etc/
+ fi
+fi
+
+#20211205 no
+##190829 now have /files symlink (as per main desktop)... 190903 fix
+#ln -snf /mnt/wkg/files /mnt/${WKG_DEV}/${WKG_DIR}containers/${EXE}/container/files
+
+#20210916 unable to run this inside container, do it here. ref: /usr/local/clients/setup-client
+CLIENTEXE=''; CLIENTS=''
+#20220923 support spot in container...
+if [ "$EC_ENV_SPOT" == "true" ];then #ref: configuration
+ CLIENTS='spot'
+fi
+if [ -f /mnt/${WKG_DEV}/${WKG_DIR}containers/${EXE}/container/usr/bin/${EXE} ];then
+ CLIENTEXE="$(grep '^#CLIENTMARKER ' /mnt/${WKG_DEV}/${WKG_DIR}containers/${EXE}/container/usr/bin/${EXE} | cut -f 2 -d ' ')"
+fi
+if [ "$CLIENTEXE" ];then
+ CLIENTS="${CLIENTS} ${CLIENTEXE}"
+else
+ #probably desktop in container, may have loaded extra sfs's...
+ MAYBES="$(find /mnt/${WKG_DEV}/${WKG_DIR}containers/${EXE} -mindepth 1 -maxdepth 1 -type l -name '*.sfs' 2>/dev/null | rev | cut -f 1 -d '/' | cut -f 2- -d '.' | rev | tr '\n' ' ')"
+ for aMAYBE in $MAYBES
+ do
+  if [ -f /mnt/${WKG_DEV}/${WKG_DIR}containers/${EXE}/container/usr/bin/${aMAYBE} ];then
+   CLIENTEXE="$(grep '^#CLIENTMARKER ' /mnt/${WKG_DEV}/${WKG_DIR}containers/${EXE}/container/usr/bin/${aMAYBE} | cut -f 2 -d ' ')"
+  else
+   CLIENTEXE=''
+  fi
+  if [ "$CLIENTEXE" ];then
+   CLIENTS="${CLIENTS} ${CLIENTEXE}"
+  fi
+ done
+fi
+for aCLIENT in ${CLIENTS}
+do
+ /usr/local/clients/create-client-environment ${aCLIENT} /mnt/${WKG_DEV}/${WKG_DIR}containers/${EXE}/container
+ #don't know if need this...
+ ALLOWflg="$(xhost | grep -o ":${aCLIENT}$")"
+ if [ ! "$ALLOWflg" ];then
+  xhost +SI:localuser:${aCLIENT}
+ fi
+ #also deferred from setup-client... 20211206 no...
+ #chown -R ${aCLIENT}:${aCLIENT} /mnt/${WKG_DEV}/${WKG_DIR}containers/${EXE}/container/home/${aCLIENT}/Downloads
+done
+
+[ "$EC_XSERVER" == "" ] && EC_XSERVER='xephyr' #180703
+[ "$EC_XSOCKET" == "" ] && EC_XSOCKET='abstract' #180703
+
+##make :0 unix domain socket unusable inside a container (if /tmp binded into container)...
+#if [ -e /tmp/.X11-unix/X0 ];then
+# if [ "$(stat -c %U /tmp/.X11-unix/X0)" != "zeus" ];then
+#  chown zeus:X0 /tmp/.X11-unix/X0
+#  chmod 770 /tmp/.X11-unix/X0
+# fi
+#fi
+
+NEED_TMP_BIND=0
+case "$EC_XSERVER" in #180703
+ xephyr)
+  CNTxephyr=$(busybox pidof Xephyr | busybox wc -w) #181104
+  CNTxephyr=$(($CNTxephyr+1)) #181104
+  case "$EC_XSOCKET" in
+   unix)
+    NEED_TMP_BIND=1
+    ecDISPLAY=":${CNTxephyr}"
+   ;;
+   pipe)
+    if ! pidof socat; then
+     socat -ly -d -d TCP-LISTEN:6000,fork,bind=localhost UNIX-CONNECT:/tmp/.X11-unix/X${CNTxephyr} &
+    fi
+    ecDISPLAY="localhost:${CNTxephyr}"
+   ;;
+   *) #abstract
+    ecDISPLAY=":${CNTxephyr}"
+   ;;
+  esac
+  #180720 if Xephyr not running, start it... 181104...
+  if [ ! -S /tmp/.X11-unix/X${CNTxephyr} ];then
+   DPI="$(grep '^Xft.dpi:' /root/.Xresources | tr -s ' ' | cut -f 2 -d ' ')"
+   #190806 buster, Xephyr DEB compiled without -zap (terminate server on crtl-alt-backspace)...
+   #Xephyr :${CNTxephyr} -fullscreen -title "${EXE}" -name "Xephyr${CNTxephyr}" -zap -dpi "$DPI" -nolisten tcp &
+   #20210116 rufwoof: add -no-host-grab  ref: https://easyos.org/forum/showthread.php?tid=321 ref2: https://xorg-devel.x.narkive.com/ixVv99dS/patch-xephyr-option-to-disable-grabbing-the-host
+   #20210119 reverted...
+   Xephyr :${CNTxephyr} -fullscreen -title "${EXE}" -name "Xephyr${CNTxephyr}" -dpi "$DPI" -nolisten tcp &
+   #Xephyr :${CNTxephyr} -fullscreen -no-host-grab -title "${EXE}" -name "Xephyr${CNTxephyr}" -dpi "$DPI" -nolisten tcp &
+   echo "${CNTxephyr} ${EXE}" >> /tmp/easy_containers/xephyr-windows
+   #wait until ready to use...
+   CNT=0
+   while [ ! -S /tmp/.X11-unix/X${CNTxephyr} ];do
+    sleep 0.1
+    CNT=$(($CNT+1))
+    [ $CNT -gt 20 ] && exit 2
+   done
+  fi
+ ;;
+ *) #xorg
+  case "$EC_XSOCKET" in
+   unix)
+    NEED_TMP_BIND=1
+    ecDISPLAY=:0
+   ;;
+   pipe)
+    #this enables DISPLAY=localhost:0 inside the chroot:
+    # -ly logs to syslog.
+    if ! pidof socat; then
+     socat -ly -d -d TCP-LISTEN:6000,fork,bind=localhost UNIX-CONNECT:/tmp/.X11-unix/X0 &
+    fi
+    ecDISPLAY='localhost:0'
+   ;;
+   *) #abstract
+    ecDISPLAY=':0'
+   ;;
+  esac
+ ;;
+esac
+
+#190220 minibase daemon
+pidof ifmon >/dev/null
+MNflg=$?
+
+if [ "$EC_GLOBAL_CHROOT" == "pflask" ];then #180928
+ #environment variables
+ if [ "$EC_UNSHARE_ENV_VARS" == "true" ];then
+  XDGVARS="XDG_CACHE_HOME=${XDG_CACHE_HOME},XDG_CONFIG_DIRS=${XDG_CONFIG_DIRS},XDG_CONFIG_HOME=${XDG_CONFIG_HOME},XDG_DATA_DIRS=${XDG_DATA_DIRS},XDG_DATA_HOME=${XDG_DATA_HOME},EDITOR=${EDITOR},EUID=${EUID},GDK_USE_XFT=${GDK_USE_XFT},HOME=${HOME},HOSTNAME=${HOSTNAME},LANG=${LANG},UID=${UID},USER=${USER},SHELL=${SHELL},RGBDEF=${RGBDEF},QT_XFT=${QT_XFT},QT_QPA_PLATFORMTHEME=${QT_QPA_PLATFORMTHEME},QT5DIR=${QT5DIR},OOO_FORCE_DESKTOP=${OOO_FORCE_DESKTOP},NO_AT_BRIDGE=${NO_AT_BRIDGE},MOZ_PLUGIN_PATH=${MOZ_PLUGIN_PATH},MOZ_DISABLE_PANGO=${MOZ_DISABLE_PANGO},MOZILLA_FIVE_HOME=${MOZILLA_FIVE_HOME},LS_COLORS=${LS_COLORS},G_FILENAME_ENCODING=${G_FILENAME_ENCODING},GTK2_RC_FILES=${GTK2_RC_FILES}"
+  ENVI="--setenv=TERM=xterm,DISPLAY=${ecDISPLAY},PATH=${PATH},${XDGVARS}"
+ else
+  ENVI="--keepenv"
+ fi
+ #181009 zeus  20220922 now spot
+ SPOT=""
+ if [ "$EC_ENV_SPOT" == "true" ];then
+  SPOT="su spot"
+ fi
+ #181002 access shared folder
+ FLDR=""
+ if [ "$EC_ACCESS_FOLDER" == "true" ];then
+  X="$(realpath "$EC_ACCESS_FOLDER_PATH")"
+  X="${X/* */}" #remove any spaces.
+  #20211205 now /files/shared
+  #190913 changed /files/shared inside container to /mnt/wkg/files/shared
+  # -- symlink in path not allowed. /mnt/wkg in container is not a symlink. 191223 yes it is.
+  if [ -d $X ];then
+   FLDR="--mount=bind:${X}:/files/shared" #190829 changed from /shared-folder
+   #20211214 buster 2.6.2, /files/shared does not exist...
+   if [ ! -e ${CONTAINER}/files/shared ];then
+    mkdir -p ${CONTAINER}/files/shared
+    mkdir ${CONTAINER}/files/downloads 2>/dev/null
+    mkdir ${CONTAINER}/files/media 2>/dev/null
+   fi
+   if [ ! -e ${CONTAINER}/home ];then
+    mkdir ${CONTAINER}/home
+   fi
+  fi
+ fi
+ #mount namespace
+ SND=""; DRI=''
+ if [ "$EC_NS_UNSHARE_MOUNT" == "false" ];then
+  MNTns="--no-mountns"
+ else
+  MNTns=""
+  if [ $NEED_TMP_BIND -eq 1 ];then
+   #MNTns="--mount=bind:/tmp:/tmp"
+   MNTns="--mount=bind:/tmp/.X11-unix/X${ecDISPLAY/:/}:/tmp/.X11-unix/X${ecDISPLAY/:/}"
+   mkdir -p ${CONTAINER}/tmp/.X11-unix #180930
+  else
+   #pflask does not mount a tmpfs on /tmp in container...
+   MNTns="--mount=tmp:/tmp"
+  fi
+  #sound access
+  if [ "$EC_ACCESS_SND" == "true" ];then #181006
+   #20211104 support pulseaudio...
+   if [ -e /tmp/pulse-socket ];then
+    mkdir -p ${CONTAINER}/tmp
+    BINDPASOCK=' --mount=bind:/tmp/pulse-socket:/tmp/pulse-socket'
+    mkdir -p ${CONTAINER}/root/.config/pulse
+    echo 'default-server = unix:/tmp/pulse-socket' > ${CONTAINER}/root/.config/pulse/client.conf
+   else
+    BINDPASOCK=''
+    if [ -e ${CONTAINER}/root/.config/pulse/client.conf ];then
+     rm -f ${CONTAINER}/root/.config/pulse/client.conf
+    fi
+   fi
+   #181017 mixer utility 'aumix' requires /dev/mixer. if could create it in the running container, that 
+   #would be good -- need a separate process in host to do that -- for now, add this bind:
+   #190125 check that sound devices exist...
+   if [ -e /dev/snd ];then
+    if [ -e /dev/mixer ];then
+     SND="--mount=bind:/dev/snd:/dev/snd --mount=bind:/dev/mixer:/dev/mixer${BINDPASOCK}"
+    else #missing in rpi3...
+     SND="--mount=bind:/dev/snd:/dev/snd${BINDPASOCK}"
+    fi
+   fi
+   #181017 very odd, pnmixer tray calls defaultaudiomixer but /usr/local/bin not in path. hack...
+   ln -snf ../local/bin/defaultaudiomixer ${CONTAINER}/usr/bin/defaultaudiomixer
+   if [ "$EC_ENV_SPOT" == "true" ];then #181013
+    sed -i -e 's%^audio::101:.*%audio::101:root,spot%' ${CONTAINER}/etc/group
+   fi
+  fi
+  if [ "$EC_ACCESS_DRI" == "true" ];then #20221006 3D graphics
+   DRI='--mount=bind:/dev/dri:/dev/dri'
+  fi
+ fi
+ #network namespace
+ NETNSexe=""
+ if [ "$EC_ACCESS_NET" == "false" ];then #181002
+  NETns=" --netif" #unshare, and there won't be any internet access.
+  EC_CAP_network='true' #drop, override to make sure no network capability.
+ else
+  NETns=" --no-netns"
+  if [ "$EC_NS_UNSHARE_NETWORK" == "true" ];then
+   #181001 not using pflask, instead using ip to unshare network namespace...
+   #problem, busybox ip does not support 'netns' option...
+   #200529 buster iproute2 deb has /bin/ip and symlink /sbin/ip...
+   IPL=''
+   if [ -h /sbin/ip ];then
+    IPL="$(readlink /sbin/ip | grep -o 'busybox')"
+   fi
+   if [ "$IPL" == "busybox" ];then
+    NETns=" --netif" #unshare, and there won't be any internet access.
+   else
+    IFIP="$(getlocalip | grep -v '^lo' | grep '^[a-z0-9]*: ' | tail -n 1)" #my veth tests created eth0.5 etc, screen out.
+    if [ "$IFIP" ];then #181110
+     IFcont="$(echo -n "$EXE" | sed -e 's%[^a-zA-Z0-9]%%g' | tr '[A-Z]' '[a-z]')1" #ex: seamonkey1 --just want a unique name
+     NETNSexe="ip netns exec ${IFcont}ns"
+     NSFSflg="$(busybox mount | grep "netns/${IFcont}ns ")"
+     PS="$(busybox ps)"
+     RUNflg="$(echo "$PS" | grep "dhcpcd -C resolv\.conf -C wpa_supplicant -b ${IFcont}$")" #181117
+     IFhost="${IFIP/:*/}" #ex: eth0
+     #if [ "${IFIP:0:3}" == "eth" ];then #181110
+     if [ ! -d /sys/class/net/${IFhost}/wireless ];then #181110
+      if [ ! "$NSFSflg" ];then
+       ip link add ${IFcont} link ${IFhost} type macvlan mode bridge
+       ip netns add ${IFcont}ns
+       ip link set ${IFcont} netns ${IFcont}ns
+      fi
+      if [ $MNflg -eq 0 ];then #190220 minibase
+       MN_RUNflg1="$(ip netns exec ${IFcont}ns ifconfig ${IFcont} | grep -o "^${IFcont}")"
+       MN_RUNflg2="$(ip netns exec ${IFcont}ns ifconfig ${IFcont} | grep -o " inet addr:")"
+       #if [ "$MN_RUNflg1" == "" ];then
+        echo '#!/bin/sh' > ${CONTAINER}/etc/net/dhcp-dns
+        echo '#!/bin/sh' > ${CONTAINER}/etc/net/dhcp-gw
+        echo '#!/bin/sh' > ${CONTAINER}/etc/net/dhcp-ntp
+        ip netns exec ${IFcont}ns ifconfig ${IFcont} up
+       #fi
+       if [ "$MN_RUNflg2" == "" ];then
+        ip netns exec ${IFcont}ns dhcp ${IFcont} request
+       fi
+      else
+       if [ ! "$RUNflg" ];then
+        ip netns exec ${IFcont}ns ifconfig ${IFcont} up
+        ip netns exec ${IFcont}ns dhcpcd -C resolv.conf -C wpa_supplicant -b ${IFcont} #-b background immediately. 181117 do not write to /etc/resolv.conf
+       fi
+      fi
+     else #wifi
+      ###TO DO### not working, may have to use veth
+      #if [ ! "$NSFSflg" ];then
+      # ip link add ${IFcont} link ${IFhost} type ipvlan mode l2
+      # ip netns add ${IFcont}ns
+      # ip link set ${IFcont} netns ${IFcont}ns
+      #fi
+      #if [ ! "$RUNflg" ];then
+      # ip netns exec ${IFcont}ns ifconfig ${IFcont} up
+      # ip netns exec ${IFcont}ns ip -4 addr add ${IFIP/* /} dev ${IFcont}
+      # ip netns exec ${IFcont}ns dhcpcd -b ${IFcont} #-b background immediately
+      #fi
+      ###for now, just fallback to not unsharing netns...
+      NETNSexe=''
+      EC_NS_UNSHARE_NETWORK='false'
+     fi
+    fi
+   fi
+  fi
+ fi
+ #other namespaces
+ UTSns=""; IPCns=""; PIDns=""; USERns=""
+ [ "$EC_NS_UNSHARE_UTS" == "false" ] && UTSns=" --no-utsns"
+ [ "$EC_NS_UNSHARE_IPC" == "false" ] && IPCns=" --no-ipcns"
+ [ "$EC_NS_UNSHARE_PID" == "false" ] && PIDns=" --no-pidns"
+ NS="${MNTns}${UTSns}${IPCns}${NETns}${PIDns}"
+ #capabilities
+ #20201215 5.10 kernel has cap_sys_mount patch, have also patched capsh...
+ #20201217 ditto 5.4.84 kernel. has different patached capsh and pflask.
+ CSMopt=''
+ capsh --supports=cap_sys_mount 2>/dev/null #note: this will also work with unpatched capsh, use "41"
+ if [ $? -eq 0 ];then
+  CSMopt='-sys_mount,'
+ fi
+ CAPS="--caps=all"
+ cOPTS=''
+ [ "$EC_CAP_system" == "true" ] && cOPTS="${CSMopt}-sys_admin,-sys_boot,-sys_chroot,-sys_ptrace,-sys_time,-sys_tty_config,"
+ [ "$EC_CAP_system" == "false" ] && cOPTS="-sys_admin," #180930 must at least drop this, else pflask fails.
+ [ "$EC_CAP_file" == "true" ] && cOPTS="${cOPTS}-chown,-kill,-dac_override,-dac_read_search,-fowner,-setfcap,-setpcap,"
+ [ "$EC_CAP_network" == "true" ] && cOPTS="${cOPTS}-net_admin,"
+ [ "$EC_CAP_module" == "true" ] && cOPTS="${cOPTS}-mknod,-sys_module,"
+ [ "$EC_CAP_resource" == "true" ] && cOPTS="${cOPTS}-sys_nice,-sys_resource,"
+ cOPTS="${cOPTS%%,}" #remove trailing comma.
+ [ "$cOPTS" ] && CAPS="--caps=all,${cOPTS}"
+ export EC_CAP_DROP='' #to make sure not used in ec-run (in container).
+ 
+else
+ #namespaces
+ uOPTS=""
+ [ "$EC_NS_UNSHARE_MOUNT" == "true" ] && uOPTS="${uOPTS} -m"
+ [ "$EC_NS_UNSHARE_UTS" == "true" ] && uOPTS="${uOPTS} -u"
+ [ "$EC_NS_UNSHARE_IPC" == "true" ] && uOPTS="${uOPTS} -i"
+ [ "$EC_NS_UNSHARE_NETWORK" == "true" ] && uOPTS="${uOPTS} -n"
+ [ "$EC_NS_UNSHARE_PID" == "true" ] && uOPTS="${uOPTS} -p --fork" # --mount-proc=${CONTAINER}/proc
+ [ "$EC_NS_UNSHARE_USER" == "true" ] && uOPTS="${uOPTS} -U --setgroups=deny --map-root-user"
+
+ #180427 capabilities
+ cOPTS=''
+ CAPSYSADMIN='cap_sys_admin,'
+ 
+ #20201215 5.10 kernel has cap_sys_mount patch, have also patched capsh...
+ #20201217 ditto 5.4.84 kernel. has different patached capsh and pflask.
+ capsh --supports=cap_sys_mount 2>/dev/null #note: this will also work with unpatched capsh, use "41"
+ if [ $? -eq 0 ];then
+  CAPSYSADMIN='cap_sys_admin,cap_sys_mount,'
+ fi
+ #180624 not using libcap patched for cap_sys_mount anymore...
+ #if [ "$EC_CAP_mount" == "true" ];then #180524
+ # #cOPTS="${cOPTS}cap_sys_admin,cap_sys_mount,"
+ # #CAPSYSADMIN=''
+ # cOPTS="${cOPTS}cap_sys_mount,"
+ #fi
+ 
+ [ "$EC_CAP_system" == "true" ] && cOPTS="${cOPTS}${CAPSYSADMIN}cap_sys_boot,cap_sys_chroot,cap_sys_ptrace,cap_sys_time,cap_sys_tty_config,"
+ [ "$EC_CAP_file" == "true" ] && cOPTS="${cOPTS}cap_chown,cap_kill,cap_dac_override,cap_dac_read_search,cap_fowner,cap_setfcap,cap_setpcap,"
+ [ "$EC_CAP_network" == "true" ] && cOPTS="${cOPTS}cap_net_admin,"
+ [ "$EC_CAP_module" == "true" ] && cOPTS="${cOPTS}cap_mknod,cap_sys_module,"
+ [ "$EC_CAP_resource" == "true" ] && cOPTS="${cOPTS}cap_sys_nice,cap_sys_resource,"
+ EC_CAP_DROP="${cOPTS%%,}" #remove trailing comma.
+ export EC_CAP_DROP #used in ec-run
+
+ ENVI=""
+ XDGVARS="XDG_CACHE_HOME=${XDG_CACHE_HOME} XDG_CONFIG_DIRS=${XDG_CONFIG_DIRS} XDG_CONFIG_HOME=${XDG_CONFIG_HOME} XDG_DATA_DIRS=${XDG_DATA_DIRS} XDG_DATA_HOME=${XDG_DATA_HOME}" #180703
+ [ "$EC_UNSHARE_ENV_VARS" == "true" ] && ENVI="env -i TERM=xterm DISPLAY=${ecDISPLAY} ${XDGVARS} EC_CAP_DROP=${EC_CAP_DROP}" #180619
+
+ if [ "$EC_NS_UNSHARE_MOUNT" == "false" ];then
+  if [ "$EC_NS_UNSHARE_PID" == "false" ];then
+   busybox mount -o bind /proc ${CONTAINER}/proc
+   busybox mount -o bind /sys ${CONTAINER}/sys #180506
+  fi
+  busybox mount -o bind /dev ${CONTAINER}/dev
+  [ $NEED_TMP_BIND -eq 1 ] && busybox mount -o bind /tmp ${CONTAINER}/tmp #180703
+  busybox mount -o bind /dev/pts ${CONTAINER}/dev/pts
+  busybox mount -o bind /dev/shm ${CONTAINER}/dev/shm
+ fi
+fi #180928
+
+#needed for internet access...
+cp -f /etc/resolv.conf ${CONTAINER}/etc/resolv.conf
+#180703 timezone...
+cp -a -f --remove-destination /etc/localtime ${CONTAINER}/etc/
+
+#181105 need locale info in container...
+#20210503 this was done in start-container, moved to here.
+#20210503 cannot copy /usr/lib/locale/* into container. not compatible older glibc, as in racy and xenialpup.
+for aL in /usr/lib/locale/*utf8
+do
+ if [ -e "$aL" ];then #need this test.
+  if [ ! -e ${CONTAINER}${aL} ];then
+   L1="${aL##*/}"
+   L2="${L1/.*/}" #ex: en_US
+   chroot ${CONTAINER} localedef -f UTF-8 -i ${L2} --no-archive ${L2}.utf8
+  fi
+ fi
+done
+
+#20220630 so that pup-advert-blocker will work in container...
+grep -q 'pup-advert-blocker' /etc/hosts
+if [ $? -eq 0 ];then
+ cp -a -f /etc/hosts ${CONTAINER}/etc/
+fi
+
+#181118 was going to do this in /.control/ec-run, but in case running as zeus, do it here... 20220922 now spot.
+#first-time, or when layers change, need to fix things...
+#see also start-container, which detects changed layers.
+for aONCE in `find ${CONTAINER}/.control -mindepth 1 -maxdepth 1 -type f -name '*.run-once-base' | tr '\n' ' '`
+do
+ aEXE="$(basename $aONCE .run-once-base)"
+ [ -f ${CONTAINER}/.control/${aEXE}.run-once-base-flag ] && continue
+ [ -x ${aONCE} ] && chroot ${CONTAINER} /.control/${aEXE}.run-once-base
+ touch ${CONTAINER}/.control/${aEXE}.run-once-base-flag
+done
+#190911 "easy" container has been renamed...
+case "$EXE" in
+ #20220604 fix...
+ pyro|buster|dunfell|bookworm) #***will need future fix when more easyos series*** 20210118 added dunfell.
+  if [ -f ${CONTAINER}/.control/${EXE}.run-once-top ];then
+   bEXE="${EXE}"
+  else
+   bEXE="easy"
+  fi
+  if [ ! -f ${CONTAINER}/.control/${bEXE}.run-once-top-flag ];then
+   [ -x ${CONTAINER}/.control/${bEXE}.run-once-top ] && chroot ${CONTAINER} /.control/${bEXE}.run-once-top
+   touch ${CONTAINER}/.control/${bEXE}.run-once-top-flag
+  fi
+ ;;
+ *)
+  if [ ! -f ${CONTAINER}/.control/${EXE}.run-once-top-flag ];then
+   [ -x ${CONTAINER}/.control/${EXE}.run-once-top ] && chroot ${CONTAINER} /.control/${EXE}.run-once-top
+   touch ${CONTAINER}/.control/${EXE}.run-once-top-flag
+  fi
+ ;;
+esac
+
+#problem determining window-id when run container. this has delay, then logs active-window...
+WID="$(xdotool getactivewindow)"
+/usr/local/easy_containers/logactivewindow ${EXE} ${WID} &
+
+###THE BIG MOMENT###
+if [ "$EC_GLOBAL_CHROOT" == "pflask" ];then #180928
+ echo "Executing: DISPLAY=${ecDISPLAY} ${NETNSexe} pflask ${FLDR} ${ENVI} ${NS} ${SND} ${DRI} ${CAPS} --no-userns --chroot=${CONTAINER} -- ${SPOT} /.control/ec-run ${EXE} ${@}"
+ DISPLAY=${ecDISPLAY} ${NETNSexe} pflask ${FLDR} ${ENVI} ${NS} ${SND} ${DRI} ${CAPS} --no-userns --chroot=${CONTAINER} -- ${SPOT} /.control/ec-run ${EXE} ${@}
+else
+ #--map-root-user needed if have -U, otherwise env will fail.
+ DISPLAY=${ecDISPLAY} unshare ${uOPTS} ${ENVI} /bin/busybox chroot ${CONTAINER} /.control/ec-run ${EXE} ${@}
+fi
+
+stop-container ${EXE}
+
+###end###

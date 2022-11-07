@@ -1,0 +1,72 @@
+#!/bin/sh
+#called from /usr/bin/wmreboot, from menu Shutdown --> Reboot, with rollback"
+#200815 erase session, offer to keep some settings.
+
+export TEXTDOMAIN=easy-rollback
+export OUTPUT_CHARSET=UTF-8
+
+if [ $DISPLAY ];then #check X still running
+
+ CR='
+'
+ export WMR_DLG="<window title=\"$(gettext 'Easy Rollback')\" icon-name=\"gtk-about\" window_position=\"1\">
+ <vbox>
+  <text><label>\"$(gettext 'Reboot computer, with rollback.')${CR}$(gettext 'Click one of the radiobuttons and Reboot button, or the Easy Version Control button for more rollback choices.')${CR}$(gettext 'Note, for pristine first-boot option, there will be another window offering to retain some settings.')\"</label></text>
+  <hbox>
+   <frame>
+    <vbox>
+     <radiobutton><label>$(gettext 'Rollback to last snapshot')</label><variable>BAK_SNAP</variable></radiobutton>
+     <radiobutton><label>$(gettext 'Rollback to pristine first-boot')</label><variable>BAK_ERASE</variable></radiobutton>
+     <hbox>
+      <button><label>$(gettext 'Reboot')</label><action>EXIT:reboot</action></button>
+     </hbox>
+    </vbox>
+   </frame>
+   <vbox>
+    <text><label>\"  \"</label></text>
+    <hbox>
+     <button><label>$(gettext 'Easy Version Control')</label><action>easy-version-control & </action><action>EXIT:quit</action></button>
+    </hbox>
+    <hbox>
+     <text width-chars=\"35\" justify=\"1\"><label>$(gettext 'Note: Easy Version Control is also in the Filesystem menu')</label></text>
+    </hbox>
+   </vbox>
+  </hbox>
+  <hbox>
+   <button cancel></button>
+  </hbox>
+ </vbox></window>"
+ RETVARS="$(gtkdialog --program=WMR_DLG --center)"
+ eval "$RETVARS"
+ if [ "$EXIT" == "reboot" ];then
+  [ "$BAK_SNAP" == "true" ] && echo -n ",last" > /.rollback.flg
+  if [ "$BAK_ERASE" == "true" ];then #200815 offer to keep some settings...
+   /usr/local/easy_version/erase-exceptions
+   [ $? -ne 0 ] && exit
+   echo -n ",erase" > /.rollback.flg
+  fi
+  exec wmreboot #default to reboot now.
+ fi
+ exit
+else
+ echo "$(gettext 'Easy Rollback')"
+ echo "$(gettext 'Normally you would run this when X is running, which has a GUI and more options.')"
+ echo "$(gettext 'Choose one of these:')"
+ echo "1. $(gettext 'Reboot, rollback to last snapshot')"
+ echo "2. $(gettext 'Reboot, rollback to pristine first-boot')"
+ echo "3. $(gettext 'Reboot, without rollback')"
+ echo "4. $(gettext 'Exit, do nothing')"
+ echo -n "$(gettext 'Enter a number (ENTER only will choose item 4)'): "
+ read EASYBAK
+ case "$EASYBAK" in
+  1) echo -n ",last" > /.rollback.flg ;;
+  2) echo -n ",erase" > /.rollback.flg ;;
+  3) true ;;
+  *) exit ;;
+ esac
+ exec reboot
+fi
+
+###end###
+
+

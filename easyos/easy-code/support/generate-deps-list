@@ -1,0 +1,82 @@
+#!/bin/bash
+#this will generate a list of dependencies for each package.
+#the ubuntu packages database is used.
+#note: ubuntu package naming may differ for other distros such as slackware,
+# however, the 'setup' script can apply the PKG_NAME_ALIASES variable in
+# file PKGS_MANAGEMENT, when building, for example, the deps for slackware.
+# 'setup' will also be able to determine versions of deps.
+#190611 first release.
+#190624 it took over 10 days to run, attempt some speed-ups.
+
+[ ! -d ../support ] && echo "must execute from inside support folder" && exit
+[ ! -d ../../easy-distro/amd64/ubuntu/beaver ] && echo "../../easy-distro/amd64/ubuntu/beaver does not exist" && exit
+
+UDB_PATH='../../easy-distro/amd64/ubuntu/beaver'
+
+[ ! -f ${UDB_PATH}/Packages-ubuntu-bionic-main ] && echo "${UDB_PATH}/Packages-ubuntu-bionic-main missing" && exit
+[ ! -f ${UDB_PATH}/Packages-ubuntu-bionic-universe ] && echo "${UDB_PATH}/Packages-ubuntu-bionic-universe missing" && exit
+[ ! -f ${UDB_PATH}/Packages-ubuntu-bionic-multiverse ] && echo "${UDB_PATH}/Packages-ubuntu-bionic-multiverse missing" && exit
+
+#ex line:
+# alsa-utils_1.1.3|alsa-utils|1.1.3|1ubuntu1|BuildingBlock|2248K|pool/main/a/alsa-utils|alsa-utils_1.1.3-1ubuntu1_amd64.deb|+kmod&ge17-1,+lsb-base&ge3.0-9,+whiptail,+libasound2&ge1.1.1,+libc6&ge2.15,+libfftw3-single3&ge3.3.5,+libncursesw5&ge6,+libsamplerate0&ge0.1.7,+libtinfo5&ge6|Utilities for configuring and using ALSA|ubuntu|bionic||
+#which is:
+# 1       2        3       4          5                      6    7    8            9            10          11             12              13
+# pkgname|nameonly|version|pkgrelease|category[;subcategory]|size|path|fullfilename|dependencies|description|compileddistro|compiledrelease|repo|
+
+#this is recursive, but do limit the depth...
+find_deps_func() {
+ local xDEP xPTN xREALDEP xSUBDEPS
+ [ $DEPTHCNT -gt 3 ] && return #190624 change 4 to 3.
+ DEPTHCNT=$(($DEPTHCNT+1))
+ for xDEP in ${@}
+ do
+  [ "${xDEP:0:1}" != "+" ] && continue
+  #keep it simple, chop off any versioning...
+  xDEP="${xDEP:1:99}" #remove the "+"
+  xDEP="${xDEP/&*/}"  #remove any versioning.
+  #now find the db entry, and extract the "real" pkg name...
+  xPTN="|${xDEP}|"
+  
+  F7and9="$(grep -m 1 "$xPTN" ${UDB_PATH}/Packages-ubuntu-bionic-main ${UDB_PATH}/Packages-ubuntu-bionic-universe ${UDB_PATH}/Packages-ubuntu-bionic-multiverse | cut -f 2- -d ':' | cut -f 7,9 -d '|')" #190624
+  xREALDEP="$(echo -n "$F7and9" | cut -f 1 -d '|' | rev | cut -f 1 -d '/' | rev)"
+  [ "$xREALDEP" ] && echo "$xREALDEP" >> /tmp/woof-pkg-real-deps-tmp
+  #find also the deps-of-the-dep...
+  xSUBDEPS="$(echo -n "$F7and9" | cut -f 2 -d '|' | tr ',' ' ' | tr -s ' ' | sed -e 's% $%%')"
+  
+  [ "$xSUBDEPS" == "" ] && continue
+  find_deps_func $xSUBDEPS
+ done
+ DEPTHCNT=$(($DEPTHCNT-1))
+}
+
+echo '#these are the "real" pkg names, according to ubuntu (see DB_path field).
+#other distros may have slightly different names, we can use the
+#PKG_NAME_ALIASES variable in file PKGS_MANAGEMENT to find a match.' > /tmp/woof-final-pkgs-deps-tmp
+
+for aREPO in main universe multiverse
+do
+ cat ${UDB_PATH}/Packages-ubuntu-bionic-${aREPO} |
+ while read aDBLINE
+ do
+  echo -n '' > /tmp/woof-pkg-real-deps-tmp
+  aREALPKG="$(echo -n "$aDBLINE" | cut -f 7 -d '|' | rev | cut -f 1 -d '/' | rev)"
+  aPTN1="^${aREALPKG}:"
+  grep "$aPTN1" /tmp/woof-final-pkgs-deps-tmp >/dev/null
+  [ $? -eq 0 ] && continue #already done.
+  echo -n "${aREALPKG} "
+  aDEPS="$(echo -n "$aDBLINE" | cut -f 9 -d '|' | tr ',' ' ')"
+  DEPTHCNT=0
+  find_deps_func $aDEPS
+  sort -u /tmp/woof-pkg-real-deps-tmp > /tmp/woof-pkg-real-deps-tmp2
+  #a pkg may end up in the deps list...
+  grep -v -x "${aREALPKG}" /tmp/woof-pkg-real-deps-tmp2 > /tmp/woof-pkg-real-deps-tmp
+  #put it all together...
+  depslist="$(cat /tmp/woof-pkg-real-deps-tmp | tr '\n' ' ' | tr -s ' ' | sed -e 's% $%%')"
+  echo "${aREALPKG}: ${depslist}" >> /tmp/woof-final-pkgs-deps-tmp
+ done
+done
+
+#190624...
+sort -t ' ' -k 1,1 -u  /tmp/woof-final-pkgs-deps-tmp > ../DEPENDENCIES
+sync
+###end###

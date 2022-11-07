@@ -1,0 +1,10 @@
+#!/bin/sh
+
+xset s off -dpms
+if [ "$@" ];then
+ xine --no-splash "$@"
+else #xine will crash with empty ""
+ xine --no-splash
+fi
+xset s on
+

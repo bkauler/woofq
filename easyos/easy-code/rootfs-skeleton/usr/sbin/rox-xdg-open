@@ -1,0 +1,95 @@
+#!/bin/sh
+#written by mistfire, ref: http://murga-linux.com/puppy/viewtopic.php?t=116952
+
+whole_args="$@"
+
+if [ "$whole_args" == "" ]; then
+echo "Usage: $(basename $0) [filename]
+file handler for rox-filer"
+ exit 1
+fi
+
+if [ -e /usr/local/apps/ROX-Filer/ROX-Filer ]; then
+ export APP_DIR="/usr/local/apps/ROX-Filer"
+ mimetype1="$(/usr/local/apps/ROX-Filer/ROX-Filer -m "$1")"
+elif [ "$(which rox)" != "" ] && [ "$(file "$(which rox)" | grep "ELF")" != "" ]; then
+ mimetype1="$(rox -m "$1")"
+elif [ "$(which rox-filer)" != "" ] && [ "$(file "$(which rox-filer)" | grep "ELF")" != "" ]; then
+ mimetype1="$(rox-filer -m "$1")"
+else
+ echo "rox filer is not installed"
+ exit 1
+fi 
+
+echo "mimetype: $mimetype1"
+
+exec_desktop(){
+
+app2="$1"
+
+    if [ -e "$HOME/.local/share/applications/$app2" ]; then
+     execpath1="$HOME/.local/share/applications/$app2"
+    elif [ -e "/usr/share/applications/$app2" ]; then
+     execpath1="/usr/share/applications/$app2"
+    elif [ -e "/usr/local/share/applications/$app2" ]; then
+     execpath1="/usr/local/share/applications/$app2"
+    fi
+    
+    if [ "$execpath1" != "" ]; then
+     cmd1="$(grep "^Exec" "$execpath1" | head -n 1 | sed 's/Exec=//;s/%[a-zA-Z]//')"
+     if [ "$cmd1" != "" ]; then
+      echo "Execute: $cmd1 \"$whole_args\""
+      exec $cmd1 "$whole_args"
+      exit 0
+     fi
+    fi
+
+}
+
+look_file_association(){
+
+path2="$1"
+
+if [ -e "$path2/mimeapps.list" ]; then
+ dfiles="$(sed -n -e '/\[Default\ Applications\]/,//p' "$path2/mimeapps.list" | grep "$mimetype1=" | cut -f 2 -d '=' | tr ';' ' ')"
+ [ "$dfiles" == "" ] && dfiles="$(sed -n -e '/\[Added\ Associations\]/,//p' "$path2/mimeapps.list" | grep "$mimetype1=" | cut -f 2 -d '=' | tr ';' ' ')"
+ echo "$path2/mimeapps.list: $dfiles"
+ if [ "$dfiles" != "" ]; then
+   for app1 in $dfiles
+   do
+    exec_desktop "$app1"
+   done
+ fi
+fi
+
+if [ -e "$path2/defaults.list" ]; then
+ dfiles="$(sed -n -e '/\[Default\ Applications\]/,//p' "$path2/defaults.list" | grep "$mimetype1=" | cut -f 2 -d '=' | tr ';' ' ')"
+ echo "$path2/defaults.list: $dfiles"
+ if [ "$dfiles" != "" ]; then
+   for app1 in $dfiles
+   do
+    exec_desktop "$app1"
+   done
+ fi
+fi
+
+if [ -e "$path2/mimeinfo.cache" ]; then
+  dfiles="$(cat "$path2/mimeinfo.cache" | grep "$mimetype1=" | cut -f 2 -d '=' | tr ';' ' ')"
+  echo "$path2/mimeinfo.cache: $dfiles"
+  if [ "$dfiles" != "" ]; then
+   for app1 in $dfiles
+   do
+    exec_desktop "$app1"
+   done
+  fi
+fi
+
+}
+
+for xdg_path in "$HOME/.config" "$HOME/.local/share/applications" /etc/xdg /usr/local/share/applications /usr/share/applications
+do
+  [ -e "$xdg_path" ] && look_file_association "$xdg_path"
+done
+
+echo "No default apps found"
+exit 1

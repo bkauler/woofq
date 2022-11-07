@@ -1,0 +1,79 @@
+#!/bin/sh
+#180112 this needs to run if EasyShare has setup cups network printing.
+#180224 runs after network up, see $PE_SERVICE_MANAGER in /etc/eventmanager, /etc/rc.services
+#180225 don't need cupsd to be running.
+#180803 move /etc/cups/client.conf to /root/.cups/ (see also /usr/local/EasyShare/easyshare)
+#20201205 busybox timeout no longer has "-t" option, just put the timeout value.
+
+[ "$1" != "start" ] && exit
+
+#if ! pidof cupsd >/dev/null;then
+# exit
+#fi
+
+#this will only exist if printing to network printers:
+if [ ! -f /root/.cups/client.conf ];then
+ exit
+fi
+
+#format of client.conf: "ServerName <remote-ip>"
+ServerName="$(grep '^ServerName ' /root/.cups/client.conf | tr -s ' ' | cut -f 2 -d ' ')"
+
+if [ ! "$ServerName" ];then
+ exit #client.conf misconfigured.
+fi
+
+ifconfig | grep 'encap:Ethernet' >/dev/null
+[ $? -ne 0 ] && exit #no network.
+
+LOCALIPADDRESS="$(hostname -I)"
+
+if [ ! "$LOCALIPADDRESS" ];then
+ exit #no network connection
+fi
+
+#check if remote cups server...
+REMfnd="$(timeout 1 mpscan -p 631 $ServerName | grep -o 'OK')" #20201205 remove "-t"
+[ "$REMfnd" == "OK" ] && exit
+
+#have to find ip-address of remote printer...
+fndIP=''; maybeIP=''
+REMIPS="$(arp-scan --localnet | grep '^[0-9][0-9][0-9]\.[0-9][0-9][0-9]\.[0-9]' | cut -f 1)"
+if [ "$REMIPS" ];then
+ for remIP in $ServerName $REMIPS
+ do
+  [ ! "$remIP" ] && continue
+  REMfnd="$(timeout 1 mpscan -p 631 $remIP | grep -o 'OK')" #20201205 remove "-t"
+  if [ "$REMfnd" == "OK" ];then
+   if [ "$ServerName" == "$remIP" ];then
+    fndIP="$remIP"
+    break
+   else
+    maybeIP="$remIP"
+    echo "ServerName ${maybeIP}" > /root/.cups/client.conf
+    #180803 my router has a samba server in it, need to exclude it...
+    lpstat -v >/dev/null 2>&1 #probes for printers at ip-address specified in client.conf
+    if [ $? -ne 0 ];then
+     rm -f /root/.cups/client.conf
+     continue
+    fi
+    break
+   fi
+  fi
+ done
+fi
+
+if [ ! "$fndIP" ];then
+ if [ "$maybeIP" ];then
+  fndIP="$maybeIP"
+ fi
+fi
+if [ "$fndIP" ];then
+ if [ "$fndIP" != "$ServerName" ];then
+  echo "ServerName ${fndIP}" > /root/.cups/client.conf
+  if pidof cupsd >/dev/null;then
+   /etc/init.d/cups restart
+  fi
+ fi
+fi
+###END###

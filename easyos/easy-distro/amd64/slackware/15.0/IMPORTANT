@@ -1,0 +1,27 @@
+20210824
+--------
+
+File 'DISTRO_SPECS' has this:
+
+#alternative repo binaries used to build this distro...
+ALT1_DISTRO_BINARY_COMPAT='oe'
+ALT1_DISTRO_COMPAT_VERSION='dunfell'
+
+This specifies a fallback "compatible distro", which is a fallback if
+the package does not exist in the primary compatible distro.
+For example, this line in DISTRO_PKGS_SPECS-slackware-15.0:
+
+yes|a52dec|a52dec|exe,dev,doc,nls|compat:
+
+...if a52dec does not exist in the primary compat-distro, then will look
+in file 'Packages-${ALT1_DISTRO_BINARY_COMPAT}-${ALT1_DISTRO_COMPAT_VERSION}-official'.
+
+'merge2out' will copy the above file to the build location, via "amd64" "slackware"
+"15.0", and will also create a symlink 'packages-${ALT1_DISTRO_BINARY_COMPAT}-${ALT1_DISTRO_COMPAT_VERSION}'
+to where the binary packages of the backup distro are located.
+
+There is a catch to this though, the backup binary packages must already be
+downloaded. This is achieved by running 'merge2out' and choosing target of
+"amd64" "oe" "dunfell", then in the target build folder, run '0setup'
+followed by '1download' -- then you will have the binary packages.
+

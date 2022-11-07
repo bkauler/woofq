@@ -1,0 +1,83 @@
+#note: DISTRO_BINARY_COMPAT and DISTRO_FILE_PREFIX are visible here, exported in 2createpackages.
+#xARCHDIR, ARCHDIR and DISTRO_ARCHDIR_SYMLINKS exported in 2createpackages. 
+
+#this is only for intrepid and maybe debian...
+#120320 intrepid has i486-linux-gnu, precise pangolin has i686-linux-gnu, etc...
+GCCSUB="`find ../gcc_dev_DEV/usr/lib/gcc/ -maxdepth 1 -mindepth 1 -type d 2>/dev/null | head -n 1`" #ex: ../gcc_dev_DEV/usr/lib/gcc/i686-linux-gnu
+if [ "$GCCSUB" ];then
+ DIRSPEC="`find ${GCCSUB}/ -maxdepth 1 -mindepth 1 -type d | head -n 1`" #Intrepid, finds '4.3'.
+ if [ "$DIRSPEC" ];then
+  SUBDIR="`echo -n "$DIRSPEC" | head -n 1 | rev | cut -f 2 -d '/' | rev`"
+  SUBSUBDIR="`echo -n "$DIRSPEC" | head -n 1 | rev | cut -f 1 -d '/' | rev`"
+  mkdir -p usr/lib/gcc/$SUBDIR/$SUBSUBDIR
+  [ -e usr/lib/libgcc_s.so ] && ln -snf /lib/libgcc_s.so.1  usr/lib/gcc/$SUBDIR/$SUBSUBDIR/libgcc_s.so
+  [ -e usr/lib/libgomp.so.1 ] && ln -snf ../../../libgomp.so.1  usr/lib/gcc/$SUBDIR/$SUBSUBDIR/libgomp.so
+  [ -e usr/lib/libquadmath.so.0 ] &&   ln -snf ../../../libquadmath.so.0  usr/lib/gcc/$SUBDIR/$SUBSUBDIR/libquadmath.so #precise pangolin
+ fi
+fi
+
+#161229 slackware
+if [ "$xARCHDIR" ];then
+ rm -rf usr/lib${xARCHDIR}/gcc 2>/dev/null
+else
+ rm -rf usr/lib/gcc 2>/dev/null
+fi
+
+
+#arch has the fortran compiler in the gcc pkg...
+rm -f usr/lib/libgfortran* 2> /dev/null
+BADFINCLUDE="`find usr/lib/gcc -type d -name finclude 2>/dev/null | head -n 1`"
+[ "$BADFINCLUDE" != "" ] && rm -rf $BADFINCLUDE
+#also ada... um, no, arch gcc pkg does not have ada, but leave this here...
+BADFINCLUDE="`find usr/lib/gcc -type d -name adainclude 2>/dev/null | head -n 1`"
+[ "$BADFINCLUDE" != "" ] && rm -rf $BADFINCLUDE
+BADFINCLUDE="`find usr/lib/gcc -type d -name adalib 2>/dev/null | head -n 1`"
+[ "$BADFINCLUDE" != "" ] && rm -rf $BADFINCLUDE
+#also objc...
+rm -f usr/lib/libobjc* 2> /dev/null
+
+#fixup for gentoo...
+if [ ! -e usr/lib/libgcc_s.so.1  ];then
+ if [ -d usr/lib/gcc ];then
+  FNDGCCS="`find usr/lib/gcc -name 'libgcc_s.so.1' | head -n 1`"
+  if [ "$FNDGCCS" ];then
+   GCCSPATH="`dirname $FNDGCCS`"
+   cp -a -f --remove-destination ${GCCSPATH}/libgcc_s.so* usr/lib/ 2>/dev/null
+   cp -a -f --remove-destination ${GCCSPATH}/libgomp.so* usr/lib/ 2>/dev/null
+   cp -a -f --remove-destination ${GCCSPATH}/libmudflap.so* usr/lib/ 2>/dev/null
+   cp -a -f --remove-destination ${GCCSPATH}/libmudflapth.so* usr/lib/ 2>/dev/null
+   cp -a -f --remove-destination ${GCCSPATH}/libstdc++.so* usr/lib/ 2>/dev/null
+   ln -snf libgcc_s.so.1 usr/lib/libgcc_s.so 2>/dev/null
+   ln -snf libgomp.so.1 usr/lib/libgomp.so 2>/dev/null
+   ln -snf libmudflap.so.0 usr/lib/libmudflap.so 2>/dev/null
+   ln -snf libmudflapth.so.0 usr/lib/libmudflapth.so 2>/dev/null
+   ln -snf libstdc++.so.6 usr/lib/libstdc++.so 2>/dev/null
+   sync
+   rm -rf usr/lib/gcc
+  fi
+ fi
+fi
+
+#130707... 20210819 fix find err msg.
+if [ "$xARCHDIR" ];then #140117
+ BADPYLIB="$(find usr/lib${xARCHDIR} -mindepth 1 -maxdepth 1 -iname 'libstdc*.py' 2>/dev/null | tr '\n' ' ')"
+ if [ "$BADPYLIB" ];then
+  for ABADPYLIB in $BADPYLIB
+  do
+   rm -f $ABADPYLIB
+  done
+ fi
+fi
+BADPYLIB="$(find usr/lib -mindepth 1 -maxdepth 1 -iname 'libstdc*.py' 2>/dev/null | tr '\n' ' ')"
+if [ "$BADPYLIB" ];then
+ for ABADPYLIB in $BADPYLIB
+ do
+  rm -f $ABADPYLIB
+ done
+fi
+
+#20220124 arch-linux
+cp -a -f --removed-destination usr/lib/libgo.so* ../gcc_dev_DEV/usr/lib/
+rm -f usr/lib/libgo.so*
+cp -a -f --removed-destination usr/lib/libgphobos.so* ../gcc_dev_DEV/usr/lib/
+rm -f usr/lib/libgphobos.so*

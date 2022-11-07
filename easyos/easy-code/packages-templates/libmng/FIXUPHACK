@@ -1,0 +1,13 @@
+
+#170427 yocto pyro
+FNDMNG1="$(find usr -name libmng.so.1)"
+if [ ! "$FNDMNG1" ];then
+ FNDMNG2="$(find usr -type f -name 'libmng.so.*')"
+ if [ "$FNDMNG2" ];then
+  DIRMNG="$(dirname $FNDMNG2)"
+  BASEMNG="$(basename $FNDMNG2)"
+  ln -s $BASEMNG ${DIRMNG}/libmng.so.1
+ fi
+fi
+
+

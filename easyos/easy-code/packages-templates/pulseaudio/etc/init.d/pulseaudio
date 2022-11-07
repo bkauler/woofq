@@ -1,0 +1,78 @@
+#!/bin/sh
+#20211102 /etc/pulse/client.conf may have been changed if ran pw.
+#20211103 note that user and group 'pulse' is only when start pulseaudio with --system.
+# so code below about 'pulse' group not required. however, see /etc/pulse/default.pa
+# -- users must belong to group 'audio'.
+#20211109 10alsa wait. 20211114 restore volume levels.
+#20211228 added optional $1 = restart
+#20221026 this script moved from /root/Startup, entry added to PE_SERVICE_MANAGER in /etc/eventmanager
+
+if [ "$(whoami)" != "root" ];then #20221026
+ exit
+fi
+
+export DISPLAY=:0 #20221026
+. /etc/profile.d/pulseaudio #20221026 coz this script runs before PULSE_RUNTIME_PATH set.
+sleep 3
+
+if [ "$1" == "restart" ];then
+ pulseaudio -k
+ sleep 0.1
+ /usr/bin/pulseaudio --start --log-target=syslog --disallow-exit --exit-idle-time=-1
+ exec start-pulseaudio-x11
+fi
+
+if [ "$1" == "stop" ];then #20221026
+ pulseaudio -k
+ exit
+fi
+
+#run start-pulseaudio-x11 in blueman_tray...
+[ -x /root/Startup/blueman_tray ] && exit
+
+#20211109 wait until /etc/init.d/10alsa has exited...
+PIDa="$(cat /tmp/10alsa-PID)"
+tail --pid=${PIDa} -f /dev/null
+
+#20211109 bluetoothd will only start if pup_event detects bt hardware.
+# don't hang around here waiting for it...
+#wait for bluetoothd...
+if [ -x /etc/init.d/bluetooth ];then
+ for CNT in 0 1  #2 3 4 5 6 7 8 9 10 11 12 13 14
+ do
+  pidof bluetoothd >/dev/null
+  [ $? -eq 0 ] && break
+  sleep 1
+ done
+ echo "/etc/init.d/pulseaudio: waited ${CNT} seconds for bluetoothd"
+fi
+
+#20211102 turn on auto-spawning of pulseaudio daemon...
+#20211103 leave as "no", as disabled idle-exit (see /etc/pulse/client.conf)
+#sed -i -e 's%= no%= yes%' /etc/pulse/client.conf.d/client.conf
+
+#20211114 this used to be done in /etc/init.d/10alsa
+# for pa, 1st bootup, level setting and store is in /usr/sbin/delayedrun
+if [ -f /etc/asound.state ];then
+ alsactl -f /etc/asound.state restore
+fi
+
+echo "/etc/init.d/pulseaudio: starting pulseaudio daemon"
+#i have configured /etc/pulse/daemon.conf so that it doesn't exit.
+# (so probably don't need respawning enabled)
+#note, --system mode, daemon changes user and group to 'pulse', and users have to
+# be in that group to use audio. The pulse user needs to be in the audio and 
+# bluetooth groups in order to be able to use ALSA and bluetooth devices.
+# All users that need access to PulseAudio have to be in the pulse-access group, even root. 
+# /usr/bin/pulseaudio --start --log-target=syslog --system --disallow-exit
+#20211103 no, run as user root,
+# see ref: http://billauer.co.il/blog/2014/01/pa-multiple-users/
+# ...unix socket, changes to /etc/pulse/default.pa and for non-root users ~/.config/pulse/defaut.pa
+# see also /usr/local/clients/setup-client, /etc/pulse/daemon.conf,
+# /etc/pulse/default.pa, /etc/pulse/client.conf
+#note, --start also implies --daemonize
+#note, --disallow-exit --exit-idle-time=-1 are already specified in /etc/pulse/daemon.conf
+/usr/bin/pulseaudio --start --log-target=syslog --disallow-exit --exit-idle-time=-1
+
+echo "/etc/init.d/pulseaudio: executing start-pulseaudio-x11"
+exec start-pulseaudio-x11

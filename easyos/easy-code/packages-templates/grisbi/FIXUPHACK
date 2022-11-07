@@ -1,0 +1,13 @@
+
+#190807 buster
+mkdir -p usr/share/pixmaps
+if [ -f usr/share/pixmaps/grisbi/grisbi.png ];then
+ ln -s grisbi/grisbi.png usr/share/pixmaps/grisbi.png
+else
+ ln -s grisbi/grisbi-32.png usr/share/pixmaps/grisbi.png
+fi
+
+##200514 keep quirky support...
+#if [ "$WOOF_VARIANT" == "quirky" ];then
+# sed -i -e 's%/home%/file%' root/.config/grisbi/grisbi.conf
+#fi

@@ -1,0 +1,44 @@
+
+#get rid of some icons...
+[ -d usr/share/icons/gnome ] && rm -rf usr/share/icons/gnome
+[ -d usr/share/icons/locolor ] && rm -rf usr/share/icons/locolor
+
+if [ -d usr/share/icons/hicolor ];then
+ [ -d usr/share/icons/hicolor/16x16 ] && rm -rf usr/share/icons/hicolor/16x16
+ [ -d usr/share/icons/hicolor/32x32 ] && rm -rf usr/share/icons/hicolor/32x32
+ [ -d usr/share/icons/hicolor/128x128 ] && rm -rf usr/share/icons/hicolor/128x128
+ [ -d usr/share/icons/hicolor/256x256 ] && rm -rf usr/share/icons/hicolor/256x256
+ [ -d usr/share/icons/hicolor/512x512 ] && rm -rf usr/share/icons/hicolor/512x512
+ [ -d usr/share/icons/hicolor/16x16 ] && rm -rf usr/share/icons/hicolor/16x16
+ [ -d usr/share/icons/hicolor/scalable ] && rm -rf usr/share/icons/hicolor/scalable
+fi
+
+#190807 buster
+if [ -f usr/share/applications/libreoffice-startcenter.desktop ];then
+ echo '[Desktop Entry]
+Version=1.0
+Terminal=false
+NoDisplay=false
+Icon=libreoffice-startcenter.png
+Type=Application
+Categories=X-Document
+Exec=libreoffice
+MimeType=application/vnd.openofficeorg.extension;x-scheme-handler/vnd.libreoffice.cmis;
+Name=LibreOffice Start Center
+GenericName=Office
+Comment=The office productivity suite compatible to the open and standardized ODF document format. Supported by The Document Foundation.
+StartupNotify=true
+X-GIO-NoFuse=true
+StartupWMClass=libreoffice-startcenter
+X-KDE-Protocols=file,http,ftp,webdav,webdavs
+X-AppStream-Ignore=True' > usr/share/applications/libreoffice-startcenter.desktop
+fi
+
+mkdir -p usr/share/pixmaps
+ln -s ../icons/hicolor/48x48/apps/libreoffice-main.png usr/share/pixmaps/libreoffice-startcenter.png
+
+##200514 keep quirky support
+#if [ "$WOOF_VARIANT" == "quirky" ];then
+# sed -i -e 's%/home%/file%' root/.config/libreoffice/4/user/registrymodifications.xcu
+#fi
+

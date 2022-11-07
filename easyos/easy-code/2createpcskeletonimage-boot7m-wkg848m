@@ -1,0 +1,145 @@
+#!/bin/sh
+#(c) Copyright Barry Kauler 2022. License GPL v3 (/usr/share/doc/legal)
+#creates a 825MiB skeleton image for 3buildeasydistro.
+#put resultant image into folder sd-skeleton-images.
+#structure: 1M gap, 7M fat12, 816M ext4, 1M nothing.
+#using limine bootloader
+#20220620 first release.
+#20220911 wkg-partition changed from 816 to 848MB
+#20220927 limine: add menu entry to fix broken video.
+
+#partition sizes...
+P1M='7'
+P2M='848'
+IMGM0="$((${P1M}+${P2M}))" #823. now 855
+IMGM="$((${IMGM0}+1))" #824 include the 1M gap before first partition. now 856
+IMGM1="$((${IMGM}+1))" #825 make the img 1MB bigger. now 857
+
+. ./DISTRO_SPECS
+
+if ! which limine-deploy;then exit 1; fi
+[ ! -f /usr/share/limine/limine.sys ] && exit 1
+
+echo
+echo 'Plug in a usb flash stick, 2GB or greater.'
+echo -n 'Type drive name of stick (ex: sdc): '
+read TARGETDRIVE
+echo -n "It is ${TARGETDRIVE}, is that OK? ENTER if OK: "
+read isitok
+
+PARTNUM1="1"
+PARTNUM2="2"
+if [ "${TARGETDRIVE:0:2}" == "mm" -o "${TARGETDRIVE:0:2}" == "nv" ];then
+ PARTNUM1="p1"
+ PARTNUM2="p2"
+fi
+
+#sizes...
+FDISKINFO="$(fdisk -l /dev/${TARGETDRIVE} 2>/dev/null)"
+SIZEBYTES=`echo "$FDISKINFO" | grep '^Disk /dev' | cut -f 5 -d ' '`
+SIZEKB=`expr $SIZEBYTES \/ 1024`
+SIZEM=`expr $SIZEKB \/ 1024`
+echo "Size of drive: ${SIZEM}MB"
+
+IMGM2="$((${IMGM}+4))" #824+4. now 840+4
+echo "Zeroizing first ${IMGM2}MB of drive..."
+BLK4M="$((${IMGM2}/4))"
+dd if=/dev/zero of=/dev/${TARGETDRIVE} bs=4M count=${BLK4M}
+sync
+
+echo
+echo 'Creating a new dos partition table, using fdisk...'
+busybox echo -e 'o\nw\n' | fdisk /dev/${TARGETDRIVE}
+sync
+
+#create 7MiB esp vfat partition (so 2nd partition will start on a 8MiB boundary)...
+echo "Creating ${P1M}MiB esp partition..."
+busybox echo -e "n\np\n1\n2048\n+${P1M}M\nw\n" | fdisk /dev/${TARGETDRIVE}
+sync
+#set partition-id to efi...
+busybox echo -e 't\nef\nw' | fdisk /dev/${TARGETDRIVE}
+sync
+#set the boot flag...
+busybox echo -e 'a\nw' | fdisk /dev/${TARGETDRIVE}
+sync
+echo change > /sys/block/${TARGETDRIVE}/uevent
+sleep 5
+
+echo "Create fat12 filesystem..."
+#too small for fat16
+mkdosfs -F 12 -n easy1 -S 512 /dev/${TARGETDRIVE}${PARTNUM1}
+sync
+
+echo
+echo "Create ext4 second partition..."
+echo "Creating ${P2M}MiB partition /dev/${TARGETDRIVE}${PARTNUM2}"
+echo -e "n\np\n2\n\n+${P2M}M\nw" | fdisk -u /dev/${TARGETDRIVE}
+sync
+echo change > /sys/block/${TARGETDRIVE}/uevent
+sleep 5
+
+echo
+echo "Creating ext4 f.s. without journal, encrypt, in /dev/${TARGETDRIVE}${PARTNUM2}"
+mke2fs -q -t ext4 -O encrypt,^has_journal,^64bit -L easy2 -m 0 -b 4096 /dev/${TARGETDRIVE}${PARTNUM2}
+sync
+sleep 1
+
+#create wkg_dir
+mkdir -p /mnt/${TARGETDRIVE}${PARTNUM2}
+busybox mount -t ext4 /dev/${TARGETDRIVE}${PARTNUM2} /mnt/${TARGETDRIVE}${PARTNUM2}
+rmdir /mnt/${TARGETDRIVE}${PARTNUM2}/lost+found
+mkdir /mnt/${TARGETDRIVE}${PARTNUM2}/easyos
+sync
+busybox umount /mnt/${TARGETDRIVE}${PARTNUM2}
+
+echo
+echo "Install limine in first partition..."
+mkdir -p /mnt/${TARGETDRIVE}${PARTNUM1}
+busybox mount -t vfat /dev/${TARGETDRIVE}${PARTNUM1} /mnt/${TARGETDRIVE}${PARTNUM1}
+mkdir -p /mnt/${TARGETDRIVE}${PARTNUM1}/EFI/BOOT
+
+cp -a -f /usr/share/limine/BOOTX64.EFI /mnt/${TARGETDRIVE}${PARTNUM1}/EFI/BOOT/
+cp -a -f /usr/share/limine/limine.sys /mnt/${TARGETDRIVE}${PARTNUM1}/
+echo 'QUIET=yes
+TIMEOUT=0
+GRAPHICS=no
+DEFAULT_ENTRY=1
+EDITOR_ENABLED=no
+INTERFACE_BRANDING=BRANDINGFIELD
+
+:EasyOS TITLEFIELD
+    COMMENT=COMMENTFIELD
+    PROTOCOL=linux
+    TEXTMODE=yes
+    KERNEL_PATH=boot://2/easyos/vmlinuz
+    MODULE_PATH=boot://2/easyos/initrd
+    KERNEL_CMDLINE=initrd=initrd rw wkg_uuid=WKGUUIDFIELD wkg_dir=WKGDIRFIELD
+
+
+:  FIXBROKENVIDEOFIELD
+    COMMENT=COMMENTFIELD FIXBROKENVIDEOFIELD
+    PROTOCOL=linux
+    TEXTMODE=yes
+    KERNEL_PATH=boot://2/easyos/vmlinuz
+    MODULE_PATH=boot://2/easyos/initrd
+    KERNEL_CMDLINE=initrd=initrd qfix=vid nomodeset rw wkg_uuid=WKGUUIDFIELD wkg_dir=WKGDIRFIELD' > /mnt/${TARGETDRIVE}${PARTNUM1}/limine.cfg
+sync
+
+busybox umount /mnt/${TARGETDRIVE}${PARTNUM1}
+
+echo "Make the drive legacy-BIOS bootable..."
+limine-deploy /dev/${TARGETDRIVE}
+sync
+sleep 1
+
+echo
+echo "Copying image to file 'easy-skeleton-${DISTRO_TARGETARCH}-${IMGM}mb.img'"
+#copy an extra 1M. this will be zeroes, prevents an old ext4 partition being recognised when write it  to a drive.
+[ -f easy-skeleton-${DISTRO_TARGETARCH}-${IMGM}mb.img ] && rm -f easy-skeleton-${DISTRO_TARGETARCH}-${IMGM}mb.img
+dd if=/dev/${TARGETDRIVE} of=easy-skeleton-${DISTRO_TARGETARCH}-${IMGM}mb.img bs=1M count=${IMGM1} #825 instead of 824.
+sync
+
+echo
+echo "Done. Copy easy-skeleton-${DISTRO_TARGETARCH}-${IMGM}mb.img to folder sd-skeleton-images"
+
+###end###

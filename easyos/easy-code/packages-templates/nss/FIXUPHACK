@@ -1,0 +1,24 @@
+
+#20151029 werewolf, my seamonkey can't find these (ex: libsoftokn3.so)...
+if [ -d usr/lib${xARCHDIR}/nss ];then
+ cp -a -f --remove-destination usr/lib${xARCHDIR}/nss/* usr/lib${xARCHDIR}/
+ sync
+ rm -rf usr/lib${xARCHDIR}/nss
+fi
+
+#170511 oe build
+#seamonkey want 'nss-config'. ubuntu 'libnss-dev' deb has it, a script. but do it this way...
+mkdir -p usr/bin
+if [ ! -f usr/bin/nss-config ];then
+ echo '#!/bin/sh
+ PARAM1="$@"
+ [ "$PARAM1" == "--version" ] && PARAM1="--modversion"
+ pkg-config $PARAM1 nss' > usr/bin/nss-config
+ chmod 755 usr/bin/nss-config
+fi
+
+#170511 oe build
+#lots of binary executables, move them to _DEV...
+mkdir -p ../nss_DEV/usr/bin
+cp -a -f usr/bin/* ../nss_DEV/usr/bin/
+rm -rf usr/bin

@@ -1,0 +1,677 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html><head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<title>pup_event_ipc</title>
+<meta content="Barry Kauler" name="author">
+<meta content="IPC mechanism for Puppy Linux" name="description">
+	<style type="text/css">
+	codebody
+	{
+		font-family: Monospace, monospace;
+		font-size: 12pt;
+	}
+	.style_2
+	{
+		color: #d00000;
+		background-color: #ffffff;
+	}
+	.style_3
+	{
+		color: #007f00;
+		background-color: #ffffff;
+	}
+	.style_5
+	{
+		color: #ff8000;
+		background-color: #ffffff;
+	}
+	.style_6
+	{
+		color: #ff8000;
+		background-color: #ffffff;
+	}
+	.style_7
+	{
+		color: #301010;
+		background-color: #ffffff;
+	}
+	.style_8
+	{
+		color: #000000;
+		background-color: #ffffff;
+	}
+
+	</style>
+</head>
+<body>
+<table cellspacing="2" cellpadding="2" align="center" width="600" border="0">
+  <tbody>
+    <tr>
+      <td valign="top">
+<h1>pup_event InterProcess Communication</h1>
+<font color="#990000">Page updated February 23, 2018, partially updated October 25, 2019</font>&nbsp; <br>
+<b>pup_event</b> is the generic name that I have given to the underlying
+ ...how to describe it... code that does everything "under the bonnet", 
+in the background, that makes your pup run nice. <br>
+<br>
+This page describes an implementation of <b>InterProcess Communication</b>
+ in Puppy and derivatives, that falls under the pup_event umbrella. So, this can be 
+known as the "pup_event IPC" technique, to give it a name when 
+referenced or discussed elsewhere. This was introduced to Puppy mid-2013.<br>
+<br>
+The method chosen is server-less, that is, works peer-to-peer. 
+Applications send and receive messages between themselves directly, 
+without an intermediate server or daemon. However, some applications can
+ provide information that other applications request, and I use the word
+ <b>server</b> in reference to them. I also refer to applications as <b>clients</b> of the IPC mechanism.<br>
+<br>The pup_event IPC mechanism offers various services to client applications:<br>
+<ol>
+  <li>IPC by synchronous message swapping.</li>
+  <li>IPC by mailbox (asynchronous) message passing.</li>
+  <li>Drive hotplug events from the kernel.</li>
+  <li>Added in 2018: service management.<br>
+  </li>
+</ol>
+There is a CLI 
+(commandline) utility supporting IPC, named 'pup_event_ipc', that can be used in 
+shell scripts. Documentation is provided below to show how binary (compiled) 
+applications can use IPC by means of library calls.<br>
+<br>
+<hr size="2" width="100%">
+<h2>pup_event_ipc</h2>
+
+
+        This is a CLI (commandline) application named 'pup_event_ipc'. It is 
+designed to be used in shell scripts, acting as an intermediary to the pup_event IPC mechanism, 
+enabling scripts to pass messages between each other. It is located at /sbin/pup_event_ipc.<br>
+<br>
+Usage of pup_event_ipc is shown by examples in the rest of this 
+document. You can also run it like this to see some usage information:<br>
+<pre># pup_event_ipc --help</pre>
+The main pup_event daemon 'pup_event_frontend_d' is written in C. 
+'pup_event_ipc' is written in BaCon (BASIC to C translator), and the 
+source code can be
+ found in the 'pup-tools' tarball. Look here:<br>
+<br>
+<a href="http://distro.ibiblio.org/easyos/source/alphabetical/p/">http://distro.ibiblio.org/easyos/source/alphabetical/p/</a><br>
+<br>
+Note, the source is also available in <b>woofQ</b>, the "Woof" builder for EasyOS and Quirky Linux.<br>
+<br>
+The code can be examined to see how any other application can access the IPC mechanism.<br>
+<br>
+The commandline format of pup_event_ipc is this:<br>
+<pre># pup_event_ipc "request:client[:message]" [-t &lt;n&gt;]</pre>
+<blockquote><b>-t</b> &lt;n&gt;: Specifies timeout in milliseconds. Timeout will return with value=1.<br>
+  <b>request</b>: Name of another application to send the message to<b>*</b>. Or,<br>
+  <b>request</b>: Keyword to request information from the server. <br>
+&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp; &nbsp; 
+&nbsp; Supported keywords:&nbsp;&nbsp; mailbox waitmail<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+ block network x timeout1 timeout4 timeout60<br>
+  <b>client</b>:&nbsp; Any single-word to identify client (usually sender) application<b>*</b>.<br>
+  <b>message</b>: Any text string (that other side understands), up to 4000 bytes.<br>
+</blockquote>
+<b><big>*</big></b>The names for clients need to be unique. Choose 
+anything you want, perhaps prefixing all names with your initials, for 
+example John Smith could prefix with "js_".<br>
+<br>
+<hr size="2" width="100%">
+<h2>Message formats</h2>
+This section describes message formats. This is already introduced above, as:<br>
+<pre>"request:client[:message]"</pre>
+The various permutations of this are described below.<br>
+        <h3>Synchronous message-swapping</h3>
+Demonstrating synchronous message-swap between two different applications.<br>
+In one terminal window I type this:<br>
+        <pre># pup_event_ipc "js_app1:js_app2:some stuff from app2"</pre>
+In another terminal window I type this:<br>
+        <pre># pup_event_ipc "js_app2:js_app1:data from app1"</pre>
+After launching both of them:<br>
+First window:<br>
+        <pre># pup_event_ipc "js_app1:js_app2:some stuff from app2"<br>data from app1</pre>
+Second window:<br>
+        <pre># pup_event_ipc "js_app2:js_app1:data from app1"<br>some stuff from app2</pre>
+This is a very simple mechanism that can be use by two applications to 
+perform a synchronization, or to pass messages between each other.<br>
+        <br>
+It is a simple swap, and both sides must post to the other. If only one 
+side posts, the message will remain in the "mailbox" until the other side 
+posts.<br>
+The utility 'pup_event_ipc' blocks, that is, waits, until the swap is completed, before exiting.<br>
+        <br>
+Note, the CLI utility 'pup_event_ipc' does have a timeout option (-t n),
+ so either side can terminate before the swap has completed.<br>
+<h3>Mailbox (asynchronous) message passing</h3>
+When a client posts a message to another client, it goes first into the 
+IPC "mailbox", later it gets delivered to the other client.<br>
+<br>
+With asynchronous message passing, you don't send the message to the 
+other client, you send it to the mailbox only, then the sending-client 
+is free to do other stuff.<br>
+The other client, to which you would like your message to go, can at any
+ time query "is there a message waiting for me?" and if so, 
+fetch it.<br>
+<br>
+The format of messages is:<br>
+<pre>"mailbox:client[:message]"</pre>
+If a client posts a message with this format, with the third-field 
+message-string, it gets posted, and the server acknowledges. For 
+example:<br>
+<pre># pup_event_ipc "mailbox:js_app1:message string posted to app1"<br>Mailbox acknowledge</pre>
+A client, any client, can ask if there is mail waiting for "js_app1". 
+This is done by having no third field. For example:<br>
+<pre># pup_event_ipc "mailbox:js_app1"<br>message string posted to app1</pre>
+However, if this is done again:<br>
+<pre># pup_event_ipc "mailbox:js_app1"<br>Mailbox empty</pre>
+That last example returns immediately, but if you want to wait until a message arrives at the mailbox, use this variant:<br>
+<pre># pup_event_ipc "waitmail:js_app1"</pre>
+The utility will not exit until there is a message delivered.<br>
+<br>
+But of course, the pup_event_ipc utility does support a timeout:<br>
+<pre># pup_event_ipc "waitmail:js_app1:" -t 4000</pre>
+
+Synchronous message-swapping and asynchronous mailbox message-passing, 
+are the two peer-to-peer messaging and synchronization mechanisms.<br>
+There is another group, that is a bit more like a server-client 
+arrangement, in which the 'request' field of the message requests 
+something from another application. That other application will be 
+serving a certain kind of information. Although I don't really want to 
+consider these as servers, as they are just equal clients in the IPC 
+mailbox system, for the sake of putting a name on them, I am referring 
+to this group of applications as "server applications".<br>
+<br>
+Server applications are documented below. Currently, the 'pup_event-frontend_d' server offers <b>block</b>, <b>network</b>, <b>x</b>, <b>timeout1</b>, <b>timeout4</b> and <b>timeout60</b>.<br>
+<h3>Block hotplug events</h3>
+A client application may query the "kernel-event server application" (pup_event_frontend_d) for
+ various information, such as detecting plugin/removal of USB or 
+card drives.<br>
+<br>
+Consider the <b>block</b> event. For example:<br>
+<pre># pup_event_ipc "block:js_app1"<br>add:sdc</pre>
+The utility waits until a drive hotplug event occurs, such as a USB Flash stick plugged in, then returns with the information.<br>
+<br>
+The 'pup-event_ipc' utility is only designed as a one-shot query, so exits after detecting the events.<br>
+However, hotplug events are not lost. The first "block" request has 
+registered "js_app1" (from above example) and hotplug events will 
+accumulate.<br>
+<br>
+So, by having a loop, to receive and process the hotplug events, no events will be missed. Ex shell script:<br>
+<pre>while true; do<br>&nbsp;EVENTS="`pup_event_ipc "block:js_app1"`"<br>&nbsp;...<i>process</i>...<br>done</pre>
+What needs to be understood about the above, is how simple the 
+implementation is. The client application just creates a file (if it 
+does not exist) named "/tmp/pup_event_ipc/block_js_app1" and waits for 
+the server-application to put something into it. This inotify IPC 
+technique is described in the next section.<br>
+<br>
+<hr size="2" width="100%">
+<h2>The inotify backend</h2>
+The IPC technique used is more than a little unusual. The established 
+techniques such as D-Bus, named pipes, message queues and Unix Domain 
+Sockets, were investigated and rejected for one reason or another.<br>
+<br>
+The inotify mechanism supported by the Linux kernel is not intended to 
+be used for IPC, at least not to the extent that I have done. As it has 
+turned out, however, it "ticks all the boxes" for what I want for Puppy 
+-- it is very fast, low resources, extremely simple, and remarkably 
+amenable to the particular uses that I wanted to put it to.<br>
+<br>
+The References Section below has links that introduce inotify, read those if you need to understand the fundamentals. <br>
+<br>
+There is a directory /tmp/pup_event_ipc, the "mailbox", that 
+contains the files that have the messages to be transferred. When a file
+ pertaining to a particular client changes, the client "wakes up" and 
+handles it. Basically the steps are:<br>
+<table cellspacing="0" cellpadding="2" width="100%" border="1">
+  <tbody>
+    <tr>
+      <td valign="top"><b>1</b><br>
+      </td>
+      <td valign="top"><b>2</b><br>
+      </td>
+      <td valign="top"><b>3</b><br>
+      </td>
+    </tr>
+    <tr>
+      <td valign="top">ClientA is waiting on fileA<br>
+      </td>
+      <td valign="top">ClientB writes to fileA</td>
+      <td valign="top">ClientA wakes up and reads file<br>
+      </td>
+    </tr>
+  </tbody>
+</table>
+<br>
+That is really all it is. From those three steps, a complete IPC system can be devised.<br>
+<br>
+Of course, there all kinds of caveats and gotchas in this mechanism, 
+such as guaranteeing a complete message is written to a file before it 
+is read, and that files do not contain garbled messages if two or more 
+clients write to them simultaneously.<br>
+<br>
+The way that I have implemented it, does, I think, avoid these pitfalls.<br>
+Atomicity of read and write is important for this to work, and from 
+reading online I got two different figures for this for Linux: 1KB or 
+4KB (kilobytes). I was optimistic and used the higher figure.<br>
+<br>
+A communication is between two clients, using two files, for each 
+direction of transfer. As long as they choose unique names, there is not
+ going to be a clash with other transfers. There will not occur the 
+problem of two different clients simultaneously writing to the same 
+file.<br>
+<br>
+Anyway, even if two or more clients were allowed to write to the same 
+file "simultaneously", atomicity and the O_APPEND write mode (see 
+below), will ensure that individual messages remain intact.<br>
+<br>
+The CLI utility is the first implementation of inotify-based IPC for 
+Puppy Linux, though, it is generic and will work for all Linux 
+distributions. The easiest way I think to explain how it all "hangs 
+together" is to show the code for this utility.<br>
+<br>
+The utility 'pup_event_ipc' is written in BaCon (see: <a href="https://bkhome.org/archive/bacon/">https://bkhome.org/archive/bacon</a>) with embedded C, so is a binary executable, small and fast. This is the code as at February 23, 2018:<br>
+<br>
+<table cellspacing="0" cellpadding="2" width="100%" border="1">
+  <tbody>
+    <tr>
+      <td valign="top">
+        <pre><span class="style_3">DECLARE&nbsp;</span><span class="style_7">helpflg</span><span class="style_6">,</span><span class="style_7">milliseconds&nbsp;</span><span class="style_3">TYPE&nbsp;int</span><br>
+<span class="style_1">'parse&nbsp;the&nbsp;commandline...</span>
+<span class="style_7">helpflg</span><span class="style_6">=</span><span class="style_2">0</span>
+<span class="style_7">milliseconds</span><span class="style_6">=</span><span class="style_2">0</span>
+<span class="style_7">sendstr</span><span class="style_6">$=</span><span class="style_4">""</span>
+<span class="style_3">IF&nbsp;</span><span class="style_7">argc</span><span class="style_6">==</span><span class="style_2">1&nbsp;</span><span class="style_3">THEN&nbsp;</span><span class="style_7">helpflg</span><span class="style_6">=</span><span class="style_2">1</span>
+<span class="style_3">FOR&nbsp;</span><span class="style_7">x</span><span class="style_6">=</span><span class="style_2">1&nbsp;</span><span class="style_3">TO&nbsp;</span><span class="style_7">argc</span><span class="style_6">-</span><span class="style_2">1</span>
+&nbsp;<span class="style_7">arg</span><span class="style_6">$=</span><span class="style_7">argv</span><span class="style_6">[</span><span class="style_7">x</span><span class="style_6">]</span>
+&nbsp;<span class="style_3">IF&nbsp;</span><span class="style_7">arg</span><span class="style_6">$==</span><span class="style_4">"--help"&nbsp;</span><span class="style_3">THEN</span>
+&nbsp; <span class="style_7">helpflg</span><span class="style_6">=</span><span class="style_2">1</span>
+&nbsp; <span class="style_3">CONTINUE</span>
+&nbsp;<span class="style_3">ENDIF</span>
+&nbsp;<span class="style_3">IF&nbsp;</span><span class="style_7">arg</span><span class="style_6">$==</span><span class="style_4">"-h"&nbsp;</span><span class="style_3">THEN</span>
+&nbsp; <span class="style_7">helpflg</span><span class="style_6">=</span><span class="style_2">1</span>
+&nbsp; <span class="style_3">CONTINUE</span>
+&nbsp;<span class="style_3">ENDIF</span>
+&nbsp;<span class="style_3">IF&nbsp;</span><span class="style_7">arg</span><span class="style_6">$==</span><span class="style_4">"-t"&nbsp;</span><span class="style_3">THEN</span>
+&nbsp; <span class="style_3">INCR&nbsp;</span><span class="style_7">x</span>
+&nbsp; <span class="style_7">milliseconds</span><span class="style_6">=</span><span class="style_3">VAL</span><span class="style_6">(</span><span class="style_7">argv</span><span class="style_6">[</span><span class="style_7">x</span><span class="style_6">])</span>
+&nbsp; <span class="style_3">CONTINUE</span>
+&nbsp;<span class="style_3">END&nbsp;IF</span>
+&nbsp;<span class="style_7">sendstr</span><span class="style_6">$=</span><span class="style_7">arg</span><span class="style_6">$</span>
+<span class="style_3">NEXT</span><br>
+<span class="style_3">IF&nbsp;</span><span class="style_7">helpflg</span><span class="style_6">==</span><span class="style_2">1&nbsp;</span><span class="style_3">THEN</span>
+&nbsp;<span class="style_3">PRINT&nbsp;</span><span class="style_4">"(c)&nbsp;Copyright&nbsp;Barry&nbsp;Kauler,&nbsp;June&nbsp;2013,&nbsp;license&nbsp;GPL3&nbsp;(/usr/share/doc/legal)"</span>
+&nbsp;<span class="style_3">PRINT&nbsp;</span><span class="style_4">"This&nbsp;is&nbsp;a&nbsp;CLI&nbsp;utility&nbsp;that&nbsp;may&nbsp;be&nbsp;used&nbsp;in&nbsp;scripts.&nbsp;Run&nbsp;like&nbsp;this:"</span>
+&nbsp;<span class="style_3">PRINT&nbsp;</span><span class="style_4">"&nbsp;pup_event_ipc&nbsp;\"</span><span class="style_7">request</span><span class="style_6">:</span><span class="style_7">client</span><span class="style_6">[:</span><span class="style_7">message</span><span class="style_6">]\</span><span class="style_4">""</span>
+&nbsp;<span class="style_3">PRINT&nbsp;</span><span class="style_4">"&nbsp;request:&nbsp;name&nbsp;of&nbsp;another&nbsp;application&nbsp;to&nbsp;send&nbsp;the&nbsp;message&nbsp;to*.&nbsp;Or,"</span>
+&nbsp;<span class="style_3">PRINT&nbsp;</span><span class="style_4">"&nbsp;request:&nbsp;keyword&nbsp;to&nbsp;request&nbsp;information.&nbsp;Supported&nbsp;keywords:"</span>
+&nbsp;<span class="style_3">PRINT&nbsp;</span><span class="style_4">"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;mailbox&nbsp;waitmail"</span>
+&nbsp;<span class="style_3">PRINT&nbsp;</span><span class="style_4">"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;block&nbsp;network&nbsp;x&nbsp;timeout1&nbsp;timeout4&nbsp;timeout60"</span>
+&nbsp;<span class="style_3">PRINT&nbsp;</span><span class="style_4">"&nbsp;client:&nbsp;&nbsp;any&nbsp;single-word&nbsp;to&nbsp;identify&nbsp;client&nbsp;(usually&nbsp;sender)&nbsp;application*."</span>
+&nbsp;<span class="style_3">PRINT&nbsp;</span><span class="style_4">"&nbsp;message:&nbsp;any&nbsp;text&nbsp;string&nbsp;(that&nbsp;other&nbsp;side&nbsp;understands),&nbsp;up&nbsp;to&nbsp;4000&nbsp;bytes."</span>
+&nbsp;<span class="style_3">PRINT&nbsp;</span><span class="style_4">"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;any&nbsp;characters&nbsp;allowed,&nbsp;including&nbsp;\"</span><span class="style_6">:\</span><span class="style_4">""</span>
+&nbsp;<span class="style_3">PRINT&nbsp;</span><span class="style_4">"ex:&nbsp;pup_event_ipc&nbsp;\"</span><span class="style_7">otherapp</span><span class="style_6">:</span><span class="style_7">myapp</span><span class="style_6">:</span><span class="style_7">some&nbsp;</span><span class="style_3">data&nbsp;for&nbsp;</span><span class="style_7">otherapp</span><span class="style_6">\</span><span class="style_4">""</span>
+&nbsp;<span class="style_3">PRINT&nbsp;</span><span class="style_4">"ex:&nbsp;pup_event_ipc&nbsp;\"</span><span class="style_7">mailbox</span><span class="style_6">:</span><span class="style_7">otherapp</span><span class="style_6">:</span><span class="style_7">some&nbsp;</span><span class="style_3">data&nbsp;for&nbsp;</span><span class="style_7">otherapp</span><span class="style_6">\</span><span class="style_4">""</span>
+&nbsp;<span class="style_3">PRINT&nbsp;</span><span class="style_4">"ex:&nbsp;pup_event_ipc&nbsp;\"</span><span class="style_7">mailbox</span><span class="style_6">:</span><span class="style_7">myapp</span><span class="style_6">\</span><span class="style_4">""&nbsp;</span>
+&nbsp;<span class="style_3">PRINT&nbsp;</span><span class="style_4">"ex:&nbsp;pup_event_ipc&nbsp;\"</span><span class="style_7">waitmail</span><span class="style_6">:</span><span class="style_7">myapp</span><span class="style_6">\</span><span class="style_4">""</span>
+&nbsp;<span class="style_3">PRINT&nbsp;</span><span class="style_4">"ex:&nbsp;pup_event_ipc&nbsp;\"</span><span class="style_7">block</span><span class="style_6">:</span><span class="style_7">myapp</span><span class="style_6">\</span><span class="style_4">""</span>
+&nbsp;<span class="style_3">PRINT&nbsp;</span><span class="style_4">"pup_event_ipc&nbsp;has&nbsp;an&nbsp;optional&nbsp;timeout&nbsp;(milliseconds),"</span>
+&nbsp;<span class="style_3">PRINT&nbsp;</span><span class="style_4">"ex:&nbsp;pup_event_ipc&nbsp;-t&nbsp;1000&nbsp;\"</span><span class="style_7">otherapp</span><span class="style_6">:</span><span class="style_7">myapp</span><span class="style_6">:</span><span class="style_3">data&nbsp;for&nbsp;</span><span class="style_7">you</span><span class="style_6">\</span><span class="style_4">""</span>
+&nbsp;<span class="style_3">PRINT&nbsp;</span><span class="style_4">"Will&nbsp;exit&nbsp;with&nbsp;non-zero&nbsp;value&nbsp;if&nbsp;an&nbsp;error:"</span>
+&nbsp;<span class="style_3">PRINT&nbsp;</span><span class="style_4">"&nbsp;1=timeout.&nbsp;2=wrong&nbsp;msg&nbsp;format.&nbsp;3-7=message-passing&nbsp;failure.&nbsp;"</span>
+&nbsp;<span class="style_3">PRINT&nbsp;</span><span class="style_4">"*Any&nbsp;unique&nbsp;names&nbsp;that&nbsp;both&nbsp;clients&nbsp;agree&nbsp;on."</span>
+&nbsp;<span class="style_3">PRINT&nbsp;</span><span class="style_4">"PLEASE&nbsp;SEE&nbsp;/usr/local/pup_event/pup_event_ipc-README.htm&nbsp;for&nbsp;more&nbsp;details."</span>
+&nbsp;<span class="style_3">END&nbsp;</span><span class="style_2">0</span>
+<span class="style_3">END&nbsp;IF</span><br>
+<span class="style_3">PROTO&nbsp;close</span><span class="style_6">,&nbsp;</span><span class="style_7">ftruncate</span><span class="style_6">,&nbsp;</span><span class="style_7">inotify_init</span><span class="style_6">,&nbsp;</span><span class="style_7">inotify_add_watch</span><span class="style_6">,&nbsp;</span><span class="style_7">inotify_rm_watch</span><span class="style_6">,&nbsp;</span><span class="style_7">lseek</span><span class="style_6">, </span><span class="style_3">\<br>             open</span><span class="style_6">, </span><span class="style_7">poll</span><span class="style_6">,&nbsp;</span><span class="style_3">read</span><span class="style_6">,&nbsp;</span><span class="style_3">sizeof</span><span class="style_6">,&nbsp;</span><span class="style_7">strlen</span><span class="style_6">,&nbsp;</span><span class="style_7">write</span>
+<span class="style_3">PRAGMA&nbsp;INCLUDE&nbsp;</span><span class="style_7">sys</span><span class="style_6">/</span><span class="style_7">inotify</span><span class="style_6">.</span><span class="style_7">h</span><br>
+<span class="style_3">DECLARE&nbsp;</span><span class="style_7">fd1</span><span class="style_6">,</span><span class="style_7">len1</span><span class="style_6">,</span><span class="style_7">leni</span><span class="style_6">,</span><span class="style_7">size_buf</span><span class="style_6">,</span><span class="style_7">thiswatchfile</span><span class="style_6">,</span><span class="style_7">otherwatchfile&nbsp;</span><span class="style_3">TYPE&nbsp;int</span>
+<span class="style_3">DECLARE&nbsp;</span><span class="style_7">arr1</span><span class="style_6">,</span><span class="style_7">thisapp</span><span class="style_6">,</span><span class="style_7">otherapp&nbsp;</span><span class="style_3">TYPE&nbsp;</span><span class="style_7">char</span><span class="style_6">*</span>
+<span class="style_3">DECLARE&nbsp;</span><span class="style_7">thisdescr</span><span class="style_6">,</span><span class="style_7">otherdescr&nbsp;</span><span class="style_3">TYPE&nbsp;int</span>
+<span class="style_7">size_char</span><span class="style_6">=</span><span class="style_3">sizeof</span><span class="style_6">(</span><span class="style_7">char</span><span class="style_6">)</span>
+<span class="style_7">size_inbuf</span><span class="style_6">=</span><span class="style_7">size_char</span><span class="style_6">*</span><span class="style_2">4096</span>
+<span class="style_3">DECLARE&nbsp;</span><span class="style_7">inbuf</span><span class="style_6">,</span><span class="style_7">bufinotify&nbsp;</span><span class="style_3">TYPE&nbsp;</span><span class="style_7">char&nbsp;ARRAY&nbsp;size_inbuf</span><br>
+<span class="style_3">SUB&nbsp;</span><span class="style_7">exitsub</span><span class="style_6">(</span><span class="style_3">NUMBER&nbsp;</span><span class="style_7">i</span><span class="style_6">)</span>
+&nbsp;<span class="style_3">IF&nbsp;</span><span class="style_7">watchdir</span><span class="style_6">&gt;</span><span class="style_2">0&nbsp;</span><span class="style_3">THEN&nbsp;</span><span class="style_7">inotify_rm_watch</span><span class="style_6">(</span><span class="style_7">fd1</span><span class="style_6">,</span><span class="style_7">watchdir</span><span class="style_6">)</span>
+&nbsp;<span class="style_3">IF&nbsp;</span><span class="style_7">fd1</span><span class="style_6">&gt;</span><span class="style_2">0&nbsp;</span><span class="style_3">THEN&nbsp;close</span><span class="style_6">(</span><span class="style_7">fd1</span><span class="style_6">)</span>
+&nbsp;<span class="style_3">IF&nbsp;</span><span class="style_7">otherdescr</span><span class="style_6">&gt;</span><span class="style_2">0&nbsp;</span><span class="style_3">THEN&nbsp;close</span><span class="style_6">(</span><span class="style_7">otherdescr</span><span class="style_6">)</span>
+&nbsp;<span class="style_3">IF&nbsp;</span><span class="style_7">thisdescr</span><span class="style_6">&gt;</span><span class="style_2">0&nbsp;</span><span class="style_3">THEN&nbsp;close</span><span class="style_6">(</span><span class="style_7">thisdescr</span><span class="style_6">)</span>
+&nbsp;<span class="style_3">END&nbsp;</span><span class="style_7">i</span>
+<span class="style_3">END&nbsp;SUB</span><br>
+<span class="style_1">'for&nbsp;poll()</span>
+<span class="style_3">PRAGMA&nbsp;INCLUDE&nbsp;</span><span class="style_7">poll</span><span class="style_6">.</span><span class="style_7">h</span><br>
+<span class="style_1">'struct&nbsp;pollfd,&nbsp;defined&nbsp;in&nbsp;asm-generic/poll.h...</span>
+<span class="style_3">RECORD&nbsp;</span><span class="style_7">pfd</span>
+&nbsp;<span class="style_3">LOCAL&nbsp;</span><span class="style_7">fd&nbsp;</span><span class="style_3">TYPE&nbsp;int</span>
+&nbsp;<span class="style_3">LOCAL&nbsp;</span><span class="style_7">events&nbsp;</span><span class="style_3">TYPE&nbsp;</span><span class="style_7">short</span>
+&nbsp;<span class="style_3">LOCAL&nbsp;</span><span class="style_7">revents&nbsp;</span><span class="style_3">TYPE&nbsp;</span><span class="style_7">short</span>
+<span class="style_3">END&nbsp;RECORD</span>
+<span class="style_1">'CONST&nbsp;POLLIN=1</span>
+<span class="style_7">pfd</span><span class="style_6">.</span><span class="style_7">events&nbsp;</span><span class="style_6">=&nbsp;</span><span class="style_7">POLLIN</span><br>
+<span class="style_3">SUB&nbsp;</span><span class="style_7">waitsub</span><span class="style_6">()</span>
+&nbsp;<span class="style_1">'note,&nbsp;there&nbsp;is&nbsp;a&nbsp;very&nbsp;slight&nbsp;possibility&nbsp;of&nbsp;deadlocking,&nbsp;if&nbsp;reply&nbsp;comes&nbsp;in<br>&nbsp;'between the&nbsp;lseek&nbsp;and&nbsp;read/poll...</span>
+&nbsp;<span class="style_7">offt</span><span class="style_6">=</span><span class="style_7">lseek</span><span class="style_6">(</span><span class="style_7">thisdescr</span><span class="style_6">,</span><span class="style_2">0</span><span class="style_6">,</span><span class="style_7">SEEK_END</span><span class="style_6">)</span>
+&nbsp;<span class="style_3">IF&nbsp;</span><span class="style_7">offt</span><span class="style_6">==</span><span class="style_2">0&nbsp;</span><span class="style_3">THEN</span>
+&nbsp; <span class="style_3">IF&nbsp;</span><span class="style_7">milliseconds</span><span class="style_6">==</span><span class="style_2">0&nbsp;</span><span class="style_3">THEN</span>
+&nbsp;&nbsp; <span class="style_1">'this&nbsp;will&nbsp;block&nbsp;until&nbsp;the&nbsp;file&nbsp;is&nbsp;modified...</span>
+&nbsp;&nbsp; <span class="style_7">leni</span><span class="style_6">=</span><span class="style_3">read</span><span class="style_6">(</span><span class="style_7">fd1</span><span class="style_6">,</span><span class="style_7">bufinotify</span><span class="style_6">,</span><span class="style_7">size_inbuf</span><span class="style_6">)</span>
+&nbsp; <span class="style_3">ELSE</span>
+&nbsp;&nbsp; <span class="style_7">pfd</span><span class="style_6">.</span><span class="style_7">fd</span><span class="style_6">=</span><span class="style_7">fd1</span>
+&nbsp;&nbsp; <span class="style_7">eventstatus</span><span class="style_6">=</span><span class="style_7">poll</span><span class="style_6">((</span><span class="style_7">struct&nbsp;pollfd&nbsp;</span><span class="style_6">*)&amp;</span><span class="style_7">pfd</span><span class="style_6">.</span><span class="style_7">fd</span><span class="style_6">,</span><span class="style_2">1</span><span class="style_6">,</span><span class="style_7">milliseconds</span><span class="style_6">)</span>
+&nbsp;&nbsp; <span class="style_3">IF&nbsp;</span><span class="style_7">eventstatus</span><span class="style_6">==</span><span class="style_2">0&nbsp;</span><span class="style_3">THEN&nbsp;</span><span class="style_7">exitsub</span><span class="style_6">(</span><span class="style_2">1</span><span class="style_6">)</span>
+&nbsp;&nbsp; <span class="style_3">IF&nbsp;</span><span class="style_7">eventstatus</span><span class="style_6">&lt;</span><span class="style_2">0&nbsp;</span><span class="style_3">THEN&nbsp;</span><span class="style_7">exitsub</span><span class="style_6">(</span><span class="style_2">7</span><span class="style_6">)</span>
+&nbsp; <span class="style_3">ENDIF</span>
+&nbsp;<span class="style_3">ENDIF</span>
+&nbsp;<span class="style_7">offt</span><span class="style_6">=</span><span class="style_7">lseek</span><span class="style_6">(</span><span class="style_7">thisdescr</span><span class="style_6">,</span><span class="style_2">0</span><span class="style_6">,</span><span class="style_7">SEEK_SET</span><span class="style_6">)</span>
+&nbsp;<span class="style_7">numr</span><span class="style_6">=</span><span class="style_3">read</span><span class="style_6">(</span><span class="style_7">thisdescr</span><span class="style_6">,</span><span class="style_7">inbuf</span><span class="style_6">,</span><span class="style_7">size_inbuf</span><span class="style_6">)</span>
+&nbsp;<span class="style_7">ft</span><span class="style_6">=</span><span class="style_7">ftruncate</span><span class="style_6">(</span><span class="style_7">thisdescr</span><span class="style_6">,</span><span class="style_2">0</span><span class="style_6">)</span>
+&nbsp;<span class="style_3">IF&nbsp;</span><span class="style_7">numr</span><span class="style_6">&gt;</span><span class="style_2">1&nbsp;</span><span class="style_3">THEN</span>
+&nbsp; <span class="style_1">'get&nbsp;rid&nbsp;of&nbsp;carriage-return&nbsp;char...</span>
+&nbsp; <span class="style_7">inbuf</span><span class="style_6">[</span><span class="style_7">numr</span><span class="style_6">-</span><span class="style_2">1</span><span class="style_6">]=</span><span class="style_2">0</span>
+&nbsp; <span class="style_7">inbuf</span><span class="style_6">$=</span><span class="style_7">inbuf</span>
+&nbsp; <span class="style_3">PRINT&nbsp;</span><span class="style_7">inbuf</span><span class="style_6">$</span>
+&nbsp;<span class="style_3">ENDIF</span>
+<span class="style_3">END&nbsp;SUB</span><br>
+<span class="style_1">'parse&nbsp;the&nbsp;message...</span>
+<span class="style_7">field1</span><span class="style_6">$=</span><span class="style_4">""</span>
+<span class="style_7">field2</span><span class="style_6">$=</span><span class="style_4">""</span>
+<span class="style_7">message</span><span class="style_6">$=</span><span class="style_4">""</span>
+<span class="style_7">arr1</span><span class="style_6">=</span><span class="style_7">sendstr</span><span class="style_6">$</span>
+<span class="style_7">off1</span><span class="style_6">=</span><span class="style_3">INSTR</span><span class="style_6">(</span><span class="style_7">arr1</span><span class="style_6">,</span><span class="style_4">":"</span><span class="style_6">)</span>
+<span class="style_3">IF&nbsp;</span><span class="style_7">off1</span><span class="style_6">=</span><span class="style_2">0&nbsp;</span><span class="style_3">THEN&nbsp;</span><span class="style_7">exitsub</span><span class="style_6">(</span><span class="style_2">2</span><span class="style_6">)</span>
+<span class="style_7">arr1</span><span class="style_6">[</span><span class="style_7">off1</span><span class="style_6">-</span><span class="style_2">1</span><span class="style_6">]=</span><span class="style_2">0</span>
+<span class="style_7">field1</span><span class="style_6">$=</span><span class="style_7">arr1</span>
+<span class="style_7">off2</span><span class="style_6">=</span><span class="style_3">INSTR</span><span class="style_6">(</span><span class="style_7">arr1</span><span class="style_6">+</span><span class="style_7">off1</span><span class="style_6">,</span><span class="style_4">":"</span><span class="style_6">)</span>
+<span class="style_7">arr1</span><span class="style_6">[</span><span class="style_7">off1</span><span class="style_6">+</span><span class="style_7">off2</span><span class="style_6">-</span><span class="style_2">1</span><span class="style_6">]=</span><span class="style_2">0</span>
+<span class="style_7">field2</span><span class="style_6">$=</span><span class="style_7">arr1</span><span class="style_6">+</span><span class="style_7">off1</span>
+<span class="style_3">IF&nbsp;</span><span class="style_7">off2</span><span class="style_6">&gt;</span><span class="style_2">0&nbsp;</span><span class="style_3">THEN</span>
+&nbsp;<span class="style_1">'the&nbsp;message-part&nbsp;can&nbsp;have&nbsp;":"&nbsp;chars&nbsp;in&nbsp;it...</span>
+&nbsp;<span class="style_7">message</span><span class="style_6">$=</span><span class="style_7">arr1</span><span class="style_6">+</span><span class="style_7">off1</span><span class="style_6">+</span><span class="style_7">off2</span>
+<span class="style_3">ENDIF</span>
+<span class="style_1">'need&nbsp;to&nbsp;extract&nbsp;names&nbsp;of&nbsp;this-app&nbsp;and&nbsp;other-app...</span>
+<span class="style_7">otherapp</span><span class="style_6">=</span><span class="style_2">0</span>
+<span class="style_7">thisapp</span><span class="style_6">=</span><span class="style_2">0</span>
+<span class="style_7">thiscreateflag</span><span class="style_6">=</span><span class="style_2">1</span>
+<span class="style_3">SELECT&nbsp;</span><span class="style_7">field1</span><span class="style_6">$</span>
+<span class="style_3">CASE&nbsp;</span><span class="style_4">"mailbox"</span>
+&nbsp;<span class="style_3">IF&nbsp;</span><span class="style_7">message</span><span class="style_6">$!=</span><span class="style_4">""&nbsp;</span><span class="style_3">THEN</span>
+&nbsp; <span class="style_7">otherapp</span><span class="style_6">=</span><span class="style_7">field2</span><span class="style_6">$</span>
+&nbsp;<span class="style_3">ELSE</span>
+&nbsp; <span class="style_7">thisapp</span><span class="style_6">=</span><span class="style_7">field2</span><span class="style_6">$</span>
+&nbsp;<span class="style_3">ENDIF</span>
+<span class="style_3">CASE&nbsp;</span><span class="style_4">"waitmail"</span>
+&nbsp;<span class="style_7">thisapp</span><span class="style_6">=</span><span class="style_7">field2</span><span class="style_6">$</span>
+<span class="style_3">CASE&nbsp;</span><span class="style_4">"block"</span>
+&nbsp;<span class="style_1">'pup_event_frontend_d&nbsp;server&nbsp;posts&nbsp;drive&nbsp;add/remove,&nbsp;ex:&nbsp;"add:sdb"</span>
+&nbsp;<span class="style_7">thisapp</span><span class="style_6">$=</span><span class="style_3">CONCAT</span><span class="style_6">$(</span><span class="style_4">"block_"</span><span class="style_6">,</span><span class="style_7">field2</span><span class="style_6">$)</span>
+&nbsp;<span class="style_7">thisapp</span><span class="style_6">=</span><span class="style_7">thisapp</span><span class="style_6">$</span>
+<span class="style_3">CASE&nbsp;</span><span class="style_4">"network"</span>
+&nbsp;<span class="style_1">'pup_event_frontend_d&nbsp;server&nbsp;posts&nbsp;network&nbsp;interface,&nbsp;when&nbsp;change,&nbsp;ex:&nbsp;"eth0"</span>
+&nbsp;<span class="style_7">thisapp</span><span class="style_6">$=</span><span class="style_3">CONCAT</span><span class="style_6">$(</span><span class="style_4">"network_"</span><span class="style_6">,</span><span class="style_7">field2</span><span class="style_6">$)</span>
+&nbsp;<span class="style_7">thisapp</span><span class="style_6">=</span><span class="style_7">thisapp</span><span class="style_6">$</span>
+<span class="style_3">CASE&nbsp;</span><span class="style_4">"x"</span>
+&nbsp;<span class="style_1">'pup_event_frontend_d&nbsp;server&nbsp;posts&nbsp;X&nbsp;up/down,&nbsp;ex:&nbsp;"X0"</span>
+&nbsp;<span class="style_7">thisapp</span><span class="style_6">$=</span><span class="style_3">CONCAT</span><span class="style_6">$(</span><span class="style_4">"x_"</span><span class="style_6">,</span><span class="style_7">field2</span><span class="style_6">$)</span>
+&nbsp;<span class="style_7">thisapp</span><span class="style_6">=</span><span class="style_7">thisapp</span><span class="style_6">$</span>
+<span class="style_3">CASE&nbsp;</span><span class="style_4">"timeout1"</span>
+&nbsp;<span class="style_1">'pup_event_frontend_d&nbsp;server&nbsp;posts&nbsp;one-second&nbsp;timeout,&nbsp;message&nbsp;"timeout"</span>
+&nbsp;<span class="style_7">thisapp</span><span class="style_6">$=</span><span class="style_3">CONCAT</span><span class="style_6">$(</span><span class="style_4">"timeout1_"</span><span class="style_6">,</span><span class="style_7">field2</span><span class="style_6">$)</span>
+&nbsp;<span class="style_7">thisapp</span><span class="style_6">=</span><span class="style_7">thisapp</span><span class="style_6">$</span>
+<span class="style_3">CASE&nbsp;</span><span class="style_4">"timeout4"</span>
+&nbsp;<span class="style_1">'pup_event_frontend_d&nbsp;server&nbsp;posts&nbsp;four-second&nbsp;timeout,&nbsp;message&nbsp;"timeout"</span>
+&nbsp;<span class="style_7">thisapp</span><span class="style_6">$=</span><span class="style_3">CONCAT</span><span class="style_6">$(</span><span class="style_4">"timeout4_"</span><span class="style_6">,</span><span class="style_7">field2</span><span class="style_6">$)</span>
+&nbsp;<span class="style_7">thisapp</span><span class="style_6">=</span><span class="style_7">thisapp</span><span class="style_6">$</span>
+<span class="style_3">CASE&nbsp;</span><span class="style_4">"timeout60"</span>
+&nbsp;<span class="style_1">'pup_event_frontend_d&nbsp;server&nbsp;posts&nbsp;60-second&nbsp;timeout,&nbsp;message&nbsp;"timeout"</span>
+&nbsp;<span class="style_7">thisapp</span><span class="style_6">$=</span><span class="style_3">CONCAT</span><span class="style_6">$(</span><span class="style_4">"timeout60_"</span><span class="style_6">,</span><span class="style_7">field2</span><span class="style_6">$)</span>
+&nbsp;<span class="style_7">thisapp</span><span class="style_6">=</span><span class="style_7">thisapp</span><span class="style_6">$</span>
+<span class="style_3">DEFAULT</span>
+&nbsp;<span class="style_7">otherapp</span><span class="style_6">=</span><span class="style_7">field1</span><span class="style_6">$</span>
+&nbsp;<span class="style_7">thisapp</span><span class="style_6">=</span><span class="style_7">field2</span><span class="style_6">$</span>
+<span class="style_3">END&nbsp;SELECT</span><br>
+<span class="style_1">'create&nbsp;the&nbsp;files...</span>
+<span class="style_7">otherdescr</span><span class="style_6">=</span><span class="style_2">0</span>
+<span class="style_7">thisdescr</span><span class="style_6">=</span><span class="style_2">0</span>
+<span class="style_7">watchdir</span><span class="style_6">=</span><span class="style_2">0</span>
+<span class="style_3">IF&nbsp;FILEEXISTS</span><span class="style_6">(</span><span class="style_4">"/tmp/pup_event_ipc"</span><span class="style_6">)==</span><span class="style_2">0&nbsp;</span><span class="style_3">THEN&nbsp;MAKEDIR&nbsp;</span><span class="style_4">"/tmp/pup_event_ipc"</span>
+<span class="style_3">IF&nbsp;</span><span class="style_7">otherapp</span><span class="style_6">!=</span><span class="style_2">0&nbsp;</span><span class="style_3">THEN</span>
+&nbsp;<span class="style_7">otherfile</span><span class="style_6">$=</span><span class="style_3">CONCAT</span><span class="style_6">$(</span><span class="style_4">"/tmp/pup_event_ipc/"</span><span class="style_6">,</span><span class="style_7">otherapp</span><span class="style_6">)</span>
+&nbsp;<span class="style_3">OPTION&nbsp;DEVICE&nbsp;</span><span class="style_7">O_WRONLY</span><span class="style_6">|</span><span class="style_7">O_CREAT</span><span class="style_6">|</span><span class="style_7">O_APPEND</span>
+&nbsp;<span class="style_3">OPEN&nbsp;</span><span class="style_7">otherfile</span><span class="style_6">$&nbsp;</span><span class="style_3">FOR&nbsp;DEVICE&nbsp;AS&nbsp;</span><span class="style_7">otherdescr</span>
+&nbsp;<span class="style_3">IF&nbsp;</span><span class="style_7">otherdescr</span><span class="style_6">&lt;=</span><span class="style_2">0&nbsp;</span><span class="style_3">THEN&nbsp;</span><span class="style_7">exitsub</span><span class="style_6">(</span><span class="style_2">3</span><span class="style_6">)</span>
+<span class="style_3">ENDIF</span>
+<span class="style_3">IF&nbsp;</span><span class="style_7">thisapp</span><span class="style_6">!=</span><span class="style_2">0&nbsp;</span><span class="style_3">THEN</span>
+&nbsp;<span class="style_7">closedflag</span><span class="style_6">=</span><span class="style_2">0</span>
+&nbsp;<span class="style_7">thisfile</span><span class="style_6">$=</span><span class="style_3">CONCAT</span><span class="style_6">$(</span><span class="style_4">"/tmp/pup_event_ipc/"</span><span class="style_6">,</span><span class="style_7">thisapp</span><span class="style_6">)</span>
+&nbsp;<span class="style_3">IF&nbsp;</span><span class="style_7">thiscreateflag</span><span class="style_6">=</span><span class="style_2">1&nbsp;</span><span class="style_3">THEN</span>
+&nbsp; <span class="style_3">OPTION&nbsp;DEVICE&nbsp;</span><span class="style_7">O_RDWR</span><span class="style_6">|</span><span class="style_7">O_CREAT</span>
+&nbsp; <span class="style_3">OPEN&nbsp;</span><span class="style_7">thisfile</span><span class="style_6">$&nbsp;</span><span class="style_3">FOR&nbsp;DEVICE&nbsp;AS&nbsp;</span><span class="style_7">thisdescr</span>
+&nbsp;<span class="style_3">ELSE</span>
+&nbsp; <span class="style_3">IF&nbsp;FILEEXISTS</span><span class="style_6">(</span><span class="style_7">thisfile</span><span class="style_6">$)==</span><span class="style_2">1&nbsp;</span><span class="style_3">THEN</span>
+&nbsp;&nbsp; <span class="style_3">OPTION&nbsp;DEVICE&nbsp;</span><span class="style_7">O_RDWR</span>
+&nbsp;&nbsp; <span class="style_3">OPEN&nbsp;</span><span class="style_7">thisfile</span><span class="style_6">$&nbsp;</span><span class="style_3">FOR&nbsp;DEVICE&nbsp;AS&nbsp;</span><span class="style_7">thisdescr</span>
+&nbsp; <span class="style_3">ELSE</span>
+&nbsp;&nbsp; <span class="style_7">closedflag</span><span class="style_6">=</span><span class="style_2">1</span>
+&nbsp; <span class="style_3">ENDIF</span>
+&nbsp;<span class="style_3">ENDIF</span>
+&nbsp;<span class="style_3">IF&nbsp;</span><span class="style_7">closedflag</span><span class="style_6">==</span><span class="style_2">0&nbsp;</span><span class="style_3">THEN</span>
+&nbsp; <span class="style_3">IF&nbsp;</span><span class="style_7">thisdescr</span><span class="style_6">&lt;=</span><span class="style_2">0&nbsp;</span><span class="style_3">THEN&nbsp;</span><span class="style_7">exitsub</span><span class="style_6">(</span><span class="style_2">4</span><span class="style_6">)</span>
+&nbsp; <span class="style_7">fd1</span><span class="style_6">=</span><span class="style_7">inotify_init</span><span class="style_6">()</span>
+&nbsp; <span class="style_3">IF&nbsp;</span><span class="style_7">fd1</span><span class="style_6">&lt;=</span><span class="style_2">0&nbsp;</span><span class="style_3">THEN&nbsp;</span><span class="style_7">exitsub</span><span class="style_6">(</span><span class="style_2">5</span><span class="style_6">)</span>
+&nbsp; <span class="style_1">'CONST&nbsp;IN_MODIFY=2</span>
+&nbsp; <span class="style_7">watchdir</span><span class="style_6">=</span><span class="style_7">inotify_add_watch</span><span class="style_6">(</span><span class="style_7">fd1</span><span class="style_6">,</span><span class="style_7">thisfile</span><span class="style_6">$,</span><span class="style_7">IN_MODIFY</span><span class="style_6">)</span>
+&nbsp; <span class="style_3">IF&nbsp;</span><span class="style_7">watchdir</span><span class="style_6">&lt;=</span><span class="style_2">0&nbsp;</span><span class="style_3">THEN&nbsp;</span><span class="style_7">exitsub</span><span class="style_6">(</span><span class="style_2">6</span><span class="style_6">)</span>
+&nbsp;<span class="style_3">ENDIF</span>
+<span class="style_3">ENDIF</span><br>
+<span class="style_1">'now&nbsp;decide&nbsp;what&nbsp;to&nbsp;do...</span>
+<span class="style_3">SELECT&nbsp;</span><span class="style_7">field1</span><span class="style_6">$</span>
+<span class="style_3">CASE&nbsp;</span><span class="style_4">"mailbox"</span>
+&nbsp;<span class="style_3">IF&nbsp;</span><span class="style_7">otherapp</span><span class="style_6">!=</span><span class="style_2">0&nbsp;</span><span class="style_3">THEN</span>
+&nbsp; <span class="style_1">'need&nbsp;to&nbsp;post&nbsp;message&nbsp;to&nbsp;otherapp...&nbsp;format:&nbsp;"mailbox:otherapp:message"</span>
+&nbsp; <span class="style_7">outstr</span><span class="style_6">$=</span><span class="style_3">CONCAT</span><span class="style_6">$(</span><span class="style_7">message</span><span class="style_6">$,</span><span class="style_4">"\n"</span><span class="style_6">)</span>
+&nbsp; <span class="style_1">'position&nbsp;to&nbsp;end&nbsp;of&nbsp;file,&nbsp;so&nbsp;msgs&nbsp;can&nbsp;queue...</span>
+&nbsp; <span class="style_1">'lseek(otherdescr,0,SEEK_END)</span>
+&nbsp; <span class="style_7">wr</span><span class="style_6">=</span><span class="style_7">write</span><span class="style_6">(</span><span class="style_7">otherdescr</span><span class="style_6">,</span><span class="style_7">outstr</span><span class="style_6">$,</span><span class="style_7">strlen</span><span class="style_6">(</span><span class="style_7">outstr</span><span class="style_6">$))</span>
+&nbsp; <span class="style_3">PRINT&nbsp;</span><span class="style_4">"Mailbox&nbsp;acknowledge"</span>
+&nbsp;<span class="style_3">ELSE</span>
+&nbsp; <span class="style_1">'need&nbsp;to&nbsp;check&nbsp;if&nbsp;waiting&nbsp;mail&nbsp;for&nbsp;thisapp...</span>
+&nbsp; <span class="style_7">offt</span><span class="style_6">=</span><span class="style_7">lseek</span><span class="style_6">(</span><span class="style_7">thisdescr</span><span class="style_6">,</span><span class="style_2">0</span><span class="style_6">,</span><span class="style_7">SEEK_END</span><span class="style_6">)</span>
+&nbsp; <span class="style_3">IF&nbsp;</span><span class="style_7">offt</span><span class="style_6">==</span><span class="style_2">0&nbsp;</span><span class="style_3">THEN</span>
+&nbsp;&nbsp; <span class="style_3">PRINT&nbsp;</span><span class="style_4">"Mailbox&nbsp;empty"</span>
+&nbsp; <span class="style_3">ELSE</span>
+&nbsp;&nbsp; <span class="style_7">offt</span><span class="style_6">=</span><span class="style_7">lseek</span><span class="style_6">(</span><span class="style_7">thisdescr</span><span class="style_6">,</span><span class="style_2">0</span><span class="style_6">,</span><span class="style_7">SEEK_SET</span><span class="style_6">)</span>
+&nbsp;&nbsp; <span class="style_7">numr</span><span class="style_6">=</span><span class="style_3">read</span><span class="style_6">(</span><span class="style_7">thisdescr</span><span class="style_6">,</span><span class="style_7">inbuf</span><span class="style_6">,</span><span class="style_7">size_inbuf</span><span class="style_6">)</span>
+&nbsp;&nbsp; <span class="style_7">ft</span><span class="style_6">=</span><span class="style_7">ftruncate</span><span class="style_6">(</span><span class="style_7">thisdescr</span><span class="style_6">,</span><span class="style_2">0</span><span class="style_6">)</span>
+&nbsp;&nbsp; <span class="style_3">IF&nbsp;</span><span class="style_7">numr</span><span class="style_6">&gt;</span><span class="style_2">1&nbsp;</span><span class="style_3">THEN</span>
+&nbsp;&nbsp;&nbsp; <span class="style_1">'get&nbsp;rid&nbsp;of&nbsp;carriage-return&nbsp;char...</span>
+&nbsp;&nbsp;&nbsp; <span class="style_7">inbuf</span><span class="style_6">[</span><span class="style_7">numr</span><span class="style_6">-</span><span class="style_2">1</span><span class="style_6">]=</span><span class="style_2">0</span>
+&nbsp;&nbsp;&nbsp; <span class="style_7">inbuf</span><span class="style_6">$=</span><span class="style_7">inbuf</span>
+&nbsp;&nbsp;&nbsp; <span class="style_3">PRINT&nbsp;</span><span class="style_7">inbuf</span><span class="style_6">$</span>
+&nbsp;&nbsp; <span class="style_3">ENDIF</span>
+&nbsp; <span class="style_3">ENDIF</span>
+&nbsp;<span class="style_3">ENDIF</span>
+<span class="style_3">CASE&nbsp;</span><span class="style_4">"waitmail"</span>
+&nbsp;<span class="style_1">'need&nbsp;to&nbsp;wait&nbsp;for&nbsp;mail&nbsp;for&nbsp;thisapp...&nbsp;format:&nbsp;"waitmail:thisapp"</span>
+&nbsp;<span class="style_7">waitsub</span><span class="style_6">()</span>
+<span class="style_3">CASE&nbsp;</span><span class="style_4">"network"</span><span class="style_6">;</span>
+<span class="style_3">CASE&nbsp;</span><span class="style_4">"x"</span><span class="style_6">;</span>
+<span class="style_3">CASE&nbsp;</span><span class="style_4">"timeout1"</span><span class="style_6">;</span>
+<span class="style_3">CASE&nbsp;</span><span class="style_4">"timeout4"</span><span class="style_6">;</span>
+<span class="style_3">CASE&nbsp;</span><span class="style_4">"timeout60"</span><span class="style_6">;</span>
+<span class="style_3">CASE&nbsp;</span><span class="style_4">"block"</span>
+&nbsp;<span class="style_1">'need&nbsp;to&nbsp;wait&nbsp;for&nbsp;block-drive&nbsp;hotplug&nbsp;event,&nbsp;for&nbsp;thisapp...&nbsp;format:&nbsp;"block:thisapp"</span>
+&nbsp;<span class="style_3">IF&nbsp;FILEEXISTS</span><span class="style_6">(</span><span class="style_7">thisfile</span><span class="style_6">$)==</span><span class="style_2">0&nbsp;</span><span class="style_3">THEN</span>
+&nbsp; <span class="style_3">PRINT&nbsp;</span><span class="style_4">"Not&nbsp;implemented"</span>
+&nbsp;<span class="style_3">ELSE</span>
+&nbsp; <span class="style_7">waitsub</span><span class="style_6">()</span>
+&nbsp;<span class="style_3">ENDIF</span>
+<span class="style_3">DEFAULT</span>
+&nbsp;<span class="style_1">'post&nbsp;msg&nbsp;to&nbsp;otherapp,&nbsp;wait&nbsp;for&nbsp;reply&nbsp;to&nbsp;thisapp... <br> 'format:&nbsp;"otherapp:thisapp:message"</span>
+&nbsp;<span class="style_7">outstr</span><span class="style_6">$=</span><span class="style_3">CONCAT</span><span class="style_6">$(</span><span class="style_7">message</span><span class="style_6">$,</span><span class="style_4">"\n"</span><span class="style_6">)</span>
+&nbsp;<span class="style_7">wr</span><span class="style_6">=</span><span class="style_7">write</span><span class="style_6">(</span><span class="style_7">otherdescr</span><span class="style_6">,</span><span class="style_7">outstr</span><span class="style_6">$,</span><span class="style_7">strlen</span><span class="style_6">(</span><span class="style_7">outstr</span><span class="style_6">$))</span>
+&nbsp;<span class="style_7">waitsub</span><span class="style_6">()</span>
+<span class="style_3">END&nbsp;SELECT</span><br>
+<span class="style_7">exitsub</span><span class="style_6">(</span><span class="style_2">0</span><span class="style_6">)</span></pre>
+      </td>
+    </tr>
+  </tbody>
+</table>
+<br>
+This is a remarkably small program to implement a complete IPC system. Essentially, it does this:<br>
+<ol>
+  <li>Parses the message that has been passed on the commandline.</li>
+  <li>Creates one or two files in /tmp/pup_event_ipc, and opens them.</li>
+  <li>Based on the passed message, data will be written to one file, or data read from the other.</li>
+  <li>Reading may or may not block, depending on the message.<br>
+  </li>
+</ol>
+When a file is opened for writing, it is done with the 'O_APPEND' mode, 
+meaning that writes to it always append to the end of the file.<br>
+Messages are line-based, that is, one message per line. This allows 
+messages to accumulate, while waiting to be read -- hence, most 
+important, no messages get lost.<br>
+<br>
+Take the message "block:myapp" as an example. The name "myapp" is an 
+arbitrary choice, anything unique is suitable. If this is posted by the 
+CLI utility:<br>
+<pre># pup_event_ipc "block:myapp"</pre>
+If you were to trace through the above code, you would see that if file 
+"/tmp/pup_event_ipc/block_myapp" is opened (or created if it does not 
+exist), then there is a block on waiting for something to be written to 
+the file.<br>
+When something is written to the file, it is read, and the file zeroised. The read contents are printed on stdout.<br>
+<br>
+The above scenario means that some other application must write to /tmp/pup_event_ipc/block_myapp. <br>
+In the very latest builds of Puppy, we do have a an application that 
+detects drive hotplug activity, a daemon named <b>pup_event_frontend_d</b>, that performs this information server function.<br>
+<br>
+The function that such a server would have to perform can be show by a shell script:<br>
+<pre>for ONEFILE in `ls /tmp/pup_event_ipc/block_*`<br>do<br>&nbsp;echo $BLOCKINFO &gt;&gt; $ONEFILE<br>done</pre>
+That's it, done. All clients that are waiting on block-drive hotplug 
+notification, will "wake up" and read the data. As mentioned before, it 
+does not matter if a client is in a loop, doing other stuff:<br>
+<pre>while true; do<br>&nbsp;EVENTS="`pup_event_ipc "block:myapp"`"<br>&nbsp;...<i>other stuff</i>...<br>done</pre>
+While executing "other stuff", any new block-drive events will append to
+ /tmp/pup_event_ipc/block_myapp (that is, queue ) until it is next read.<br>
+<br>There is a lot that can be said about the flexibility of this 
+inotify-based IPC mechanism. Just one example: although the 
+pup_event_ipc utility does have a timeout option, you can cause a 
+timeout whenever you want -- say, for example that a shell script has 
+executed "pup_event_ipc 'block:myapp'" and is blocked, waiting on a 
+modification to file /tmp/pup_event_ipc/block_myapp. Well, if you just 
+execute "touch /tmp/pup_event_ipc/block_myapp", the read() function that
+ is waiting will return, with zero data of course -- but voila, a simple
+ way to cause a timeout.<br>
+<br>
+<hr size="2" width="100%"><h2>
+Example code blocks</h2>
+I will add to this section. For now, I have included code to show how 
+the "server" can be implemented to serve block-drive event 
+notifications.<br>
+<h3>Block-drive event notification</h3>
+It has been explained above, that a client application may request 
+block-drive event notification by posting a message of format 
+"block:myapp" to the IPC mailbox. <br>
+<br>
+Puppy Linux has a daemon, named <b>pup_event_frontend_d</b>, at 
+/usr/local/pup_event (compiled from the BaCon source file, 
+pup_event_frontend_d.bac, and there is a wrapper script at /sbin). This 
+daemon is started from /root/.xinitrc when X starts up. It does a lot of
+ background stuff, such as manage the desktop drive icons. For that 
+latter reason, it does have information about drive hotplug events.<br>
+<br>
+It was an easy matter to add a bit of extra code to pup_even_frontend_d,
+ to post this information to clients that want it, via the IPC 
+mechanism. Example shell script code is shown in the above section, how 
+this can be done.<br>
+<br>
+The actual code inserted into pup_event_frontend_d is shown below (as at Feb. 23 2018). 
+Basically, it looks for any files named /tmp/pup_event_ipc/zipc_prefix$_* (ex: /tmp/pup_event_ipc/block_*), then
+ writes the drive hotplug information to them (string zipc_event$):<br>
+<br>
+<table cellspacing="0" cellpadding="2" width="100%" border="1">
+  <tbody>
+    <tr>
+      <td valign="top">
+        <pre><span class="style_3">FUNCTION&nbsp;</span><span class="style_7">ipc_post_func</span><span class="style_6">(</span><span class="style_3">STRING&nbsp;</span><span class="style_7">zipc_prefix</span><span class="style_6">$,</span><span class="style_3">STRING&nbsp;</span><span class="style_7">zipc_event</span><span class="style_6">$)</span>
+&nbsp;<span class="style_1">'look&nbsp;for&nbsp;any&nbsp;files&nbsp;named&nbsp;/tmp/pup_event_ipc/ipc_prefix$*&nbsp;...</span>
+&nbsp;<span class="style_1">'ex:&nbsp;/tmp/pup_event_ipc/block_*</span>
+&nbsp;<span class="style_7">dir1</span><span class="style_6">=</span><span class="style_7">opendir</span><span class="style_6">(</span><span class="style_4">"/tmp/pup_event_ipc"</span><span class="style_6">)</span>
+&nbsp;<span class="style_3">IF&nbsp;</span><span class="style_7">dir1</span><span class="style_6">!=</span><span class="style_7">NULL&nbsp;</span><span class="style_3">THEN</span>
+&nbsp; <span class="style_3">WHILE&nbsp;TRUE&nbsp;DO</span>
+&nbsp;&nbsp; <span class="style_7">ent1</span><span class="style_6">=</span><span class="style_7">readdir</span><span class="style_6">(</span><span class="style_7">dir1</span><span class="style_6">)</span>
+&nbsp;&nbsp; <span class="style_3">IF&nbsp;</span><span class="style_7">ent1</span><span class="style_6">==</span><span class="style_7">NULL&nbsp;</span><span class="style_3">THEN&nbsp;BREAK</span>
+&nbsp;&nbsp; <span class="style_7">off1</span><span class="style_6">=</span><span class="style_3">INSTR</span><span class="style_6">((*</span><span class="style_7">ent1</span><span class="style_6">).</span><span class="style_7">d_name</span><span class="style_6">,</span><span class="style_7">zipc_prefix</span><span class="style_6">$)</span>
+&nbsp;&nbsp; <span class="style_3">IF&nbsp;</span><span class="style_7">off1</span><span class="style_6">!=</span><span class="style_2">0&nbsp;</span><span class="style_3">THEN</span>
+&nbsp;&nbsp;&nbsp; <span class="style_1">'note&nbsp;$&nbsp;postfix&nbsp;not&nbsp;allowed&nbsp;inside&nbsp;usec...</span>
+&nbsp;&nbsp;&nbsp; <span class="style_7">clientfile_str</span><span class="style_6">$=</span><span class="style_3">CONCAT</span><span class="style_6">$(</span><span class="style_4">"/tmp/pup_event_ipc/"</span><span class="style_6">,(*</span><span class="style_7">ent1</span><span class="style_6">).</span><span class="style_7">d_name</span><span class="style_6">)</span>
+&nbsp;&nbsp;&nbsp; <span class="style_7">outmsg_str</span><span class="style_6">$=</span><span class="style_3">CONCAT</span><span class="style_6">$(</span><span class="style_7">zipc_event</span><span class="style_6">$,</span><span class="style_4">"\n"</span><span class="style_6">)</span>
+&nbsp;&nbsp;&nbsp; <span class="style_7">clientfile</span><span class="style_6">=</span><span class="style_7">clientfile_str</span><span class="style_6">$</span>
+&nbsp;&nbsp;&nbsp; <span class="style_7">outmsg</span><span class="style_6">=</span><span class="style_7">outmsg_str</span><span class="style_6">$</span>
+&nbsp;&nbsp;&nbsp; <span class="style_3">USEC</span>
+&nbsp;&nbsp;&nbsp;&nbsp; <span class="style_3">int&nbsp;</span><span class="style_7">clientdescr</span><span class="style_6">;</span>
+&nbsp;&nbsp;&nbsp;&nbsp; <span class="style_7">clientdescr</span><span class="style_6">=</span><span class="style_3">open</span><span class="style_6">(</span><span class="style_7">clientfile</span><span class="style_6">,&nbsp;</span><span class="style_7">O_WRONLY&nbsp;</span><span class="style_6">|&nbsp;</span><span class="style_7">O_APPEND</span><span class="style_6">);</span>
+&nbsp;&nbsp;&nbsp;&nbsp; <span class="style_3">if&nbsp;</span><span class="style_6">(</span><span class="style_7">clientdescr</span><span class="style_6">&gt;</span><span class="style_2">0</span><span class="style_6">)&nbsp;{</span>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class="style_3">int&nbsp;</span><span class="style_7">wr</span><span class="style_6">=</span><span class="style_7">write</span><span class="style_6">(</span><span class="style_7">clientdescr</span><span class="style_6">,</span><span class="style_7">outmsg</span><span class="style_6">,</span><span class="style_7">strlen</span><span class="style_6">(</span><span class="style_7">outmsg</span><span class="style_6">));</span>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class="style_3">close</span><span class="style_6">(</span><span class="style_7">clientdescr</span><span class="style_6">);</span>
+&nbsp;&nbsp;&nbsp;&nbsp; <span class="style_6">}</span>
+&nbsp;&nbsp;&nbsp; <span class="style_3">END&nbsp;USEC</span>
+&nbsp;&nbsp; <span class="style_3">ENDIF</span>
+&nbsp; <span class="style_3">WEND</span>
+&nbsp; <span class="style_7">closedir</span><span class="style_6">(</span><span class="style_7">dir1</span><span class="style_6">)</span>
+&nbsp;<span class="style_3">ENDIF</span>
+&nbsp;<span class="style_3">RETURN&nbsp;</span><span class="style_2">0</span>
+<span class="style_3">ENDFUNCTION</span><br></pre>
+      </td>
+    </tr>
+  </tbody>
+</table>
+<br>
+Note, BaCon is just a translator to C, which is then compiled using the 
+Gnu C compiler. It is really just a thin translation layer, so many 
+C-isms can be put into the BaCon code, and pure C can be embedded. I use
+ BaCon as I prefer the syntax, plus it has many higher-level features, 
+such as better string handling, and associative arrays. It is easy to read the above and translate to all-C if required. <br>
+<br>
+A caveat though. My utilities must be compiled with BaCon version 3.0.2 
+or 3.7.2+, as in-between there is "string handling enhancements" that 
+wreck the "thin translation layer".<br>
+<br>
+<br>
+<hr size="2" width="100%"><h2>Feedback welcome</h2>
+I will be posting about progress on pup_event to my blog, <a href="https://bkhome.org/news/">https://bkhome.org/news/</a>&nbsp; <br>
+<br>
+Feedback will be welcome. If you can think of anything that might 
+compromise the integrity of data transfer with this technique, or code 
+modifications that will add improvements (while still keeping everything
+ simple, including simple and small code).<br>
+<br>
+Regards,<br>
+Barry Kauler<br>
+<br>
+<hr size="2" width="100%"><h2>References</h2>
+Reference on libc functions:<br>
+<a href="http://www.gnu.org/software/libc/manual/html_node/Function-Index.html">http://www.gnu.org/software/libc/manual/html_node/Function-Index.html</a> <br>
+Wikipedia:<br>
+<a href="http://en.wikipedia.org/wiki/Inotify">http://en.wikipedia.org/wiki/Inotify</a>&nbsp; <br>
+Intro to inotify:<br>
+<a href="http://www.linuxjournal.com/article/8478">http://www.linuxjournal.com/article/8478</a>&nbsp; <br>
+Monitor file system activity with inotify:<br>
+<a href="http://www.ibm.com/developerworks/library/l-ubuntu-inotify/">http://www.ibm.com/developerworks/library/l-ubuntu-inotify/</a>&nbsp; <br>
+Monitor Linux File System Events with Inotify:<br>
+<a href="http://www.developertutorials.com/tutorials/linux/monitor-linux-inotify-050531-1133/">http://www.developertutorials.com/tutorials/linux/monitor-linux-inotify-050531-1133/</a>&nbsp; <br>
+The inotify API:<br>
+<a href="http://linux.die.net/man/7/inotify">http://linux.die.net/man/7/inotify</a>&nbsp; <br>
+<br>
+<br>
+      </td>
+    </tr>
+    <tr>
+      <td valign="top"><small>(c) Copyright Barry Kauler, 2013, 2018, 2019. All reproduction rights of this page are reserved.</small> <br>
+      </td>
+    </tr>
+  </tbody>
+</table>
+<br>
+<br>
+
+
+</body></html>

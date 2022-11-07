@@ -1,0 +1,44 @@
+#190730 created (based on gcc-7 template).
+#190816 added debs gcc,g++,cpp which have the symlinks. leave below check here though.
+#20210802 created gcc-10, based on gcc-8 template.
+#20220510 created gcc-12, based on gcc-10.
+
+#debian/ubuntu missing symlinks...
+for ANAME in gcc g++ cpp gcov gcc-ar gcc-nm gcc-ranlib gcov-dump gcov-tool
+do
+ FNDSPEC="$(find usr/bin -maxdepth 1 -name ${ANAME})"
+ if [ ! "$FNDSPEC" ];then
+  FNDEXE="$(find usr/bin -maxdepth 1 -name "${ANAME}"'-[0-9]*' | head -n 1)" #ex: gcc-5  ex: gcc-4.6 note, * is a glob wildcard.
+  if [ "$FNDEXE" ];then
+   DIREXE="$(dirname $FNDEXE)"
+   NAMEEXE="$(basename $FNDEXE)"
+   ln -s $NAMEEXE ${DIREXE}/${ANAME}
+   [ "$ANAME" == "gcc" ] && ln -s $NAMEEXE ${DIREXE}/cc
+   [ "$ANAME" == "g++" ] && ln -s $NAMEEXE ${DIREXE}/c++
+  fi
+ else
+  [ "$ANAME" == "gcc" ] && ln -s gcc usr/bin/cc
+  [ "$ANAME" == "g++" ] && ln -s g++ usr/bin/c++
+ fi
+done
+
+#20210802 debian bullseye, had to manually create these, to compile pango:
+# ln -s x86_64-linux-gnu-cpp-12 x86_64-linux-gnu-cpp
+# ln -s x86_64-linux-gnu-g++-12 x86_64-linux-gnu-g++
+# ln -s x86_64-linux-gnu-gcc-12 x86_64-linux-gnu-gcc
+# ln -s x86_64-linux-gnu-gcc-ar-12 x86_64-linux-gnu-gcc-ar
+# ln -s x86_64-linux-gnu-gcc-nm-12 x86_64-linux-gnu-gcc-nm
+# ln -s x86_64-linux-gnu-gcc-ranlib-12 x86_64-linux-gnu-gcc-ranlib
+# ln -s x86_64-linux-gnu-gcov-12 x86_64-linux-gnu-gcov
+# ln -s x86_64-linux-gnu-gcov-dump-12 x86_64-linux-gnu-gcov-dump
+# ln -s x86_64-linux-gnu-gcov-tool-12 x86_64-linux-gnu-gcov-tool
+#so...
+for ANAME in cpp-12 g++-12 gcc-12 gcc-ar-12 gcc-nm-12 gcc-ranlib-12 gcov-12 gcov-dump-12 gcov-tool-12
+do
+ AREAL="$(readlink usr/bin/$ANAME)" #ex: x86_64-linux-gnu-cpp-12
+ if [ -x usr/bin/${AREAL} ];then
+  ACUT="$(basename $AREAL -12)"
+  ln -s ${AREAL} usr/bin/${ACUT}
+ fi
+done
+

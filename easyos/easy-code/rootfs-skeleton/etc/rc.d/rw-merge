@@ -1,0 +1,126 @@
+#!/bin/ash
+#20220522 save rw layer to permanent .session folder at shutdown.
+#when EOS_TOP_LEVEL_ZRAM='1' in PUPSTATE file, then /dev/zram1 is mounted on
+# /mnt/easy_rw which rw top aufs layer.
+# underneath is /mnt/${WKG_DEV}/${WKG_DIR}.session mounted ro.
+# rc.shutdown will remove .session layer, then call this script.
+#20220524 rename mnt/easy_ro to mnt/.easy_ro, ditto easy_rw ref: easy-remaster, easy-containers, rc.shutdown, init
+#20220527 pass in $DEST, from /usr/sbin/ask-save-zram1. note, also /sbin/rw-merge in initrd.
+#20220529 there are now sub-folders under .session-transit, to handle containers.
+#20220530 save when running into .session-transit/<name>, where <name> is "mainrw" or container-name.
+#20220614 .session/.sfschg.flg created in initrd, erased in rc.sysinit, but top-level doesn't flush down.
+#20220626 constrain sub-folder (/mnt/.easy_rw/sub-folder) optional $2. now called from easy-version-control. 20220627 fixes.
+#20220907 /var no longer a symlink. ref: rc.sysinit  20220918
+#20221102 exclude /var/lock
+
+export LANG=C
+. /etc/rc.d/PUPSTATE
+endDEST=".session"
+if [ $1 ];then
+ endDEST="$1" #.session-transit see: ask-save-zram1, save when running, not shutdown.
+fi
+
+#20220626
+CONSTRAIN=''
+if [ $2 ];then
+ CONSTRAIN="$2" #exs: mainrw, www
+fi
+
+#20220529 src can also be containers...
+if [ "$EOS_SUPPORT_CONTAINERS" != "0" ];then
+ RWfolders="$(find /mnt/.easy_rw -mindepth 1 -maxdepth 1 -type d | tr '\n' ' ')"
+else
+ RWfolders='/mnt/.easy_rw/mainrw'
+fi
+
+###whiteouts###
+###############
+#cd /mnt/.easy_rw #20220524
+for aSRC in $RWfolders #20220529
+do
+ aSRC="${aSRC##*/}"
+ if [ "$CONSTRAIN" ];then #20220626
+  if [ "$aSRC" != "$CONSTRAIN" ];then
+   continue
+  fi
+ fi
+ cd /mnt/.easy_rw/${aSRC}
+ case "$aSRC" in
+  mainrw) DEST="/mnt/${WKG_DEV}/${WKG_DIR}${endDEST}" ;;
+  *)      DEST="/mnt/${WKG_DEV}/${WKG_DIR}containers/${aSRC}/${endDEST}" ;;
+ esac
+ if [ "$endDEST" == ".session-transit" -o "$endDEST" == ".session-snapshot" ];then #20220530 20220627
+  DEST="${DEST}/${aSRC}" #save into a sub-folder.
+ fi
+ mkdir -p $DEST #in case of .session-transit
+ #find all files and folders in easy_rw, if a matching wh in .session, then delete wh...
+ #find . -mindepth 2 -mount |
+ while read F
+ do
+  [ "$F" == "" ] && continue
+  pathF="${F%/*}"     #ex: ./usr/share/doc
+  pathF="${pathF#./}" #ex: usr/share/doc
+  nameF="${F##*/}"    #ex: zarfy.txt
+  if [ -e "${DEST}/${pathF}/.wh.${nameF}" ];then
+   rm -f "${DEST}/${pathF}/.wh.${nameF}"
+  fi
+ done <<_END1
+$(find . -mindepth 2 -mount)
+_END1
+ 
+ #find wh in easy_rw, fix in .session...
+ #find . -mindepth 2 -mount -type f -name '.wh.*' |
+ #20220614 change "-mindepth 2" to "-mindepth 1"...
+ while read WH
+ do
+  [ "$WH" == "" ] && continue
+  pathWH="${WH%/*}"     #ex: ./lib/firmware
+  pathWH="${pathWH#./}" #ex: lib/firmware
+  nameWH="${WH##*/}"    #ex: .wh..wh..opq
+  
+  if [ "$nameWH" == ".wh..wh..opq" ];then
+   if [ -h "${DEST}/${pathWH}" -o -f "${DEST}/${pathWH}" ];then
+    rm -f "${DEST}/${pathWH}"
+   elif [ -d "${DEST}/${pathWH}" ];then
+    rm -rf "${DEST}/${pathWH}"
+   fi
+   continue
+  fi
+  
+  delF="${nameWH#.wh.}" #ex: .wh.ycalc.txt becomes ycalc.txt
+  if [ -h "${DEST}/${pathWH}/${delF}" -o -f "${DEST}/${pathWH}/${delF}" ];then
+   rm -f "${DEST}/${pathWH}/${delF}"
+  elif [ -d "${DEST}/${pathWH}/${delF}" ];then
+   rm -rf "${DEST}/${pathWH}/${delF}"
+  fi
+ done <<_END2
+$(find . -mindepth 1 -mount -type f -name '.wh.*')
+_END2
+ 
+ ###merge###
+ ###########
+ 
+ ##i reckon we can just copy everything...
+ #cp -x -a -f --remove-destination * ${DEST}/
+ ## ...leaving out the top-level hidden files and folders.
+ ##remove symlinks....
+ #rm -f ${DEST}/run
+ #rm -f ${DEST}/var
+ 
+ #20220907
+ if [ -h /var ];then
+  VAREXC='./var'
+ else
+  VAREXC='./var/cache'
+  VARREXC='--exclude=./var/run' #20220918
+ fi
+ 
+ #need better exclusion...
+ #tar -cpf - --exclude={./files,./dev,./mnt,./var,./run,./.*,*/.cache,./proc,./sys,./tmp} --one-file-system . | tar -xf - -C ${DEST} --overwrite --warning=none
+ #...seems need bash for this exclude pattern. this works...
+ #20221102 add /var/lock
+ tar -cpf - --exclude='./files' --exclude='./dev' --exclude='./mnt' --exclude=${VAREXC} ${VARREXC} --exclude='./run' --exclude='./.*' --exclude='*/.cache' --exclude='./proc' --exclude='./sys' --exclude='./tmp' --exclude='./lost+found' --exclude='./root/.XLOADED' --exclude='./var/lock' --one-file-system . | tar -xf - -C ${DEST} --overwrite --warning=none
+done
+sync
+
+###end###

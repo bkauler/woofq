@@ -1,0 +1,8 @@
+#note: DISTRO_BINARY_COMPAT and DISTRO_FILE_PREFIX are visible here, exported in 2createpackages.
+#140117 xARCHDIR, ARCHDIR and DISTRO_ARCHDIR_SYMLINKS exported in 2createpackages. 
+#140117 note, 2createpackages may move /lib, /usr/lib, /usr/bin in template to ARCHDIR subdir.
+
+if [ "$xARCHDIR" ];then #140117
+ ln -s libmozjs185.so.1.0.0 usr/lib/${ARCHDIR}/libmozjs.so
+fi
+ln -s libmozjs185.so.1.0.0 usr/lib/libmozjs.so

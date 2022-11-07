@@ -1,0 +1,157 @@
+Content-type: text/html
+
+<HTML><HEAD><TITLE>Manpage of UNCLUTTER</TITLE>
+</HEAD><BODY>
+<H1>UNCLUTTER</H1>
+Section: Misc. Reference Manual Pages (1X)<BR><A HREF="#index">Index</A>
+<A HREF="http://localhost/cgi-bin/man/man2html">Return to Main Contents</A><HR>
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+unclutter - remove idle cursor image from screen
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<B>unclutter</B>
+
+[<B>-display</B>|<B>-d</B>
+
+<I>display</I>]
+
+[<B>-idle</B>
+
+<I>seconds</I>]
+
+[<B>-keystroke</B>]
+
+[<B>-jitter</B>
+
+<I>pixels</I>]
+
+[<B>-grab</B>]
+
+[<B>-noevents</B>]
+
+[<B>-reset</B>]
+
+[<B>-root</B>]
+
+[<B>-onescreen</B>]
+
+[<B>-not</B>]
+
+<I>name ...</I>
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<B>unclutter</B>
+
+removes the cursor image from the screen so that it does not
+obstruct the area you are looking at after it has not moved for
+a given time.
+It does not do this if the cursor is in the root window or a button is down.
+It tries to ignore jitter (small movements due to noise)
+if you have a mouse that twitches.
+<A NAME="lbAE">&nbsp;</A>
+<H2>OPTIONS</H2>
+
+<DL COMPACT>
+<DT>-display<DD>
+is followed by the display to open.
+<DT>-idle<DD>
+is followed by the number of seconds between polls for idleness.
+The default is 5.
+<DT>-keystroke<DD>
+tells
+<B>unclutter</B>
+
+not to use a timeout to determine when to remove the cursor, but to
+instead wait until a key has been pressed (released, really).
+<DT>-jitter<DD>
+is followed by the amount of movement of the pointer that is to be ignored
+and considered as random noise.
+The default is 0.
+<DT>-grab<DD>
+means use the original method of grabbing the pointer in order to remove the
+cursor. 
+This often doesn't interoperate too well with some window managers.
+<DT>-noevents<DD>
+stops unclutter sending a pseudo EnterNotify event to the X client whose
+cursor has been stolen.
+Sending the event helps programs like emacs think that they have not
+lost the pointer focus.
+This option is provided for backwards compatibility in case some
+clients get upset.
+<DT>-reset<DD>
+resets the timeout for idleness after the cursor is restored for some reason
+(such as a window being pushed or popped) even though the x y coordinates
+of the cursor have not changed.
+Normally, the cursor would immediately be removed again.
+<DT>-root<DD>
+means remove the cursor even if it is on the root background, where in
+principle it should not be obscuring anything useful.
+<DT>-onescreen<DD>
+restricts unclutter to the single screen specified as display,
+or the default screen for the display.
+Normally, unclutter will unclutter all the screens on a display.
+<DT>-not<DD>
+is followed by a list of window names where the cursor should not be
+removed.
+The first few characters of the WM_NAME property on the window need
+to match one the listed names.
+This argument must be the last on the command line.
+</DL>
+<A NAME="lbAF">&nbsp;</A>
+<H2>LIMITATIONS</H2>
+
+The -keystroke option may not work (that is, the cursor will not
+disappear) with clients that request KeyRelease events.
+Games and Xt applications using KeyUp in their translation tables are 
+most likely to suffer from this problem.
+The most feasible solution is to extend unclutter to use the XTest
+extension to get all keyboard and mouse events, though this of course
+requires XTest to be in the server too.
+<P>
+
+The -keystroke option does not distinguish modifier keys from
+keys which actually generate characters.
+If desired this could be implemented in a simple way by using XLookupString
+to see if any characters are returned.
+<A NAME="lbAG">&nbsp;</A>
+<H2>DIAGNOSTICS</H2>
+
+The message
+<P>
+<BR>&nbsp;someone&nbsp;created&nbsp;a&nbsp;sub-window&nbsp;to&nbsp;my&nbsp;sub-window!
+<P>
+means that unclutter thinks a second unclutter is running, and tried
+to steal the cursor by creating a sub-window to the sub-window already
+used to steal the cursor.
+This situation quickly deteriorates into a fight no one can win, so
+it is detected when possible and the program gives up.
+<A NAME="lbAH">&nbsp;</A>
+<H2>AUTHOR</H2>
+
+Mark M Martin. cetia 7feb1994. <A HREF="mailto:mmm@cetia.fr">mmm@cetia.fr</A>
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">OPTIONS</A><DD>
+<DT><A HREF="#lbAF">LIMITATIONS</A><DD>
+<DT><A HREF="#lbAG">DIAGNOSTICS</A><DD>
+<DT><A HREF="#lbAH">AUTHOR</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="http://localhost/cgi-bin/man/man2html">man2html</A>,
+using the manual pages.<BR>
+Time: 20:57:11 GMT, June 10, 2006
+</BODY>
+</HTML>

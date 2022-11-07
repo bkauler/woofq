@@ -1,0 +1,107 @@
+#!/bin/sh
+#(c) Copyright Barry Kauler, 31 January 2017. License: GPL V3 (/usr/share/doc/legal)
+#Easy Linux script for Easy Containers, to create for running an isolated application.
+#passed in parameter is name of executable.
+#this script can be re-run if you have changed the configuration, as long as container is not in use.
+#170803 modify ec-run script, removed "&" last line.
+#180427 support linux capabilities. removed user-namespace.
+#180524 have patched kernel cap_sys_mount, split out from cap_sys_admin
+#180612 super-root zeus has a password, same as encrypt wkg-partition (ref: init in intrd)
+#180630 ec-run: do not have quotes around params, test if $EXE exists.
+#180703 new variables EC_XSOCKET, EC_XSERVER.
+#180928 optional 'pflask' utility. ref: http://bkhome.org/news/201809/pflask-chroot-on-steroids.html  180929
+#181002 new Access section. 181006 sound.
+#181008 optional user zeus.  181009
+#181009 now have default 'configuration' file. 181104 fix.
+#181106 in case .session gets erased, moved some code to start-container.
+#181117 start-up scripts in /.control in sfs.
+
+[ ! $1 ] && exit 1
+EXE="$1"
+[ "$(mount | grep "/mnt/${WKG_DEV}/${WKG_DIR}containers/${EXE}/container")" != "" ] && exit 2
+
+. /etc/DISTRO_SPECS
+. /etc/rc.d/PUPSTATE #has BOOT_DEV, BOOT_FS, BOOT_DIR, WKG_DEV, WKG_FS, WKG_DIR, QSFS_PATH
+. /usr/local/easy_containers/config #180928 has EC_GLOBAL_CHROOT
+mkdir -p /tmp/easy_containers
+
+#containers are in folder /mnt/${WKG_DEV}/${WKG_DIR}containers
+if [ ! -d /mnt/${WKG_DEV}/${WKG_DIR}containers/${EXE} ];then
+ mkdir /mnt/${WKG_DEV}/${WKG_DIR}containers/${EXE}
+ mkdir /mnt/${WKG_DEV}/${WKG_DIR}containers/${EXE}/.session #rw layer
+ mkdir /mnt/${WKG_DEV}/${WKG_DIR}containers/${EXE}/.ro0
+ mkdir /mnt/${WKG_DEV}/${WKG_DIR}containers/${EXE}/.work
+ mkdir /mnt/${WKG_DEV}/${WKG_DIR}containers/${EXE}/container
+ #181009 default 'configuration' file... 181104 fix
+ if [ -f /usr/local/easy_containers/templates/${EXE}/configuration ];then
+  cp -f /usr/local/easy_containers/templates/${EXE}/configuration /mnt/${WKG_DEV}/${WKG_DIR}containers/${EXE}/
+ else
+  cp -f /usr/local/easy_containers/templates/defaults/configuration /mnt/${WKG_DEV}/${WKG_DIR}containers/${EXE}/
+ fi
+ echo "#When a snapshot is made, a comment may optionally be created here." > /mnt/${WKG_DEV}/${WKG_DIR}containers/${EXE}/snapshot-comments
+fi
+cd /mnt/${WKG_DEV}/${WKG_DIR}containers/${EXE}
+. ./configuration
+
+if [ "$EC_GLOBAL_CHROOT" == "chroot" ];then #180928 if not pflask
+ #/dev is empty in the container, create static device nodes...
+ if [ ! -e /mnt/${WKG_DEV}/${WKG_DIR}containers/${EXE}/.session/dev/pts ];then
+  cp -f /usr/local/easy_containers/dev.tar.gz /tmp/easy_containers/
+  cd /tmp/easy_containers
+  tar -xf dev.tar.gz
+  mkdir -p /mnt/${WKG_DEV}/${WKG_DIR}containers/${EXE}/.session/dev
+  cp -a -f --remove-destination dev/* /mnt/${WKG_DEV}/${WKG_DIR}containers/${EXE}/.session/dev/
+  sync
+  rm -rf dev
+  rm dev.tar.gz
+  cd /mnt/${WKG_DEV}/${WKG_DIR}containers/${EXE}
+ fi
+fi
+
+#181106 done in start-container...
+##create a start-script in the container...
+#if [ ! -f .session/ec-run ];then
+# cat << 'EOF1' >> .session/ec-run
+##!/bin/sh
+#export PATH='/bin:/usr/bin:/sbin:/usr/sbin:/usr/local/bin' #181009 need for zeus.
+#MOUNTS="$(busybox mount 2>/dev/null)"
+#if [ "$(echo "$MOUNTS" | grep '/proc ')" == "" ];then
+# busybox mount -t proc proc /proc
+# MOUNTS="$(busybox mount)"
+#fi
+#[ "$(echo "$MOUNTS" | grep '/shm ')" == "" ] && busybox mount -t tmpfs shmfs /dev/shm
+#[ "$(echo "$MOUNTS" | grep '/pts ')" == "" ] && busybox mount -t devpts -o newinstance devpts /dev/pts
+#[ "$(echo "$MOUNTS" | grep '/sys ')" == "" ] && busybox mount -t sysfs none /sys
+#EXE="$1"; shift
+#xEXE="$(which $EXE)" #so will fallback to executing $@ if $EXE not exist.
+#if [ "$EC_CAP_DROP" ];then #180427
+# capsh --drop=${EC_CAP_DROP} -- -c "${xEXE} ${@}"
+#else
+# ${xEXE} ${@}
+#fi
+#EOF1
+# chown spot:spot .session/ec-run #180427  181008 spot:spot so zeus cannot write to it.
+# chmod 755 .session/ec-run #180427 180929 must have global read and execute permissions.
+# #...this prevents tampering with the script from inside the container, running root-with-restricted-rights.
+#fi
+
+#181106 done in start-container...
+#180612 this has the password entered at bootup, for zeus super-root...
+#mkdir -p .session/etc
+#cp -a -f /etc/shadow .session/etc/
+
+#181106 done in start-container...
+#case "$EXE" in
+# desk*)
+#  #desktop container, ex 'desk0', is faulty creating truncated wallpaper, so copy...
+#  #see also /root/.xinitrc
+#  for aDIR in `find /usr/share/backgrounds -mindepth 1 -maxdepth 1 -type d | tr '\n' ' '`
+#  do
+#   mkdir -p .session${aDIR}
+#   cp -a -f ${aDIR}/* .session${aDIR}/
+#  done
+# ;;
+#esac
+
+exit 0
+###END###

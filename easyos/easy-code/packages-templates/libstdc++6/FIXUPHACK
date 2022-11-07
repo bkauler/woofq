@@ -1,0 +1,11 @@
+#note: DISTRO_BINARY_COMPAT and DISTRO_FILE_PREFIX are visible here, exported in 2createpackages.
+#140117 xARCHDIR, ARCHDIR and DISTRO_ARCHDIR_SYMLINKS exported in 2createpackages. 
+#140117 note, 2createpackages may move /lib, /usr/lib, /usr/bin in template to ARCHDIR subdir.
+
+#libstdc++6 is for ubuntu (Precise Pangolin) only.
+#libstdc++.so is missing from _DEV pkg...
+if [ "$xARCHDIR" ];then #140117
+ ln -s libstdc++.so.6 ./usr/lib/${ARCHDIR}/libstdc++.so
+fi
+ln -s libstdc++.so.6 ./usr/lib/libstdc++.so
+

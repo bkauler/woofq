@@ -1,0 +1,62 @@
+#!/bin/sh
+#BK 151102
+#fownload the ubuntu 'linux-firmware' and 'linux-firmware-nonfree' DEBs, expand to dirs with these names.
+#run /usr/sbin/updategpumoduleslist.sh, creates files gpudrmfirmware-all
+#in /tmp, copy to same place as above folders, then run this script
+#160322 updated.
+#170527 d/l nonfree: http://repo.kali.org/kali/pool/non-free/f/firmware-nonfree/firmware-nonfree_20170404.orig.tar.xz
+# ...reorganise it into linux-firmware-nonfree/lib/firmware
+#171023 see file 'bk-notes'
+
+[ ! -d linux-firmware ] && exit
+[ ! -d linux-firmware-nonfree ] && exit
+[ ! -f gpudrmfirmware-all ] && exit
+
+PETNAME='firmware_linux_display'
+PETVER='5.1-20190704' #####EDIT THIS#####
+DESTGPU="${PETNAME}-${PETVER}"
+[ -d $DESTGPU ] && rm -rf ./$DESTGPU
+[ -f ${DESTGPU}.pet ] && rm -f ${DESTGPU}.pet
+mkdir $DESTGPU
+
+echo 'extracting GPU firmware...'
+
+cat gpudrmfirmware-all |
+while read ALINE
+do
+ [ "$ALINE" == "" ] && continue
+ [ "$(echo -n "$ALINE" | grep "^MODULE")" != "" ] && continue
+
+ for SRCDIR in linux-firmware linux-firmware-nonfree
+ do
+  [ -d ${SRCDIR}/lib/firmware/$ALINE ] && continue
+  if [ -f ${SRCDIR}/lib/firmware/$ALINE ];then
+   ADIR="$(dirname $ALINE | sed -e 's%^\.%%')"
+   mkdir -p $DESTGPU/lib/firmware/$ADIR
+   echo -n "${ALINE} "
+   cp -a -f ${SRCDIR}/lib/firmware/$ALINE $DESTGPU/lib/firmware/$ADIR/
+   if [ -h ${SRCDIR}/lib/firmware/$ALINE ];then
+    LALINE="$(readlink ${SRCDIR}/lib/firmware/$ALINE)"
+    #cp -a -f ${SRCDIR}/lib/firmware/$ADIR/$LALINE $DESTGPU/lib/firmware/$ADIR/
+    LAPATH="$(dirname /lib/firmware/$ADIR/$LALINE)"
+    mkdir -p ${DESTGPU}${LAPATH}
+    cp -a -f ${SRCDIR}/lib/firmware/$ADIR/$LALINE ${DESTGPU}${LAPATH}/
+   fi
+  fi
+ done
+
+done
+sync
+echo
+
+#create pet...
+#ex: firmware_linux_display-3.17.4-20150415|firmware_linux_display|3.17.4-20150415||BuildingBlock|5036K||firmware_linux_display-3.17.4-20150415.pet|+linux_kernel&ge3.17.4|linux kernel firmware for display, mostly radeon||||
+SIZEK="$(du -s -k $DESTGPU | cut -f 1)"
+echo "${PETNAME}-${PETVER}|${PETNAME}|${PETVER}||BuildingBlock|${SIZEK}K||${PETNAME}-${PETVER}.pet|+linux_kernel&ge5.1|linux kernel firmware for display, gpu||||" > $DESTGPU/pet.specs
+sync
+dir2tgz $DESTGPU
+sync
+echo "Creating ${DESTGPU}.pet..."
+tgz2pet ${DESTGPU}.tar.gz
+sync
+echo '...done'

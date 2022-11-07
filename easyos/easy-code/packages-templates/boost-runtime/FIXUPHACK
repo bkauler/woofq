@@ -1,0 +1,30 @@
+
+#170512 oe pyro64 build
+#need some libs. the rest of boost goes into the devx.
+mkdir temp1
+cp -a usr/lib${xARCHDIR}/libboost_system.so.* temp1/
+cp -a usr/lib${xARCHDIR}/libboost_date_time.so.* temp1/
+
+#171025 libreoffice 5.4.2.2 needs...
+cp -a usr/lib${xARCHDIR}/libboost_filesystem.so.* temp1/
+cp -a usr/lib${xARCHDIR}/libboost_iostreams.so.* temp1/
+
+#20210127 libreoffice 7.0.1.2 needs...
+cp -a usr/lib${xARCHDIR}/libboost_locale.so.* temp1/
+
+#180718 nheko (matrix chat client, input502) needs these...
+cp -a usr/lib${xARCHDIR}/libboost_atomic.so.* temp1/
+cp -a usr/lib${xARCHDIR}/libboost_chrono.so.* temp1/
+cp -a usr/lib${xARCHDIR}/libboost_random.so.* temp1/
+cp -a usr/lib${xARCHDIR}/libboost_regex.so.* temp1/ #big 890KB
+cp -a usr/lib${xARCHDIR}/libboost_thread.so.* temp1/
+
+#181225 pingus (game, input521) needs...
+cp -a usr/lib${xARCHDIR}/libboost_signals.so.* temp1/
+
+#190403 thud wants this...
+cp -a usr/lib${xARCHDIR}/libboost_program_options.so.* temp1/
+
+rm -rf usr
+mkdir usr
+mv temp1 usr/lib

@@ -1,0 +1,21 @@
+#note: DISTRO_BINARY_COMPAT and DISTRO_FILE_PREFIX are visible here, exported in 2createpackages.
+#140117 xARCHDIR, ARCHDIR and DISTRO_ARCHDIR_SYMLINKS exported in 2createpackages. 
+#140117 note, 2createpackages may move /lib, /usr/lib, /usr/bin in template to ARCHDIR subdir.
+
+#120907 vlc in debian/ubuntu configured to not run as root (it is a pre-compile configure option to enable running as root).
+#this hack will fix it...
+#note, this code is also in /usr/local/petget/hacks-postinstall.sh.
+if [ -f /usr/bin/bbe ];then #bbe is a sed-like utility for binary files.
+ if [ "$xARCHDIR" ];then #140117
+  if [ -f usr/bin/${ARCHDIR}/vlc  ];then
+   bbe -e 's/geteuid/getppid/' usr/bin/${ARCHDIR}/vlc > /tmp/vlc-temp1
+   mv -f /tmp/vlc-temp1 usr/bin/${ARCHDIR}/vlc
+   chmod 755 usr/bin/${ARCHDIR}/vlc
+  fi
+ fi
+ if [ -f usr/bin/vlc  ];then
+  bbe -e 's/geteuid/getppid/' usr/bin/vlc > /tmp/vlc-temp1
+  mv -f /tmp/vlc-temp1 usr/bin/vlc
+  chmod 755 usr/bin/vlc
+ fi
+fi

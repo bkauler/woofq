@@ -1,0 +1,61 @@
+#!/bin/sh
+#200106 first version.
+#200107 see /etc/eventmanager, /etc/rc.d/rc.services, 'bluetoothhw' is an ipc value.
+#200109 hack to start blueman-applet.
+#200325 extra check desktop running.
+#20201020 note: woofq/packages-templates/pulseaudio/pulseaudio/pinstall.sh will delete this script.
+#20201023 fix visible from phone.
+#20201025 start bluealsad with "-S" to send output to syslog.
+
+#the bluealsa daemon should only run when there is a bluetooth audio device.
+#maybe set it up with pup_event, ref /etc/eventmanager
+#200107 ok, setup to be called by ipc name 'bluetoothhw', when there is bluetooth hw existing.
+# and call with "stop" when bt hw removed (as in case of a dongle)
+# bluealsa daemon must run after bluetoothd has started, and must stop before bluetoothd stopped.
+# ..."bluetoothhw%bluetooth:bluealsa" in /etc/eventmanager will ensure correct start/stop order.
+
+#200107 rc.services_ipc runs the services sequentially, not as separate processes,
+# and runs 'bluetooth' service first, so 'bluetoothd' should be running.
+
+case "$1" in
+ start)
+  if ! which bluealsad >/dev/null;then ln -snf bluealsa /usr/bin/bluealsad; fi
+  if pidof bluealsad >/dev/null;then echo '/etc/init.d/bluealsa: bluealsad already running'; exit; fi #already running.
+  if ! pidof bluetoothd >/dev/null;then echo '/etc/init.d/bluealsa: no bluetoothd, abort'; exit; fi #precaution
+  
+  echo '/etc/init.d/bluealsa: starting daemon bluealsad'
+  bluealsad -S &
+  
+  #200109 a hack to do this here, could do it in /etc/init.d/bluetooth (which would also be a hack)...
+  #if blueman-applet not running, start it...
+  #it normally starts via /root/Startup/blueman_tray, but won't if no bt.
+  #if we plug in a bt dongle, will need to start the tray applet...
+  if which blueman-applet >/dev/null;then
+   if [ -s /tmp/pup_event_backend/x_ ];then
+    pidof `cat /etc/windowmanager` >/dev/null #200325 extra check desktop running.
+    if [ $? -eq 0 ];then
+     if ! pidof blueman-applet >/dev/null;then
+      #20201023 phone was unable to see PC, so do this...
+      bluetoothctl discoverable on
+      DISPLAY="$(cat /tmp/pup_event_backend/x_ | cut -f 1 -d ' ')"
+      DISPLAY=${DISPLAY/X/:} blueman-applet &
+     fi
+    fi
+   fi
+  fi
+ ;;
+ stop)
+  #200109 hack...
+  if pidof blueman-applet >/dev/null;then
+   killall blueman-applet
+  fi
+  
+  killall bluealsad 2>/dev/null
+ ;;
+ restart)
+  killall bluealsad 2>/dev/null
+  bluealsad &
+ ;;
+esac
+
+

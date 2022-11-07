@@ -1,0 +1,26 @@
+#!/bin/ash
+#20220214 insert more menus into the tray.
+#20220526 support EOS_SUPPORT_CONTAINERS==0
+
+export TEXTDOMAIN=ui-jwm
+export OUTPUT_CHARSET=UTF-8
+
+. /etc/rc.d/PUPSTATE #20220526 has EOS_SUPPORT_CONTAINERS
+
+if [ ! -f /root/.jwm/tray-menus ];then
+ mDRIVES="$(gettext 'Drives')"
+ mCONTAINERS="$(gettext 'Containers')"
+ echo "		<TrayButton popup=\"${mDRIVES}\" icon=\"drives48.png\">root:2</TrayButton>" > /root/.jwm/tray-menus
+ if [ "$EOS_SUPPORT_CONTAINERS" != "0" ];then #20220526
+  echo "		<TrayButton popup=\"${mCONTAINERS}\" icon=\"container48.png\">root:4</TrayButton>" >> /root/.jwm/tray-menus
+ fi
+fi
+
+#insert file between two patterns in /root/.jwmrc-tray...
+sed -i -e '/STARTMENU/,/ENDMENU/{/STARTMENU/!{/ENDMENU/!d}}' -e '/STARTMENU/r /root/.jwm/tray-menus' /root/.jwmrc-tray
+
+#if [ "$EOS_SUPPORT_CONTAINERS" == "0" ];then #20220526 hmmm, probably not need this.
+# rm -f /root/.jwm/tray-menus
+#fi
+#sync
+###end###

@@ -1,0 +1,294 @@
+'(c) Copyright Barry Kauler, June 2013, bkhome.org
+'License GPL V3 (refer: /usr/share/doc/legal)
+'InterProcess Communication for Puppy Linux, CLI utility using inotify.
+'vovchik: compile like this, reduces executable 34K to 9K...
+' bacon -o -s -o -Os -o -fdata-sections -o -ffunction-sections -o -Wl,--gc-sections -d /tmp $myfile
+'130628 first version.
+' 140303 peter eerten: fixed so compiles with later bacon (prev needed 2.1.x). no longer need low-level C open().
+'170526 fixes. 
+'180217 fixes. pup_event_frontend_d server has block_, network_, timeout1_, timeout4_, timeout60_
+'180219 string-optimization problems, must compile with bacon 3.0.2, or 3.7.2+
+'180223 pup_event_frontend_d server has 'x'
+'200107 /usr/local/pup_event/bluetoothhw writes to /tmp/pup_event_backend/bluetoothhw_
+'200212 new request dbus started.
+
+DECLARE helpflg,milliseconds TYPE int
+
+'parse the commandline...
+helpflg=0
+milliseconds=0
+sendstr$=""
+IF argc==1 THEN helpflg=1
+FOR x=1 TO argc-1
+ arg$=argv[x]
+ IF arg$=="--help" THEN
+  helpflg=1
+  CONTINUE
+ ENDIF
+ IF arg$=="-h" THEN
+  helpflg=1
+  CONTINUE
+ ENDIF
+ IF arg$=="-t" THEN
+  INCR x
+  milliseconds=VAL(argv[x])
+  CONTINUE
+ END IF
+ sendstr$=arg$
+NEXT
+
+IF helpflg==1 THEN
+ PRINT "(c) Copyright Barry Kauler, June 2013, license GPL3 (/usr/share/doc/legal)"
+ PRINT "This is a CLI utility that may be used in scripts. Run like this:"
+ PRINT " pup_event_ipc \"request:client[:message]\""
+ PRINT " request: name of another application to send the message to*. Or,"
+ PRINT " request: keyword to request information. Supported keywords:"
+ PRINT "          mailbox waitmail"
+ PRINT "          block dbus network x bluetoothhw timeout1 timeout4 timeout60"
+ PRINT " client:  any single-word to identify client (usually sender) application*."
+ PRINT " message: any text string (that other side understands), up to 4000 bytes."
+ PRINT "          any characters allowed, including \":\""
+ PRINT "ex: pup_event_ipc \"otherapp:myapp:some data for otherapp\""
+ PRINT "ex: pup_event_ipc \"mailbox:otherapp:some data for otherapp\""
+ PRINT "ex: pup_event_ipc \"mailbox:myapp\"" 
+ PRINT "ex: pup_event_ipc \"waitmail:myapp\""
+ PRINT "ex: pup_event_ipc \"block:myapp\""
+ PRINT "pup_event_ipc has an optional timeout (milliseconds),"
+ PRINT "ex: pup_event_ipc -t 1000 \"otherapp:myapp:data for you\""
+ PRINT "Will exit with non-zero value if an error:"
+ PRINT " 1=timeout. 2=wrong msg format. 3-7=message-passing failure. "
+ PRINT "*Any unique names that both clients agree on."
+ PRINT "PLEASE SEE /usr/local/pup_event/pup_event_ipc-README.htm for more details."
+ END 0
+END IF
+
+
+PROTO close, ftruncate, inotify_init, inotify_add_watch, inotify_rm_watch, lseek, open, poll, read, sizeof, strlen, write
+
+PRAGMA INCLUDE <sys/inotify.h>
+
+DECLARE fd1,len1,leni,size_buf,thiswatchfile,otherwatchfile TYPE int
+DECLARE arr1,thisapp,otherapp TYPE char*
+DECLARE thisdescr,otherdescr TYPE int
+size_char=sizeof(char)
+size_inbuf=size_char*4096
+DECLARE inbuf,bufinotify TYPE char ARRAY size_inbuf
+
+SUB exitsub(NUMBER i)
+ IF watchdir>0 THEN inotify_rm_watch(fd1,watchdir)
+ IF fd1>0 THEN close(fd1)
+ IF otherdescr>0 THEN close(otherdescr)
+ IF thisdescr>0 THEN close(thisdescr)
+ END i
+END SUB
+
+'for poll()
+PRAGMA INCLUDE <poll.h>
+
+'struct pollfd, defined in asm-generic/poll.h...
+RECORD pfd
+ LOCAL fd TYPE int
+ LOCAL events TYPE short
+ LOCAL revents TYPE short
+END RECORD
+'CONST POLLIN=1
+pfd.events = POLLIN
+
+SUB waitsub()
+ 'note, there is a very slight possibility of deadlocking, if reply comes in between the lseek and read/poll...
+ offt=lseek(thisdescr,0,SEEK_END)
+ IF offt==0 THEN
+  IF milliseconds==0 THEN
+   'this will block until the file is modified...
+   leni=read(fd1,bufinotify,size_inbuf)
+  ELSE
+   pfd.fd=fd1
+   eventstatus=poll((struct pollfd *)&pfd.fd,1,milliseconds)
+   IF eventstatus==0 THEN exitsub(1)
+   IF eventstatus<0 THEN exitsub(7)
+  ENDIF
+ ENDIF
+ offt=lseek(thisdescr,0,SEEK_SET)
+ numr=read(thisdescr,inbuf,size_inbuf)
+ ft=ftruncate(thisdescr,0)
+ IF numr>1 THEN
+  'get rid of carriage-return char...
+  inbuf[numr-1]=0
+  inbuf$=inbuf
+  PRINT inbuf$
+ ENDIF
+END SUB
+
+'parse the message...
+'SPLIT sendstr$ BY ":" TO fields$ SIZE dims
+'IF dims==0 THEN exitsub(2)
+field1$=""
+field2$=""
+message$=""
+arr1=sendstr$
+off1=INSTR(arr1,":")
+IF off1=0 THEN exitsub(2)
+arr1[off1-1]=0
+field1$=arr1
+off2=INSTR(arr1+off1,":")
+arr1[off1+off2-1]=0
+field2$=arr1+off1
+IF off2>0 THEN
+ 'the message-part can have ":" chars in it...
+ message$=arr1+off1+off2
+ENDIF
+'need to extract names of this-app and other-app...
+otherapp=0
+thisapp=0
+thiscreateflag=1
+SELECT field1$
+CASE "mailbox"
+ IF message$!="" THEN
+  otherapp=field2$
+ ELSE
+  thisapp=field2$
+ ENDIF
+CASE "waitmail"
+ thisapp=field2$
+CASE "block"
+ 'pup_event_frontend_d server posts drive add/remove, ex: "add:sdb"
+ thisapp$=CONCAT$("block_",field2$)
+ thisapp=thisapp$
+CASE "network"
+ 'pup_event_frontend_d server posts network interface, when change, ex: "eth0"
+ thisapp$=CONCAT$("network_",field2$)
+ thisapp=thisapp$
+CASE "x"
+ 'pup_event_frontend_d server posts X up/down, ex: "X0"
+ thisapp$=CONCAT$("x_",field2$)
+ thisapp=thisapp$
+CASE "timeout1"
+ 'pup_event_frontend_d server posts one-second timeout, message "timeout"
+ thisapp$=CONCAT$("timeout1_",field2$)
+ thisapp=thisapp$
+CASE "timeout4"
+ 'pup_event_frontend_d server posts four-second timeout, message "timeout"
+ thisapp$=CONCAT$("timeout4_",field2$)
+ thisapp=thisapp$
+CASE "timeout60"
+ 'pup_event_frontend_d server posts 60-second timeout, message "timeout"
+ thisapp$=CONCAT$("timeout60_",field2$)
+ thisapp=thisapp$
+CASE "bluetoothhw"
+ '/usr/local/pup_event/bluetoothhw writes to /tmp/pup_event_backend/bluetoothhw_, ex: "hci0"
+ 'space-delimited if more, ex: "hci0 hci1"
+ thisapp$=CONCAT$("bluetoothhw_",field2$)
+ thisapp=thisapp$
+CASE "dbus"
+ '/etc/rc.d/rc.sysinit writes to /tmp/pup_event_ipc/dbus-* when /etc/init.d/dbus has run
+ '"pup_event_ipc dbus:<pid>" will create the file and wait until it is written to.
+ thisapp$=CONCAT$("dbus_",field2$)
+ thisapp=thisapp$
+DEFAULT
+ otherapp=field1$
+ thisapp=field2$
+END SELECT
+
+'create the files...
+otherdescr=0
+thisdescr=0
+watchdir=0
+IF FILEEXISTS("/tmp/pup_event_ipc")==0 THEN MAKEDIR "/tmp/pup_event_ipc"
+IF otherapp!=0 THEN
+ otherfile$=CONCAT$("/tmp/pup_event_ipc/",otherapp)
+ /*USEC
+  /*otherdescr=open(otherfile$,O_WRONLY | O_CREAT, O_FSYNC);
+  /*otherdescr=open(otherfile$, O_WRONLY | O_CREAT, O_APPEND);
+  otherdescr=open(otherfile$, O_WRONLY | O_CREAT | O_APPEND);
+ END USEC*/
+
+ OPTION DEVICE O_WRONLY|O_CREAT|O_APPEND
+ OPEN otherfile$ FOR DEVICE AS otherdescr
+
+ IF otherdescr<=0 THEN exitsub(3)
+ENDIF
+IF thisapp!=0 THEN
+ closedflag=0
+ thisfile$=CONCAT$("/tmp/pup_event_ipc/",thisapp)
+ IF thiscreateflag=1 THEN
+/*  USEC
+   thisdescr=open(thisfile$,O_RDWR | O_CREAT);
+  END USEC */
+
+  OPTION DEVICE O_RDWR|O_CREAT
+  OPEN thisfile$ FOR DEVICE AS thisdescr 
+
+ ELSE
+  IF FILEEXISTS(thisfile$)==1 THEN
+   /* USEC
+    thisdescr=open(thisfile$,O_RDWR);
+   END USEC */
+
+   OPTION DEVICE O_RDWR
+   OPEN thisfile$ FOR DEVICE AS thisdescr 
+
+  ELSE
+   closedflag=1
+  ENDIF
+ ENDIF
+ IF closedflag==0 THEN
+  IF thisdescr<=0 THEN exitsub(4)
+  fd1=inotify_init()
+  IF fd1<=0 THEN exitsub(5)
+  'CONST IN_MODIFY=2
+  watchdir=inotify_add_watch(fd1,thisfile$,IN_MODIFY)
+  IF watchdir<=0 THEN exitsub(6)
+ ENDIF
+ENDIF
+
+'now decide what to do...
+SELECT field1$
+CASE "mailbox"
+ IF otherapp!=0 THEN
+  'need to post message to otherapp... format: "mailbox:otherapp:message"
+  outstr$=CONCAT$(message$,"\n")
+  'position to end of file, so msgs can queue...
+  'lseek(otherdescr,0,SEEK_END)
+  wr=write(otherdescr,outstr$,strlen(outstr$))
+  PRINT "Mailbox acknowledge"
+ ELSE
+  'need to check if waiting mail for thisapp...
+  offt=lseek(thisdescr,0,SEEK_END)
+  IF offt==0 THEN
+   PRINT "Mailbox empty"
+  ELSE
+   offt=lseek(thisdescr,0,SEEK_SET)
+   numr=read(thisdescr,inbuf,size_inbuf)
+   ft=ftruncate(thisdescr,0)
+   IF numr>1 THEN
+    'get rid of carriage-return char...
+    inbuf[numr-1]=0
+    inbuf$=inbuf
+    PRINT inbuf$
+   ENDIF
+  ENDIF
+ ENDIF
+CASE "waitmail"
+ 'need to wait for mail for thisapp... format: "waitmail:thisapp"
+ waitsub()
+CASE "network";
+CASE "bluetoothhw";
+CASE "x";
+CASE "timeout1";
+CASE "timeout4";
+CASE "timeout60";
+CASE "block"
+ 'need to wait for block-drive hotplug event, for thisapp... format: "block:thisapp"
+ IF FILEEXISTS(thisfile$)==0 THEN
+  PRINT "Not implemented"
+ ELSE
+  waitsub()
+ ENDIF
+DEFAULT
+ 'post msg to otherapp, wait for reply to thisapp... format: "otherapp:thisapp:message"
+ outstr$=CONCAT$(message$,"\n")
+ wr=write(otherdescr,outstr$,strlen(outstr$))
+ waitsub()
+END SELECT
+
+exitsub(0)

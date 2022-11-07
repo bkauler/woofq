@@ -1,0 +1,23 @@
+
+#20220606 oe dunfell
+
+rm -f usr/share/applications/io.github.Hexchat.desktop
+
+echo '[Desktop Entry]
+Name=HexChat IRC client
+GenericName=HexChat
+Comment=IRC client
+Keywords=IM;Chat;
+Exec=hexchat
+Icon=hexchat.png
+Terminal=false
+Type=Application
+Categories=X-Internet-chat
+StartupNotify=true
+StartupWMClass=Hexchat
+X-GNOME-UsesNotifications=true
+MimeType=x-scheme-handler/irc;x-scheme-handler/ircs;
+' > usr/share/applications/hexchat.desktop
+
+mkdir -p usr/share/pixmaps
+ln -s -r usr/share/icons/hicolor/48x48/apps/io.github.Hexchat.png usr/share/pixmaps/hexchat.png

@@ -1,0 +1,38 @@
+#!/bin/sh
+#called from bluepup
+#passed param: file that has info about icon for device. 
+#20211102 "Icon: audio-headset"
+
+#infoFILE="$1" #ex: /tmp/bluepup/new-info.12:34:56:78:90:12
+#passed param is "new" or "reg"
+if [ "$1" == "reg" ];then
+ ADDR="$(cat /tmp/bluepup/chosen-reg-device)"
+ infoFILE="/tmp/bluepup/reg-info.${ADDR}"
+else
+ ADDR="$(cat /tmp/bluepup/chosen-new-device)"
+ infoFILE="/tmp/bluepup/new-info.${ADDR}"
+fi
+
+infoICON=''
+if [ -e ${infoFILE} ];then
+ infoICON="$(grep -o 'Icon: .*' ${infoFILE} | tr -s ' ' | cut -f 2 -d ' ')"
+fi
+
+case "$infoICON" in #20211102 changes...
+ phone)          cp -a -f /usr/share/pixmaps/puppy/phone_mobile.svg /tmp/bluepup/status.svg ;;
+ audio-card)     cp -a -f /usr/share/pixmaps/puppy/sound.svg /tmp/bluepup/status.svg ;;
+ audio-headset)  cp -a -f /usr/share/pixmaps/puppy/sound.svg /tmp/bluepup/status.svg ;;
+ audio-input*)   cp -a -f /usr/share/pixmaps/puppy/microphone.svg /tmp/bluepup/status.svg ;;
+ audio-*)        cp -a -f /usr/share/pixmaps/puppy/sound.svg /tmp/bluepup/status.svg ;;
+ input-mouse)    cp -a -f /usr/share/pixmaps/puppy/mouse.svg /tmp/bluepup/status.svg ;;
+ input-keyboard) cp -a -f /usr/share/pixmaps/puppy/keyboard.svg /tmp/bluepup/status.svg ;;
+ input-*)        cp -a -f /usr/share/pixmaps/puppy/keyboard.svg /tmp/bluepup/status.svg ;;
+ modem)          cp -a -f /usr/share/pixmaps/puppy/modem.svg /tmp/bluepup/status.svg ;;
+ printer)       cp -a -f /usr/share/pixmaps/puppy/print.svg /tmp/bluepup/status.svg ;;
+ printer*)       cp -a -f /usr/share/pixmaps/puppy/print.svg /tmp/bluepup/status.svg ;;
+ camera-photo)   cp -a -f /usr/share/pixmaps/puppy/photocamera.svg /tmp/bluepup/status.svg ;;
+ camera-*)       cp -a -f /usr/share/pixmaps/puppy/photocamera.svg /tmp/bluepup/status.svg ;;
+ scanner)        cp -a -f /usr/share/pixmaps/puppy/scanner.svg /tmp/bluepup/status.svg ;;
+ network*)       cp -a -f /usr/share/pixmaps/puppy/network2.svg /tmp/bluepup/status.svg ;;
+ *)              cp -a -f /usr/share/pixmaps/puppy/info.svg /tmp/bluepup/status.svg ;;
+esac

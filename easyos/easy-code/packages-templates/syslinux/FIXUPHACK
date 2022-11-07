@@ -1,0 +1,33 @@
+
+#t2
+if [ -f usr/bin/syslinux-nomtools ];then
+ [ -f usr/bin/syslinux ] && rm -f usr/bin/syslinux
+ mv -f usr/bin/syslinux-nomtools usr/bin/syslinux
+fi
+
+SLDIR=''
+[ -f usr/lib/syslinux/mbr.bin ] && SLDIR='usr/lib/syslinux'
+[ -f usr/share/syslinux/mbr.bin ] && SLDIR='usr/share/syslinux'
+
+if [ "$SLDIR" ];then
+ mkdir sltempdir
+ cp -a ./$SLDIR/* sltempdir/
+ rm -rf ./$SLDIR
+ mkdir -p ./$SLDIR
+ cp -a defaults/mbrfat.bin ./$SLDIR/
+ cp -a defaults/sys-nopart.mbr ./$SLDIR/
+ #190123 add kbdmap.c32 ...
+ for AFILE in chain.c32 gptmbr.bin isohdpfx.bin isolinux.bin kbdmap.c32 ldlinux.bss ldlinux.c32 libcom32.c32 libutil.c32 mbr.bin memdisk menu.c32 syslinux64.exe syslinux.com syslinux.exe
+ do
+  [ -f sltempdir/${AFILE} ] && cp -a sltempdir/${AFILE} ./${SLDIR}/
+ done
+ sync
+ rm -rf sltempdir
+ 
+ #150323
+ if [ -d ../syslinux_DEV/${SLDIR}/com32 ];then
+  rm -rf ../syslinux_DEV/${SLDIR}/com32
+ fi
+fi
+
+rm -rf defaults

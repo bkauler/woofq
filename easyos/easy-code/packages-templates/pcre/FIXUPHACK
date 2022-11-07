@@ -1,0 +1,89 @@
+#if the pkg created in packages-woof has something wrong, this file is a last
+#resort to fix it. Current-dir is where this file FIXUPHACK is located.
+#note: DISTRO_BINARY_COMPAT and DISTRO_FILE_PREFIX are visible here, exported in 2createpackages.
+#140117 xARCHDIR, ARCHDIR and DISTRO_ARCHDIR_SYMLINKS exported in 2createpackages. 
+#140117 note, 2createpackages may move /lib, /usr/lib, /usr/bin in template to ARCHDIR subdir.
+#141112 total rewrite.
+
+LIBSPEC="$(find . -type f -name 'libpcre.so.0*' | head -n 1)"
+if [ "$LIBSPEC" ];then
+ LIBPATH="$(dirname $LIBSPEC)"
+ LIBNAME="$(basename $LIBSPEC)"
+ LIBLINK="$(find . -name libpcre.so.0)"
+ [ ! "$LIBLINK" ] && ln -s $LIBNAME ${LIBPATH}/libpcre.so.0
+fi
+LIBSPEC="$(find . -type f -name 'libpcre.so.1*' | head -n 1)"
+if [ "$LIBSPEC" ];then
+ LIBPATH="$(dirname $LIBSPEC)"
+ LIBNAME="$(basename $LIBSPEC)"
+ LIBLINK="$(find . -name libpcre.so.0)"
+ [ ! "$LIBLINK" ] && ln -s $LIBNAME ${LIBPATH}/libpcre.so.0
+ LIBLINK="$(find . -name libpcre.so.1)"
+ [ ! "$LIBLINK" ] && ln -s $LIBNAME ${LIBPATH}/libpcre.so.1
+fi
+LIBSPEC="$(find . -type f -name 'libpcre.so.2*' | head -n 1)"
+if [ "$LIBSPEC" ];then
+ LIBPATH="$(dirname $LIBSPEC)"
+ LIBNAME="$(basename $LIBSPEC)"
+ LIBLINK="$(find . -name libpcre.so.0)"
+ [ ! "$LIBLINK" ] && ln -s $LIBNAME ${LIBPATH}/libpcre.so.0
+ LIBLINK="$(find . -name libpcre.so.1)"
+ [ ! "$LIBLINK" ] && ln -s $LIBNAME ${LIBPATH}/libpcre.so.1
+ LIBLINK="$(find . -name libpcre.so.2)"
+ [ ! "$LIBLINK" ] && ln -s $LIBNAME ${LIBPATH}/libpcre.so.2
+fi
+LIBSPEC="$(find . -type f -name 'libpcre.so.3*' | head -n 1)"
+if [ "$LIBSPEC" ];then
+ LIBPATH="$(dirname $LIBSPEC)"
+ LIBNAME="$(basename $LIBSPEC)"
+ LIBLINK="$(find . -name libpcre.so.0)"
+ [ ! "$LIBLINK" ] && ln -s $LIBNAME ${LIBPATH}/libpcre.so.0
+ LIBLINK="$(find . -name libpcre.so.1)"
+ [ ! "$LIBLINK" ] && ln -s $LIBNAME ${LIBPATH}/libpcre.so.1
+ LIBLINK="$(find . -name libpcre.so.2)"
+ [ ! "$LIBLINK" ] && ln -s $LIBNAME ${LIBPATH}/libpcre.so.2
+ LIBLINK="$(find . -name libpcre.so.3)"
+ [ ! "$LIBLINK" ] && ln -s $LIBNAME ${LIBPATH}/libpcre.so.3
+fi
+
+LIBSPEC="$(find . -type f -name 'libpcreposix.so.0*' | head -n 1)"
+if [ "$LIBSPEC" ];then
+ LIBPATH="$(dirname $LIBSPEC)"
+ LIBNAME="$(basename $LIBSPEC)"
+ LIBLINK="$(find . -name libpcreposix.so.0)"
+ [ ! "$LIBLINK" ] && ln -s $LIBNAME ${LIBPATH}/libpcreposix.so.0
+fi
+LIBSPEC="$(find . -type f -name 'libpcreposix.so.1*' | head -n 1)"
+if [ "$LIBSPEC" ];then
+ LIBPATH="$(dirname $LIBSPEC)"
+ LIBNAME="$(basename $LIBSPEC)"
+ LIBLINK="$(find . -name libpcreposix.so.0)"
+ [ ! "$LIBLINK" ] && ln -s $LIBNAME ${LIBPATH}/libpcreposix.so.0
+ LIBLINK="$(find . -name libpcreposix.so.1)"
+ [ ! "$LIBLINK" ] && ln -s $LIBNAME ${LIBPATH}/libpcreposix.so.1
+fi
+LIBSPEC="$(find . -type f -name 'libpcreposix.so.2*' | head -n 1)"
+if [ "$LIBSPEC" ];then
+ LIBPATH="$(dirname $LIBSPEC)"
+ LIBNAME="$(basename $LIBSPEC)"
+ LIBLINK="$(find . -name libpcreposix.so.0)"
+ [ ! "$LIBLINK" ] && ln -s $LIBNAME ${LIBPATH}/libpcreposix.so.0
+ LIBLINK="$(find . -name libpcreposix.so.1)"
+ [ ! "$LIBLINK" ] && ln -s $LIBNAME ${LIBPATH}/libpcreposix.so.1
+ LIBLINK="$(find . -name libpcreposix.so.2)"
+ [ ! "$LIBLINK" ] && ln -s $LIBNAME ${LIBPATH}/libpcreposix.so.2
+fi
+LIBSPEC="$(find . -type f -name 'libpcreposix.so.3*' | head -n 1)"
+if [ "$LIBSPEC" ];then
+ LIBPATH="$(dirname $LIBSPEC)"
+ LIBNAME="$(basename $LIBSPEC)"
+ LIBLINK="$(find . -name libpcreposix.so.0)"
+ [ ! "$LIBLINK" ] && ln -s $LIBNAME ${LIBPATH}/libpcreposix.so.0
+ LIBLINK="$(find . -name libpcreposix.so.1)"
+ [ ! "$LIBLINK" ] && ln -s $LIBNAME ${LIBPATH}/libpcreposix.so.1
+ LIBLINK="$(find . -name libpcreposix.so.2)"
+ [ ! "$LIBLINK" ] && ln -s $LIBNAME ${LIBPATH}/libpcreposix.so.2
+ LIBLINK="$(find . -name libpcreposix.so.3)"
+ [ ! "$LIBLINK" ] && ln -s $LIBNAME ${LIBPATH}/libpcreposix.so.3
+fi
+

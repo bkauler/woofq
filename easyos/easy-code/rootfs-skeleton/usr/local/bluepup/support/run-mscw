@@ -1,0 +1,22 @@
+#!/bin/sh
+#called from 'connect' script if successful connection.
+#mscw is Multiple Sound Card Wizard.
+#passed param is device address.
+#20211102 my bt speaker now has "Icon: audio-headset"
+
+[ "$1" == "" ] && exit 1
+DEVICEID="$1"
+[ ! -e /var/local/bluepup/reg-info.${DEVICEID} ] && exit 1
+
+#probably good to check that it is connected also...
+#...um, maybe not. 
+
+#20211102...
+#AUDIOflg="$(grep -o -E 'Icon: audio-card|Icon: audio-headset' /var/local/bluepup/reg-info.${DEVICEID})"
+AUDIOflg="$(grep -o -E 'Icon: audio-card|Icon: audio-headset|Icon: audio-speaker' /var/local/bluepup/reg-info.${DEVICEID})"
+[ "$AUDIOflg" == "" ] && exit 0
+
+#this is it...
+mscw
+
+###end###

@@ -1,0 +1,70 @@
+#if the pkg created in packages-woof has something wrong, this file is a last
+#resort to fix it. Current-dir is where this file FIXUPHACK is located.
+#note: DISTRO_BINARY_COMPAT and DISTRO_FILE_PREFIX are visible here, exported in 2createpackages.
+#140117 xARCHDIR, ARCHDIR and DISTRO_ARCHDIR_SYMLINKS exported in 2createpackages. 
+#140117 note, 2createpackages may move /lib, /usr/lib, /usr/bin in template to ARCHDIR subdir.
+#140127 ubuntu trusty tahr: find libGL.so.1
+#150928 161103
+#20210819 fix symlink.
+
+if [ "$xARCHDIR" ];then #140117
+ [ -f usr/bin/${ARCHDIR}/X ] && mv usr/bin/${ARCHDIR}/X usr/bin/${ARCHDIR}/X-ORIG
+ [ -d usr/bin/${ARCHDIR} ] && ln -s Xorg usr/bin/${ARCHDIR}/X
+fi
+[ -f usr/bin/X ] && mv usr/bin/X usr/bin/X-ORIG
+ln -s Xorg usr/bin/X
+
+#######****this code is broken, as libGL not here when FIXUPHACK executes!!!****######
+#100416 ubuntu lucid has moved libGL.so* to /usr/lib/mesa...
+#note, but not libGLU.so*
+if [ "$xARCHDIR" ];then #140127
+ if [ -e usr/lib/${ARCHDIR}/mesa/libGL.so.1 ];then
+  ln -s mesa/libGL.so.1 usr/lib/${ARCHDIR}/libGL.so.1
+  ln -s mesa/libGL.so usr/lib/${ARCHDIR}/libGL.so
+  [ ! -e mesa/libGL.so.1.2 ] && cp -a mesa/libGL.so.1 mesa/libGL.so.1.2 #161103
+  ln -s mesa/libGL.so.1.2 usr/lib/${ARCHDIR}/libGL.so.1.2
+ fi
+fi
+if [ -e usr/lib/mesa/libGL.so.1 ];then
+ ln -s mesa/libGL.so.1 usr/lib/libGL.so.1
+ ln -s mesa/libGL.so usr/lib/libGL.so
+ ln -s mesa/libGL.so.1.2 usr/lib/libGL.so.1.2
+fi
+
+#150928
+##120406 gxmessage pkg creates xmessage symlink to it (in pinstall.sh). get real xmessage out of the way...
+#if [ "$xARCHDIR" ];then #140117
+# if [ -f usr/bin/${ARCHDIR}/xmessage ];then
+#  if [ ! -h usr/bin/${ARCHDIR}/xmessage  ];then
+#   mkdir -p usr/X11R7/bin
+#   mv -f usr/bin/${ARCHDIR}/xmessage usr/X11R7/bin/
+#  fi
+# fi
+#fi
+#if [ -f usr/bin/xmessage ];then
+# if [ ! -h usr/bin/xmessage  ];then
+#  mkdir -p usr/X11R7/bin
+#  mv -f usr/bin/xmessage usr/X11R7/bin/
+# fi
+#fi
+
+#170512. 170527 hide it for now...
+#OE Pyro64 build, got some weirdness in /var/log/Xorg.0.log and /tmp/Xerrors.log
+#this seems to work nice:
+#ref: https://www.freedesktop.org/wiki/Software/Glamor/
+if [ "$DISTRO_BINARY_COMPAT" == "oe" ];then
+ mkdir -p etc/X11/xorg.conf.d
+ echo '# ref: https://www.freedesktop.org/wiki/Software/Glamor/
+
+Section "Module"
+    Load "dri2"
+    Load "glamoregl"
+EndSection
+
+Section "Device"
+    Identifier "intel"
+    Driver "intel"
+    Option "AccelMethod" "glamor"
+EndSection
+' > etc/X11/xorg.conf.d/glamor.confHIDE
+fi

@@ -1,0 +1,275 @@
+#!/bin/ash
+#(c) copyright Barry Kauler 2011, bkhome.org
+#2011 GPL licence v3 (/usr/share/doc/legal/gpl-3.0.htm)
+#called from /usr/bin/xwin.
+#20110404 first version.
+#110627 slight mod. see also /etc/X11/xorg.conf-auto-pc
+#110701 synaptics stuff seems to clash with xorg-server 1.10.1.
+#110727 ddcprobe segfaults on my new laptop.
+#110912 fix syntax error. Message at exit of script.
+#110913 ddcprobe working new laptop latest wary with xorg7.6. fix 1366x768 resolution. fix touchpad.
+#120129 jemimah: add Option "SHMConfig" "on".
+#120329 correctly set keyboard layout, model and variant.
+#120517 arm builds do not work with ddcprobe. for now, just execute some basic code for arm systems.
+#160914 no longer using mouse and keyboard xorg drivers, now evdev, see /etc/X11/xorg.conf.d/10-evdev-puppy.conf
+#200113 add PuppyHardwareProfile for 'xorg.conf.d' folder.
+#200114 improve PuppyHardwareProfile. see also: /usr/bin/xwin /usr/sbin/xorgwizard, xorgwizard-cli
+#200120 replace ddcprobe with /usr/sbin/get-monitor-resolutions. some rewriting.
+#200212 pickup glob literal fallback.
+#20211024 revert 200114, xorgwizard problem when no drm driver.
+
+. /etc/rc.d/MODULESCONFIG
+export LANG=C #200120
+
+#20211024 revert 200114, xorgwizard problem when no drm driver...
+#200114 improve video hardware profile...
+GPU_IDS=''; EDIDsum=''
+if which lspci >/dev/null;then #arm boards usually don't have pci bus.
+ GPU_IDS="$(lspci -d ::0300 -n | cut -f 3 -d ' ' | tr '\n' '_')" #ex: 8086:0102_ note: maybe more than one card.
+fi
+#if [ -d /sys/class/drm ];then
+# for aCARD in /sys/class/drm/card*
+# do
+#  [ "$aCARD" == "" ] && continue #200212 precaution.
+#  [ ! -e ${aCARD} ] && continue #200212 pickup glob literal fallback.
+#  if grep '^connected' ${aCARD}/status >/dev/null 2>&1;then
+#   CARDname="${aCARD##*/}" #ex: card0-HDMI-A-2
+#   if [ -e ${aCARD}/edid ];then
+#    EDIDsum="$(xxd -p -c30 ${aCARD}/edid | cksum - | cut -f 1 -d ' ')"
+#    break
+#   fi
+#  fi
+# done
+#fi
+HARDWAREPROFILE="${GPU_IDS}"  #+${EDIDsum}
+
+#want to know if has pci bus, and kernel module. ex:
+# lspci -nk -d ::0300
+#00:02.0 0300: 8086:0102 (rev 09)
+#	Subsystem: 103c:2ab6
+#	Kernel driver in use: i915
+#	Kernel modules: i915
+LSPCI_VID="$(lspci -nk -d ::0300 2>/dev/null)"
+
+#120517 200113 200114 200120
+if [ "$LSPCI_VID" = "" ];then
+ #running on an arm board...
+ cp -f /etc/X11/xorg.conf-auto-pc /etc/X11/xorg.conf
+ echo "#PuppyHardwareProfile='${HARDWAREPROFILE}'" >> /etc/X11/xorg.conf
+ echo "PuppyHardwareProfile='${HARDWAREPROFILE}'" > /etc/X11/xorg.conf.d/PuppyHardwareProfile
+ #create a copy of xorg.conf with the profile in the filename...
+ cp -af /etc/X11/xorg.conf /etc/X11/xorg.conf.${HARDWAREPROFILE}
+ [ -d /etc/X11/xorg.conf.d.${HARDWAREPROFILE} ] && rm -rf /etc/X11/xorg.conf.d.${HARDWAREPROFILE}
+ cp -a /etc/X11/xorg.conf.d /etc/X11/xorg.conf.d.${HARDWAREPROFILE}
+ echo 
+ echo "Xorg Wizard Automatic has just run."
+ echo "If you are reading this, then you are at the console without X running."
+ echo "The usual thing now is to type 'xwin' to start X..."
+ exit ###EXIT###
+fi
+
+#110701
+XORGVER="`Xorg -version 2>&1 | grep '^X\.Org' | rev | cut -f 1 -d ' ' | rev`"
+[ ! "$XORGVER" ] && XORGVER="1.3" #110913 precaution.
+
+RETVALS="`keymap-set --xopt`"
+eval "$RETVALS" #ex: XKBMODEL="pc102", XKBLAYOUT="us", XKBVARIANT=""
+[ "$XKBLAYOUT" = "" ] && XKBLAYOUT='us'
+[ "$XKBMODEL" = "" ] && XKBMODEL='pc102'
+
+#200120 no longer using ddcprobe to get monitor resolutions...
+/usr/sbin/get-monitor-resolutions
+#...this will have the native resolution of monitor: /tmp/xorgwizard/get-mon-resolution-native
+#...all supported resolutions here: /tmp/xorgwizard/get-mon-resolutions
+#...may have current mode: /tmp/xorgwizard/get-mon-resolution-current
+
+RES_CURRENT=''
+if [ -s /tmp/xorgwizard/get-mon-resolution-current ];then
+ RES_CURRENT="$(cat /tmp/xorgwizard/get-mon-resolution-current)" #ex: 1920 1024 60
+fi
+
+RES_NATIVE=''
+[ -f /etc/resolutionfix ] && rm -f /etc/resolutionfix
+if [ -s /tmp/xorgwizard/get-mon-resolution-native ];then
+ RES_NATIVE="$(cat /tmp/xorgwizard/get-mon-resolution-native)" #ex: 1920 1024 60
+fi
+
+#try and estimate what resolution we want to use...
+CHOSENRES=''
+if [ "$RES_CURRENT" ];then
+ CHOSENRES="$RES_CURRENT"
+else
+ if [ "$RES_NATIVE" ];then
+  CHOSENRES="$RES_NATIVE"
+ else
+  CHOSENRES="$(tail -n 1 /tmp/xorgwizard/get-mon-resolutions)"
+ fi
+fi
+if [ "$CHOSENRES" ];then
+ CHOSENRES="${CHOSENRES/ /x}" #ex: convert 1920 1024 60 to 1920x1024 60
+ CHOSENRES="${CHOSENRES/ */}" #ex: drop the 60
+fi
+
+#add vesa wide-screen support for some (old) intel video chips...
+if which 915resolution >/dev/null;then
+ KERN_DRVR="$(echo "LSPCI_VID" | grep 'Kernel driver in use:' | tr -d ' ' | cut -f 2 -d ':')" #ex: i915
+ if [ "$KERN_DRVR" == "i915" ];then
+  MYXRES="${CHOSENRES/x*/}"
+  MYYRES="${CHOSENRES/*x/}"
+  #this is an app that patches video-bios, but in ram only...
+  915resolution 38 $MYXRES $MYYRES #...replaces mode 38 (1024x768).
+  #create something for xwin to execute... actually, executing this in /etc/profile...
+  echo "915resolution 38 $MYXRES $MYYRES" > /etc/resolutionfix
+ fi
+fi
+
+#cp -f /etc/X11/Xorg.conf-generic-laptop /etc/X11/xorg.conf
+cp -f /etc/X11/xorg.conf-auto-pc /etc/X11/xorg.conf
+
+#120329 160914
+REGEX4="s%.*#xkeymap0%	Option      \"XkbLayout\" \"${XKBLAYOUT}\" #xkeymap0%"
+REGEX5="s%.*#xkbmodel0%	Option      \"XkbModel\" \"${XKBMODEL}\" #xkbmodel0%"
+sed -i -e "$REGEX4" -e "$REGEX5" /etc/X11/xorg.conf.d/10-evdev-puppy.conf
+if [ "$XKBVARIANT" ];then
+ REGEX6="s%.*#xkbvariant0%	Option      \"XkbVariant\" \"${XKBVARIANT}\" #xkbvariant0%"
+ sed -i -e "$REGEX6" /etc/X11/xorg.conf.d/10-evdev-puppy.conf
+fi
+
+if [ "$CHOSENRES" ];then
+ REGEX1="s%.*#screen0modes%		Modes       \"${CHOSENRES}\" #screen0modes%"
+ REGEX2="s%.*#monitor0prefmode%	Option      \"PreferredMode\" \"${CHOSENRES}\" #monitor0prefmode%"
+ sed -i -e "$REGEX1" -e "$REGEX2" /etc/X11/xorg.conf
+fi
+
+TOUCHPAD='';  OLD3='Section "Monitor"'
+[ "`grep 'Elantech' /proc/bus/input/devices`" ] && TOUCHPAD='Elantech'
+[ "`grep 'Alps' /proc/bus/input/devices`" ] && TOUCHPAD='Alps'
+[ "`grep 'Synaptics' /proc/bus/input/devices`" ] && TOUCHPAD='Synaptics'
+if [ "$TOUCHPAD" ];then
+ if modinfo evdev >/dev/null 2>&1;then
+  if [ "`lsmod | grep '^evdev'`" = "" ];then
+   if ! grep -q ' evdev ' /etc/rc.d/MODULESCONFIG;then
+    REGEXt0="s%^ADDLIST=.*%ADDLIST='${ADDLIST} evdev '%"
+    sed -i -e "$REGEXt0" /etc/rc.d/MODULESCONFIG #so evdev module will load next bootup.
+    modprobe evdev
+   fi
+  fi
+ fi
+ 
+ if vercmp $XORGVER lt 1.9.0; then #110701
+  REGEXt1='s%.*#loadsynaptics%	Load "synaptics" #loadsynaptics%'
+  REGEXt2='s%.*#serverlayoutsynaptics%	InputDevice "Synaptics Mouse" "AlwaysCore" #serverlayoutsynaptics%'
+  sed -i -e "$REGEXt1" -e "$REGEXt2" /etc/X11/xorg.conf
+  case $TOUCHPAD in
+   Elantech) #jemimah
+    NEW3='Section "InputDevice"\
+	Identifier "Synaptics Mouse"\
+	Driver "synaptics"\
+	Option "Device" "/dev/psaux"\
+	Option "Protocol" "auto-dev"\
+        Option "LeftEdge" "60"\
+        Option "RightEdge" "1070"\
+        Option "TopEdge" "90"\
+        Option "BottomEdge" "680"\
+        Option "Emulate3Buttons" "on"\
+        Option "MaxTapTime" "180"\
+        Option "MaxTapMove" "59"\
+        Option "VertScrollDelta" "20"\
+        Option "MinSpeed" "0.75"\
+        Option "MaxSpeed" "1.00"\
+        Option "AccelFactor" "0.16"\
+        Option "SHMConfig" "on"\
+        Option "VertEdgeScroll" "on"\
+        Option "TapButton1" "1"\
+EndSection\
+\
+Section "Monitor"'
+   ;;
+   Alps) #kirk
+    NEW3='Section "InputDevice"\
+	Identifier "Synaptics Mouse"\
+	Driver "synaptics"\
+	Option "Device" "/dev/psaux"\
+	Option "Protocol" "auto-dev"\
+	Option "LeftEdge" "120"\
+	Option "RightEdge" "930"\
+	Option "TopEdge" "120"\
+	Option "BottomEdge" "650"\
+	Option "FingerLow" "14"\
+	Option "FingerHigh" "15"\
+	Option "MaxTapTime" "0"\
+	Option "MaxTapMove" "110"\
+	Option "VertScrollDelta" "20"\
+	Option "MinSpeed" "0.3"\
+	Option "MaxSpeed" "0.75"\
+	Option "AccelFactor" "0.030"\
+	Option "EdgeMotionMinSpeed" "200"\
+	Option "EdgeMotionMaxSpeed" "200"\
+	Option "UpDownScrolling" "1"\
+	Option "CircularScrolling" "1"\
+	Option "CircScrollDelta" "0.1"\
+	Option "CircScrollTrigger" "2"\
+	Option "SHMConfig" "on"\
+EndSection\
+\
+Section "Monitor"'
+   ;;
+   Synaptics)
+    NEW3='Section "InputDevice"\
+	Identifier "Synaptics Mouse"\
+	Driver "synaptics"\
+	Option "Device" "/dev/psaux"\
+	Option "Protocol" "auto-dev"\
+	Option "LeftEdge" "1700"\
+	Option "RightEdge" "5300"\
+	Option "TopEdge" "1700"\
+	Option "BottomEdge" "4200"\
+	Option "FingerLow" "25"\
+	Option "FingerHigh" "30"\
+	Option "MaxTapTime" "0"\
+	Option "MaxTapMove" "220"\
+	Option "VertScrollDelta" "100"\
+	Option "MinSpeed" "0.10"\
+	Option "MaxSpeed" "0.30"\
+	Option "AccelFactor" "0.0030"\
+	Option "SHMConfig" "on"\
+	#Option "Repeater" "/dev/ps2mouse"\
+EndSection\
+\
+Section "Monitor"'
+   ;; 
+  esac
+  sed -i -e "s%${OLD3}%${NEW3}%" /etc/X11/xorg.conf
+ else
+  #160914 remove most of this, now done in /etc/X11/xorg.conf.d/10-evdev-puppy.conf and udev rules...
+#  #110913 create basic section...
+#  #120129 jemimah: add Option "SHMConfig" "on"...
+  REGEXt1='s%.*#loadsynaptics%	Load "synaptics" #loadsynaptics%'
+#  REGEXt2='s%.*#serverlayoutsynaptics%	InputDevice "Synaptics Mouse" "AlwaysCore" #serverlayoutsynaptics%'
+#  NEW3='Section "InputDevice"\
+#	Identifier "Synaptics Mouse"\
+#	Driver "synaptics"\
+#	Option "SHMConfig" "on"\
+#EndSection\
+#\
+#Section "Monitor"'
+#  REGEXt3="s%${OLD3}%${NEW3}%"
+#  sed -i -e "$REGEXt1" -e "$REGEXt2" -e "$REGEXt3" /etc/X11/xorg.conf
+  sed -i -e "$REGEXt1" /etc/X11/xorg.conf #160914
+ fi #110701 endif
+fi
+
+#want a hardware profile so can bootup on different PCs...
+echo "#PuppyHardwareProfile='${HARDWAREPROFILE}'" >> /etc/X11/xorg.conf
+echo "PuppyHardwareProfile='${HARDWAREPROFILE}'" > /etc/X11/xorg.conf.d/PuppyHardwareProfile #200113
+#create a copy of xorg.conf with the profile in the filename...
+cp -af /etc/X11/xorg.conf /etc/X11/xorg.conf.${HARDWAREPROFILE}
+[ -d /etc/X11/xorg.conf.d.${HARDWAREPROFILE} ] && rm -rf /etc/X11/xorg.conf.d.${HARDWAREPROFILE} #200113
+cp -a /etc/X11/xorg.conf.d /etc/X11/xorg.conf.d.${HARDWAREPROFILE} #200113
+
+echo 
+echo "Xorg Wizard Automatic has just run."
+echo "If you are reading this, then you are at the console without X running."
+echo "The usual thing now is to type 'xwin' to start X..."
+
+###end###

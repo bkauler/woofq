@@ -1,0 +1,45 @@
+#!/bin/sh
+#call from apt-setup
+#we have debian pkg db files in /var/lib/apt/lists
+#convert to puppy-db-format in /root/.packages/
+#target pkg file will be named ex: Packages-${DEBDISTRO}-${DEBVERSION}-main
+
+export LANG=C
+
+#this file created by apt-setup
+. /var/local/pkgget/deb_compat_specs #DEBDISTRO, DEBVERSION
+
+rm -rf /tmp/debget/working2 2>/dev/null
+mkdir -p /tmp/debget/working2
+
+#apt-setup has also downloaded the debian pkg db files, to /var/lib/apt/lists
+
+for aF in $(ls -1 /var/lib/apt/lists/*_Packages | tr '\n' ' ')
+do
+ REPOsub="$(echo "$aF" | cut -f 5 -d '_' | tr -d '-')" #exs: main, nonfree, contrib
+ UPDATESflg="$(echo "$aF" | grep -o 'updates_')"
+ ln -snf ${aF} /tmp/debget/debian-pkgs-db #read by debdb2pupdb
+ /usr/local/debget/debdb2pupdb ${DEBDISTRO} ${DEBVERSION}
+ # ...creates /tmp/debget/puppy-pkgs-db, debian-pks-homepage (latter only if running in woof)
+ if [ "$UPDATESflg" ];then
+  mv -f /tmp/debget/puppy-pkgs-db /tmp/debget/working2/Packages-${DEBDISTRO}-${DEBVERSION}-${REPOsub}-updates
+ else
+  mv -f /tmp/debget/puppy-pkgs-db /tmp/debget/working2/Packages-${DEBDISTRO}-${DEBVERSION}-${REPOsub}
+ fi
+done
+
+#merge updates, into final files in /root/.packages ...
+for aF in $(ls -1 /tmp/debget/working2/Packages-* | tr '\n' ' ')
+do
+ aN="${aF##*/}" #ex: Packages-debian-bullseye-main
+ case "${aN}" in
+  *updates) continue ;;
+ esac
+ if [ -f ${aF}-updates ];then
+  sort --unique --field-separator='|' --key=2,2 ${aF}-updates ${aF} > /root/.packages/${aN}
+ else
+  cp -a -f ${aF} /root/.packages/${aN}
+ fi
+done
+
+###end###

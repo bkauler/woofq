@@ -1,0 +1,35 @@
+#Barry Kauler, Oct 2011
+#The idea here is to detect insertion of some devices.
+#ref: https://libusb.sourceforge.io/api-1.0/structlibusb__interface__descriptor.html
+#     https://www.usb.org/documents?search=&type[0]=55&items_per_page=50
+
+###CAMERA###
+#ref: https://www.usb.org/sites/default/files/usb_still_img10.zip
+#digital camera plugged in via usb...
+#bInterfaceClass=6, "Imaging", /sys/class/usb_device/*/device/*/bInterfaceClass
+#bInterfaceSubClass=1, "Still Image capture"
+#bInterfaceProtocol=1, "Picture Transfer Protocol" 
+#these can be specified individually like this:
+#ACTION=="add", SUBSYSTEM=="usb", ATTR{bInterfaceClass}=="06", RUN+="/usr/sbin/pupautodetect camera"
+#or together like this:
+ACTION=="add", SUBSYSTEM=="usb", ENV{INTERFACE}=="6/1/*", RUN+="/usr/sbin/pupautodetect camera"
+
+#20201205 Notice: mistfire, pupmtp, has this rule to detect camera. ID_GPHOTO2 is set in /lib/udev/rules.d/60-libgphoto2-6.rules
+#ACTION=="add", SUBSYSTEM=="usb", ENV{ID_GPHOTO2}=="1", RUN+="/usr/sbin/pupautodetect camera"
+
+###MTP Device (20201205: forum member mistfire, for pupmtp)###
+#mtp device plugged in via usb. ID_MTP_DEVICE is set in /lib/udev/rules.d/69-libmtp.rules
+ACTION=="add", SUBSYSTEM=="usb", ENV{ID_MTP_DEVICE}=="1", RUN+="/usr/sbin/pupautodetect android-device"
+
+###AUDIO###
+#20211229 added this, will run mscw...
+#bluetooth audio, see /etc/udev/rules.d/91-pup_event.rules
+#ref: https://www.usb.org/sites/default/files/USB%20Audio%20v3.0_0.zip
+#analog audio interface plugged in via usb...
+#bInterfaceClass=1 "audio" 
+#bInterfaceSubClass=1 "audio control", bInterfaceSubClass=2 "audio streaming"
+#used hotplug2stdout, using this, get 2 hits when plugin:
+# instead of DEVTYPE test, could use DEVPATH="/devices/*/sound/card/[0-9]/pcm*"
+ACTION=="add", SUBSYSTEM=="sound", ENV{DEVTYPE}=="pcm", RUN+="/usr/sbin/pupautodetect pcm"
+#also run mscw when remove device...
+ACTION=="remove", SUBSYSTEM=="sound", ENV{DEVTYPE}=="pcm", RUN+="/usr/sbin/pupautodetect pcm"

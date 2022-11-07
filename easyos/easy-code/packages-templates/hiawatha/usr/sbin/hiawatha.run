@@ -1,0 +1,81 @@
+#!/bin/bash
+#
+# Hiawatha start/stop script for Linux
+
+PATH="/bin:/usr/bin:/sbin:/usr/sbin"
+HIAWATHA="/usr/sbin/hiawatha"
+WIGWAM="/usr/sbin/wigwam"
+PIDFILE="/var/run/hiawatha.pid"
+
+NORMAL="\033[0m"
+RED="\033[00;31m"
+YELLOW="\033[00;33m"
+GREEN="\033[00;32m"
+
+test -f ${HIAWATHA} || exit 0
+
+function start_hiawatha {
+	if [ -f ${PIDFILE} ]; then
+		echo -e ${YELLOW}"Hiawatha is already running"${NORMAL}
+	else
+		${WIGWAM} -q
+		result=$?
+
+		if [ "${result}" = "0" ]; then
+			echo -n "Starting webserver: "
+			${HIAWATHA}
+			result=$?
+			if [ "${result}" = "0" ]; then
+				echo -e ${GREEN}"Hiawatha"${NORMAL}
+			else
+				echo -e ${RED}"error!"${NORMAL}
+			fi
+		else
+			echo -e ${RED}"Hiawatha has NOT been started!"${NORMAL};
+		fi
+	fi
+}
+
+function stop_hiawatha {
+	if [ -f ${PIDFILE} ]; then
+		echo -en "Stopping webserver: "${GREEN}
+		PID=`cat ${PIDFILE}`
+		kill -15 ${PID}
+
+		WAIT="5"
+		while [ -d /proc/${PID} ]; do
+			if [ "${WAIT}" != "0" ]; then
+				sleep 1
+				let WAIT=${WAIT}-1
+			else
+				kill -9 ${PID}
+				echo -en ${RED}"warning, possible incorrect shutdown of "
+				break
+			fi
+		done
+
+		rm -f ${PIDFILE}
+		echo -e "Hiawatha"${NORMAL}
+	else 
+		echo -e ${YELLOW}"Hiawatha is not running"${NORMAL}
+	fi
+}
+
+case "$1" in
+	start)
+		start_hiawatha
+		;;
+	stop)
+		stop_hiawatha
+		;;
+	restart)
+		stop_hiawatha
+		start_hiawatha
+		;;
+	*)
+		echo "Usage: $0 {start|stop|restart}"
+		exit 1
+		;;
+esac
+
+exit 0

@@ -1,0 +1,12 @@
+#note: DISTRO_BINARY_COMPAT and DISTRO_FILE_PREFIX are visible here, exported in 2createpackages.
+#140117 xARCHDIR, ARCHDIR and DISTRO_ARCHDIR_SYMLINKS exported in 2createpackages. 
+#140117 note, 2createpackages may move /lib, /usr/lib, /usr/bin in template to ARCHDIR subdir.
+
+if [ "$xARCHDIR" ];then #140117
+ if [ ! -e ./usr/lib/${ARCHDIR}/libfaad.so.0 ];then
+  [ -e ./usr/lib/${ARCHDIR}/libfaad.so.2 ] && ln -s libfaad.so.2 ./usr/lib/${ARCHDIR}/libfaad.so.0
+ fi
+fi
+if [ ! -e ./usr/lib/libfaad.so.0 ];then
+ [ -e ./usr/lib/libfaad.so.2 ] && ln -s libfaad.so.2 ./usr/lib/libfaad.so.0
+fi

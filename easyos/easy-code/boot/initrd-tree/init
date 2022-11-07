@@ -1,0 +1,1982 @@
+#!/bin/sh
+#(c) Copyright Barry Kauler, 30 January 2017. Licence: GPL v3 (/usr/share/doc/legal).
+#simple script in initramfs to boot Easy Linux.
+#text colors: 34=blue, 33=yellow, 32=green, 31=red, 35=purple, 36=aquablue, 38=black
+#background colors: 40=black 41=red 42=green 43=yellow 44=blue 45=magenta 46=cyan 47=white
+#ansi escape codes ref: https://misc.flogisoft.com/bash/tip_colors_and_formatting
+#190304 complete rewrite.
+#190706 reintroduce support live-cd, and run in zram.
+#190713 first bootup, password gui has a back-button to lang/kbd gui.
+#190714 run in zram if working-partition not found.
+#190716 search for persistent storage.
+#190811 redesign to be able to drop capabilities when switch_root. 190812
+#190817 copy session to ram, and disable partition mounting. 190818
+#190820 fix determine BASELANG for non-english.
+#190821 debian xorg fbdev does not work, have alternative from pyro.
+#190828 verify cp of vmlinuz, initrd, easy.sfs to wkg partition.
+#190901 cannot choose "Copy session to RAM & disable drives" at first bootup.
+#190913 the inbuilt easy container has label pyro or buster, fix upgrading older versions easyos.
+#190914 remove more desktop icons and menu entries. copying session to ram, also load extra sfs files.
+#190915 fix 190913
+#190923 rc.sysinit needs login pw to run and unlock gnome-keyring. 191005 removed (archived input536).
+#191101 modify error msg if BOOT_DEV not found.
+#191219 add  "lockdown=confidentiality" to boot menu.
+#191224 if easy.sfs mounted on /tro (via loop0), rollback fails (easy.sfs seems to delete, but isn't), hence moved rollback below unmount /tnew
+#200218 use hwclock to set system time.
+#200301 optional chroot instead of switch_root ***NOT USING***
+#200302 run fstrim on ssd that supports TRIM.
+#200303 $DATE variable, read in fscheck.
+#200319 busybox fdisk faulty with my 8TB hdd, using full fdisk.
+#200621 ref 200302, now have full 'hdparm' utility, can check usb drives.
+#200621 ext4 journal default commit interval is 5 seconds, change to 30.
+#200623 change from static /dev to devtmpfs, due to awful nvme node assignments when 2+ drives.
+#200623 log stuff to /root/.initrd-debug in main f.s.
+#200624 fix 200621 if ext4 does not have a journal. 200715 fix again.
+#200719 xWKG_DEV override for "Copy session to RAM & unmount working-partition".
+#200720 pickup "qfix=NEW"
+#200726 boot- and wkg-partition the same, fsck does not work, as fscheck script cannot unmount.
+#200727 revert 200719. new "qfix=lock1" for "Copy session to RAM & unmount working-partition"
+#200801 new exit_to_initrd(), qfix=dropout<n> to drop out to console.
+#200802 new 'nnn' file manager. /.debug.flg written by /usr/sbin/debug-initrd
+#200803 user-requested lockdown, file /.lockdown.flg
+#200804 revert 191219.  200805 fixes for running in ram.
+#200806 .lockdown.flg cannot be in .session folder, requires pw to unencrypt.
+# nor can it be in wkg-partition as it is zram0 after bootup. put it in boot-part. ref: /usr/sbin/lockdown-ram
+#200807 improve exit funcs, add shfm.
+#200809 fix for "job control turned off". qfix=normal to remove permanent lockdown.
+#200809 lockdown: new "save" icon on desktop, replace "update" icon.
+#200820 mount securityfs. enable lockdown, no longer done as kernel boot param.
+#200820 also want BOOT_UUID in /etc/rc.d/PUPSTATE. do not hard-code "save" coords.
+#200822 save origWKG_DIR in PUPSTATE. 200823 save BOOT_LOCK in PUPSTATE. 200824 fixes.
+#200826 running in ram, mimic sfs files to same path in zram. copy all sfs's. 200827 copy more.
+#200828 nearly all cp need -a param.
+#200830 remove globicons file when version update. xdg fix. cp fix.
+#200830 run mknod here, in case lock#2.
+#20201109 "uk" keyboard layout renamed to "gb".
+#20201130 make sure ext2 f.s. in zram0 block size is 4096!
+#20201201 set TZ timezone variable. note, it will be corrected later after .session mounted.
+#20201204 do not delete globicons file when version update (revert 200830).
+#20201206 test /sys/kernel/security exists.
+#20201211 copy session to ram & disable drives: power-down disabled drives using hdparm.
+#20201211 /usr/share/sss/initrd_strings/initd_strings* has translation for "save", but don't assume anything for "update"...
+#20201213 lockdown: if kernel patched cap_sys_mount separated from cap_sys_admin, drop latter.
+#20201223 do not do 20201223 if kernel less than 5.10 (Xorg does not work).
+#20210113 rpi does not have a hardware clock, set it to something sane at 1st bootup.
+#20210407 hidepid=1 when mount /proc. maybe only useful in a multiuser situation. ref: kernel docs filesystems/proc.txt. see also: start-container
+#20210423 modified cp for xorg alternative that runs in initrd.
+#20210423 dunfell oe, xorg not working in initrd, don't use.
+#20210424 display word-wrapped text blocks, in coloured rectangle. fix.
+#20210524 change from "save-folder" to "save-file". 20210525 fix. 20210526 modify. revert.
+#20210530 sparse-file save-file has performance penalty, restrict to WKG_FS=ntfs only.
+#20210608 do not like gtk gui for ask pw.
+#20210611 paragon ntfs driver needs "-t ntfs3" mount option.
+#20210912 group id 118 is "fscryptgrp", using this for enabling fscrypt when login to clients (such as spot).
+#20210919 /clients is now /home, home is now files. 20211006 fix.
+#20211014 qfix=vid to fix broken video, need to run xorgwizard.
+#20211015 hardware-profiling for /etc/modprobe.d
+#20211023 cat /proc/fb to /root/.initrd-debug/proc-fb
+#20211111 delete container if no longer valid. 20211122 fix.
+#20211111 check that symlink to extra sfs still valid (loading on main desktop). 20211122 fix.
+#20211205 /files is now in easy.sfs (rootfs-skeleton), as well as boot/initrd-tree/skeleton
+#20211206 group id 122 is "filesgrp", set all in /files
+#20211207 relocate 20211205 and 20211206 to version-upgrade code section.
+#20211208 /mnt/zram0/containers does not exist, append 2>/dev/null
+#20211210 /mnt/wkg/files must be 770 permissions.
+#20211212 new /mnt/${WKG_DEV}/${WKG_DIR}data
+#20220123 2nd partition may be 640 or 768MB. 20220125 resize2fs fix?
+#20220206 if no /dev/fb0 then clear screen.
+#20220211 if icon-free desktop, icons are in jwm tray. 20220212 fix.
+#20220304 increase ext4 commit=30 to 1800 (30min). ref: https://bkhome.org/news/202203/ext4-with-or-without-journal-on-flash-stick.html
+#20220511 1st partition may be 767MB, 2nd 4MB
+#20220511 ext4 4M too small for a journal. instead of doing it in 3buildeasydistro, do here after resize.
+#20220515 recompress easy.sfs from xz to lz4 (LZ4_HC). in fact, do it for all mksquashfs operations.
+#20220517 reduce usage of easy.sfs mounted on tnew. warning easy.sfs copy time.
+#20220521 tnew, BASELANG, removed completely.
+#20220521 aufs top-level now zram. 20220522 no internal journal.
+#20220522 the kernel gets rotational right for internal nvme ssd, wrong for usb flash.
+#20220522 revert 20220304
+#20220523 if EOS_TOP_LEVEL_ZRAM==1 do not mount tmpfs on /tmp
+#20220524 rename mnt/easy_ro to mnt/.easy_ro, ditto easy_rw ref: easy-remaster, easy-containers, rc.shutdown
+#20220525 EOS_SUPPORT_CONTAINERS==0 do not support containers.
+#20220526 hdparm only works on sata drives.
+#20220526 lockdown bootup, do not use top-level zram1.
+#20220527 when top-level zram, mount wkg-part with noatime
+#20220527 /mnt/${WKG_DEV}/${WKG_DIR}.session-transit exists, then merge to .session  see: ask-save-zram1  20220530
+#20220528 message recommend password.
+#20220529 top-level-zram1 mount a subfolder in aufs, so will be able to share zram with containers.
+#20220601 lockdown, remove zram1 "save" icon.
+#20220601 desktop icons have changed layout, so erase previous PuppyPin
+#20220603 override EOS_TOP_LEVEL_ZRAM, kernel param zramtl=1|0 or a file .zramtl.flg
+#20220603 replace DB_* with SFS_DB_* in sfs .specs files.
+#20220609 tweak whether copy easy.sfs to ram.
+#20220611 pass working-drive speed test to PUPSTATE, as variable WKGDRV_SPEED
+#20220613 easy.sfs now in ${WKG_DEV}/${WKG_DIR}, not in boot-partition.
+#         initrd now has /etc/DISTRO_SPECS
+#20220614 >=4.0 force always easy.sfs in working-partition. 20220615 fixes. 20220618 fix.
+#20220621 .lockdown.flg, .debug.flg, .zramtl.flg, .BOOT_SPECS, .easyos-bootcnt move from boot- to wkg-partition.
+#20220622 totally remove BOOT_DEV and BOOT_DIR. remove BOOT_SPECS file.
+#20220622 ask enable ext4 encrypt. boot menu.
+#20220623 some choices in menu_func cannot be implemented until after pw entered.
+#20220624 /easy_rw only mounted if EOS_TOP_LEVEL_ZRAM==1
+#20220624 more entries in boot menu.
+#20220626 offer boot menu when no pw. 20220627 fix. 20220629
+#20220730 EOS_* fallback fix.
+#20220801 fix wait for resize2fs to finish. support dd in coreutils.
+#20220801 move /.fsckme.flg to /mnt/${WKG_DEV}/${WKG_DIR}
+#20220802 top-level-zram doesn't work properly if not enough ram
+#20220907 do not have /var symlink. do not have /root/.var or /root/.var0 see also: rc.sysinit, erase-exceptions, fixlayers
+#20220911 skeleton img may now have 832MiB wkg-partition.
+#20220922 fix set pw for zeus.
+#20220928 move /.brokenvideo to /mnt/${WKG_DEV}/${WKG_DIR}
+#20220929 remove meaningless widescreen detect.
+#20221015 version update, exclude some files&folders from rw-*sfs
+#20221016 check valid library path.
+#20221030 support EOS_LOGIN_ZEUS, /mnt/wkg/.loginzeus.flg can override.
+#20221102 remove support EOS_LOGIN_ZEUS
+
+#20220525 3buildeasydistro will substitute values here...
+EOS_TOP_LEVEL_ZRAM=EOSTOPLEVELZRAM #20220521 1=yes, anything else no.
+EOS_SUPPORT_CONTAINERS=EOSSUPPORTCONTAINERS #20220525 0=no, anything else yes.
+EOS_LOGIN_ZEUS=EOSLOGINZEUS #20221030 1=yes, 0 or anything else =no
+#20220623 precaution, in case put this original init script into initrd... 20220730 fix...
+[ "$EOS_TOP_LEVEL_ZRAM" != "1" -a "$EOS_TOP_LEVEL_ZRAM" != "0" ] && EOS_TOP_LEVEL_ZRAM=1
+[ "$EOS_SUPPORT_CONTAINERS" != "1" -a "$EOS_SUPPORT_CONTAINERS" != "0" ] && EOS_SUPPORT_CONTAINERS=1
+[ "$EOS_LOGIN_ZEUS" != "1" -a "$EOS_LOGIN_ZEUS" != "0" ] && EOS_LOGIN_ZEUS=0 #20221030
+export EOS_SUPPORT_CONTAINERS #20220529 read in /sbin/rw-merge
+
+mount -o hidepid=1,gid=118 -t proc none /proc #20210407 20210912
+mount -t sysfs none /sys
+mount -t rootfs -o remount,rw rootfs /
+ln -s /proc/mounts /etc/mtab 2> /dev/null
+export PATH="/bin:/sbin"
+mount -t devtmpfs devtmpfs /dev #200623
+
+export TZ='XXX-23' #20201201 imaginary place right around the world east of Greenwich.
+#...i think that this will give the most delayed time, so any file operations
+#will not result in a future date after the correct time is set in the main f.s.
+#ref: http://www.gnu.org/s/libc/manual/html_node/TZ-Variable.html
+
+KERNVER="$(uname -r)" #20210524
+
+cat /sys/class/zram-control/hot_add >/dev/null #20220517 creates /dev/zram1
+cat /sys/class/zram-control/hot_add >/dev/null #20220517 creates /dev/zram2
+
+create_top_level_zram1() { #20220521
+ FREEK=`grep '^MemFree:' /proc/meminfo | tr -s ' ' | cut -f 2 -d ' '`
+ #allocate 3/4 of free ram times 2 (as compression is approx 2:1)...
+ HALFK=$(($FREEK/2))
+ QTRK=$(($HALFK/2))
+ USEK=$(($HALFK+$QTRK)) #3/4
+ ALLOCK=$(($USEK*2))
+ echo "${ALLOCK}K" > /sys/block/zram1/disksize
+ #echo "${USEK}K" > /sys/block/zram1/mem_limit
+ busybox mke2fs -L "TOPLEVELZRAM" -m 0 -b 4096 /dev/zram1 > /dev/null
+}
+
+create_savefile_func() { #20210524
+ #ref: https://bkhome.org/news/202105/automatic-resizing-of-save-file-for-puppy.html
+ echo -e "\\033[1;35mCreating save-file easysave.ext4...\\033[0;39m" #purple
+ #create a sparse file, size of free space in WKG_DEV...
+ #20210526 no, make it real big. this will reduce fragmentation. mem tray applet can warn running out
+ # of space on WKG_DEV. cut 2 (size of partition) instead of 4...
+ #W0=$(df -k /dev/${WKG_DEV} | grep "^/dev/" | tr -s ' ' | cut -f 2 -d ' ')
+ #SPARSEK=$(($W0 * 2)) #allow 2MB slack. 20210526 no, double it!
+ #...not sure about this, reverting...
+ W0=$(df -k /dev/${WKG_DEV} | grep "^/dev/" | tr -s ' ' | cut -f 2 -d ' ')
+ SPARSEK=$(($W0 - 2048)) #allow 2MB slack.
+ dd if=/dev/null bs=1 seek=${SPARSEK}K of=/mnt/${WKG_DEV}/${WKG_DIR}easysave.ext4 > /dev/null 2>&1
+ #create a ext4 f.s....
+ LOOPavail="$(losetup -f)"
+ losetup ${LOOPavail} /mnt/${WKG_DEV}/${WKG_DIR}easysave.ext4
+ echo -n ' '
+ echo "#!/bin/ash
+ mke2fs -q -t ext4 -L \"EASYSAVE\" -m 0 -b 4096 -O encrypt,^64bit ${LOOPavail} > /dev/null 2>&1 #have the full mke2fs.
+ echo -n \"\$?\" > /tmp/retvalflg
+ sync" > /mke2fs.sh
+ chmod 755 /mke2fs.sh
+ /mke2fs.sh &
+ while pidof mke2fs.sh >/dev/null;do
+  sleep 1
+  echo -n '.'
+ done
+ RETVAL="$(cat /tmp/retvalflg)"
+ echo ''
+ losetup -d ${LOOPavail}
+ return $RETVAL
+}
+
+exit_to_initrd() {
+ [ ! "${1}" ] && set -- " Have exited from init script at this line number"
+ echo -e '\033[1;31m' #bright red
+ echo -n 'Line '
+ grep -n -o "${1}" ${0}
+ #echo -en '\033[0;39m' #reset foreground color to default.
+ echo -en '\033[1;35m' #1;35 foreground bright magenta
+ echo 'Note 1: Type "exit", the init script will attempt to continue.'
+ echo 'Note 2: On some PCs the keyboard does not work at this stage of bootup.'
+ echo 'Note 3: if "ctrl-alt-del" not work, hold down power button to poweroff.'
+ echo 'Note 4: Console text editor "mp" is available.'
+ echo 'Note 5: Console file manager "shfm": Navigate with arrow keys, "!" to spawn'
+ echo '        a shell, "?" popup help, "q" to quit. Help file is "/shfm.txt"'
+ if [ -f /bin/nnn ];then
+  echo 'Note 6: Console file manager "nnn": Same keys. Help file "/nnn.txt"'
+  if [ ! -f /bin/nnn.bin ];then
+   mv -f /bin/nnn /bin/nnn.bin
+   echo -e '#!/bin/sh\nexec nnn.bin -c -d' > /bin/nnn
+   chmod 755 /bin/nnn
+  fi
+  export XDG_CONFIG_HOME=/etc/nnn
+  #note, i think if append /etc/nnn/plugins to $PATH, then can just have "simple" here...
+  export NNN_OPEN=/etc/nnn/plugins/simple
+ fi
+ echo -en '\033[0;39m' #reset foreground color to default.
+ export EDITOR=mp
+ export SHFM_OPENER=/sbin/xdg-open #200807 for shfm file manager.
+ #/bin/sh
+ setsid cttyhack sh #200809 fixes "job control turned off"
+}
+
+err_exit() { #200807 call exit_to_initrd()
+ echo -en '\033[1;31m' #bright red
+ echo -e "ERROR: ${1}" #red
+ echo "Have now dropped into a shell in the initramfs."
+ echo "Please hit key combination CTRL-ALT-DEL to reboot,"
+ echo "or HOLD DOWN THE POWER BUTTON TO SHUTDOWN"
+ echo
+ echo -en '\033[1;35m' #1;35 foreground bright magenta
+ echo "The following instructions are for developers only:"
+ echo -en '\033[0;39m' #reset foreground color to default.
+ exit_to_initrd "$1"
+}
+
+
+ask_kb() { #181010
+ KEYMAP=us
+ #now ask for KEYMAP...
+ echo -e '\e[1;;45m 1 azerty 2 be-latin1  3 br-abnt2  4 br-abnt   5 br-latin1-abnt2 6 br-latin1-us
+ 7 by     8 cf         9 croat      10 cz        11 de            12 de-latin1 
+ 13 dk    14 dvorak    15 dvorak-l  16 dvorak-r  17 es            18 et        
+ 19 fi    20 fr        21 gb        22 gr        23 hu101         24 hu        
+ 25 il    26 it        27 jp106     28 la-latin1 29 lt            30 mk        
+ 31 nl    32 no        33 pl        34 pt-latin1 35 ro            36 ru        
+ 37 se    38 sg        39 sk-qwerty 40 sk-qwertz 41 slovene       42 srp       
+ 43 sv-latin1  44 us   45 wangbe                                               \e[0;;m'
+ 
+ #20210424 want word-wrapped text block in background colour rectangle...
+ echo -n -e '\033[1;;44m'
+ while read aLINE
+ do
+  echo -n '                                                                       '
+  echo -n -e '\033[1G' #move cursor back to col 1.
+  echo " ${aLINE}"
+ done << EOT
+$(echo " Please enter the number corresponding to your keyboard layout.")
+$(echo "Choose the closest match, there will be an opportunity to fine-tune the layout after the desktop has loaded. Press ENTER only for US." | fold -s -w 70)
+EOT
+ echo -n -e '\033[0;;m'
+ echo -n -e '\033[1;30;43m'
+ while read aLINE
+ do
+  echo -n '                                                                       '
+  echo -n -e '\033[1G' #move cursor back to col 1.
+  echo " ${aLINE}"
+ done << EOT
+$(echo "Note: on some PCs the keyboard does not work at this stage of bootup. In that case, wait 5 minutes for bootup." | fold -s -w 70)
+EOT
+ echo -n -e '\033[0;;m'
+ 
+ echo -n " Keyboard layout: "
+ read -r -t 300 KBnum
+ [ $? -ne 0 ] && return 1 #timed out
+ KBnum=$(echo -n "$KBnum" | sed -e 's%[^0-9]%%g')
+ [ ! $KBnum ] && KBnum=44
+ [ $KBnum -gt 45 ] && KBnum=44
+ [ $KBnum -eq 0 ] && KBnum=44
+ KEYMAP="$(ls -1 /lib/keymaps | head -n ${KBnum} | tail -n 1 | sed -e 's%\.gz%%')"
+ echo " ...ok, ${KEYMAP} chosen"
+ return 0
+}
+
+#20220622 no longer offering boot options in boot-manager, offer here... 20220624 more entries
+menu_func() {
+ CNTm=1
+ if [ "$1" != "nopw" ];then #20220626
+  echo "QUIT ${CNTm} Do nothing, go back to enter password" > /menulist
+  CNTm=$(($CNTm+1))
+ fi
+ if [ "$LOCKkeep" == "1" ];then
+  echo "LOCKREM ${CNTm} Remove lockdown, restore normal bootup" >> /menulist
+  CNTm=$(($CNTm+1))
+ fi
+ echo "NOX ${CNTm} Bootup to commandline only, no X" >> /menulist
+ CNTm=$(($CNTm+1))
+ echo "RBSAVED ${CNTm} Rollback to last saved session" >> /menulist
+ CNTm=$(($CNTm+1))
+ echo "RBPRISTINE ${CNTm} Rollback to pristine first-boot" >> /menulist
+ CNTm=$(($CNTm+1))
+ echo "FSCHECK ${CNTm} Filesystem check of working-partition" >> /menulist
+ CNTm=$(($CNTm+1))
+#20221102 remove...
+# echo "LOGZEUS ${CNTm} Flip login as user root or zeus WARNING EXPERIMENTAL" >> /menulist
+# CNTm=$(($CNTm+1))
+ echo
+ echo -e -n "\\e[1;38;43m" #38=black text, 43=yellow background. ...um, getting bright-white text, black bg.
+ if [ "$1" == "nopw" ];then #20220626 20220627
+  echo "Press ENTER key or wait 10 seconds for normal bootup"
+ fi
+ #this pads the lines with spaces to column 41...
+ cut -f 2- -d ' ' /menulist | xargs -I STR printf "%-41s\n" STR
+ echo -e -n "\\e[0;;m"
+ if [ "$1" == "nopw" ];then #20220627 20220629
+  echo -n "Type a number from the left column: "
+  read -t 10 menuchoice
+ else
+  echo -n "Type a number from the left column: "
+  read menuchoice
+ fi
+ if [ "$menuchoice" ];then #20220626
+  MENUVAR="$(grep " ${menuchoice} " /menulist | cut -f 1 -d ' ')"
+ else
+  MENUVAR=''
+ fi
+ case "$MENUVAR" in
+  LOCKREM)
+   #LOCKkeep='0'
+   rm -f /mnt/${WKG_DEV}/${WKG_DIR}.lockdown.flg
+   echo "...you have chosen to restore normal bootup; however,"
+   echo "\\033[1;31m   normal bootup will be restored on the NEXT bootup\\033[0;39m" #red
+  ;;
+  NOX)
+   #delayed, see menu_delay_func...
+   #mkdir -p /mnt/${WKG_DEV}/${WKG_DIR}.session/root
+   #touch /mnt/${WKG_DEV}/${WKG_DIR}.session/root/bootcnt.txt #see /root/.profile
+   echo "...will bootup to commandline, no X"
+  ;;
+  RBSAVED)
+   echo "...will rollback to last saved session"
+  ;;
+  RBPRISTINE)
+   echo "...will rollback to pristine first-boot"
+  ;;
+  FSCHECK)
+   echo "...will perform filesystem check"
+  ;;
+#  LOGZEUS) #20221030 20221102 remove
+#   echo "...will flip login as user root or zeus"
+#  ;;
+ esac
+ echo
+}
+
+#20220623 some choices in menu_func cannot be implemented until after pw entered.
+menu_delay_func() {
+ case "$MENUVAR" in
+  NOX)
+   mkdir -p /mnt/${WKG_DEV}/${WKG_DIR}.session/root
+   touch /mnt/${WKG_DEV}/${WKG_DIR}.session/root/bootcnt.txt #see /root/.profile
+  ;;
+  RBSAVED)
+   echo -n ",last" > /mnt/${WKG_DEV}/${WKG_DIR}.session/.rollback.flg
+  ;;
+  RBPRISTINE)
+   echo -n ",erase" > /mnt/${WKG_DEV}/${WKG_DIR}.session/.rollback.flg
+  ;;
+  FSCHECK)
+   echo -n "${WKG_DEV},${WKG_FS},REQUEST" > /mnt/${WKG_DEV}/${WKG_DIR}.fsckme.flg #20220801
+  ;;
+#  LOGZEUS) #20221030 20221102 remove
+#   xEOS_LOGIN_ZEUS="$(cat /mnt/${WKG_DEV}/${WKG_DIR}.loginzeus.flg 2>/dev/null)"
+#   if [ "$xEOS_LOGIN_ZEUS" == "1" ];then
+#    echo -n '0' > /mnt/${WKG_DEV}/${WKG_DIR}.loginzeus.flg
+#    EOS_LOGIN_ZEUS=0
+#    echo "  ...will login as root. This is remembered for future boots."
+#   else
+#    echo -n '1' > /mnt/${WKG_DEV}/${WKG_DIR}.loginzeus.flg
+#    EOS_LOGIN_ZEUS=1
+#    echo "  ...will login as zeus. This is remembered for future boots."
+#   fi
+#  ;;
+ esac
+}
+
+ask_pw() { #180604
+ if [ "$1" == "0" ];then
+  
+  #20210424 want word-wrapped text block in background colour rectangle...
+  echo -n -e '\033[1;;44m'
+  while read aLINE
+  do
+   echo -n '                                                                    '
+   echo -n -e '\033[1G' #move cursor back to col 1.
+   echo " ${aLINE}"
+  done << EOT
+$(echo "Please enter a password, any characters a-z, A-Z, 0-9, any length. The password will encrypt parts of the working-partition, and must be remembered, as it will have to be entered at every bootup." | fold -s -w 69)
+$(echo " Or, just press ENTER key for no password.")
+EOT
+  echo -n -e '\033[0;;m'
+
+  echo -e " \\033[1;31mFor your security, a password is strongly recommended\\033[0;39m" #35=purple, 31=red 20220528
+  
+  while [ 1 ];do #181109
+   echo -n " Password: "
+   read -r -t 300 PW
+   [ $? -ne 0 ] && echo #timed out
+   if [ "$PW" != "" ];then
+    xPW="$(echo -n "$PW" | sed -e 's%[^a-zA-Z0-9]%%g')"
+    if [ "$PW" != "$xPW" ];then
+     echo "\\033[1;31m Sorry, only a-z, A-Z, 0-9 characters allowed, try again \\033[0;39m" #red text.
+     continue
+    fi
+   fi
+   break
+  done
+#  if [ ! "$PW" ];then
+#   PW="$(< /dev/urandom tr -dc 'a-zA-Z0-9' | head -c10)"
+#   echo " The auto-generated password is: ${PW}"
+#   echo " Pausing for 60 seconds, please write it down now!!!!"
+#   sleep 60
+#  fi
+ else
+  #20220622 no longer have menu choices in the boot-manager, so offer some choices here...
+  while [ 1 ];do
+   echo -e "\\e[1;;44m Please enter password to decrypt the working-partition \\e[0;;m"
+   echo -e "\\e[1;;43m OR just press ENTER to bring up a menu of boot options \\e[0;;m" #43=yellow background.
+   echo -n " Password: "
+   #read PW
+   PW=''
+   while [ 1 ];do #echo * for each char entered...
+    read -r -s -n1 pw1
+    if [[ -z $pw1 ]];then
+     echo; break
+    else
+     echo -n '*'; PW="${PW}${pw1}"
+    fi
+   done
+   if [ "$PW" == "" ];then
+    menu_func
+    continue
+   fi
+   break
+  done
+ fi
+ 
+ return 0 #190713
+}
+
+load_font() {
+ #2-char keymap is passed in
+ case "$1" in
+  az|be|br|by|cr|de|dk|es|fi|fr|gr|hu|it|nl|no|pt|ro|ru|se|sk|sl) #all european languages
+   loadfont < /lib/consolefonts/LatGrkCyr-8x16.psfu
+  ;;
+  il) #arabic, hebrew
+   loadfont < /lib/consolefonts/LatArCyrHeb-16.psfu
+  ;;
+ esac 
+}
+
+#190828 try to recover if cp fails...
+cp_verify_func() {
+ #passed params: source destination
+ fsync ${2}
+ cmp -s ${1} ${2}
+ if [ $? -ne 0 ];then
+  echo -e "\\033[1;31mThis copy failed:\\033[0;39m" #red
+  echo "  cp ${1} ${2}"
+  echo "  It is possible that the drive is failing."
+  echo "  Attempting to copy again..."
+  rm -f ${2} 2>/dev/null
+  cp -a -f ${1} ${2}
+  fsync ${2}
+  cmp -s ${1} ${2}
+  if [ $? -ne 0 ];then
+   if [ "$prevVER" ];then
+    echo "  Second attempt failed. Attempt recovery by restoring"
+    echo "  vmlinuz, initrd and easy.sfs of previous version."
+   fi
+   err_exit "Second attempt to copy file failed. Maybe drive is failing."
+  else
+   echo "  Second attempt succeeded, but warning drive might be failing."
+  fi
+ fi
+}
+
+#20220622 taken out as a func, as call from two places...
+mnt_wkg_ext4_func() {
+ #rw,relatime,data=ordered are the defaults anyway...  20220304 commit=30 to 1800... 20220522 revert
+ if [ $EOS_TOP_LEVEL_ZRAM -eq 1 ];then #20220527
+  mount -t ${WKG_FS} -o commit=30,rw,noatime,data=ordered /dev/${WKG_DEV} /mnt/${WKG_DEV} 2>/dev/null
+ else
+  mount -t ${WKG_FS} -o commit=30,rw,relatime,data=ordered /dev/${WKG_DEV} /mnt/${WKG_DEV} 2>/dev/null
+ fi
+ RET=$? #200715 it was going to err_exit, need this $RET...
+ if [ $RET -ne 0 ];then
+  if [ $EOS_TOP_LEVEL_ZRAM -eq 1 ];then #20220527
+   mount -t ${WKG_FS} -o noatime /dev/${WKG_DEV} /mnt/${WKG_DEV} #200624 fallback if no journal
+  else
+   mount -t ${WKG_FS} /dev/${WKG_DEV} /mnt/${WKG_DEV} #200624 fallback if no journal
+  fi
+  RET=$?
+ fi
+ return $RET
+}
+
+#190313 have static /dev, so will have /dev/fb0 even if no framebuffer... no, now have dynamic /dev
+#190307 display logo, -f = reduces to fit screen. 20220929
+if [ -e /dev/fb0 ];then
+ idump -f logo1920x1440.png 2>/dev/null
+ [ $? -ne 0 ] && rm -f /dev/fb0 #190313
+else
+ clear #20220206 no logo, just clear the screen.
+fi
+
+#optional WKG_DEV passed in as kernel boot param...
+[ "$wkg_dev" ] && WKG_DEV="$wkg_dev" #ex: zram0
+#also allow override WKG_DIR...
+[ "$wkg_dir" ] && zWKG_DIR="$wkg_dir"
+[ "$WKG_DIR" ] && zWKG_DIR="$WKG_DIR"
+#190710 also WKG_UUID, WKG_LABEL...
+[ "$wkg_uuid" ] && zWKG_UUID="$wkg_uuid"
+[ "$WKG_UUID" ] && zWKG_UUID="$WKG_UUID"
+[ "$wkg_label" ] && zWKG_LABEL="$wkg_label"
+[ "$WKG_LABEL" ] && zWKG_LABEL="$WKG_LABEL"
+
+[ "$zWKG_DIR" ] && [ "${zWKG_DIR##*/}" ] && zWKG_DIR="${zWKG_DIR}/" #must have trailing slash.
+
+# ...optional/alternative WKG_LABEL
+#190706 set to something if not defined...
+[ ! "$WKG_UUID" ] && WKG_UUID='wkguuidunknown'
+[ ! "$WKG_LABEL" ] && WKG_LABEL='wkglabelunknown'
+#kernel boot parameter overrides...
+[ "$zWKG_DIR" ] && WKG_DIR="$zWKG_DIR"
+[ "$zWKG_UUID" ] && WKG_UUID="$zWKG_UUID" && WKG_DEV="" && WKG_LABEL=""
+[ "$zWKG_LABEL" ] && WKG_LABEL="$zWKG_LABEL" && WKG_DEV="" && WKG_UUID=""
+
+export LANG=C
+
+#170206 reintroducing aufs in the kernel:
+if grep -qw aufs /proc/filesystems; then
+ LAYERFS='aufs'
+ RO='=ro'
+else
+ LAYERFS='overlay'
+ RO=''
+fi
+
+SESSIONSFSflag=0 #170525 see also /usr/sbin/easy_version_control. 170924 change 1 to 0.
+export SESSIONSFSflag
+SALT="aprilandvincent" #190308 previously used $WKG_DISKID
+
+#now have DISTRO_SPECS in initrd... 20220615  20220629 moved up.
+[ ! -f /etc/DISTRO_SPECS ] && err_exit "/etc/DISTRO_SPECS is missing from initrd"
+sed -e 's%^DISTRO_%INIT_DISTRO_%' /etc/DISTRO_SPECS > /INIT_DISTRO_SPECS
+. /INIT_DISTRO_SPECS
+
+###display info### #20220629
+echo -n -e "\\033[1;32m${INIT_DISTRO_NAME}, version ${INIT_DISTRO_VERSION}\\033[0;39m\n" #bright green
+echo
+
+###find drives###
+#find the drive we are booting on (has vmlinuz, initrd, easy.sfs), and working drv...
+#180601 users may forget to put a trailing slash... a leading slash is not allowed...
+[ "$WKG_DIR" ] && [ "${WKG_DIR##*/}" ] && WKG_DIR="${WKG_DIR}/"
+[ "$WKG_DIR" ] && [ "${WKG_DIR:0:1}" == "/" ] && WKG_DIR="${WKG_DIR:1:99}"
+
+echo -n -e "\\033[1;35mFinding drives\\033[0;39m\n " #purple
+CNT=0; Pb=0; Pw=0
+[ "$WKG_LABEL" == "EASYOSZRAM" ] && WKG_DEV="zram0" #190706 200822
+[ -e /dev/scd0 ] && rm -f /dev/scd* #190706 static dev nodes, these duplicate sr* nodes.
+while [ $CNT -lt 20 ];do #drives may take couple seconds to become available. 180415 increase 8 to 20.
+ sleep 1
+ echo -n '.'
+ CNT=$(($CNT+1))
+ #190718 iso written to usb-stick has (ex:) /dev/sdd and dev/sdd1 both LABEL="EASYOSOPTICAL", filter-out former...
+ BLKIDS="$(blkid | grep -v '[a-z]: ')"
+ #ex line: /dev/sda2: LABEL="intern1p2" UUID="cd5ef69b-883d-4744-bc1d-551154131db2" TYPE="ext4"
+ [ ! "$WKG_DEV" ] && WKG_DEV="$(echo "${BLKIDS}" | grep -E "\"${WKG_UUID}\"|\"${WKG_LABEL}\"" | cut -f 1 -d ':' | cut -f 3 -d '/')"
+ [ "$WKG_DEV" ] && break
+done
+[ ! "$WKG_DEV" ] && WKG_DEV="zram0" #190714
+
+Wdevs=$(echo -n "$WKG_DEV" | tr '\n' ' ' | wc -w) #precaution.
+[ $Wdevs -gt 1 ] && err_exit "${Wdevs} partitions have conflicting id ${WKG_UUID} ${WKG_LABEL}"
+
+#20201223 only allow drop CAP_SYS_ADMIN if have CAP_SYS_MOUNT patch and kernel >=5.10
+CSAdrop=0
+capsh --supports=cap_sys_mount 2>/dev/null #20201213
+if [ $? -eq 0 ];then #kernel has cap_sys_mount separated from cap_sys_admin
+ if vercmp $KERNVER ge 5.10 ;then #20210524
+  CSAdrop=1
+ fi
+fi
+
+#190817 parsing QFIX moved up, also repeated further down...
+#ref: http://man7.org/linux/man-pages/man7/capabilities.7.html
+CAPS_DROP='' #190812
+xWKG_DEV='' #190817 200719 comment-out. 200727 restore.
+DROPOUT='' #200801
+LOCKDOWN='' #200803
+NORMAL=0 #200809
+BROKENVID=0 #20211014
+ZRAMTL='' #20220603 override EOS_TOP_LEVEL_ZRAM
+[ "$qfix" ] && QFIX=$qfix #kernel boot param
+if [ "$QFIX" ];then
+ for ONEFIX in `echo -n "$QFIX" | tr ',' ' '`
+ do
+  case $ONEFIX in
+   #cap1|CAP1) CAPS_DROP='cap_sys_mount,cap_dac_override,cap_chown,cap_fowner,cap_mknod,cap_setfcap,cap_setpcap' ;; #190812
+   #cap2|CAP2) CAPS_DROP='cap_sys_mount,cap_dac_override,cap_chown,cap_fowner,cap_mknod,cap_setfcap,cap_setpcap'; xWKG_DEV='zram0' ;; #190817 copy to ram
+   #cap1|CAP1) CAPS_DROP='cap_sys_mount,cap_mknod' ;; #190812 190818
+   #cap2|CAP2) CAPS_DROP='cap_sys_mount,cap_mknod'; xWKG_DEV='zram0' ;; #190817 copy to ram. 190818
+   cap2|CAP2) CAPS_DROP='cap_mknod'; xWKG_DEV='zram0'; LOCKDOWN='2' ;; #190818 200803 deprecated.
+   lock*|LOCK*) LOCKDOWN="${ONEFIX:4:1}" ;; #200803 extract the number. note, "cap2" is deprecated.
+   dropout*|DROPOUT*) DROPOUT="${ONEFIX:7:1}" ;; #200801 extract the number
+   normal|NORMAL) NORMAL=1 ;; #200809 to remove permanent lockdown.
+   vid|VID) BROKENVID=1 ;; #20211014
+   zramtl*|ZRAMTL*) ZRAMTL=${ONEFIX:6:1} #20220603 zramtl0 disable, zramtl1 enable.
+  esac
+ done
+fi
+case "$LOCKDOWN" in #200803 note, see also .lockdown.flg further down script.
+ 1) xWKG_DEV='zram0' ;;   #"Copy session to RAM, unmount partitions"
+ 2) #"Copy session to RAM, disable drives"
+  if [ $CSAdrop -eq 1 ];then
+   CAPS_DROP='cap_mknod,cap_sys_admin'
+  else
+   CAPS_DROP='cap_mknod'
+  fi
+  xWKG_DEV='zram0'
+ ;;
+esac
+if [ "$LOCKDOWN" ];then #190901 200803
+ LOCKkeep='0' #200805 once-only
+ #cannot do this at first bootup, as not yet a session to copy to ram.
+ #20220123 may have a bigger 2nd partition...  20220511 2nd partition may be smaller, 4MB...
+ WKGSIZEflg="$(fdisk -l /dev/${WKG_DEV} | grep -oE ' 640 MB| 640 MiB| 4 MB| 4 MiB')" #200319 full fdisk "640 MiB"
+ if [ "$WKGSIZEflg" ];then
+  echo -e "\\033[1;31mNOTICE: NO! You do not yet have a session, doing a normal bootup\\033[0;39m" #red
+  CAPS_DROP=''
+  xWKG_DEV=''
+  LOCKDOWN='' #200803
+ fi
+fi
+if [ "$ZRAMTL" ];then #20220603
+ EOS_TOP_LEVEL_ZRAM=${ZRAMTL} #override.
+fi
+
+[ "$DROPOUT" == "0" ] && exit_to_initrd " Exited from init script early, nothing yet mounted." #200801
+
+###check if user has requested lockdown###
+#200803 ref: /usr/sbin/lockdown-ram
+#200806 .lockdown.flg cannot be in .session folder, put into boot-part... 20220621 wkg-part...
+mkdir -p /mnt/${WKG_DEV}
+WKG_FS="$(echo "$BLKIDS" | grep "^/dev/${WKG_DEV}:" | grep -o 'TYPE="[a-z0-9]*"' | cut -f 2 -d '"')" #200803 moved up.
+if [ "$LOCKDOWN" == "" -o "$DROPOUT" == "" ];then
+ #temporarily mount WKG_DEV...
+ if grep -q 'ntfs3' /proc/filesystems;then #20210611 has paragon ntfs3 driver.
+  mount -t ${WKG_FS/ntfs/ntfs3} /dev/${WKG_DEV} /mnt/${WKG_DEV}
+ else
+  mount -t ${WKG_FS} /dev/${WKG_DEV} /mnt/${WKG_DEV}
+ fi
+ if [ $? -eq 0 ];then
+  [ $NORMAL -eq 1 ] && rm -f /mnt/${WKG_DEV}/${WKG_DIR}.lockdown.flg 2>/dev/null #200809
+  if [ "$LOCKDOWN" == "" ];then #that is, not done at kernel boot param.
+   if [ -s /mnt/${WKG_DEV}/${WKG_DIR}.lockdown.flg ];then
+    grep -q '^lock[0-9]:[0-9]' /mnt/${WKG_DEV}/${WKG_DIR}.lockdown.flg
+    if [ $? -eq 0 ];then
+     #.lockdown.flg has "lock[1|2]:[0|1]" -- :0 once-only, :1 permanent
+     LOCKspecs="$(cat /mnt/${WKG_DEV}/${WKG_DIR}.lockdown.flg)"
+     LOCKkeep="${LOCKspecs:6:1}"
+     LOCKDOWN="${LOCKspecs:4:1}"
+     case "$LOCKDOWN" in #200803 note, see above, kernel param "qfix=lock[1|2]"
+      1) xWKG_DEV='zram0' ;;        #"Copy session to RAM, unmount partitions"
+      2) #"Copy session to RAM, disable drives"
+       if [ $CSAdrop -eq 1 ];then
+        CAPS_DROP='cap_mknod,cap_sys_admin'
+       else
+        CAPS_DROP='cap_mknod'
+       fi
+       xWKG_DEV='zram0'
+      ;;
+     esac
+     if [ "$LOCKkeep" != "1" ];then
+      rm -f /mnt/${WKG_DEV}/${WKG_DIR}.lockdown.flg
+      sync
+     fi
+    fi
+   fi
+  fi
+  if [ "$DROPOUT" == "" ];then #that is, not a kernel boot param
+   #200802 ref: /usr/sbin/debug-initrd  200806 .debug.flg also in boot-part... 20220621 wkg-part...
+   if [ -s /mnt/${WKG_DEV}/${WKG_DIR}.debug.flg ];then
+    grep -q '^dropout' /mnt/${WKG_DEV}/${WKG_DIR}.debug.flg
+    if [ $? -eq 0 ];then
+     DROPOUT="$(cat /mnt/${WKG_DEV}/${WKG_DIR}.debug.flg)"
+     DROPOUT="${DROPOUT:7:1}"
+     rm -f /mnt/${WKG_DEV}/${WKG_DIR}.debug.flg
+     sync
+    fi
+   fi
+  fi
+  if [ "$ZRAMTL" == "" ];then #20220603 that is, not a kernel param. 20220621 now in wkg-part...
+   if [ -s /mnt/${WKG_DEV}/${WKG_DIR}.zramtl.flg ];then
+    EOS_TOP_LEVEL_ZRAM=$(cat /mnt/${WKG_DEV}/${WKG_DIR}.zramtl.flg) #1 or 0
+   fi
+  fi
+  #20221102 remove
+#  if [ -s /mnt/${WKG_DEV}/${WKG_DIR}.loginzeus.flg ];then #20221030 override build-choices file.
+#   EOS_LOGIN_ZEUS=$(cat /mnt/${WKG_DEV}/${WKG_DIR}.loginzeus.flg) #1 or 0
+#  else
+#   echo -n "${EOS_LOGIN_ZEUS}" > /mnt/${WKG_DEV}/${WKG_DIR}.loginzeus.flg
+#  fi
+  umount /mnt/${WKG_DEV}
+ fi
+fi
+
+###very low ram###
+#20220802 top-level-zram doesn't work properly if not enough ram
+FREEK=`grep '^MemFree:' /proc/meminfo | tr -s ' ' | cut -f 2 -d ' '`
+if [ $FREEK -lt 1200000 ];then #1.2GB
+ EOS_TOP_LEVEL_ZRAM=0
+fi
+#also disable lockdown...
+if [ "$LOCKDOWN" ];then
+ if [ $FREEK -lt 3700000 ];then #3.7GB
+  echo -e "\\033[1;31mNOTICE: Lockdown disabled, insufficient RAM\\033[0;39m" #red
+  LOCKDOWN=''
+  xWKG_DEV=''
+  CAPS_DROP=''
+  #keep this, in case usb-stick boots on another pc...
+  #rm -f /mnt/${WKG_DEV}/${WKG_DIR}.lockdown.flg 2>/dev/null
+ fi
+fi
+
+#20220526 hope no conflict
+if [ "$LOCKDOWN" ];then
+ #disable the extra zram1 top layer...
+ EOS_TOP_LEVEL_ZRAM=0
+fi
+
+if [ "$WKG_DEV" == "zram0" -o "$xWKG_DEV" == "zram0" ];then #190706 190817
+ echo ''
+ if [ "$WKG_DEV" == "zram0" ];then
+  echo -e "\\033[1;31mNOTICE: EasyOS will run totally in RAM, no persistent storage\\033[0;39m" #red
+  WKG_DRV='zram0'
+  WKG_FS='ext2'
+ else
+  echo -e "\\033[1;31mNOTICE: The session will be copied to RAM and EasyOS will run in RAM\\033[0;39m" #red
+ fi
+ xWKG_FS='ext2'
+ #allocate 3/4 of free ram times 2 (as compression is approx 2:1)...
+ HALFK=$(($FREEK/2))
+ QTRK=$(($HALFK/2))
+ USEK=$(($HALFK+$QTRK)) #3/4
+ ALLOCK=$(($USEK*2))
+ echo "  Creating compressed zram. RAM allocated: ${USEK}K"
+ echo "${ALLOCK}K" > /sys/block/zram0/disksize
+ echo "${USEK}K" > /sys/block/zram0/mem_limit
+ busybox mke2fs -L "EASYOSZRAM" -m 0 -b 4096 /dev/zram0 > /dev/null #20201130 make sure block size is 4096!
+ #...has to be ext2, so won't ask for password etc.
+fi
+if [ "$WKG_DEV" != "zram0" ];then #190817
+ WKG_PARTNUM="${WKG_DEV/*[a-z]/}"
+ #WKG_DRV="${WKG_DEV%%[^a-z][0-9]*}"
+ WKG_DRV="${WKG_DEV%[0-9]}"
+ WKG_DRV="${WKG_DRV%[0-9]}"
+ [ "${WKG_DRV:0:3}" == "mmc" ] && Pw=1
+ [ "${WKG_DRV:0:3}" == "nvm" ] && Pw=1
+ [ $Pw -eq 1 ] && WKG_DRV="${WKG_DRV%p}"
+ WKG_FS="$(echo "$BLKIDS" | grep "^/dev/${WKG_DEV}:" | grep -o 'TYPE="[a-z0-9]*"' | cut -f 2 -d '"')" #200803 moved up.
+fi
+#coz later on, $WKG_DEV may get changed to zram0...
+origWKG_DEV="$WKG_DEV"
+origWKG_FS="$WKG_FS"
+origWKG_UUID="$WKG_UUID" #200809
+origWKG_DIR="$WKG_DIR"   #200822
+
+export WKG_FS
+
+#20210526 think what needed to allow save-file instead of save-folder...
+# WKG_FS=ntfs: kernel >= 5.10.39 has paragon ntfs3 driver,
+# WKG_FS must support sparse files. yes: ntfs ext2/3/4 f2fs reaiserfs xfs zfs btrfs squashfs  no: exfat fat16/32 iso9660
+SFchk=0
+case "$WKG_FS" in
+ ntfs) #20210530 restrict to ntfs only, due to performance hit.
+ #ext*|reiser*|f2fs|ntfs*|xfs|zfs|btrfs)
+  SFchk=1
+ ;;
+esac
+
+echo -e "\n  Working-partition: ${WKG_DEV}"
+
+###performance measurements###
+FREEK=`grep '^MemFree:' /proc/meminfo | tr -s ' ' | cut -f 2 -d ' '` #free RAM
+#echo 3 > /proc/sys/vm/drop_caches #clear memory caches. note, could use "hdparm -t ..." but it is slower.
+#20220801 dd in coreutils has different output, "s" instead of "seconds"...
+if [ "$WKG_DEV" == "zram0" ];then #190706 20220527 change 1048576 (1MiB) to 536870912 (512MiB)  20220621 1610612736 (1.5GiB)
+ TIMEs="$(dd if=/dev/zram0 of=/dev/null bs=1024 count=64 iflag=skip_bytes skip=1610612736 2>&1 | grep -o '[0-9.]* [second]*s,' | cut -f 1 -d ' ')" #read speed.
+else
+ TIMEs="$(dd if=/dev/${WKG_DRV} of=/dev/null bs=1024 count=64 iflag=skip_bytes skip=1610612736 2>&1 | grep -o '[0-9.]* [second]*s,' | cut -f 1 -d ' ')" #read speed.
+ #...sata hdd: 0.018864, usb3.0 ssd: 0.003258, pcie nvme ssd: 0.001403, cheap emtec usb2 flash stick: 0.013006, sandisk ultra usb3.0 flash stick: 0.004393, usb3.0 hdd: 0.035629
+fi
+TIME10k=$(dc -e"${TIMEs} 10000 * p" | cut -f 1 -d '.') #cheap flash stick: usb2=140 usb3=77, be usb3=41, sandisk-extreme usb3=42, internal eMMC: 
+echo "Working drive read speed test (lower the better): ${TIME10k}"
+
+###execute TRIM on ssd###
+TRIMflg=''
+if [ "$WKG_FS" == "ext4" ];then #200302  200621 now have full hdparm.
+ #HDDflg="$(cat /sys/block/${WKG_DRV}/queue/rotational)" #20220612
+ #20220526 hdparm only works on sata drives...
+ #if [ "$HDDflg" != "0" ];then #0 it is an SSD
+ # #20220522 bugger, the kernel gets it right for internal nvme ssd, wrong for usb flash...
+ # hdparm -I /dev/${WKG_DRV} | grep -q 'Solid State Device'
+ # [ $? -eq 0 ] && HDDflg="0"
+ #fi
+ #if [ "$HDDflg" == "0" ];then #0 it is an SSD
+ # #unfortunately, busybox hdparm will only read ata drives, not usb...
+ # TRIMflg="$(hdparm -I /dev/${WKG_DRV} 2>/dev/null | grep -o 'TRIM' | head -n 1)"
+ # #run 'fstrim' after $WKG_DEV mounted, every 20th bootup...
+ #fi
+ TESTdiscard="$(cat /sys/block/${WKG_DRV}/queue/discard_granularity 2>/dev/null)"
+ if [ "$TESTdiscard" ];then
+  if [ "$TESTdiscard" != "0" ];then
+   TRIMflg='1'
+  fi
+ fi
+fi
+export TRIMflg #read in /sbin/fscheck
+
+###setup and mount working partition###
+PW=''; ALLOW_ASK_PW=''; Bmntd=0; Tmntd=0 #20220517
+
+#maybe resize working partition to fill drive... hmmm, /proc/partitions not working...
+#Wsize=$(grep ' ${WKG_DEV}$' /proc/partitions | tr -s ' ' | rev | cut -f 2 -d ' ' | rev)
+Wsize="$(fdisk -u -l /dev/${WKG_DRV} | grep "^/dev/${WKG_DEV} " | tr -s ' ' | rev | cut -f 3 -d ' ' | rev)"
+#20220621 new skeleton 7MiB 1st, 816MiB 2nd, Wstart=16384
+#20220911 for easy bookworm, bumped wkg-part to 848MiB
+if [ "$Wsize" == "816M" -o "$Wsize" == "848M" ];then #current skeleton.
+ #starting sector of wkg partition...
+ Wstart="$(fdisk -u -l /dev/${WKG_DRV} | grep "^/dev/${WKG_DEV} " | tr -s ' ' | rev | cut -f 6 -d ' ' | rev)"
+ #need to be paranoid here, to get this right, restrict to my skeletons...
+ if [ "$Wstart" == "16384" ];then
+  #this has to be done with all partitons in WKG_DRV unmounted...
+  echo -n -e "\\033[1;35mResizing working-partition to fill drive\\033[0;39m\n " #purple
+  echo -e "d\n${WKG_PARTNUM}\nn\np\n${WKG_PARTNUM}\n${Wstart}\n\nw" | fdisk -u /dev/${WKG_DRV} > /dev/null 2>&1
+  #fdisk should have informed kernel to rescan partition table, however precaution...
+  partprobe /dev/${WKG_DRV}
+  Wnewsize="$(fdisk -u -l /dev/${WKG_DRV} | grep "^/dev/${WKG_DEV} " | tr -s ' ' | rev | cut -f 3 -d ' ' | rev)"
+  if [ "$Wnewsize" == "816M" -o "$Wnewsize" == "848M" ];then
+   echo -e "\\033[1;31m ERROR: unable to resize working-partition\\033[0;39m" #red.
+   Wbad=1 #20220511
+  else
+   Wbad=0
+   echo " Resizing ext4 filesystem to fill ${Wnewsize} working-partition"
+   echo "#!/bin/ash
+resize2fs -f /dev/${WKG_DEV} > /resize2fs.log 2>&1
+if [ \$? -ne 0 ];then
+ touch /BAD-RESIZE
+ exit 1
+fi
+#tune2fs -O has_journal /dev/${WKG_DEV} > /tune2fs.log 2>&1
+" > /resizeX
+   chmod 755 /resizeX
+   echo "#!/bin/ash
+ /resizeX &
+ echo -n '  .'
+ sleep 1 #20220801
+ while pidof resizeX >/dev/null;do
+  sleep 1
+  echo -n '.'
+ done
+ echo" > /resize.sh
+   chmod 755 /resize.sh
+   /resize.sh
+   if [ -e /BAD-RESIZE ];then Wbad=1; fi #20220517
+   if grep 'Nothing to do' /resize2fs.log >/dev/null; then Wbad=1; fi
+   if grep 'missing' /resize2fs.log >/dev/null; then Wbad=1; fi
+   if grep 'Error' /resize2fs.log >/dev/null; then Wbad=1; fi
+   [ ! -s /resize2fs.log ] && Wbad=1
+   if [ $Wbad -eq 1 ];then
+    echo -e "\\033[1;31m  ERROR: unable to resize ext4 filesystem to fill ${Wnewsize} working-partition\\033[0;39m" #red
+   fi
+  fi
+  if [ $Wbad -eq 1 ];then #20220511
+   err_exit "Unable to resize working-partition. Unsafe to continue"
+  fi
+ fi
+fi
+if [ "${WKG_FS}" == "ext4" ];then
+ 
+ mnt_wkg_ext4_func #20220622
+ RET=$?
+
+else
+ if grep -q 'ntfs3' /proc/filesystems;then #20210611 has paragon ntfs3 driver.
+  mount -t ${WKG_FS/ntfs/ntfs3} /dev/${WKG_DEV} /mnt/${WKG_DEV}
+ else
+  mount -t ${WKG_FS} /dev/${WKG_DEV} /mnt/${WKG_DEV}
+ fi
+ RET=$?
+fi
+[ $RET -ne 0 ] && err_exit "Unable to mount working-partition ${WKG_DEV}"
+
+[ "$DROPOUT" == "1" ] && exit_to_initrd " Exited from init script, wkg partition mounted."
+
+#create $WKG_DIR...
+[ "${WKG_DIR}" ] && [ ! -d /mnt/${WKG_DEV}/${WKG_DIR%/} ] && mkdir -p /mnt/${WKG_DEV}/${WKG_DIR%/} #just in case path is missing.
+WKG_LOOP=''
+if [ $SFchk -eq 1 ];then #20210524 20210526
+ if [ ! -d /mnt/${WKG_DEV}/${WKG_DIR}.session ];then #check if already have save-folder installation.
+  if [ ! -f /mnt/${WKG_DEV}/${WKG_DIR}easysave.ext4 ];then
+   #for new installations, create a save-file instead of a save-folder...
+   create_savefile_func
+  else
+   true
+  fi
+  if [ $? -eq 0 ];then
+   WKG_LOOP="$(losetup -f | sed -e 's%^/dev/%%')"
+   losetup /dev/${WKG_LOOP} /mnt/${WKG_DEV}/${WKG_DIR}easysave.ext4
+   #20220304 commit=30 to 1800... 20220522 revert
+   mount -t ext4 -o discard,commit=30,rw,relatime,data=ordered /dev/${WKG_LOOP} /mnt/${WKG_DEV}/${WKG_DIR%/}
+  fi
+ fi
+fi
+if [ ! -d /mnt/${WKG_DEV}/${WKG_DIR}.session ];then
+ for aDIR in containers releases files sfs .tempwork data #sanity check  20210919 20211212
+ do
+  [ "$EOS_SUPPORT_CONTAINERS" == "0" ] && continue #20220525
+  [ -e /mnt/${WKG_DEV}/${WKG_DIR}${aDIR} ] && err_exit "/mnt/${WKG_DEV}/${WKG_DIR}${aDIR} already exists"
+ done
+ [ "$EOS_SUPPORT_CONTAINERS" != "0" ] && mkdir /mnt/${WKG_DEV}/${WKG_DIR}containers
+ mkdir /mnt/${WKG_DEV}/${WKG_DIR}releases
+ mkdir /mnt/${WKG_DEV}/${WKG_DIR}files
+ mkdir /mnt/${WKG_DEV}/${WKG_DIR}sfs
+ mkdir /mnt/${WKG_DEV}/${WKG_DIR}.session
+ mkdir /mnt/${WKG_DEV}/${WKG_DIR}.tempwork
+ mkdir /mnt/${WKG_DEV}/${WKG_DIR}data #20211212
+ 
+ #190713...
+ while [ 1 ];do
+  ask_kb #sets $KEYMAP
+  if [ $? -eq 0 ];then
+   load_font ${KEYMAP:0:2}
+   gunzip -c /lib/keymaps/${KEYMAP}.gz | loadkmap
+   if [ "$WKG_FS" == "ext4" -o "$WKG_LOOP" ];then #20210524 $WKG_LOOP set if have save-file
+    ask_pw 0 #sets $PW
+    [ $? -eq 1 ] && continue #back button pressed.
+   fi
+  fi
+  break
+ done
+ 
+ echo
+ if [ "$PW" ];then
+  
+  #20220622 bit naughty doing this, better ask first...
+  if [ "$WKG_LOOP" == "" ];then #check not a save-file.
+   ENCflg="$(tune2fs -l /dev/${WKG_DEV} | grep '^Filesystem features: .* encrypt')"
+   if [ "$ENCflg" == "" ];then
+    echo -e "\\033[1;31m The working-partition does not have ext4 encrypt feature enabled.
+This feature is required to encrypt folders. Recommended for your security.
+If you decline, future bootups will not ask for a password.\\033[0;39m" #red.
+    echo "Press ENTER key to enable encrypt, any other key not to: "
+    read wantencrypt
+    if [ "$wantencrypt" == "" ];then
+     echo "Enabling ext4 folder encryption..."
+     sync
+     umount /mnt/${WKG_DEV}
+     tune2fs -O encrypt /dev/${WKG_DEV}
+     if [ $? -ne 0 ];then
+      echo -e "\\033[1;31mSorry, enabling folder encryption failed.\\033[0;39m" #red
+     else
+      echo "...encrypt enabled."
+      echo "Note, if for some reason you want to turn it off, remove the EasyOS installation. Then, there are instructions on the Internet to turn off encrypt."
+     fi
+     sync
+     mnt_wkg_ext4_func
+     if [ $? -ne 0 ];then
+      err_exit "Mounting the working-partition has failed."
+     fi
+    else
+     echo "Folder encrypt support not enabled."
+    fi
+   fi
+  fi
+  
+  POLICY="$(echo "$PW" | e4crypt add_key -S "s:${SALT}" | tail -n 1 | cut -f 2 -d '[' | cut -f 1 -d ']')" #190308
+  #need to check that ext4 f.s. is able to have encrypted folders...
+  e4crypt set_policy ${POLICY} /mnt/${WKG_DEV}/${WKG_DIR}.session > e4crypt.log 2>&1
+  if ! grep '^Error ' e4crypt.log >/dev/null; then
+   ALLOW_ASK_PW='yes'
+   cat e4crypt.log
+   [ "$EOS_SUPPORT_CONTAINERS" != "0" ] && e4crypt set_policy ${POLICY} /mnt/${WKG_DEV}/${WKG_DIR}containers
+   e4crypt set_policy ${POLICY} /mnt/${WKG_DEV}/${WKG_DIR}releases
+   e4crypt set_policy ${POLICY} /mnt/${WKG_DEV}/${WKG_DIR}files
+   e4crypt set_policy ${POLICY} /mnt/${WKG_DEV}/${WKG_DIR}data #20211212
+  else
+   echo "Sorry, the folders in the working partition cannot be encrypted. The password will only be set for root login."
+  fi
+ fi
+ 
+ if [ "$EOS_SUPPORT_CONTAINERS" != "0" ];then
+  cp -a -f /skeleton/containers /mnt/${WKG_DEV}/${WKG_DIR}
+  #populate .session folders...
+  for aCONT in `ls -1 /skeleton/containers`
+  do
+   cp -a -f /skeleton/containers/${aCONT}/.sessionSKEL/* /mnt/${WKG_DEV}/${WKG_DIR}containers/${aCONT}/.session/
+   [ -d /skeleton/containers/${aCONT}/.sessionSKEL/.control ] && cp -a -f /skeleton/containers/${aCONT}/.sessionSKEL/.control /mnt/${WKG_DEV}/${WKG_DIR}containers/${aCONT}/.session/ #181121
+  done
+ fi
+ cp -a -f /skeleton/releases /mnt/${WKG_DEV}/${WKG_DIR}
+ cp -a -f /skeleton/files /mnt/${WKG_DEV}/${WKG_DIR}
+ cp -a -f /skeleton/sfs /mnt/${WKG_DEV}/${WKG_DIR}
+ echo "KEYMAP='${KEYMAP}'" > /mnt/${WKG_DEV}/${WKG_DIR}sfs/settings/initrd/CONFIG
+ echo "ALLOW_ASK_PW='${ALLOW_ASK_PW}'" >> /mnt/${WKG_DEV}/${WKG_DIR}sfs/settings/initrd/CONFIG
+else
+ #20211006 crap, if updating to 3.0+, have 'home' folder, not 'files'. here test 'releases' instead...
+ POLICYflg="$(e4crypt get_policy /mnt/${WKG_DEV}/${WKG_DIR}releases | grep -o '^Error')" #"Error" if no encryption.
+ if [ "$POLICYflg" == "" ];then
+  #folder has fscrypt enabled.
+  ###precaution stuff... upgrading from pre-1.0.12
+  mkdir -p /mnt/${WKG_DEV}/${WKG_DIR}sfs/settings/initrd
+  [ -f /mnt/${WKG_DEV}/${WKG_DIR}sfs/CONFIG ] && mv -f /mnt/${WKG_DEV}/${WKG_DIR}sfs/CONFIG /mnt/${WKG_DEV}/${WKG_DIR}sfs/settings/initrd/
+  touch /mnt/${WKG_DEV}/${WKG_DIR}sfs/settings/initrd/CONFIG
+  ###...end precaution stuff
+  . /mnt/${WKG_DEV}/${WKG_DIR}sfs/settings/initrd/CONFIG #has KEYMAP, ALLOW_ASK_PW
+  #20211212 took out some "precaution stuff". cannot read .session folder yet anyway.
+  load_font ${KEYMAP:0:2}
+  [ "$KEYMAP" != "us" ] && gunzip -c /lib/keymaps/${KEYMAP}.gz | loadkmap
+  echo
+  if [ "$ALLOW_ASK_PW" == "yes" ];then
+   while [ 1 ];do
+    ask_pw 1 #sets $PW
+    #190308 problem, earlier releases used a different salt, $WKG_DISKID...
+    POLICY="$(echo "$PW" | e4crypt add_key -S "s:${SALT}" | tail -n 1 | cut -f 2 -d '[' | cut -f 1 -d ']')"
+    [  -d /mnt/${WKG_DEV}/${WKG_DIR}home/downloads ] && break #20211006 fix
+    [  -d /mnt/${WKG_DEV}/${WKG_DIR}files/downloads ] && break
+    fdisk -l /dev/${WKG_DRV} > /fdisk.log 2>&1
+    WKG_DISKID="$(grep '^Disk identifier:' /fdisk.log | cut -f 3 -d ' ')"
+    POLICY="$(echo "$PW" | e4crypt add_key -S "s:${WKG_DISKID}" | tail -n 1 | cut -f 2 -d '[' | cut -f 1 -d ']')"
+    [  -d /mnt/${WKG_DEV}/${WKG_DIR}home/downloads ] && break #20211006 fix
+    [  -d /mnt/${WKG_DEV}/${WKG_DIR}files/downloads ] && break
+    echo -e "\n\\e[1;30;43m Password incorrect. Try again \\e[0;;m"
+   done
+   menu_delay_func #20220623 ask_pw calls menu_func, but some operations have to be done after pw entry.
+   echo
+  fi
+ else #20220626 20220627
+  menu_func nopw
+  menu_delay_func
+ fi
+ #20211212 problem if update from <3.1.14 data folder not exist...
+ if [ ! -d /mnt/${WKG_DEV}/${WKG_DIR}data ];then
+  mkdir /mnt/${WKG_DEV}/${WKG_DIR}data
+  if [ "$ALLOW_ASK_PW" == "yes" ];then
+   e4crypt set_policy ${POLICY} /mnt/${WKG_DEV}/${WKG_DIR}data
+  fi
+ fi
+fi
+
+#20220527 session save deferred. see: /usr/sbin/ask-save-zram1
+if [ -d /mnt/${WKG_DEV}/${WKG_DIR}.session-transit ];then
+ echo -e "\\033[1;35mDeferred saving last session, please wait...\\033[0;39m\n " #purple
+ /sbin/rw-merge "$WKG_DEV" "$WKG_DIR"
+ #rm -rf /mnt/${WKG_DEV}/${WKG_DIR}.session-transit  20220530 remove in rw-merge.
+fi
+
+#20210919 hack for versions prior to easyos 3.0
+if [ -h /mnt/${WKG_DEV}/${WKG_DIR}.session/home ];then #was symlink to /mnt/wkg/home
+ rm -f /mnt/${WKG_DEV}/${WKG_DIR}.session/home
+fi
+if [ -d /mnt/${WKG_DEV}/${WKG_DIR}home ];then
+ mv -f /mnt/${WKG_DEV}/${WKG_DIR}home /mnt/${WKG_DEV}/${WKG_DIR}files #20211006 fix.
+ #chgrp -R 118 /mnt/${WKG_DEV}/${WKG_DIR}files #20211205 group is fscryptgrp
+ chgrp -R 122 /mnt/${WKG_DEV}/${WKG_DIR}files #20211205 group is filesgrp
+fi
+#if [ -d /mnt/${WKG_DEV}/${WKG_DIR}.session/clients ];then
+# mv -f /mnt/${WKG_DEV}/${WKG_DIR}.session/clients /mnt/${WKG_DEV}/${WKG_DIR}.session/home
+#fi
+
+###preset country settings for after switch_root###
+if [ "$KEYMAP" ];then
+ if [ ! -s /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/keymap ];then
+  mkdir -p /mnt/${WKG_DEV}/${WKG_DIR}.session/etc
+  echo -n "$KEYMAP" > /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/keymap
+ fi
+fi
+
+###set date and time###
+#20201201 see TZ set early in script.
+#could read .session/etc/clock and run hwclock, but for now this probably good enough (refer: rc.shutdown)...
+#200218 fixed /dev/rtc0 and symlink /dev/rtc for modern kernels, replacing old /dev/rtc
+#       also have rtc drivers builtin to kernel >=5.4.20. can now use hwclock...
+CLKflg=1
+if [ -e /sys/class/rtc/rtc0 ];then
+ if [ -s /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/clock ];then
+. /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/clock #has HWCLOCKTIME=localtime or utc
+  case "$HWCLOCKTIME" in
+   localtime) hwclock -s --localtime -f /dev/rtc0; CLKflg=$? ;;
+   utc)       hwclock -s -u -f /dev/rtc0; CLKflg=$? ;;
+  esac
+ else #first bootup, assume hw clock is localtime...
+  hwclock -s --localtime -f /dev/rtc0
+ fi
+fi
+if [ $CLKflg -ne 0 ];then
+ if [ -s /mnt/${WKG_DEV}/${WKG_DIR}.session/var/local/shutdown_date_saved ];then
+  date -s "`cat /mnt/${WKG_DEV}/${WKG_DIR}.session/var/local/shutdown_date_saved`" > /dev/null
+ fi
+fi
+#20210113 rpi does not have a hardware clock, set it to something sane at 1st bootup...
+YEAR=$(date +%Y) #ex: 1970
+if [ $YEAR -lt 2020 ];then
+ #set date same as DISTRO_SPECS file...
+ fDATE="$(stat -c %y /etc/DISTRO_SPECS | cut -f 1,2 -d ':')"
+ DATE="$(date -s "$fDATE")"
+else
+ DATE="$(date)"
+fi
+export DATE #ex: Tue Mar  3 07:09:34 +08 2020
+
+###TRIM###
+if [ "$TRIMflg" ];then #200302  20220621 now in wkg-part...
+ [ ! -f /mnt/${WKG_DEV}/${WKG_DIR}.easyos-bootcnt ] && echo -n '0' > /mnt/${WKG_DEV}/${WKG_DIR}.easyos-bootcnt
+ BOOTCNT=$(cat /mnt/${WKG_DEV}/${WKG_DIR}.easyos-bootcnt)
+ BOOTCNT=$(($BOOTCNT+1))
+ if [ $BOOTCNT -gt 20 ];then
+  BOOTCNT=0
+  echo -e "\\033[1;35mExecuting fstrim on SSD working-partition...\\033[0;39m\n " #purple
+  fstrim -v /mnt/${WKG_DEV}
+ fi
+ echo -n "$BOOTCNT" > /mnt/${WKG_DEV}/${WKG_DIR}.easyos-bootcnt
+fi
+
+[ "$DROPOUT" == "2" ] && exit_to_initrd " Exited from init script, before recovery & maintenance operations."
+
+###recovery, maintenance###
+KERNELNAME=vmlinuz
+[ "$INIT_DISTRO_KERNEL_NAME" ] && KERNELNAME="$INIT_DISTRO_KERNEL_NAME" #20220621 ex: rpi4: kernel8.img
+export KERNELNAME
+if [ "$QFIX" ];then #190817 see similar code above.
+ for ONEFIX in `echo -n "$QFIX" | tr ',' ' '`
+ do
+  case $ONEFIX in
+   fsck|FSCK) echo -n "${WKG_DEV},${WKG_FS},REQUEST" > /mnt/${WKG_DEV}/${WKG_DIR}.fsckme.flg ;; #20220801
+   back|bak|BACK|BAK) echo -n ",last" > /mnt/${WKG_DEV}/${WKG_DIR}.session/.rollback.flg ;;
+   new|NEW) echo -n ",erase" > /mnt/${WKG_DEV}/${WKG_DIR}.session/.rollback.flg ;; #181009 200720
+  esac
+ done
+fi
+
+#191224 if easy.sfs mounted on /tro (via loop0), rollback fails (easy.sfs seems to delete, but isn't), hence moved rollback below unmount /tnew
+[ -s /mnt/${WKG_DEV}/${WKG_DIR}.session/.rollback.flg ] && rollback "${WKG_DRV}" "${WKG_DEV}" "${WKG_DIR}"
+
+#200726 if boot- and wkg-partition the same, cannot unmount wkg-partition and fscheck
+#fails, coz of temporary easy.sfs mounted on tro. moved down...
+if [ -s /mnt/${WKG_DEV}/${WKG_DIR}.fsckme.flg ];then #20220801
+ #200726 fscheck modified to not use e2fsck in easy.sfs...
+ fscheck "${WKG_DRV}" "${WKG_DEV}" "${WKG_DIR}" "${WKG_FS}" #ex: improper shutdown
+ [ $? -ne 0 ] && err_exit "Fatal error when filesystem check"
+fi
+
+[ "$DROPOUT" == "3" ] && exit_to_initrd " Exited from init script, before version control."
+
+###version control###
+prevVER="" #170919
+if [ ! -d /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${INIT_DISTRO_VERSION} ];then
+ echo -e "\\033[1;35mOne-time only operation, creating a snapshot of EasyOS\\033[0;39m"
+ echo "  This will allow future rollback with the Easy Version Control Manager"
+ echo "  Populating: /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${INIT_DISTRO_VERSION}"
+ mkdir /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${INIT_DISTRO_VERSION}
+ 
+ #170816 there is a limit on history...
+ if [ -s /mnt/${WKG_DEV}/${WKG_DIR}.session/var/local/version-history-depth ];then
+  DEPTH_MAX="$(cat /mnt/${WKG_DEV}/${WKG_DIR}.session/var/local/version-history-depth)"
+  VERS="$(ls -l -d /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-* | rev | cut -f 1 -d '-' | rev)" #181218 fix.
+  sortedVERS="$(echo "$VERS" | sort -t. -k 1,1n -k 2,2n -k 3,3n -k 4,4n)" #lowest to highest.
+  for ADEL in `echo "$sortedVERS" | head -n -${DEPTH_MAX} | tr '\n' ' '`
+  do
+   if [ -d /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${ADEL} ];then
+    MSGdel="Warning, deleting old version:"
+    echo -e "  \\033[1;31m${MSGdel} easy-${ADEL}\\033[0;39m" #red
+    #181205 remove sfs files symlinked to sfs folder...
+    for aSL in `realpath /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${ADEL}/*.sfs | tr '\n' ' '`
+    do
+     aMAIN="${aSL/.sfs/}"
+     rm -f ${aSL}
+     [ -f ${aMAIN}.specs ] && rm -f ${aMAIN}.specs
+    done
+    rm -rf /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${ADEL}
+   fi
+  done
+ fi
+
+ if [ -f /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/DISTRO_SPECS ];then
+  prevVER="$(grep '^DISTRO_VERSION=' /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/DISTRO_SPECS | cut -f 2 -d '=' | cut -f 1 -d ' ')"
+  touch /mnt/${WKG_DEV}/${WKG_DIR}.session/.delayedrun_version_upgrade #see /usr/sbin/delayedrun
+ else
+  prevVER=""
+ fi
+ if [ "$WKG_DEV" != "zram0" ];then #181203 200824
+  if [ -f /mnt/${WKG_DEV}/${WKG_DIR}initrd ];then #190130
+   echo -n '  initrd'
+   cp -a -f /mnt/${WKG_DEV}/${WKG_DIR}initrd /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${INIT_DISTRO_VERSION}/ #181130 renamed initrd.q to initrd. 200828 -a
+   #190828 verify...
+   cp_verify_func /mnt/${WKG_DEV}/${WKG_DIR}initrd /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${INIT_DISTRO_VERSION}/initrd
+  fi
+  echo -n " ${KERNELNAME}"
+  cp -a -f /mnt/${WKG_DEV}/${WKG_DIR}${KERNELNAME} /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${INIT_DISTRO_VERSION}/ #200828 -a
+  #190828 verify...
+  cp_verify_func /mnt/${WKG_DEV}/${WKG_DIR}${KERNELNAME} /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${INIT_DISTRO_VERSION}/${KERNELNAME}
+ fi
+ #181029 all .sfs files are now in /mnt/wkg/sfs, with symlinks (to avoid being encrypted)...
+ mkdir -p /mnt/${WKG_DEV}/${WKG_DIR}sfs/easyos/${INIT_DISTRO_BINARY_COMPAT}/${INIT_DISTRO_COMPAT_VERSION} #ex: oe/pyro
+ echo ' easy.sfs' 
+ if [ -f /mnt/${WKG_DEV}/${WKG_DIR}easy.sfs ];then #20220615
+  mv -f /mnt/${WKG_DEV}/${WKG_DIR}easy.sfs /mnt/${WKG_DEV}/${WKG_DIR}sfs/easyos/${INIT_DISTRO_BINARY_COMPAT}/${INIT_DISTRO_COMPAT_VERSION}/easy_${INIT_DISTRO_VERSION}_${INIT_DISTRO_TARGETARCH}.sfs
+ else
+  err_exit "Cannot find easy.sfs"
+ fi
+ ln -s ../../sfs/easyos/${INIT_DISTRO_BINARY_COMPAT}/${INIT_DISTRO_COMPAT_VERSION}/easy_${INIT_DISTRO_VERSION}_${INIT_DISTRO_TARGETARCH}.sfs /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${INIT_DISTRO_VERSION}/easy.sfs
+ 
+ #190123 need some meta-data for easy.sfs...
+ #190913 change SFS_DB_install from 'terminal' to 'desk'...
+ #also need easy.png here, done in 3buildeasydistro (see #190123)
+ ESUM="$(sha256sum /mnt/${WKG_DEV}/${WKG_DIR}sfs/easyos/${INIT_DISTRO_BINARY_COMPAT}/${INIT_DISTRO_COMPAT_VERSION}/easy_${INIT_DISTRO_VERSION}_${INIT_DISTRO_TARGETARCH}.sfs | cut -f 1 -d ' ')"
+ echo "#created in initrd, script init
+SFS_DB_pkgname='easy_${INIT_DISTRO_VERSION}'
+SFS_DB_nameonly='easy'
+SFS_DB_version='${INIT_DISTRO_VERSION}'
+SFS_DB_revision=''
+SFS_DB_arch='${INIT_DISTRO_TARGETARCH}'
+SFS_DB_categories='Utility'
+SFS_DB_size='1537668'
+SFS_DB_fullfilename='easy_${INIT_DISTRO_VERSION}_${INIT_DISTRO_TARGETARCH}.sfs'
+SFS_DB_dependencies=''
+SFS_DB_description='EasyOS base SFS'
+SFS_DB_description_long='This is the complete EasyOS filesystem.'
+SFS_DB_compileddistro='${INIT_DISTRO_BINARY_COMPAT}'
+SFS_DB_compiledrelease='${INIT_DISTRO_COMPAT_VERSION}'
+SFS_DB_path='easyos/${INIT_DISTRO_BINARY_COMPAT}/${INIT_DISTRO_COMPAT_VERSION}'
+SFS_DB_apps='easy'
+SFS_DB_icons='easy'
+SFS_DB_install='desk'
+SFS_DB_hash='${ESUM}'" > /mnt/${WKG_DEV}/${WKG_DIR}sfs/easyos/${INIT_DISTRO_BINARY_COMPAT}/${INIT_DISTRO_COMPAT_VERSION}/easy_${INIT_DISTRO_VERSION}_${INIT_DISTRO_TARGETARCH}.specs
+ 
+ rm -rf /mnt/${WKG_DEV}/${WKG_DIR}.session/.[a-z]* 2>/dev/null #precaution.
+ ##170919 delete *all* whiteout files (see also /sbin/fixlayers)...
+ #find /mnt/${WKG_DEV}/${WKG_DIR}.session -mindepth 1 -type f -name '.wh.*' -delete 2>/dev/null
+
+ if [ "$EOS_SUPPORT_CONTAINERS" != "0" ];then
+  ###upgrade hacks###
+  #190913 the inbuilt easy container has label pyro or buster, need to fix older versions of easyos...
+  #old version has label "easy". this fix is for when do a version upgrade...
+  #problem only for upgrading easy pyro <1.2.3 and buster <2.1.3
+  if [ -f /mnt/${WKG_DEV}/${WKG_DIR}.session/root/Choices/ROX-Filer/PuppyPin ];then
+   if grep '"easy"' /mnt/${WKG_DEV}/${WKG_DIR}.session/root/Choices/ROX-Filer/PuppyPin > /dev/null; then
+    #there is a desktop icon labeled "easy"
+    sed -i '/"easy"/d' /mnt/${WKG_DEV}/${WKG_DIR}.session/root/Choices/ROX-Filer/PuppyPin
+    [ -f /mnt/${WKG_DEV}/${WKG_DIR}.session/root/Choices/ROX-Filer/PuppyPinBACKUP ] && sed -i '/"easy"/d' /mnt/${WKG_DEV}/${WKG_DIR}.session/root/Choices/ROX-Filer/PuppyPinBACKUP
+    [ -d /mnt/${WKG_DEV}/${WKG_DIR}containers/easy ] && rm -rf /mnt/${WKG_DEV}/${WKG_DIR}containers/easy
+    #190915 create pyro or buster container...
+    for aCONT in `ls -1 /skeleton/containers`
+    do
+     [ -d /mnt/${WKG_DEV}/${WKG_DIR}containers/${aCONT} ] && continue
+     cp -a /skeleton/containers/${aCONT} /mnt/${WKG_DEV}/${WKG_DIR}containers/
+     cp -a -f /skeleton/containers/${aCONT}/.sessionSKEL/* /mnt/${WKG_DEV}/${WKG_DIR}containers/${aCONT}/.session/
+     [ -d /skeleton/containers/${aCONT}/.sessionSKEL/.control ] && cp -a -f /skeleton/containers/${aCONT}/.sessionSKEL/.control /mnt/${WKG_DEV}/${WKG_DIR}containers/${aCONT}/.session/
+    done
+   fi
+  fi
+ fi
+  
+ mkdir -p /mnt/${WKG_DEV}/${WKG_DIR}.session/etc
+ 
+ #20201204 do not remove, users may have created their own desktop icons...
+ ##200830 this may have invalid icons, delete it, will get copied from root/Choices/ROX-Filer/globicons ...
+ #[ -f /mnt/${WKG_DEV}/${WKG_DIR}.session/root/.config/rox.sourceforge.net/ROX-Filer/globicons ] && rm -f /mnt/${WKG_DEV}/${WKG_DIR}.session/root/.config/rox.sourceforge.net/ROX-Filer/globicons
+ 
+ #20220601 desktop icons have changed layout, so erase previous...
+ # "update" icon is now on the second row (and for top-level-zram1 bootup have a "save" icon)...
+ grep -q grep '"32".*easy\-update' /mnt/${WKG_DEV}/${WKG_DIR}.session/root/Choices/ROX-Filer/PuppyPin 2>/dev/null
+ if [ $? -eq 0 ];then
+  rm -f /mnt/${WKG_DEV}/${WKG_DIR}.session/root/.config/rox.sourceforge.net/ROX-Filer/globicons 2>/dev/null
+  rm -f /mnt/${WKG_DEV}/${WKG_DIR}.session/root/Choices/ROX-Filer/globicons 2>/dev/null
+  rm -f /mnt/${WKG_DEV}/${WKG_DIR}.session/root/Choices/ROX-Filer/PuppyPin
+  rm -f /mnt/${WKG_DEV}/${WKG_DIR}.session/root/Choices/ROX-Filer/PuppyPinBACKUP 2>/dev/null
+ fi
+ 
+ #200830 this folder must always be pristine...
+ [ -d /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/xdg ] && rm -rf /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/xdg
+ 
+ #20211207 relocated here.
+ #20211205 upgrading from easyos <3.1.13
+ # no longer have /files symlink. rc.sysinit will do a "mount --bind" onto /files
+ if [ -h /mnt/${WKG_DEV}/${WKG_DIR}.session/files ];then
+  rm -f /mnt/${WKG_DEV}/${WKG_DIR}.session/files
+ fi
+ #files folder, everything must belong to 'fscryptgrp' group. 20211206 now 'filesgrp'
+ FGRP="$(stat -c %g /mnt/${WKG_DEV}/${WKG_DIR}files)"
+ if [ "$FGRP" != "122" ];then
+  chgrp -R 122 /mnt/${WKG_DEV}/${WKG_DIR}files
+ fi
+ #20211210...
+ FPERM="$(stat -c %a /mnt/${WKG_DEV}/${WKG_DIR}files)"
+ if [ "$FPERM" != "770" ];then
+  chmod 770 /mnt/${WKG_DEV}/${WKG_DIR}files
+  chmod 770 $(find /mnt/${WKG_DEV}/${WKG_DIR}files -mindepth 1 -type d | tr '\n' ' ')
+ fi
+ #these must be symlinks... 20211207 no, delete Downloads folders. create user-dirs.dirs
+ for aDL in $(find /mnt/${WKG_DEV}/${WKG_DIR}.session/home -mindepth 2 -maxdepth 2 -type d -name Downloads 2>/dev/null | tr '\n' ' ')
+ do
+  rm -rf "$aDL"
+  #aAPP="$(echo -n "$aDL" | rev | cut -f 2 -d '/' | rev)"
+  #ln -s /mnt/${WKG_DEV}/${WKG_DIR}files/downloads $aDL
+  bDL="$(dirname $aDL)"
+  mkdir -p ${bDL}/.config #20211208 -p as already exists.
+  echo 'XDG_DESKTOP_DIR="/files"
+XDG_DOCUMENTS_DIR="/files/documents"
+XDG_DOWNLOAD_DIR="/files/downloads"
+XDG_MUSIC_DIR="/files/media"
+XDG_PICTURES_DIR="/files/media"
+XDG_PUBLICSHARE_DIR="/files/shared"
+XDG_TEMPLATES_DIR="/files"
+XDG_VIDEOS_DIR="/files/media"' > ${bDL}/.config/user-dirs.dirs
+ done
+ if [ -e /mnt/${WKG_DEV}/${WKG_DIR}.session/root/Downloads ];then
+  #if [ ! -h /mnt/${WKG_DEV}/${WKG_DIR}.session/root/Downloads ];then
+   rm -rf /mnt/${WKG_DEV}/${WKG_DIR}.session/root/Downloads
+   #note, it is now a hyperlink in easy.sfs  20211207 no longer in easy.sfs
+  #fi
+ fi
+ if [ "$EOS_SUPPORT_CONTAINERS" != "0" ];then
+  #also kill these in containers:
+  # /mnt/${WKG_DEV}/${WKG_DIR}containers/${EXE}/container/mnt/wkg
+  for aCN in /mnt/${WKG_DEV}/${WKG_DIR}containers/*
+  do
+   if [ -d ${aCN}/.session/mnt ];then
+    rm -rf ${aCN}/.session/mnt
+   fi
+   if [ -h ${aCN}/.session/files ];then
+    rm -f ${aCN}/.session/files
+   fi
+  done
+ fi
+   
+ if [ $SESSIONSFSflag -eq 1 ];then #170525
+  if [ ! "$prevVER" ];then
+   #.session folder (rw layer) is empty, but need a session.sfs anyway...
+   echo -n ' session'; mksquashfs /mnt/${WKG_DEV}/${WKG_DIR}.session /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${INIT_DISTRO_VERSION}/session.sfs -comp lz4 -Xhc >/dev/null
+  else
+   #need to merge .session (rw layer) with easy-$prevVER/session.sfs, create new session.sfs...
+   mkdir sro snew
+   mount -t squashfs -o loop,noatime /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${prevVER}/session.sfs sro
+   [ $? -ne 0 ] && err_exit "FAILED: mount -t squashfs -o loop,noatime /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${prevVER}/session.sfs sro"
+   if [ "$LAYERFS" == "aufs" ];then
+    mount -t aufs -o br=/mnt/${WKG_DEV}/${WKG_DIR}.session=rw:sro=ro aufs snew
+    [ $? -ne 0 ] && err_exit "FAILED: mount -t aufs -o br=/mnt/${WKG_DEV}/${WKG_DIR}.session=rw:sro=ro aufs snew"
+   else
+    mkdir -p /mnt/${WKG_DEV}/${WKG_DIR}swork
+    mount -t overlay -o lowerdir=sro,upperdir=/mnt/${WKG_DEV}/${WKG_DIR}.session,workdir=/mnt/${WKG_DEV}/${WKG_DIR}swork overlay snew
+    [ $? -ne 0 ] && err_exit "FAILED: mount -t overlay -o lowerdir=sro,upperdir=/mnt/${WKG_DEV}/${WKG_DIR}.session,workdir=/mnt/${WKG_DEV}/${WKG_DIR}swork overlay snew"
+   fi
+   #180606 need path root/.XLOADED  181121 exclude .control
+   echo -e 'dev\nmnt\nproc\nrun\nsys\ntmp\nvar\nlost+found\nroot/.XLOADED\n.control' > exclusions1 #exclusions.
+   mksquashfs snew /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${INIT_DISTRO_VERSION}/session.sfs -ef exclusions1 -comp lz4 -Xhc #>/dev/null
+   echo -e "\\033[1;33mPlease wait, synchronizing...\\033[0;39m" #yellow
+   sync
+   umount snew
+   umount sro
+   [ -d /mnt/${WKG_DEV}/${WKG_DIR}swork ] && rm -rf /mnt/${WKG_DEV}/${WKG_DIR}swork
+   rm -rf /mnt/${WKG_DEV}/${WKG_DIR}.session/*
+   rm -f /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${prevVER}/session.sfs #remove session.sfs in prev. version.
+  fi
+ else
+  #echo -n "rw-${INIT_DISTRO_VERSION}.sfs"; 
+  
+  #20221015 code from easy-version-control...
+  echo -e 'dev\nmnt\nproc\nrun\nsys\ntmp\nvar\n.fsckme.flg\nlost+found\nroot/.XLOADED\n.control' > exclusions1
+  if [ -d /mnt/${WKG_DEV}/${WKG_DIR}.session/root/.ccache ];then #does oe create this? huge, 6.8GB
+   echo 'root/.ccache' >> exclusions1
+  fi
+  DOTC="$(find /mnt/${WKG_DEV}/${WKG_DIR}.session -maxdepth 3 -type d -name '.cache' | cut -f 6- -d '/' | tr '/n' ' ')" #ex: home/firefox/.cache
+  for aDOTC in $DOTC
+  do
+   echo "$aDOTC" >> exclusions1
+  done
+  
+  mksquashfs /mnt/${WKG_DEV}/${WKG_DIR}.session /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${INIT_DISTRO_VERSION}/rw-${INIT_DISTRO_VERSION}.sfs -ef exclusions1 -comp lz4 -Xhc #>/dev/null
+ fi
+ if [ "$EOS_SUPPORT_CONTAINERS" != "0" ];then
+  #also save any container sessions:
+  for EXE in `ls -1 /mnt/${WKG_DEV}/${WKG_DIR}containers | tr '\n' ' '`
+  do
+   [ ! -d /mnt/${WKG_DEV}/${WKG_DIR}containers/${EXE}/.session ] && continue
+   #echo -n " ec-${EXE}"; mksquashfs /mnt/${WKG_DEV}/${WKG_DIR}containers/${EXE}/.session /mnt/${WKG_DEV}/${WKG_DIR}containers/${EXE}/rw-${prevVER}.sfs -comp gzip >/dev/null
+   cp -a -f /mnt/${WKG_DEV}/${WKG_DIR}containers/${EXE}/configuration /mnt/${WKG_DEV}/${WKG_DIR}containers/${EXE}/configuration-${INIT_DISTRO_VERSION} #200828 -a
+  done
+ fi
+ echo
+ touch /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${INIT_DISTRO_VERSION}/configuration
+ touch /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${INIT_DISTRO_VERSION}/configuration-${INIT_DISTRO_VERSION}
+else #20220613
+ if [ -f /mnt/${WKG_DEV}/${WKG_DIR}easy.sfs ];then #20220615
+  #should only exist when do update, and easy.sfs gets moved into releases folder.
+  echo -e "\\033[1;31m/mnt/${WKG_DEV}/${WKG_DIR}easy.sfs Why does this file exist? Removing it.\\033[0;39m" #red
+  rm -f /mnt/${WKG_DEV}/${WKG_DIR}easy.sfs
+ fi
+fi
+
+###recompress easy.sfs### improve operating speed, recompress easy.sfs (refer quicksetup)
+if [ -s /mnt/${WKG_DEV}/${WKG_DIR}.session/.qsfs.flg ];then #181029 now in sfs folder...
+ echo -e "\\033[1;35mRecompressing easy.sfs, xz to gz, please wait\\033[0;39m" #purple
+ mkdir /mntsfs
+ mount -r -t squashfs -o loop,noatime /mnt/${WKG_DEV}/${WKG_DIR}sfs/easyos/${INIT_DISTRO_BINARY_COMPAT}/${INIT_DISTRO_COMPAT_VERSION}/easy_${INIT_DISTRO_VERSION}_${INIT_DISTRO_TARGETARCH}.sfs /mntsfs
+ mksquashfs /mntsfs /mnt/${WKG_DEV}/${WKG_DIR}sfs/easyos/${INIT_DISTRO_BINARY_COMPAT}/${INIT_DISTRO_COMPAT_VERSION}/easy-gz.sfs -comp lz4 -Xhc #>/dev/null 180604
+ sync
+ umount /mntsfs
+ mv -f /mnt/${WKG_DEV}/${WKG_DIR}sfs/easyos/${INIT_DISTRO_BINARY_COMPAT}/${INIT_DISTRO_COMPAT_VERSION}/easy-gz.sfs /mnt/${WKG_DEV}/${WKG_DIR}sfs/easyos/${INIT_DISTRO_BINARY_COMPAT}/${INIT_DISTRO_COMPAT_VERSION}/easy_${INIT_DISTRO_VERSION}_${INIT_DISTRO_TARGETARCH}.sfs
+ sync
+ if [ -f /mnt/${WKG_DEV}/${WKG_DIR}sfs/easyos/${INIT_DISTRO_BINARY_COMPAT}/${INIT_DISTRO_COMPAT_VERSION}/easy_${INIT_DISTRO_VERSION}_${INIT_DISTRO_TARGETARCH}.specs ];then #190314
+  HASHnew="$(sha256sum /mnt/${WKG_DEV}/${WKG_DIR}sfs/easyos/${INIT_DISTRO_BINARY_COMPAT}/${INIT_DISTRO_COMPAT_VERSION}/easy_${INIT_DISTRO_VERSION}_${INIT_DISTRO_TARGETARCH}.sfs | cut -f 1 -d ' ')"
+  sed -i -e "s%^SFS_DB_hash=.*%SFS_DB_hash='${HASHnew}'%" /mnt/${WKG_DEV}/${WKG_DIR}sfs/easyos/${INIT_DISTRO_BINARY_COMPAT}/${INIT_DISTRO_COMPAT_VERSION}/easy_${INIT_DISTRO_VERSION}_${INIT_DISTRO_TARGETARCH}.specs
+  sync
+ fi
+ rm -f /mnt/${WKG_DEV}/${WKG_DIR}.session/.qsfs.flg
+fi
+
+[ "$DROPOUT" == "4" ] && exit_to_initrd " Exited from init script, before setting up SFS layers."
+
+###setup bottom ro layer, with easy.sfs###
+echo -e "\\033[1;35mMounting read-only layer of layered filesystem\\033[0;39m" #purple
+QSFSbytes0=`stat -L -c %s /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${INIT_DISTRO_VERSION}/easy.sfs` #181029
+if [ "$xWKG_DEV" ];then #190914 allocate more space in zram if extra sfss
+ for eSFS in `grep '^EASY_LAYER_RO' /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${INIT_DISTRO_VERSION}/configuration | cut -f 2 -d '=' | tr '\n' ' '`
+ do
+  [ "$eSFS" == "devx.sfs" ] && continue
+  [ "$eSFS" == "kernel.sfs" ] && continue
+  eSFSbytes=`stat -L -c %s /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${INIT_DISTRO_VERSION}/${eSFS}`
+  QSFSbytes0=$(($QSFSbytes0+$eSFSbytes))
+ done
+fi
+QSFSbytes1=$(($QSFSbytes0+500000))
+mount -t tmpfs -o size=${QSFSbytes1} tmpfs /easy_ro
+mkdir /easy_ro/easy_sfs
+#decide whether to copy easy.sfs to RAM, or not...
+CPYflg=0
+[ $FREEK -gt 3100000 ] && CPYflg=1 #>1GB ram then copy. 20220609 >3GB
+[ $TIME10k -lt 100 ] && CPYflg=0   #but fast drive so don't copy.
+[ $FREEK -gt 6100000 ] && CPYflg=1 #but heaps of ram, so copy. 181120 restore. 20220609
+[ $TIME10k -lt 15 ] && CPYflg=0    #181120 but super-fast drive so don't copy. 200827 was 30 now 10. 20220607 now 15.
+[ "$xWKG_DEV" ] && CPYflg=1        #190817 will be running totally in ram.
+if [ $CPYflg -eq 0 ];then
+ #do not copy easy.sfs into ram, mount where it is...
+ echo "  Mounting squashfs file easy.sfs"
+ QSFS_PATH="/mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${INIT_DISTRO_VERSION}/" #need this for setting up containers.
+ mount -r -t squashfs -o noatime,loop /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${INIT_DISTRO_VERSION}/easy.sfs /easy_ro/easy_sfs
+else
+ echo "  Copying easy.sfs to RAM, then mounting"
+ [ ! -f /easy_ro/easy.sfs ] && cp -L -p /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${INIT_DISTRO_VERSION}/easy.sfs /easy_ro/ #181029 200830 -p
+ QSFS_PATH="/mnt/.easy_ro/" #need this for setting up containers. 20220524
+ mount -r -t squashfs -o noatime,loop /easy_ro/easy.sfs /easy_ro/easy_sfs
+fi
+[ $? -ne 0 ] && err_exit "Failed to mount easy.sfs"
+mkdir -p /mnt/${WKG_DEV}/${WKG_DIR}.session/etc #170927 missing if have erased session.
+cp -a -f /easy_ro/easy_sfs/etc/DISTRO_SPECS /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/ #need to be sure correct one is on top. 200828 -a
+EXTRASFS=""; sessionSFS=""; NEWEXTRASFSLIST=""
+if [ $SESSIONSFSflag -eq 1 ];then #170525
+ mkdir /easy_ro/session
+ mount -r -t squashfs -o loop,noatime /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${INIT_DISTRO_VERSION}/session.sfs /easy_ro/session
+ sessionSFS="/easy_ro/session${RO}:"
+fi
+#precaution...
+. /easy_ro/easy_sfs/etc/DISTRO_SPECS
+[ "$DISTRO_VERSION" != "$INIT_DISTRO_VERSION" ] && echo -e "\\033[1;31mWARNING, versions do not match. initrd: ${INIT_DISTRO_VERSION}, easy.sfs: ${DISTRO_VERSION}\\033[0;39m" #red
+
+###load extra sfs on ro layer###
+#the configuration file defines any more sfs files to load. easy.sfs is always loaded
+# (on bottom), and session.sfs on top of ro layers.
+. /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${INIT_DISTRO_VERSION}/configuration
+#if [ "$xWKG_DEV" == "" ];then #190817 190914
+ for NUM in 4 3 2 1
+ do
+  eval "ROsfs=\$EASY_LAYER_RO${NUM}" #implements indirection. EASY_LAYER_RO1='devx*.sfs' in configuration file, will assign 'devx*.sfs' to ROsfs. 170320 170523
+  if [ "$ROsfs" ];then
+   #170523 check file exists. note, may have a glob wildcard...
+   #181029 no longer have wildcard. ex: devx.sfs which is a symlink into 'sfs' folder...
+   #20211122 if $ROsfs is a broken symlink, still want to detect it (see 20211111 below)...
+   #FNDSFSS="$(ls -1 /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${INIT_DISTRO_VERSION}/${ROsfs} | tr '\n' ' ')"
+   FNDSFSS="$(find /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${INIT_DISTRO_VERSION} -mindepth 1 -maxdepth 1 -name "${ROsfs}" | tr '\n' ' ')"
+   for FNDSFS in $FNDSFSS
+   do
+    ANAME="$(basename $FNDSFS .sfs)" #ex: devx
+    NAMEONLY="${ANAME/_*/}" #181029 precaution.
+    #181029 all .sfs files must be under sfs folder, to avoid encryption (except for rw-*.sfs)...
+    # this is a precaution, should already be done...
+    if [ "$ANAME" != "$NAMEONLY" ];then
+     mv -f /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${INIT_DISTRO_VERSION}/${ANAME}.sfs /mnt/${WKG_DEV}/${WKG_DIR}sfs/easyos/${INIT_DISTRO_BINARY_COMPAT}/${INIT_DISTRO_COMPAT_VERSION}/
+     ln -snf ../../sfs/easyos/${INIT_DISTRO_BINARY_COMPAT}/${INIT_DISTRO_COMPAT_VERSION}/${ANAME}.sfs /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${INIT_DISTRO_VERSION}/${NAMEONLY}.sfs
+     ANAME="$NAMEONLY"
+    fi
+    
+    #20211111 check sfs still exists... need full readlink from coreutils
+    readlink -e /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${INIT_DISTRO_VERSION}/${ANAME}.sfs >/dev/null
+    if [ $? -ne 0 ];then
+     #not there.
+     rm -f /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${INIT_DISTRO_VERSION}/${ANAME}.sfs
+     sed -i "/EASY_LAYER_RO${NUM}/d" /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${INIT_DISTRO_VERSION}/configuration
+     sed -i "/EASY_LAYER_RO${NUM}/d" /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${INIT_DISTRO_VERSION}/configuration-${INIT_DISTRO_VERSION} 2>/dev/null
+     echo "  Extra squashfs file ${ANAME}.sfs does not exist, removed from load-list."
+     continue
+    fi
+    
+    mkdir /easy_ro/$ANAME
+    if [ "$xWKG_DEV" ];then #190914 copying session to ram.
+     [ "$ANAME" == "devx" ] && continue
+     [ "$ANAME" == "kernel" ] && continue
+     echo "  Copying to RAM and mounting extra squashfs file: ${ANAME}.sfs"
+     cp -L -p -f /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${INIT_DISTRO_VERSION}/${ANAME}.sfs /easy_ro/ #200830 -p
+     mount -r -t squashfs -o noatime,loop /easy_ro/${ANAME}.sfs /easy_ro/${ANAME}
+    else
+     echo "  Mounting extra squashfs file: ${ANAME}.sfs"
+     mount -r -t squashfs -o noatime,loop /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${INIT_DISTRO_VERSION}/${ANAME}.sfs /easy_ro/${ANAME}
+    fi
+    
+    #20221016 check valid library path...
+    BADextra=0
+    if [ -h /easy_ro/easy_sfs/usr/lib64 ];then
+     if [ -e /easy_ro/${ANAME}/usr/lib64 ];then
+      BADextra=1
+      echo -e "\\033[1;31mERROR: /usr/lib64 incorrect path in SFS: ${ANAME}.sfs\nTHIS SFS WILL NOT BE LOADED\\033[0;39m" #red
+     fi
+    fi
+    if [ -h /easy_ro/easy_sfs/usr/lib/x86_64-linux-gnu ];then
+     if [ -e /easy_ro/${ANAME}/usr/lib/x86_64-linux-gnu ];then
+      BADextra=1
+      echo -e "\\033[1;31mERROR: /usr/lib/x86_64-linux-gnu incorrect path in SFS: ${ANAME}.sfs\nTHIS SFS WILL NOT BE LOADED\\033[0;39m" #red
+     fi
+    fi
+    if [ $BADextra -eq 1 ];then
+     umount /easy_ro/${ANAME}
+     if [ -f /easy_ro/${ANAME}.sfs ];then
+      rm -f /easy_ro/${ANAME}.sfs
+     fi
+     continue
+    fi
+    
+    EXTRASFS="/easy_ro/${ANAME}${RO}:${EXTRASFS}" #170206
+    NEWEXTRASFSLIST="${ANAME}:${NEWEXTRASFSLIST}" #170919
+   done
+  fi
+ done
+#fi
+
+if [ "$PW" ];then
+ #180612 set password for zeus... 180811 also root... 20220922 fix...
+ if [ ! -f /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/shadow ];then
+  echo -e "\\033[1;35mFirst-bootup security setup...\\033[0;39m" #purple
+  echo "  Setting same password for users zeus and root"
+  ePW="$(cryptpw -m SHA512 ${PW})" #note: busybox mkpasswd is an alias for cryptpw
+  grep -v -E '^zeus|^root' /easy_ro/easy_sfs/etc/shadow > /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/shadow
+  echo "zeus:${ePW}:17693:0:99999:7:::
+root:${ePW}:17693:0:99999:7:::" >> /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/shadow
+  if [ "$EOS_SUPPORT_CONTAINERS" != "0" ];then
+   for aCONT in `ls -1 /mnt/${WKG_DEV}/${WKG_DIR}containers` #desk console ssh0 www
+   do
+    cp -a -f /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/shadow /mnt/${WKG_DEV}/${WKG_DIR}containers/${aCONT}/.session/etc/
+   done
+  fi
+ fi
+fi
+
+###fix layers change###
+OLDEXTRASFSLIST="$(grep '^EXTRASFSLIST=' /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/rc.d/PUPSTATE 2>/dev/null | cut -f 2 -d "'")"
+[ -s /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/rc.d/PUPSTATE ] && [ "$NEWEXTRASFSLIST" != "$OLDEXTRASFSLIST" -o "$prevVER" != "" ] && /sbin/fixlayers "${WKG_DRV}" "${WKG_DEV}" "${NEWEXTRASFSLIST}" "${prevVER}" "${WKG_DIR}"
+
+###hardware profiling###
+#20211015 want hardware-profiling for /etc/modprobe.d ...
+ModprobeHardwareProfile=''
+mkdir -p /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/modprobe.d
+#class ids are: 0300 video controller, 0403 audio device, 0106 sata controller, 0c03 usb controller, 0600 host bridge
+#note, must use busybox lspci...
+newModprobeHardwareProfile="$(lspci | grep -E 'Class 0300:|Class 0403:' | cut -f 4 -d ' ' | tr '\n' '+')" #ex: 8086:3e91+8086:3e91+
+if [ "$newModprobeHardwareProfile" ];then
+ if [ -f  /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/modprobe.d/ModprobeHardwareProfile ];then
+  . /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/modprobe.d/ModprobeHardwareProfile
+  if [ ! -d /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/modprobe.d.${ModprobeHardwareProfile} ];then
+   cp -a /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/modprobe.d /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/modprobe.d.${ModprobeHardwareProfile}
+  fi
+ fi
+ if [ "$ModprobeHardwareProfile" != "newModprobeHardwareProfile" ];then
+  if [ -d /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/modprobe.d.${newModprobeHardwareProfile} ];then
+   rm -rf /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/modprobe.d
+   cp -a /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/modprobe.d.${newModprobeHardwareProfile} /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/modprobe.d
+  else
+   rm -f /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/modprobe.d/*
+  fi
+ fi
+ #make sure they are synced...
+ echo "ModprobeHardwareProfile='${newModprobeHardwareProfile}'" > /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/modprobe.d/ModprobeHardwareProfile
+ rm -rf /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/modprobe.d.${newModprobeHardwareProfile}
+ cp -a /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/modprobe.d /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/modprobe.d.${newModprobeHardwareProfile}
+fi
+
+###broken video###
+#20211014 kernel boot "qfix=vid nomodeset"
+# ...see refind.conf and syslinux.conf, generated by 3buildeasydistro
+if [ $BROKENVID -eq 1 ];then
+ #prevent kernel drm gpu modules from loading...
+ #instead of modeprobe.blacklist=nouveau modeprobe.blacklist=i915 modeprobe.blacklist=radeon modeprobe.blacklist=amdgpu modeprobe.blacklist=gma500_gfx
+ echo 'blacklist amdgpu
+blacklist gma500_gfx
+blacklist i915
+blacklist nouveau
+blacklist radeon' > /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/modprobe.d/gpu.conf
+ # so whatever framebuffer currently active, run xorgwizard-cli...
+ # firstly, get rid of previous settings...
+ mkdir -p /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/X11
+ rm -f /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/X11/xorg.conf 2>/dev/null
+ rm -rf /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/xorg.conf.d 2>/dev/null
+ # now set a flag, /root/.profile will run xorgwizard-cli...
+ touch /mnt/${WKG_DEV}/${WKG_DIR}.brokenvideo
+fi
+
+###maybe copy session to zram###
+#190817 see qfix=lock2 boot param.
+if [ "$xWKG_DEV" ];then
+ echo -e "\\033[1;35mCopying last working session to RAM\\033[0;39m"
+ #note: won't work for overlayfs, need somewhere for the workingdir.
+ mkdir -p /xram
+ mount -t $xWKG_FS /dev/zram0 /xram
+ #now copy stuff...
+ cp -a /skeleton/* /xram/
+ mkdir /xram/.session
+ cp -a /mnt/${WKG_DEV}/${WKG_DIR}.session/* /xram/.session/
+ cp -a /mnt/${WKG_DEV}/${WKG_DIR}.session/.wh..wh* /xram/.session/ 2>/dev/null #? 191211
+ #we cannot have containers, maybe...
+ #if [ "$CAPS_DROP" ];then #190818 see also further down. 200824 remove if
+ [ "$EOS_SUPPORT_CONTAINERS" != "0" ] && rm -rf /xram/containers/*
+ #fi
+ #200824 copy files that are outside .session. 200827 INIT_DISTRO_VERSION instead of DISTRO_VERSION...
+ #20211205 note, /files is now in easy.sfs
+ #20211208 problem is, files folder could get very large. only copy /files/shared...
+ mkdir -p /xram/files
+ chmod 770 /xram/files
+ chgrp 122 /xram/files
+ #cp -a /mnt/${WKG_DEV}/${WKG_DIR}files/* /xram/files/
+ cp -a /mnt/${WKG_DEV}/${WKG_DIR}files/shared /xram/files/
+ mkdir -p /xram/releases/easy-${INIT_DISTRO_VERSION}
+ cp -a /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${INIT_DISTRO_VERSION}/configuration /xram/releases/easy-${INIT_DISTRO_VERSION}/
+ cp -a /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${INIT_DISTRO_VERSION}/configuration-${INIT_DISTRO_VERSION} /xram/releases/easy-${INIT_DISTRO_VERSION}/
+ mkdir -p /xram/sfs/easyos/${DISTRO_BINARY_COMPAT}/${DISTRO_COMPAT_VERSION} #note, sfss already copied into ram if loaded.
+ #200826 mimic same path in zram for sfs files, with link (cannot have hard link)...
+ yEXTRASFSS="$(echo "$NEWEXTRASFSLIST" | tr ':' ' ')"
+ for aSFS in easy $yEXTRASFSS
+ do
+  aFULL="$(readlink -n /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${INIT_DISTRO_VERSION}/${aSFS}.sfs | rev | cut -f 1 -d '/' | rev)" #ex: easy_2.4_amd64.sfs.sfs
+  #links will be valid after bootup...
+  ln -s /mnt/.easy_ro/${aSFS}.sfs /xram/sfs/easyos/${DISTRO_BINARY_COMPAT}/${DISTRO_COMPAT_VERSION}/${aFULL} #20220524
+  ln -s ../../sfs/easyos/${DISTRO_BINARY_COMPAT}/${DISTRO_COMPAT_VERSION}/${aFULL} /xram/releases/easy-${INIT_DISTRO_VERSION}/${aSFS}.sfs
+ done
+ #200827 also copy the .png and .specs files...
+ cp -a -u /mnt/${WKG_DEV}/${WKG_DIR}sfs/easyos/${DISTRO_BINARY_COMPAT}/${DISTRO_COMPAT_VERSION}/*.specs /xram/sfs/easyos/${DISTRO_BINARY_COMPAT}/${DISTRO_COMPAT_VERSION}/
+ cp -a -u /mnt/${WKG_DEV}/${WKG_DIR}sfs/easyos/${DISTRO_BINARY_COMPAT}/${DISTRO_COMPAT_VERSION}/*.png /xram/sfs/easyos/${DISTRO_BINARY_COMPAT}/${DISTRO_COMPAT_VERSION}/
+ sync
+ WKG_DEV='zram0'
+ WKG_FS="$xWKG_FS"
+ WKG_DIR=''
+ SESSIONHOME="/xram/.session"
+else
+ SESSIONHOME="/mnt/${WKG_DEV}/${WKG_DIR}.session"
+fi
+
+if [ "$EOS_SUPPORT_CONTAINERS" != "0" ];then
+ #20211111 delete container if no longer valid... 20211208 /mnt/zram0/containers does not exist...
+ ECnames="$(find /mnt/${WKG_DEV}/${WKG_DIR}containers -mindepth 1 -maxdepth 1 -type d 2>/dev/null | rev | cut -f 1 -d '/' | rev | tr '\n' ' ')"
+ for aECname in ${ECnames}
+ do
+  if [ -d /mnt/${WKG_DEV}/${WKG_DIR}containers/${aECname} ];then #precaution
+   #20211122 -e test won't see it if broken symlink...
+   #if [ -e /mnt/${WKG_DEV}/${WKG_DIR}containers/${aECname}/${aECname}.sfs ];then
+   aECsfs="$(find /mnt/${WKG_DEV}/${WKG_DIR}containers/${aECname} -mindepth 1 -maxdepth 1 -name "${aECname}.sfs")"
+   if [ "${aECsfs}" ];then
+    #need full readlink from coreutils...
+    readlink -e /mnt/${WKG_DEV}/${WKG_DIR}containers/${aECname}/${aECname}.sfs >/dev/null
+    if [ $? -ne 0 ];then
+     rm -rf /mnt/${WKG_DEV}/${WKG_DIR}containers/${aECname}
+     rm -f /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/sbin/ec-chroot-${aECname} 2>/dev/null
+     rm -f /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/share/applications/ec-${aECname}.desktop 2>/dev/null
+     sed -i "/ec-chroot-${aECname}/d" /mnt/${WKG_DEV}/${WKG_DIR}.session/root/Choices/ROX-Filer/PuppyPin 2>/dev/null
+     sed -i "/ec-chroot-${aECname}/d" /mnt/${WKG_DEV}/${WKG_DIR}.session/root/Choices/ROX-Filer/PuppyPinBACKUP 2>/dev/null
+    fi
+   fi
+  fi
+ done
+fi
+
+
+###the big moment, create layered f.s.###
+#echo -e "\\033[1;35mCreating layered filesystem, with read-write folder: /mnt/${WKG_DEV}/.session\\033[0;39m"
+if [ $EOS_TOP_LEVEL_ZRAM -eq 1 ];then #20220521
+ create_top_level_zram1
+ mount -t ext2 /dev/zram1 /easy_rw
+ mkdir /easy_rw/mainrw #20220529 mainrw will be the aufs top-level layer.
+ if [ "$EOS_SUPPORT_CONTAINERS" != "0" ];then #20220529
+  #these will be the rw layer for containers...
+  mkdir /easy_rw/www
+  mkdir /easy_rw/console
+  mkdir /easy_rw/ssh0
+  mkdir /easy_rw/${INIT_DISTRO_COMPAT_VERSION} #ex: dunfell, bookworm
+ fi
+ rmdir /easy_rw/lost+found #20220615
+fi
+sync
+echo -e "\\033[1;35mCreating layered filesystem, type: ${LAYERFS}\\033[0;39m"
+if [ "$LAYERFS" == "aufs" ];then #170525 20220521
+ if [ $EOS_TOP_LEVEL_ZRAM -eq 1 ];then #20220521 20220529
+  mount -t aufs -o br=/easy_rw/mainrw=rw:${SESSIONHOME}=ro+wh:${sessionSFS}${EXTRASFS}/easy_ro/easy_sfs=ro aufs /easy_new
+ else
+  mount -t aufs -o br=${SESSIONHOME}=rw:${sessionSFS}${EXTRASFS}/easy_ro/easy_sfs=ro aufs /easy_new
+ fi
+else
+ mount -t overlay -o lowerdir=${sessionSFS}${EXTRASFS}/easy_ro/easy_sfs,upperdir=${SESSIONHOME},workdir=/mnt/${WKG_DEV}/${WKG_DIR}.tempwork overlay /easy_new
+fi
+[ $? -ne 0 ] && err_exit "Failed to create layered filesystem"
+
+###setup PUPSTATE###
+#/etc/rc.d/rc.sysinit will append to PUPSTATE, get the ball rolling here...
+#PUPMODE, bit-1 (partition has session), bit-2 (bottom layer is sfs) --rough equiv to puppy
+#200823 also want WKG_UUID...
+echo -e "PUPMODE=6\nWKG_UUID='${WKG_UUID}'\nWKG_DEV='${WKG_DEV}'\nWKG_FS='${WKG_FS}'\nWKG_DIR='${WKG_DIR}'\nQSFS_PATH='${QSFS_PATH}'" > /easy_new/etc/rc.d/PUPSTATE
+if [ "$origWKG_DEV" != "$WKG_DEV" ];then #200808 200822
+ echo -e "origWKG_DEV='${origWKG_DEV}'\norigWKG_FS='${origWKG_FS}'\norigWKG_UUID='${origWKG_UUID}'\norigWKG_DIR='${origWKG_DIR}'" >> /easy_new/etc/rc.d/PUPSTATE
+fi
+echo "WKGDRV_SPEED=${TIME10k}" >> /easy_new/etc/rc.d/PUPSTATE #20220611
+echo -e "EXTRASFSLIST='${NEWEXTRASFSLIST}'\nSESSIONSFSflag=${SESSIONSFSflag}" >> /easy_new/etc/rc.d/PUPSTATE #170919 170924
+echo "EOS_TOP_LEVEL_ZRAM='${EOS_TOP_LEVEL_ZRAM}'" >> /easy_new/etc/rc.d/PUPSTATE #20220521
+echo "EOS_SUPPORT_CONTAINERS='${EOS_SUPPORT_CONTAINERS}'" >> /easy_new/etc/rc.d/PUPSTATE #20220525
+#echo "EOS_LOGIN_ZEUS='${EOS_LOGIN_ZEUS}'" >> /easy_new/etc/rc.d/PUPSTATE #20221030 20221102 remove
+#echo "BOOT_PW_FLG='${PW//[a-zA-Z0-9]/X}'" >> /easy_new/etc/rc.d/PUPSTATE #180811 a flag so main f.s. will know if a pw was entered.
+echo "BOOT_PW_FLG='${PW/*/X}'" >> /easy_new/etc/rc.d/PUPSTATE #180811 set to "X" if $PW has something in it. note, used in /usr/local/EasyShare
+echo "BOOT_CAPS_DROPPED='${CAPS_DROP}'" >> /easy_new/etc/rc.d/PUPSTATE #190812 comma-delimited
+#200820 also want BOOT_UUID. 200823 want BOOT_LOCK ...
+[ "$LOCKDOWN" ] && echo "BOOT_LOCK='${LOCKDOWN}:${LOCKkeep}'" >> /easy_new/etc/rc.d/PUPSTATE
+
+if [ "$WKG_LOOP" ];then #20210524
+ echo "WKG_LOOP='${WKG_LOOP}'" >> /easy_new/etc/rc.d/PUPSTATE
+fi
+
+#200623 log stuff for debugging...
+mkdir -p /easy_new/root/.initrd-debug
+echo "$BLKIDS" > /easy_new/root/.initrd-debug/BLKIDS
+ls -l /dev > /easy_new/root/.initrd-debug/ls-dev
+cat /proc/fb > /easy_new/root/.initrd-debug/proc-fb #20211023
+
+[ "$DROPOUT" == "5" ] && exit_to_initrd " Exited from init script, before moving mount points to wkg f.s."
+
+###relocate mount-points prior to switch_root###
+echo -e "\\033[1;35mPerforming a switch_root onto the layered filesystem\\033[0;39m" #purple
+#move the mount points...
+[ ! -d /easy_new/mnt/.easy_ro ] && mkdir /easy_new/mnt/.easy_ro #20220524
+[ ! -d /easy_new/mnt/.easy_rw ] && mkdir /easy_new/mnt/.easy_rw #20220521
+[ ! -d /easy_new/mnt/${WKG_DEV} ] && mkdir /easy_new/mnt/${WKG_DEV}
+mount -o move /easy_ro /easy_new/mnt/.easy_ro #20220524
+if [ "$LOCKDOWN" == "" ];then #20220601 not used in lockdown-in-ram...
+ if [ $EOS_TOP_LEVEL_ZRAM -eq 1 ];then #20220624
+  mount -o move /easy_rw /easy_new/mnt/.easy_rw #20220521 20220524
+ fi
+fi
+
+#20201211 MochiMoppel has suggested use hdparm to power-down the internal drives...
+if [ "$xWKG_DEV" ];then #note, in future could test for $LOCKDOWN instead of $xWKG_DEV
+ if [ "$CAPS_DROP" ];then
+  # ref: https://forum.puppylinux.com/viewtopic.php?f=54&t=1583
+  echo -n '' > /easy_new/root/.initrd-debug/hdparm-power-down
+  #REMDRVS="$(echo "$BLKIDS" | grep -o -E '^/dev/sd[a-z]|^/dev/nvme[0-9]n[0-9]|^/dev/mmcblk[0-9]' | sort -u | grep -v "${WKG_DRV}" | tr '\n' ' ')"
+  REMDRVS="$(echo "$BLKIDS" | grep -o '^/dev/sd[a-z]' | sort -u | grep -v "${WKG_DRV}" | tr '\n' ' ')"
+  for aREMDRV in $REMDRVS
+  do
+   #20220526 restrict power-down to internal sata platter drives...
+   readlink /sys/block/${aREMDRV##*/} | grep -q '/ata[0-9]'
+   if [ $? -eq 0 ];then
+    HDDflg="$(cat /sys/block/${aREMDRV##*/}/queue/rotational)" #1 if magnetic platter drv, 0 if ssd.
+    #if [ "$HDDflg" != "0" ];then #0 it is an SSD
+    # #20220526 hdparm only works for sata drives...
+    # #20220522 bugger, the kernel gets it right for internal nvme ssd, wrong for usb flash...
+    # hdparm -I /dev/${aREMDRV##*/} 2>/dev/null | grep -q 'Media Rotation Rate: [0-9]'
+    # [ $? -ne 0 ] && HDDflg="0"
+    #fi
+    if [ "$HDDflg" == "1" ];then
+     echo "Powering-down drive: ${aREMDRV}"
+     echo "Powering-down drive: ${aREMDRV}" >> /easy_new/root/.initrd-debug/hdparm-power-down
+     #ref: https://www.linux-magazine.com/Online/Features/Tune-Your-Hard-Disk-with-hdparm
+     cttyhack /bin/hdparm -Y ${aREMDRV} >> /easy_new/root/.initrd-debug/hdparm-power-down 2>&1
+     sleep 0.1
+    fi
+   fi
+  done
+ fi
+fi
+
+#20220125
+if [ -f /resize2fs.log ];then
+ cp -f /resize2fs.log /easy_new/root/.initrd-debug/
+fi
+if [ -f /tune2fs.log ];then #20220517
+ cp -f /tune2fs.log /easy_new/root/.initrd-debug/
+fi
+
+#200623 previously had static /dev, then here mounted devtmpfs at /easy_new/dev
+# but now have mounted devtmpfs at start of init script. so just move..
+mount -o move /dev /easy_new/dev
+
+#200830 however, in lockdown #2 cannot create device nodes, so make them here...
+[ ! -e /easy_new/dev/ppp ] && mknod /easy_new/dev/ppp c 108 0 #jafadmin: gpptp needs /dev/ppp (moved from rc.sysinit 200522)
+#[ ! -e /easy_new/dev/rfcomm0 ] && mknod /easy_new/dev/rfcomm0 c 216 0 #ref: /usr/sbin/get_bluetooth_connection
+
+if [ "$xWKG_DEV" ];then #190817 200809 note, in future could test for $LOCKDOWN instead of $xWKG_DEV
+ mount -o move /xram /easy_new/mnt/${WKG_DEV} #WKG_DEV has been changed to zram0 earlier.
+ ln -snf ${WKG_DEV} /easy_new/mnt/wkg
+ #200809 new "save" icon on desktop, replace "update" icon... 200820 do not hard-code coords...
+ #PTN1='s%.*easy\-update.*%  <icon x="544" y="32" label="save">/usr/sbin/lockdown-save</icon>%'
+ #20201211 /usr/share/sss/initrd_strings/initd_strings* has translation for "save", but don't assume anything for "update"...
+ #PTN1='s%label="update">/usr/sbin/easy-update%label="save">/usr/sbin/lockdown-save%'
+ PTN1='s%label="[^"]*">/usr/sbin/easy-update%label="save">/usr/sbin/lockdown-save%'
+ sed -i -e "$PTN1" /easy_new/root/Choices/ROX-Filer/PuppyPin
+ sed -i -e '/ask\-save\-zram1/d' /easy_new/root/Choices/ROX-Filer/PuppyPin #20220601 remove zram1 "save" icon.
+ if [ "$EOS_SUPPORT_CONTAINERS" != "0" ];then
+  #200823 do these for both lockdown modes...
+  #take out the pre-created "www", "console", "desk" container desktop icons...
+  sed -i '/ec\-chroot\-/d' /easy_new/root/Choices/ROX-Filer/PuppyPin
+  #sed -i '/sfsget/d' /easy_new/root/Choices/ROX-Filer/PuppyPin #"sfsget" 200824 keep
+  if [ -f /easy_new/root/Choices/ROX-Filer/PuppyPinBACKUP ];then
+   sed -i '/ec\-chroot\-/d' /easy_new/root/Choices/ROX-Filer/PuppyPinBACKUP
+   #sed -i '/sfsget/d' /easy_new/root/Choices/ROX-Filer/PuppyPinBACKUP #"sfsget" 200824 keep
+  fi
+ fi
+ 
+ #20220211 if icon-free desktop, icons are in jwm tray... 20220212 fix...
+ sed -i -e 's%"update%"save%g' /easy_new/root/.jwmrc-tray
+ sed -i -e 's%exec:easy-update%exec:lockdown-save%' /easy_new/root/.jwmrc-tray
+ 
+ for aAPP in easy-update easy-bootmanager easy-containers easy-version-control #190914 200805
+ do
+  [ ! -f /easy_new/usr/share/applications/${aAPP}.desktop ] && continue
+  aLABEL="$(grep '^Name=' /easy_new/usr/share/applications/${aAPP}.desktop | cut -f 2 -d '=')"
+  rm -f /easy_new/usr/share/applications/${aAPP}.desktop
+  sed -i "/${aLABEL}/d" /easy_new/root/.jwmrc #200827 however, .jwmrc gets reconstructed by rc.sysinit
+  [ -f /easy_new/root/.jwmrc3 ] && sed -i "/${aLABEL}/d" /easy_new/root/.jwmrc3
+ done
+ rm -f /easy_new/usr/share/applications/ec-*.desktop 2>/dev/null
+ rm -f /easy_new/usr/sbin/ec-chroot-* 2>/dev/null
+ sed -i '/ec\-chroot\-/d' /easy_new/root/.jwmrc #200827 ditto, don't need to do this. etc...
+ [ -f /easy_new/root/.jwmrc3 ] && sed -i '/ec\-chroot\-/d' /easy_new/root/.jwmrc3 #190914
+ #200806 200826 these not appropriate for booting to zram...
+ sed -i '/wmreboot rollback/d' /easy_new/root/.jwmrc
+ sed -i '/lockdown-ram/d' /easy_new/root/.jwmrc
+ sed -i '/wmreboot fscheck/d' /easy_new/root/.jwmrc
+ sed -i '/debug-initrd/d' /easy_new/root/.jwmrc
+ #20026 ditto...
+ sed -i '/wmreboot rollback/d' /easy_new/etc/xdg/templates/_root_.jwmrc
+ sed -i '/lockdown-ram/d' /easy_new/etc/xdg/templates/_root_.jwmrc
+ sed -i '/wmreboot fscheck/d' /easy_new/etc/xdg/templates/_root_.jwmrc
+ sed -i '/debug-initrd/d' /easy_new/etc/xdg/templates/_root_.jwmrc
+ #rm -f /easy_new/usr/local/easy_containers/ec-fix-desktop
+ #200823 so less to do here...
+ if [ "$CAPS_DROP" ];then #190818
+  #190914 also remove "petget" and "sfsget" desktop icons, and from menu...
+  #200805 have to handle translated PuppyPin... 200824 keep...
+  #sed -i '/dotpup/d' /easy_new/root/Choices/ROX-Filer/PuppyPin #"petget"
+  #sed -i '/wizardwizard/d' /easy_new/root/Choices/ROX-Filer/PuppyPin #"setup"
+  #sed -i '/easy\-update/d' /easy_new/root/Choices/ROX-Filer/PuppyPin #200805 "update"
+  ##move "edit" and "console" left to fill gap...
+  #sed -i 's%x="416" y="32"%x="224" y="32"%' /easy_new/root/Choices/ROX-Filer/PuppyPin
+  #sed -i 's%x="480" y="32"%x="288" y="32"%' /easy_new/root/Choices/ROX-Filer/PuppyPin
+  #if [ -f /easy_new/root/Choices/ROX-Filer/PuppyPinBACKUP ];then
+  # sed -i '/dotpup/d' /easy_new/root/Choices/ROX-Filer/PuppyPinBACKUP #"petget"
+  # sed -i '/wizardwizard/d' /easy_new/root/Choices/ROX-Filer/PuppyPinBACKUP #"setup"
+  # sed -i '/easy\-update/d' /easy_new/root/Choices/ROX-Filer/PuppyPinBACKUP #200805 "update"
+   #sed -i 's%x="416" y="32"%x="224" y="32"%' /easy_new/root/Choices/ROX-Filer/PuppyPinBACKUP
+   #sed -i 's%x="480" y="32"%x="288" y="32"%' /easy_new/root/Choices/ROX-Filer/PuppyPinBACKUP
+  #fi
+  for aAPP in PETget-package-manager PupControl #190914 200805
+  do
+   [ ! -f /easy_new/usr/share/applications/${aAPP}.desktop ] && continue
+   aLABEL="$(grep '^Name=' /easy_new/usr/share/applications/${aAPP}.desktop | cut -f 2 -d '=')"
+   rm -f /easy_new/usr/share/applications/${aAPP}.desktop
+   sed -i "/${aLABEL}/d" /easy_new/root/.jwmrc
+   [ -f /easy_new/root/.jwmrc3 ] && sed -i "/${aLABEL}/d" /easy_new/root/.jwmrc3
+  done
+  rm -rf /easy_new/root/.pup_event/* 2>/dev/null #190818
+  #190818 requires that cap_mknod be dropped...
+  rm -f /easy_new/dev/mm* 2>/dev/null
+  rm -f /easy_new/dev/nv* 2>/dev/null
+  rm -f /easy_new/dev/sd* 2>/dev/null
+ fi
+else
+ mount -o move /mnt/${WKG_DEV} /easy_new/mnt/${WKG_DEV}
+ #if [ "$WKG_LOOP" ];then #20210524 move mounted save-file...  20210525 seems not needed.
+ # mount -o move /mnt/${WKG_DEV}/${WKG_DIR%/} /easy_new/mnt/${WKG_DEV}/${WKG_DIR%/}
+ #fi
+fi
+
+#200301 ***CURRENTLY NOT USING***
+CHROOT='' #'1'
+[ "$WKG_DEV" == "zram0" ] && CHROOT=''
+
+#190811 redesign so can drop linux-capabilities (also changed /etc/rc.d/rc.sysinit)...
+#sync
+#umount /sys
+#umount /proc
+cp -a -f /bin/capsh /easy_new/sbin/ #200828 -a
+if [ "$CHROOT" ];then
+ mount -o move /sys /easy_new/sys
+ mount -o hidepid=1 -t proc none /easy_new/proc #20210407
+ #keep /proc mounted in initrd.
+else
+ mount -o move /sys /easy_new/sys
+ mount -o move /proc /easy_new/proc
+fi
+SECFSflg=0
+if [ -e /easy_new/sys/kernel/security ];then #20201206 have compiled 4.19.161 without CONFIG_SECURITYFS
+ mount -t securityfs securityfs /easy_new/sys/kernel/security #200820
+ [ $? -eq 0 ] && SECFSflg=1
+fi
+mkdir -p /easy_new/dev/pts
+mount -t devpts devpts /easy_new/dev/pts
+HALFK=$(($FREEK/2))
+QTRK=$(($FREEK/4))
+mkdir -p /easy_new/dev/shm
+mount -t tmpfs -o size=${QTRK}k shmfs /easy_new/dev/shm
+if [ "$WKG_DEV" != "zram0" -a "$EOS_TOP_LEVEL_ZRAM" != "1" ];then #don't bother if will be running in zram. 20220523
+ mount -t tmpfs -o size=${HALFK}k tmpfs /easy_new/tmp
+fi
+
+[ "$DROPOUT" == "6" ] && exit_to_initrd " Exited from init script, just before switch_root."
+
+sync
+[ -f /easy_new/.shutdown-req ] && rm -f /easy_new/.shutdown-req #200301
+if [ "$CAPS_DROP" == "" ];then #190812
+ if [ "$CHROOT" ];then #200301
+#  mkdir -p /easy_new/mnt/initrd
+#  cd /easy_new
+#  pivot_root . mnt/initrd
+#  exec chroot . /sbin/init <dev/console >dev/console 2>&1
+  #when /easy_new/.shutdown-req modified, /initrd-shutdown is called...
+  touch /easy_new/.shutdown-req
+  inotifyd /initrd-shutdown /easy_new/.shutdown-req:c &
+  exec chroot /easy_new /sbin/init
+ else
+  exec switch_root /easy_new /sbin/init
+ fi
+else
+ if [ $SECFSflg -eq 1 ];then #20201206 note, lockdown only works 5.4+ kernels.
+  echo confidentiality > /easy_new/sys/kernel/security/lockdown #200820 instead of "lockdown=confidentiality" boot param.
+ fi
+ #190811 drop capbilities when switch_root...
+ #capsh --drop=cap_sys_mount -- -c "exec switch_root /easy_new /sbin/init"
+ #this is another way of doing it...
+ exec switch_root /easy_new /sbin/capsh --drop=${CAPS_DROP} -- -c "exec /sbin/init"
+fi
+
+###END###

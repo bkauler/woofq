@@ -1,0 +1,115 @@
+#!/bin/ash
+##############################################################################
+# spm2pwm - Simple Puppy Menu 2 (version pekwm)
+# spm2 is a simplified xdg-menu for puppylinux to use with pekwm (this version).
+#
+# Home: 
+# http://www.murga-linux.com/puppy/viewtopic.php?p=602850 (spm2)
+# http://murga-linux.com/puppy/viewtopic.php?t=63103 (pekwm)
+#  
+# It uses 
+# a) a parser based on jwm_menu_create by technosaurus (thanks a lot) 
+#    for jwm on puppylinux (based on version: jwm-tools 0.8)
+#    Original thread: http://www.murga-linux.com/puppy/viewtopic.php?t=70804
+# b) pekwm's menu to display the xdg-menu
+# 
+# Changelog:
+# spm2pwm 0.1: initial release
+# 
+# aragon, 2012/08/13
+# 20180705 BK modified for easyos, renamed 'xdg2pekwm'
+##############################################################################
+ 
+dtfiles="$(find /usr/share/applications -maxdepth 1 -name '*.desktop' | grep -v '^NoDisplay=true')"
+myLANG="${LANG%_*}"
+
+# Create the menu
+{	#parse .desktop files and sort generated menu entries into subcategories
+#for DESKTOP_FILE in /usr/share/applications/*.desktop ; do
+for DESKTOP_FILE in ${dtfiles} ; do
+	CATS="" NAME="" EXEC="" LINE="" #prevent carryover from previous file
+	while read LINE || [ "$LINE" ]; do
+		case $LINE in
+			Name=*|Name?${myLANG%_*}?=*) NAME="${LINE#*=}"'' ;; # sc0ttman... should use "Name[$myLANG]=" if found
+			Categories=*) CATS="${LINE#*=}"''
+			CAT="${CATS/;*/}"'' ;; #strip all but first cat
+			Exec=*) EXEC="${LINE#*=}"''
+			EXEC="${EXEC//\"/'}"'' ;; #convert " to '
+		esac
+	done < $DESKTOP_FILE	
+
+	[ "${EXEC}" ] && MenuEntry='Entry = "'${NAME}'" { Actions = "Exec '${EXEC}' &" }
+		'
+	case "$CAT" in
+		X-Desktop|DesktopSettings|Screensaver|Accessibility|X-DesktopCountry|X-DesktopApplets)Desktop=${Desktop}${MenuEntry};;
+		System|Monitor|Security|HardwareSettings|Core|X-SystemMemory|X-SystemSchedule)System=${System}${MenuEntry};;
+		X-SetupEntry|PackageManager|X-SetupWizard|X-SetupUtility)Setup=${Setup}${MenuEntry};;
+		Utility|Viewer|Development|Building|Debugger|IDE|Profiling|Translation|GUIDesigner|Archiving|TerminalEmulator|Shell)Utility=${Utility}${MenuEntry};; #sc0ttman utility typo
+		FileSystem|FileManager|X-FilesystemMount|X-FilesystemUtility|X-FilesystemFind)Filesystem=${Filesystem}${MenuEntry};;
+		2DGraphics|3DGraphics|Photography|Presentation|Chart|FlowChart|VectorGraphics|RasterGraphics|X-GraphicUtility)Graphic=${Graphic}${MenuEntry};;
+		X-Document|WordProcessor|WebDevelopment|TextEditor|X-DocumentUtility|Dictionary)Document=${Document}${MenuEntry};;
+		X-Calculate|Finance|Spreadsheet|ProjectManagement|Calculator|X-CalculateUtility)Business=${Business}${MenuEntry};;
+		X-Personal|Calendar|ContactManagement|X-PersonalUtility)Personal=${Personal}${MenuEntry};;
+		Dialup|Network|HamRadio|RemoteAccess)Network=${Network}${MenuEntry};;
+		X-Internet|WebBrowser|Email|News|InstantMessaging|Telephony|IRCClient|FileTransfer|P2P)Internet=${Internet}${MenuEntry};;
+		AudioVideo|Video|Player|AudioVideoEditing|Recorder|Music|Audio|Midi|Mixer|Sequencer|Tuner|Video|TV|DiskBurning)Multimedia=${Multimedia}${MenuEntry};;
+		Game|Amusement|ActionGame|AdventureGame|ArcadeGame|BlocksGame|BoardGame|CardGame|KidsGame|LogicGame|RolePlaying|Simulation|SportsGame|StrategyGame)Fun=${Fun}${MenuEntry};;
+		*)Other=${Other}${MenuEntry};;
+	esac
+done
+}
+
+{	#Now generate the full menu with some formatting
+MENU='
+# Variables
+INCLUDE = "vars"
+# Menu
+RootMenu = "Pekwm" {
+Submenu = "Desktop" {
+	'${Desktop}'
+}
+Submenu = "System" {
+	'${System}'
+}
+Submenu = "Setup" {
+	'${Setup}'
+}
+Submenu = "Utility" {
+	'${Utility}'
+}
+Submenu = "Filesystem" {
+	'${Filesystem}'
+}
+Submenu = "Graphic" {
+	'${Graphic}'
+}
+Submenu = "Document" {
+	'${Document}'
+}
+Submenu = "Business" {
+	'${Business}'
+}
+Submenu = "Personal" {
+	'${Personal}'
+}
+Submenu = "Network" {
+	'${Network}'
+}
+Submenu = "Internet" {
+	'${Internet}'
+}
+Submenu = "Multimedia" {
+	'${Multimedia}'
+}
+Submenu = "Fun" {
+	'${Fun}'
+}
+Submenu = "Other" {
+	'${Other}'
+}
+}'
+#echo "$MENU"
+mkdir -p /root/.pekwm
+echo "$MENU" > /root/.pekwm/menu
+}
+exit 0

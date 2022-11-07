@@ -1,0 +1,25 @@
+#!/bin/sh
+# Authors: Brandon Snider.
+# This script redirects genisoimage commands to mkisofs. In case of --version being passed, the script returns a specific string to
+# satisfy Brasero. In case of the old options -L, -H, and -P, the script adds -legacy to the args to properly instruct mkisofs.
+#ref: http://murga-linux.com/puppy/viewtopic.php?p=1060357#1060357
+#200621 remove " quotes around $@
+
+legacy="no" # Create variable with default status of "no"
+
+for i in ${@} # Iterate over all of the command line options looking for the old ones.
+do
+    if [ "$i" = "-L" -o "$i" = "-H" -o "$i" = "-P" ] ; then
+       legacy="yes" # Set the legacy variable to "yes" if one of the variables is found.
+    elif [ "$i" = "--version" ] ; then
+       legacy="version" # Set the variable to "legacy" to return the string expected by Brasero
+    fi
+done
+
+if [ $legacy = "yes" ] ; then
+    /usr/bin/mkisofs -legacy ${@}  # Pass -legacy option.
+elif [ $legacy = "no" ] ; then
+    /usr/bin/mkisofs ${@} # In all other situations, pass all options to mkisofs.
+elif  [ $legacy = "version" ] ; then
+    echo "genisoimage 1.1.11" # Pass the version info expected by any app querying Genisoimage.
+fi

@@ -1,0 +1,23 @@
+
+#140128 quirky tahr, .so files now all in devx, but bacon needs some...
+#welcome1stboot needs libgtk-x11-2.0.so
+if [ "$xARCHDIR" ];then
+ if [ ! -e usr/lib/${ARCHDIR}/libgtk-x11-2.0.so ];then
+  #note, cannot use -e test, as symlink is broken. use -h...
+  if [ -h ../gtk+_DEV/usr/lib/${ARCHDIR}/libgtk-x11-2.0.so ];then
+   cp -a ../gtk+_DEV/usr/lib/${ARCHDIR}/libgtk-x11-2.0.so usr/lib/${ARCHDIR}/
+   cp -a ../gtk+_DEV/usr/lib/${ARCHDIR}/libgdk-x11-2.0.so usr/lib/${ARCHDIR}/
+  fi
+ fi
+fi
+if [ ! -e usr/lib/libgtk-x11-2.0.so ];then
+ if [ -h ../gtk+_DEV/usr/lib/libgtk-x11-2.0.so ];then
+  cp -a ../gtk+_DEV/usr/lib/libgtk-x11-2.0.so usr/lib/${ARCHDIR}/
+  cp -a ../gtk+_DEV/usr/lib/libgdk-x11-2.0.so usr/lib/${ARCHDIR}/
+ fi
+fi
+
+#...warning, bacon may need more .so's
+
+#171217 oe pyro
+[ -d usr/share/gtk-2.0/demo ] && rm -rf usr/share/gtk-2.0/demo

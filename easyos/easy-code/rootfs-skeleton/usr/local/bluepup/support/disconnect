@@ -1,0 +1,93 @@
+#!/bin/sh
+#device address is in /tmp/bluepup/chosen-reg-device
+#20211113 pa, no longer using /root/.asoundrc
+#20221031 /root/Startup/pulseaudio changed to /etc/init.d/pulseaudio
+
+export TEXTDOMAIN=bluepup
+export TEXTDOMAINDIR=/usr/share/locale
+export OUTPUT_CHARSET=UTF-8
+
+exit_func() {
+ echo -n 'limbo' > /tmp/bluepup/current-operation #20201105
+ exit $1
+}
+
+CR='
+'
+DEVICEID="$(cat /tmp/bluepup/chosen-reg-device)"
+
+MSG2="$(gettext 'Disconnecting')"
+echo "<b><span color='#8000ff'>${MSG2}${CR}${DEVICEID}</span></b>" > /tmp/bluepup/frame-status.msg
+echo -e "\033[0;94m[bluetooth]\033[0m# bluetoothctl disconnect ${DEVICEID}" >> /tmp/bluepup/btctl_in
+bluetoothctl disconnect ${DEVICEID} >> /tmp/bluepup/btctl_in
+/usr/local/bluepup/support/wait-response "disconnect ${DEVICEID}" "${?}"
+[ $? -ne 0 ] && exit_func 1
+
+MSG3="$(gettext 'Disconnection successful')"
+echo "<b><span color='#00a000'>${MSG3}</span></b>" > /tmp/bluepup/frame-status.msg
+
+sleep 2
+
+LANG=C bluetoothctl info ${DEVICEID} > /tmp/bluepup/reg-info.${DEVICEID}
+cp -a -f /tmp/bluepup/reg-info.${DEVICEID} /var/local/bluepup/
+
+#20201107 tell bluepup if this is a phone...
+PHflg="$(grep -o 'Icon: phone' /tmp/bluepup/reg-info.${DEVICEID})"
+if [ "$PHflg" ];then
+ echo -n 'true' > /tmp/bluepup/device-is-a-phone
+else
+ echo -n 'false' > /tmp/bluepup/device-is-a-phone
+fi
+
+#change the icon...
+sed -i -e "s%.*${DEVICEID}%mini-cross|${DEVICEID}%" /tmp/bluepup/found-reg-devices #will be updated by the timer, indirectly...
+#timer waits on change to 'found-new-devices' to update both New and Registered lists...
+#touch /tmp/bluepup/found-new-devices
+#...stupid timer, that doesn't work, have to write to it...
+cp -f /tmp/bluepup/found-new-devices /tmp/bluepup/found-new-devicesBAK
+cat /tmp/bluepup/found-new-devicesBAK > /tmp/bluepup/found-new-devices
+
+#finally, write to this file, a timer will auto-detect change...
+echo -n "$DEVICEID" > /tmp/bluepup/reg-dev-chosen-processed
+
+#20201102
+AUDIOD=''
+if pidof bluealsa >/dev/null;then AUDIOD='bluealsa'; fi
+if pidof pulseaudio >/dev/null;then AUDIOD='pulseaudio'; fi
+
+#run-mscw will test if an audio device, and if so will launch Multiple Sound Card Wizard...
+#might want to change to internal audio card...
+BTflg=''
+if [ -e /etc/init.d/pulseaudio ];then #20211113 20221031
+ #no longer using .asoundrc
+ grep -q '^#defaults' /etc/asound.conf
+ if [ $? -eq 0 ];then
+  #not using hardcoded settings.
+  PA_DEVID="$(echo -n "$DEVICEID" | tr ':' '_')"
+  if [ "$AUDIOD" == "pipewire" ];then #see similar code in mscw.
+   BTflg="$(pactl list sinks | grep -o "Name: .*${PA_DEVID}.*" | grep -o "${PA_DEVID}")"
+  else #pulseaudio
+   BTflg="$(pacmd list-sinks | grep 'name:.*bluez_sink' | grep -o "${PA_DEVID}")"
+  fi
+  if [ "$BTflg" ];then
+   /usr/local/bluepup/support/run-mscw ${DEVICEID} &
+  fi
+ fi
+else
+ if [ -s /root/.asoundrc ];then #only run mscw if default o/p is $DEVICEID...
+  if [ "$AUDIOD" == "pulseaudio" ];then #20201102 see similar code in mscw.
+   PA_DEVID="$(echo -n "$DEVICEID" | tr ':' '_')"
+   BTflg="$(pacmd list-sinks | grep 'name:.*bluez_sink' | grep -o "${PA_DEVID}")"
+  else
+   grep -q "${DEVICEID}" /root/.asoundrc ####NOTE: pulseaudio has different content, ref /usr/sbin/mscw
+   [ $? -eq 0 ] && BTflg='yes'
+  fi
+  if [ "$BTflg" ];then
+   /usr/local/bluepup/support/run-mscw ${DEVICEID} &
+  fi
+ fi
+fi
+
+sleep 1.2
+exit_func 0
+###end###

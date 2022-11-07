@@ -1,0 +1,42 @@
+#!/bin/ash
+#20220209 popup drives menu. called from:
+# /usr/local/pup_event/frontend_change, frontend_funcs
+# /usr/local/ui/unmount-all, unmount-part, jwm/rescan-drives-menu
+#20220406 fix position to move mouse pointer.
+#20220410 emulate key combination to popup menu.
+#20220413 avoid multiple instances.
+
+#20220413 maybe a problem if frontend_funcs create_icon_func() gets called
+# multiple times rapidly...
+pidof -o ${$} popup-drives-menu
+if [ $? -eq 0 ];then
+ exit #another instance of this script running.
+fi
+
+SCRN_X=$(cat /tmp/pup_event_frontend_scrn_x)
+SCRN_Y=$(cat /tmp/pup_event_frontend_scrn_y)
+
+Twidth0="$(grep -m 1 -o 'width="[^"]*' /root/.jwmrc-tray)" #ex: width="1172
+Twidth="${Twidth0/*\"/}"
+if [ "$Twidth" == "0" -o "$Twidth" == "" ];then
+ Xoff=53
+else
+ Xoff=$(((($SCRN_X - $Twidth) / 2) + 53))
+fi
+
+grep -q '<Tray .*valign="top"' /root/.jwmrc-tray
+if [ $? -eq 0 ];then
+ #tray is at top of screen.
+ Yoff=20
+else
+ Yoff=$(($SCRN_Y - 20))
+fi
+
+xdotool mousemove ${Xoff} ${Yoff} #on top of drives icon.
+
+#20220410 /root/.jwmrc (via /etc/xdg/templates/_root_.jwmrc and /root/.jwm/jwmrc-personal,
+# have assigned ALT-F7 to popup drives menu. anyway, still good to have mouse
+# pointer over icon, so menu pops up in expected place.
+#right, so do not popup menu by emulating middle-button-click...
+#xdotool click 2 #middle button
+xdotool key Alt+F7

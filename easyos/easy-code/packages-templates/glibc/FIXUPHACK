@@ -1,0 +1,112 @@
+#note: DISTRO_BINARY_COMPAT and DISTRO_FILE_PREFIX are visible here, exported in 2createpackages.
+#xARCHDIR, ARCHDIR and DISTRO_ARCHDIR_SYMLINKS exported in 2createpackages. 
+#note, 2createpackages may move /lib, /usr/lib, /usr/bin in template to ARCHDIR subdir.
+
+#mkdir -p ../glibc_DEV/sbin
+#if [ -f sbin/ldconfig.real ];then
+# mv -f sbin/ldconfig.real ../glibc_DEV/sbin/ldconfig
+# rm -f sbin/ldconfig
+#else
+# mv -f sbin/ldconfig ../glibc_DEV/sbin/
+#fi
+
+#140204 need ldconfig in main f.s...
+if [ -f sbin/ldconfig.real ];then #140204 ubuntu has this.
+ rm -f sbin/ldconfig 2>/dev/null #this is an ubuntu-specific script.
+ mv -f sbin/ldconfig.real sbin/ldconfig
+fi
+
+#slackware 13.1...
+rm -f ./etc/profile.d/*.csh* 2>/dev/null
+
+#120620 my cut-down cache breaks things...
+##120526
+##/usr/lib/gconv has a cutdown set of files, need to use correct cache file...
+#mv -f usr/lib/gconv-cut/gconv-modules usr/lib/gconv/
+#mv -f usr/lib/gconv-cut/gconv-modules.cache usr/lib/gconv/
+#rm -rf usr/lib/gconv-cut
+
+#120829 now have full /usr/share/timezone, delete some things... no, seems all needed!!!
+#[ -d usr/share/zoneinfo/posix ] && rm -rf usr/share/zoneinfo/posix
+#[ -d usr/share/zoneinfo/right ] && rm -rf usr/share/zoneinfo/right
+#[ -d usr/share/zoneinfo/SystemV ] && rm -rf usr/share/zoneinfo/SystemV
+
+#130307 arch has moved libs from /lib to /usr/lib, which breaks chroot. move them back to proper place...
+if [ "$DISTRO_BINARY_COMPAT" = "arch" ];then #exported from 2createpackages.
+ FNDCLIBS="$(find usr/lib -mindepth 1 -maxdepth 1 -name '*.so*')"
+ if [ "$FNDCLIBS" != "" ];then
+  for ONECLIB in $FNDCLIBS
+  do
+   [ "$ONECLIB" = "" ] && continue
+   BASECLIB="$(basename $ONECLIB)"
+   #it seems, traditionally, these stay in /usr/lib...
+   [ "$BASECLIB" = "libc.so" ] && [ ! -h $ONECLIB ] && continue
+   [ "$BASECLIB" = "libpthread.so" ] && [ ! -h $ONECLIB ] && continue
+   cp -a -f --remove-destination $ONECLIB ./lib/
+   rm -f $ONECLIB
+  done
+  #traditionally, there are some symlinks in /usr/lib, recreate...
+  FNDSYMLINKS="$(find lib -mindepth 1 -maxdepth 1 -name '*.so.[0-9]')"
+  if [ "$FNDSYMLINKS" != "" ];then
+   for ONESYMLINK in $FNDSYMLINKS
+   do
+    [ "$ONESYMLINK" = "" ] && continue
+    if [ -h $ONESYMLINK ];then
+     #TARGETLINK="$(readlink $ONESYMLINK)"
+     TARGETLINK="$(basename $ONESYMLINK)"
+     BASESYM="$(basename $ONESYMLINK | rev | cut -f 2-9 -d '.' | rev)"
+     [ -e usr/lib/$BASESYM ] && continue
+     ln -s ../../lib/$TARGETLINK usr/lib/$BASESYM
+    fi
+   done
+  fi
+ fi
+ #do the same for glibc_DEV...
+ mkdir -p ../glibc_DEV/lib
+ mkdir -p ../glibc_DEV/usr/lib
+ FNDCLIBS="$(find ../glibc_DEV/usr/lib -mindepth 1 -maxdepth 1 -name '*.so*')"
+ if [ "$FNDCLIBS" != "" ];then
+  for ONECLIB in $FNDCLIBS
+  do
+   [ "$ONECLIB" = "" ] && continue
+   BASECLIB="$(basename $ONECLIB)"
+   #it seems, traditionally, these stay in /usr/lib...
+   [ "$BASECLIB" = "libc.so" ] && [ ! -h $ONECLIB ] && continue
+   [ "$BASECLIB" = "libpthread.so" ] && [ ! -h $ONECLIB ] && continue
+   cp -a -f --remove-destination $ONECLIB ../glibc_DEV/lib/
+   rm -f $ONECLIB
+  done
+  #traditionally, there are some symlinks in /usr/lib, recreate...
+  FNDSYMLINKS="$(find ../glibc_DEV/lib -mindepth 1 -maxdepth 1 -name '*.so.[0-9]')"
+  if [ "$FNDSYMLINKS" != "" ];then
+   for ONESYMLINK in $FNDSYMLINKS
+   do
+    [ "$ONESYMLINK" = "" ] && continue
+    if [ -h $ONESYMLINK ];then
+     #TARGETLINK="$(readlink $ONESYMLINK)"
+     TARGETLINK="$(basename $ONESYMLINK)"
+     BASESYM="$(basename $ONESYMLINK | rev | cut -f 2-9 -d '.' | rev)"
+     [ -e ../glibc_DEV/usr/lib/$BASESYM ] && continue
+     ln -s ../../lib/$TARGETLINK ../glibc_DEV/usr/lib/$BASESYM
+    fi
+   done
+  fi
+ fi
+fi
+
+#141108 quirky unicorn, glibc has /etc/ld.so.conf, but 3builddistro creates that file
+#beforehand, which gets wiped.
+[ -f etc/ld.so.conf ] && rm -f etc/ld.so.conf
+
+#161228
+GCONV="$(find usr -type d -name gconv 2>/dev/null | head -n 1)"
+if [ "$GCONV" ];then
+ DIRGCONV="$(dirname $GCONV)"
+ mv -f ${DIRGCONV}/gconv ${DIRGCONV}/gconvORIG
+ mkdir ${DIRGCONV}/gconv
+ for AFILE in CP1251.so CP1252.so CP1257.so gconv-modules gconv-modules.cache IBM850.so ISO646.so ISO8859-10.so ISO8859-11.so ISO8859-13.so ISO8859-14.so ISO8859-15.so ISO8859-16.so ISO8859-1.so ISO8859-2.so ISO8859-3.so ISO8859-4.so ISO8859-5.so ISO8859-6.so ISO8859-7.so ISO8859-8.so ISO8859-9.so KOI8-R.so KOI-8.so KOI8-T.so KOI8-U.so LATIN-GREEK-1.so LATIN-GREEK.so libGB.so libJIS.so libKSC.so NOEXCEPTIONFILES UHC.so UNICODE.so UTF-16.so UTF-32.so UTF-7.so
+ do
+  cp -a -f ${DIRGCONV}/gconvORIG/${AFILE} ${DIRGCONV}/gconv/ 2>/dev/null
+ done
+ rm -rf ${DIRGCONV}/gconvORIG 
+fi

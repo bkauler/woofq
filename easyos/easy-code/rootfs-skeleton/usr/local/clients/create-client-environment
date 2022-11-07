@@ -1,0 +1,119 @@
+#!/bin/sh
+#called indirectly from setup-client
+#passed param $1 is name of client.
+#note: this code is also in /usr/local/clients/setup-client
+#20210915 add app to fscryptgrp.
+#20210916 call before chroot container, optional $2 ref: setup-client
+#20210919 /clients now /home
+#20210927 gtk3 scrollbar fix.
+#20211103 support pulseaudio. ref: comments in /root/Startup/pulseaudio
+#20211104 firefox playing videos, need belong 'video' group.
+#20211205 /home/*/Downloads is now symlink to /files/downloads. 20211206 no.
+#20211206 new group 'filesgrp'. copy /root/.config/user-dirs.dirs
+
+[ ! "$1" ] && exit 1
+APPname="$1"
+PREFIXDIR1="${2}" #optional.
+CHGflg=0
+
+if [ ! -d ${PREFIXDIR1}/home/${APPname} ];then
+ CHGflg=1
+ mkdir -p ${PREFIXDIR1}/home/${APPname}
+ for aSUB in .cache .config .history .local/share ${APPname}
+ do
+  mkdir -p ${PREFIXDIR1}/home/${APPname}/${aSUB}
+ done
+ #ln -s /files/downloads ${PREFIXDIR1}/home/${APPname}/Downloads #20211205 20211206 no.
+ #icon for rox-filer...
+ IMG="${PREFIXDIR1}/usr/share/pixmaps/${APPname}.png"
+ if [ ! -e ${IMG} ];then
+  IMG="$(find ${PREFIXDIR1}/usr/share/icons/hicolor/48x48/apps/${APPname}.* -maxdepth 1 2>/dev/null | head -n 1)"
+  if [ ! "$IMG" ];then
+   if [ -f ${PREFIXDIR1}/usr/share/applications/${APPname}.desktop ];then
+    xIMG="$(grep '^Icon=' ${PREFIXDIR1}/usr/share/applications/${APPname}.desktop | cut -f 2 -d '=' | cut -f 1 -d ' ')"
+    IMG="$(find  ${PREFIXDIR1}/usr/share/icons/hicolor/48x48 ${PREFIXDIR1}/usr/share/pixmaps ${PREFIXDIR1}/usr/local/lib/X11/mini-icons -name ${xIMG} -o -name ${xIMG}.png -o -name ${xIMG}.svg -o ${xIMG}.xpm 2>/dev/null | head -n 1)"
+   fi
+  fi
+  if [ ! "$IMG" ];then
+   IMG="${PREFIXDIR1}/usr/share/pixmaps/puppy/execute.svg"
+  fi
+ fi
+ ln -s -r ${IMG} ${PREFIXDIR1}/home/${APPname}/.DirIcon
+ ln -s -r ${IMG} ${PREFIXDIR1}/home/${APPname}/${APPname}/.DirIcon
+ #click on this folder will run the app...
+ echo -e "#!/bin/sh\nexec ${APPname}" > ${PREFIXDIR1}/home/${APPname}/${APPname}/AppRun
+ chmod 755 ${PREFIXDIR1}/home/${APPname}/${APPname}/AppRun
+fi
+if [ ! -d ${PREFIXDIR1}/home/${APPname}/.config/gtk-3.0 ];then #20210927
+ mkdir -p ${PREFIXDIR1}/home/${APPname}/.config/gtk-3.0
+ cp -f /root/.config/gtk-3.0/settings.ini ${PREFIXDIR1}/home/${APPname}/.config/gtk-3.0/
+ cp -f /root/.config/gtk-3.0/gtk.css ${PREFIXDIR1}/home/${APPname}/.config/gtk-3.0/
+fi
+if [ ! -e ${PREFIXDIR1}/home/${APPname}/.config/pulse/client.conf ];then #20211103
+ #pulseaudio to work in non-root client...
+ mkdir -p ${PREFIXDIR1}/home/${APPname}/.config/pulse
+ #see also /etc/pulse/default.pa
+ echo 'default-server = unix:/tmp/pulse-socket' > ${PREFIXDIR1}/home/${APPname}/.config/pulse/client.conf
+ #$PULSE_RUNTIME_PATH=/run/pulse and this is where apps expect the socket, and named "native"
+ # .../etc/pulse/default.pa creates two sockets.
+fi
+  
+if [ ! -e ${PREFIXDIR1}/home/${APPname}/.config/user-dirs.dirs ];then #20211206
+ cp -f /root/.config/user-dirs.dirs ${PREFIXDIR1}/home/${APPname}/.config/
+ CHGflg=1
+fi
+
+#run ${APPname} as user ${APPname}, and group ${APPname}...
+grep -q "^${APPname}:" ${PREFIXDIR1}/etc/group
+if [ $? -ne 0 ];then
+ busybox addgroup ${APPname} 2>/dev/null
+ if [ "$PREFIXDIR1" ];then
+  sed -i "/^${APPname}:/d" ${PREFIXDIR1}/etc/group
+  grep "^${APPname}:" /etc/group >> ${PREFIXDIR1}/etc/group
+  sed -i "/^${APPname}:/d" ${PREFIXDIR1}/etc/gshadow
+  grep "^${APPname}:" /etc/gshadow >> ${PREFIXDIR1}/etc/gshadow
+ fi
+fi
+grep -q "^${APPname}:" ${PREFIXDIR1}/etc/passwd
+if [ $? -ne 0 ];then
+ # -S create a system user.  -D don't assign a password.  -H don't create a home directory.
+ busybox adduser -h /home/${APPname} -G ${APPname} -D -H ${APPname} 2>/dev/null
+ if [ "$PREFIXDIR1" ];then
+  grep "^${APPname}:" /etc/passwd >> ${PREFIXDIR1}/etc/passwd
+  grep "^${APPname}:" /etc/shadow >> ${PREFIXDIR1}/etc/shadow
+ fi
+ #20211206 note, initrd expects these gids fscryptgrp=118, filesgrp=122...
+ busybox addgroup ${APPname} fscryptgrp 2>/dev/null #20210915
+ busybox addgroup ${APPname} filesgrp 2>/dev/null #20211206
+ busybox addgroup ${APPname} disk 2>/dev/null
+ busybox addgroup ${APPname} audio 2>/dev/null
+ busybox addgroup ${APPname} lp 2>/dev/null
+ busybox addgroup ${APPname} bluetooth 2>/dev/null
+ busybox addgroup ${APPname} scanner 2>/dev/null
+ busybox addgroup ${APPname} cdrom 2>/dev/null
+ busybox addgroup ${APPname} pulse 2>/dev/null #20211103 support pulseaudio.
+ busybox addgroup ${APPname} video 2>/dev/null #20211104 think need this.
+ # ...user added to 'pulse' group now not required, see /etc/pulse/default.pa
+ #    users must belong to group 'audio' for pulseaudio to work.
+ if [ "$PREFIXDIR1" ];then
+  for aENTRY in disk audio lp bluetooth scanner cdrom fscryptgrp pulse video filesgrp #20210915 20211103 20211104 20211206
+  do
+   sed -i "/^${aENTRY}:/d" ${PREFIXDIR1}/etc/group
+   grep "^${aENTRY}:" /etc/group >> ${PREFIXDIR1}/etc/group
+   sed -i "/^${aENTRY}:/d" ${PREFIXDIR1}/etc/gshadow
+   grep "^${aENTRY}:" /etc/gshadow >> ${PREFIXDIR1}/etc/gshadow
+  done
+ fi
+fi
+
+#if [ ! -d ${PREFIXDIR1}/files/downloads/${APPname} ];then #20211206
+# mkdir -p ${PREFIXDIR1}/files/downloads/${APPname}
+# chown ${APPname}:${APPname} ${PREFIXDIR1}/files/downloads/${APPname}
+#fi
+
+#if [ $CHGflg -eq 1 ];then
+if [ "$(stat -c %U ${PREFIXDIR1}/home/${APPname})" != "${APPname}" ];then
+ chown -h -R ${APPname}:${APPname} ${PREFIXDIR1}/home/${APPname} #20211205 added -h
+fi
+
+###end###

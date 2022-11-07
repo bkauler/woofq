@@ -1,0 +1,103 @@
+#!/bin/bash
+#called from limine-installer
+#20220717 for compatibility with all linuxes, replace "which" with "type -p"
+#20220722 bring back root check.
+#20221023 may be running as zeus super-user.
+
+export TEXTDOMAIN=limine-installer
+export TEXTDOMAINDIR=/usr/share/locale
+export OUTPUT_CHARSET=UTF-8
+
+echo -n '' > /tmp/limine-installer/depend-checks.log
+exitval=0
+
+#if [ ! -f /usr/bin/which ];then
+# echo "$(gettext 'This utility is required:') /usr/bin/which"  >> /tmp/limine-installer/depend-checks.log
+# exit 1
+#fi
+
+if ! type -p gtkdialog >/dev/null ;then
+ #echo "$(gettext 'gtkdialog utility required.')"  >> /tmp/limine-installer/depend-checks.log
+ exit 2
+else
+ gtkdialog -v | grep -q '0.8.[345]'
+ if [ $? -ne 0 ];then
+  exit 2
+ fi
+fi
+
+#this check not needed... 20220722 bring back... 20221023
+WHOIAM="$(whoami)"
+if [ "${WHOIAM}" != "root" -a "${WHOIAM}" != "zeus" ];then
+ echo 'Must be root user.' >> /tmp/limine-installer/depend-checks.log
+ exitval=1
+fi
+
+if ! type -p lsblk >/dev/null ;then
+ echo "$(gettext 'lsblk utility from util-linux package required.')"  >> /tmp/limine-installer/depend-checks.log
+ exitval=1
+else #20220717
+ DRVtest="$(ls -1 /sys/block | grep -E '^sda$|^mmcblk[01]$|^nvme[01]n[01]$' | head -n 1)"
+ lsblk --pairs -o PARTUUID /dev/${DRVtest} >/dev/null 2>&1
+ if [ $? -ne 0 ];then
+  echo "$(gettext 'lsblk utility from util-linux is too old, does not understand PARTUUID.')"  >> /tmp/limine-installer/depend-checks.log
+  exitval=1
+ fi
+ lsblk --pairs -o PTUUID --nodeps /dev/${DRVtest} >/dev/null 2>&1
+ if [ $? -ne 0 ];then
+  echo "$(gettext 'lsblk utility from util-linux is too old, does not understand PTUUID.')"  >> /tmp/limine-installer/depend-checks.log
+  exitval=1
+ fi
+fi
+
+if ! type -p uniq >/dev/null ;then
+ echo "$(gettext 'uniq utility from coreutils package required.')"  >> /tmp/limine-installer/depend-checks.log
+ exitval=1
+fi
+
+#if ! type -p fdisk >/dev/null ;then
+# echo "$(gettext 'fdisk utility from util-linux package required.')"  >> /tmp/limine-installer/depend-checks.log
+# exitval=1
+#else
+# fdisk -V | grep 'util\-linux'
+# if [ $? -ne 0 ];then
+#  echo "$(gettext 'The fdisk utility from util-linux required (Busybox fdisk inadequate).')"
+#  exitval=1
+# fi
+#fi
+
+for aUTIL in xmessage dmidecode parted
+do
+ if ! type -p ${aUTIL} >/dev/null ;then
+  echo "$(gettext 'This utility is required:') ${aUTIL}"  >> /tmp/limine-installer/depend-checks.log
+  exitval=1
+ fi
+done
+
+if [ -e /sys/firmware/efi ];then #20220717 if not exist, OS currently running in legacy-bios mode.
+ if ! type -p efibootmgr >/dev/null ;then
+  echo "$(gettext 'efibootmgr utility is required.')"  >> /tmp/limine-installer/depend-checks.log
+  exitval=1
+ fi
+fi
+
+if ! type -p limine-version >/dev/null ;then
+ echo "$(gettext 'Limine package mising, required version greater than or equal to 3.12')"  >> /tmp/limine-installer/depend-checks.log
+ exitval=1
+fi
+
+if [ ! -f /usr/bin/limine-deploy ];then
+ echo "$(gettext 'This utility is required:') limine-deploy"  >> /tmp/limine-installer/depend-checks.log
+ exitval=1
+fi
+if [ ! -f /usr/share/limine/BOOTX64.EFI ];then
+ echo "$(gettext 'File missing:') /usr/share/limine/BOOTX64.EFI"  >> /tmp/limine-installer/depend-checks.log
+ exitval=1
+fi
+if [ ! -f /usr/share/limine/limine.sys ];then
+ echo "$(gettext 'File missing:') /usr/share/limine/limine.sys"  >> /tmp/limine-installer/depend-checks.log
+ exitval=1
+fi
+
+exit $exitval
+###end###

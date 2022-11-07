@@ -1,0 +1,15 @@
+#note: DISTRO_BINARY_COMPAT and DISTRO_FILE_PREFIX are visible here, exported in 2createpackages.
+#140117 xARCHDIR, ARCHDIR and DISTRO_ARCHDIR_SYMLINKS exported in 2createpackages. 
+#140117 note, 2createpackages may move /lib, /usr/lib, /usr/bin in template to ARCHDIR subdir.
+
+#these are links to hostname, but that is in busybox pkg...
+if [ "$xARCHDIR" ];then #140117
+ [ -h ./bin/${ARCHDIR}/dnsdomainname ] && rm -f ./bin/${ARCHDIR}/dnsdomainname
+ [ -h ./bin/${ARCHDIR}/domainname ] && rm -f ./bin/${ARCHDIR}/domainname
+ [ -h ./bin/${ARCHDIR}/nisdomainname ] && rm -f ./bin/${ARCHDIR}/nisdomainname
+ [ -h ./bin/${ARCHDIR}/ypdomainname ] && rm -f ./bin/${ARCHDIR}/ypdomainname
+fi
+[ -h ./bin/dnsdomainname ] && rm -f ./bin/dnsdomainname
+[ -h ./bin/domainname ] && rm -f ./bin/domainname
+[ -h ./bin/nisdomainname ] && rm -f ./bin/nisdomainname
+[ -h ./bin/ypdomainname ] && rm -f ./bin/ypdomainname

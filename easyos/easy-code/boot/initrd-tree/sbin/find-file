@@ -1,0 +1,58 @@
+#!/bin/sh
+#190715 search for a file. $1 = name of file, $2 = timeout
+#190716 guess_fstype no longer available.
+#20210611 paragon ntfs driver needs "-t ntfs3" mount option.
+
+FNDFILE="$1"
+TIMEOUT=$2
+
+echo -e "\\033[1;31m  Searching for external file: ${FNDFILE}\\033[0;39m" #red.
+
+mkdir -p /mntpt
+CNT=0
+echo -n "" > /checked
+
+while [ $CNT -lt $TIMEOUT ];do
+ sleep 1
+ MMPARTS="$(ls -1d /sys/block/mmcblk[0-9]/mmcblk[0-9]p[0-9] 2>/dev/null | rev | cut -f 1 -d '/' | rev | tr '\n' ' ')"
+ SDPARTS="$(ls -1d /sys/block/sd[a-z]/sd[a-z][0-9]* 2>/dev/null | rev | cut -f 1 -d '/' | rev | tr '\n' ' ')"
+ #NVMe drives have device nodes in /dev of the form "nvme[0-9]n[1-9]". Partitions are appended as "p<number>", for example "nvme0n1p3".
+ NVPARTS="$(ls -1d /sys/block/nvme[0-9]n[1-9]/nvme[0-9]n[1-9]p[0-9]* 2>/dev/null | rev | cut -f 1 -d '/' | rev | tr '\n' ' ')"
+ 
+ for aPART in ${MMPARTS} ${SDPARTS} ${NVPARTS}
+ do
+  [ "$aPART" == "" ] && continue
+  if grep -w "$aPART" /checked >/dev/null;then continue; fi
+  echo "$aPART" >> /checked
+  #aFS="$(guess_fstype /dev/${aPART} | grep -E 'ext|vfat|f2fs')"
+  #aFS="$(echo "$BLKIDS" | grep "^/dev/${aPART} " | grep -E 'ext|vfat|f2fs' | tr ' ' '\n' | grep '^TYPE=' | cut -f 2 -d '"')" #190716
+  aFS="$(blkid /dev/${aPART} | grep -E 'ext|vfat|f2fs' | tr ' ' '\n' | grep '^TYPE=' | cut -f 2 -d '"')" #190716
+  [ "$aFS" == "" ] && continue
+  if grep -q 'ntfs3' /proc/filesystems;then #20210611 has paragon ntfs3 driver.
+   mount -t ${aFS/ntfs/ntfs3} /dev/${aPART} /mntpt
+  else
+   mount -t ${aFS} /dev/${aPART} /mntpt
+  fi
+  if [ $? -eq 0 ];then
+   BSF="$(ls -1 /mntpt/${FNDFILE} 2>/dev/null | head -n 1 | cut -f 3 -d '/')"
+   [ "$BSF" == "" ] && BSF="$(ls -1 /mntpt/*/${FNDFILE} 2>/dev/null | head -n 1 | cut -f 3 -d '/')"
+   [ "$BSF" == "" ] && BSF="$(ls -1 /mntpt/*/*/${FNDFILE} 2>/dev/null | head -n 1 | cut -f 3,4 -d '/')"
+   #[ "$BSF" == "" ] && BSF="$(ls -1 /mntpt/*/*/*/${FNDFILE} 2>/dev/null | head -n 1)"
+   if [ "$BSF" ];then
+    echo -n "${aPART}" > /found-dev
+    if [ "${BSF}" == "${FNDFILE}" ];then
+     echo -n "" > /found-path #only want path.
+    else
+     echo -n "${BSF}/" > /found-path #want trailing /
+    fi
+    sync
+   fi
+   umount /mntpt
+   [ -f /found-dev ] && break
+  fi
+ done
+ [ -f /found-dev ] && break
+ CNT=$(($CNT+1))
+done
+
+###end###

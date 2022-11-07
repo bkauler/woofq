@@ -1,0 +1,15 @@
+#!/bin/ash
+#191219 zygo reported Utility -> Gexec -> mtpaint, tick "run as root", error 'gksu' missing.
+#20221023 may be running as zeus super-user. 20221031 think still need to bump to root.
+
+#this script is a bad hack...
+
+#remove options...
+CMDOPTS="$(echo "$@" | tr -s ' ' | tr ' ' '\n' | grep -v '^\-' | tr '\n' ' ')"
+
+#this will run 'askpass' gui...
+WHOIAM="$(whoami)"
+[ "${WHOIAM}" != "root" ] && exec sudo -A ${0} ${@} #20221023 20221031
+
+exec ${CMDOPTS}
+###end###

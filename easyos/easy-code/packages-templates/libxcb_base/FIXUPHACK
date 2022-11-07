@@ -1,0 +1,15 @@
+#note: DISTRO_BINARY_COMPAT and DISTRO_FILE_PREFIX are visible here, exported in 2createpackages.
+#140117 xARCHDIR, ARCHDIR and DISTRO_ARCHDIR_SYMLINKS exported in 2createpackages. 
+#140117 note, 2createpackages may move /lib, /usr/lib, /usr/bin in template to ARCHDIR subdir.
+#20210818 fix symlink.
+
+#140119 took out all the code that was reducing the selection of libxcb* files,
+# as was not working. maybe bring back sometime.
+
+#120325 ubuntu precise pangolin. tried to run 'viewnior' pkg from wary, missing 'libxcb-xlib.so.0'...
+OLDXCBLIB="`find ./usr -name libxcb-xlib.so.0`" #this is only in the old libxcb version 0.x.
+if [ ! "$OLDXCBLIB" ];then
+ ln -s libX11.so.6 usr/lib/libxcb-xlib.so.0 2>/dev/null #dummy link.
+ [ "$xARCHDIR" ] && ln -s libX11.so.6 usr/lib${xARCHDIR}/libxcb-xlib.so.0 #dummy link. 140117 20210818
+fi
+#...note, wary does this in it's zz_wary52_fixup pkg.

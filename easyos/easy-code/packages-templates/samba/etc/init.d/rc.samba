@@ -1,0 +1,59 @@
+#!/bin/sh
+#
+# /etc/rc.d/rc.samba
+#
+# Start/stop/restart the Samba SMB file/print server.
+#
+# To make Samba start automatically at boot, make this
+# file executable:  chmod 755 /etc/rc.d/rc.samba
+# hacked for puppy Slacko and placed in /etc/init.d/rc.samba 111119
+#
+
+samba_start() {
+  
+  #20211114 smbd startup failed, mkdir failed to create /run/samba/ncalrpc
+  # the failure is because /run is a symlink. need non-symlink samba folder:
+  mkdir -p /run/samba
+  
+  if [ -x /usr/sbin/smbd -a -x /usr/sbin/nmbd -a -r /etc/samba/smb.conf ]; then
+    echo "Starting Samba:  /usr/sbin/smbd -D"
+    /usr/sbin/smbd -D
+    echo "                 /usr/sbin/nmbd -D"
+    /usr/sbin/nmbd -D
+  fi
+}
+
+samba_stop() {
+  killall smbd nmbd
+}
+
+samba_restart() {
+  samba_stop
+  sleep 2
+  samba_start
+}
+
+case "$1" in
+'start')
+  samba_start
+  ;;
+'stop')
+  samba_stop
+  ;;
+'restart')
+  samba_restart
+  ;;
+*)
+  # Default is "start", for backwards compatibility with previous
+  # Slackware versions.  This may change to a 'usage' error someday.
+  #samba_start
+  #111119 usage msg for puppy
+echo "Usage: [for puppylinux]"
+echo "/etc/init.d/rc.samba start  <<-- starts the samba daemon"	
+echo "/etc/init.d/rc.samba stop  <<-- stops the samba daemon"	
+echo "/etc/init.d/rc.samba restart  <<-- restarts the samba daemon"
+echo "see also: /root/Startup"	
+  ;;
+
+esac
+

@@ -1,0 +1,329 @@
+#!/bin/sh
+#(c) Copyright Barry Kauler, 13 February 2017. License: GPL V3 (/usr/share/doc/legal)
+#passed in parameter is name of executable.
+#'setup-container' has already run, at least once, to create the container.
+#170523 replaced 'EC_LAYER' with 'EASY_LAYER'
+#170523 check extra sfs file exists. note, may have a glob wildcard.
+#180120 do not want anything in root/.profile (messed up ssh0 login). 180311 fix.
+#180627 If file 'EASYPAK' in container, then ro layer is 'debs-installed-here' not easy.sfs
+#180628 some scripts running in container need PUPSTATE. it may change each bootup.
+#180630 ec-run: do not have quotes around params, test if $EXE exists (ditto in setup-container)
+#180706 ec-run: mount tmpfs on /tmp if not already.
+#180723 change /tmp/xerrors.log to /tmp/xerrors-${EXE}.log
+#180928 optional 'pflask' utility. ref: http://bkhome.org/news/201809/pflask-chroot-on-steroids.html  180929
+#181014 precautions: check if already started, check detritus leftover.
+#181014 have a situation where .ro0 did not unmount last time "Resource Busy", attempt to re-use...
+#181028 rename 'repository' folder to 'releases'.
+#181101 new 'load-list' ref /usr/local/sfsget/sfsget  181103 fix path.
+#181105 need locale info in container.
+#181106 copy truncated wallpaper from host, for 'desk' container.
+#181106 must have /run in container (and not symlink), else pflask might mount tmpfs on /tmp instead of /run
+#181108 rename 'load-list' to 'base-load-list'.
+#181109 take out the EasyPak devuan stuff.
+#181117 start-up scripts in /.control in sfs. 181118 layer change detect.
+#181122 q*.sfs renamed to easy*.sfs
+#181123 /.* should be /.[a-zA-Z]*   fix loading extra sfss.
+#190813 BOOT_CAPS_DROPPED set in PUPSTATE, by initrd.
+#20210407 hidepid=1 when mount /proc. maybe only useful in a multiuser situation. ref: kernel docs filesystems/proc.txt. see also: init in initrd
+#20210503 cannot copy /usr/lib/locale/* into container. not compatible older glibc, as in racy and xenailpup.
+#20210503 rox has a problem, seems cannot find proper path to shared libraries, if different from host.
+#20210504 /etc/ld.so.conf.d folder also may have files.
+#20210504 fossapup has old code in /etc/profile, remove.
+#20220530 support EOS_TOP_LEVEL_ZRAM==1 (in /etc/rc.d/PUPSTATE)
+#20220607 easy buster, lo javaldx wouldn't start, hack fix.
+#20220607 replaced DB_* with SFS_DB_* in sfs .specs files.
+#20220913 fix ec-run is running as user zeus (or other non-root). 20220922 now spot.
+#20220924 ec-run fail if running as user spot.
+
+export TEXTDOMAIN=easy-containers #190813
+export OUTPUT_CHARSET=UTF-8
+
+[ ! $1 ] && exit 1
+EXE="$1"
+
+. /etc/DISTRO_SPECS
+. /etc/rc.d/PUPSTATE #has BOOT_DEV, BOOT_FS, BOOT_DIR, WKG_DEV, WKG_FS, WKG_DIR, QSFS_PATH
+mkdir -p /tmp/easy_containers
+[ ! -d /mnt/${WKG_DEV}/${WKG_DIR}containers/${EXE} ] && exit 1
+
+#181014 precautions...
+if [ "$(grep "containers/${EXE}/container" /proc/mounts)" != "" ];then
+ echo 'Container already started'
+ exit 0
+fi
+
+case "$BOOT_CAPS_DROPPED" in #190813
+ *cap_sys_mount*|*cap_sys_admin*|*cap_mknod*) #190818
+  Mcaps1="$(gettext 'You are currently running with restricted Linux Capabilities, unable to start a container. Aborting.')"
+  popup "background=#ff8080 level=top terminate=ok|<big>${Mcaps1}</big>"
+  exit 1
+ ;;
+esac
+
+if [ "$EOS_TOP_LEVEL_ZRAM" == "1" ];then #20220530
+ mkdir -p /mnt/.easy_rw/${EXE} #this will become the rw layer.
+fi
+
+#got this once, somehow stuff left behind, when aufs mount failed (?)...
+rm -rf /mnt/${WKG_DEV}/${WKG_DIR}containers/${EXE}/container/* 2>/dev/null
+rm -rf /mnt/${WKG_DEV}/${WKG_DIR}containers/${EXE}/container/.[a-zA-Z]* 2>/dev/null #181123
+
+. /usr/local/easy_containers/config #180928 has EC_GLOBAL_CHROOT
+cd /mnt/${WKG_DEV}/${WKG_DIR}containers/${EXE}
+. ./configuration
+
+[ -f specs ] && . ./specs #181031 DB_* variables. 20220607 now SFS_DB_*
+
+if [ "$EC_GLOBAL_CHROOT" == "chroot" ];then #180928 if not pflask
+ #'console' is a pre-created container, see initramfs /skeleton, which has nothing in /dev
+ #note, same code in setup-container
+ if [ ! -e /mnt/${WKG_DEV}/${WKG_DIR}containers/${EXE}/.session/dev/pts ];then
+  cp -f /usr/local/easy_containers/dev.tar.gz /tmp/easy_containers/
+  cd /tmp/easy_containers
+  tar -xf dev.tar.gz
+  mkdir -p /mnt/${WKG_DEV}/${WKG_DIR}containers/${EXE}/.session/dev
+  cp -a -f --remove-destination dev/* /mnt/${WKG_DEV}/${WKG_DIR}containers/${EXE}/.session/dev/ 2>/dev/null #180628 suppress spurious err msg.
+  sync
+  rm -rf dev
+  rm dev.tar.gz
+  cd /mnt/${WKG_DEV}/${WKG_DIR}containers/${EXE}
+ fi
+fi
+
+#20220924 firefox running as spot failed to start later:
+# "sh: /.control/ec-run: required key not available" deleting it fixes...
+if [ "$EC_ENV_SPOT" == "true" ];then
+ if [ -f .session/.control/ec-run ];then
+  rm -f .session/.control/ec-run
+ fi
+fi
+
+#20220913 "sed -i ..." not work if non-root...
+#180624 also, if easy-version-control erased .session contents, need to recreate this...
+#181117 look first in /.control for $EXE
+#more code from setup-container...
+if [ ! -f .session/.control/ec-run ];then
+ mkdir -p .session/.control
+ cat << 'EOF1' >> .session/.control/ec-run
+#!/bin/sh
+#this script generated by /usr/local/easy_containers/start-container
+
+#20210503 rox has a problem, seems cannot find proper path to shared libraries, if different from host...
+#20210504 /etc/ld.so.conf.d folder also may have files...
+LDFILES=''
+if [ -d /etc/ld.so.conf.d ];then
+ LDFILES="$(find /etc/ld.so.conf.d -mindepth 1 -maxdepth 1 -type f -name '*.conf' | tr '\n' ' ' | sed -e 's% $%%')"
+fi
+if [ -f /etc/ld.so.conf ];then
+ LDFILES="${LDFILES} /etc/ld.so.conf"
+fi
+if [ "$LDFILES" ];then
+ LD_LIBRARY_PATH="$(busybox cat ${LDFILES} | grep '^/' | sort -u | busybox tr '\n' ':' | busybox sed -e 's%:$%%')" #20220607 fix.
+ 
+ #20220607 easy buster, lo javaldx wouldnt start, hack fix...
+ if [ -d /usr/lib/libreoffice/program ];then
+  #it has to be first!...
+  #LD_LIBRARY_PATH="/usr/lib/libreoffice/program:${LD_LIBRARY_PATH}"
+  #no, do it this way...
+  grep -q '^#!/bin/sh' /usr/lib/libreoffice/program/soffice
+  if [ $? -eq 0 ];then
+   sed -i -e 's%^esac%\*)\nLD_LIBRARY_PATH="/usr/lib/libreoffice/program${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"\nexport LD_LIBRARY_PATH\n;;\nesac%' /usr/lib/libreoffice/program/soffice 2>/dev/null
+  fi
+ fi
+ 
+ export LD_LIBRARY_PATH
+ #20210504 fossapup has old code in /etc/profile, remove...
+ if [ -f /etc/profile ];then
+  sed -i -e 's%LD_LIBRARY_PATH=%true #LD_LIBRARY_PATH=%' /etc/profile 2>/dev/null
+  sed -i -e 's%export PATH LD_LIBRARY_PATH%export PATH%' /etc/profile 2>/dev/null
+ fi
+fi
+
+MOUNTS="$(busybox mount 2>/dev/null)"
+if [ "$(echo "$MOUNTS" | grep '/proc ')" == "" ];then
+ busybox mount -o hidepid=1 -t proc proc /proc #20210407
+ MOUNTS="$(busybox mount)"
+fi
+[ "$(echo "$MOUNTS" | grep '/tmp ')" == "" ] && busybox mount -t tmpfs tmpfs /tmp 2>/dev/null
+[ "$(echo "$MOUNTS" | grep '/shm ')" == "" ] && busybox mount -t tmpfs shmfs /dev/shm
+[ "$(echo "$MOUNTS" | grep '/pts ')" == "" ] && busybox mount -t devpts -o newinstance devpts /dev/pts
+[ "$(echo "$MOUNTS" | grep '/sys ')" == "" ] && busybox mount -t sysfs none /sys
+EXE="$1"; shift
+PATH="/.control:${PATH}" xEXE="$(which $EXE)" #so will fallback to executing $@ if $EXE not exist.
+if [ "$EC_CAP_DROP" ];then #180427
+ capsh --drop=${EC_CAP_DROP} -- -c "${xEXE} ${@}" > /tmp/xerrors-${EXE}.log 2>&1
+else
+ ${xEXE} ${@} > /tmp/xerrors-${EXE}.log 2>&1
+fi
+EOF1
+ chown zeus:zeus .session/.control/ec-run #180427 180706
+ chmod 755 .session/.control/ec-run #180427 180929 must have global read and execute permissions.
+ #...this prevents tampering with the script from inside the container, running root-with-restricted-rights.
+fi
+if [ ! -f .session/etc/shadow ];then
+ mkdir -p .session/etc
+ #180612 this has the password entered at bootup, for zeus super-root...
+ cp -a -f /etc/shadow .session/etc/
+fi
+
+#180120 do not want anything in root/.profile (messed up ssh0 login)
+if [ ! -f /mnt/${WKG_DEV}/${WKG_DIR}containers/${EXE}/.session/root/.profile ];then
+ mkdir -p /mnt/${WKG_DEV}/${WKG_DIR}containers/${EXE}/.session/root #180311
+ echo '#want this to be empty' > /mnt/${WKG_DEV}/${WKG_DIR}containers/${EXE}/.session/root/.profile
+fi
+
+#180628 some scripts running in container need this. it may change each bootup.
+mkdir -p /mnt/${WKG_DEV}/${WKG_DIR}containers/${EXE}/.session/etc/rc.d
+cp -a -f /etc/rc.d/PUPSTATE /mnt/${WKG_DEV}/${WKG_DIR}containers/${EXE}/.session/etc/rc.d/
+
+#20210503 now done in ec-chroot...
+##181105 need locale info in container...
+#if [ ! -d /mnt/${WKG_DEV}/${WKG_DIR}containers/${EXE}/.session/usr/lib/locale ];then
+# mkdir -p /mnt/${WKG_DEV}/${WKG_DIR}containers/${EXE}/.session/usr/lib/locale
+# cp -a -f /usr/lib/locale/* /mnt/${WKG_DEV}/${WKG_DIR}containers/${EXE}/.session/usr/lib/locale/
+#fi
+
+#20220922 check writeable if run as spot...
+if [ -f /mnt/${WKG_DEV}/${WKG_DIR}containers/${EXE}/.session/tmp/xerrors-${EXE}.log ];then
+ if [ "$EC_ENV_SPOT" == "true" ];then #ref configuration file.
+  chown spot:spot /mnt/${WKG_DEV}/${WKG_DIR}containers/${EXE}/.session/tmp/xerrors-${EXE}.log
+ else
+  chown root:root /mnt/${WKG_DEV}/${WKG_DIR}containers/${EXE}/.session/tmp/xerrors-${EXE}.log
+ fi
+fi
+#20220923 maybe running in ram...
+if [ -f /mnt/.easy_rw/${EXE}/tmp/xerrors-${EXE}.log ];then
+ if [ "$EC_ENV_SPOT" == "true" ];then #ref configuration file.
+  chown spot:spot /mnt/.easy_rw/${EXE}/tmp/xerrors-${EXE}.log
+ else
+  chown root:root /mnt/.easy_rw/${EXE}/tmp/xerrors-${EXE}.log
+ fi
+fi
+
+#181106 for 'desk' container, probably not really required...
+case "$EXE" in
+ desk)
+  for aDIR in `find /usr/share/backgrounds -mindepth 1 -maxdepth 1 -type d | tr '\n' ' '`
+  do
+   if [ ! -d .session${aDIR} ];then
+    mkdir -p .session${aDIR}
+    cp -a -f ${aDIR}/* .session${aDIR}/
+   fi
+  done
+ ;;
+esac
+
+[ ! -f .session/INSIDE_${EXE} ] && touch .session/INSIDE_${EXE} #181106
+
+[ ! -d .session/run ] && mkdir .session/run #181106
+
+#170206 reintroducing aufs in the kernel:
+if grep -qw aufs /proc/filesystems; then
+ LAYERFS='aufs'
+ RO='=ro'
+else
+ LAYERFS='overlay'
+ RO=''
+fi
+
+#bottom ro layer
+#note, path to easy.sfs may change, if booting off usb stick.
+mkdir -p .ro0
+BASESFS=""
+if [ -f base-load-list ];then #181101 see /usr/local/sfsget/sfsget  181108
+ for aSFS in `tac base-load-list`
+ do
+  [ "$aSFS" == "" ] && continue
+  [ ! -f $aSFS ] && continue
+  ANAME="$(basename $aSFS .sfs)" #ex: q
+  mkdir -p ./.${ANAME}
+  if [ "$(grep "containers/${EXE}/\.${ANAME} " /proc/mounts)" == "" ];then #181108 may not have unmounted before.
+   busybox mount -r -t squashfs -o noatime,loop ${ANAME}.sfs .${ANAME} #181103
+   [ $? -ne 0 ] && exit 3
+  fi
+  if [ "$BASESFS" == "" ];then
+   BASESFS=".${ANAME}${RO}"
+  else
+   BASESFS=".${ANAME}${RO}:${BASESFS}"
+  fi
+ done 
+else
+ #old code...
+# if [ -f ./EASYPAK ];then #180627
+#  #EasyPak Package Manager runs in container 'easypak0' and installs debs to 'debs-installed-here'
+#  #script /usr/local/EasyPak/ep_pkg_chooser also sets up 'debs-installed-here' as chrootable.
+#  ln -snf ../easypak0/.session/debs-installed-here .ro0
+# else
+  #181014 have a situation where .ro0 did not unmount last time "Resource Busy", attempt to re-use...
+  if [ "$(grep "containers/${EXE}/\.ro0" /proc/mounts)" == "" ];then
+   busybox mount -t squashfs -o loop,noatime ${QSFS_PATH}easy.sfs .ro0
+   [ $? -ne 0 ] && exit 3
+  fi
+# fi
+ BASESFS=".ro0${RO}" #181101
+fi
+
+#configuration file may specify extra sfs files to load... 170523
+EXTRASFS=''
+if [ ! -f ./EASYPAK ];then #180627
+ for NUM in 4 3 2 1
+ do
+  eval "ROsfs=\$EASY_LAYER_RO${NUM}" #implements indirection. EASY_LAYER_RO1='devx-*.sfs' in configuration file, will assign 'devx.sfs' to ROsfs
+  if [ "$ROsfs" ];then
+   #181123 sfs name is now a symlink, ex: devx.sfs
+   if [ -f "$ROsfs" ];then
+    ANAME="${ROsfs/.sfs/}"
+    mkdir -p ./.${ANAME}
+    if [ "$(grep "containers/${EXE}/\.${ANAME} " /proc/mounts)" == "" ];then #may not have unmounted before.
+     busybox mount -r -t squashfs -o noatime,loop ${ANAME}.sfs .${ANAME}
+     [ $? -ne 0 ] && exit 3
+    fi
+    EXTRASFS=".${ANAME}${RO}:${EXTRASFS}"
+   fi
+  fi
+ done
+fi
+
+#181118 ec-chroot calls run-once scripts, but do some prelimiary checking here for changed layers...
+#if layers have changed, rerun everything...
+RUN1=0
+for aEXTRA in `echo -n "${EXTRASFS}${BASESFS}" | tr ':' ' ' | sed -e 's%=ro%%g'`
+do
+ [ "$aEXTRA" == "" ] && continue
+ aNAME="${aEXTRA:1}" #take off the dot
+ [ -f ${aEXTRA}/.control/${aNAME}.run-once-base ] && RUN1=$(($RUN1+1))
+done
+RUN2=$(ls -1 /mnt/${WKG_DEV}/${WKG_DIR}containers/${EXE}/.session/.control/*.run-once-base-flag 2>/dev/null | wc -l)
+if [ $RUN1 -ne $RUN2 ];then
+ #layers have changed, better rerun all run-once scripts...
+ rm -f /mnt/${WKG_DEV}/${WKG_DIR}containers/${EXE}/.session/.control/*-flag 2>/dev/null
+ #remove a few things...
+ DIRSESSION="/mnt/${WKG_DEV}/${WKG_DIR}containers/${EXE}/.session"
+ rm -f ${DIRSESSION}/root/Choices/ROX-Filer/* 2>/dev/null
+ rm -f ${DIRSESSION}/usr/share/glib-2.0/schemas/gschemas.compiled 2>/dev/null
+ #should we remove whiteout files?...
+ find ${DIRSESSION} -mindepth 1 -type f -name '.wh.*' -delete 2>/dev/null
+ #and these whiteout folders...
+ rm -rf ${DIRSESSION}/.wh..wh* 2>/dev/null
+fi
+
+if [ "$LAYERFS" == "aufs" ];then #181101
+ if [ "$EOS_TOP_LEVEL_ZRAM" == "1" ];then #20220530
+  mount -t aufs -o br=/mnt/.easy_rw/${EXE}=rw:.session=ro:${EXTRASFS}${BASESFS} aufs /mnt/${WKG_DEV}/${WKG_DIR}containers/${EXE}/container
+ else
+  mount -t aufs -o br=.session=rw:${EXTRASFS}${BASESFS} aufs /mnt/${WKG_DEV}/${WKG_DIR}containers/${EXE}/container
+ fi
+else
+ mount -t overlay -o lowerdir=${EXTRASFS}${BASESFS},upperdir=.session,workdir=.work overlay /mnt/${WKG_DEV}/${WKG_DIR}containers/${EXE}/container
+fi
+if [ $? -ne 0 ];then #181101
+ #busybox umount .ro0
+ for ONEEXTRA in `echo -n "${EXTRASFS}${BASESFS}" | tr ':' ' ' | sed -e 's%=ro%%g'` #170523
+ do
+  busybox umount ${ONEEXTRA}
+ done
+ exit 4
+fi
+
+exit 0
+###end###

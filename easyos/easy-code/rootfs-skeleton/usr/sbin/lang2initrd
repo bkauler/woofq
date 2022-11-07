@@ -1,0 +1,87 @@
+#!/bin/sh
+#(c) Copyright Barry Kauler 2012. License: GPL3 (/usr/share/doc/legal)
+#this script called from /usr/sbin/quicksetup, /usr/bin/wmreboot, wmpoweroff.
+#passed in params: $NEWLANG
+#120401 change logic to modify init (see also quicksetup).
+#121124 ensure that all [ ] are escaped in initrd translation-file. see also /usr/sbin/fixdesk, fixmenus.
+#121125 revert 121124.
+#121126 restore 121124, plus escape '.' chars in regex.
+#190103 fix for easyos. 190104 handle gettext or sss method in initrd.
+#190105 NEWLANG passed in (full name, instead of just 2-chars).
+#190105 new /usr/share/sss/boot_strings, symlink /usr/sbin/fixboot to fixdesk
+#190226 BOOT_SPECS in initrd no longer has INIT_LANG variable.
+#20220622 no longer have BOOT_SPECS file. no BOOT_* variables. initrd now in wkg-partition.
+
+export TEXTDOMAIN=lang2initrd
+export OUTPUT_CHARSET=UTF-8
+. gettext.sh
+
+. /etc/rc.d/PUPSTATE
+
+NEWLANG="$1" #ex: de_DE.UTF-8
+NEWLANG1="${NEWLANG%_*}" #ex: de
+PLANG1="en"
+#[ "$INIT_LANG" ] && PLANG1="${INIT_LANG%_*}" #defined in PUPSTATE by init script in initrd. 190103
+echo -n '' > /var/local/lang2initrd.log
+
+CR='
+'
+
+#various reasons for not doing it...
+DOIT='yes'
+[ "$BOOT_FS" == "iso9660" ] && DOIT='no' #read-only.
+#190104 fixinitrd checks this, also don't know yet whether gettext or sss method...
+#if [ "$NEWLANG1" != "en" ];then
+# #fallback to en if no translation available...
+# [ ! -f /usr/share/sss/initrd_strings/initrd_strings.${NEWLANG1} ] && NEWLANG1='en'
+#fi
+[ "$PLANG1" == "$NEWLANG1" ] && DOIT='no' #already translated.
+[ "$DOIT" == "no" ] && exit 1
+
+if [ "$DISPLAY" ];then
+ pupdialog --background '#FF80FF' --colors --backtitle "$(gettext 'Early boot messages')" --yesno "$(gettext 'Do you want to translate the early boot messages? These are scripts inside the initrd file. It is usually good to answer yes here.')
+
+$(gettext 'The initrd current language is:') ${PLANG1}
+$(gettext 'The initrd will be translated to:') ${NEWLANG1}" 0 0
+else
+ dialog --yesno "$(gettext 'Do you want to translate the early boot messages? These are scripts inside the initrd file. It is usually good to answer yes here.')
+
+$(gettext 'The initrd current language is:') ${PLANG1}
+$(gettext 'The initrd will be translated to:') ${NEWLANG1}" 0 0 >/dev/console
+fi
+if [ $? -ne 0 ];then
+ echo "DECLINED ${NEWLANG1} " >> /var/local/lang2initrd.log #variable in /etc/DISTRO_SPECS
+ exit 2
+fi
+
+#translate... 20220622 removed...
+#/usr/sbin/fixboot is a symlink to /usr/sbin/fixdesk...
+#fixboot ${NEWLANG1} ${NEWLANG} #190105
+#BOOTflg="$?"
+
+#/usr/sbin/fixdesk has morphed into a generic translator, fixinitrd is symlink to it...
+fixinitrd ${NEWLANG1} ${NEWLANG} #190105 add full new-lang.
+INIflg="$?"
+case "$INIflg" in
+ 2)
+  echo "DECLINED ${NEWLANG1} " >> /var/local/lang2initrd.log #variable in /etc/DISTRO_SPECS
+ ;;
+esac
+
+if [ "$INIflg" == "0" ];then
+ INIMSG="`eval_gettext \"The file \Zbinitrd\ZB has been successfully translated to language \Zb\\\${NEWLANG1}\ZB. You will see the effect at the next boot.\"`"
+ BACKCOLOR='#80FF80'
+ #record that have done it...
+ echo "SUCCESS ${NEWLANG1} " >> /var/local/lang2initrd.log #variable in /etc/DISTRO_SPECS
+else
+ INIMSG="`eval_gettext \"Sorry, something went wrong, was unable to translate file \Zbinitrd\ZB.\"`"
+ BACKCOLOR='#FF8080'
+fi
+if [ $DISPLAY ];then
+ pupdialog --background ${BACKCOLOR} --colors --backtitle "$(gettext 'Early boot translation')" --msgbox "${INIMSG}${CR}${CR}${BOOTMSG}" 0 0
+else
+ dialog --colors --msgbox "${INIMSG}${CR}${CR}" 0 0 >/dev/console
+fi
+
+exit $INIflg
+###END###

@@ -1,0 +1,40 @@
+
+#20211218 save space...
+if [ -d usr/share/scribus/icons/1_5_0 ];then
+ rm -rf usr/share/scribus/icons/1_5_0
+ rm -f usr/share/scribus/icons/1_5_0.xml
+fi
+if [ -d usr/share/scribus/icons/1_5_1_dark ];then
+ rm -rf usr/share/scribus/icons/1_5_1_dark
+ rm -f usr/share/scribus/icons/1_5_1_dark.xml
+fi
+
+#missing icons...
+if [ -d usr/share/scribus/icons/1_5_1 ];then #this is the default
+ cp -a -f var/scribus-icons/* usr/share/scribus/icons/1_5_1/
+fi
+rm -rf var
+
+#20211220 oe dunfell, fix broken symlink
+if [ -f usr/share/scribus/icons/1_5_1/scribus.png ];then
+ ln -snf ../scribus/icons/1_5_1/scribus.png usr/share/pixmaps/scribus.png
+fi
+
+if [ -d usr/share/icons/hicolor/256x256 ];then
+ rm -rf usr/share/icons/hicolor/256x256
+fi
+if [ -d usr/share/icons/hicolor/512x512 ];then
+ rm -rf usr/share/icons/hicolor/512x512
+fi
+if [ -d usr/share/icons/hicolor/1024x1024 ];then
+ rm -rf usr/share/icons/hicolor/1024x1024
+fi
+
+#remove one large file...
+if [ -f usr/share/scribus/icons/1_5_1/scribus_splash.png ];then
+ if [ -f usr/share/scribus/icons/1_5_1/scribus_logo.png ];then
+  ln -snf scribus_logo.png usr/share/scribus/icons/1_5_1/scribus_splash.png
+ fi
+fi
+
+

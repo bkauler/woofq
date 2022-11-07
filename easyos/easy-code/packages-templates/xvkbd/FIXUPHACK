@@ -1,0 +1,30 @@
+#BK 20151025
+
+#if [ -f etc/X11/app-defaults/XVkbd-common ];then
+# sed -i -e 's%lucidatypewriter%courier%' etc/X11/app-defaults/XVkbd-common
+# sed -i -e 's%lucida\-bold\-i%helvetica-medium-r%' etc/X11/app-defaults/XVkbd-common
+# sed -i -e 's%\-14\-%-24-%' etc/X11/app-defaults/XVkbd-common
+# sed -i -e 's%\-10\-%-12-%' etc/X11/app-defaults/XVkbd-common
+# sed -i -e 's%\-lucida\-%-helvetica-%' etc/X11/app-defaults/XVkbd-common
+#fi
+
+#...above works, but need fixes for non-US layouts. jamesbond devised this:
+#ex:
+#-*-helvetica-medium-r-*-*-12-*-*-*-*-*-iso8859-1
+#converted to:
+#-*-dejavu sans-medium-r-*-*-12-*-*-*-p-*-*-*
+
+XVKBDfiles="$(find etc/X11/app-defaults -maxdepth 1 -type f -name 'XVkbd-*' 2>/dev/null)"
+[ ! "$XVKBDfiles" ] && XVKBDfiles="$(find usr/share/X11/app-defaults -maxdepth 1 -type f -name 'XVkbd-*')"
+
+for AFILE in ${XVKBDfiles}
+do
+ [ "$AFILE" == "" ] && continue
+ sed -i -e 's%\-helvetica\-%-dejavu sans-%' ${AFILE}
+ sed -i -e 's%\-lucidatypewriter\-%-dejavu sans-%' ${AFILE}
+ sed -i -e 's%\-lucida\-%-dejavu sans-%' ${AFILE}
+ sed -i -e 's%\-\*\-\*\-\*\-\*\-\*\-iso8859\-.%-*-*-*-p-*-*-*%' ${AFILE}
+ sed -i -e 's%\-\*\-\*\-\*\-\*\-\*\-koi8\-r%-*-*-*-p-*-*-*%' ${AFILE}
+ sed -i -e 's%\-i\-%-r-%' ${AFILE}
+done
+

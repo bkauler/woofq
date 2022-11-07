@@ -1,0 +1,373 @@
+#190904 inserted into easy-containers and /usr/local/sfsget/ec-security
+#191006 bug fix.
+#191020 do not change 'configuration' in templates if already exist.
+#191020 set_defaults_func now has optional 2nd param.
+#20221006 make shared folder /files/shared read-only. new EC_ACCESS_DRI
+
+M_helpcap="$(gettext 'In Easy, the user runs as the <b>root</b> user (administrator), and the same is true in containers. Linux has a feature called <b>capabilities</b>, that can be used to restrict the rights of the root user. Easy has organized them into five categories, for ease-of-use:')
+
+<b>$(gettext 'system')</b>
+$(gettext 'Drop system administration permissions.')
+<b>$(gettext 'file')</b>
+$(gettext 'Prevent execution and modifications to files.')
+<b>$(gettext 'network')</b>
+$(gettext 'Drop network administration permissions. Note, tick the <i>network Namespace</i> checkbox to disable inheriting host network connection.')
+<b>$(gettext 'module')</b>
+$(gettext 'Drop kernel module loading/unloading and other admin.')
+<b>$(gettext 'resource')</b>
+$(gettext 'Drop system resource administration.')
+<b>$(gettext 'mount')</b>
+$(gettext 'Prevent mount and umount of filesystems.')
+
+$(gettext 'Note, for most applications it is OK to tick all of these.')"
+export DLG_HELPcap="<window resizable=\"false\" title=\"$(gettext 'Help: Linux capabilities')\" icon-name=\"gtk-index\" window_position=\"1\"><vbox><text use-markup=\"true\"><label>\"${M_helpcap}\"</label><variable>DLG_HELPcap</variable></text><hbox><button><label>${M_close}</label><action type=\"closewindow\">DLG_HELPcap</action></button></hbox></vbox></window>"
+
+M_helpns="$(gettext 'Linux namespaces are a mechanism to isolate some functionality of a container from the main system. There are six types:')
+
+<b>$(gettext 'mount')</b>
+$(gettext 'Mount points. Recommend do tick this.')
+<b>$(gettext 'UTS')</b>
+$(gettext 'Hostname and NIS domain name. May be ticked, however, do <i>not</i> tick if choose Pipe Xorg socket, as X apps will not run.')
+<b>$(gettext 'IPC')</b>
+$(gettext 'Inter Process Communication. Recommend do <i>not</i> tick this, as it will prevent X apps from running.')
+<b>$(gettext 'network')</b>
+$(gettext 'Network devices, stacks, ports. Tick this for more secure network and Internet connection.')
+<b>$(gettext 'PID')</b>
+$(gettext 'Process IDs. Ticking this will prevent the container from seeing the host-system PIDs. Recommended to always tick this.')
+<b>$(gettext 'user')</b>
+$(gettext 'User and group IDs. Easy Containers does not use this, as it was determined to be unnecessary, and even conflicting, with Linux capabilities.')"
+export DLG_HELPns="<window resizable=\"false\" title=\"$(gettext 'Help: Linux namespaces')\" icon-name=\"gtk-index\" window_position=\"1\"><vbox><text use-markup=\"true\"><label>\"${M_helpns}\"</label><variable>DLG_HELPns</variable></text><hbox><button><label>${M_close}</label><action type=\"closewindow\">DLG_HELPns</action></button></hbox></vbox></window>"
+
+M_helpxorg="$(gettext 'The X server is a potential security weakness, as an X app running in a container must use the system X server. The connection is via what is called a <i>socket</i>, and there are three ways of doing it:')
+
+<b>$(gettext 'Unix Domain Socket')</b>
+$(gettext 'This uses a path in the main filesystem, /tmp/.X11-unix, which would have to be visible from a container to be used by apps in the container.')
+
+<b>$(gettext 'Abstract')</b>
+$(gettext 'This does not require access to /tmp in the main filesystem, however, will not work if the X server started with <i>-nolisten local</i>.')
+
+<b>$(gettext 'Pipe')</b>
+$(gettext 'This is setup in the main filesyetm, with the <i>socat</i> utility, to connect TCP port 6000 to the Unix Domain Socket. This will work even if the X server is started with <i>-nolisten tcp -nolisten local</i>. However, Pipe will not work if the <i>mount Namespace</i> is unshared.')
+
+<b>Xorg</b>
+$(gettext 'Xorg is the X server used in the main filesystem. It can also be used in containers, with any of the above three socket methods.')
+
+<b>Xephyr</b>
+$(gettext 'Xephyr is a nested X server. It will display in its own window, and is the most secure option.')
+
+<b>$(gettext 'Technical notes')</b>
+$(gettext 'Xorg commandline start options can be found in /usr/bin/xwin')
+$(gettext 'Xephyr commandline start options can be found in /root/Startup/xephyr')"
+export DLG_HELPxorg="<window resizable=\"false\" title=\"$(gettext 'Help: X Server')\" icon-name=\"gtk-index\" window_position=\"1\"><vbox><text use-markup=\"true\"><label>\"${M_helpxorg}\"</label><variable>DLG_HELPxorg</variable></text><hbox><button><label>${M_close}</label><action type=\"closewindow\">DLG_HELPxorg</action></button></hbox></vbox></window>"
+
+M_helpenv="<b>$(gettext 'unshare variables')</b>
+$(gettext 'If you type <i>set</i> in a terminal, all of the environment variables will be listed. To reduce the number of these appearing in a container, tick the checkbox.')
+
+<b>$(gettext 'user spot')</b>
+$(gettext 'Execution in container is as root user, however severely constrained, which is considered secure. However, if you wish, tick this checkbox to run as user <b>spot</b> in the container, for even more security.')
+<b>$(gettext 'WARNING: only tick this when creating a new container. Also, some apps may not work.')</b>
+
+<b>$(gettext 'network')</b>
+$(gettext 'Tick this if you want to have network (and Internet) access from within the container.')
+
+<b>$(gettext 'sound')</b>
+$(gettext 'Tick this for sound output from within the container.')
+
+<b>$(gettext 'accel. graphics')</b>
+$(gettext 'Tick to enable DRI, Direct Rendering Infrastructure, within the container. This provides hardware accelerated graphics.')
+
+<b>$(gettext 'shared folder')</b>
+$(gettext 'Tick the checkbox, then /files/shared inside the container will be the same as /files/shared on the main desktop. This allows transferring files in and out of the container.')" #190829
+export DLG_HELPenv="<window resizable=\"false\" title=\"$(gettext 'Help: Environment & Access')\" icon-name=\"gtk-index\" window_position=\"1\"><vbox><text use-markup=\"true\"><label>\"${M_helpenv}\"</label><variable>DLG_HELPenv</variable></text><hbox><button><label>${M_close}</label><action type=\"closewindow\">DLG_HELPenv</action></button></hbox></vbox></window>"
+
+#190830
+M_seclevel="$(gettext 'These buttons provide simple presetting of the Expert tab.')
+
+<b>$(gettext 'Reset')</b>
+$(gettext 'Default security settings. See Technical notes below.')
+
+<b>$(gettext 'Security level')</b>
+$(gettext 'The first, least secure, is a container without any security options set. It runs with full administrator (root) rights. The devx SFS would be a good choice for this mode, where you want all administrator power, and compiled packages are separate from the main desktop.')
+$(gettext 'In most cases, you will want to run one X app in a container, so choose <b>Run an individual X app, with Internet access</b>.')
+$(gettext 'The last, most secure, has all isolation settings turned on, but can only run a sub-set of CLI (Command Line Interface) apps.')
+
+$(gettext 'After having chosen a preset security-level, you may make further modifications in the Expert tab.')
+
+<b>$(gettext 'Technical notes')</b>
+$(gettext 'Path /usr/local/easy_containers/templates has pre-defined security settings for some apps. If one exists for a chosen app, it will be loaded as default. If you create a working configuration file for a particular app, you may send it to Barry for permanent inclusion.')"
+export DLG_HELPseclevel="<window resizable=\"false\" title=\"$(gettext 'Help: Security level')\" icon-name=\"gtk-index\" window_position=\"1\"><vbox><text use-markup=\"true\"><label>\"${M_seclevel}\"</label><variable>DLG_HELPseclevel</variable></text><hbox><button><label>${M_close}</label><action type=\"closewindow\">DLG_HELPseclevel</action></button></hbox></vbox></window>"
+
+##### 20221006 no longer used...
+#181002 chooser for shared folder...
+export DLG_CHOOSER="<window title=\"$(gettext 'Easy Containers')\" icon-name=\"gtk-convert\">
+ <vbox>
+  <text><label>$(gettext 'Choose a folder that will be shared inside container')</label></text>
+  <chooser>
+   <width>600</width>
+   <height>400</height>
+   <variable>PATHCHOOSER</variable>
+   <default>${lastPATH}</default>
+  </chooser>
+  <hbox>
+   <button ok>
+     <action>echo -n \$PATHCHOOSER > /tmp/easy_containers/entry-EC_ACCESS_FOLDER_PATH</action>
+     <action>refresh:ACCESS_FOLDER_PATH</action>
+     <action function=\"closewindow\">DLG_CHOOSER</action>
+   </button>
+   <button cancel>
+     <action function=\"closewindow\">DLG_CHOOSER</action>
+   </button>
+  </hbox>
+ </vbox>
+ <variable>DLG_CHOOSER</variable>
+</window>"
+
+REFRESH_EXPERT='
+         <action>refresh:ENV_VARS</action>
+         <action>refresh:ENV_SPOT</action>
+         <action>refresh:ACCESS_NET</action>
+         <action>refresh:ACCESS_SND</action>
+         <action>refresh:ACCESS_FOLDER</action>
+         <action>refresh:ACCESS_FOLDER_PATH</action>
+         <action>refresh:NS_MOUNT</action>
+         <action>refresh:NS_UTS</action>
+         <action>refresh:NS_IPC</action>
+         <action>refresh:NS_NETWORK</action>
+         <action>refresh:NS_PID</action>
+         <action>refresh:XSERVER_XEPHYR</action>
+         <action>refresh:XSERVER_XORG</action>
+         <action>refresh:XSOCKET_ABSTRACT</action>
+         <action>refresh:XSOCKET_PIPE</action>
+         <action>refresh:XSOCKET_UNIX</action>
+         <action>refresh:CAP_system</action>
+         <action>refresh:CAP_file</action>
+         <action>refresh:CAP_network</action>
+         <action>refresh:CAP_module</action>
+         <action>refresh:CAP_resource</action>
+         <action>refresh:CAP_mount</action>'
+
+#191020 set_defaults_func now has optional 2nd param... 20221006...
+EC_SEC_FRAME="    <frame $(gettext 'Security options')>
+     <notebook labels=\"$(gettext 'Simple')|$(gettext 'Expert')\">
+      <vbox>
+       <hbox>
+        <text><label>$(gettext 'Reset settings in the Expert tab to defaults:')</label></text>
+        <button>
+         <label>$(gettext 'Reset')</label>
+         <action>set_defaults_func \$EC_CREATE 0</action>
+         ${REFRESH_EXPERT}
+        </button>
+        <button><input file>/usr/local/lib/X11/mini-icons/mini-question.xpm</input><action type=\"launch\">DLG_HELPseclevel</action></button>
+       </hbox>
+       
+        <frame $(gettext 'Security level')>
+           <text><label>$(gettext 'Preset settings in the Expert tab to one of these broad criteria')</label></text>
+           <hbox>
+            <text><label>$(gettext 'A container with absolute minimum security:')</label></text>
+            <button><input file>/usr/local/easy_containers/images/seclevel_1.xpm</input><action>set_defaults_func seclevel_1</action>${REFRESH_EXPERT}</button>
+           </hbox>
+           <hbox>
+            <text><label>$(gettext 'Minimum security, without Internet:')</label></text>
+            <button><input file>/usr/local/easy_containers/images/seclevel_2.xpm</input><action>set_defaults_func seclevel_2</action>${REFRESH_EXPERT}</button>
+           </hbox>
+           <hbox>
+            <text><label>$(gettext 'Run an individual X app, with Internet access:')</label></text>
+            <button><input file>/usr/local/easy_containers/images/seclevel_3.xpm</input><action>set_defaults_func seclevel_3</action>${REFRESH_EXPERT}</button>
+           </hbox>
+           <hbox>
+            <text><label>$(gettext 'Run a desktop, complete OS, with Internet access:')</label></text>
+            <button><input file>/usr/local/easy_containers/images/seclevel_4.xpm</input><action>set_defaults_func seclevel_4</action>${REFRESH_EXPERT}</button>
+           </hbox>
+           <hbox>
+            <text><label>$(gettext 'Run an individual CLI app, with Internet access:')</label></text>
+            <button><input file>/usr/local/easy_containers/images/seclevel_5.xpm</input><action>set_defaults_func seclevel_5</action>${REFRESH_EXPERT}</button>
+           </hbox>
+           <hbox>
+            <text><label>$(gettext 'Maximum security, allow X, no Internet or audio:')</label></text>
+            <button><input file>/usr/local/easy_containers/images/seclevel_6.xpm</input><action>set_defaults_func seclevel_6</action>${REFRESH_EXPERT}</button>
+           </hbox>
+           <hbox>
+            <text><label>$(gettext 'Maximum security, CLI only, no X, Internet or audio:')</label></text>
+            <button><input file>/usr/local/easy_containers/images/seclevel_7.xpm</input><action>set_defaults_func seclevel_7</action>${REFRESH_EXPERT}</button>
+           </hbox>
+        </frame>
+       
+      </vbox>
+      <vbox>
+       <hbox>
+        <vbox>
+         <frame $(gettext 'Environment')>
+          <checkbox><variable>ENV_VARS</variable><label>$(gettext 'unshare variables')</label><input file>/tmp/easy_containers/chkbx-EC_UNSHARE_ENV_VARS</input></checkbox>
+          <checkbox><variable>ENV_SPOT</variable><label>$(gettext 'user spot')</label><input file>/tmp/easy_containers/chkbx-EC_ENV_SPOT</input></checkbox>
+         </frame>
+         <frame $(gettext 'Access')>
+          <checkbox><variable>ACCESS_NET</variable><label>$(gettext 'network')</label><input file>/tmp/easy_containers/chkbx-EC_ACCESS_NET</input></checkbox>
+          <checkbox><variable>ACCESS_SND</variable><label>$(gettext 'sound')</label><input file>/tmp/easy_containers/chkbx-EC_ACCESS_SND</input></checkbox>
+          <checkbox><variable>ACCESS_DRI</variable><label>$(gettext 'accel. graphics')</label><input file>/tmp/easy_containers/chkbx-EC_ACCESS_DRI</input></checkbox>
+          <checkbox>
+           <variable>ACCESS_FOLDER</variable>
+           <label>$(gettext 'shared folder')</label>
+           <input file>/tmp/easy_containers/chkbx-EC_ACCESS_FOLDER</input>
+          </checkbox>
+          <entry editable=\"false\">
+           <variable>ACCESS_FOLDER_PATH</variable>
+           <input file>/tmp/easy_containers/entry-EC_ACCESS_FOLDER_PATH</input>
+          </entry>
+         </frame>
+         <hbox>
+          <button><input file>/usr/local/lib/X11/mini-icons/mini-question.xpm</input><action type=\"launch\">DLG_HELPenv</action></button>
+         </hbox>
+        </vbox>
+        <vbox>
+         <frame $(gettext 'Capabilities')>
+          <text><label>$(gettext 'Drop:')</label></text>
+          <checkbox><variable>CAP_system</variable><label>system</label><input file>/tmp/easy_containers/chkbx-EC_CAP_system</input></checkbox>
+          <checkbox><variable>CAP_file</variable><label>file</label><input file>/tmp/easy_containers/chkbx-EC_CAP_file</input></checkbox>
+          <checkbox><variable>CAP_network</variable><label>network</label><input file>/tmp/easy_containers/chkbx-EC_CAP_network</input></checkbox>
+          <checkbox><variable>CAP_module</variable><label>module</label><input file>/tmp/easy_containers/chkbx-EC_CAP_module</input></checkbox>
+          <checkbox><variable>CAP_resource</variable><label>resource</label><input file>/tmp/easy_containers/chkbx-EC_CAP_resource</input></checkbox>
+          <hbox>
+           <button><input file>/usr/local/lib/X11/mini-icons/mini-question.xpm</input><action type=\"launch\">DLG_HELPcap</action></button>
+          </hbox>
+         </frame>
+        </vbox>
+        <vbox>
+         <frame $(gettext 'Namespaces')>
+          <text><label>$(gettext 'Unshare:')</label></text>
+          <checkbox><variable>NS_MOUNT</variable><label>mount</label><input file>/tmp/easy_containers/chkbx-EC_NS_UNSHARE_MOUNT</input></checkbox>
+          <checkbox><variable>NS_UTS</variable><label>UTS</label><input file>/tmp/easy_containers/chkbx-EC_NS_UNSHARE_UTS</input></checkbox>
+          <checkbox><variable>NS_IPC</variable><label>IPC</label><input file>/tmp/easy_containers/chkbx-EC_NS_UNSHARE_IPC</input></checkbox>
+          <checkbox><variable>NS_NETWORK</variable><label>network</label><input file>/tmp/easy_containers/chkbx-EC_NS_UNSHARE_NETWORK</input></checkbox>
+          <checkbox><variable>NS_PID</variable><label>PID</label><input file>/tmp/easy_containers/chkbx-EC_NS_UNSHARE_PID</input></checkbox>
+          <hbox>
+           <button><input file>/usr/local/lib/X11/mini-icons/mini-question.xpm</input><action type=\"launch\">DLG_HELPns</action></button>
+          </hbox>
+         </frame>
+        </vbox>
+        <vbox>
+         <frame $(gettext 'X server')>
+          <radiobutton><variable>XSERVER_XORG</variable><label>Xorg</label><input file>/tmp/easy_containers/chkbx-XSERVER_XORG</input></radiobutton>
+          <radiobutton><variable>XSERVER_XEPHYR</variable><label>Xephyr</label><input file>/tmp/easy_containers/chkbx-XSERVER_XEPHYR</input></radiobutton>
+         </frame>
+         <frame $(gettext 'X socket')>
+          <radiobutton><variable>XSOCKET_ABSTRACT</variable><label>Abstract</label><input file>/tmp/easy_containers/chkbx-XSOCKET_ABSTRACT</input></radiobutton>
+          <radiobutton><variable>XSOCKET_PIPE</variable><label>Pipe</label><input file>/tmp/easy_containers/chkbx-XSOCKET_PIPE</input></radiobutton>
+          <radiobutton><variable>XSOCKET_UNIX</variable><label>Unix</label><input file>/tmp/easy_containers/chkbx-XSOCKET_UNIX</input></radiobutton>
+         </frame>
+         <hbox>
+          <button><input file>/usr/local/lib/X11/mini-icons/mini-question.xpm</input><action type=\"launch\">DLG_HELPxorg</action></button>
+         </hbox>
+        </vbox>
+       </hbox>
+      </vbox>
+     </notebook>
+    </frame>
+"
+
+#defaults for the security checkboxes...  #181009
+set_defaults_func() {
+ DEFORIG="${2}" #191020 optional param, 0=load 'configuration0' which is the original default.
+ if [ "$1" ];then #190830
+  EXEin="$1"
+  case "$EXEin" in
+   seclevel*)
+    SECLEVEL="${EXEin/*_/}"
+    P_sec="$(gettext 'Expert tab has been preset to security-level')"
+    popup "background=#80ff80 terminate=3 timecount=dn name=ecexperttab|<big>${P_sec} <b>${SECLEVEL}</b></big>"
+   ;;
+   *)
+    if [ -f /mnt/${WKG_DEV}/${WKG_DIR}containers/${EXEin}/configuration ];then #190831
+     #191020 well... let it change, but record first one as 'configuration0'...
+     mkdir -p /usr/local/easy_containers/templates/${EXEin}
+     if [ ! -f /usr/local/easy_containers/templates/${EXEin}/configuration ];then
+      cp -a -f /mnt/${WKG_DEV}/${WKG_DIR}containers/${EXEin}/configuration /usr/local/easy_containers/templates/${EXEin}/configuration0
+     fi
+     cp -a -f /mnt/${WKG_DEV}/${WKG_DIR}containers/${EXEin}/configuration /usr/local/easy_containers/templates/${EXEin}/
+    fi
+    if [ -f /usr/local/easy_containers/templates/${EXEin}/configuration ];then
+     CR='
+' #global CR not visible here.
+     P_exe1="$(gettext 'Expert tab has been set to defaults for:')"
+     P_exe2="$(gettext 'It should not be necessary to click on any of the security-level buttons.')"
+     popup "background=#80ff80 terminate=4 timecount=dn name=ecexperttab|<big>${P_exe1} <b>${EXEin}</b>${CR}${P_exe2}</big>"
+    else
+     P_def="$(gettext 'Expert tab has been set to defaults')"
+     popup "background=#80ff80 terminate=3 timecount=dn name=ecexperttab|<big>${P_def}</big>"
+    fi
+   ;;
+  esac
+ else
+  EXEin='defaults'
+ fi
+ #191020 now have DEFORIG...
+ if [ -f /usr/local/easy_containers/templates/${EXEin}/configuration${DEFORIG} ];then
+  . /usr/local/easy_containers/templates/${EXEin}/configuration${DEFORIG}
+ else
+  if [ -f /usr/local/easy_containers/templates/${EXEin}/configuration ];then
+   . /usr/local/easy_containers/templates/${EXEin}/configuration
+  else
+   . /usr/local/easy_containers/templates/defaults/configuration
+  fi
+ fi
+ #20221006 in case not defined...
+ [ "$EC_ACCESS_DRI" == "" ] && EC_ACCESS_DRI='false'
+ [ "$EC_ENV_SPOT" == "" ] && EC_ENV_SPOT='false'
+ #xorg...
+ [ "$XORG_ABSTRACT_ALLOW" == "false" ] && [ "$EC_XSOCKET" == "abstract" ] && EC_XSOCKET='unix'
+ case "$EC_XSOCKET" in
+  abstract)
+   echo 'true' > /tmp/easy_containers/chkbx-XSOCKET_ABSTRACT
+   echo 'false' > /tmp/easy_containers/chkbx-XSOCKET_UNIX
+   echo 'false' > /tmp/easy_containers/chkbx-XSOCKET_PIPE
+  ;;
+  pipe)
+   echo 'false' > /tmp/easy_containers/chkbx-XSOCKET_ABSTRACT
+   echo 'false' > /tmp/easy_containers/chkbx-XSOCKET_UNIX
+   echo 'true' > /tmp/easy_containers/chkbx-XSOCKET_PIPE
+  ;;
+  *) #unix
+   echo 'false' > /tmp/easy_containers/chkbx-XSOCKET_ABSTRACT
+   echo 'true' > /tmp/easy_containers/chkbx-XSOCKET_UNIX
+   echo 'false' > /tmp/easy_containers/chkbx-XSOCKET_PIPE
+  ;;
+ esac
+ case "$EC_XSERVER" in
+  xephyr)
+   echo 'false' > /tmp/easy_containers/chkbx-XSERVER_XORG
+   echo 'true' > /tmp/easy_containers/chkbx-XSERVER_XEPHYR
+  ;;
+  *) #xorg
+   echo 'true' > /tmp/easy_containers/chkbx-XSERVER_XORG
+   echo 'false' > /tmp/easy_containers/chkbx-XSERVER_XEPHYR
+  ;;
+ esac
+ #namespaces...
+ echo "$EC_NS_UNSHARE_MOUNT" > /tmp/easy_containers/chkbx-EC_NS_UNSHARE_MOUNT
+ echo "$EC_NS_UNSHARE_UTS" > /tmp/easy_containers/chkbx-EC_NS_UNSHARE_UTS
+ echo "$EC_NS_UNSHARE_IPC" > /tmp/easy_containers/chkbx-EC_NS_UNSHARE_IPC
+ echo "$EC_NS_UNSHARE_NETWORK" > /tmp/easy_containers/chkbx-EC_NS_UNSHARE_NETWORK
+ echo "$EC_NS_UNSHARE_PID" > /tmp/easy_containers/chkbx-EC_NS_UNSHARE_PID
+ #echo 'true' > /tmp/easy_containers/chkbx-EC_NS_UNSHARE_USER
+ #environment... 181008
+ echo "$EC_UNSHARE_ENV_VARS" > /tmp/easy_containers/chkbx-EC_UNSHARE_ENV_VARS
+ echo "$EC_ENV_SPOT" > /tmp/easy_containers/chkbx-EC_ENV_SPOT
+ #181002 access...
+ echo "$EC_ACCESS_NET" > /tmp/easy_containers/chkbx-EC_ACCESS_NET
+ echo "$EC_ACCESS_SND" > /tmp/easy_containers/chkbx-EC_ACCESS_SND
+ echo "$EC_ACCESS_DRI" > /tmp/easy_containers/chkbx-EC_ACCESS_DRI
+ echo "$EC_ACCESS_FOLDER" > /tmp/easy_containers/chkbx-EC_ACCESS_FOLDER
+ echo -n "$EC_ACCESS_FOLDER_PATH" > /tmp/easy_containers/entry-EC_ACCESS_FOLDER_PATH
+ lastPATH="$EC_ACCESS_FOLDER_PATH"
+ #capabilities...
+ echo "$EC_CAP_system" > /tmp/easy_containers/chkbx-EC_CAP_system
+ echo "$EC_CAP_file" > /tmp/easy_containers/chkbx-EC_CAP_file
+ echo "$EC_CAP_network" > /tmp/easy_containers/chkbx-EC_CAP_network
+ echo "$EC_CAP_module" > /tmp/easy_containers/chkbx-EC_CAP_module
+ echo "$EC_CAP_resource" > /tmp/easy_containers/chkbx-EC_CAP_resource
+ echo "$EC_CAP_mount" > /tmp/easy_containers/chkbx-EC_CAP_mount
+ #190830 record presetting (not displayed in Expert tab)...
+ echo "$EXEin" > /tmp/easy_containers/btn-EC_SEC_PRESET
+} #end set_defaults_func
+export -f set_defaults_func
+
+

@@ -1,0 +1,32 @@
+#20211227 oe dunfell
+
+#has /usr/bin/lives-exe and /usr/bin/lives symlink to lives-exe
+if [ -f usr/bin/lives-exe ];then
+ if [ -h usr/bin/lives ];then
+  rm -f usr/bin/lives
+  mv -f usr/bin/lives-exe usr/bin/lives
+ fi
+fi
+
+if [ -f usr/share/applications/LiVES.desktop ];then
+ rm -f usr/share/applications/LiVES.desktop
+fi
+
+echo '[Desktop Entry]
+Name=LiVES video editor and VJ tool
+GenericName=LiVES
+Comment=A video editor and VJ program
+Categories=AudioVideoEditing
+Exec=lives
+Icon=lives.png
+Type=Application
+Terminal=false' > usr/share/applications/lives.desktop
+
+#save some space...
+ln -snf ../crayons/frame.jpg usr/share/lives/themes/crayons-bright/frame.jpg
+ln -snf ../crayons/main.jpg usr/share/lives/themes/crayons-bright/main.jpg
+
+#smaller file...
+mv -f defaults/lives-splash.png usr/share/lives/themes/lives-splash.png
+rm -rf defaults
+

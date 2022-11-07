@@ -1,0 +1,76 @@
+#!/bin/sh
+#(c) Copyright Barry Kauler, August 2015. License GPL3 (/usr/share/doc/legal)
+#creates a cut-down android sdk pet.
+#the 'SDK Manager' in Android Studio has been run, and a minimal download
+#to /root/Android/Sdk:
+# Tools
+#  Android SDK Tools 24.3.3
+#  Android SDK Platform-tools 22
+#  Android SDK Build-tools 22.0.1
+# Android 4.0.3 (API 15)
+#  SDK Platform 5
+#  ARM EABI v7a System Image 3
+# Extras
+#  Android Support Repository 16
+#  Google Repository 19
+#150811 first release.
+
+. /etc/DISTRO_SPECS
+
+CURRDATE="$(date +%Y%m%d)"
+API="$(ls -1 /root/Android/Sdk/platforms | sort -n --key=2,2 --field-separator='-' | tail -n 1 | cut -f 2 -d '-')"
+PETNAME="android-sdk-${CURRDATE}-api${API}-${DISTRO_TARGETARCH}"
+NAMEONLY="android-sdk"
+VERONLY="${CURRDATE}-api${API}-${DISTRO_TARGETARCH}"
+
+[ -d ./${PETNAME} ] && rm -rf ./${PETNAME}
+mkdir -p ${PETNAME}/root/Android
+
+cp -a /root/Android/Sdk ${PETNAME}/root/Android/
+sync
+
+
+case $DISTRO_TARGETARCH in
+ x86)
+  rm -rf ${PETNAME}/root/Android/Sdk/tools/lib64
+  rm -f ${PETNAME}/root/Android/Sdk/tools/emulator64-*
+  rm -f ${PETNAME}/root/Android/Sdk/tools/emulator-mips
+  rm -f ${PETNAME}/root/Android/Sdk/tools/emulator-*64
+  #these are enormous, try replace with symlinks...
+  rm -f ${PETNAME}/root/Android/Sdk/tools/lib/gles_mesa/libGL.so
+  rm -f ${PETNAME}/root/Android/Sdk/tools/lib/gles_mesa/libGL.so.1
+  rm -f ${PETNAME}/root/Android/Sdk/tools/lib/gles_mesa/libosmesa.so
+  ln -s /usr/lib/X11/libGL.so ${PETNAME}/root/Android/Sdk/tools/lib/gles_mesa/libGL.so
+  ln -s /usr/lib/X11/libGL.so.1 ${PETNAME}/root/Android/Sdk/tools/lib/gles_mesa/libGL.so.1
+  ln -s /usr/lib/X11/libOSMesa.so ${PETNAME}/root/Android/Sdk/tools/lib/gles_mesa/libosmesa.so
+  #also huge...
+  FNDLIB="$(find ${PETNAME}/root/Android/Sdk/build-tools -maxdepth 2 -type f -name libLLVM.so | head -n 1)"
+  if [ "$FNDLIB" ];then
+   rm -f ./${FNDLIB}
+   ln -s /usr/lib/libLLVM.so ${FNDLIB}
+  fi
+  FNDLIB="$(find ${PETNAME}/root/Android/Sdk/build-tools -maxdepth 2 -type f -name libclang.so | head -n 1)"
+  if [ "$FNDLIB" ];then
+   rm -f ./${FNDLIB}
+   ln -s /usr/lib/libclang.so ${FNDLIB}
+  fi
+ ;;
+esac
+
+
+#appinventor emulator wants this:
+mkdir -p ${PETNAME}/usr/lib
+ln -s ../../root/Android/Sdk/tools/lib/libOpenglRender.so ${PETNAME}/usr/lib/libOpenglRender.so
+
+SIZEK="$(du -k -s ${NAMEONLY}-${VERONLY} | cut -f 1)"
+#ex: appinventor-20150721-3|appinventor|20150721-3||Utility;development|164136K||appinventor-20150721-3.pet|+jdk,+ant,+aistarter,+appengine-java-sdk|MIT Android App Inventor, compiled from source from git||||
+echo "${NAMEONLY}-${VERONLY}|${NAMEONLY}|${VERONLY}||Utility;development|${SIZEK}K||${NAMEONLY}-${VERONLY}.pet|+jdk|Android SDK, downloaded via Android Studio SDK Manager||||" > ${PETNAME}/pet.specs
+
+[ -f ${PETNAME}.pet ] && rm -f ${PETNAME}.pet
+sync
+echo "Converting folder ${PETNAME} to a PET pkg..."
+dir2tgz ${PETNAME}
+tgz2pet ${PETNAME}.tar.gz
+sync
+echo "...done, ${PETNAME}.pet created."
+###END###

@@ -1,0 +1,243 @@
+#!/bin/bash
+#20220708 license gplv3 (usr/share/doc/legal)
+#original version created by BarryK, bkhome.org/news
+#pass in a file from /tmp/limine-installer
+#20220712 remove duplicate word in menu entry title.
+#20220712 puppy: detect whether hdd or flash
+#20220722 linux: test if no label.
+#20220722 want to replace hdd uri with boot uri if possible.
+#20220726 efichain: show partition.
+#20220727 bios chainload: new GPT_UUID
+
+SRC="$1"
+[ ! -f /tmp/limine-installer/i-${SRC#i-} ] && exit 1
+
+. /tmp/limine-installer/${SRC}
+rm -f /tmp/limine-installer/gen-menu-entry 2>/dev/null
+rm -f /tmp/limine-installer/gen-menu-entry 2>/dev/null
+
+CAT="${SRC#i-}"
+CAT="${CAT%-*}"
+
+if [ "$CAT" == "windows" ];then
+ if [ "$iEFIPATH" ];then
+ #ex: iNAME='Windows' iVERSION='10' iEFIPATH='/EFI/Microsoft/Boot/bootmgfw.efi' iKNAME="nvme1n1p1" iFSTYPE="vfat" iPARTFLAGS="" iTYPE="part" iUUID="75B9-2C36" iPARTUUID="67c45f63-8668-4fbd-9aa9-341a6dae89b4" iLABEL="DRVESP" iMOUNTPOINT="" iPTTYPE="gpt" iHOTPLUG="0" iROTA="0" iDRIVE='nvme1n1' iPATH=''
+ #dump leading slash:
+ [ "${iEFIPATH:0:1}" == "/" ] && iEFIPATH="${iEFIPATH:1:99}"
+ echo ":Windows ${iVERSION}
+    COMMENT=Windows bootup
+    PROTOCOL=chainload
+    IMAGE_PATH=guid://${iPARTUUID}/${iEFIPATH}" > /tmp/limine-installer/gen-menu-entry
+ fi
+ if [ "$iWINLOADER" ];then #20220716
+  if [ "$iPTTYPE" == "gpt" ];then #20220727
+   PTID="GPT_UUID"
+  else #dos
+   PTID="MBR_ID"
+  fi
+  echo ":Windows ${iVERSION}
+    COMMENT=Windows bootup
+    PROTOCOL=chainload
+    ${PTID}=${iPTUUID}
+    PARTITION=${iKNAME/*[a-z]/}" > /tmp/limine-installer/gen-menu-entry
+ fi
+fi
+
+if [ "$CAT" == "easyos" ];then
+ #ex: iNAME='Easy Dunfell64' iVERSION='4.2.2' iVMLINUZ='/easyos/vmlinuz' iINITRD='/easyos/initrd' iKNAME="sda6" iFSTYPE="ext4" iPARTFLAGS="" iTYPE="part" iUUID="cef85caf-2d3f-4bbc-9a57-ac5b64fb2fdf" iPARTUUID="86cd1e71-cf5f-4cb8-87dc-a7dcecec0f50" iLABEL="hdd48gb3" iMOUNTPOINT="" iPTTYPE="gpt" iHOTPLUG="0" iROTA="1" iDRIVE='sda' iPATH='/easyos'
+ #dump leading slash:
+ [ "${iPATH:0:1}" == "/" ] && iPATH="${iPATH:1:99}"
+ [ "${iVMLINUZ:0:1}" == "/" ] && iVMLINUZ="${iVMLINUZ:1:99}"
+ [ "${iINITRD:0:1}" == "/" ] && iINITRD="${iINITRD:1:99}"
+ xiNAME="${iNAME/EasyOS /}" #20220712 remove duplicate word.
+ xiNAME="${xiNAME/Easy /}"  #  "
+ echo ":EasyOS ${xiNAME} (partition ${iKNAME}, path ${iPATH})
+    COMMENT=EasyOS bootup
+    PROTOCOL=linux
+    KERNEL_CMDLINE=rw wkg_uuid=${iUUID} wkg_dir=${iPATH}" > /tmp/limine-installer/gen-menu-entry
+ if [ "$iPTTYPE" == "gpt" ];then
+  echo "    KERNEL_PATH=guid://${iPARTUUID}/${iVMLINUZ}
+    MODULE_PATH=guid://${iPARTUUID}/${iINITRD}" >> /tmp/limine-installer/gen-menu-entry
+ else
+  if [ "$iLABEL" ];then
+   echo "    KERNEL_PATH=fslabel://${iLABEL}/${iVMLINUZ}
+    MODULE_PATH=fslabel://${iLABEL}/${iINITRD}" >> /tmp/limine-installer/gen-menu-entry
+  else
+   #fallback to drive:partition numbers. note, ${iKNAME/*[a-z]/} extracts partition number.
+   # drive number is just a guess.
+   #20220722 if UEFIflg=0, generate an incorrect uri, that will be fixed later...
+   if [ $UEFIflg -eq 0 ];then
+    echo "    KERNEL_PATH=hdd://${iDRIVE}:${iKNAME/*[a-z]/}/${iVMLINUZ}
+     MODULE_PATH=hdd://${iDRIVE}:${iKNAME/*[a-z]/}/${iINITRD}" >> /tmp/limine-installer/gen-menu-entry
+   else
+    echo "    KERNEL_PATH=hdd://1:${iKNAME/*[a-z]/}/${iVMLINUZ}
+     MODULE_PATH=hdd://1:${iKNAME/*[a-z]/}/${iINITRD}" >> /tmp/limine-installer/gen-menu-entry
+   fi
+  fi
+ fi
+fi
+
+if [ "$CAT" == "puppy" ];then
+ #ex: iNAME='Puppy Linux EasyPup' iVERSION='' iVMLINUZ='/easypup/2.2.12/vmlinuz' iINITRD='/easypup/2.2.12/initrd.gz' iKNAME="sda6" iFSTYPE="ext4" iPARTFLAGS="" iTYPE="part" iUUID="cef85caf-2d3f-4bbc-9a57-ac5b64fb2fdf" iPARTUUID="86cd1e71-cf5f-4cb8-87dc-a7dcecec0f50" iLABEL="hdd48gb3" iMOUNTPOINT="" iPTTYPE="gpt" iHOTPLUG="0" iROTA="1" iDRIVE='sda' iPATH='/easypup/2.2.12'
+ #dump leading slash:
+ [ "${iPATH:0:1}" == "/" ] && iPATH="${iPATH:1:99}"
+ [ "${iVMLINUZ:0:1}" == "/" ] && iVMLINUZ="${iVMLINUZ:1:99}"
+ [ "${iINITRD:0:1}" == "/" ] && iINITRD="${iINITRD:1:99}"
+ xiNAME="${iNAME/Puppy /}" #20220712 remove duplicate word.
+ if [ "$iROTA" == "1" ];then #20220712 detect whether hdd or flash.
+  PMEDIA='atahd'
+ else
+  PMEDIA='ataflash'
+ fi
+ #note ${CAT^} capitalizes the first letter...
+ echo ":${CAT^} ${xiNAME} (partition ${iKNAME}, path ${iPATH})
+    PROTOCOL=linux
+    KERNEL_CMDLINE=psubdir=${iPATH} pmedia=${PMEDIA}" > /tmp/limine-installer/gen-menu-entry
+ if [ "$iPTTYPE" == "gpt" ];then
+  echo "    KERNEL_PATH=guid://${iPARTUUID}/${iVMLINUZ}
+    MODULE_PATH=guid://${iPARTUUID}/${iINITRD}" >> /tmp/limine-installer/gen-menu-entry
+ else
+  if [ "$iLABEL" ];then
+   echo "    KERNEL_PATH=fslabel://${iLABEL}/${iVMLINUZ}
+    MODULE_PATH=fslabel://${iLABEL}/${iINITRD}" >> /tmp/limine-installer/gen-menu-entry
+  else
+   #fallback to drive:partition numbers. note, ${iKNAME/*[a-z]/} extracts partition number.
+   # drive number is just a guess.
+   #20220722 if UEFIflg=0, generate an incorrect uri, that will be fixed later...
+   if [ $UEFIflg -eq 0 ];then
+    echo "    KERNEL_PATH=hdd://${iDRIVE}:${iKNAME/*[a-z]/}/${iVMLINUZ}
+     MODULE_PATH=hdd://${iDRIVE}:${iKNAME/*[a-z]/}/${iINITRD}" >> /tmp/limine-installer/gen-menu-entry
+   else
+    echo "    KERNEL_PATH=hdd://1:${iKNAME/*[a-z]/}/${iVMLINUZ}
+     MODULE_PATH=hdd://1:${iKNAME/*[a-z]/}/${iINITRD}" >> /tmp/limine-installer/gen-menu-entry
+   fi
+  fi
+ fi
+fi
+
+#20220722 boot params very different from puppy...
+if [ "$CAT" == "fatdog" ];then
+ #ex: iNAME='Fatdog' iVERSION='' iVMLINUZ='/fatdog/811/vmlinuz' iINITRD='/fatdog/811/initrd.gz' iKNAME="sda6" iFSTYPE="ext4" iPARTFLAGS="" iTYPE="part" iUUID="cef85caf-2d3f-4bbc-9a57-ac5b64fb2fdf" iPARTUUID="86cd1e71-cf5f-4cb8-87dc-a7dcecec0f50" iLABEL="hdd48gb3" iMOUNTPOINT="" iPTTYPE="gpt" iHOTPLUG="0" iROTA="1" iDRIVE='sda' iPATH='/fatdog/811'
+ #dump leading slash:
+ [ "${iPATH:0:1}" == "/" ] && iPATH="${iPATH:1:99}"
+ [ "${iVMLINUZ:0:1}" == "/" ] && iVMLINUZ="${iVMLINUZ:1:99}"
+ [ "${iINITRD:0:1}" == "/" ] && iINITRD="${iINITRD:1:99}"
+ if [ "$iSAVEFILE" ];then #ex: /fatdog/811/fd64save.ext4
+  KERNparam1="savefile=direct:uuid:${iUUID}:${iSAVEFILE}"
+ else
+  KERNparam1=""
+ fi
+ xiNAME="${iNAME/Fatdog/}" #remove duplicate word.
+ #note ${CAT^} capitalizes the first letter...
+ echo ":${CAT^} ${xiNAME} (partition ${iKNAME}, path ${iPATH})
+    PROTOCOL=linux
+    KERNEL_CMDLINE=${KERNparam1}" > /tmp/limine-installer/gen-menu-entry
+ if [ "$iPTTYPE" == "gpt" ];then
+  echo "    KERNEL_PATH=guid://${iPARTUUID}/${iVMLINUZ}
+    MODULE_PATH=guid://${iPARTUUID}/${iINITRD}" >> /tmp/limine-installer/gen-menu-entry
+ else
+  if [ "$iLABEL" ];then
+   echo "    KERNEL_PATH=fslabel://${iLABEL}/${iVMLINUZ}
+    MODULE_PATH=fslabel://${iLABEL}/${iINITRD}" >> /tmp/limine-installer/gen-menu-entry
+  else
+   #fallback to drive:partition numbers. note, ${iKNAME/*[a-z]/} extracts partition number.
+   # drive number is just a guess.
+   #20220722 if UEFIflg=0, generate an incorrect uri, that will be fixed later...
+   if [ $UEFIflg -eq 0 ];then
+    echo "    KERNEL_PATH=hdd://${iDRIVE}:${iKNAME/*[a-z]/}/${iVMLINUZ}
+     MODULE_PATH=hdd://${iDRIVE}:${iKNAME/*[a-z]/}/${iINITRD}" >> /tmp/limine-installer/gen-menu-entry
+   else
+    echo "    KERNEL_PATH=hdd://1:${iKNAME/*[a-z]/}/${iVMLINUZ}
+     MODULE_PATH=hdd://1:${iKNAME/*[a-z]/}/${iINITRD}" >> /tmp/limine-installer/gen-menu-entry
+   fi
+  fi
+ fi
+fi
+
+
+if [ "$CAT" == "linux" ];then
+ #dump leading slash:
+ [ "${iVMLINUZ:0:1}" == "/" ] && iVMLINUZ="${iVMLINUZ:1:99}"
+ [ "${iINITRD:0:1}" == "/" ] && iINITRD="${iINITRD:1:99}"
+ echo ":Linux ${iNAME} (partition ${iKNAME})
+    COMMENT=Linux bootup
+    PROTOCOL=linux
+    KERNEL_CMDLINE=root=PARTUUID=${iPARTUUID} rw" >> /tmp/limine-installer/gen-menu-entry
+ if [ "$iPTTYPE" == "gpt" ];then
+  echo "    KERNEL_PATH=guid://${iPARTUUID}/${iVMLINUZ}
+    MODULE_PATH=guid://${iPARTUUID}/${iINITRD}" >> /tmp/limine-installer/gen-menu-entry
+ else #20220722 test if no label...
+  if [ "$iLABEL" ];then
+   echo "    KERNEL_PATH=fslabel://${iLABEL}/${iVMLINUZ}
+    MODULE_PATH=fslabel://${iLABEL}/${iINITRD}" >> /tmp/limine-installer/gen-menu-entry
+  else
+   #fallback to drive:partition numbers. note, ${iKNAME/*[a-z]/} extracts partition number.
+   # drive number is just a guess.
+   #20220722 if UEFIflg=0, generate an incorrect uri, that will be fixed later...
+   if [ $UEFIflg -eq 0 ];then
+    echo "    KERNEL_PATH=hdd://${iDRIVE}:${iKNAME/*[a-z]/}/${iVMLINUZ}
+     MODULE_PATH=hdd://${iDRIVE}:${iKNAME/*[a-z]/}/${iINITRD}" >> /tmp/limine-installer/gen-menu-entry
+   else
+    echo "    KERNEL_PATH=hdd://1:${iKNAME/*[a-z]/}/${iVMLINUZ}
+     MODULE_PATH=hdd://1:${iKNAME/*[a-z]/}/${iINITRD}" >> /tmp/limine-installer/gen-menu-entry
+   fi
+  fi
+ fi
+fi
+
+if [ "$CAT" == "dog" ];then
+ #ex: iNAME='Puppy Linux EasyPup' iVERSION='' iVMLINUZ='/easypup/2.2.12/vmlinuz' iINITRD='/easypup/2.2.12/initrd.gz' iKNAME="sda6" iFSTYPE="ext4" iPARTFLAGS="" iTYPE="part" iUUID="cef85caf-2d3f-4bbc-9a57-ac5b64fb2fdf" iPARTUUID="86cd1e71-cf5f-4cb8-87dc-a7dcecec0f50" iLABEL="hdd48gb3" iMOUNTPOINT="" iPTTYPE="gpt" iHOTPLUG="0" iROTA="1" iDRIVE='sda' iPATH='/easypup/2.2.12'
+ #dump leading slash:
+ [ "${iPATH:0:1}" == "/" ] && iPATH="${iPATH:1:99}"
+ [ "${iVMLINUZ:0:1}" == "/" ] && iVMLINUZ="${iVMLINUZ:1:99}"
+ [ "${iINITRD:0:1}" == "/" ] && iINITRD="${iINITRD:1:99}"
+ #note ${CAT^} capitalizes the first letter...
+ #don't know kernel parameters for the dogs...
+ echo ":${CAT^} ${iNAME} (partition ${iKNAME}, path ${iPATH})
+    PROTOCOL=linux
+    #KERNEL_CMDLINE=" > /tmp/limine-installer/gen-menu-entry
+ if [ "$iPTTYPE" == "gpt" ];then
+  echo "    KERNEL_PATH=guid://${iPARTUUID}/${iVMLINUZ}
+    MODULE_PATH=guid://${iPARTUUID}/${iINITRD}" >> /tmp/limine-installer/gen-menu-entry
+ else
+  if [ "$iLABEL" ];then
+   echo "    KERNEL_PATH=fslabel://${iLABEL}/${iVMLINUZ}
+    MODULE_PATH=fslabel://${iLABEL}/${iINITRD}" >> /tmp/limine-installer/gen-menu-entry
+  else
+   #fallback to drive:partition numbers. note, ${iKNAME/*[a-z]/} extracts partition number.
+   # drive number is just a guess.
+   #20220722 if UEFIflg=0, generate an incorrect uri, that will be fixed later...
+   if [ $UEFIflg -eq 0 ];then
+    echo "    KERNEL_PATH=hdd://${iDRIVE}:${iKNAME/*[a-z]/}/${iVMLINUZ}
+     MODULE_PATH=hdd://${iDRIVE}:${iKNAME/*[a-z]/}/${iINITRD}" >> /tmp/limine-installer/gen-menu-entry
+   else
+    echo "    KERNEL_PATH=hdd://1:${iKNAME/*[a-z]/}/${iVMLINUZ}
+     MODULE_PATH=hdd://1:${iKNAME/*[a-z]/}/${iINITRD}" >> /tmp/limine-installer/gen-menu-entry
+   fi
+  fi
+ fi
+fi
+
+if [ "$CAT" == "mbrchain" ];then
+ if [ "$iPTTYPE" == "gpt" ];then #20220727
+  PTID="GPT_UUID"
+ else #dos
+  PTID="MBR_ID"
+ fi
+ echo ":MBR Chainload (drive ${iDRIVE})
+    PROTOCOL=chainload
+    #DRIVE=1
+    ${PTID}=${iPTUUID}" > /tmp/limine-installer/gen-menu-entry
+fi
+
+if [ "$CAT" == "efichain" ];then
+ #ex: iEFIPATH='/EFI/BOOT/BOOTX64.EFI' iKNAME="nvme1n1p1" iFSTYPE="vfat" iPARTFLAGS="" iTYPE="part" iUUID="75B9-2C36" iPARTUUID="67c45f63-8668-4fbd-9aa9-341a6dae89b4" iLABEL="DRVESP" iMOUNTPOINT="" iPTTYPE="gpt" iHOTPLUG="0" iROTA="0" iDRIVE='nvme1n1' iPATH=''
+ #dump leading slash:
+ [ "${iEFIPATH:0:1}" == "/" ] && iEFIPATH="${iEFIPATH:1:99}"
+ echo ":${iNAME} (partition ${iKNAME})
+    PROTOCOL=chainload
+    IMAGE_PATH=guid://${iPARTUUID}/${iEFIPATH}" > /tmp/limine-installer/gen-menu-entry
+fi
+
+
+###end###

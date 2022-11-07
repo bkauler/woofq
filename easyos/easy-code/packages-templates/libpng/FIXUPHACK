@@ -1,0 +1,24 @@
+#20210819 fix find err msg.
+
+#151104 ubuntu werewolf, somehow libpng12.so and libpng.so are getting deleted.
+ALIBPNG="$(find lib -type f -name 'libpng12.so.*' 2>/dev/null | head -n 1)"
+if [ "$ALIBPNG" ];then
+ [ ! -f ./$ALIBPNG ] && continue
+ ABASE="$(basename $ALIBPNG)"
+ ADIR="$(dirname $ALIBPNG)"
+ mkdir -p usr/${ADIR}
+ if [ ! -e usr/${ADIR}/libpng12.so.0 ];then
+  ln -s --relative ${ALIBPNG} usr/${ADIR}/libpng12.so.0
+ fi
+ if [ ! -e usr/${ADIR}/libpng12.so ];then
+  ln -s --relative ${ALIBPNG} usr/${ADIR}/libpng12.so
+ fi
+ if [ ! -e usr/${ADIR}/libpng.so ];then
+  ln -s --relative ${ALIBPNG} usr/${ADIR}/libpng.so
+ fi
+fi
+
+#191024 pyro: libpng16-config from OE broken...
+mkdir -p ../libpng_DEV/usr/bin
+[ -f ../libpng_DEV/usr/bin/libpng16-config ] && rm -f ../libpng_DEV/usr/bin/libpng16-config
+mv -f usr/bin/libpng16-config ../libpng_DEV/usr/bin/libpng16-config

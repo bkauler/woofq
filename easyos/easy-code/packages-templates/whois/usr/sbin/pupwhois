@@ -1,0 +1,39 @@
+#!/bin/sh
+#License: GPL v3 (see /usr/share/doc/legal)
+#20150924 first version, BK
+
+export TEXTDOMAIN=pupwhois
+export TEXTDOMAINDIR=/usr/share/locale
+export OUTPUT_CHARSET=UTF-8
+
+echo -n "" > /tmp/pupwhois-results
+
+export PUPWHOISDLG="<window title=\"$(gettext 'whois client')\" icon-name=\"gtk-info\">
+ <vbox>
+  <hbox>
+   <text><label>$(gettext 'Enter a domain name:')</label></text>
+   <entry activates-default=\"true\">
+    <variable>WORD</variable>
+   </entry>
+   <button has-default=\"true\">
+    <input file stock=\"gtk-find\"></input>
+    <label>$(gettext 'Lookup')</label>
+    <action>whois \$WORD > /tmp/pupwhois-results </action>
+    <action>refresh:INFO</action>
+   </button>
+  </hbox>
+  
+  <frame $(gettext 'Result:')>
+   <edit>
+    <variable>INFO</variable>
+    <input file>/tmp/pupwhois-results</input>
+    <width>450</width>
+    <height>300</height>
+   </edit>
+  </frame>
+ 
+ </vbox>
+</window>"
+
+gtkdialog --program=PUPWHOISDLG --center
+

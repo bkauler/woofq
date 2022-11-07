@@ -1,0 +1,872 @@
+#w469 fallbacks when looking for pet pkgs (space-separated list)...
+FALLBACKS_COMPAT_VERSIONS='15.0 14.2'
+
+#PKGS_SPECS_TABLE table format:
+#will pkg be in puppy-build.
+#    Generic name for pkg. Note: PET packages, if exist, use this name.
+#            Comma-separated list of compatible-distro pkg(s). '-' prefix, exclude.
+#            Must be exact name-only of pkg, else '*' on end is wildcard to search full name.
+#            Empty field, then use PET pkg.
+#                                    How the package will get split up in woof (optional redirection '>' operator).
+#                                    Missing field, it goes into exe. Can also redirect >null, means dump it.
+#yes|abiword|iceword,iceword-plugins|exe,dev,doc,nls
+
+#example showing wildcard. finds all full pkg names with 'gcc-4.3*',
+#but, exclude any 'gcc-4.3-doc*' matches...
+#yes|gcc|gcc,gcc-4.3*,-gcc-4.3-doc*|exe,dev,doc,nls
+
+PKGS_SPECS_TABLE='
+yes|915resolution||exe,dev,doc,nls|pet:
+yes|a52dec|a52dec|exe,dev,doc,nls|compat:
+yes|aalib|aalib|exe,dev,doc,nls|compat:| #needed by xine-lib
+yes|acl|acl|exe,dev,doc,nls|compat:
+yes|acpid|acpid|exe,dev,doc,nls|compat:
+yes|adbfs|adbfs|exe,dev,doc,nls|compat:| #dunfell. needs fuse and adb
+yes|align||exe,dev,doc,nls|pet:noarch
+no|alsaequal|alsaequal|exe,dev,doc,nls|compat:
+yes|alsa-lib|alsa-lib|exe,dev,doc,nls|compat:
+yes|alsa-plugins|alsa-plugins|exe,dev,doc,nls|compat:
+yes|alsa-utils|alsa-utils|exe,dev,doc,nls|compat:
+yes|android-tools|android-tools|exe,dev,doc,nls|compat:| #dunfell. has adb and fastboot.
+no|appres|appres|exe,dev,doc,nls|compat:| #XORGBASE
+yes|appstream-glib|appstream-glib|exe,dev,doc,nls|compat:| #dunfell. needed by celluloid.
+yes|apr|apr|exe>dev,dev,doc,nls|compat:
+yes|apr-util|apr-util|exe>dev,dev,doc,nls|compat:
+yes|apulse|apulse|exe,dev>exe,doc,nls|compat:| #dunfell. needed by chromium etc anything expecting pulseaudio.
+yes|arp-scan|arp-scan|exe,dev,doc,nls|compat:| #dunfell. needed by peasyscan-noarch
+yes|aspell|aspell|exe,dev,doc,nls|compat:| #abiword enchant need this.
+yes|aspell-en|aspell-en|exe,dev,doc,nls|compat:
+yes|atk|atk|exe,dev,doc,nls|compat:
+yes|atkmm|atkmm|exe,dev,doc,nls|
+yes|at-spi2-atk|at-spi2-atk|exe,dev,doc,nls|compat:| #dunfell. needed by gtk+3
+yes|at-spi2-core|at-spi2-core|exe,dev,doc,nls|compat:| #dunfell. needed by gtk+3
+yes|attr|attr|exe,dev,doc,nls|compat:
+yes|audiofile|audiofile|exe,dev,doc,nls|compat:
+yes|aufs-util|aufs-util|exe,dev,doc,nls|compat:| #dunfell.
+yes|aumix|aumix|exe,dev,doc,nls|compat:| #dunfell. using with pnmixer_tray.
+yes|autoconf|autoconf|exe>dev,dev,doc,nls|compat:
+yes|autologin||exe,dev,doc,nls|pet:es150
+yes|automake|automake|exe>dev,dev,doc,nls|compat:
+yes|babl|babl|exe,dev,doc,nls|compat:
+yes|bacon|bacon|exe>dev,dev,doc,nls|compat:| #dunfell. all goes into devx.
+yes|bacon-hug|bacon-hug|exe,dev>exe,doc>dev,nls|compat:| #dunfell. components of bacon needed at runtime.
+yes|bacon-hug-imports|bacon-hug-imports|exe>dev,dev,doc,nls|compat:| #dunfell. all goes into devx.
+yes|bash|bash|exe,dev,doc,nls|compat:
+yes|bbc_provided|bbc-provided|exe,dev,doc,nls|compat:| #dunfell.
+yes|bbe|bbe|exe,dev,doc,nls|compat:| #dunfell. 20171030 sed-like editor for binary files.
+yes|bc|bc|exe,dev,doc,nls|compat:
+yes|db48|db48|exe>dev,dev,doc,nls|compat:
+no|bdftopcf|bdftopcf|exe,dev,doc,nls|compat:| #XORGBASE
+yes|bdwgc|bdwgc|exe,dev,doc,nls|compat:| #dunfell. needed by inkscape
+yes|bin86|bin|exe>dev,dev,doc,nls|compat:
+yes|binutils|binutils|exe>dev,dev,doc,nls|compat:
+yes|bison|bison|exe>dev,dev,doc,nls|compat:
+no|bitmap|bitmap|exe,dev,doc,nls|compat:| #XORGBASE
+yes|bluepup_tray|bluepup-tray|exe,dev,doc,nls|compat:| #dunfell
+yes|bluez|bluez|exe,dev,doc,nls|compat:
+yes|bluez-firmware|bluez-firmware|exe,dev,doc,nls|compat:
+yes|bluez-alsa|bluez-alsa|exe,dev,doc,nls|compat:| #dunfell.
+yes|bluez-tools|bluez-tools|exe,dev,doc,nls|compat:| #dunfell.
+yes|boehm-gc|gc|exe,dev,doc,nls|compat:
+yes|boost|boost|exe>dev,dev,doc,nls|compat:
+yes|boost-runtime|boost|exe,dev>null,doc>null,nls>null|compat:
+yes|brotli|brotli|exe,dev,doc,nls|compat:
+yes|busybox||exe,dev>null,doc,nls|pet:es150| #compiled statically. KEEPPKG
+yes|bzip2|bzip2|exe,dev,doc,nls|compat:
+yes|c99-wrapper||exe>dev,dev,doc,nls|pet:noarch
+yes|c-ares|c-ares|exe,dev,doc,nls|compat:
+yes|ca-certificates|ca-certificates|exe,dev,doc,nls|compat:
+yes|cairo|cairo|exe,dev,doc,nls|compat:
+yes|cairomm|cairomm|exe,dev,doc,nls|compat:
+yes|ccrypt|ccrypt|exe,dev,doc,nls|compat:| #dunfell.
+yes|cddetect|cddetect|exe,dev>null,doc,nls|compat:| #dunfell.
+yes|cddetect_quick|cddetect-quick|exe,dev>null,doc,nls|compat:| #dunfell.
+yes|cdparanoia|cdparanoia|exe,dev,doc,nls|compat:
+yes|cdrdao|cdrdao|exe,dev,doc,nls|compat:
+yes|cdrtools|cdrtools|exe,dev,doc,nls|compat:
+yes|celluloid|celluloid|exe,dev,doc,nls|compat:| #dunfell.
+yes|chmlib|chmlib|exe,dev,doc,nls|compat:
+yes|cmake|cmake|exe>dev,dev,doc,nls|compat:
+yes|coreutils|coreutils|exe,dev,doc,nls|compat:
+yes|cpio|cpio|exe,dev,doc,nls|compat:
+yes|crda|crda|exe,dev,doc,nls|compat:| #seems needed by wifi for channels 12,13
+yes|cups|cups|exe,dev,doc>exe,nls|compat:| #note doc goes to exe, for the web interface
+yes|cups-filters|cups-filters|exe,dev,doc,nls|compat:
+no|cups-pdf||exe,dev,doc,nls|compat:
+yes|curl|curl|exe,dev,doc,nls|compat:
+yes|curlftpfs|curlftpfs|exe,dev,doc,nls|compat:| #dunfell.
+yes|cvs|cvs|exe>dev,dev,doc,nls|compat:
+yes|cyrus-sasl|cyrus-sasl|exe,dev,doc,nls|compat:
+yes|dbus|dbus|exe,dev,doc,nls|compat:
+yes|dbus-glib|dbus-glib|exe,dev,doc,nls|compat:
+yes|dconf|dconf|exe,dev,doc,nls|compat:
+yes|defaults-chooser||exe,dev,doc,nls|pet:noarch
+no|desk_background_greenvapors||exe|pet:noarch|
+yes|desk_background_peachy_red_slaq||exe|pet:noarch|
+yes|desk_icon_theme_peachy_red||exe|pet:noarch
+yes|desk_icon_theme_smooth_color||exe,dev,doc,nls|pet:noarch
+yes|desktop-file-utils|desktop-file-utils|exe,dev,doc,nls|compat:| #dunfell.
+yes|dhcpcd|dhcpcd|exe,dev,doc,nls|compat:
+yes|dia|dia|exe,dev,doc,nls|compat:| #dunfell.
+yes|dialog|dialog|exe,dev,doc,nls|compat:
+no|dictd_client|dictd|exe,dev,doc,nls|compat:
+yes|dictd_client||exe,dev,doc,nls|pet:es150| #forgot to compile it in oe.
+yes|didiwiki|didiwiki|exe,dev,doc,nls|compat:| #dunfell.
+yes|diffstat|diffstat|exe,dev,doc,nls|compat:
+yes|diffutils|diffutils|exe,dev,doc,nls|compat:
+yes|disktype|disktype|exe,dev,doc,nls|compat:| #dunfell.
+yes|dmapi|dmapi|exe,dev,doc,nls|compat:
+yes|dmidecode|dmidecode|exe,dev,doc,nls|compat:
+yes|dosfstools|dosfstools|exe,dev,doc,nls|compat:
+yes|double-conversion|double-conversion|exe,dev,doc,nls|compat:| #dunfell. needed by inkscape.
+yes|dpkg-deb|dpkg|exe,dev>null,doc,nls|compat:| #dunfell.
+yes|dvdauthor|dvdauthor|exe,dev,doc,nls|compat:
+yes|dvd+rw-tools|dvd+rw-tools|exe,dev,doc,nls|compat:
+yes|e2fsprogs|e2fsprogs|exe,dev,doc,nls|compat:
+yes|EasyApps||exe,dev,doc,nls|pet:noarch| #by radky
+no|editres|editres|exe,dev,doc,nls|compat:| #XORGBASE
+yes|elfutils|elfutils|exe,dev,doc,nls|compat:
+yes|elogind|elogind|exe,dev,doc,nls|compat:
+yes|enchant|enchant|exe,dev,doc,nls|compat:
+yes|encodings|encodings|exe,dev,doc,nls|compat:| #needed by font-util.
+yes|esound|esound|exe,dev,doc,nls|compat:
+yes|ethtool|ethtool|exe,dev,doc,nls|compat:
+yes|eudev|eudev|exe,dev,doc,nls|compat:| #note also in dunfell
+no|evieext|evieext|exe,dev,doc,nls|compat:| #XORGBASE
+yes|evince|evince|exe,dev,doc,nls|compat:| #dunfell. pdf viewer, better than epdfview. last gtk2 version. also not require gstreamer.
+yes|exiv2|exiv2|exe,dev,doc,nls|compat:
+yes|expat|expat|exe,dev,doc,nls|compat:
+yes|faac|faac|exe,dev,doc,nls|compat:| #dunfell.
+yes|faad2|faad2|exe,dev,doc,nls|compat:| #dunfell.
+yes|ffconvert||exe,dev,doc,nls|pet:noarch
+yes|ffmpeg|ffmpeg|exe,dev,doc,nls|compat:
+yes|fftw|fftw|exe,dev,doc,nls|compat:| #needed by xine-lib.
+yes|file|file|exe,dev,doc,nls|compat:
+yes|findutils|findutils|exe,dev,doc,nls|compat:
+yes|firmware-network|zd1211-firmware,ipw2100-fw,ipw2200-fw|exe,dev,doc,nls|compat:
+yes|firmware_asus_e200ha||exe|pet:noarch| #needed for my asus e200ha notebook. #PC 20190824
+yes|firmware_linux_acer_aspire1||exe|pet:noarch| #20190813 for my acer aspire1 laptop. note has regulatory.db useful all wifi. 20190824
+yes|firmware_linux_all_k5p10||exe|pet:noarch| #20201223
+yes|firmware_linux_base||exe|pet:noarch| #20180103 20190824
+yes|firmware_linux_mele_pcg35||pet:noarch| #20170927 20190824
+yes|flac|flac|exe,dev,doc,nls|compat:
+yes|flex|flex|exe,dev,doc,nls|compat:| #has libfl.so.2 needed by bc.
+yes|floppy-format-noarch||exe|pet:noarch| #needs ufiformat.
+yes|flsynclient|flsynclient|exe,dev,doc,nls|compat:| #dunfell.
+yes|fltk|fltk|exe,dev,doc,nls|compat:| #dunfell. flsynclient needs this.
+no|fontconfig|fontconfig|exe,dev,doc,nls|compat:| #XORGBASE
+yes|font_opensans_semibold_bold||exe|pet:noarch| #the semibold is the default, when want thick font.
+no|fonttosfnt|fonttosfnt|exe,dev,doc,nls|compat:| #XORGBASE
+yes|font-util|font-util|exe,dev,doc,nls|compat:dunfell
+yes|foomatic-db-compressed-ppds||exe|pet:noarch| #20210418
+yes|fpm2|fpm2|exe,dev,doc,nls|compat:| #dunfell.
+no|freeglut|freeglut|exe,dev,doc,nls|compat:| #MESA
+yes|freememapplet_tray|freememapplet-tray|exe,dev,doc,nls|compat:| #dunfell.
+yes|freetype|freetype|exe,dev,doc,nls|compat:
+yes|fribidi|fribidi|exe,dev,doc,nls|compat:
+yes|frisbee||exe,dev,doc,nls|pet:noarch
+no|fslsfonts|fslsfonts|exe,dev,doc,nls|compat:| #XORGBASE
+no|fstobdf|fstobdf|exe,dev,doc,nls|compat:| #XORGBASE
+yes|fuse|fuse|exe,dev,doc,nls|compat:
+yes|galculator|galculator|exe,dev,doc,nls|compat:| #dunfell.
+yes|gamin|gamin|exe,dev,doc,nls|compat:
+yes|gawk|gawk|exe,dev,doc,nls|compat:
+no|gcc|gcc|exe,dev,doc,nls|compat:| #GCCDEV GCCLIB
+no|gcc-g++|gcc-g++|exe,dev,doc,nls|compat:| #GCCDEV GCCLIB
+yes|gcc_dev|gcc,gcc-g++,gmp,libmpc,mpfr|exe>dev,dev,doc,nls|compat:| #GCCDEV
+yes|gcc_lib|gcc,gcc-g++|exe,dev>null,doc>null,nls>null| #GCCLIB
+no|gcolor3|gcolor3|exe,dev,doc,nls|compat:
+yes|gcolorsel|gcolorsel|exe,dev,doc,nls|compat:| #dunfell.
+yes|gconf|gconf|exe,dev,doc,nls|compat:| #dunfell. needed by evince.
+yes|gcr|gcr|exe,dev,doc,nls|compat:| #network-manager-applet needs this.
+yes|gd|gd|exe,dev,doc,nls|compat:
+yes|gdb|gdb|exe>dev,dev,doc,nls|compat:
+yes|gdbm|gdbm|exe,dev,doc,nls|compat:
+yes|gdk-pixbuf2|gdk-pixbuf2|exe,dev,doc,nls|compat:
+yes|gdl|gdl|exe,dev,doc,nls|compat:| #dunfell. needed by inkscape.
+yes|gdmap|gdmap|exe,dev>null,doc,nls|compat:| #dunfell.
+yes|geany|geany|exe,dev>null,doc,nls|compat:| #dunfell.
+yes|gegl|gegl|exe,dev,doc,nls|compat:| #dunfell. needed by gutenprint.
+yes|getcurpos||exe,dev,doc,nls|pet:es150
+yes|getflash||exe,dev,doc,nls|pet:noarch
+yes|gettext|gettext|exe,dev,doc,nls|compat:
+yes|gettext-tools|gettext-tools|exe>dev,dev,doc,nls|compat:
+yes|gexiv2|gexiv2|exe,dev,doc,nls|compat:| #needed by inkscape.
+yes|gfnrename|gfnrename|exe,dev>null,doc,nls|compat:| #dunfell.
+yes|gfontsel|gfontsel|exe,dev>null,doc,nls|compat:| #dunfell.
+yes|gftp|gftp|exe,dev,doc,nls|compat:
+yes|ghostscript|ghostscript|exe,dev,doc,nls|compat:
+yes|gif2lss|gif2lss|exe,dev,doc,nls|compat:| #dunfell.
+yes|gifsicle|gifsicle|exe,dev,doc,nls|compat:| #dunfell.
+yes|gimp|gimp|exe,dev,doc,nls|compat:
+yes|git|git|exe>dev,dev,doc,nls|compat:
+yes|glade3|glade|exe>dev,dev,doc,nls|compat:
+no|glew|glew|exe,dev,doc,nls|compat:| #MESA
+yes|glib2||exe,dev,doc,nls|compat:
+yes|glibc-bin|glibc|exe|compat:| #need some binaries in main f.s.
+yes|glibc-solibs|aaa_glibc-solibs,glibc-zoneinfo|exe,dev>exe,doc,nls|compat:| #GLIBC
+yes|glibc|glibc,glibc-zoneinfo|exe>dev,dev,doc,nls|compat:| #GLIBC
+yes|glibc_locales|glibc,glibc-zoneinfo,glibc-i18n|exe,dev,doc,nls>exe|compat:| #GLIBCLOCALES
+yes|glibmm|glibmm|exe,dev,doc,nls|
+yes|glib-networking|glib-networking|exe,dev,doc,nls|compat:
+yes|glipper-lite|glipper-lite|exe,dev>null,doc,nls|compat:| #dunfell.
+no|glu|glu|exe,dev,doc,nls|compat:| #MESA
+yes|gmeasures|gmeasures|exe,dev>null,doc,nls|compat:| #dunfell.
+yes|gmp|gmp|exe,dev,doc,nls|compat:| #GCCDEV need this in main f.s.
+yes|gnet|gnet|exe,dev,doc,nls|compat:| #dunfell. needed by helpsurfer.
+yes|gnome-bluetooth|gnome-bluetooth|exe,dev,doc,nls|compat:| #dunfell.
+yes|gnome-doc-utils-stub|gnome-doc-utils-stub|exe,dev,doc,nls|compat:| #dunfell.
+yes|gnome-icon-theme||exe>dev,dev,doc,nls|pet:noarch| #in devx, may need to extract some into main f.s.
+yes|gnome-keyring|gnome-keyring|exe,dev,doc,nls|compat:| #dunfell.
+yes|gnome-menus|gnome-menus|exe,dev,doc,nls|compat:| #dunfell. needed by xdg_puppy.
+yes|gnu-config|gnu-config|exe>dev,dev,doc,nls|compat:| #dunfell.
+yes|gnu-efi|gnu-efi|exe>dev,dev,doc,nls|compat:| #dunfell. needed to compile refind.
+yes|gnutls|gnutls|exe,dev,doc,nls|compat:
+yes|gobject-introspection|gobject-introspection|exe,dev,doc,nls|compat:
+yes|gparted|gparted|exe,dev,doc,nls|compat:
+yes|gpart|gpart|exe,dev,doc,nls|compat:
+yes|gpgme|gpgme|exe,dev,doc,nls|compat:
+no|gphoto2|gphoto2|exe,dev,doc,nls|compat:| #needs slang. do we use this for anything
+yes|gphotofs|gphotofs|exe,dev,doc,nls|compat:| #dunfell.
+yes|gpptp|gpptp|exe,dev,doc,nls|compat:| #dunfell. binary executables only. written by jafadmin.
+yes|gpptp-noarch||exe|pet:noarch| #created by jafadmin.
+yes|gptfdisk|gptfdisk|exe,dev,doc,nls|compat:dunfell
+yes|graphite2|graphite2|exe,dev,doc,nls|compat:
+yes|grep|grep|exe,dev,doc,nls|compat:
+yes|grisbi|grisbi|exe,dev,doc,nls|compat:| #dunfell. instead of homebank.
+yes|groff|groff|exe>dev,dev,doc,nls|compat:
+yes|grub|grub|exe,dev,doc,nls|compat:| #dunfell.
+yes|grub4dos||exe,dev,doc,nls|pet:noarch| #traditional bios.
+yes|grub-efi|grub-efi|exe,dev,doc,nls|compat:| #dunfell.
+yes|gsettings-desktop-schemas|gsettings-desktop-schemas|exe,dev,doc,nls|compat:| #dunfell.
+yes|gsl|gsl|exe,dev,doc,nls|compat:| #dunfell. needed by inkscape.
+yes|gtk+2|gtk+2|exe,dev,doc,nls|compat:
+yes|gtk+3|gtk+3|exe,dev,doc,nls|compat:
+yes|gtk-chtheme|gtk-chtheme|exe,dev>null,doc,nls|compat:| #dunfell.
+yes|gtkdialog|gtkdialog|exe,dev,doc>dev,nls|compat:| #dunfell.
+yes|gtkhash|gtkhash|exe,dev,doc,nls|compat:| #dunfell.
+yes|gtklp|gtklp|exe,dev,doc,nls|compat:| #dunfell.
+yes|gtkmm2|gtkmm2|exe,dev,doc,nls|
+yes|gtksourceview3|gtksourceview3|exe,dev,doc,nls|compat:
+yes|gtk_theme_flat_grey_rounded||exe,dev,doc,nls|pet:noarch
+yes|gtk_theme_peachy_red||exe|pet:noarch
+yes|gtkthememaker||exe,dev,doc,nls|pet:noarch
+yes|guile|guile|exe,dev,doc,nls|compat:
+yes|gummiboot||exe,dev,doc,nls|pet:| #PC
+yes|gutenprint|gutenprint|exe,dev,doc,nls|compat:
+yes|gview|gview|exe,dev,doc,nls|compat:| #dunfell.
+yes|gwhere|gwhere|exe,dev,doc,nls|compat:| #dunfell.
+yes|gxlat||exe,dev,doc,nls|pet:noarch
+yes|gxmessage|gxmessage|exe,dev,doc,nls|compat:| #dunfell.
+yes|gzip|gzip|exe,dev,doc,nls|compat:
+yes|hardinfo|hardinfo|exe,dev,doc,nls|compat:| #dunfell. note also using Pup-SysInfo
+yes|harfbuzz|harfbuzz|exe,dev,doc,nls|compat:
+yes|helpsurfer|helpsurfer|exe,dev,doc,nls|compat:| #dunfell. needs gnet, libsystem, libgtkhtml
+yes|hiawatha|hiawatha|exe,dev,doc,nls|compat:| #dunfell. needed by pplog.
+yes|hicolor-icon-theme|hicolor-icon-theme|exe,dev,doc,nls|compat:
+no|homebank|homebank|exe,dev,doc,nls|compat:| #dunfell. needs libofx
+yes|hostname|hostname|exe,dev,doc,nls|compat:| #dunfell.
+yes|hotplug2stdout|hotplug2stdout|exe,dev,doc,nls|compat:| #dunfell.
+yes|hplip|hplip|exe,dev,doc,nls|compat:| #dunfell.
+yes|htop|htop|exe,dev,doc,nls|compat:
+yes|hunspell|hunspell|exe,dev,doc,nls|compat:
+yes|hunspell-en-us||exe,dev,doc,nls|pet:noarch
+yes|hyphen|hyphen|exe,dev,doc,nls|compat:| #dunfell. reqd by libreoffice.
+no|iceauth|iceauth|exe,dev,doc,nls|compat:| #XORGBASE
+yes|icu|icu4c|exe,dev,doc,nls|compat:
+yes|ifplugd|ifplugd|exe,dev,doc,nls|compat:| #dunfell.
+yes|ifplugd_old|ifplugd-old|exe,dev,doc,nls|compat:| #dunfell.
+yes|imake|imake|exe>dev,dev,doc,nls|compat:
+yes|infozip|infozip|exe,dev,doc,nls|compat:
+yes|inkscape|inkscape|exe,dev,doc,nls|compat:| #dunfell.
+yes|inotify-tools|inotify-tools|exe,dev,doc,nls|compat:
+yes|installwatch|installwatch|exe,dev,doc,nls|compat:| #dunfell
+yes|intltool|intltool|exe>dev,dev,doc,nls|compat:
+yes|iptables|iptables|exe,dev,doc,nls|compat:
+yes|isl|isl|exe,dev,doc,nls|compat:
+yes|iso-codes|iso-codes|exe,dev,doc,nls|compat:| #dunfell. network-manager-applet needs this.
+no|isomaster|isomaster|exe,dev,doc,nls|compat:
+yes|iw|iw|exe,dev,doc,nls|compat:
+yes|jansson|jansson|exe,dev,doc,nls|compat:| #dunfell. network-manager-applet needs this.
+yes|jasper|jasper|exe,dev,doc,nls|compat:
+yes|jimtcl|jimtcl|exe,dev,doc,nls|compat:| #dunfell. needed by usb-modeswitch.
+yes|json-c|json-c|exe,dev,doc,nls|compat:| #dunfell. needed by solvespace.
+yes|json-glib|json-glib|exe,dev,doc,nls|compat:| #dunfell.
+yes|jwm|jwm|exe,dev,doc,nls|compat:| #dunfell. rev1679
+yes|jwm_theme_peachy-red||exe|pet:noarch
+yes|jwmthememaker||exe|pet:noarch
+no|kernel-firmware|kernel-firmware|exe,dev,doc,nls|compat:
+yes|kernel-headers|kernel-headers|exe>dev,dev,doc,nls|compat:| #slackware has 5.13 kernel.
+yes|keyutils|keyutils|exe,dev,doc,nls|compat:
+yes|kmod|kmod|exe,dev,doc,nls|compat:
+yes|krb5|krb5|exe,dev,doc,nls|compat:
+no|ktsuss|ktsuss|exe,dev,doc,nls|compat:
+yes|lame|lame|exe,dev,doc,nls|compat:| #dunfell.
+yes|lcms2|lcms2|exe,dev,doc,nls|compat:
+yes|lcms|lcms|exe,dev,doc,nls|compat:
+yes|leafpad|leafpad|exe,dev,doc,nls|compat:| #dunfell.
+yes|less|less|exe,dev,doc,nls|compat:
+yes|libabw|libabw|exe,dev,doc,nls|compat:| #dunfell. reqd by libreoffice.
+yes|libaio|libaio|exe,dev,doc,nls|compat:
+yes|libao|libao|exe,dev,doc,nls|compat:
+yes|libarchive|libarchive|exe,dev,doc,nls|compat:
+yes|libart-lgpl|libart-lgpl|exe,dev,doc,nls|compat:| #dunfell.
+yes|libass|libass|exe,dev,doc,nls|compat:| #dunfell.
+yes|libassuan|libassuan|exe,dev,doc,nls|compat:| #needed by gnome-keyring.
+yes|libasyncns|libasyncns|exe,dev,doc,nls|compat:| #needed by xine-lib.
+yes|libavc1394|libavc1394|exe,dev,doc,nls|compat:| #dunfell. needed by mpv.
+yes|libbluray|libbluray|exe,dev,doc,nls|compat:
+yes|libbsd|libbsd|exe,dev,doc,nls|compat:| #dunfell.
+yes|libcaca|libcaca|exe,dev,doc,nls|compat:| #asci art. needed by xine-lib.
+yes|libcanberra|libcanberra|exe,dev,doc,nls|compat:| #needed by gnome-bluetooth.
+yes|libcap|libcap|exe,dev,doc,nls|compat:
+yes|libcap-ng|libcap-ng|exe,dev,doc,nls|compat:| #dunfell. needed by pflask
+yes|libcddb|libcddb|exe,dev,doc,nls|compat:
+yes|libcdio|libcdio|exe,dev,doc,nls|compat:
+yes|libcdio-paranoia|libcdio-paranoia|exe,dev,doc,nls|compat:
+yes|libcdr|libcdr|exe,dev,doc,nls|compat:| #dunfell. reqd by libreoffice and inkscape.
+yes|libcmis|libcmis|exe,dev,doc,nls|compat:| #dunfell. reqd by libreoffice.
+yes|libcroco|libcroco|exe,dev,doc,nls|compat:| #dunfell.
+yes|libdaemon|libdaemon|exe,dev,doc,nls|compat:| #dunfell. needed by ifplugd.
+yes|libdbusmenu-qt|libdbusmenu-qt|exe,dev,doc,nls|compat:
+yes|libdc1394|libdc1394|exe,dev,doc,nls|compat:| #dunfell.
+no|libdmx|libdmx|exe,dev,doc,nls|compat:| #XORGBASE
+no|libdrm|libdrm|exe,dev,doc,nls|compat:| #XORGBASE
+yes|libdvdcss|libdvdcss|exe,dev,doc,nls|compat:| #dunfell
+yes|libdvdnav|libdvdnav|exe,dev,doc,nls|compat:
+yes|libdvdread|libdvdread|exe,dev,doc,nls|compat:
+yes|libe-book|libe-book|exe,dev,doc,nls|compat:| #dunfell. reqd by libreoffice.
+yes|libebml|libebml|exe,dev,doc,nls|compat:| #dunfell. needed by planner.
+yes|libedit|libedit|exe,dev,doc,nls|compat:
+no|libelf|libelf|exe>dev,dev,doc,nls|compat:| #GCCDEV
+yes|libepoxy|libepoxy|exe,dev,doc,nls|compat:
+yes|libetonyek|libetonyek|exe,dev,doc,nls|compat:| #dunfell. reqd by libreoffice.
+yes|libevdev|libevdev|exe,dev,doc,nls|compat:
+yes|libevent|libevent|exe,dev,doc,nls|compat:
+no|libexif-gtk|libexif-gtk|exe,dev,doc,nls|compat:
+yes|libexif|libexif|exe,dev,doc,nls|compat:
+yes|libexttextcat|libexttextcat|exe,dev,doc,nls|compat:| #dunfell. reqd by libreoffice.
+yes|libexttextcat-data||exe,dev,doc,nls|pet:noarch| #oe should have installed this, it is in libexttextcat pkg.
+yes|libffi|libffi|exe,dev,doc,nls|compat:
+no|libfontenc|libfontenc|exe,dev,doc,nls|compat:| #XORGBASE
+yes|libfreehand|libfreehand|exe,dev,doc,nls|compat:| #dunfell. reqd by libreoffice.
+no|libFS|libFS|exe,dev,doc,nls|compat:| #XORGBASE
+yes|libgcrypt|libgcrypt|exe,dev,doc,nls|compat:
+yes|libgee|libgee|exe,dev,doc,nls|compat:
+yes|libgif|giflib|exe,dev,doc,nls|compat:| #LIBGIF
+yes|libglade|libglade|exe,dev,doc,nls|compat:
+yes|libgltf|libgltf|exe,dev,doc,nls|compat:| #dunfell. reqd by libreoffice.
+yes|libglu|libglu|exe,dev,doc,nls|compat:| #dunfell. needed by mpv.
+yes|libglvnd|libglvnd|exe,dev,doc,nls|compat:
+yes|libgnomecanvas|libgnomecanvas|exe,dev,doc,nls|compat:| #dunfell. needed by planner.
+yes|libgpg-error|libgpg-error|exe,dev,doc,nls|compat:
+yes|libgphoto2|libgphoto2|exe,dev,doc,nls|compat:
+yes|libgsf|libgsf|exe,dev,doc,nls|compat:
+yes|libgtkhtml|libgtkhtml|exe,dev,doc,nls|compat:| #dunfell.
+yes|libgudev|libgudev|exe,dev,doc,nls|compat:| #dunfell. network-manager-applet needs this.
+yes|libical|libical|exe,dev,doc,nls|compat:
+no|libICE|libICE|exe,dev,doc,nls|compat:| #XORGBASE
+yes|libid3tag|libid3tag|exe,dev,doc,nls|compat:
+yes|libidl|libidl|exe,dev,doc,nls|compat:
+yes|libidn|libidn|exe,dev,doc,nls|compat:
+yes|libidn2|libidn2|exe,dev,doc,nls|compat:
+yes|libieee1284|libieee1284|exe,dev,doc,nls|compat:
+no|libisofs|libisofs|exe,dev,doc,nls|compat:
+yes|libjpeg|libjpeg-9*|exe,dev>null,doc>null,nls>null|pet:april
+yes|libjpeg-turbo|libjpeg-turbo|exe,dev,doc,nls|compat:
+yes|liblangtag|liblangtag|exe,dev,doc,nls|compat:| #dunfell. reqd by libreoffice.
+yes|libmaa|libmaa|exe,dev,doc,nls|compat:| #dunfell. needed by dictd.
+yes|libmad|libmad|exe,dev,doc,nls|compat:
+yes|libmng|libmng|exe,dev,doc,nls|compat:
+yes|libmnl|libmnl|exe,dev,doc,nls|compat:
+yes|libmodplug|libmodplug|exe,dev,doc,nls|compat:| #dunfell. needed by xine-ui.
+no|libmpc|libmpc|exe>dev,dev,doc,nls|compat:| #GCCDEV
+no|libmpeg2|libmpeg2|exe,dev,doc,nls|compat:
+yes|libmspub|libmspub|exe,dev,doc,nls|compat:| #dunfell. reqd by libreoffice.
+yes|libmtp|libmtp|exe,dev,doc,nls|compat:| #dunfell. needed by simple-mtpfs
+yes|libmwaw|libmwaw|exe,dev,doc,nls|compat:| #dunfell. reqd by libreoffice.
+yes|libmypaint|libmypaint|exe,dev,doc,nls|compat:| # needed by gimp.
+yes|libndp|libndp|exe,dev,doc,nls|compat:| #networkmanager needs this.
+yes|libnl3|libnl3|exe,dev,doc,nls|compat:
+yes|libnl|libnl|exe,dev,doc,nls|compat:
+yes|libnetfilter_conntrack|libnetfilter_conntrack|exe,dev,doc,nls|compat:
+yes|libnewt|newt|exe,dev,doc,nls|compat:| #dunfell. needed by networkmanager. slackware pkg is named newt.
+yes|libnfnetlink|libnfnetlink|exe,dev,doc,nls|compat:
+yes|libnftnl|libnftnl|exe,dev,doc,nls|compat:
+yes|libnotify|libnotify|exe,dev,doc,nls|compat:
+yes|libnsl|libnsl|exe,dev,doc,nls|compat:
+yes|libodfgen|libodfgen|exe,dev,doc,nls|compat:| #dunfell. reqd by libreoffice.
+yes|libofx|libofx|exe,dev,doc,nls|compat:| #dunfell. optional needed by grisbi, homebank.
+yes|libogg|libogg|exe,dev,doc,nls|compat:
+yes|liboil|liboil|exe,dev,doc,nls|compat:
+yes|libpagemaker|libpagemaker|exe,dev,doc,nls|compat:| #dunfell. reqd by libreoffice.
+yes|libpcap|libpcap|exe,dev,doc,nls|compat:
+yes|libpciaccess|libpciaccess|exe,dev,doc,nls|compat:
+yes|libpcre|libpcre|exe,dev,doc,nls|compat:| #dunfell.
+yes|libpng|libpng|exe,dev,doc,nls|compat:
+yes|libpng12|libpng-1.2.*|exe,dev>null,doc,nls|pet:april
+yes|libproxy|libproxy|exe,dev,doc,nls|compat:
+no|libproxy||exe,dev>null,doc,nls|pet:es150
+yes|libpsl|libpsl|exe,dev,doc,nls|compat:
+yes|libpthread-stubs|libpthread-stubs|exe>dev,dev,doc,nls|compat:
+yes|libraw1394|libraw1394|exe,dev,doc,nls|compat:
+yes|libreoffice|libreoffice|exe,dev,doc,nls|compat:| #dunfell.
+yes|librevenge|librevenge|exe,dev,doc,nls|compat:| #dunfell. reqd by libreoffice.
+yes|librsvg|librsvg|exe,dev,doc,nls|compat:
+yes|libsamplerate|libsamplerate|exe,dev,doc,nls|compat:
+yes|libsdl|libsdl|exe,dev,doc,nls|compat:| #dunfell. version 1.2 needed by mpv.
+yes|libsdl-image|libsdl-image|exe,dev,doc,nls|compat:| #dunfell.
+yes|libsdl-mixer|libsdl-mixer|exe,dev,doc,nls|compat:| #dunfell.
+yes|libsdl-ttf|libsdl-ttf|exe,dev,doc,nls|compat:| #dunfell.
+yes|libsecret|libsecret|exe,dev,doc,nls|compat:| #dunfell. network-manager-applet needs this.
+yes|libsigc++|libsigc++|exe,dev,doc,nls|compat:
+yes|libsigsegv|libsigsegv|exe,dev,doc,nls|compat:
+no|libSM|libSM|exe,dev,doc,nls|compat:| #XORGBASE
+yes|libsndfile|libsndfile|exe,dev,doc,nls|compat:
+yes|libsodium|libsodium|exe,dev,doc,nls|compat:| #needed by ffmpeg.
+yes|libsoup|libsoup|exe,dev,doc,nls|compat:
+yes|libssh|libssh|exe,dev>null,doc,nls|compat:
+yes|libssh2|libssh2|exe,dev,doc,nls|compat:
+yes|libsystem|libsystem|exe,dev,doc,nls|compat:| #dunfell. needed by helpsurfer.
+yes|libtasn1|libtasn1|exe,dev,doc,nls|compat:
+no|libtermcap|libtermcap|exe,dev,doc,nls|compat:
+yes|libtheora|libtheora|exe,dev,doc,nls|compat:
+yes|libtiff|libtiff|exe,dev,doc,nls|compat:
+yes|libtirpc|libtirpc|exe,dev,doc,nls|compat:
+yes|libtommath|libtommath|exe>dev,dev,doc,nls|compat:| #dunfell. static lib, needed when compile libreoffice.
+yes|libtool|libtool|exe,dev,doc,nls|compat:
+yes|libtubo|libtubo|exe,dev,doc,nls|compat:| #dunfell. needed by xfdiff.
+yes|libunistring|libunistring|exe,dev,doc,nls|compat:
+yes|libunwind|libunwind|exe,dev,doc,nls|compat:| #needed by xine-lib.
+yes|libusb-compat|libusb-compat|exe,dev,doc,nls|compat:
+yes|libusb1|libusb|exe,dev,doc,nls|compat:
+yes|libva|libva|exe,dev,doc,nls|compat:
+yes|libvdpau|libvdpau|exe,dev,doc,nls|compat:
+no|libvdpau-va-gl|libvdpau-va-gl|exe,dev,doc,nls|compat:
+yes|libvisio|libvisio|exe,dev,doc,nls|compat:| #dunfell. reqd by libreoffice.
+yes|libvorbis|libvorbis|exe,dev,doc,nls|compat:
+yes|libvpx|libvpx|exe,dev,doc,nls|compat:
+yes|libwebp|libwebp|exe,dev,doc,nls|compat:
+yes|libwpd|libwpd|exe,dev,doc,nls|compat:| #dunfell.reqd by libreoffice.
+yes|libwpg|libwpg|exe,dev,doc,nls|compat:| #dunfell. reqd by libreoffice.
+yes|libwps|libwps|exe,dev,doc,nls|compat:| #dunfell. reqd by libreoffice.
+no|libX11|libX11|exe,dev,doc,nls|compat:| #XORGBASE
+yes|libx86|libx86|exe,dev,doc,nls|compat:
+no|libXau|libXau|exe,dev,doc,nls|compat:| #XORGBASE
+no|libXaw|libXaw|exe,dev,doc,nls|compat:| #XORGBASE
+no|libXaw3d|libXaw3d|exe,dev,doc,nls|compat:| #want this for xvkbd. no, using xvkbd linked against libXaw
+yes|libxcb_base|libxcb|exe,dev,doc,nls|compat:
+no|libXcomposite|libXcomposite|exe,dev,doc,nls|compat:| #XORGBASE
+yes|libxcrypt|libxcrypt|exe,dev,doc,nls|compat:| #dunfell.
+no|libXcursor|libXcursor|exe,dev,doc,nls|compat:| #XORGBASE
+no|libXdamage|libXdamage|exe,dev,doc,nls|compat:| #XORGBASE
+no|libXdmcp|libXdmcp|exe,dev,doc,nls|compat:| #XORGBASE
+no|libXevie|libXevie|exe,dev,doc,nls|compat:| #XORGBASE
+no|libXext|libXext|exe,dev,doc,nls|compat:| #XORGBASE
+no|libXfixes|libXfixes|exe,dev,doc,nls|compat:| #XORGBASE
+no|libXfontcache|libXfontcache|exe,dev,doc,nls|compat:| #XORGBASE
+no|libXfont|libXfont|exe,dev,doc,nls|compat:| #XORGBASE
+no|libXft|libXft|exe,dev,doc,nls|compat:| #XORGBASE
+no|libXi|libXi|exe,dev,doc,nls|compat:| #XORGBASE
+no|libXinerama|libXinerama|exe,dev,doc,nls|compat:| #XORGBASE
+no|libxkbfile|libxkbfile|exe,dev,doc,nls|compat:| #XORGBASE
+yes|libxkbcommon|libxkbcommon|exe,dev,doc,nls|compat:|
+yes|libxml2|libxml2|exe,dev,doc,nls|compat:
+no|libXmu|libXmu|exe,dev,doc,nls|compat:| #XORGBASE
+no|libXp|libXp|exe,dev,doc,nls|compat:| #XORGBASE
+no|libXpm|libXpm|exe,dev,doc,nls|compat:| #XORGBASE
+no|libXrandr|libXrandr|exe,dev,doc,nls|compat:| #XORGBASE
+no|libXrender|libXrender|exe,dev,doc,nls|compat:| #XORGBASE
+no|libXres|libXres|exe,dev,doc,nls|compat:| #XORGBASE
+no|libXScrnSaver|libXScrnSaver|exe,dev,doc,nls|compat:| #XORGBASE
+yes|libxshmfence|libxshmfence|exe,dev,doc,nls|compat:
+yes|libxslt|libxslt|exe,dev,doc,nls|compat:
+no|libXt|libXt|exe,dev,doc,nls|compat:| #XORGBASE
+no|libXtst|libXtst|exe,dev,doc,nls|compat:| #XORGBASE
+no|libXv|libXv|exe,dev,doc,nls|compat:| #XORGBASE
+no|libXvMC|libXvMC|exe,dev,doc,nls|compat:| #XORGBASE
+no|libXxf86dga|libXxf86dga|exe,dev,doc,nls|compat:| #XORGBASE
+no|libXxf86misc|libXxf86misc|exe,dev,doc,nls|compat:| #XORGBASE
+no|libXxf86vm|libXxf86vm|exe,dev,doc,nls|compat:| #XORGBASE
+yes|libzip|libzip|exe,dev,doc,nls|compat:
+no|listres|listres|exe,dev,doc,nls|compat:| #XORGBASE
+yes|llvm|llvm|exe,dev,doc,nls|compat:
+yes|lm_sensors|lm_sensors|exe,dev,doc,nls|compat:
+yes|lpsolve|lpsolve|exe,dev,doc,nls|compat:| #dunfell. reqd by libreoffice.
+no|luit|luit|exe,dev,doc,nls|compat:| #XORGBASE
+yes|lvm2|lvm2|exe,dev,doc,nls|compat:
+yes|lzo|lzo|exe,dev,doc,nls|compat:
+yes|lz4|lz4|exe,dev,doc,nls|compat:
+yes|m4|m4|exe>dev,dev,doc,nls|compat:
+yes|makebootfat||exe,dev,doc,nls|pet:april
+no|makedepend|makedepend|exe,dev,doc,nls|compat:| #XORGBASE
+yes|make|make|exe>dev,dev,doc,nls|compat:
+yes|man_cut|man-db|exe,dev,doc,nls|compat:
+yes|man|man-db|exe>dev,dev,doc,nls|compat:
+yes|mdds-1.2|mdds-1.2|exe,dev,doc,nls|compat:| #dunfell. reqd by libreoffice.
+yes|mdds-1.5|mdds-1.5|exe,dev,doc,nls|compat:| #dunfell. reqd by libreoffice.
+no|mesa|mesa|exe,dev,doc,nls|compat:| #MESA
+yes|mesa|mesa,freeglut,glew,glu|exe,dev,doc,nls|compat:| #MESA
+yes|meson|meson|exe>dev,dev,doc,nls|compat:| #dunfell. build system, deps re2c, ninja.
+yes|metamail|metamail|exe,dev,doc,nls|compat:
+yes|mhwaveedit|mhwaveedit|exe,dev,doc,nls|compat:| #dunfell.
+yes|minicom|minicom|exe,dev,doc,nls|compat:
+yes|mingetty|mingetty|exe,dev,doc,nls|compat:| #dunfell.
+yes|mirdir|mirdir|exe,dev,doc,nls|compat:| #dunfell.
+no|mkcomposecache|mkcomposecache|exe,dev,doc,nls|compat:| #XORGBASE
+no|mkfontdir|mkfontdir|exe,dev,doc,nls|compat:| #XORGBASE
+no|mkfontscale|mkfontscale|exe,dev,doc,nls|compat:| #XORGBASE
+yes|mobile-broadband-provider-info|mobile-broadband-provider-info|exe,dev,doc,nls|compat:| #dunfell. needed by network-manager-applet.
+yes|modem-stats|modem-stats|exe,dev,doc,nls|compat:| #dunfell.
+no|mozilla-firefox|mozilla-firefox|exe,dev,doc,nls|compat:
+yes|mozilla-nss|mozilla-nss|exe,dev,doc,nls|compat:| #needed by seamonkey.
+yes|mp|mped|exe,dev,doc,nls|compat:| #dunfell.
+yes|mpeg2dec|mpeg2dec|exe,dev,doc,nls|compat:| #dunfell. needed by mpv.
+yes|mpfr|mpfr|exe,dev,doc,nls|compat:| #GCCDEV need this in main f.s.
+yes|mpg123|mpg123|exe,dev,doc,nls|compat:
+no|mplayer_codecs_basic||exe,dev,doc,nls|pet:noarch
+yes|mpscan|mpscan|exe,dev,doc,nls|compat:| #dunfell.
+yes|mpv|mpv|exe,dev,doc,nls|compat:| #dunfell.
+yes|mscw||exe,dev,doc,nls|pet:noarch
+no|mtdev|mtdev|exe,dev,doc,nls|compat:| #XORGBASE
+yes|mtools|mtools|exe,dev,doc,nls|compat:| #dunfell.
+yes|mtpaint|mtpaint|exe,dev,doc,nls|compat:| #dunfell.
+yes|mtr|mtr|exe,dev,doc,nls|compat:
+yes|mythes|mythes|exe,dev,doc,nls|compat:| #dunfell. reqd by libreoffice.
+yes|nasm|nasm|exe>dev,dev,doc,nls|compat:
+yes|nbtscan|nbtscan|exe,dev,doc,nls|compat:| #dunfell.
+yes|ncurses|ncurses|exe,dev,doc,nls|compat:
+yes|nenscript|nenscript|exe,dev,doc,nls|compat:| #dunfell.
+yes|neon|neon|exe>dev,dev,doc,nls|compat:
+yes|netpbm|netpbm|exe,dev,doc,nls|compat:| #dunfell.
+yes|nettle|nettle|exe,dev,doc,nls|compat:
+yes|net-snmp|net-snmp|exe,dev,doc,nls|compat:| #needed by sane hplip.
+yes|net-tools|net-tools|exe,dev,doc,nls|compat:
+yes|networkmanager|networkmanager|exe,dev,doc,nls|compat:| #dunfell.
+no|network-manager-applet|network-manager-applet|exe,dev,doc,nls|compat:| #dunfell. grabs the slackware one so use pet...
+yes|network-manager-applet||exe,dev,doc,nls|pet:es150| #my patched version.
+yes|network_tray|network-tray|exe,dev,doc,nls|compat:| #dunfell.
+yes|ninja|ninja|exe>dev,dev,doc,nls|compat:| #dunfell. build system used with meson.
+yes|normalize|normalize|exe,dev,doc,nls|compat:
+yes|notecase|notecase|exe,dev,doc,nls|compat:| #dunfell.
+yes|notification-daemon|notification-daemon|exe,dev,doc,nls|compat:| #dunfell.
+yes|ntfs-3g|ntfs-3g|exe,dev,doc,nls|compat:
+no|ntfsprogs||exe,dev,doc,nls|pet:| #functionality is now all in ntfs-3g pkg.
+yes|nghttp2|nghttp2|exe,dev,doc,nls|compat:
+yes|ntpdate|ntp|exe,dev,doc,nls|compat:| #dunfell. used by qsync to sync local time and date from the internet.
+yes|numlockx|numlockx|exe,dev,doc,nls|compat:
+yes|ocl-icd|ocl-icd|exe,dev,doc,nls|compat:| #needed by xine-lib.
+yes|ofono|ofono|exe,dev,doc,nls|compat:| #dunfell. needed by iwd, optionally by networkmanager.
+yes|openal-soft|openal-soft|exe,dev,doc,nls|compat:
+yes|opencore-amr|opencore-amr|exe,dev,doc,nls|compat:| #dunfell.
+yes|openjpeg|openjpeg|exe,dev,doc,nls|compat:
+no|openldap-client|openldap-client|exe,dev,doc,nls|compat:
+yes|openldap|openldap|exe,dev,doc,nls|compat:| #stupid thing stuffs up /etc/password etc. see template.
+yes|opensp|opensp|exe,dev,doc,nls|compat:| #dunfell. needed by libofx. see also sgml-common.
+yes|openssh_client|openssh|exe,dev,doc,nls|compat:
+yes|openssl|openssl,openssl-solibs|exe,dev,doc,nls|compat:
+yes|opkg-utils|opkg-utils|exe,dev,doc,nls|compat:| #dunfell. needed by mingetty.
+yes|opus|opus|exe,dev,doc,nls|compat:
+yes|orc|orc|exe,dev,doc,nls|compat:
+yes|osmo|osmo|exe,dev,doc,nls|compat:| #dunfell.
+yes|p11-kit|p11-kit|exe,dev,doc,nls|compat:
+yes|pangomm|pangomm|exe,dev,doc,nls|
+yes|pango|pango|exe,dev,doc,nls|compat:
+yes|parted|parted|exe,dev,doc,nls|compat:
+yes|patch|patch|exe>dev,dev,doc,nls|compat:
+yes|pbackup||exe,dev,doc,nls|pet:noarch
+yes|pburn||exe,dev,doc,nls|pet:noarch
+yes|pciutils|pciutils|exe,dev,doc,nls|compat:| #dunfell.
+yes|pclock||exe,dev,doc,nls|pet:noarch
+yes|pcre|pcre|exe,dev,doc,nls|compat:
+yes|pcre2|pcre2|exe,dev,doc,nls|compat:
+yes|pcurlftp_file_sharing||exe,dev,doc,nls|pet:noarch
+yes|pdiag||exe,dev,doc,nls|pet:noarch
+yes|pdvdrsab||exe,dev,doc,nls|pet:noarch
+yes|peasydisc||exe|pet:noarch
+yes|peasyglue||exe,dev,doc,nls|pet:noarch
+yes|peasypdf||exe,dev,doc,nls|pet:noarch
+yes|peasyport-noarch||exe,dev,doc,nls|pet:noarch
+yes|peasyprint||exe,dev,doc,nls|pet:noarch
+yes|peasyscale-noarch||exe|pet:noarch| #rcrsn51, jpg image resizer.
+yes|peasyscale-exec|peasyscale-exec|exe,dev,doc,nls|compat:| #dunfell. binary needed by peasyscale.
+yes|peasyscan-noarch||exe|pet:noarch| #rcrsn51, scanner gui
+yes|peasyscan-exec|peasyscan-exec|exe,dev,doc,nls|compat:| #dunfell. binary needed by peasyscan.
+no|pequalizer||exe,dev,doc,nls|pet:noarch| #needs alsaequal pkg.
+yes|perl|perl|exe>dev,dev,doc,nls|compat:
+yes|perl_tiny|perl|exe,dev>null,doc>null,nls>null|compat:
+no|perl-digest-sha1|perl-digest-sha1|exe>dev,dev,doc,nls|compat:
+no|perl-html-parser|perl-html-parser|exe>dev,dev,doc,nls|compat:
+yes|pfilesearch||exe,dev,doc,nls|pet:noarch
+yes|pfind||exe,dev,doc,nls|pet:noarch
+yes|pflask|pflask|exe,dev,doc,nls|compat:| #dunfell. needs libcap-ng
+yes|phash||exe|pet:noarch
+yes|picpuz||exe,dev,doc,nls|pet:april
+yes|picscale||exe,dev,doc,nls|pet:es150| #oe one is broken.
+yes|pinentry|pinentry|exe,dev,doc,nls|compat:| #dep of gnupg
+yes|pixman|pixman|exe,dev,doc,nls|compat:
+yes|pkg-config|pkg-config|exe>dev,dev,doc,nls|compat:
+yes|planner|planner|exe,dev,doc,nls|compat:| #dunfell.
+yes|pmirror||exe,dev,doc,nls|pet:noarch
+yes|pmirrorget||exe,dev,doc,nls|pet:noarch
+yes|pngoverlay-cairo|pngoverlay-cairo|exe|compat:| #dunfell. replaces pngoverlay from pup-tools.
+yes|pnmixer|pnmixer|exe,dev,doc,nls|compat:| #dunfell tray volume applet, use with aumix.
+yes|pmusic||exe,dev,doc,nls|pet:noarch
+yes|pnscan|pnscan|exe,dev,doc,nls|compat:| #dunfell. needed by peasyport-noarch.
+yes|po4a|po4a|exe>dev,dev,doc,nls|compat:| #dunfell. needed to compile modem-manager-gui
+yes|pointercal-xinput|pointercal-xinput|exe,dev,doc,nls|compat:| #dunfell.
+yes|poppler|poppler|exe,dev,doc,nls|compat:
+yes|popt|popt|exe,dev,doc,nls|compat:
+yes|potrace|potrace|exe,dev,doc,nls|compat:| #dunfell. needed by inkscape.
+yes|powerapplet_tray|powerapplet-tray|exe,dev,doc,nls|compat:| #dunfell.
+no|pplog||exe,dev,doc,nls|pet:noarch| #needs hiawatha. broken.
+yes|ppp|ppp|exe,dev,doc,nls|compat:
+yes|pprocess||exe|pet:noarch
+yes|pptp|pptp-linux|exe,dev,doc,nls|compat:| #dunfell.
+yes|precord||exe,dev,doc,nls|pet:noarch
+yes|prename||exe,dev,doc,nls|pet:noarch
+yes|procps|procps-ng|exe,dev,doc,nls|compat:
+yes|programchooser||exe,dev,doc,nls|pet:noarch
+yes|pschedule||exe,dev,doc,nls|pet:noarch
+yes|psmisc|psmisc|exe,dev,doc,nls|compat:| #dunfell.
+no|ptiming||exe,dev,doc,nls|pet:noarch
+yes|ptooltips||exe|pet:noarch
+yes|PupControl||exe,dev,doc,nls|pet:noarch| #by radky. has JWMDesk builtin, replaces jwmconfig2.
+yes|puppyinputdetect|puppyinputdetect|exe,dev,doc,nls|compat:| #dunfell.
+yes|puppy-podcast-grabber||exe|pet:noarch
+yes|puppyserialdetect|puppyserialdetect|exe,dev,doc,nls|compat:| #dunfell.
+yes|pupradio||exe,dev,doc,nls|pet:noarch
+yes|Pup-SysInfo||exe,dev,doc,nls|pet:noarch| #instead of hardinfo.
+yes|pup-tools|pup-tools|exe,dev,doc,nls|compat:| #dunfell. no longer has pngoverlay.
+yes|pupx||exe,dev,doc,nls|pet:noarch
+yes|pure-ftpd|pure-ftpd|exe,dev,doc,nls|compat:| #dunfell
+yes|pwsget||exe,dev,doc,nls|pet:noarch
+yes|pycairo|pycairo|exe,dev,doc,nls|compat:| #needed by blueman.
+yes|pygobject3|pygobject3|exe,dev,doc,nls|compat:| #needed by blueman.
+yes|python3|python3|exe>dev,dev,doc,nls|compat:
+yes|pzchmview||exe,dev,doc,nls|pet:noarch
+yes|qpdf|qpdf|exe,dev,doc,nls|compat:
+yes|radeontool|radeontool|exe,dev,doc,nls|compat:
+yes|rasqal|rasqal|exe,dev,doc,nls|compat:| #dunfell. reqd by libreoffice.
+yes|rdesktop|rdesktop|exe,dev,doc,nls|compat:
+yes|re2c|re2c|exe>dev,dev,doc,nls|compat:| #dunfell. i think need this to compile qt5 and meson.
+yes|read-edid|read-edid|exe,dev,doc,nls|compat:| #dunfell. warning, i2c only, no vbe libx86 support.
+yes|readline|readline|exe,dev,doc,nls|compat:
+yes|redland|redland|exe,dev,doc,nls|compat:| #dunfell. reqd by libreoffice.
+yes|refind|refind|exe,dev,doc,nls|compat:| #dunfell
+no|rendercheck|rendercheck|exe,dev,doc,nls|compat:| #XORGBASE
+yes|rman|rman|exe>dev,dev,doc,nls|compat:| #dunfell
+yes|rox-filer|rox-filer|exe,dev,doc,nls|compat:| #dunfell. works both quirky and easy.
+yes|rp_pppoe_cli|rp-pppoe|exe,dev,doc,nls|compat:
+yes|rsync|rsync|exe>dev,dev,doc,nls|compat:
+no|rtmpdump|rtmpdump|exe,dev,doc,nls|compat:
+yes|rubix|rubix|exe,dev,doc,nls|compat:| #dunfell.
+yes|rxvt-unicode|rxvt-unicode|exe,dev>null,doc,nls|compat:| #note also in dunfell
+yes|sakura|sakura|exe,dev,doc,nls|compat:| #dunfell. needs vte.
+yes|samba|samba|exe,dev,doc,nls|compat:| #needed by ffmpeg
+yes|sane|sane|exe,dev,doc,nls|compat:
+yes|sbc|sbc|exe,dev,doc,nls|compat:
+yes|scale2x|scale2x|exe,dev,doc,nls|compat:| #dunfell
+yes|schroedinger|schroedinger|exe,dev,doc,nls|compat:| #dunfell.
+yes|scons|scons|exe>dev,dev,doc,nls|compat:| #dunfell. needed by serf to compile.
+yes|sdl|sdl|exe,dev,doc,nls|compat:
+yes|SDL2|SDL2|exe,dev,doc,nls|compat:| #needed by ffmpeg
+yes|seamonkey|seamonkey|exe,dev,doc,nls|compat:
+yes|seamonkey_addon_github-wc-polyfill||exe|pet:noarch| #display github.com correctly.
+yes|sed|sed|exe,dev,doc,nls|compat:
+no|sessreg|sessreg|exe,dev,doc,nls|compat:| #XORGBASE
+yes|setserial|setserial|exe,dev>null,doc,nls|compat:| #dunfell.
+yes|setvol|setvol|exe,dev,doc,nls|compat:| #dunfell.
+no|setxkbmap|setxkbmap|exe,dev,doc,nls|compat:| #XORGBASE
+yes|sfs-converter||exe,dev,doc,nls|pet:noarch
+yes|sgml-common|sgml-common|exe,dev,doc,nls|compat:| #dunfell. needed by opensp, which needed by libofx.
+yes|shared-mime-info|shared-mime-info|compat:
+no|showfont|showfont|exe,dev,doc,nls|compat:| #XORGBASE
+yes|simple-mtpfs||exe|pet:es150| #used by pupmtp builtin to woof.
+yes|slang|slang|exe,dev,doc,nls|compat:
+yes|slang1|slang1|exe,dev,doc,nls|compat:
+no|smproxy|smproxy|exe,dev,doc,nls|compat:| #XORGBASE
+yes|solvespace|solvespace|exe,dev,doc,nls|compat:| #dunfell.
+yes|speex|speex|exe,dev,doc,nls|compat:
+yes|speexdsp|speexdsp|exe,dev,doc,nls|compat:
+yes|sqlite|sqlite|exe,dev,doc,nls|compat:
+yes|squashfs-tools|squashfs-tools|exe,dev>null,doc,nls|compat:
+yes|sshfs|sshfs-fuse|exe,dev,doc,nls|compat:| #dunfell. needs fuse, openssh
+yes|ssh-gui|ssh-gui|exe,dev,doc,nls|compat:| #dunfell.
+yes|sshpass|sshpass|exe,dev,doc,nls|compat:| #dunfell.
+yes|ssl-certificate-fix||exe,dev,doc,nls|pet:noarch| #qtweb needs this.
+yes|startup-notification|startup-notification|exe,dev,doc,nls|compat:
+yes|stat|stat|exe,dev,doc,nls|compat:| #dunfell.
+yes|strace|strace|exe>dev,dev,doc,nls|compat:
+no|streamripper|streamripper|exe,dev,doc,nls|compat:
+yes|subversion|subversion|exe>dev,dev,doc,nls|compat:
+yes|sudo|sudo|exe,dev,doc,nls|compat:
+yes|svgalib|svgalib|exe,dev,doc,nls|compat:
+no|sylpheed|sylpheed|exe,dev,doc,nls|compat:
+yes|sysfsutils|sysfsutils|exe,dev,doc,nls|compat:
+yes|sys-info||exe,dev,doc,nls|pet:noarch
+yes|syslinux|syslinux|exe,dev,doc,nls|compat:| #v4.07
+no|syslinux6_modules_efi||exe,dev,doc,nls|pet:common
+yes|sysvinit-utils-cut|sysvinit|exe,dev,doc,nls|compat:
+yes|taglib|taglib|exe,dev,doc,nls|compat:
+yes|talloc|talloc|exe,dev,doc,nls|compat:| #needed by xine-lib
+yes|tar|tar|exe,dev,doc,nls|compat:
+yes|tcpdump|tcpdump|exe,dev,doc,nls|compat:
+yes|tcp-wrappers|tcp-wrappers|exe,dev,doc,nls|compat:| #dunfell.
+yes|tdb|tdb|exe,dev,doc,nls|compat:| #needed by xine-lib.
+yes|tevent|tevent|exe,dev,doc,nls|compat:| #needed by xine-lib.
+yes|texinfo|texinfo|exe>dev,dev,doc,nls|compat:
+yes|tzdata|tzdata|exe,dev,doc,nls|compat:| #dunfell
+yes|ufiformat|ufiformat|exe,dev,doc,nls|compat:| #dunfell. needed by floppy-format pet.
+yes|uget|uget|exe,dev,doc,nls|compat:| #dunfell.
+yes|unclutter|unclutter|exe,dev>null,doc,nls|compat:| #dunfell.
+yes|unifont||exe|pet:noarch| #needed by solvespace
+yes|unrar|unrar|exe,dev,doc,nls|compat:| #dunfell
+yes|unzip|unzip|exe,dev,doc,nls|compat:| #dunfell
+yes|UrxvtControl||exe,dev,doc,nls|pet:noarch
+yes|usb-modeswitch|usb-modeswitch|exe,dev,doc,nls|compat:| #dunfell. requires tcl or jimtcl.
+yes|usb-modeswitch-data|usb-modeswitch-data|exe|compat:| #dunfell.
+yes|usbutils|usbutils|exe,dev,doc,nls|compat:
+yes|utempter|utempter|exe,dev,doc,nls|compat:| #needed by rxvt-unicode.
+yes|util-linux|util-linux|exe,dev,doc,nls|compat:
+yes|util-macros|util-macros|exe>dev,dev,doc,nls|compat:
+yes|v4l-utils|v4l-utils|exe,dev,doc,nls|compat:
+yes|vala|vala|exe>dev,dev,doc,nls|compat:
+yes|vamps|vamps|exe,dev,doc,nls|compat:| #dunfell.
+yes|vcdimager|vcdimager|exe,dev,doc,nls|compat:| #dunfell.
+yes|vigra|vigra|exe,dev,doc,nls|compat:| #dunfell. reqd by libreoffice.
+yes|vobcopy|vobcopy|exe,dev,doc,nls|compat:| #dunfell.
+yes|vorbis-tools|vorbis-tools|exe,dev,doc,nls|compat:| #dunfell.
+yes|vte|vte|exe,dev,doc,nls|compat:| #dunfell. needed by sakura.
+yes|vte0||exe,dev>null,doc,nls|pet:es150
+no|video_upgrade||exe,dev,doc,nls|pet:
+yes|viewnior|viewnior|exe,dev,doc,nls|compat:
+no|viewres|viewres|exe,dev,doc,nls|compat:| #XORGBASE
+no|vobcopy|vobcopy|exe,dev,doc,nls|compat:
+yes|vte|vte|exe,dev,doc,nls|compat:
+yes|vte0||exe,dev>null,doc,nls|pet:es150
+yes|wag_profiles||exe|pet:noarch| #taken out of net_setup pet, see forum t=82092&start=300
+yes|wavpack|wavpack|exe,dev,doc,nls|compat:| #dunfell.
+yes|wavplay|wavplay|exe,dev,doc,nls|compat:| #dunfell.
+yes|wayland|wayland|exe,dev,doc,nls|compat:|
+yes|wcpufreq||exe,dev,doc,nls|pet:noarch
+yes|wget|wget|exe,dev,doc,nls|compat:
+yes|wireless-tools|wireless_tools|exe,dev,doc,nls|compat:|
+yes|wpa_supplicant|wpa_supplicant|exe,dev,doc,nls|compat:| #also in salix.
+yes|wvdial|wvdial|exe,dev,doc,nls|compat:| #dunfell. needs wvstreams
+yes|wvstreams|wvstreams|exe,dev,doc,nls|compat:| #dunfell.
+no|x11perf|x11perf|exe,dev,doc,nls|compat:| #XORGBASE
+yes|xorgproto|xorgproto|exe>dev,dev,doc,nls|compat:
+yes|x264|x264|exe,dev,doc,nls|compat:| #dunfell
+yes|x265|x265|exe,dev,doc,nls|compat:| #dunfell
+yes|xarchive|xarchive|exe,dev>null,doc,nls|compat:| #dunfell
+no|xauth|xauth|exe,dev,doc,nls|compat:| #XORGBASE
+no|xbacklight|xbacklight|exe,dev,doc,nls|compat:| #XORGBASE
+no|xbiff|xbiff|exe,dev,doc,nls|compat:| #XORGBASE
+no|xbindkeys||exe,dev,doc,nls|pet:
+no|xcalc|xcalc|exe,dev,doc,nls|compat:| #XORGBASE
+yes|xcb-proto|xcb-proto|exe>dev,dev,doc,nls|compat:| #X11PROTO
+yes|xcb-util|xcb-util|exe,dev,doc,nls|compat:
+no|xclipboard|xclipboard|exe,dev,doc,nls|compat:| #XORGBASE
+yes|xclip|xclip|exe,dev,doc,nls|compat:| #dunfell
+no|xclock|xclock|exe,dev,doc,nls|compat:| #XORGBASE
+yes|xcompmgr|xcompmgr|exe,dev,doc,nls|compat:
+no|xconsole|xconsole|exe,dev,doc,nls|compat:| #XORGBASE
+yes|xcur2png|xcur2png|exe,dev,doc,nls|compat:| #dunfell.
+no|xcursorgen|xcursorgen|exe,dev,doc,nls|compat:| #XORGBASE
+yes|xdelta3|xdelta3|exe,dev,doc,nls|compat:| #dunfell
+yes|xdg-puppy|xdg-puppy|exe,dev,doc,nls|compat:| #dunfell.
+yes|xdialog|xdialog|exe,dev,doc,nls|compat:| #dunfell.
+no|xditview|xditview|exe,dev,doc,nls|compat:| #XORGBASE
+yes|xdotool|xdotool|exe,dev,doc,nls|compat:| #dunfell.
+no|xdpyinfo|xdpyinfo|exe,dev,doc,nls|compat:| #XORGBASE
+no|xdriinfo|xdriinfo|exe,dev,doc,nls|compat:| #XORGBASE
+no|xev|xev|exe,dev,doc,nls|compat:| #XORGBASE
+no|xf86dga|xf86dga|exe,dev,doc,nls|compat:| #XORGBASE
+no|xf86-input-evdev|xf86-input-evdev|exe,dev,doc,nls|compat:| #XSERVER
+no|xf86-input-keyboard|xf86-input-keyboard|exe,dev,doc,nls|compat:| #XSERVER
+no|xf86-input-mouse|xf86-input-mouse|exe,dev,doc,nls|compat:| #XSERVER
+no|xf86-input-synaptics|xf86-input-synaptics|exe,dev,doc,nls|compat:
+no|xf86-video-apm|xf86-video-apm|exe,dev,doc,nls|compat:| #XSERVER
+no|xf86-video-ark|xf86-video-ark|exe,dev,doc,nls|compat:| #XSERVER
+no|xf86-video-ast|xf86-video-ast|exe,dev,doc,nls|compat:| #XSERVER
+no|xf86-video-ati|xf86-video-ati|exe,dev,doc,nls|compat:| #XSERVER
+no|xf86-video-chips|xf86-video-chips|exe,dev,doc,nls|compat:| #XSERVER
+no|xf86-video-cirrus|xf86-video-cirrus|exe,dev,doc,nls|compat:| #XSERVER
+no|xf86-video-geode|xf86-video-geode|exe,dev,doc,nls|compat:| #XSERVER
+no|xf86-video-i128|xf86-video-i128|exe,dev,doc,nls|compat:| #XSERVER
+no|xf86-video-i740|xf86-video-i740|exe,dev,doc,nls|compat:| #XSERVER
+no|xf86-video-intel|xf86-video-intel|exe,dev,doc,nls|compat:| #XSERVER
+no|xf86-video-mach64|xf86-video-mach64|exe,dev,doc,nls|compat:| #XSERVER
+no|xf86-video-mga|xf86-video-mga|exe,dev,doc,nls|compat:| #XSERVER
+no|xf86-video-modesetting|xf86-video-modesetting|exe,dev,doc,nls|compat:| #XSERVER ***NOT IN SLACK REPO***
+no|xf86-video-neomagic|xf86-video-neomagic|exe,dev,doc,nls|compat:| #XSERVER
+no|xf86-video-nouveau|xf86-video-nouveau|exe,dev,doc,nls|compat:| #XSERVER
+no|xf86-video-nv|xf86-video-nv|exe,dev,doc,nls|compat:| #XSERVER
+no|xf86-video-openchrome|xf86-video-openchrome|exe,dev,doc,nls|compat:| #XSERVER
+no|xf86-video-r128|xf86-video-r128|exe,dev,doc,nls|compat:| #XSERVER
+no|xf86-video-rendition|xf86-video-rendition|exe,dev,doc,nls|compat:| #XSERVER
+no|xf86-video-s3virge|xf86-video-s3virge|exe,dev,doc,nls|compat:| #XSERVER
+no|xf86-video-s3|xf86-video-s3|exe,dev,doc,nls|compat:| #XSERVER
+no|xf86-video-savage|xf86-video-savage|exe,dev,doc,nls|compat:| #XSERVER
+no|xf86-video-siliconmotion|xf86-video-siliconmotion|exe,dev,doc,nls|compat:| #XSERVER
+no|xf86-video-sis|xf86-video-sis|exe,dev,doc,nls|compat:| #XSERVER
+no|xf86-video-tdfx|xf86-video-tdfx|exe,dev,doc,nls|compat:| #XSERVER
+no|xf86-video-trident|xf86-video-trident|exe,dev,doc,nls|compat:| #XSERVER
+no|xf86-video-v4l|xf86-video-v4l|exe,dev,doc,nls|compat:| #XSERVER
+no|xf86-video-vesa|xf86-video-vesa|exe,dev,doc,nls|compat:| #XSERVER
+no|xf86-video-vmware|xf86-video-vmware|exe,dev,doc,nls|compat:| #XSERVER. needs llvm
+no|xf86-video-voodoo|xf86-video-voodoo|exe,dev,doc,nls|compat:| #XSERVER
+yes|xfdiff-cut|xfdiff-cut|exe,dev,doc,nls|compat:| #dunfell.
+no|xfontsel|xfontsel|exe,dev,doc,nls|compat:| #XORGBASE
+no|xgamma|xgamma|exe,dev,doc,nls|compat:| #XORGBASE
+no|xhost|xhost|exe,dev,doc,nls|compat:| #XORGBASE
+yes|xine-lib|xine-lib|exe,dev,doc,nls|compat:
+no|xinetd||exe,dev,doc,nls|compat:| #super-server
+yes|xine-ui|xine-ui|exe,dev,doc,nls|compat:
+no|xinit|xinit|exe,dev,doc,nls|compat:| #XORGBASE
+no|xkbcomp|xkbcomp|exe,dev,doc,nls|compat:| #XORGBASE
+no|xkbconfigmanager||exe,dev,doc,nls|pet:noarch| #now builtin to woofQ.
+no|xkbutils|xkbutils|exe,dev,doc,nls|compat:| #XORGBASE
+yes|xkeyboard-config|xkeyboard-config|exe,dev,doc,nls|compat:| #have removed /etc/x11/xkb in xorg_base template.
+no|xkill|xkill|exe,dev,doc,nls|compat:| #XORGBASE
+no|xload|xload|exe,dev,doc,nls|compat:| #XORGBASE
+no|xlockmore|xlockmore|exe,dev,doc,nls|compat:| #dunfell. grabs the slackware pkg, so use my pet...
+yes|xlockmore||exe,dev,doc,nls|pet:es150| #my cutdown version.
+no|xmag|xmag|exe,dev,doc,nls|compat:| #XORGBASE
+no|xmessage|xmessage|exe,dev,doc,nls|compat:| #XORGBASE
+no|xmodmap|xmodmap|exe,dev,doc,nls|compat:| #XORGBASE
+yes|xorg_base|appres,bdftopcf,bitmap,editres,fontconfig,fonttosfnt,fslsfonts,fstobdf,iceauth,libdmx,libfontenc,libFS,libICE,libSM,libX11,libXau,libXaw,libXcomposite,libXcursor,libXdamage,libXdmcp,libXevie,libXext,libXfixes,libXfont2,libXfontcache,libXft,libXi,libXinerama,libxkbfile,libXmu,libXp,libXpm,libXrandr,libXrender,libXres,libXScrnSaver,libXt,libXtst,libXv,libXvMC,libXxf86dga,libXxf86misc,libXxf86vm,listres,luit,makedepend,mkcomposecache,mkfontscale,mtdev,rendercheck,sessreg,setxkbmap,showfont,smproxy,viewres,x11perf,xauth,xbacklight,xbiff,xcalc,xclipboard,xclock,xconsole,xcursorgen,xditview,xdpyinfo,xdriinfo,xev,xf86dga,xfontsel,xgamma,xhost,xinit,xkbcomp,xkbutils,xkill,xload,xmag,xmessage,xmodmap,xprop,xrandr,xrdb,xrefresh,xset,xsetroot,xsm,xstdcmap,xvidtune,xvinfo,xwd,xwininfo,libdrm|exe,dev,doc,nls|compat:| #XORGBASE
+no|xorg-server|xorg-server|exe,dev,doc,nls|compat:| #XSERVER
+yes|xorg-sgml-doctools|xorg-sgml-doctools|exe>dev,dev,doc,nls|compat:
+yes|xorriso|xorriso|exe,dev,doc,nls|compat:| #dunfell
+no|xprop|xprop|exe,dev,doc,nls|compat:| #XORGBASE
+no|xrandr|xrandr|exe,dev,doc,nls|compat:| #XORGBASE
+no|xrdb|xrdb|exe,dev,doc,nls|compat:| #XORGBASE
+no|xrefresh|xrefresh|exe,dev,doc,nls|compat:| #XORGBASE
+yes|xresprobe|xresprobe|exe,dev,doc,nls|compat:| #dunfell. has ddcprobe utility.
+yes|xsane|xsane|exe,dev,doc,nls|compat:
+yes|xserver_xorg|xorg-server,xf86-input-evdev,xf86-input-keyboard,xf86-input-mouse,xf86-input-synaptics,xf86-video-apm,xf86-video-ark,xf86-video-ast,xf86-video-ati,xf86-video-chips,xf86-video-cirrus,xf86-video-i128,xf86-video-i740,xf86-video-intel,xf86-video-mach64,xf86-video-mga,xf86-video-neomagic,xf86-video-nouveau,xf86-video-nv,xf86-video-openchrome,xf86-video-r128,xf86-video-rendition,xf86-video-s3,xf86-video-s3virge,xf86-video-savage,xf86-video-siliconmotion,xf86-video-sis,xf86-video-tdfx,xf86-video-trident,xf86-video-v4l,xf86-video-vesa,xf86-video-vmware,xf86-video-voodoo|exe,dev,doc,nls|compat:| #XSERVER
+no|xsetroot|xsetroot|exe,dev,doc,nls|compat:| #XORGBASE
+no|xset|xset|exe,dev,doc,nls|compat:| #XORGBASE
+no|xsm|xsm|exe,dev,doc,nls|compat:| #XORGBASE
+yes|xsoldier|xsoldier|exe,dev,doc,nls|compat:| #dunfell.
+no|xstdcmap|xstdcmap|exe,dev,doc,nls|compat:| #XORGBASE
+yes|xtrans|xtrans|exe>dev,dev,doc,nls|compat:
+yes|xvidcore|xvidcore|exe,dev,doc,nls|compat:| #dunfell.
+no|xvidtune|xvidtune|exe,dev,doc,nls|compat:| #XORGBASE
+no|xvinfo|xvinfo|exe,dev,doc,nls|compat:| #XORGBASE
+yes|xvkbd|xvkbd|exe,dev,doc,nls|compat:| #dunfell
+no|xwd|xwd|exe,dev,doc,nls|compat:| #XORGBASE
+no|xwininfo|xwininfo|exe,dev,doc,nls|compat:| #XORGBASE
+yes|xxHash|xxHash|exe,dev,doc,nls|compat:| #needed by rsync.
+yes|xz|xz|exe,dev,doc,nls|compat:
+yes|yad|yad|exe,dev,doc,nls|compat:| #dunfell.
+yes|yaf-splash|yaf-splash|exe|compat:| #dunfell.
+yes|yasm|yasm|exe>dev,dev,doc,nls|compat:
+no|YASSM||exe,dev,doc,nls|pet:noarch
+yes|z_geany_bacon_hack||exe,dev,doc,nls|pet:noarch
+yes|zip|zip|exe,dev>null,doc,nls|compat:| #dunfell.
+yes|zlib|zlib|exe,dev,doc,nls|compat:
+yes|zstd|zstd|exe,dev,doc,nls|compat:
+'

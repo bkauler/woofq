@@ -1,0 +1,575 @@
+#!/bin/bash
+#update to the latest release.
+#suggest to run this: sakura -h -c 80 -r 30 -t "EasyUpdate" -e /usr/local/easy_version/easy-update
+#called from /usr/sbin/easy-update, no parameters.
+#note: need bash, as script uses inbuilt COLUMNS variable.
+#200729 first release.
+#200730 only have de, fr builds online. some fixes.
+#200826 file copy checks. 200828 boot-partition mounting fix.
+#20201109 "buster" path should have been "${DISTRO_COMPAT_VERSION}"
+#20201117 new loop device for ext4 partition.
+#20201226 dunfell update fail: fix weird file-size-test error.
+#20201227 note: bash bug, ref: https://bkhome.org/news/202012/easyos-dunfell-update-weird-error.html
+#20210125 update boot-partition latest device-tree files from new easy.sfs
+#20210425 little fixes. 20210502 tweaks.
+#20210604 fix if no mbr.bin
+#20210610 replace "amd64" with $DISTRO_TARGETARCH
+#20210701 rpi4 files on ibiblio in a subdirectory. check kernel name.
+#20211221 blue background for light-green text. ref: https://opensource.com/article/19/9/linux-terminal-colors
+#20220124 img partitions were 639 & 640MB, but may be different.
+#20220404 if currently rolled-back, check if latestVER already installed.
+#20220512 path in url will now have year, and img not compressed. ex: amd64/releases/bookworm/2022/3.5/easy-3.5-amd64.img
+#20220519 fix url path.
+#20220613 easy.sfs may now be in ${WKG_DEV}/${WKG_DIR}, not in boot-partition.
+#20220613 rsync is flakey, but keeping this script. now using 'easy-update'.
+
+export TEXTDOMAIN=easy-update
+export OUTPUT_CHARSET=UTF-8
+
+if [ -t 0 ];then
+ true #we are running this from a terminal, good.
+else
+ exit 13
+fi
+PARENT="${$}"
+
+. /etc/rc.d/PUPSTATE #has PUP_HOME  20220613 has ESFS_PLACE
+. /etc/DISTRO_SPECS #has DISTRO_BINARY_COMPAT, DISTRO_COMPAT_VERSION DISTRO_TARGETARCH
+. /root/.packages/DISTRO_PET_REPOS #has PET_REPOS, PACKAGELISTS_PET_ORDER, SFS_REPOS
+
+YEAR="$(date +%Y)" #20220512
+
+#20220512 detect partition sizes in skeleton .img ...
+##determine img partition sizes... 20220124
+## ex: DISTRO_SKELETON_IMAGE='easy-skeleton-amd64-1536mb.img.gz' 20220512 now only .img
+DS1="${DISTRO_SKELETON_IMAGE/*-/}"
+DS2="${DS1/mb*/}"
+#P2M="$((${DS2}/2))" #ex: 640 or 768
+#P1M="$((${P2M}-1))" #ex: 639 or 767
+case "$DS2" in
+ 772)
+  P1M='767' #1st vfat partition is 767MB
+  P2M='4'   #2nd ext4 partition is 4MB
+ ;;
+ 1280) #the old 1280 skeleton
+  P1M='639'
+  P2M='640'
+ ;;
+ *)
+  echo 'abort, unsupported img file'
+  exit
+ ;;
+esac
+OFF1='1048576' #1M start of 1st partition, in bytes.
+OFF2="$((${P1M}*1048576))"
+OFF2="$((${OFF2}+${OFF1}))" #768M start of 2nd partition, in bytes.
+
+
+mkdir -p /tmp/easy_version
+MSGexit="$(gettext 'Script terminated, close the window')"
+
+echo -e '\033[1;35m' #1;35 foreground bright magenta
+#echo "EasyUpdate"
+echo "$(gettext 'Welcome. this script will download the latest release of EasyOS and automatically update the current installation.')" | fold -s -w ${COLUMNS}
+echo "$(gettext 'It uses the rsync utility to download only the differences between the current version and the latest online easy-*.img file, which is much smaller and faster than downloading the entire file.')" | fold -s -w ${COLUMNS}
+if [ -d /boot/device-tree ];then #20210125 rpi  20210701
+ echo "$(gettext 'The script will place the new kernel8.img, initrd, easy.sfs and device-tree files into the boot-partition and auomatically fix initrd, then all you will need to do is reboot and you have updated.')" | fold -s -w ${COLUMNS}
+ KERNAME='kernel8.img'
+else
+ echo "$(gettext 'The script will place the new vmlinuz, initrd and easy.sfs files into the boot-partition and auomatically fix initrd, then all you will need to do is reboot and you have updated.')" | fold -s -w ${COLUMNS}
+ KERNAME='vmlinuz'
+fi
+echo "$(gettext 'If you have an Internet connection and want to test if there is a new release and download it, continue with the script...')" | fold -s -w ${COLUMNS}
+echo -e '\033[1;34m' #1;34 foreground bright blue
+echo -n "$(gettext 'Press ENTER to continue (any other character then ENTER to quit):') "
+read goforit
+echo -e '\033[0;39m' #reset foreground to default
+[ "$goforit" != "" ] && echo -e "\033[1;31m${MSGexit}\033[0;39m" && exit 0
+
+#find Master Boot Record...
+MBRBIN=""
+[ -f /usr/lib/syslinux/mbr.bin ] && SLPATH="/usr/lib/syslinux"
+[ "$SLPATH" = "" ] && [ -f /usr/lib/SYSLINUX/mbr.bin ] && SLPATH="/usr/lib/SYSLINUX" #141102 ubuntu utopic unicorn.
+[ "$SLPATH" = "" ] && [ -f /usr/share/syslinux/mbr.bin ] && SLPATH="/usr/share/syslinux"
+[ "$SLPATH" ] && MBRBIN="${SLPATH}/mbr.bin"
+#170129 ubuntu 16.04 xenial xerus devs have really gone to town moving stuff around...
+[ ! "$MBRBIN" ] && [ -f /usr/lib/syslinux/mbr/mbr.bin ] && MBRBIN='/usr/lib/syslinux/mbr/mbr.bin'
+echo
+#20210604 just keep going...
+#if [ ! "$MBRBIN" ];then
+# echo -en '\033[1;31m' #bright red.
+# echo "$(gettext 'Sorry, cannot find file mbr.bin. Looked in /usr/lib/syslinux,
+#/usr/lib/syslinux/mbr, /usr/lib/SYSLINUX and /usr/share/syslinux. You have an
+#abnormal installation of Syslinux. Aborting')"
+# echo -e '\033[0;39m' #reset.
+# echo -e "\033[1;31m${MSGexit}\033[0;39m"
+# exit 4
+#fi
+
+#find out if a later release online, only at ibiblio.org...
+echo -en '\033[1;35m' #magenta
+echo -n "$(gettext 'Probing ibiblio.org to see if there is a later release...')"
+echo -e '\033[0;39m' #reset.
+[ -f /tmp/easy_version/${DISTRO_COMPAT_VERSION} ] && rm -f /tmp/easy_version/${DISTRO_COMPAT_VERSION} #20201109
+
+#20210701 hmmm, pi4 files are one-deeper...
+if [ "$DISTRO_TARGETARCH" == "aarch64" ];then
+ DEEPER='/rpi4'
+ wget -4 -t 2 -T 20 --waitretry=20 --directory-prefix=/tmp/easy_version --level=1 http://distro.ibiblio.org/easyos/${DISTRO_TARGETARCH}/releases/${DISTRO_COMPAT_VERSION}${DEEPER}/${YEAR} #20220512
+ #...this creates a html file /tmp/easy_version/rpi4
+ mv -f /tmp/easy_version/${YEAR} /tmp/easy_version/rpi4 #20220519 fix filename.
+ fsync /tmp/easy_version/rpi4
+ mv -f /tmp/easy_version/rpi4 /tmp/easy_version/${DISTRO_COMPAT_VERSION}
+else
+ DEEPER=''
+ wget -4 -t 2 -T 20 --waitretry=20 --directory-prefix=/tmp/easy_version --level=1 http://distro.ibiblio.org/easyos/${DISTRO_TARGETARCH}/releases/${DISTRO_COMPAT_VERSION}/${YEAR} #20220512
+ #...this creates a html file /tmp/easy_version/${DISTRO_COMPAT_VERSION}, ex: 'buster'
+ mv -f /tmp/easy_version/${YEAR} /tmp/easy_version/${DISTRO_COMPAT_VERSION} #20220519 fix filename.
+ fsync /tmp/easy_version/${DISTRO_COMPAT_VERSION} #20201226 try fix weird error below if test fails.
+fi
+if [ ! -s /tmp/easy_version/${DISTRO_COMPAT_VERSION} ];then #20201109
+ echo -en '\033[1;31m' #bright red.
+ echo "$(gettext 'Sorry, there was an error probing ibiblio.org, aborting script.')"
+ echo -e '\033[0;39m' #reset.
+ echo -e "\033[1;31m${MSGexit}\033[0;39m"
+ exit 1
+fi
+#LATESTVER="$(grep -o 'href="[^"]*' /tmp/easy_version/${DISTRO_COMPAT_VERSION} | tail -n 1 | cut -f 2 -d '"' | cut -f 1 -d '/')"
+#2020126 the list includes "..", remove it...
+VERS="$(grep -o 'href="[^"]*' /tmp/easy_version/${DISTRO_COMPAT_VERSION} | cut -f 2 -d '"' | cut -f 1 -d '/' | grep -v '^\.\.')"
+sortedVERS="$(echo "$VERS" | sort -t. -k 1,1n -k 2,2n -k 3,3n -k 4,4n)" #lowest to highest. or, could use full sort "-V" option.
+latestVER="$(echo "$sortedVERS" | tail -n 1)"
+if [ "$latestVER" == "" ];then
+ echo -en '\033[1;31m' #bright red.
+ echo "$(gettext 'Sorry, there was an error probing ibiblio.org, aborting script.')"
+ echo -e '\033[0;39m' #reset.
+ echo -e "\033[1;31m${MSGexit}\033[0;39m"
+ exit 2
+fi
+
+vercmp ${DISTRO_VERSION} lt ${latestVER}
+VERcmp=$?
+
+#20220404 if currently rolled-back, check if latestVER already installed...
+if [ $VERcmp -eq 0 ];then #=0 if true.
+ if [ -d /mnt/wkg/releases/easy-${latestVER} ];then
+  echo -en '\033[1;31m' #bright red.
+  echo "$(gettext 'The latest online version is:') ${latestVER}"
+  echo "$(gettext 'The current running version is:') ${DISTRO_VERSION}"
+  echo "$(gettext 'HOWEVER, the latest version is already installed,')"
+  echo "$(gettext ' that you have rolled back from.')"
+  echo "$(gettext 'WILL NOT UPDATE, exiting script.')"
+  echo -e '\033[0;39m' #reset.
+  echo -e "\033[1;31m${MSGexit}\033[0;39m"
+  exit 3
+ fi
+fi
+
+if [ $VERcmp -ne 0 ];then #=0 if true.
+ echo -en '\033[1;31m' #bright red.
+ echo "$(gettext 'The latest online version is:') ${latestVER}"
+ echo "$(gettext 'The current installed version is:') ${DISTRO_VERSION}"
+ echo "$(gettext 'No later version online, so exiting script.')"
+ echo -e '\033[0;39m' #reset.
+ echo -e "\033[1;31m${MSGexit}\033[0;39m"
+ exit 3
+else
+ echo -en '\033[1;34m' #bright blue
+ echo "$(gettext 'The latest online version is:') ${latestVER}"
+ echo "$(gettext 'The current installed version is:') ${DISTRO_VERSION}"
+ echo "$(gettext 'Newer online version, so can update...')"
+ echo -e '\033[0;39m' #reset.
+fi
+
+#ask for a download location, must have 2GB free space...
+BLOCKbytes="$(stat -f -c %S /mnt/${WKG_DEV})" #block size, usually 4096
+FREEblocks="$(stat -f -c %f /mnt/${WKG_DEV})"
+FREEk=$(expr ${FREEblocks} \/ 1024 \* ${BLOCKbytes})
+FREEm=$(expr ${FREEk} \/ 1024)
+if [ $FREEm -lt 2000 ];then
+ echo -en '\033[1;31m' #bright red.
+ echo "$(gettext 'Sorry, /mnt/wkg must have at least 2GB free space. Aborting')"
+ echo -e '\033[0;39m' #reset.
+ echo -e "\033[1;31m${MSGexit}\033[0;39m"
+ exit 7
+else
+ echo -en '\033[1;32m\033[44m' #bright green. 20211221 blue background
+ echo -n "$(gettext 'Good. Required free space in /mnt/wkg is 2GB, you have:') ${FREEm}MB"
+ echo -e '\033[0;39m\033[49m' #reset. 20211221
+fi
+DL_PATH="/mnt/${WKG_DEV}/${WKG_DIR}" #same as /mnt/wkg
+cd $DL_PATH
+
+#ask if have a .img of current version...
+LANGinsert='' #200730 only have de, fr builds online...
+[ "${LANG:0:2}" == "de" ] && LANGinsert="-de"
+[ "${LANG:0:2}" == "fr" ] && LANGinsert="-fr"
+echo
+echo -en '\033[1;35m' #bright magenta
+echo "$(gettext 'The rsync utility will compare the easy*.img of the current version with that of the new version, and only download the differences. This will be much less than downloading the entire new .img file.')" | fold -s -w ${COLUMNS}
+echo "$(gettext 'You do not need the easy*.img current version, as this script will reconstruct it.')" | fold -s -w ${COLUMNS}
+
+#rm -f easy-*.img 2>/dev/null 20220512 leave.
+#20210425 if old one there, leave it... 20220512 get rid of any old compressed...
+rm -f easy-*.img.gz 2>/dev/null
+
+#20210425... 20220512
+if [ -f easy-${DISTRO_VERSION}${LANGinsert}-${DISTRO_TARGETARCH}.img ];then
+ sync
+ mv -f easy-${DISTRO_VERSION}${LANGinsert}-${DISTRO_TARGETARCH}.img XXXeasy-${DISTRO_VERSION}${LANGinsert}-${DISTRO_TARGETARCH}.img
+ rm -f easy-*.img 2>/dev/null #get rid of any others.
+ sync
+ mv -f XXXeasy-${DISTRO_VERSION}${LANGinsert}-${DISTRO_TARGETARCH}.img easy-${DISTRO_VERSION}${LANGinsert}-${DISTRO_TARGETARCH}.img
+fi
+
+#20210425...
+echo
+echo -en '\033[1;34m' #bright blue
+if [ -f easy-${DISTRO_VERSION}${LANGinsert}-${DISTRO_TARGETARCH}.img ];then
+ echo "$(gettext 'Good, the EasyOS image file for the current version is here:')"
+ echo "${DL_PATH}easy-${DISTRO_VERSION}${LANGinsert}-${DISTRO_TARGETARCH}.img"
+ echo "$(gettext 'So it will not have to be reconstructed.')"
+ echo "$(gettext 'Press the ENTER key right now, and download of the new version will commence.')"
+else
+ echo "$(gettext 'However, if you do have this file somewhere:')"
+ echo "easy-${DISTRO_VERSION}${LANGinsert}-${DISTRO_TARGETARCH}.img"
+ echo "$(gettext 'Then it will not have to be reconstructed.')"
+ echo "$(gettext 'If you do have it, copy it to here, immediately:') ${DL_PATH}"
+ echo "$(gettext 'Do it now, then press the ENTER key.')"
+ echo "$(gettext 'If you have not got it, just press the ENTER key and it will be reconstructed.')" | fold -s -w ${COLUMNS}
+fi
+echo -n "$(gettext 'When ready, press ENTER key:') "
+read keepgoing
+
+#20220512 copy instead of mv, so keep the current .img file...
+if [ -f easy-${DISTRO_VERSION}${LANGinsert}-${DISTRO_TARGETARCH}.img ];then
+ sync
+ cp -f easy-${DISTRO_VERSION}${LANGinsert}-${DISTRO_TARGETARCH}.img easy-${latestVER}${LANGinsert}-${DISTRO_TARGETARCH}.img
+else
+ #echo -e '\033[1;34m' #bright blue
+ #echo -n "Press ENTER to reconstruct easy-${DISTRO_VERSION}${LANGinsert}-${DISTRO_TARGETARCH}.img.gz (CTRL-C to quit): " | fold -s -w ${COLUMNS}
+ #echo -en '\033[0;39m' #reset.
+ #read goagain
+ #[ "$goagain" != "" ] && exit 8
+ 
+ #create a pseudo-file .img of the current release... (code from 2createpcskeletonimage in woofq)
+ echo
+ #note, slightly bigger than 1280MB...
+ DS3="$((${DS2}+1))" #ex: 1281
+ echo -en '\033[1;35m' #bright magenta
+ echo "$(gettext 'Reconstructing') easy-${DISTRO_VERSION}${LANGinsert}-${DISTRO_TARGETARCH}.img ..."
+ echo "$(gettext 'Creating a blank image file,') ${DS3}MB..."
+ echo -en '\033[0;39m' #reset.
+ dd if=/dev/zero of=easy-CURRENT.img bs=1M count=${DS3} status=progress conv=fsync oflag=sync
+ sync
+ echo -en '\033[1;35m' #bright magenta
+ echo "$(gettext 'Creating a new dos partition table, using fdisk...')"
+ echo -en '\033[0;39m' #reset.
+ echo -e 'o\nw\n' | fdisk easy-CURRENT.img
+ sync
+ if [ "$MBRBIN" ];then #20210604
+  echo -en '\033[1;35m' #bright magenta
+  echo "$(gettext 'Writing Master Boot Record...')"
+  echo -en '\033[0;39m' #reset.
+  dd bs=440 conv=notrunc count=1 if=${MBRBIN} of=easy-CURRENT.img
+  sync
+ fi
+ #create 639MB partition, so total size of image will be 640MB (and a 2nd partition will start on a 8MB boundary)
+ echo -en '\033[1;35m' #bright magenta
+ echo "$(gettext 'Creating fat32 esp partition,') ${P1M}MB..."
+ echo -en '\033[0;39m' #reset.
+ echo -e "n\np\n1\n2048\n+${P1M}M\nw\n" | fdisk easy-CURRENT.img
+ sync
+ #set partition-id to efi...
+ echo -e 't\nef\nw' | fdisk easy-CURRENT.img
+ sync
+ #set the boot flag...
+ echo -e 'a\nw' | fdisk easy-CURRENT.img
+ sync
+ echo "$(gettext 'Creating fat32 filesystem...')"
+ LOOPDEV="$(losetup -f)"
+ LOOPDEV=${LOOPDEV##*/}
+ losetup -o 1048576 /dev/${LOOPDEV} easy-CURRENT.img #part starts 1M
+ [ $? -ne 0 ] && echo -e "\033[1;31m${MSGexit}\033[0;39m" && exit 5
+ mkdosfs -F 32 -n easy1 /dev/${LOOPDEV} #FAT32.
+ sync
+ #install files into esp, only has to be roughly similar...
+ mkdir -p /mnt/${LOOPDEV} #ex: /mnt/loop2
+ mount -t vfat /dev/${LOOPDEV} /mnt/${LOOPDEV}
+ [ $? -ne 0 ] && echo -e "\033[1;31m${MSGexit}\033[0;39m" && exit 6
+ echo -e '\033[1;35m' #bright magenta
+ echo "$(gettext 'Populating fat32 esp partition...')"
+ echo -en '\033[0;39m' #reset.
+ cp -a /mnt/wkg/releases/easy-${DISTRO_VERSION}/initrd /mnt/${LOOPDEV}/
+ sync
+ cp -a /mnt/wkg/releases/easy-${DISTRO_VERSION}/${KERNAME} /mnt/${LOOPDEV}/
+ sync
+ cp -p -L /mnt/wkg/releases/easy-${DISTRO_VERSION}/easy.sfs /mnt/${LOOPDEV}/easy.sfs
+ sync
+ umount /mnt/${LOOPDEV}
+ losetup -d /dev/${LOOPDEV} 2>/dev/null
+ sleep 1 #seem to need delay for loop device to become free. 20201117 hmmm, seems need more delay, increase from 0.5.
+ losetup -a >/dev/null
+ echo -en '\033[1;35m' #bright magenta
+ echo "$(gettext 'Creating ext4 partition,') ${P2M}MB..."
+ echo -en '\033[0;39m' #reset.
+ echo -e "n\np\n2\n\n+${P2M}M\nw" | fdisk -u easy-CURRENT.img
+ sync
+ #20220512 no longer pre-create with journal, as 4M too small (it is done in initrd after resizing)...
+ echo "$(gettext 'Creating ext4 f.s. with encrypt...')"
+ LOOPDEV2="$(losetup -f)" #20201117 problem with using same loop number.
+ LOOPDEV2=${LOOPDEV2##*/}
+ #OFF2B="$((${P2M}*1048576))" #ex: 640M = 671088640 bytes
+ losetup -o ${OFF2} /dev/${LOOPDEV2} easy-CURRENT.img #part starts 640M 20220512 now at 768M
+ mke2fs -t ext4 -O encrypt,^has_journal,^64bit,^uninit_bg -L easy2 -m 0 -b 4096 /dev/${LOOPDEV}
+ sync
+ losetup -d /dev/${LOOPDEV2}
+ 
+ #20220512 no longer compressing...
+ #echo -en '\033[1;35m' #bright magenta
+ #echo "$(gettext 'Compressing') easy-${DISTRO_VERSION}${LANGinsert}-${DISTRO_TARGETARCH}.img ..."
+ #echo -en '\033[0;39m' #reset.
+ ##however, giving it same name as the latest .img file...
+ mv -f easy-CURRENT.img easy-${latestVER}${LANGinsert}-${DISTRO_TARGETARCH}.img
+ #gzip --rsyncable easy-${latestVER}${LANGinsert}-${DISTRO_TARGETARCH}.img
+ sync
+fi
+
+#use rsync to download latest...
+echo
+echo -en '\033[1;35m' #bright magenta
+echo "$(gettext 'Downloading') easy-${latestVER}${LANGinsert}-${DISTRO_TARGETARCH}.img ..."
+echo -en '\033[0;39m' #reset.
+#-t preserve modification times, -v verbosity, -c checksum compare
+#rsync -tvc distro.ibiblio.org::easyos/amd64/releases/${DISTRO_COMPAT_VERSION}/${latestVER}/easy-${latestVER}-${DISTRO_TARGETARCH}.img.gz ./easy-${latestVER}-${DISTRO_TARGETARCH}.img.gz
+#...get a "protocol error", this works...
+if [ "${LANGinsert}" == "" ];then #200730 20201109 20210610 20210701
+ rsync -av distro.ibiblio.org::easyos/${DISTRO_TARGETARCH}/releases/${DISTRO_COMPAT_VERSION}${DEEPER}/${YEAR}/${latestVER}/easy-${latestVER}-${DISTRO_TARGETARCH}.img ./easy-${latestVER}-${DISTRO_TARGETARCH}.img #20220512
+ RETVAL=$?
+else
+ rsync -av distro.ibiblio.org::easyos/${DISTRO_TARGETARCH}/releases/${DISTRO_COMPAT_VERSION}${DEEPER}/${YEAR}/${latestVER}/${LANG:0:2}/easy-${latestVER}${LANGinsert}-${DISTRO_TARGETARCH}.img ./easy-${latestVER}${LANGinsert}-${DISTRO_TARGETARCH}.img
+ RETVAL=$?
+fi
+if [ $RETVAL -ne 0 ];then
+ echo -en '\033[1;31m' #bright red.
+ echo "$(gettext 'Something went wrong with the download. Aborting')"
+ echo -en '\033[0;39m' #reset.
+ #rm -f easy-*.img.gz 2>/dev/null
+ rm -f easy-${latestVER}${LANGinsert}-${DISTRO_TARGETARCH}.img 2>/dev/null #20220512 only remove aborted update .img
+ rm -rf ./.cache 2>/dev/null
+ echo -e "\033[1;31m${MSGexit}\033[0;39m"
+ exit 9
+fi
+
+#20210425 fedora: has strange group:owner
+chown root:root /mnt/${WKG_DEV}/${WKG_DIR}easy-${latestVER}${LANGinsert}-${DISTRO_TARGETARCH}.img
+
+#offer to install...
+echo -en '\033[1;35m' #bright magenta
+echo "$(gettext 'This file has been downloaded:')"
+echo "/mnt/${WKG_DEV}/${WKG_DIR}easy-${latestVER}${LANGinsert}-${DISTRO_TARGETARCH}.img"
+if [ "$KERNAME" == "kernel8.img" ];then #20210125 rpi  20210701
+ echo "$(gettext 'You may do a manual update, by clicking on the file to open it up, drag kernel8.img, initrd, easy.sfs and the device-tree files to the boot-partition, then click on initrd to fix the BOOT_SPECS file. These steps are documented online.')" | fold -s -w ${COLUMNS}
+else
+ echo "$(gettext 'You may do a manual update, by clicking on the file to open it up, drag vmlinuz, initrd and easy.sfs to the boot-partition, then click on initrd to fix the BOOT_SPECS file. These steps are documented online.')" | fold -s -w ${COLUMNS}
+fi
+echo "$(gettext 'However, this script can do it automatically. Make your choice...')"
+echo -en '\033[0;39m' #reset.
+echo -e '\033[1;34m' #bright blue
+echo -n "$(gettext 'Press ENTER for automatic update (any other key to quit):') "
+echo -en '\033[0;39m' #reset.
+read autoupdate
+[ "$autoupdate" != "" ] && echo -e "\033[1;31m${MSGexit}\033[0;39m" && exit 10
+
+#update boot-partition...
+echo
+echo -en '\033[1;35m' #bright magenta
+if [ "$KERNAME" == "kernel8.img" ];then #20210701
+ echo "$(gettext 'Extracting files kernel8.img, initrd and easy.sfs...')"
+else
+ echo "$(gettext 'Extracting files vmlinuz, initrd and easy.sfs...')"
+fi
+echo -en '\033[0;39m' #reset.
+#gunzip easy-${latestVER}${LANGinsert}-${DISTRO_TARGETARCH}.img.gz  20220512
+sync
+mkdir -p mntpt
+mount -t vfat -o loop,offset=1048576 easy-${latestVER}${LANGinsert}-${DISTRO_TARGETARCH}.img mntpt #start sector=2048, = 2048x512 bytes
+if [ $? -ne 0 ];then
+ echo -en '\033[1;31m' #bright red.
+ echo "$(gettext 'Something is wrong with the downloaded file. Deleting it and aborting.')"
+ echo -en '\033[0;39m' #reset.
+ umount mntpt 2>/dev/null
+ rm -f easy-${latestVER}${LANGinsert}-${DISTRO_TARGETARCH}.img
+ echo -e "\033[1;31m${MSGexit}\033[0;39m"
+ exit 11
+fi
+BOOTflg=0
+grep -q "^/dev/${BOOT_DEV} " /proc/mounts #200828 fix.
+if [ $? -ne 0 ];then
+ mkdir -p /mnt/${BOOT_DEV}
+ mount -t ${BOOT_FS} /dev/${BOOT_DEV} /mnt/${BOOT_DEV} #200730 fix. 200828 fix.
+ BOOTflg=1
+fi
+
+echo -en '\033[1;35m' #bright magenta
+echo "$(gettext 'Extracting BOOT_SPECS file from initrd, current installation...')"
+echo -en '\033[0;39m' #reset.
+[ -d initrd-tree ] && rm -rf initrd-tree #200730 just in case.
+mkdir initrd-tree
+cd initrd-tree
+cat /mnt/${BOOT_DEV}/${BOOT_DIR}initrd | cpio -i -d -m
+sync
+cp -f BOOT_SPECS ../
+cd ..
+sync
+rm -rf initrd-tree
+
+while [ 1 ];do #200826 sanity checks...
+ echo -en '\033[1;35m' #bright magenta
+ if [ "$KERNAME" == "kernel8.img" ];then #20210701
+  if [ $ESFS_PLACE -eq 1 -o ! $ESFS_PLACE ];then #20220613
+   echo "$(gettext 'Copying new kernel8.img, initrd and easy.sfs to boot-partition...')"
+  else
+   echo "$(gettext 'Copying new kernel8.img and initrd to boot-partition...')"
+  fi
+ else
+  if [ $ESFS_PLACE -eq 1 -o ! $ESFS_PLACE ];then #20220613
+   echo "$(gettext 'Copying new vmlinuz, initrd and easy.sfs to boot-partition...')"
+  else
+   echo "$(gettext 'Copying new vmlinuz and initrd to boot-partition...')"
+  fi
+ fi
+ echo -en '\033[0;39m' #reset.
+ FAILED=''
+ echo -n " ${KERNAME}" #20210701...
+ cp -a -f mntpt/${KERNAME} /mnt/${BOOT_DEV}/${BOOT_DIR}
+ sync
+ busybox cmp -s mntpt/${KERNAME} /mnt/${BOOT_DEV}/${BOOT_DIR}${KERNAME}
+ if [ $? -eq 0 ];then
+  echo -n ' initrd'
+  cp -a -f mntpt/initrd /mnt/${BOOT_DEV}/${BOOT_DIR}
+  sync
+  busybox cmp -s mntpt/initrd /mnt/${BOOT_DEV}/${BOOT_DIR}initrd
+  if [ $? -eq 0 ];then
+   if [ $ESFS_PLACE -eq 1 -o ! $ESFS_PLACE ];then #20220613 traditional location of easy.sfs
+    echo -n ' easy.sfs'
+    cp -a -f mntpt/easy.sfs /mnt/${BOOT_DEV}/${BOOT_DIR}
+    sync
+    busybox cmp -s mntpt/easy.sfs /mnt/${BOOT_DEV}/${BOOT_DIR}easy.sfs
+    [ $? -ne 0 ] && FAILED='easy.sfs'
+   fi
+  else
+   FAILED='initrd'
+  fi
+ else
+  FAILED="${KERNAME}"
+ fi
+ echo
+ [ "$FAILED" == "" ] && break
+ echo -en '\033[1;31m' #bright red.
+ echo "$(gettext 'This file did not copy correctly:') ${FAILED}"
+ echo -n "$(gettext 'Press the ENTER key to try again, or any other key then ENTER to give up:')"
+ echo -en '\033[0;39m' #reset.
+ read giveupflg
+ [ "$giveupflg" != "" ] && break
+done
+if [ "$FAILED" ];then
+ sync
+ umount mntpt
+ rmdir mntpt
+ echo -e '\033[1;31m' #bright red.
+ echo "$(gettext 'Copy failed. Aborting.')"
+ echo "$(gettext 'This is bad, you may not be able to reboot. Recommend try immediate manual update.')"
+ echo "$(gettext 'Downloaded file still there, you can try manual update (remember to click on initrd to fix it).')"
+ if [ "$KERNAME" == "kernel8.img" ];then #20210701
+  echo "$(gettext 'Or, you can abort the update by copying kernel8.img, initrd and easy.sfs of the current version, from /mnt/wkg/releases, and /boot/device-tree contents')"
+ else
+  echo "$(gettext 'Or, you can abort the update by copying vmlinuz, initrd and easy.sfs of the current version, from /mnt/wkg/releases')"
+ fi
+ echo -e '\033[0;39m' #reset.
+ echo -e "\033[1;31m${MSGexit}\033[0;39m"
+ exit 12
+fi
+sync
+umount mntpt
+rmdir mntpt #200730 fix.
+
+if [ -d /boot/device-tree ];then #20210125 rpi
+ echo -en '\033[1;35m' #bright magenta
+ echo "$(gettext 'The new easy.sfs has the latest device-tree files in it, extracting and copying them to the boot partition...')"
+ echo -en '\033[0;39m' #reset.
+ if [ $ESFS_PLACE -eq 1 -o ! $ESFS_PLACE ];then #20220613
+  mkdir mntpt2
+  busybox mount -t squashfs -o loop,ro /mnt/${BOOT_DEV}/${BOOT_DIR}easy.sfs mntpt2
+  if [ -d mntpt2/boot/device-tree ];then
+   cp -a -f mntpt2/boot/device-tree/* /mnt/${BOOT_DEV}/${BOOT_DIR}
+  fi
+  sync
+  umount mntpt2
+  rmdir mntpt2
+ fi
+fi
+
+#20220512 no
+#echo -en '\033[1;35m' #bright magenta
+#echo "$(gettext 'Recompressing the downloaded .img file to .img.gz ...')"
+#echo -en '\033[0;39m' #reset.
+#gzip --rsyncable easy-${latestVER}${LANGinsert}-${DISTRO_TARGETARCH}.img
+#sync
+#20220512 if current version exists, delete it...
+if [ -f easy-${DISTRO_VERSION}${LANGinsert}-${DISTRO_TARGETARCH}.img ];then
+ rm -f easy-${DISTRO_VERSION}${LANGinsert}-${DISTRO_TARGETARCH}.img
+ sync
+fi
+
+#fix initrd...
+echo -en '\033[1;35m' #bright magenta
+echo "$(gettext 'Inserting BOOT_SPECS file into new initrd...')"
+echo -en '\033[0;39m' #reset.
+mkdir -p initrd-tree
+cd initrd-tree
+cat /mnt/${BOOT_DEV}/${BOOT_DIR}initrd | cpio -i -d -m
+sync
+mv -f ../BOOT_SPECS ./
+#update initrd...
+rm -f /mnt/${BOOT_DEV}/${BOOT_DIR}initrd
+sync
+find . | cpio -o -H newc > /mnt/${BOOT_DEV}/${BOOT_DIR}initrd
+sync
+cd ..
+rm -rf initrd-tree
+
+#maybe unmount boot-partition...
+[ $BOOTflg -eq 1 ] && umount /mnt/${BOOT_DEV}
+
+echo
+echo -en '\033[1;32m\033[44m' #bright green. 20211221 blue background for legibility.
+echo "$(gettext 'Finished!')"
+echo "$(gettext 'This is the boot-partition:') ${BOOT_DEV}"
+if [ "$BOOT_DIR" ];then
+ echo "$(gettext 'Which has this folder:') /${BOOT_DIR}"
+fi
+if [ "$KERNAME" == "kernel8.img" ];then #20210701
+ echo "$(gettext 'Which has the new files kernel8.img, initrd and easy.sfs')"
+else
+ echo "$(gettext 'Which has the new files vmlinuz, initrd and easy.sfs')"
+fi
+echo "$(gettext 'The new version will be:') ${latestVER}"
+echo -n "$(gettext 'All that you have to do is reboot!')"
+echo -e '\033[0;39m\033[49m' #reset. 20211221
+
+echo
+echo -en '\033[1;34m' #blue
+echo "$(gettext 'This is the downloaded file:')"
+echo "/mnt/${WKG_DEV}/${WKG_DIR}easy-${latestVER}${LANGinsert}-${DISTRO_TARGETARCH}.img"
+echo "$(gettext 'It is not needed anymore. You can delete it or archive it somewhere.')"
+echo "$(gettext 'Note: if you leave it there, it makes the next update simpler.')"
+# 20210425 no longer deleting it...
+#echo "$(gettext 'If you want to archive it, move it somewhere else, or it will get deleted next time this script is run.')" | fold -s -w ${COLUMNS}
+echo
+#echo -n "Script finished, press ENTER to exit: "
+echo -en '\033[0;39m' #reset.
+echo -e "\033[1;31m${MSGexit}\033[0;39m"
+#read wearedone
+
+###end###

@@ -1,0 +1,159 @@
+
+#170518 this is the linux kernel, compiled in OE
+
+echo "Running FIXUPHACK script in 'linux-kernel'..."
+
+[ -d ../zdrv ] && rm -rf ../zdrv
+rm -f boot/vmlinux-* 2>/dev/null
+
+KERNELVER="$(find lib/modules -mindepth 1 -maxdepth 1 -type d | head -n 1 | rev | cut -f 1 -d '/' | rev)"
+
+mkdir -p etc/modules
+[ -f lib/modules/$KERNELVER/modules.builtin ] && cp -a -f lib/modules/$KERNELVER/modules.builtin etc/modules/
+[ -f lib/modules/$KERNELVER/modules.order ] && cp -a -f lib/modules/$KERNELVER/modules.order etc/modules/
+cp -a -f boot/config-* etc/modules/ 2>/dev/null
+
+FNDBZIMAGE="$(find boot -maxdepth 1 -type f -name 'bzImage-*' | head -n 1)"
+if [ "$FNDBZIMAGE" ];then
+ FNDBASE="$(basename $FNDBZIMAGE)"
+ ln -s $FNDBASE boot/vmlinuz
+fi
+
+FNDSYSMAP="$(find boot -maxdepth 1 -type f -name 'System.map-*' | head -n 1)"
+if [ "$FNDSYSMAP" ];then
+ FNDBASE="$(basename $FNDSYSMAP)"
+ ln -s $FNDBASE boot/System.map
+fi
+
+FNDMODSYM="$(find boot -maxdepth 1 -type f -name 'Module.symvers-*' | head -n 1)"
+if [ "$FNDMODSYM" ];then
+ FNDBASE="$(basename $FNDMODSYM)"
+ ln -s $FNDBASE boot/Module.symvers
+ cp -a -f $FNDMODSYM lib/modules/$KERNELVER/Module.symvers
+fi
+
+#path where running FIXUPHACK script: packages-${DISTRO_FILE_PREFIX}/linux-quirky
+#OE Pyro64 build: DISTRO_FILE_PREFIX=pyro64
+. ../../DISTRO_SPECS
+. ../../WOOFMERGEVARS
+. ../../build-choices
+
+#build-choices can specify cutting out some modules (code from 3buildistro)...
+WKGDIR="`pwd`"
+if [ "$BUILD_CHOICE_RADICAL_KERNEL_DRIVERS" == "delete" ];then
+ depmod -b . -F boot/System.map $KERNELVER
+ 
+ cd lib/modules/$KERNELVER #makes it easier to handle find results.
+ #create a list of essential modules...
+ echo "Creating must-have lists..."
+ SOUNDMODS="`find ./kernel/sound/ -type f | sed -e 's/^\.\///g'`" #want all the alsa sound mods.
+ IPV4MODS="`find ./kernel/net/ipv4 -type f | sed -e 's/^\.\///g'`" #want all the firewall mods.
+ NETFILTERMODS="`find ./kernel/net/netfilter -type f | sed -e 's/^\.\///g'`"
+ #IEEE80211MODS="`find ./kernel/net/ieee80211 -type f | sed -e 's/^\.\///g'`" #want all the ieee80211 mods.
+ IEEE80211MODS="`find ./kernel/net/wireless -type f | sed -e 's/^\.\///g'`" #want all the wireless 80211 mods.
+ RFKILLMODS="`find ./kernel/net/rfkill -type f | sed -e 's/^\.\///g'`"
+ MAC80211MODS="`find ./kernel/net/mac80211 -type f | sed -e 's/^\.\///g'`"
+ WIMAXMODS="`find ./kernel/net/wimax -type f | sed -e 's/^\.\///g'`"
+ NETWORKMODS="`find ./kernel/drivers/net -type f | grep -vE '/wan/|/appletalk/' | sed -e 's/^\.\///g'`" #want all the network interface drivers.
+ UBUNTUMODS=""
+ [ -d ./kernel/ubuntu ] && UBUNTUMODS="`find ./kernel/ubuntu -type f | grep -vE '/compcache/|/gnbd/|/heci/|/lirc/' | sed -e 's/^\.\///g'`"
+ MMCMODS="`find ./kernel/drivers/mmc -type f | sed -e 's/^\.\///g'`" #include mmc/sd host drivers.
+ MEMSTICKMODS="`find ./kernel/drivers/memstick -type f | sed -e 's/^\.\///g'`"
+ MISCMODS="`find ./kernel/drivers/misc -type f | sed -e 's/^\.\///g'`"
+ USBMODS="`find ./kernel/drivers/usb -type f | sed -e 's/^\.\///g'`"
+ ACPIMODS="`find ./kernel/drivers/acpi -type f | sed -e 's/^\.\///g'`"
+ AGPMODS="`find ./kernel/drivers/char/agp -type f | sed -e 's/^\.\///g'`"
+ I2CMODS="`find ./kernel/drivers/i2c -type f | sed -e 's/^\.\///g'`"
+ PLATFORMMODS="`find ./kernel/drivers/platform -type f | sed -e 's/^\.\///g'`"
+ BLUETOOTHMODS="`find ./kernel/drivers/bluetooth -type f | sed -e 's/^\.\///g'`"
+ #w475 k2.6.29.3 has these usb webcam drivers...
+ GSPCAMODS=""
+ [ -d ./kernel/drivers/media/video/gspca ] && GSPCAMODS="`find ./kernel/drivers/media/video/gspca -type f | sed -e 's/^\.\///g'`"
+ #k2.6.25.16: kernel/drivers/char/drm, k2.6.27.4: kernel/drivers/gpu/drm...
+ DRMMODS="`find ./kernel/drivers -type f | grep '/drm/' | sed -e 's/^\.\///g'`"
+ CPUSCALING2MODS="`find ./kernel/drivers/cpufreq -type f | sed -e 's/^\.\///g'`" #100127
+ CPUSCALINGMODS="`find ./kernel/arch/x86/kernel/cpu/cpufreq -type f | sed -e 's/^\.\///g'`" #v431
+ CRYPTOMODS="`find ./kernel/crypto -type f | sed -e 's/^\.\///g'`" #100126
+ FBCONMODS="`find ./kernel/drivers/video/console -type f | sed -e 's/^\.\///g'`" #110518
+ STAGINGMODS="`find ./kernel/drivers/staging/rtl* -type f | sed -e 's/^\.\///g'`" #170518
+ #create a list of extra modules... w476 added nls_cp850.ko nls_cp852.ko...
+ USBMODEMLIST="cdc-acm.ko pl2303.ko nozomi.ko hso.ko option.ko sierra.ko"
+ ANALOGMODEMLIST="mwave.ko martian_dev.ko pctel.ko ltserial.ko slamr.ko slusb.ko esscom.ko"
+ EXTRALIST="blkcipher.ko cbc.ko apm.ko cdrom.ko mwave.ko synclink_cs.ko serial_cs.ko lp.ko n_hdlc.ko nvram.ko sonypi.ko generic_serial.ko agpgart.ko ali-agp.ko amd-k7-agp.ko amd64-agp.ko ati-agp.ko intel-agp.ko nvidia-agp.ko sis-agp.ko sworks-agp.ko via-agp.ko blowfish.ko aes.ko arc4.ko crc32c.ko deflate.ko des.ko md5.ko sha1.ko cramfs.ko ext3.ko fat.ko fuse.ko isofs.ko jbd.ko lockd.ko minix.ko msdos.ko nfs.ko nls_cp437.ko nls_cp850.ko nls_cp852.ko nls_iso8859-1.ko nls_iso8859-13.ko nls_iso8859-14.ko nls_iso8859-15.ko nls_iso8859-2.ko nls_iso8859-3.ko nls_iso8859-4.ko nls_iso8859-5.ko nls_iso8859-6.ko nls_iso8859-7.ko nls_iso8859-8.ko nls_iso8859-9.ko nls_utf8.ko ntfs.ko reiserfs.ko smbfs.ko squashfs.ko udf.ko unionfs.ko vfat.ko i2c-core.ko i2c-algo-bit.ko ide-cs.ko ide-tape.ko ide-cd.ko ide-floppy.ko gameport.ko analog.ko pcigame.ko pcspkr.ko psmouse.ko sermouse.ko serport.ko serio.ko evdev.ko joydev.ko input.ko keybdev.ko mousedev.ko crc32.ko crc-ccitt.ko libcrc32c.ko zlib_deflate.ko firmware_class.ko parport_pc.ko parport_serial.ko parport.ko parport_cs.ko i82365.ko pd6729.ko tcic.ko yenta_socket.ko i82092.ko rsrc_nonstatic.ko pcmcia_core.ko ds.ko imm.ko scsi_mod.ko scsi_transport_spi.ko sd_mod.ko sg.ko sr_mod.ko ide-scsi.ko scsi_debug.ko scsi_transport_fc.ko cdc-acm.ko usb-midi.ko usblp.ko audio.ko bluetty.ko usbcore.ko sl811-hcd.ko uhci-hcd.ko ehci-hcd.ko ohci-hcd.ko uhci.ko usb-ohci.ko usb-uhci.ko usbkbd.ko usbhid.ko hid.ko usbmouse.ko usbnet.ko ir-usb.ko usbserial.ko usb-storage.ko scanner.ko printer.ko fan.ko ibm_acpi.ko ac.ko battery.ko processor.ko thermal.ko paride.ko cryptoloop.ko pktcdvd.ko floppy.ko loop.ko 8250_pnp.ko serial_core.ko 8250.ko 8250_pci.ko ndiswrapper.ko ungrab-winmodem.ko cifs.ko ssb.ko pl2303.ko aufs.ko serio_raw.ko ecb.ko output.ko"
+ #FBMODS="intelfb.ko rivafb.ko sisfb.ko fbcon-vga-planes.ko fbcon-mfb.ko fbgen.ko mdacon.ko neofb.ko tridentfb.ko vgastate.ko vga16fb.ko "
+ EXTRAMODS=""
+ for ONEMOD in $EXTRALIST $USBMODEMLIST #$ANALOGMODEMLIST
+ do
+  ONEFND="`find ./ -type f -name $ONEMOD | sed -e 's/^\.\///g'`"
+  if [ "$ONEFND" != "" ];then
+   EXTRAMODS="$EXTRAMODS
+$ONEFND"
+  fi
+ done
+ cd ../../../ #back into $WKGDIR
+ 
+ CHOSENMODS="$SOUNDMODS
+ $IPV4MODS
+ $NETFILTERMODS
+ $IEEE80211MODS
+ $RFKILLMODS
+ $MAC80211MODS
+ $WIMAXMODS
+ $NETWORKMODS
+ $UBUNTUMODS
+ $MMCMODS
+ $MEMSTICKMODS
+ $MISCMODS
+ $USBMODS
+ $ACPIMODS
+ $AGPMODS
+ $I2CMODS
+ $PLATFORMMODS
+ $GSPCAMODS
+ $BLUETOOTHMODS
+ $DRMMODS
+ $CPUSCALING2MODS
+ $CPUSCALINGMODS
+ $CRYPTOMODS
+ $FBCONMODS
+ $STAGINGMODS
+ $EXTRAMODS"
+ echo "$CHOSENMODS"| tr -s '\n'  > /tmp/chosenmods.txt
+ echo "Finding all dependent modules..."
+ echo -n "" > /tmp/alldeps.txt
+ echo "$CHOSENMODS" |
+ while read ONEMOD
+ do
+  [ "$ONEMOD" = "" ] && continue #precaution
+  ONEBASE="`basename $ONEMOD`"
+  DPATTERN="/${ONEBASE}:"
+  PPATTERN="s/^\/lib\/modules\/${KERNELVER}\///g"
+  ONEDEPS="`cat lib/modules/$KERNELVER/modules.dep | grep "$DPATTERN" | cut -f 2 -d ':' | tr ' ' '\n' | sed -e "$PPATTERN"`"
+  [ "$ONEDEPS" != "" ] && echo "$ONEDEPS" >> /tmp/alldeps.txt
+ done
+ sync
+ sort -u /tmp/alldeps.txt > /tmp/alldepssorted.txt #remove duplicate lines.
+ cat /tmp/alldepssorted.txt >> /tmp/chosenmods.txt
+ sort -u /tmp/chosenmods.txt > /tmp/allmodssorted.txt
+ sync
+
+ #now delete all mods not in the list, move to ../zdrv ...
+ echo "Moving unwanted modules to a separate pet file..." #"Deleting unwanted modules..." 150210
+ find lib/modules/$KERNELVER/ -type f -name '*.ko' -o -name '*.HIDE' |
+ while read ONEMODSPEC
+ do
+  ONEMODNAME="`basename $ONEMODSPEC`"
+  mPATTERN='/'"$ONEMODNAME"
+  if [ "`grep "$mPATTERN" /tmp/allmodssorted.txt`" = "" ];then
+   ONEMODPATH="`dirname $ONEMODSPEC`"
+   mkdir -p ../zdrv/${ONEMODPATH}
+   cp -a $ONEMODSPEC ../zdrv/${ONEMODPATH}/
+   rm -f $ONEMODSPEC
+  fi
+ done
+ 
+ sync
+ depmod -b . -F boot/System.map $KERNELVER
+ sync
+fi
+

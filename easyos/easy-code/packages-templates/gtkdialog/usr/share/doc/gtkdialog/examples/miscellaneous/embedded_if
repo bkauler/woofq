@@ -1,0 +1,40 @@
+#!/bin/sh
+
+# Thunor: This example is broken.
+
+GTKDIALOG=gtkdialog
+
+MAIN_DIALOG='
+<window>
+	<vbox>
+		<frame Imperative Example>
+			<checkbox active="true">
+				<label>First checkbox</label>
+				<variable>CHECKBOX</variable>
+			</checkbox>
+			<command assignment="n := 1"></command>
+			<while condition="n = 22">
+				<checkbox>
+					<label>The second checkbox</label>
+				</checkbox>
+				<command assignment="n := n + 1"></command>
+			</while>
+		</frame>
+		<hbox>
+			<button ok>
+				<variable>OKBUTTON</variable>
+			</button>
+			<button cancel></button>
+		</hbox>
+	</vbox>
+</window>
+'
+export MAIN_DIALOG
+
+case $1 in
+	-d | --dump) echo "$MAIN_DIALOG" ;;
+	*)
+		#$GTKDIALOG --program=MAIN_DIALOG --print-ir
+		$GTKDIALOG --program=MAIN_DIALOG
+		;;
+esac

@@ -1,0 +1,46 @@
+#!/bin/sh
+#20201125 call from /usr/sbin/delayedrun, at first bootup.
+#20220808 limit height of window.
+
+export TEXTDOMAIN=report-fw-fail
+export TEXTDOMAINDIR=/usr/share/locale
+export OUTPUT_CHARSET=UTF-8
+
+CR='
+'
+echo -n '' > /tmp/report-fw-fail.log
+
+DMESG="$(dmesg | grep -i firmware | cut -f 2- -d ']' | sed -e 's%Bluetooth: %bluetooth %')"
+#for aNAME in $(echo "$DMESG" | sed -e 's%: .*%:%' -e 's%\] .*%]%' | tr '\n' ' ') #ex: bluetooth hci1
+echo "$DMESG" | sed -e 's%: .*%:%' -e 's%\] .*%]%' |
+while read aNAME
+do
+ xaNAME="$(echo -n "$aNAME" | sed -e 's%\[%\\[%' -e 's%\]%\\]%')"
+ #echo "xaNAME='$xaNAME'" #TEST
+ aOK="$(echo "$DMESG" | grep "^ ${xaNAME} .*" | tail -n 1 | grep -v 'failed')"
+ #echo "aOK='${aOK}'" #TEST
+ [ "$aOK" ] && continue
+ aERR="$(echo "$DMESG" | grep "^ ${xaNAME} .*failed.*")"
+ #echo "aERR='${aERR}'" #TEST
+ if [ "$aERR" ];then
+  echo "$aERR" >> /tmp/report-fw-fail.log
+ fi
+done
+
+if [ -s /tmp/report-fw-fail.log ];then
+ M1="$(gettext 'WARNING: missing firmware')"
+ M2="$(gettext 'The Linux kernel reports this firmware is missing:')"
+ M3="$(gettext 'Please write the name of the firmware. You will have to search the Internet to find it.')"
+ M4="$(head -n 8 /tmp/report-fw-fail.log)"
+ M5="$(gettext 'Note, the above information has also been logged to /tmp/report-fw-fail.log')"
+ if [ $DISPLAY ];then
+  #note, <tt> means monospace font...
+  popup "background='#ffa0a0' level=top process=wait terminate=ok|<big><big><b>${M1}</b></big>${CR}${M2}</big>${CR}${CR}<tt>${M4}</tt>${CR}${CR}<big>${M3}${CR}${M5}</big>"
+ else
+  echo "$M2"
+  cat /tmp/report-fw-fail.log
+ fi
+ exit 1
+fi
+exit 0
+###end###

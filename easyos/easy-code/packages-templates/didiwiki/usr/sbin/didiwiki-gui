@@ -1,0 +1,89 @@
+#! /bin/sh
+#20210906 /root/spot moved to /home/spot
+
+# this starts/stops DidiWiki server
+# ASSUMES A USER NAMED spot HAS BEEN SETUP
+# GuestToo - Feb 7, 2005. Hacked a bit by BK -- 2005,2006.
+# Designed for use with Puppy Linux, www.puppylinux.com
+#v411 dunno why, but no longer creates new pages, needs /home/spot/.didiwiki world-writable.
+
+#v411 bug workaround, needs to be fixed properly sometime...
+mkdir -p /home/spot/.didiwiki
+chmod 777 /home/spot/.didiwiki
+
+DIDI="/home/spot/didiwiki"
+
+if ! MSG=`which gxmessage`
+then
+ MSG='xmessage'
+fi
+
+if ! grep spot /etc/group
+then
+ $MSG -center -bg "#ffc0c0" -title "DidiWiki" 'No user "spot"'
+ exit 1
+fi
+
+if [ ! -r $DIDI ];then
+ DIDI=`which didiwiki`
+fi
+
+if [ ! -r $DIDI ];then
+ $MSG -center -bg "#ffc0c0" -title "DidiWiki" 'DidiWiki program not found'
+ exit 1
+fi
+
+#BK
+PSSTATUS="`ps`"
+if [ "`echo -n "$PSSTATUS" | grep 'didiwiki' | grep -v 'didiwiki\-gui'`" = "" ];then
+ BUTTONS1="Start:21,Cancel:10"
+ MSG1="Click Start button to start DidiWiki
+server and launch browser.
+Note that DidiWiki runs as user \"spot\""
+ DIDIGO="no"
+else
+ BUTTONS1="Start:21,Stop:22,Cancel:10"
+ MSG1="DidiWiki server is already running, as user \"spot\".
+Click Start button to open web browser and use DidiWiki,
+or Stop button if you want to kill the server"
+ DIDIGO="yes"
+fi
+
+$MSG -center -buttons "$BUTTONS1" -title "DidiWiki" "$MSG1"
+case $? in
+
+21)
+RETVAL1=0
+if [ "$DIDIGO" = "no" ];then
+ su -c $DIDI - spot &
+ #note, .didiwiki folder is created in /home/spot/.
+ RETVAL1=$?
+fi
+if [ $RETVAL1 -eq 0 ];then
+ ##hv3 seems to work fine...
+ #if [ "`which hv3`" = "" ];then
+ # defaultbrowser http://localhost:8000/
+ #else
+ # hv3 http://localhost:8000/
+ #fi
+ defaulthtmlviewer http://localhost:8000/
+else
+ $MSG -center -bg "#ffc0c0" -title "DidiWiki" 'ERROR: DidiWiki did NOT start'
+fi
+;;
+
+22)
+killall -3 didiwiki
+sleep 1
+killall -9 didiwiki
+ps | grep didiwiki
+if [ $? -eq 0 ];then
+ $MSG -center -bg "#d0ffd0" -title "DidiWiki" 'DidiWiki is stopped'
+else
+ $MSG -center -bg "#ffc0c0" -title "DidiWiki" 'DidiWiki is still running'
+fi
+;;
+
+*) exit ;;
+
+esac

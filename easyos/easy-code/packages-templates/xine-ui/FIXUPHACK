@@ -1,0 +1,47 @@
+
+
+#[ -f usr/bin/fbxine ] && rm -f usr/bin/fbxine
+
+[ -d usr/share/mime ] && rm -rf usr/share/mime
+
+[ -f usr/share/pixmaps/xine.xpm ] && rm -f usr/share/pixmaps/xine.xpm
+ln -snf ../icons/hicolor/16x16/apps/xine.png usr/share/pixmaps/xine.png
+
+if [ -f usr/share/xine/skins/xine_splash.png ];then
+ if [ -f usr/share/xine/skins/xine-ui_logo.png ];then
+  rm -f usr/share/xine/skins/xine_splash.png
+  ln -s xine-ui_logo.png usr/share/xine/skins/xine_splash.png
+ fi
+fi
+
+[ -f usr/share/xine/visuals/default.mpv ] && rm -f usr/share/xine/visuals/default.mpv
+
+#161008 ubuntu xerus, usr/share/applications/xine.desktop is a symlink to /var/lib/xine/xine.desktop!!!
+#installing from template fails, as target is a symlink to non-existing folder in host system.
+if [ -e var/lib/xine/xine.desktop ];then
+ rm -f var/lib/xine/xine.desktop
+fi
+if [ -h usr/share/applications/xine.desktop ];then
+ rm -f usr/share/applications/xine.desktop
+ echo '[Desktop Entry]
+Encoding=UTF-8
+Name=Xine multimedia player
+Comment=Video Player
+Exec=xinewrapper
+Icon=xine.png
+Terminal=false
+Type=Application
+Categories=X-Multimedia-mediaplayer
+MimeType=x-content/video-dvd;x-content/audio-cdda;x-content/video-vcd;x-content/video-svcd;application/annodex;application/x-annodex;audio/annodex;audio/x-annodex;video/annodex;video/x-annodex;video/x-ms-asf;video/x-ms-wmv;audio/x-ms-wma;application/vnd.ms-asf;application/x-mplayer2;video/x-ms-asf-plugin;video/x-ms-wvx;video/x-ms-wax;video/mkv;video/x-matroska;video/webm;audio/mpegurl;audio/x-mpegurl;audio/x-scpls;audio/x-ms-wax;audio/x-ms-wvx;application/smil;application/x-quicktimeplayer;application/xspf+xml;video/mp2t;image/png;image/x-png;video/mng;video/x-mng;video/quicktime;video/x-quicktime;audio/x-m4a;video/mp4;audio/mp4;video/x-flv;video/flv;application/x-flash-video;video/msvideo;video/x-msvideo;video/mp2p;audio/x-aiff;audio/aiff;audio/x-pn-aiff;audio/x-flac;audio/flac;audio/x-realaudio;audio/basic;audio/x-basic;audio/x-pn-au;audio/x-pn-realaudio;audio/x-pn-realaudio-plugin;audio/x-real-audio;application/vnd.rn-realmedia;audio/x-8svx;audio/8svx;audio/x-16sv;audio/168sv;image/x-ilbm;image/ilbm;video/x-anim;video/anim;video/x-flic;application/ogg;application/x-ogm;application/x-ogm-audio;application/x-ogm-video;application/x-ogg;audio/ogg;audio/x-ogg;video/ogg;video/x-ogg;video/mpeg;video/x-mpeg;audio/ac3;audio/x-wav;audio/wav;audio/x-pn-wav;audio/x-pn-windows-acm;audio/musepack;audio/x-musepack;audio/mpeg2;audio/x-mpeg2;audio/mpeg3;audio/x-mpeg3;audio/mpeg;audio/x-mpeg;audio/x-mpegurl;audio/mpegurl;audio/mp3;audio/x-mp3;application/x-flac;x-content/video-dvd;x-content/video-svcd;x-content/video-vcd;
+' > usr/share/applications/xine.desktop
+fi
+
+#180715 compiled in OE for aarch64 target, the locales folder is in wrong place...
+if [ -d mnt ];then
+ XIULOCALE="$(find mnt -type d -name locale)"
+ if [ "$XIULOCALE" ];then
+  mkdir -p ../xine-ui_NLS/usr/share/locale
+  cp -a -f ${XIULOCALE}/* ../xine-ui_NLS/usr/share/locale/
+  rm -rf ./mnt
+ fi
+fi

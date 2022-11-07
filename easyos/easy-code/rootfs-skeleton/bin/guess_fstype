@@ -1,0 +1,13 @@
+#!/bin/ash
+#20220619 a replacement for the old guess_fstype
+# ref: https://bkhome.org/news/202206/guessfstype-symlink-removed.html
+
+PART="$1"
+[ ! "$PART" ] && exit
+[ "${PART:0:5}" != "/dev/" ] && exit
+
+FS="$(blkid ${PART} | tr ' ' '\n' | grep '^TYPE' | cut -f 2 -d '"')"
+[ ! "$FS" ] && FS='unknown'
+echo "$FS"
+
+###end###

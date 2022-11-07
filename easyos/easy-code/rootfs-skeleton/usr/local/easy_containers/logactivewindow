@@ -1,0 +1,17 @@
+#!/bin/sh
+#called from ec-chroot
+#name of container and id of current window passed in.
+
+EXE="${1}"
+WIDprev="${2}"
+
+CNT=0
+while [ $CNT -le 8 ];do
+ sleep 0.5
+ WIDnew="$(xdotool getactivewindow)"
+ if [ "$WIDnew" != "$WIDprev" ];then
+  echo "${EXE} ${WIDnew}" >> /tmp/easy_containers/activewindows.log
+  break
+ fi
+done
+

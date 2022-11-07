@@ -1,0 +1,35 @@
+#!/bin/sh
+#20211110
+#201112 report the version.
+#20220720 select 64bit or 32bit
+
+[ ! -f ./DISTRO_SPECS ] && exit
+. ./DISTRO_SPECS
+case "$DISTRO_TARGETARCH" in
+ amd64) DLARCH="linux64" ;;
+ x86)   DLARCH="linux" ;;
+esac
+[ ! "$DLARCH" ] && exit
+
+if [ -f firefox-en.tar.bz2 ];then
+ rm -f firefox-en.tar.bz2
+fi
+if [ -f firefox-de.tar.bz2 ];then
+ rm -f firefox-de.tar.bz2
+fi
+if [ -f firefox-fr.tar.bz2 ];then
+ rm -f firefox-fr.tar.bz2
+fi
+
+wget --spider 'https://download.mozilla.org/?product=firefox-latest-ssl&os='"${DLARCH}"'&lang=en-US' >/tmp/dl-ff-latest-spider.log 2>&1
+FFVER="$(grep -o 'pub/firefox/releases/[^/]*' /tmp/dl-ff-latest-spider.log | head -n 1 | cut -f 4 -d '/')"
+echo -n "FF_DL_VER='${FFVER}'" > firefox-latest-version
+
+wget 'https://download.mozilla.org/?product=firefox-latest-ssl&os='"${DLARCH}"'&lang=en-US' -O firefox-en.tar.bz2
+sync
+
+wget 'https://download.mozilla.org/?product=firefox-latest-ssl&os='"${DLARCH}"'&lang=de' -O firefox-de.tar.bz2
+sync
+
+wget 'https://download.mozilla.org/?product=firefox-latest-ssl&os='"${DLARCH}"'&lang=fr' -O firefox-fr.tar.bz2
+sync

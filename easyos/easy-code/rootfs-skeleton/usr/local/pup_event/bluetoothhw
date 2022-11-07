@@ -1,0 +1,25 @@
+#!/bin/bash
+#20201020 script called from udev rule must end quickly. see bluetoothhw-run
+#20201208 setsid not working when call from udev rule. "&" or "disown" do NOT detach the process.
+# ref: https://unix.stackexchange.com/questions/56243/how-to-run-long-time-process-on-udev-event
+#20201215 called from udev rule, LANG will not be set.
+
+pidof bluetoothhw-run
+[ $? -eq 0 ] && exit
+
+#apparently, script may be holding up udev, so get out quick...
+#ref: https://bkhome.org/news/202009/detach-child-process-from-parent.html
+#setsid --fork /usr/local/pup_event/bluetoothhw-run
+
+#20201215 if called from udev rule, LANG will not be set...
+eval $(grep '^LANG=.*' /etc/profile)
+export LANG
+
+#20201208 setsid does not work. this does NOT detach process:
+#/usr/local/pup_event/bluetoothhw-run &
+#disown $!
+
+#20201208 this does work, process is detached...
+cttyhack sh /usr/local/pup_event/bluetoothhw-run &
+
+###end###

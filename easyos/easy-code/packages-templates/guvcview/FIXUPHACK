@@ -1,0 +1,27 @@
+
+#20220422 oe
+if [ -f usr/share/pixmaps/guvcview/guvcview.png ];then
+ ln -s guvcview/guvcview.png usr/share/pixmaps/guvcview.png
+fi
+
+echo '[Desktop Entry]
+Name=GUVCView webcam viewer
+GenericName=GUVCView
+X-GNOME-FullName=GTK UVC video viewer
+Comment=Video viewer and capturer for the linux uvc driver
+TryExec=guvcview
+Exec=guvcview
+Icon=guvcview.png
+Terminal=false
+Type=Application
+Categories=X-Multimedia-video
+X-GNOME-Gettext-Domain=guvcview
+StartupNotify=true' > usr/share/applications/guvcview.desktop
+
+#20220501 note, these save paths are created by /usr/bin/droidcam script...
+mkdir -p root/.config/guvcview2
+echo 'video_path=/files/media/video/GUVCView
+photo_path=/files/media/images/GUVCView
+audio=pulse
+audio_device=1' > root/.config/guvcview2/video0
+

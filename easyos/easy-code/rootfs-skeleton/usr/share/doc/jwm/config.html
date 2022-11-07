@@ -1,0 +1,1891 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>joewing.net</title>
+    <link rel="stylesheet" href="/style.css">
+  </head>
+  <body>
+    <div id="links">
+      <p><a href="https://joewing.net/projects/jwm/">Homepage</a></p>
+      <p><a href="https://github.com/joewing/">GitHub</a></p>
+    </div>
+    <div id="content">
+      <h1>JWM Configuration</h1>
+
+<p>
+Configuration settings for JWM v2.4.<br/>
+For a list of changes since JWM v2.3, see the
+<a href="release-2.4.html">JWM v2.4 Release Notes</a>.
+</p>
+
+<h2>Contents</h2>
+<div>
+<ul>
+   <li><a href="#overview">Overview</a></li>
+   <li><a href="#root">Root Menu</a></li>
+   <li><a href="#includes">Includes</a></li>
+   <li><a href="#trays">Trays</a></li>
+   <li><a href="#groups">Group Settings</a></li>
+   <li><a href="#window">Window Style</a></li>
+   <li><a href="#clock">Clock Style</a></li>
+   <li><a href="#tray">Tray Style</a></li>
+   <li><a href="#tasklist">Task List Style</a></li>
+   <li><a href="#traybutton">Tray Button Style</a></li>
+   <li><a href="#pager">Pager Style</a></li>
+   <li><a href="#menu">Menu Style</a></li>
+   <li><a href="#popup">Popup Style</a></li>
+   <li><a href="fonts.html">Fonts</a></li>
+   <li><a href="#colors">Colors</a></li>
+   <li><a href="#icons">Icons</a></li>
+   <li><a href="#keys">Key Bindings</a></li>
+   <li><a href="#mouse">Mouse Bindings</a></li>
+   <li><a href="#desktops">Desktops</a></li>
+   <li><a href="#other">Other Settings</a></li>
+</ul>
+</div>
+
+<h2 id="overview">Overview</h2>
+<p>
+   Configuration of JWM is done by editing ".jwmrc". This file is XML making
+   it easy to edit, either by hand or programmatically.
+   The example.jwmrc gives an example configuration file which specifies
+   most of the options.<br/>
+   Before restarting JWM, it is a good idea to run "jwm -p" to make sure
+   the configuration file is free of errors. Otherwise you may end up without
+   a root menu.
+</p>
+
+<h2 id="root">Root Menu</h2>
+<p>
+   The root menu in JWM is the primary way of starting programs. It also
+   provides a way to restart or exit the window manager. Note that multiple
+   root menus are possible. See the <span class="attribute">onroot</span>
+   attribute for more information. The outer-most tag is
+   <span class="tag">RootMenu</span>. This tag supports the
+   following attributes:
+</p>
+<div>
+<ul>
+   <li><span class="attribute">onroot</span><br/>
+      Determine which buttons on the root window activate the menu.
+      This is a list of integers specifying buttons. The default is
+      <span class="literal">123</span>. Multiple root menus may be used
+      by specifying different buttons to activate them. Valid values in
+      this list are <span class="literal">0</span> to
+      <span class="literal">9</span> and <span class="literal">a</span>
+      to <span class="literal">z</span>. The usual mouse buttons are 1 for the
+      left button, 2 for the middle button, 3 for the right button,
+      and 4 and 5 for the scroll wheel. Therefore, accessing
+      root menus that are assigned to buttons 0, 6, 7, 8, 9, or a letter
+      will typically require the use of a tray button or key binding.
+   </li>
+   <li><span class="attribute">height</span><br/>
+      The height of each menu item in pixels. <span class="literal">0</span>
+      indicates that the height of the font will determine the height. The
+      default is <span class="literal">0</span>.
+   </li>
+   <li><span class="attribute">label</span><br/>
+      The label to display at the top of the menu. The default is
+      <span class="literal">JWM</span>.
+   </li>
+   <li><span class="attribute">labeled</span><br/>
+      Determines if a label appears at the top of the menu. Possible values
+      are <span class="literal">true</span> and
+      <span class="literal">false</span>. The default is
+      <span class="literal">false</span>.
+   </li>
+   <li><span class="attribute">dynamic</span><br>
+      A file to load for the root menu. If the name begins with "exec:",
+      then the name of an executable can be provided that will output
+      the root menu. Note that the root menu structure must have a
+      <span class="tag">JWM</span> tag at the top level.
+   </li>
+</ul>
+</div>
+<p>
+   Within the <span class="tag">RootMenu</span> tag the following tags are
+   supported:
+</p>
+<div>
+<ul>
+   <li><span class="tag">Menu</span><br/>
+      This tag creates a submenu item. Any of the tags allowed within the
+      <span class="tag">RootMenu</span> tag, including
+      <span class="tag">Menu</span>, are allowed
+      within this tag. The <span class="tag">Menu</span> tag supports
+      the following attributes:
+      <ul>
+         <li><span class="attribute">height</span><br/>
+            The height of each menu item in pixels.
+            <span class="literal">0</span> indicates that the height of
+            the font will determine the height. The default is inherited
+            from the parent menu.
+         </li>
+         <li><span class="attribute">label</span><br/>
+            The label to use for this menu. No default.
+         </li>
+         <li><span class="attribute">tooltip</span><br/>
+            A tooltip to use for this menu. No default.
+         </li>
+         <li><span class="attribute">icon</span><br/>
+            The icon to use for this menu. No default.
+         </li>
+         <li><span class="attribute">labeled</span><br/>
+            Determines if a label appears at the top of the menu.
+            Possible values are <span class="literal">true</span>
+            and <span class="literal">false</span>.
+            The default is <span class="literal">false</span>.
+         </li>
+      </ul>
+   </li>
+   <li><span class="tag">Dynamic</span><br/>
+      Include the contents of a file or the output of a program as
+      a submenu.  The file (or program output) must start with a
+      <span class="tag">JWM</span> tag containing one or more items to be
+      contained within the submenu. A file is specified by the text
+      of the tag. If the text starts with
+      <span class="literal">exec:</span> then the output of the specified
+      executable is used.  Note that the program or file will be
+      read every time the menu is shown.  To include menu items at
+      the same level or to statically include the menu items when
+      the configuration file is parsed, use the
+      <span class="literal">Include</span> tag.
+      This tag supports the same attributes as the
+      <span class="tag">Menu</span> tag.
+   </li>
+   <li><span class="tag">Program</span><br/>
+      The <span class="tag">Program</span> tag provides a way to start
+      external programs. The text of this tag indicates the command used to
+      start the program. The following attributes are supported:
+      <ul>
+         <li><span class="attribute">label</span><br/>
+            The label to display. The default is the text of the tag.
+         </li>
+         <li><span class="attribute">tooltip</span><br/>
+            The tooltip to use. No default.
+         </li>
+         <li><span class="attribute">icon</span><br/>
+            The icon to use. No default.
+         </li>
+      </ul>
+   </li>
+   <li><span class="tag">Separator</span><br/>
+      This tag simply puts a line in the menu allowing menu divisions. No
+      text or attributes are used.
+   </li>
+   <li><span class="tag">Desktops</span><br/>
+      This tag adds a desktop menu. This is a menu with a list of desktops
+      which can be selected to change the current desktop. The following
+      attributes are supported:
+      <ul>
+         <li><span class="attribute">label</span><br/>
+            The label to use for the menu. The default is
+            <span class="literal">Desktops</span>.
+         </li>
+         <li><span class="attribute">tooltip</span><br/>
+            The tooltip to use. No default.
+         </li>
+         <li><span class="attribute">icon</span><br/>
+            The icon to use for this menu. No default.
+         </li>
+      </ul>
+   </li>
+   <li><span class="tag">SendTo</span><br/>
+      Add a <span class="nobr">&quot;send to&quot;</span> menu to the menu.
+      After selecting an item
+      from this menu, a window may be selected to send that window to the
+      selected desktop. The following attributes are supported:
+      <ul>
+         <li><span class="attribute">label</span><br/>
+            The label to use for the menu. The default is
+            <span class="literal">SendTo</span>.
+         </li>
+         <li><span class="attribute">tooltip</span><br/>
+            The tooltip to use. No default.
+         </li>
+         <li><span class="attribute">icon</span><br/>
+            The icon to use for this menu. No default.
+         </li>
+      </ul>
+   </li>
+   <li><span class="tag">Stick</span><br/>
+      Add stick/unstick window operation to the menu. After selecting this
+      item, a window may be selected to toggle the sticky state of that
+      window. The following attributes are supported:
+      <ul>
+         <li><span class="attribute">label</span><br/>
+            The label to use for the menu. The default is
+            <span class="literal">Stick</span>.
+         </li>
+         <li><span class="attribute">tooltip</span><br/>
+            The tooltip to use. No default.
+         </li>
+         <li><span class="attribute">icon</span><br/>
+            The icon to use for this menu. No default.
+         </li>
+      </ul>
+   </li>
+   <li><span class="tag">Maximize</span><br/>
+      Add maximize window operation to the menu. After selecting this
+      item, a window may be selected to toggle the maximized state of that
+      window. The following attributes are supported:
+      <ul>
+         <li><span class="attribute">label</span><br/>
+            The label to use for the menu. The default is
+            <span class="literal">Maximize</span>.
+         </li>
+         <li><span class="attribute">tooltip</span><br/>
+            The tooltip to use. No default.
+         </li>
+         <li><span class="attribute">icon</span><br/>
+            The icon to use for this menu. No default.
+         </li>
+      </ul>
+   </li>
+   <li><span class="tag">Minimize</span><br/>
+      Add minimize window operation to the menu. After selecting this
+      item, a window may be selected to minimize that window.
+      The following attributes are supported:
+      <ul>
+         <li><span class="attribute">label</span><br/>
+            The label to use for the menu. The default is
+            <span class="literal">Minimize</span>.
+         </li>
+         <li><span class="attribute">tooltip</span><br/>
+            The tooltip to use. No default.
+         </li>
+         <li><span class="attribute">icon</span><br/>
+            The icon to use for this menu. No default.
+         </li>
+      </ul>
+   </li>
+   <li><span class="tag">Shade</span><br/>
+      Add shade/unshade window operation to the menu. After selecting this
+      item, a window may be selected to toggle the shaded state of that
+      window. The following attributes are supported:
+      <ul>
+         <li><span class="attribute">label</span><br/>
+            The label to use for the menu. The default is
+            <span class="literal">Shade</span>.
+         </li>
+         <li><span class="attribute">tooltip</span><br/>
+            The tooltip to use. No default.
+         </li>
+         <li><span class="attribute">icon</span><br/>
+            The icon to use for this menu. No default.
+         </li>
+      </ul>
+   </li>
+   <li><span class="tag">Move</span><br/>
+      Add move window operation to the menu. After selecting this
+      item, a window may be selected to move that window.
+      The following attributes are supported:
+      <ul>
+         <li><span class="attribute">label</span><br/>
+            The label to use for the menu. The default is
+            <span class="literal">Move</span>.
+         </li>
+         <li><span class="attribute">tooltip</span><br/>
+            The tooltip to use. No default.
+         </li>
+         <li><span class="attribute">icon</span><br/>
+            The icon to use for this menu. No default.
+         </li>
+      </ul>
+   </li>
+   <li><span class="tag">Resize</span><br/>
+      Add resize window operation to the menu. After selecting this
+      item, a window may be selected to resize that window.
+      The following attributes are supported:
+      <ul>
+         <li><span class="attribute">label</span><br/>
+            The label to use for the menu. The default is
+            <span class="literal">Resize</span>.
+         </li>
+         <li><span class="attribute">tooltip</span><br/>
+            The tooltip to use. No default.
+         </li>
+         <li><span class="attribute">icon</span><br/>
+            The icon to use for this menu. No default.
+         </li>
+      </ul>
+   </li>
+   <li><span class="tag">Kill</span><br/>
+      Add kill window operation to the menu. After selecting this
+      item, a window may be selected to kill that window.
+      The following attributes are supported:
+      <ul>
+         <li><span class="attribute">label</span><br/>
+            The label to use for the menu. The default is
+            <span class="literal">Kill</span>.
+         </li>
+         <li><span class="attribute">tooltip</span><br/>
+            The tooltip to use. No default.
+         </li>
+         <li><span class="attribute">icon</span><br/>
+            The icon to use for this menu. No default.
+         </li>
+      </ul>
+   </li>
+   <li><span class="tag">Close</span><br/>
+      Add close window operation to the menu. After selecting this
+      item, a window may be selected to close that window.
+      The following attributes are supported:
+      <ul>
+         <li><span class="attribute">label</span><br/>
+            The label to use for the menu. The default is
+            <span class="literal">Close</span>.
+         </li>
+         <li><span class="attribute">tooltip</span><br/>
+            The tooltip to use. No default.
+         </li>
+         <li><span class="attribute">icon</span><br/>
+            The icon to use for this menu. No default.
+         </li>
+      </ul>
+   </li>
+   <li><span class="tag">Restart</span><br/>
+      This tag adds a menu item to restart the window manager.
+      The following attributes are supported:
+      <ul>
+         <li><span class="attribute">label</span><br/>
+            The label to use. The default is
+            <span class="literal">Restart</span>.
+         </li>
+         <li><span class="attribute">tooltip</span><br/>
+            The tooltip to use. No default.
+         </li>
+         <li><span class="attribute">icon</span><br/>
+            The icon to use. No default.
+         </li>
+      </ul>
+   </li>
+   <li><span class="tag">Exit</span><br/>
+      This tag adds a menu item to exit the window manager. If text
+      is included in this tag it will be interpreted as a command to
+      run when JWM exits. This can be used to start another window manager.
+      The following attributes are supported:
+      <ul>
+         <li><span class="attribute">label</span><br/>
+            The label to use. The default is
+            <span class="literal">Exit</span>.
+         </li>
+         <li><span class="attribute">tooltip</span><br/>
+            The tooltip to use. No default.
+         </li>
+         <li><span class="attribute">icon</span><br/>
+            The icon to use. No default.
+         </li>
+         <li><span class="attribute">confirm</span><br/>
+            Determine if a confirm dialog appears before exiting.
+            The default is <span class="literal">true</span>. Note that
+            confirm dialogs can be completely disabled at compile-time.
+         </li>
+      </ul>
+   </li>
+</ul>
+</div>
+
+<h2 id="trays">Trays</h2>
+<p>
+   One or more trays may be created via the <span class="tag">Tray</span>
+   tag. This tag supports the following attributes:
+</p>
+<div>
+<ul>
+   <li><span class="attribute">autohide</span><br/>
+      Specify the location to hide the tray when not activated.
+      One of <span class="literal">left</span>,
+     <span class="literal">right</span>,
+     <span class="literal">top</span>,
+     <span class="literal">bottom</span>, or
+     <span class="literal">off</span>.
+      The default is <span class="literal">off</span> to disable hiding.
+   </li>
+   <li><span class="attribute">x</span><br/>
+      The x-coordinate of the tray. This may be negative to indicate an
+      offset from the right of the screen.
+   </li>
+   <li><span class="attribute">y</span><br/>
+      The y-coordinate of the tray. This may be negative to indicate an
+      offset from the bottom of the screen.
+   </li>
+   <li><span class="attribute">width</span><br/>
+      The width of the tray. <span class="literal">0</span> indicates that
+      the tray should compute an optimal width depending on what it contains
+      and the layout. A negative value indicates that the width should be
+      subtracted from the width of the screen.
+      <span class="literal">0</span> is the default.
+   </li>
+   <li><span class="attribute">height</span><br/>
+      The height of the tray. <span class="literal">0</span> indicates that
+      the tray should compute an optimal height depending on what it contains
+      and the layout. A negative value indicates that the height should be
+      subtracted from the height of the screen.
+      <span class="literal">0</span> is the default.
+   </li>
+   <li><span class="attribute">layer</span><br/>
+      The layer of the tray. The default is
+      <span class="literal">above</span>.
+      Valid values are <span class="literal">below</span>,
+      <span class="literal">normal</span>, and
+      <span class="literal">above</span>.
+   </li>
+   <li><span class="attribute">layout</span><br/>
+      The layout of the tray. The default is
+      <span class="literal">horizontal</span>. Possible values are
+      <span class="literal">horizontal</span> and
+      <span class="literal">vertical</span>.
+   </li>
+   <li><span class="attribute">halign</span><br/>
+      The horizontal alignment of the tray. The default is
+      <span class="literal">fixed</span>. Possible values are
+      <span class="literal">fixed</span>,
+      <span class="literal">left</span>,
+      <span class="literal">center</span>, and
+      <span class="literal">right</span>.
+   </li>
+   <li><span class="attribute">valign</span><br/>
+      The vertical alignment of the tray. The default is
+      <span class="literal">fixed</span>. Possible values are
+      <span class="literal">fixed</span>,
+      <span class="literal">top</span>,
+      <span class="literal">center</span>, and
+      <span class="literal">bottom</span>.
+   </li>
+</ul>
+</div>
+<p>
+   Within the <span class="tag">Tray</span> tag the following tags are
+   supported:
+</p>
+<div>
+<ul>
+   <li><span class="tag">Clock</span><br/>
+      Add a clock to the tray. This tag supports the following
+      attributes:
+      <ul>
+         <li><span class="attribute">format</span><br/>
+            The clock format. See strftime(3) for more information. The
+            default is <span class="literal">%I:%M %p</span>.
+         </li>
+         <li><span class="attribute">zone</span><br/>
+            The clock time zone. See tzset(3) for more information. This
+            defaults to the local time zone.
+         </li>
+         <li><span class="attribute">width</span><br/>
+            The width to use. <span class="literal">0</span>
+            indicates that the width should be determined from the tray
+            and the font used. The default is <span class="literal">0</span>.
+         </li>
+         <li><span class="attribute">height</span><br/>
+            The height to use. <span class="literal">0</span>
+            indicates that the height should be determined from the tray
+            and the font used. The default is <span class="literal">0</span>.
+         </li>
+      </ul>
+      The text of this tag determines what the clock does when clicked:
+      <ul>
+         <li><span class="literal">exec:</span><i>program</i><br/>
+            Execute <i>program</i>.
+         </li>
+         <li><span class="literal">showdesktop</span><br/>
+            Minimize all windows on the current desktop.
+         </li>
+         <li><span class="literal">root:</span><i>n</i><br/>
+            Show root menu <i>n</i>.
+         </li>
+      </ul>
+      Optionally, the <span class="tag">Button</span> tag can be used
+      within this tag to specify the action to take for a particular
+      mouse button.  The text of the tag is the same as for
+      <span class="tag">TrayButton</span>.  The <span class="tag">Button</span>
+      tag supports the <span class="attribute">mask</span> attribute,
+      which specifies which mouse buttons cause the action to be executed.
+      This defaults to <span class="literal">123</span>, for right, middle,
+      and right click.
+   </li>
+   <li><span class="tag">Dock</span><br/>
+      Add a dock for system notifications. This can be used by those
+      programs that use the _NET_SYSTEM_TRAY_Sn selection. The size of
+      the Dock is dynamic based on the size of the tray and the number
+      of items contained. Only one Dock is allowed per instance of JWM.
+      This tag supports the following attributes:
+      <ul>
+         <li><span class="attribute">spacing</span><br>
+         Number of pixels to leave between items in the dock. The default
+         is <span class="literal">0</span>.
+         </li>
+         <li><span class="attribute">width</span><br>
+         The minimum width of items in the dock.  The default
+         is <span class="literal">0</span>.
+      </ul>
+   </li>
+   <li><span class="tag">Pager</span><br>
+      Add a pager to the tray. This tag supports the following attribute:
+      <ul>
+         <li><span class="attribute">labeled</span><br>
+            Determine if the name of the desktop is displayed.
+            Possible values are <span class="literal">true</span>
+            and <span class="literal">false</span>. The default is
+            <span class="literal">false</span>.
+         </li>
+      </ul>
+   </li>
+   <li><span class="tag">Spacer</span><br/>
+      Add empty space to the tray. This tag supports the following attributes:
+      <ul>
+         <li><span class="attribute">width</span><br/>
+            The width of the spacer. <span class="literal">0</span>
+            indicates that the width should be determined from the tray.
+            The default is <span class="literal">0</span>.
+         </li>
+         <li><span class="attribute">height</span><br/>
+            The height of the spacer. <span class="literal">0</span>
+            indicates that the height should be determined from the tray.
+            The default is <span class="literal">0</span>.
+         </li>
+      </ul>
+   </li>
+   <li><span class="tag">Swallow</span><br/>
+      Swallow a program into the tray. The text of this tag gives the
+      command to run. This tag supports the following attributes:
+      <ul>
+         <li><span class="attribute">name</span><br/>
+            The name of the program to swallow. This attribute is
+            required since this is how JWM finds the program to swallow.
+         </li>
+         <li><span class="attribute">width</span><br/>
+            The width of the swallowed program. <span class="literal">0</span>
+            indicates that the width should be determined from the tray
+            and size requested from the program. The default is
+            <span class="literal">0</span>.
+         </li>
+         <li><span class="attribute">height</span><br/>
+            The height of the swallowed program. <span class="literal">0</span>
+            indicates that the height should be determined from the tray
+            and size requested from the program. The default is
+            <span class="literal">0</span>.
+         </li>
+      </ul>
+   </li>
+   <li><span class="tag">TaskList</span><br/>
+      Add a task list to the tray. This tag supports the following
+      attribute:
+      <ul>
+         <li><span class="attribute">maxwidth</span><br/>
+            The maximum width of an item in the task list.
+            <span class="literal">0</span> indicates no maximum.
+            The default is <span class="literal">0</span>.
+         </li>
+         <li><span class="attribute">labeled</span><br/>
+             Determines if a label is shown for task list items.
+             Possible values are <span class="literal">true</span>
+             and <span class="literal"> false</span>.
+             The default is <span class="literal">true</span>.
+         </li>
+         <li><span class="attribute">height</span><br/>
+            The preferred height of items in the task list.
+            <span class="literal">0</span> for no preference.
+            The default is <span class="literal">0</span>.
+         </li>
+      </ul>
+   </li>
+   <li><span class="tag">TrayButton</span><br/>
+      Add a button to the tray. This tag supports the
+      following attributes:
+      <ul>
+         <li><span class="attribute">label</span><br/>
+            A label to display. No default.
+         </li>
+         <li><span class="attribute">icon</span><br/>
+            An icon to display. No default.
+         </li>
+         <li><span class="attribute">popup</span><br/>
+            Text to display in a popup. This defaults to the label.
+         </li>
+      </ul>
+      The text of this tag determines what the button does:
+      <ul>
+         <li><span class="literal">exec:</span><i>program</i><br/>
+            Execute <i>program</i>.
+         </li>
+         <li><span class="literal">showdesktop</span><br/>
+            Minimize all windows on the current desktop.
+         </li>
+         <li><span class="literal">root:</span><i>n</i><br/>
+            Show root menu <i>n</i>.
+         </li>
+      </ul>
+      Optionally, the <span class="tag">Button</span> tag can be used
+      within this tag to specify the action to take for a particular
+      mouse button.  The text of the tag is the same as for
+      <span class="tag">TrayButton</span>.  The <span class="tag">Button</span>
+      tag supports the <span class="attribute">mask</span> attribute,
+      which specifies which mouse buttons cause the action to be executed.
+      This defaults to <span class="literal">123</span>, for right, middle,
+      and right click.
+   </li>
+</ul>
+</div>
+
+<h2 id="includes">Includes</h2>
+<p>
+   Other configuration files or the output of programs may be included under
+   the <span class="tag">JWM</span> tag via the
+   <span class="tag">Include</span> tag. The text of this tag
+   specifies the location of additional configuration file or a program
+   to execute. The path may be relative to the location JWM was started or
+   be an absolute path. The file at that location is read. If the text
+   starts with <span class="literal">exec:</span>, then the specified
+   program is run.  The format of the configuration
+   file is the same as the main configuration file.
+</p>
+
+<h2 id="groups">Group Settings</h2>
+<p>
+   Program groups allow one to specify options which apply to a group of
+   programs by their name and/or class. A program group is created with
+   the <span class="tag">Group</span> tag. As many program groups can
+   be created as desired. Within the <span class="tag">Group</span> tag
+   the following tags are supported.
+</p>
+<div>
+<ul>
+   <li><span class="tag">Name</span><br/>
+   The window name of a program to match to be in this group (the first
+   string in WM_CLASS).
+   This field is parsed as an extended POSIX regular expression
+   (see regex(7) for more information).
+   If one or more <span class="tag">Name</span> tags is specified, at
+   least one must be matched.
+   </li>
+   <li><span class="tag">Class</span><br/>
+   The window class for a program to match to be in this group (the
+   second string in WM_CLASS).
+   This field is parsed as an extended POSIX regular expression
+   (see regex(7) for more information).
+   If one or more <span class="tag">Class</span> tags is specified, at
+   least one must be matched.
+   </li>
+   <li><span class="tag">Option</span><br/>
+   A option for this group. The table below lists possible options.
+   </li>
+</ul>
+</div>
+<table class="listing">
+   <tr class="head">
+      <th>Option</th><th>Description</th>
+   </tr>
+   <tr class="listing">
+      <td><span class="literal">aerosnap</span></td>
+      <td>Enable auto-maximization.</td>
+   </tr>
+   <tr class="listing">
+      <td><span class="literal">border</span></td>
+      <td>Enables the border on windows in this group.</td>
+   </tr>
+   <tr class="listing">
+      <td><span class="literal">centered</span></td>
+      <td>Center windows in this group upon initial placement
+      instead of using cascaded placement.</td>
+   </tr>
+   <tr class="listing">
+      <td><span class="literal">constrain</span></td>
+      <td>Prevent clients in this group from moving off-screen.</td>
+   </tr>
+   <tr class="listing">
+      <td><span class="literal">desktop:</span><i>#</i></td>
+      <td>The desktop on which windows in this group will be started.</td>
+   </tr>
+   <tr class="listing">
+      <td><span class="literal">drag</span></td>
+      <td>Do not pass mouse events to the window. Instead, use the mouse
+      to move/resize the window.</td>
+   </tr>
+   <tr class="listing">
+      <td><span class="literal">fixed</span></td>
+      <td>Fix the windows in this group to the current desktop.
+      This will cause the desktop to change when the window is raised
+      rather than the default behavior of moving the window to the current
+      desktop.</td>
+   </tr>
+   <tr class="listing">
+      <td><span class="literal">height:<i>n</i></span></td>
+      <td>Set the initial height for windows in this group to
+      <i>n</i> (pixels).</td>
+   </tr>
+   <tr class="listing">
+      <td><span class="literal">hmax</span></td>
+      <td>Make windows in this group maximize horizontally by default.</td>
+   </tr>
+   <tr class="listing">
+      <td><span class="literal">icon:</span><i>icon</i></td>
+      <td>The icon to be used for windows in this group.</td>
+   </tr>
+   <tr class="listing">
+      <td><span class="literal">iignore</span></td>
+      <td>Ignore the increment size hint when maximizing windows in
+      this group.</td>
+   </tr>
+   <tr class="listing">
+      <td><span class="literal">layer:</span><i>layer</i></td>
+      <td>The layer on which windows in this group will be started.
+         Valid ooptions are <span class="literal">below</span>,
+         <span class="literal">normal</span>, and
+         <span class="literal">above</span>.
+      </td>
+   </tr>
+   <tr class="listing">
+      <td><span class="literal">maximized</span></td>
+      <td>Make windows in this group maximized.</td>
+   </tr>
+   <tr class="listing">
+      <td><span class="literal">minimized</span></td>
+      <td>Make windows in this group minimized.</td>
+   </tr>
+   <tr class="listing">
+      <td><span class="literal">noborder</span></td>
+      <td>Disables the border for windows in this group.</td>
+   </tr>
+   <tr class="listing">
+      <td><span class="literal">noclose</span></td>
+      <td>Hides the close button for windows in this group.</td>
+   </tr>
+   <tr class="listing">
+      <td><span class="literal">nodrag</span></td>
+      <td>Disable mod1+drag for moving/resizing windows in this group.</td>
+   </tr>
+   <tr class="listing">
+      <td><span class="literal">nofocus</span></td>
+      <td>Prevents windows in this group from grabbing the focus when
+      mapped.</td>
+   </tr>
+   <tr class="listing">
+      <td><span class="literal">nofullscreen</span></td>
+      <td>Prevents windows in this group from being fullscreen.</td>
+   </tr>
+   <tr class="listing">
+      <td><span class="literal">nolist</span></td>
+      <td>Causes the tray to ignore windows in this group.</td>
+   </tr>
+   <tr class="listing">
+      <td><span class="literal">nomax</span></td>
+      <td>Disallows maximization for windows in this group.</td>
+   </tr>
+   <tr class="listing">
+      <td><span class="literal">nomin</span></td>
+      <td>Disallows minimization for windows in this group.</td>
+   </tr>
+   <tr class="listing">
+      <td><span class="literal">nomove</span></td>
+      <td>Prevents windows in this group from being moved.</td>
+   </tr>
+   <tr class="listing">
+      <td><span class="literal">nopager</span></td>
+      <td>Causes the pager to ignore windows in this group.</td>
+   </tr>
+   <tr class="listing">
+      <td><span class="literal">noresize</span></td>
+      <td>Prevents windows in this group from being resized.</td>
+   </tr>
+   <tr class="listing">
+      <td><span class="literal">noshade</span></td>
+      <td>Disallows shading for windows in this group.</td>
+   </tr>
+   <tr class="listing">
+      <td><span class="literal">notitle</span></td>
+      <td>Disables the title bar for windows in this group.</td>
+   </tr>
+   <tr class="listing">
+      <td><span class="literal">noturgent</span></td>
+      <td>Ignore the urgent hint for windows in this group.
+      Without this option set, JWM will flash the border of urgent
+      windows.</td>
+   </tr>
+   <tr class="listing">
+      <td><span class="literal">opacity:</span><i>#</i></td>
+      <td>Set the opacity for windows in this group.
+      The value is a number between 0.0 and 1.0 inclusive.</td>
+   </tr>
+   <tr class="listing">
+      <td><span class="literal">pignore</span></td>
+      <td>Ignore program-specified initial position.</td>
+   </tr>
+   <tr class="listing">
+      <td><span class="literal">shaded</span></td>
+      <td>Make windows in this group shaded.</td>
+   </tr>
+   <tr class="listing">
+      <td><span class="literal">sticky</span></td>
+      <td>Make windows in this group sticky.</td>
+   </tr>
+   <tr class="listing">
+      <td><span class="literal">tiled</span></td>
+      <td>Attempt to tile windows in this group upon initial placement.
+      If tiled placement fails, windows will fall back to cascaded (the
+      default) or centered if specified.</td>
+   </tr>
+   <tr class="listing">
+      <td><span class="literal">title</span></td>
+      <td>Enables the title bar for windows in this group.</td>
+   </tr>
+   <tr class="listing">
+      <td><span class="literal">vmax</span></td>
+      <td>Make windows in this group maximize vertically by default.</td>
+   </tr>
+   <tr class="listing">
+      <td><span class="literal">width:<i>n</i></span></td>
+      <td>Set the initial width for windows in this group to
+      <i>n</i> (pixels).</td>
+   </tr>
+   <tr class="listing">
+      <td><span class="literal">x:<i>n</i></span></td>
+      <td>Set the initial x-coordinate for windows in this group to
+      <i>n</i>.</td>
+   </tr>
+   <tr class="listing">
+      <td><span class="literal">y:<i>n</i></span></td>
+      <td>Set the initial y-coordinate for windows in this group to
+      <i>n</i>.</td>
+   </tr>
+</table>
+<p></p>
+
+<h2 id="window">Window Style</h2>
+<p>
+   The <span class="tag">WindowStyle</span> tag controls the look of
+   window borders.
+   This tag supports the following attribute:
+</p>
+<div>
+<ul>
+   <li><span class="attribute">decorations</span><br/>
+      Determines the decorations to use for windows.
+      Possible values include <span class="literal">flat</span>
+      and <span class="literal">motif</span>. The default is
+      <span class="literal">flat</span>.
+   </li>
+</ul>
+</div>
+<p>
+   Within this tag the following tags are supported.
+</p>
+<div>
+<ul>
+   <li><span class="tag">Font</span><br/>
+      The font used for title bars. See <a href="fonts.html">Fonts</a>.
+   </li>
+   <li><span class="tag">Width</span><br/>
+      The width of window borders in pixels. The default is
+      <span class="literal">4</span>, the minimum is
+      <span class="literal">1</span>, and the maximum is
+      <span class="literal">128</span>.
+   </li>
+   <li><span class="tag">Height</span><br/>
+      The height of window title bars in pixels. The size of the
+      title font is used by default.  The minimum is
+      <span class="literal">1</span>, and the maximum is
+      <span class="literal">256</span>.
+   </li>
+   <li><span class="tag">Corner</span><br/>
+      The width of the rounded corner in pixels.  The default is
+      <span class="literla">4</span>.
+      The minimum is <span class="literal">0</span> (square) and the
+      maximum is <span class="literal">5</span> (very rounded).
+   </li>
+   <li><span class="tag">Foreground</span><br/>
+      The color of text on the title bar.
+      See <a href="#colors">Colors</a>.
+   </li>
+   <li><span class="tag">Background</span><br/>
+      The color of the title bar (gradients are supported).
+      See <a href="#colors">Colors</a>.
+   </li>
+   <li><span class="tag">Opacity</span><br/>
+      The opacity of the window. This is a floating point value between
+      <span class="literal">0.0</span> and <span class="literal">1.0</span>.
+      Note that a composite manager, such as
+      <a href="https://github.com/chjj/compton">compton</a>, is required
+      for this.
+   </li>
+   <li><span class="tag">Outline</span><br/>
+      The color of the window outline.
+      See <a href="#colors">Colors</a>.
+   </li>
+   <li><span class="tag">Active</span><br/>
+      The colors/opacity used for the active window.
+      Within this tag, the following tags are supported:
+      <ul>
+         <li><span class="tag">Foreground</span><br/>
+            The color of text on the title bar.
+            See <a href="#colors">Colors</a>.
+         </li>
+         <li><span class="tag">Background</span><br/>
+            The color of the title bar (gradients are supported).
+            See <a href="#colors">Colors</a>.
+         </li>
+         <li><span class="tag">Opacity</span><br/>
+            The opacity of the window. This is a floating point value between
+            <span class="literal">0.0</span> and
+            <span class="literal">1.0</span>.
+            Note that a composite manager, such as
+            <a href="https://github.com/chjj/compton">compton</a>, is required
+            for this.
+         </li>
+         <li><span class="tag">Outline</span><br/>
+            The color of the window outline.
+            See <a href="#colors">Colors</a>.
+         </li>
+      </ul>
+   </li>
+</ul>
+</div>
+
+<h2 id="clock">Clock Style</h2>
+<p>
+   The <span class="tag">ClockStyle</span> tag controls the look of clocks
+   on the tray.
+   Within this tag the following tags are supported:
+</p>
+<div>
+<ul>
+   <li><span class="tag">Font</span><br/>
+      The font to use.
+      See <a href="fonts.html">Fonts</a>.
+      Inherited from <span class="tag">TrayStyle</span> by default.
+   </li>
+   <li><span class="tag">Background</span><br/>
+      The background color. See <a href="#colors">Colors</a>.
+      Inherited from <span class="tag">TrayStyle</span> by default.
+   </li>
+   <li><span class="tag">Foreground</span><br/>
+      The text color. See <a href="#colors">Colors</a>.
+      Inherited from <span class="tag">TrayStyle</span> by default.
+   </li>
+</ul>
+</div>
+
+<h2 id="tray">Tray Style</h2>
+<p>
+   The <span class="tag">TrayStyle</span> tag controls the look of the
+   tray. This tag supports the following attributes:
+</p>
+<div>
+<ul>
+   <li><span class="attribute">decorations</span><br/>
+      Determines the decorations to use for trays.
+      Possible values include <span class="literal">flat</span>
+      and <span class="literal">motif</span>. The default is
+      <span class="literal">flat</span>.
+   </li>
+   <li><span class="attribute">group</span><br/>
+      Determines if windows are grouped by class when shown in task bars.
+      Possible values are <span class="literal">true</span> and
+      <span class="literal">false</span>. The default is
+      <span class="literal">false</span>.
+   </li>
+   <li><span class="attribute">list</span><br/>
+      Determine which windows are shown in task lists.  Possible values
+      are <span class="literal">all</span> (for all windows) and
+      <span class="literal">desktop</span> (for the current desktop).
+      The default is <span class="literal">desktop</span>.
+   </li>
+</ul>
+</div>
+<p>
+Within this tag the following tags are supported:
+</p>
+<div>
+<ul>
+   <li><span class="tag">Font</span><br/>
+      The default tray font. See <a href="fonts.html">Fonts</a>.
+   </li>
+   <li><span class="tag">Background</span><br/>
+      The default background color. See <a href="#colors">Colors</a>.
+   </li>
+   <li><span class="tag">Foreground</span><br/>
+      The default foreground color. See <a href="#colors">Colors</a>.
+   </li>
+   <li><span class="tag">Outline</span><br/>
+      The tray outline color. See <a href="#colors">Colors</a>.
+   </li>
+   <li><span class="tag">Active</span><br/>
+      Colors active items on the tray.
+      Within this tag, the following tags are supported:
+      <ul>
+          <li><span class="tag">Background</span><br/>
+             The default active background color for items on the tray.
+             See <a href="#colors">Colors</a>.
+          </li>
+          <li><span class="tag">Foreground</span><br/>
+             The default active foreground color for items on the tray.
+             See <a href="#colors">Colors</a>.
+          </li>
+          <li><span class="tag">Outline</span><br/>
+             The active tray outline color. See <a href="#colors">Colors</a>.
+          </li>
+      </ul>
+   </li>
+   <li><span class="tag">Opacity</span><br/>
+      The opacity of the window. This is a floating point value between
+      <span class="literal">0.0</span> and <span class="literal">1.0</span>.
+      Note that a composite manager, such as
+      <a href="https://github.com/chjj/compton">compton</a>, is required
+      for this.
+   </li>
+</ul>
+</div>
+
+<h2 id="tasklist">Task List Style</h2>
+<p>
+   The <span class="tag">TaskListStyle</span> tag controls the look
+   of task lists.  The following attribute is supported:
+</p>
+<ul>
+   <li><span class="attribute">decorations</span><br/>
+      Determines the decorations to use for task lists.
+      Possible values include <span class="literal">flat</span>
+      and <span class="literal">motif</span>. The default is
+      inherited from <span class="tag">TrayStyle</span>.
+   </li>
+</ul>
+<p>
+   Within this tag the following tags are supported:
+</p>
+<div>
+<ul>
+   <li><span class="tag">Font</span><br/>
+      The font used for program names.
+      Inherited from <span class="tag">TrayStyle</span> by default.
+      See <a href="fonts.html">Fonts</a>.
+   </li>
+   <li><span class="tag">Foreground</span><br/>
+      The foreground color of the task list.
+      Inherited from <span class="tag">TrayStyle</span> by default.
+      See <a href="#colors">Colors</a>.
+   </li>
+   <li><span class="tag">Background</span><br/>
+      The background color of the task list. Gradients are supported.
+      Inherited from <span class="tag">TrayStyle</span> by default.
+      See <a href="#colors">Colors</a>.
+   </li>
+   <li><span class="tag">Outline</span><br/>
+      The outline color.
+      Inherited from <span class="tag">TrayStyle</span> by default.
+      See <a href="#colors">Colors</a>.
+   </li>
+   <li><span class="tag">Active</span><br/>
+      Colors for active items in the list.
+      Within this tag, the following tags are supported:
+      <ul>
+          <li><span class="tag">Background</span><br/>
+             The default active background color.
+             Inherited from <span class="tag">TrayStyle</span> by default.
+             See <a href="#colors">Colors</a>.
+          </li>
+          <li><span class="tag">Foreground</span><br/>
+             The default active foreground color.
+             Inherited from <span class="tag">TrayStyle</span> by default.
+             See <a href="#colors">Colors</a>.
+          </li>
+          <li><span class="tag">Outline</span><br/>
+             The outline color for active items.
+             Inherited from <span class="tag">TrayStyle</span> by default.
+             See <a href="#colors">Colors</a>.
+          </li>
+      </ul>
+   </li>
+</ul>
+</div>
+
+<h2 id="traybutton">Tray Button Style</h2>
+<p>
+   The <span class="tag">TrayButtonStyle</span> tag controls the look
+   of tray buttons on the tray.  Within this tag, the following tags
+   are supported.
+</p>
+<div>
+<ul>
+   <li><span class="tag">Font</span><br/>
+      The font used for tray button labels.
+      Inherited from <span class="tag">TrayStyle</span> by default.
+      See <a href="fonts.html">Fonts</a>.
+   </li>
+   <li><span class="tag">Foreground</span><br/>
+      The foreground color for tray button labels.
+      Inherited from <span class="tag">TrayStyle</span> by default.
+      See <a href="#colors">Colors</a>.
+   </li>
+   <li><span class="tag">Background</span><br/>
+      The background color of tray buttons. Gradients are supported.
+      Inherited from <span class="tag">TrayStyle</span> by default.
+      See <a href="#colors">Colors</a>.
+   </li>
+   <li><span class="tag">Outline</span><br/>
+      The outline color.
+      Inherited from <span class="tag">TrayStyle</span> by default.
+      See <a href="#colors">Colors</a>.
+   </li>
+   <li><span class="tag">Active</span><br/>
+      Colors for pressed tray buttons.
+      Within this tag, the following tags are supported:
+      <ul>
+          <li><span class="tag">Background</span><br/>
+             The default active background color.
+             Inherited from <span class="tag">TrayStyle</span> by default.
+             See <a href="#colors">Colors</a>.
+          </li>
+          <li><span class="tag">Foreground</span><br/>
+             The default active foreground color.
+             Inherited from <span class="tag">TrayStyle</span> by default.
+             See <a href="#colors">Colors</a>.
+          </li>
+          <li><span class="tag">Outline</span><br/>
+             The active outline color.
+             Inherited from <span class="tag">TrayStyle</span> by default.
+             See <a href="#colors">Colors</a>.
+          </li>
+      </ul>
+   </li>
+</ul>
+</div>
+
+<h2 id="pager">Pager Style</h2>
+<p>
+   The <span class="tag">PagerStyle</span> tag controls the look of pagers
+   on the tray. Within this tag, the following tags are supported.
+</p>
+<div>
+<ul>
+   <li><span class="tag">Outline</span><br/>
+      The color of the outline around windows shown in the pager.
+      See <a href="#colors">Colors</a>.
+   </li>
+   <li><span class="tag">Foreground</span><br/>
+      The color of inactive windows shown in the pager.
+      See <a href="#colors">Colors</a>.
+   </li>
+   <li><span class="tag">Background</span><br/>
+      The background of inactive desktops shown in the pager.
+      See <a href="#colors">Colors</a>.
+   </li>
+   <li><span class="tag">Text</span><br/>
+      The color to use for pager labels.
+      See <a href="#colors">Colors</a>.
+   </li>
+   <li><span class="tag">Font</span><br/>
+      The font to use for pager labels.
+      See <a href="fonts.html">Fonts</a>.
+   </li>
+   <li><span class="tag">Active</span><br/>
+      Colors for active windows shown in the pager.
+      Within this tag, the following tags are supported:
+      <ul>
+         <li><span class="tag">Foreground</span><br/>
+            The color of active windows shown in the pager.
+            See <a href="#colors">Colors</a>.
+         </li>
+         <li><span class="tag">Background</span><br/>
+            The color of active desktops shown in the pager.
+            See <a href="#colors">Colors</a>.
+         </li>
+      </ul>
+   </li>
+</ul>
+</div>
+
+<h2 id="menu">Menu Style</h2>
+<p>
+   The <span class="tag">MenuStyle</span> tag controls the look of menus in
+   JWM (this includes the root menu and window menus).
+   This tag supports the following attribute:
+</p>
+<div>
+<ul>
+   <li><span class="attribute">decorations</span><br/>
+      Determines the decorations to use for menus.
+      Possible values include <span class="literal">flat</span>
+      and <span class="literal">motif</span>. The default is
+      <span class="literal">flat</span>.
+   </li>
+</ul>
+</div>
+<p>
+   Within this tag the following tags are supported:
+</p>
+<div>
+<ul>
+   <li><span class="tag">Font</span><br/>
+      The font used on menus.
+      See <a href="fonts.html">Fonts</a>.
+   </li>
+   <li><span class="tag">Foreground</span><br/>
+      The text color of inactive menu items.
+      See <a href="#colors">Colors</a>.
+   </li>
+   <li><span class="tag">Background</span><br/>
+      The background color of inactive menu items.
+      See <a href="#colors">Colors</a>.
+   </li>
+   <li><span class="tag">Outline</span><br/>
+      The outline color.
+      See <a href="#colors">Colors</a>.
+   </li>
+   <li><span class="tag">Active</span><br/>
+      Colors for active menu items.
+      Within this tag, the following tags are supported:
+      <ul>
+         <li><span class="tag">Foreground</span><br/>
+            The text color of active menu items.
+            See <a href="#colors">Colors</a>.
+         </li>
+         <li><span class="tag">Background</span><br/>
+            Text background color of active menu items.
+            Gradients are supported.
+            See <a href="#colors">Colors</a>.
+         </li>
+      </ul>
+   </li>
+   <li><span class="tag">Opacity</span><br/>
+      The opacity of the window. This is a floating point value between
+      <span class="literal">0.0</span> and
+      <span class="literal">1.0</span>.
+      Note that a composite manager, such as
+      <a href="https://github.com/chjj/compton">compton</a>, is required
+      for this.
+   </li>
+</ul>
+</div>
+
+<h2 id="popup">Popup Style</h2>
+<p>
+   The <span class="tag">PopupStyle</span> tag controls the look of popup
+   windows such as those shown when the mouse sits over a task list item.
+   This tag supports the following attributes:
+</p>
+<div>
+<ul>
+   <li><span class="attribute">enabled</span><br/>
+   Determine if popups are enabled. This is a comma-separated list of one
+   or more of the following:
+      <ul>
+         <li><span class="literal">true</span> - All enabled</li>
+         <li><span class="literal">false</span> - All disabled</li>
+         <li><span class="literal">button</span> - Tray buttons</li>
+         <li><span class="literal">clock</span> - Clocks</li>
+         <li><span class="literal">menu</span> - Menus</li>
+         <li><span class="literal">pager</span> - Pagers</li>
+         <li><span class="literal">task</span> - Task list items</li>
+      </ul>
+   The default is <span class="literal">true</span>.
+   </li>
+   <li><span class="attribute">delay</span><br/>
+   The delay in milliseconds before popups activate. The default is
+   <span class="literal">600</span>.
+   </li>
+</ul>
+</div>
+<p>
+   Within this tag the following tags are supported:
+</p>
+<div>
+<ul>
+   <li><span class="tag">Font</span><br/>
+      The font to use.
+      See <a href="fonts.html">Fonts</a>.
+   </li>
+   <li><span class="tag">Outline</span><br/>
+      The outline color of the window.
+      See <a href="#colors">Colors</a>.
+   </li>
+   <li><span class="tag">Foreground</span><br/>
+      The text color.
+      See <a href="#colors">Colors</a>.
+   </li>
+   <li><span class="tag">Background</span><br/>
+      The background color of the window.
+      See <a href="#colors">Colors</a>.
+   </li>
+</ul>
+</div>
+
+<h2 id="colors">Colors</h2>
+<p>
+   Colors for various parts of JWM are specified within specific tags
+   (described above). Colors may be 3-or 6-character hex triplets
+   in RGB format (for example, <i>#F00</i> or <i>#FF0000</i> is red)
+   or by a name recognized by the X server (such as <i>red</i>).
+   For components that support gradients, two colors may be specified
+   separated by a colon.
+</p>
+
+<h2 id="icons">Icons</h2>
+<p>
+   Icons for windows that don't supply an icon via the _NET_WM_ICON hint
+   are located by searching the icon search path(s) for an icon whose
+   name (minus the extension) matches the instance name of the window
+   as returned in the WM_CLASS hint. If this lookup fails, a default icon
+   is supplied. This icon will be displayed for the window on it's title bar
+   and on the task list. Icons that are not an appropriate size will be
+   scaled. Square icons work best.
+</p>
+<p>
+   For menu items, the icon path is searched for a match. The icon
+   specified for a menu item must be the exact name of the icon file
+   with extension. If no match is found, a blank area will appear where
+   the icon should appear. If an icon is not specified for any menu item
+   in a menu, no space will be allocated for icons.
+</p>
+<p>
+   Zero or more <span class="tag">IconPath</span> tags may be specified.
+   The text of this tag is assumed to be an absolute directory path to a
+   directory containing XPM, PNG, and/or JPEG icons. When searching for
+   icons, if multiple paths are provided, the paths will be searched
+   in order until a match is made. Note that icon, PNG, JPEG, and XPM
+   support are compile-time options.
+</p>
+
+<h2 id="keys">Key Bindings</h2>
+<p>
+   Keyboard bindings in JWM are controlled by the configuration file.
+   For example:
+</p>
+<div class="code">
+&lt;?<span class="tag">xml</span>
+<span class="attribute">version</span>=&quot;<span class="literal">1.0</span>&quot;?&gt;<br/>
+&lt;<span class="tag">JWM</span>&gt;<br/>
+&nbsp;&nbsp;.<br/>
+&nbsp;&nbsp;.<br/>
+&nbsp;&nbsp;.<br/>
+&nbsp;&nbsp;&lt;<span class="tag">Key</span>
+<span class="attribute">mask</span>=&quot;<i>mask</i>&quot;
+<span class="attribute">key</span>=&quot;<i>key</i>&quot;&gt;<i>action</i>&lt;/<span class="tag">Key</span>&gt;<br/>
+&lt;/<span class="tag">JWM</span>&gt;
+</div>
+<p>
+   Here <i>mask</i> specifies the modifier keys that must be held to enable
+   this action and <i>key</i> specifies the key that is to be pressed.
+   <span class="attribute">keycode</span> may be specified instead of
+   <span class="attribute">key</span> if the key code is known
+   but the key is not (or there is no symbol for the key code).
+   <i>action</i> is the action performed when this combination is pressed.
+   The <i>mask</i> section is optional. It can contain any number of the
+   following values:
+</p>
+<div>
+<ul>
+   <li>A - Alt (mod1)</li>
+   <li>C - Control</li>
+   <li>S - Shift</li>
+   <li>1 - mod1</li>
+   <li>2 - mod2</li>
+   <li>3 - mod3</li>
+   <li>4 - mod4</li>
+   <li>5 - mod5</li>
+</ul>
+</div>
+<p>
+   Note that physical key which determines the mask can be configured using the
+   &quot;xmodmap&quot; program.
+   The <i>key</i> section must contain a value key string for XStringToKeysym.
+   These values are usually what one would expect (for example, the escape
+   key is called &quot;Escape&quot;).<br/>
+   Finally, the <i>action</i> is the action to be performed when a key is
+   pressed. Valid actions are:
+</p>
+<table class="listing">
+   <tr class="head">
+      <th>Value</th><th>Description</th>
+   </tr>
+
+   <tr class="listing">
+      <td><span class="literal">up</span></td>
+      <td>Move up.</td>
+   </tr>
+   <tr class="listing">
+      <td><span class="literal">down</span></td>
+      <td>Move down.</td>
+   </tr>
+   <tr class="listing">
+      <td><span class="literal">right</span></td>
+      <td>Move right.</td>
+   </tr>
+   <tr class="listing">
+      <td><span class="literal">left</span></td>
+      <td>Move left.</td>
+   </tr>
+
+   <tr class="listing">
+      <td><span class="literal">escape</span></td>
+      <td>Stop a move/resize or exit a menu.</td>
+   </tr>
+   <tr class="listing">
+      <td><span class="literal">select</span></td>
+      <td>Make a selection.</td>
+   </tr>
+
+   <tr class="listing">
+      <td><span class="literal">next</span></td>
+      <td>Switch to the next window in the task list.</td>
+   </tr>
+   <tr class="listing">
+      <td><span class="literal">nextstacked</span></td>
+      <td>Switch to the next window in the stacking order.</td>
+   </tr>
+   <tr class="listing">
+      <td><span class="literal">prev</span></td>
+      <td>Switch to the previous window in the task list.</td>
+   </tr>
+   <tr class="listing">
+      <td><span class="literal">prevstacked</span></td>
+      <td>Switch to the previous window in the stacking order.</td>
+   </tr>
+   <tr class="listing">
+      <td><span class="literal">close</span></td>
+      <td>Close window.</td>
+   </tr>
+   <tr class="listing">
+      <td><span class="literal">fullscreen</span></td>
+      <td>Toggle fullscreen.</td>
+   </tr>
+   <tr class="listing">
+      <td><span class="literal">minimize</span></td>
+      <td>Minimize window.</td>
+   </tr>
+   <tr class="listing">
+      <td><span class="literal">maximize</span></td>
+      <td>Maximize window.</td>
+   </tr>
+   <tr class="listing">
+      <td><span class="literal">maxv</span></td>
+      <td>Maximize window vertically.</td>
+   </tr>
+   <tr class="listing">
+      <td><span class="literal">maxh</span></td>
+      <td>Maximize window horizontally.</td>
+   </tr>
+   <tr class="listing">
+      <td><span class="literal">maxtop</span></td>
+      <td>Maximize window to the top half of the screen.</td>
+   </tr>
+   <tr class="listing">
+      <td><span class="literal">maxbottom</span></td>
+      <td>Maximize window to the bottom half of the screen.</td>
+   </tr>
+   <tr class="listing">
+      <td><span class="literal">maxleft</span></td>
+      <td>Maximize window to the left half of the screen.</td>
+   </tr>
+   <tr class="listing">
+      <td><span class="literal">maxright</span></td>
+      <td>Maximize window to the right half of the screen.</td>
+   </tr>
+   <tr class="listing">
+      <td><span class="literal">restore</span></td>
+      <td>Restore maximized or minimized window.</td>
+   </tr>
+   <tr class="listing">
+      <td><span class="literal">shade</span></td>
+      <td>Shade window.</td>
+   </tr>
+   <tr class="listing">
+      <td><span class="literal">move</span></td>
+      <td>Move window.</td>
+   </tr>
+   <tr class="listing">
+      <td><span class="literal">resize</span></td>
+      <td>Resize window.</td>
+   </tr>
+
+   <tr class="listing">
+      <td><span class="literal">root:</span><i>n</i></td>
+      <td>Show root menu <i>n</i>.</td>
+   </tr>
+   <tr class="listing">
+      <td><span class="literal">window</span></td>
+      <td>Show the window menu.</td>
+   </tr>
+   <tr class="listing">
+      <td><span class="literal">desktop</span><i>#</i></td>
+      <td>Switch to a specific desktop. To use this, <i>#</i> must
+      be specified in the <i>key</i> section. Then numbers from 1 to the 
+      number of desktops configured are substituted for <i>#</i>.</td>
+   </tr>
+   <tr class="listing">
+      <td><span class="literal">rdesktop</span></td>
+      <td>Move one desktop to the right.</td>
+   </tr>
+   <tr class="listing">
+      <td><span class="literal">ldesktop</span></td>
+      <td>Move one desktop to the left.</td>
+   </tr>
+   <tr class="listing">
+      <td><span class="literal">udesktop</span></td>
+      <td>Move up one desktop.</td>
+   </tr>
+   <tr class="listing">
+      <td><span class="literal">ddesktop</span></td>
+      <td>Move down one desktop.</td>
+   </tr>
+   <tr class="listing">
+      <td><span class="literal">sendl</span></td>
+      <td>Send the active window left.</td>
+   </tr>
+   <tr class="listing">
+      <td><span class="literal">sendr</span></td>
+      <td>Send the active window right.</td>
+   </tr>
+   <tr class="listing">
+      <td><span class="literal">sendu</span></td>
+      <td>Send the active window up.</td>
+   </tr>
+   <tr class="listing">
+      <td><span class="literal">sendd</span></td>
+      <td>Send the active window down.</td>
+   </tr>
+   <tr class="listing">
+      <td><span class="literal">exec:</span><i>command</i></td>
+      <td>Execute <i>command</i>.</td>
+   </tr>
+   <tr class="listing">
+      <td><span class="literal">restart</span></td>
+      <td>Restart JWM.</td>
+   </tr>
+   <tr class="listing">
+      <td><span class="literal">exit</span></td>
+      <td>Exit JWM.</td>
+   </tr>
+   <tr class="listing">
+      <td><span class="literal">showtray</span></td>
+      <td>Show trays.</td>
+   </tr>
+
+</table>
+<p>
+   Note that any binding not specified in the configuration file will not
+   be accessible. Further, it is possible to bind multiple key combinations
+   to the same action.
+</p>
+
+<h2 id="mouse">Mouse Bindings</h2>
+<p>
+   Mouse bindings are configured using <span class="tag">Mouse</span> tags.
+   The <span class="attribute">context</span> attribute determines the
+   context in which the binding applies, the
+   <span class="attribute">button</span> attribute species the mouse
+   button, and the (optional) <span class="attribute">mask</span>
+   attribute species the key mask that must be in effect for the
+   binding to match. Finally, the text of the <span class="tag">Mouse</span>
+   tag determines the action to perform (see <a href="#key">Key Bindings</a>
+   for a list of actions). The <span class="attribute">button</span> is
+   a mouse button number, starting at <span class="literal">1</span>
+   (typically the left button). A positive value for the button indicates
+   that the action applies on mouse press and a negative value
+   indicates that the action applise on release. The button number can be
+   repeated to bind to double clicks. The following mouse contexts are
+   supported:
+</p>
+<div>
+<ul>
+   <li><span class="literal">border</span><br/>
+      The window border.
+   </li>
+   <li><span class="literal">close</span><br/>
+      The close button on a window.
+   </li>
+   <li><span class="literal">icon</span><br/>
+      The icon button on a window.
+   </li>
+   <li><span class="literal">maximize</span><br/>
+      The maximize button on a window.
+   </li>
+   <li><span class="literal">minimize</span><br/>
+      The minimize button on a window.
+   </li>
+   <li><span class="literal">root</span><br/>
+      The root window (or desktop).
+   </li>
+   <li><span class="literal">title</span><br/>
+      The title bar of a window.
+   </li>
+</ul>
+</div>
+<p>
+Other bindings:
+</p>
+<div>
+<ul>
+   <li>Button 1 (typically the left button)<br/>
+      Over a task list, raises or minimizes the window.
+      Over a pager, changes the current desktop.
+   </li>
+   <li>Button 2 (typically the middle button)<br/>
+      Over a pager, changes the current desktop.
+   </li>
+   <li>Button 3 (typically the right button)<br/>
+      Over a task list, shows the window menu.
+      Over a pager, dragging with button 3 will move a window.
+   </li>
+</ul>
+</div>
+<p>
+   When a menu is open, the scroll wheel will move through menu items.
+   When over the pager, the scroll wheel will switch desktops.
+   When over a task list, the scroll wheel will switch windows.
+</p>
+
+<h2 id="desktops">Desktops</h2>
+<p>
+   Virtual desktops are controlled with the <span class="tag">Desktops</span>
+   tag. Within this tag the following attributes are supported.
+</p>
+<div>
+<ul>
+   <li><span class="attribute">width</span><br/>
+      The number of virtual desktops in the horizontal direction. The default
+      is <span class="literal">4</span>.
+   </li>
+   <li><span class="attribute">height</span><br/>
+      The number of virtual desktops in the vertical direction. The default
+      is <span class="literal">1</span>.
+   </li>
+</ul>
+</div>
+<p>
+   Within the <span class="tag">Desktops</span> tag the following tags
+   are supported.
+</p>
+<div>
+<ul>
+   <li><span class="tag">Background</span><br/>
+      The default background for desktops. The
+      <span class="attribute">type</span> attribute determines the type of
+      background and the text contained within this tag is the value. Valid
+      types are:
+      <ul>
+         <li><span class="literal">solid</span><br/>
+            A solid color. See <a href="#colors">Colors</a>.
+            This is the default.
+         </li>
+         <li><span class="literal">gradient</span><br/>
+            A gradient color. See <a href="#colors">Colors</a>.
+         </li>
+         <li><span class="literal">image</span><br/>
+            A stretched image.
+         </li>
+         <li><span class="literal">scale</span><br/>
+            A scaled image.
+         </li>
+         <li><span class="literal">tile</span><br/>
+            A tiled image.
+         </li>
+         <li><span class="literal">command</span><br/>
+            A command to be run for setting the background.
+         </li>
+      </ul>
+   </li>
+   <li><span class="tag">Desktop</span><br/>
+      Desktop-specific data. The <span class="attribute">name</span>
+      attribute may be specified to name the desktop (the default is the
+      desktop number). Within this tag, a <span class="tag">Background</span>
+      tag may be specified for a desktop-specific background. See
+      <span class="tag">Background</span> above for more information.
+   </li>
+</ul>
+</div>
+
+<h2 id="other">Other Settings</h2>
+<p>
+   The following tags may also be supplied.
+</p>
+<table class="listing">
+   <tr class="head">
+      <th>Tag</th><th>Description</th><th>Default</th><th>Range</th>
+   </tr>
+   <tr class="listing">
+      <td><span class="tag">ButtonClose</span></td>
+      <td>An icon to use for the close button on client windows instead
+      of the default.</td>
+      <td> </td>
+      <td> </td>
+   </tr>
+   <tr class="listing">
+      <td><span class="tag">ButtonMax</span></td>
+      <td>An icon to use for the maximize button on client windows instead
+      of the default.</td>
+      <td> </td>
+      <td> </td>
+   </tr>
+   <tr class="listing">
+      <td><span class="tag">ButtonMaxActivve</span></td>
+      <td>An icon to use for the maximize button on maximized client windows
+      instead of the default.</td>
+      <td> </td>
+      <td> </td>
+   </tr>
+   <tr class="listing">
+      <td><span class="tag">ButtonMenu</span></td>
+      <td>An icon to use for the menu button on client windows instead
+      of the default.  This is used if the client window does not specify
+      an icon.</td>
+      <td> </td>
+      <td> </td>
+   </tr>
+   <tr class="listing">
+      <td><span class="tag">ButtonMin</span></td>
+      <td>An icon to use for the minimize button on client windows
+      instead of the default.</td>
+      <td> </td>
+      <td> </td>
+   </tr>
+   <tr class="listing">
+      <td><span class="tag">DefaultIcon</span></td>
+      <td>The default icon to use for windows that do not specify an
+      icon or have one explicitly configured.</td>
+      <td> </td>
+      <td> </td>
+   </tr>
+   <tr class="listing">
+      <td><span class="tag">DoubleClickDelta</span></td>
+      <td>The number of pixels the mouse can move during a double click</td>
+      <td><span class="literal">2</span></td>
+      <td><span class="literal">0</span>
+      - <span class="literal">32</span></td>
+   </tr>
+   <tr class="listing">
+      <td><span class="tag">DoubleClickSpeed</span></td>
+      <td>The number of milliseconds between clicks for a double click</td>
+      <td><span class="literal">400</span></td>
+      <td><span class="literal">1</span>
+      - <span class="literal">2000</span></td>
+   </tr>
+   <tr class="listing">
+      <td><span class="tag">FocusModel</span></td>
+      <td>The focus model used by JWM:
+         <ul>
+            <li><span class="literal">click</span> -
+            Click to focus and raise.</li>
+            <li><span class="literal">clicktitle</span> -
+            Click to focus. Click title or border to raise.</li>
+            <li><span class="literal">sloppy</span> -
+            Mouse over to focus. Click to raise.</li>
+            <li><span class="literal">sloppytitle</span> -
+            Mouse over to focus. Click title or border to raise.</li>
+         </ul>
+      </td>
+      <td><span class="literal">sloppy</span></td>
+      <td>
+         <span class="literal">click</span>,
+         <span class="literal">clicktitle</span>,
+         <span class="literal">sloppy</span>,
+         <span class="literal">sloppytitle</span>
+      </td>
+   </tr>
+   <tr class="listing">
+      <td><span class="tag">MoveMode</span></td>
+      <td>The move mode.<br>
+
+      The optional <span class="attribute">mask</span> attribute
+      specifies the key mask that, when held, allows one to move the
+      window by dragging it.  The default is
+      <span class="literal">A</span>.<br>
+
+      The optional <span class="attribute">coordinates</span> attribute
+      determines the location of the move status window. Possible values
+      are <span class="literal">off</span>,
+      <span class="literal">corner</span>,
+      <span class="literal">window</span>, and
+      <span class="literal">screen</span> (the default).<br>
+
+      The optional <span class="attribute">delay</span> attribute
+      sets the delay in milliseconds before moving a window to a different
+      desktop.  Setting this to <span class="literal">0</span> disables
+      dragging between desktops.  <span class="literal">1000</span> is
+      the default.<br>
+
+      </td>
+      <td><span class="literal">opaque</span></td>
+      <td><span class="literal">opaque</span>,
+      <span class="literal">outline</span></td>
+   </tr>
+   <tr class="listing">
+      <td><span class="tag">ResizeMode</span></td>
+      <td>The resize mode.
+      The optional <span class="attribute">coordinates</span> attribute
+      determines the location of the resize status window. Possible values
+      are <span class="literal">off</span>,
+      <span class="literal">corner</span>,
+      <span class="literal">window</span>, and
+      <span class="literal">screen</span> (the default).
+      </td>
+      <td><span class="literal">opaque</span></td>
+      <td><span class="literal">opaque</span>,
+      <span class="literal">outline</span></td>
+   </tr>
+   <tr class="listing">
+      <td><span class="tag">RestartCommand</span></td>
+      <td>A command to run when JWM restarts.</td>
+      <td> </td>
+      <td> </td>
+   </tr>
+   <tr class="listing">
+      <td><span class="tag">ShutdownCommand</span></td>
+      <td>A command to run when JWM shuts down.</td>
+      <td> </td>
+      <td> </td>
+   </tr>
+   <tr class="listing">
+      <td><span class="tag">SnapMode</span></td>
+      <td>The snap mode. An optional attribute
+      <span class="attribute">distance</span> specifies the distance for
+      snapping (default is <span class="literal">5</span>, range
+      <span class="literal">1</span> - <span class="literal">32</span>).</td>
+      <td><span class="literal">border</span></td>
+      <td><span class="literal">none</span>,
+      <span class="literal">screen</span>,
+      <span class="literal">border</span></td>
+   </tr>
+   <tr class="listing">
+      <td><span class="tag">StartupCommand</span></td>
+      <td>A command to run when JWM starts.</td>
+      <td> </td>
+      <td> </td>
+   </tr>
+</table>
+
+<p>
+</p>
+
+      <div id="foot">
+        
+        
+        
+        
+        <div id="location">
+          <a href="http://joewing.net/">home</a>
+          
+            <span>/</span>
+            
+              
+                <a href="http://joewing.net/projects">projects</a> 
+              
+          
+            <span>/</span>
+            
+              
+                <a href="http://joewing.net/projects/jwm">jwm</a> 
+              
+          
+            <span>/</span>
+            
+              
+                JWM Configuration
+              
+          
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

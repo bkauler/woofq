@@ -1,0 +1,66 @@
+#!/bin/bash
+#20220830
+#pass in compatdistro, compatversion. ex: debian bookworm
+
+if [ -f ./DISTRO_SPECS ];then
+. ./DISTRO_SPECS #running in woof.
+else
+. /etc/DISTRO_SPECS
+fi
+CWD="$(pwd)"
+
+DEBDISTRO="${1}"
+DEBVERSION="${2}"
+
+case "$DEBDISTRO" in
+ debian)
+  URLSPECS="http://http.us.debian.org/debian/dists/${DEBVERSION}/main/binary-${DISTRO_TARGETARCH}/Packages.xz|Packages_main \
+http://http.us.debian.org/debian/dists/${DEBVERSION}/non-free/binary-${DISTRO_TARGETARCH}/Packages.xz|Packages_non-free \
+http://http.us.debian.org/debian/dists/${DEBVERSION}/contrib/binary-${DISTRO_TARGETARCH}/Packages.xz|Packages_contrib"
+ ;;
+esac
+
+#delete previous d/l, if any...
+rm -rf /var/local/pkgget/db-foreign/${DEBDISTRO}/${DEBVERSION} 2>/dev/null
+mkdir -p /var/local/pkgget/db-foreign/${DEBDISTRO}/${DEBVERSION}
+mkdir -p /tmp/debget
+
+for aURLSPEC in ${URLSPECS}
+do
+ PKGLISTFILE="${aURLSPEC##*|}"
+ PKGLISTURI="${aURLSPEC%|*}"
+
+ cd /var/local/pkgget/db-foreign/${DEBDISTRO}/${DEBVERSION}
+ rxvt -name ${DEBDISTRO} -bg orange -geometry 80x10 -e wget ${PKGLISTURI}
+ sync
+ DLFILE="${PKGLISTURI##*/}"
+ case "$DLFILE" in
+  *.bz2)
+   xDLFILE="`basename $DLFILE .bz2`"
+   bunzip2 $DLFILE
+   RETSTAT=$?
+  ;;
+  *.gz)
+   xDLFILE="`basename $DLFILE .gz`"
+   gunzip $DLFILE
+   RETSTAT=$?
+  ;;
+  *.xz)
+   xDLFILE="`basename $DLFILE .xz`"
+   unxz $DLFILE
+   RETSTAT=$?
+  ;;
+ esac
+ if [ $RETSTAT -ne 0 ];then
+  echo "Deb DB package d/l failure"
+  rm -f ./${xDLFILE}*
+  exit 1
+ fi
+ #filter out utf-8 characters...
+ iconv -c -f utf-8 -t ascii ${xDLFILE} > /tmp/debget/${xDLFILE}
+ mv -f /tmp/debget/${xDLFILE} ./${PKGLISTFILE} #ex: Packages_main
+ rm -f ./${xDLFILE}
+ cd "$CWD"
+ sync
+
+done

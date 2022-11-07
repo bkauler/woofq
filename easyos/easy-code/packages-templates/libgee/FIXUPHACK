@@ -1,0 +1,25 @@
+#note: DISTRO_BINARY_COMPAT and DISTRO_FILE_PREFIX are visible here, exported in 2createpackages.
+#140117 xARCHDIR, ARCHDIR and DISTRO_ARCHDIR_SYMLINKS exported in 2createpackages. 
+#140117 note, 2createpackages may move /lib, /usr/lib, /usr/bin in template to ARCHDIR subdir.
+#150726 have exported BUILD_CHOICE_MERGE_DEVX in 2createpackages.
+
+if [ "$BUILD_CHOICE_MERGE_DEVX" != "yes" ];then #150726
+ if [ -d usr/share/vala/vapi ];then
+  mkdir -p ../libgee_DEV/usr/share
+  mv -f usr/share/* ../libgee_DEV/usr/share/
+ fi
+fi
+
+#101225 gyro says need this...
+if [ "$xARCHDIR" ];then #140117
+ if [ ! -e usr/lib/${ARCHDIR}/libgee.so.0 ];then
+  if [ -e usr/lib/${ARCHDIR}/libgee.so.2 ];then
+   ln -s libgee.so.2 usr/lib/${ARCHDIR}/libgee.so.0
+  fi
+ fi
+fi
+if [ ! -e usr/lib/libgee.so.0 ];then
+ if [ -e usr/lib/libgee.so.2 ];then
+  ln -s libgee.so.2 usr/lib/libgee.so.0
+ fi
+fi

@@ -1,0 +1,9 @@
+
+#161230 slackware, have changed this from devx to main f.s.
+#but move these to devx...
+BASEDIR="$(pwd | rev | cut -f 1 -d '/' | rev)"
+if [ "$BASEDIR" == "libtool" ];then
+ mkdir -p ../libtool_DEV/usr/bin
+ mv -f usr/bin/* ../libtool_DEV/usr/bin/ 2>/dev/null
+ mv -f usr/share/libtool ../libtool_DEV/usr/share/ 2>/dev/null
+fi

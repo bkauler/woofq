@@ -1,0 +1,15 @@
+
+#170511 oe build
+if [ -d usr/lib${xARCHDIR}/nspr/tests ];then
+ mkdir -p ../nspr_DEV/usr/lib${xARCHDIR}/nspr/tests
+ cp -a -f usr/lib${xARCHDIR}/nspr/tests/* ../nspr_DEV/usr/lib${xARCHDIR}/nspr/tests/
+ rm -rf usr/lib${xARCHDIR}/nspr/tests
+fi
+
+#20211204 oe, nspr-config is missing (seamonkey 2.49.5 wants it)...
+mkdir -p ../nspr_DEV/usr/bin
+echo '#!/bin/sh
+ PARAM1="$@"
+ [ "$PARAM1" == "--version" ] && PARAM1="--modversion"
+ pkg-config $PARAM1 nspr' > ../nspr_DEV/usr/bin/nspr-config
+chmod 755 ../nspr_DEV/usr/bin/nspr-config

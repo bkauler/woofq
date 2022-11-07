@@ -1,0 +1,13 @@
+#note: DISTRO_BINARY_COMPAT and DISTRO_FILE_PREFIX are visible here, exported in 2createpackages.
+#140117 xARCHDIR, ARCHDIR and DISTRO_ARCHDIR_SYMLINKS exported in 2createpackages. 
+#140117 note, 2createpackages may move /lib, /usr/lib, /usr/bin in template to ARCHDIR subdir.
+#150726 fix finding libs.
+
+LIBPARTED="$(find . -type f -name 'libparted.so.*' | head -n 1)" #150726
+if [ "$LIBPARTED" ];then
+ BASELIBPARTED="`basename $LIBPARTED`"
+ DIRLIBPARTED="`dirname $LIBPARTED`"
+ ln -s $BASELIBPARTED ${DIRLIBPARTED}/libparted-1.8.so.6
+ ln -s $BASELIBPARTED ${DIRLIBPARTED}/libparted-1.8.so.8
+ ln -s $BASELIBPARTED ${DIRLIBPARTED}/libparted-1.8.so.9 2>/dev/null
+fi

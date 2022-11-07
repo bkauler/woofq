@@ -1,0 +1,26 @@
+#note: DISTRO_BINARY_COMPAT and DISTRO_FILE_PREFIX are visible here, exported in 2createpackages.
+#140117 xARCHDIR, ARCHDIR and DISTRO_ARCHDIR_SYMLINKS exported in 2createpackages. 
+#140117 note, 2createpackages may move /lib, /usr/lib, /usr/bin in template to ARCHDIR subdir.
+#20210819 fix symlink msg.
+
+#missing in t2 pkg...
+if [ "$xARCHDIR" ];then #140117
+ if [ ! -e usr/lib${xARCHDIR}/libxvidcore.so.4 ];then
+  FNDXVIDLIB="`find usr/lib${xARCHDIR} -maxdepth 1 -type f -name 'libxvidcore.so.*' | tail -n 1`"
+  if [ "$FNDXVIDLIB" ];then
+   BASEXVIDLIB="`basename $FNDXVIDLIB`"
+   ln -s $BASEXVIDLIB usr/lib${xARCHDIR}/libxvidcore.so.4
+   ln -s $BASEXVIDLIB usr/lib${xARCHDIR}/libxvidcore.so
+  fi
+ fi
+ [ ! -e usr/lib${xARCHDIR}/libxvidcore.so ] && ln -s libxvidcore.so.4 usr/lib${xARCHDIR}/libxvidcore.so 2>/dev/null
+fi
+if [ ! -e usr/lib/libxvidcore.so.4 ];then
+ FNDXVIDLIB="`find usr/lib -maxdepth 1 -type f -name 'libxvidcore.so.*' | tail -n 1`"
+ if [ "$FNDXVIDLIB" ];then
+  BASEXVIDLIB="`basename $FNDXVIDLIB`"
+  ln -s $BASEXVIDLIB usr/lib/libxvidcore.so.4
+  ln -s $BASEXVIDLIB usr/lib/libxvidcore.so
+ fi
+fi
+[ ! -e usr/lib/libxvidcore.so ] && ln -s libxvidcore.so.4 usr/lib/libxvidcore.so

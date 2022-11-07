@@ -1,0 +1,152 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html><head>
+<meta http-equiv="content-type" content="text/html; charset=windows-1252">
+<title></title>
+</head>
+<body>
+<table width="600" align="center" cellspacing="2" cellpadding="2" border="0">
+  <tbody>
+    <tr>
+      <td valign="top">
+        <h1>About root, spot and fido<br>
+        </h1>
+This is a short explanation of why users run as the administrator (root)
+ in EasyOS (and Puppy Linux), and/or use the non-root spot account.<br>
+        <h2>root, spot, etc.<br>
+</h2>
+ In a nutshell, root login gives you total access to everything, whereas
+ a non-root login gives you restricted access (that is configurable for 
+each user by the administrator).<br>EasyOS is not a multi-user system as are most other Linux distributions, 
+in which there is a root login plus any number of non-root login 
+accounts.<br>
+EasyOS on the other-hand, has root as the normal login, plus non-root logins named
+ spot, rover and zeus for running apps (also fido, see below). EasyOS also has "crippled root" in containers.<br><h2>root</h2>
+There are two main objections to running as root: firstly, that you 
+might accidentally do something dumb, such as delete important files, 
+secondly that if someone gains access to your computer, either remotely via the 
+Internet/network, or locally, they will be at root-level and able to do much more 
+damage than if they gained access as a non-root user.<br>
+        <h3>Doing something dumb</h3>
+In the case of accidentally wiping important files, which files are 
+important to you? Your own personal files and data of course, which 
+regardless of whether you are logged in as your non-root account, or 
+logged-in as root, you are just as prone to doing the same dumb thing.<br>
+That is, your personal files, settings, applications, are all owned by 
+the non-root user, and can just as easily be deleted by the non-root 
+user as can be deleted by the administrator.<br>
+In other words, this argument against running as root is itself dumb. At least in respect to the safety of your own files.<br>
+<br>
+Where the "doing something dumb" argument is valid is in a multi-user 
+system, where the administrator could accidentally delete or otherwise 
+compromise another user's files. However, EasyOS is not multi-user.<br>
+<br>
+
+With regard to system files, they can easily be restored, in fact EasyOS 
+makes this easy as the entire system is in one read-only Squashfs file.<br>
+        <h3>Remote access as root</h3>
+What are you afraid of? Someone getting at your personal files and data,
+ especially such things as identification and login/password data. Much 
+of this is on your computer, and if you run a distro in which
+ you login as a non-root user, are in files owned by your non-root 
+account, meaning they are accessable equally by someone breaking in as 
+non-root user or as root.<br>
+<br>
+However, there are two scenarios in which running as root has a security risk, only one of which applies to EasyOS.<br>
+<br>
+Firstly, if you login non-root, you could bump up to root-level to 
+perform certain operations such as keep a file of usernames and 
+passwords. There are some applications also that use secret files owned 
+by root, that non-root users are not supposed to read. Thus, anyone 
+gaining access as root, can read all of those files.<br>
+<br>
+A note on the side about the above paragraph: major distros such as 
+Ubuntu allow the first user account to bump up to root just by prefixing
+ commands with "sudo" or "su", without requiring root password, which 
+makes the whole protection mechanism a joke. Considering that most 
+Ubuntu users are using this first login account as their regular login.<br>
+<br>
+Secondly, in a multi-user environment, the enemy may be another user. 
+You would never have users logging in as root in that scenario. But, I repeat, EasyOS is not multi-user.<br>
+<br>EasyOS supposes a "friendly" local environment, and the main threat is 
+from someone gaining access to your computer via the network ports while
+ you are online.<br>
+Which is 
+highly unlikely in Puppy, due to the firewall, minimal daemons (with 
+network capability disabled). But, the concern is still there...<br>
+        <h2><img alt="" src="../../../home/spot/spot.png" moz-do-not-send="true" width="100" height="100" align="middle"> spot</h2>
+This brings us to 'spot', which is a classical name for a dog. But, spot
+ is not a normal user, you don't login as user spot. Instead, you bootup
+ in the normal way as the root user, but you can choose to run some 
+Internet applications as the restricted user spot.<br>
+This means that you have unfettered access to your local system, all the
+ benefits of root, no hassles with file/directory ownerships and 
+permissions, no restrictions on access to all hardware.<br>
+But, you can run, for example, SeaMonkey (browser, Composer, 
+mail&amp;news, IRC-chat suite), as spot. The home directory for spot is 
+/home/spot, and SeaMonkey will only be able to (normally) edit/create/write files 
+inside /home/spot.<br>
+        <br>
+With spot, you have the best of both worlds. Freedom in your local system, a restricted user for Internet access. <br>
+<br>
+Note, at the time of writing, EasyOS offers only Didiwiki personal blog 
+running as spot and Seamonkey optionally running as spot -- you can 
+choose your level of web-browsing danger, via the <i>Login and Security Manager</i> in the System menu.<br>
+A fork of Puppy, FatDog64, features all Internet applications running as spot.<br>
+        <h2><img alt="" src="fido96.png" width="96" height="96" align="middle"> fido</h2>
+fido is another name for a dog, and is a full non-root login account, as you would get in any other 
+Linux distro. With one peculiarity, it's home directory is /root (which may indeed seem <i>very</i>
+ peculiar to you, but there is a reason for it!). As with other distros,
+ you would use 'su' or 'sudo' to perform administrator activities.<br>
+<br>
+fido always requires administrator password to perform administrator-level operations.<br>
+<br>
+User login as fido is a thing from the Puppy Linux days, and not supported in EasyOS. <br>
+<h2><img src="/usr/local/easy_containers/images/container96.png" alt="ec-logo" width="96" height="96" align="middle"> "crippled root"</h2>
+Puppy Linux supports spot and fido, however EasyOS has another major new
+ feature, running of apps in "crippled root" mode. This is a root user, 
+but with rights removed, so it is virtually like being a non-root user. <br>
+<br>
+There are two implementations, firstly in containers, and secondly at 
+bootup there is menu option "Copy session to RAM &amp; disable drives".<br>
+<br>
+        <h2>Final note</h2>
+EasyOS is designed for people who know what they are doing and what they 
+want, and they want to do it with the least hassles. They also want 
+exclusive use of their computer, or maybe will share with a trusted 
+person. If you want to put a small child in 
+front of your computer and let them wreak havoc, EasyOS is not 
+recommended, but then, they could wreak havoc regardless of operating 
+system. <br>
+At least with EasyOS, you can rescue an old PC, install EasyOS, 
+and let him/her do whatever. It is affordable for each user to have their own separate hardware.<br>
+<h2>Links</h2>
+FatDog64, a fork of Puppy created by "kirk" and "jamesbond", has since 
+it's inception run all network apps as user spot. Those guys have 
+created an excellent web page that explains why running as root is safe 
+(or not less-safe than running non-root):<br>
+<br>
+<a href="http://distro.ibiblio.org/fatdog/web/faqs/login.html">http://distro.ibiblio.org/fatdog/web/faqs/login.html</a> <br>
+<br>
+Some more relevant links on running as root:<br>
+<br>
+<a href="http://igurublog.wordpress.com/2010/01/16/fear-not-root/">http://igurublog.wordpress.com/2010/01/16/fear-not-root/</a> <br>
+<a href="http://web.archive.org/web/20080604034010/grafpup.org/news/?page_id=243">http://web.archive.org/web/20080604034010/grafpup.org/news/?page_id=243</a> <br>
+<br>
+        An introduction to containers in EasyOS:<br>
+<br>
+<a href="https://easyos.org/tech/how-easy-works-part-2.html">https://easyos.org/tech/how-easy-works-part-2.html</a><br>
+<br>
+"Copy session to RAM &amp; disable drives":<br>
+<br>
+<a moz-do-not-send="true" href="https://easyos.org/user/ultra-secure-web-browsing.html">https://easyos.org/user/ultra-secure-web-browsing.html</a><br>
+<br>
+Regards,<br>
+Barry Kauler<br>
+        <small>(c) Copyright Barry Kauler 2013</small> ,2019, 2021<br>
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+
+</body></html>

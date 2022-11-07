@@ -1,0 +1,629 @@
+#!/bin/bash
+#(c) Copyright Barry Kauler 2016, barryk.org
+#license: GPL3 (/usr/share/doc/legal/gpl-3.0.htm)
+#a frontend for commandline utility 'bluetoothctl'
+
+export TEXTDOMAIN=bluepup
+export TEXTDOMAINDIR=/usr/share/locale
+export OUTPUT_CHARSET=UTF-8
+
+#checks...
+if ! which pupmessage >/dev/null;then
+ xmessage -bg '#ff8080' -center "$(gettext 'Utility pupmessage is missing. This is usually builtin to Puppy and Quirky Linux. Aborting BluePup')"
+ exit
+fi
+if ! which pupdialog >/dev/null;then
+ pupmessage -bg '#ff8080' -center "$(gettext 'Utility pupdialog is missing. This is usually builtin to Puppy and Quirky Linux. Aborting BluePup')"
+ exit
+fi
+if ! which inotifywait >/dev/null;then
+ pupmessage -bg '#ff8080' -center "$(gettext 'Utility inotifywait is missing. This is part of the inotify-tools package. Aborting BluePup')"
+ exit
+fi
+if ! which bluetoothctl >/dev/null;then
+ pupmessage -bg '#ff8080' -center "$(gettext 'Utility bluetoothctl is missing. This is part of the bluez package. Aborting BluePup')"
+ exit
+fi
+if ! which basichtmlviewer >/dev/null;then
+ pupmessage -bg '#ff8080' -center "$(gettext 'HTML viewer basichtmlviewer is missing. Aborting BluePup')"
+ exit
+fi
+if ! which bt-agent >/dev/null;then
+ pupmessage -bg '#ff8080' -center "$(gettext 'Utility bt-agent is missing. This is part of bluez-tools package. Aborting BluePup')"
+ exit
+fi
+if ! which bt-device >/dev/null;then
+ pupmessage -bg '#ff8080' -center "$(gettext 'Utility bt-device is missing. This is part of bluez-tools package. Aborting BluePup')"
+ exit
+fi
+if ! which gtkdialog >/dev/null;then
+ pupmessage -bg '#ff8080' -center "$(gettext 'Utility gtkdialog is missing (note, version >=0.8.3 is required). Aborting BluePup')"
+ exit
+fi
+
+VTEflg="$(ldd /usr/bin/gtkdialog | grep -m1 -o '/libvte.so')"
+if [ ! "$VTEflg" ];then
+ pupmessage -bg '#ff8080' -center "$(gettext 'Utility gtkdialog does not support embedded VTE. Aborting BluePup')"
+ exit
+fi
+
+#these get killed at exit, but sometimes doesn't work...
+killall inotifywait 2>/dev/null
+
+mkdir -p /etc/default
+[ ! -e /etc/default/bluetooth ] && echo 'BLUETOOTH_ENABLED=0' > /etc/default/bluetooth #160416 precaution.
+if [ -x /etc/init.d/bluetooth ];then
+ #for debian/ubuntu compatibility...
+ sed -i -e 's%^BLUETOOTH_ENABLED=.*%BLUETOOTH_ENABLED=1%' /etc/default/bluetooth #160416
+ BLUFLG=1
+else
+ #for debian/ubuntu compatibility...
+ sed -i -e 's%^BLUETOOTH_ENABLED=.*%BLUETOOTH_ENABLED=0%' /etc/default/bluetooth #160416
+ BLUFLG=0
+ pupdialog --center --background '#ffff80' --backtitle "$(gettext 'BluePup Bluetooth manager')" --yesno "$(gettext 'Bluetooth is currently disabled.\Do you want to enable it?')" 0 0
+ if [ $? -eq 0 ];then
+  chmod 755 /etc/init.d/bluetooth
+ sed -i -e 's%^BLUETOOTH_ENABLED=.*%BLUETOOTH_ENABLED=1%' /etc/default/bluetooth #160416
+ BLUFLG=1
+ else
+  pupmessage -bg '#ff8080' -center "$(gettext 'Bluetooth disabled. Aborting BluePup')"
+  exit
+ fi
+fi
+
+
+ALLPS="`ps`"
+if ! pidof bluetoothd;then
+ nohup /etc/init.d/bluetooth start &
+ sleep 0.5
+ if ! pidof bluetoothd;then
+  pupmessage -center -bg '#FF8080' 'The bluetoothd daemon cannot be started. Aborting'
+  exit
+ fi
+ [ -x /etc/init.d/bluetooth-raspberrypi ] && /etc/init.d/bluetooth-raspberrypi start #160921
+fi
+
+#check controller not disabled...
+BLKDflg="$(rfkill | tr -s ' ' | grep 'bluetooth.* blocked')"
+if [ "$BLKDflg" ];then
+ rfkill unblock bluetooth
+fi
+
+killall tail 2>/dev/null
+killall btcgui.sh 2>/dev/null
+
+OCTAL_ESC="`echo -n '\033'`"
+
+mkdir -p /tmp/bluepup
+mkdir -p /var/local/bluepup
+echo -n '' > /tmp/bluepup/btctl_in
+echo -n '0 vte.log' > /tmp/bluepup/cnt_full
+echo -n 'false' > /tmp/bluepup/hist_flg
+echo -n '' > /tmp/bluepup/found-new-devices0
+echo -n '' > /tmp/bluepup/found-new-devices1
+echo -n '' > /tmp/bluepup/found-new-devices
+echo -n '' > /tmp/bluepup/chosen-new-device
+echo -n '' > /tmp/bluepup/found-reg-devices
+echo -n '' > /tmp/bluepup/chosen-reg-device
+echo -n '' > /tmp/bluepup/reg-not-connected.flg #0=connected 1=not connected
+echo -n '' > /tmp/bluepup/vte.log
+echo -n '' > /tmp/bluepup/vte.log.short
+echo -n '0' > /tmp/bluepup/btc-exit-value
+echo -n '' > /tmp/bluepup/reg-dev-chosen-processed
+echo -n '' > /tmp/bluepup/chosen-device-last
+echo -n 'false' > /tmp/bluepup/reg-success-flg
+echo -n '' > /tmp/bluepup/bt-agent-in
+echo -n '' > /tmp/bluepup/bt-agent-out
+echo -n 'startup' > /tmp/bluepup/current-operation
+echo -n 'false' > /tmp/bluepup/device-is-a-phone
+echo -n '' > /tmp/bluepup/bt-agent-out.log
+
+cp -a -f /usr/share/pixmaps/puppy/info.svg /tmp/bluepup/status.svg
+
+CR='
+'
+echo "$(gettext 'Click on a device to see')${CR}$(gettext 'information about it here')" > /tmp/bluepup/frame-status.msg
+echo "<span color='#ffa000'><b>$(gettext 'Click the SCAN button to')${CR}$(gettext 'search for new devices')</b></span>" > /tmp/bluepup/scan-status
+echo "$(gettext 'Click on a device to')${CR}$(gettext 'see action buttons')" > /tmp/bluepup/act-info.chosen
+
+BTFNDREG="$(LANG=C bluetoothctl devices | tr -s ' ' | cut -f 2 -d ' ' | tr '\n' ' ')"
+#...ex: Device BC:1A:E4:99:72:61 HUAWEI Y9 Prime 2019
+for aMAC in $BTFNDREG
+do
+ #LANG=C bt-device -i ${aMAC} > /tmp/bluepup/reg-info.${aMAC}
+ LANG=C bluetoothctl info ${aMAC} > /tmp/bluepup/reg-info.${aMAC}
+ #cp -a -f /tmp/bluepup/reg-info.${aMAC} /var/local/bluepup/ #might be useful to save.
+ #ignore any that are not previously registered... ***remember to create this when we have connected...***
+ [ ! -e /var/local/bluepup/reg-info.${aMAC} ] && continue
+ aNAME="$(grep -o 'Name: .*' /tmp/bluepup/reg-info.${aMAC} | tr -s ' ' | cut -f 2- -d ' ')"
+ aCONNECTED="$(grep -o 'Connected: .*' /tmp/bluepup/reg-info.${aMAC} | tr -s ' ' | cut -f 2 -d ' ')"
+ [ "$aCONNECTED" == "0" ] && aCONNECTED="no" #bt-device has 0 or 1
+ [ "$aCONNECTED" == "1" ] && aCONNECTED="yes" # "
+ aPAIRED="$(grep -o 'Paired: .*' /tmp/bluepup/reg-info.${aMAC} | tr -s ' ' | cut -f 2 -d ' ')"
+ [ "$aPAIRED" == "0" ] && aPAIRED="no" #bt-device has 0 or 1
+ [ "$aPAIRED" == "1" ] && aPAIRED="yes" # "
+ if [ "$aCONNECTED" == "yes" ];then
+  echo "mini-tick-green|${aMAC}|${aNAME}" >> /tmp/bluepup/found-reg-devices
+ elif [ "$aPAIRED" == "yes" ];then #20201108
+  echo "mini-tick-orange|${aMAC}|${aNAME}" >> /tmp/bluepup/found-reg-devices
+ else
+  echo "mini-cross|${aMAC}|${aNAME}" >> /tmp/bluepup/found-reg-devices
+ fi
+done
+
+rm -f /tmp/bluepup/btcgui.sh 2>/dev/null
+#help outputs [0m and similar, do not display properly in vte
+# those "tr -d ..." fix it
+#usage: bluetoothctl scan on >> /tmp/bluepup/btctl_in
+cat << 'EOF1' >> /tmp/bluepup/btcgui.sh
+#!/bin/sh
+tail -f /tmp/bluepup/btctl_in | tr -d '' | tr -d '' | tee -ai /tmp/bluepup/vte.log
+EOF1
+
+chmod 755 /tmp/bluepup/btcgui.sh
+
+#20201103 start the bt agent
+/usr/local/bluepup/support/bt-agent-run &
+/usr/local/bluepup/support/bt-agent-monitor &
+
+DEFCOMM='help'
+
+#tr -cd '\11\12\15\40-\176'
+#...octal, this only allows through tab,LF,CR,decimal 32-127
+
+#     <input> (for i in $(seq 0 2 100); do echo $i; sleep 0.8; done) & </input>
+
+HELPICON="gtk-index"
+M_close="$(gettext 'Close')"
+H_go="$(gettext 'Type a command here.')
+$(gettext 'If a command requires an address, for example:')
+<b>info [dev]</b>
+$(gettext 'If you have clicked on one of the devices in <b>New devices</b> or <b>Registered devices</b>, then that will automatically be used as the address. In other words, for the above example, just type:')
+<b>info</b>
+$(gettext 'Then click the <b>GO</b> button.')"
+export DLG_HELP_GO="<window resizable=\"false\" title=\"$(gettext 'Help: Run a command')\" icon-name=\"${HELPICON}\" window_position=\"1\">
+ <vbox>
+  <text use-markup=\"true\">
+   <label>\"${H_go}\"</label>
+   <variable>DLG_HELP_GO</variable>
+  </text>
+  <hbox>
+   <button>
+    <label>${M_close}</label>
+    <action type=\"closewindow\">DLG_HELP_GO</action>
+   </button>
+  </hbox>
+ </vbox>
+</window>"
+
+H_reg="$(gettext 'When this button is clicked, BluePup will attempt to <b>pair</b> and <b>connect</b> with the remote device.')
+$(gettext 'Once paired, the device becomes registered, however the extra step of connection is required for actual usage of the remote device.')
+
+$(gettext 'In some cases,a PIN number is required to be entered for pairing with the remote device.')
+$(gettext 'In the case of a keyboard, if it requires a PIN, Bluepup will display the required PIN and it has to be typed on the keyboard, followed by the ENTER key.')
+$(gettext 'In the case of a mobile phone, there may be a popup notification asking if you will accept the pairing.')
+
+<b>$(gettext 'Android phone')</b>
+$(gettext 'In <b>Setup</b>, after having turned on Bluetooth, pairing should take place, after you have responded to a popup notification.')
+$(gettext 'Connecting to the phone via bluetooth can be troublesome -- consider using EasyShare, <b>share</b> icon on desktop, to connect via a USB cable')"
+export DLG_HELP_REG="<window resizable=\"false\" title=\"$(gettext 'Help: Register device')\" icon-name=\"${HELPICON}\" window_position=\"1\">
+ <vbox>
+  <text use-markup=\"true\">
+   <label>\"${H_reg}\"</label>
+   <variable>DLG_HELP_REG</variable>
+  </text>
+  <hbox>
+   <button>
+    <label>${M_close}</label>
+    <action type=\"closewindow\">DLG_HELP_REG</action>
+   </button>
+  </hbox>
+ </vbox>
+</window>"
+
+H_conn="<span color='#ff0000'>$(gettext 'Yes, there is a <b>CONNECT</b> button, but do not click on it!')</span>
+
+$(gettext 'Many modern Bluetooth devices go to sleep, and although paired, you might not be able to connect. The correct way is to turn on the power of the device, and it should automatically connect -- if it does not, then try the CONNECT button.')
+
+$(gettext 'When a device is turned on or turned off, if BluePup is running, the GUI will automatically update. Note however, when a device is turned off, it may take a minute before the GUI updates -- wait for that to happen before turning it on again.')"
+export DLG_HELP_CONN="<window resizable=\"false\" title=\"$(gettext 'Help: Connect device')\" icon-name=\"${HELPICON}\" window_position=\"1\">
+ <vbox>
+  <text use-markup=\"true\">
+   <label>\"${H_conn}\"</label>
+   <variable>DLG_HELP_CONN</variable>
+  </text>
+  <hbox>
+   <button>
+    <label>${M_close}</label>
+    <action type=\"closewindow\">DLG_HELP_CONN</action>
+   </button>
+  </hbox>
+ </vbox>
+</window>"
+
+H_unreg="$(gettext 'Select a device in the <b>Registered devices</b> list, then click the <b>UNREGISTER</b> button, and it will be removed from the list and forgotten.')
+
+$(gettext 'After having unregistered the device, it will need to be discovered anew via the <b>SCAN</b> button and paired.')"
+export DLG_HELP_UNREG="<window resizable=\"false\" title=\"$(gettext 'Help: Unregister device')\" icon-name=\"${HELPICON}\" window_position=\"1\">
+ <vbox>
+  <text use-markup=\"true\">
+   <label>\"${H_unreg}\"</label>
+   <variable>DLG_HELP_UNREG</variable>
+  </text>
+  <hbox>
+   <button>
+    <label>${M_close}</label>
+    <action type=\"closewindow\">DLG_HELP_UNREG</action>
+   </button>
+  </hbox>
+ </vbox>
+</window>"
+
+H_disconn="<span color='#ff0000'>$(gettext 'Yes, there is a <b>DISCONNECT</b> button, but do not click it!')</span>
+
+$(gettext 'Many Bluetooth devices go to sleep, and will not respond to a disconnect command. Instead, turn the device off.')
+
+$(gettext 'Note, after turning a device off, wait a minute for the BluePup GUI to update, then when you turn the device back on, it should automatically connect, and again the GUI will update.')"
+export DLG_HELP_DISCONN="<window resizable=\"false\" title=\"$(gettext 'Help: Disconnect device')\" icon-name=\"${HELPICON}\" window_position=\"1\">
+ <vbox>
+  <text use-markup=\"true\">
+   <label>\"${H_disconn}\"</label>
+   <variable>DLG_HELP_DISCONN</variable>
+  </text>
+  <hbox>
+   <button>
+    <label>${M_close}</label>
+    <action type=\"closewindow\">DLG_HELP_DISCONN</action>
+   </button>
+  </hbox>
+ </vbox>
+</window>"
+
+H_sendto="$(gettext 'After having paired with a phone, you can send files to it, and receive files from it.')
+
+<b>$(gettext 'RECEIVE FILE')</b>
+$(gettext 'In your phone, select to <b>share</b> a file, then choose <b>bluetooth</b>, and  then <b>BlueZ 5.50</b>.')
+$(gettext 'Files received from the remote device will be found at /root/.cache/obexd')
+
+<b>$(gettext 'Android')</b>
+$(gettext 'In <b>Setup -> Bluetooth -> Paired devices -> BlueZ 5.50</b>, there is a switch labeled <b>Contact sharing</b> -- turn that on.')"
+export DLG_HELP_SENDTO="<window resizable=\"false\" title=\"$(gettext 'Help: Send and receive files')\" icon-name=\"${HELPICON}\" window_position=\"1\">
+ <vbox>
+  <text use-markup=\"true\">
+   <label>\"${H_sendto}\"</label>
+   <variable>DLG_HELP_SENDTO</variable>
+  </text>
+  <hbox>
+   <button>
+    <label>${M_close}</label>
+    <action type=\"closewindow\">DLG_HELP_SENDTO</action>
+   </button>
+  </hbox>
+ </vbox>
+</window>"
+
+#    <progressbar visible=\"false\" height-request=\"8\">
+#     <variable>SCANBAR</variable>
+#     <input>bash -c 'for i in \$(seq 0 2 100); do echo \$i; sleep 0.8; done' & </input>
+#     <action>hide:SCANBAR</action>
+#     <action>clear:SCANBAR</action>
+#    </progressbar>
+
+#20201119 L18L
+HELPFILE=/usr/local/bluepup/bluepup_${LANG%_*}.htm
+[[ -f $HELPFILE ]] || HELPFILE=/usr/local/bluepup/bluepup.htm 
+
+export BTGUI_DLG="
+<window title=\"$(gettext 'BluePup: Bluetooth management')\" icon-name=\"gtk-connect\" resizable=\"false\" window_position=\"1\">
+ <vbox>
+  <timer visible=\"false\" file-monitor=\"true\">
+    <variable>TIMERNEW</variable>
+    <input file>/tmp/bluepup/found-new-devices</input>
+    <action signal=\"file-changed\">clear:BTNEWDEVICE</action>
+    <action signal=\"file-changed\">refresh:BTNEWDEVICE</action>
+    <action signal=\"file-changed\">clear:BTREGDEVICE</action>
+    <action signal=\"file-changed\">refresh:BTREGDEVICE</action>
+    <action signal=\"file-changed\"condition=\"command_is_true(cat /tmp/bluepup/reg-success-flg)\">hide:REG_BUT_BOX</action>
+    <action signal=\"file-changed\"condition=\"command_is_true(cat /tmp/bluepup/reg-success-flg)\">show:UNREG_BUT_BOX</action>
+    <action signal=\"file-changed\"condition=\"command_is_true(grep -q true /tmp/bluepup/reg-success-flg && grep -q false /tmp/bluepup/device-is-a-phone && echo true)\">hide:SENDTO_BUT_BOX</action>
+    <action signal=\"file-changed\"condition=\"command_is_true(grep -q true /tmp/bluepup/reg-success-flg && grep -q false /tmp/bluepup/device-is-a-phone && echo true)\">show:CONN_BUT_BOX</action>
+    <action signal=\"file-changed\"condition=\"command_is_true(grep -q true /tmp/bluepup/reg-success-flg && grep -q true /tmp/bluepup/device-is-a-phone && echo true)\">show:SENDTO_BUT_BOX</action>
+    <action signal=\"file-changed\"condition=\"command_is_true(grep -q true /tmp/bluepup/reg-success-flg && grep -q true /tmp/bluepup/device-is-a-phone && echo true)\">hide:CONN_BUT_BOX</action>
+    <action signal=\"file-changed\"condition=\"command_is_true(cat /tmp/bluepup/reg-success-flg)\">echo -n 'false' > /tmp/bluepup/reg-success-flg</action>
+    <action signal=\"file-changed\"condition=\"command_is_true(if grep -q scan /tmp/bluepup/current-operation;then echo true; fi)\">hide:REG_BUT_BOX</action>
+    <action signal=\"file-changed\"condition=\"command_is_true(if grep -q scan /tmp/bluepup/current-operation;then echo true; fi)\">hide:UNREG_BUT_BOX</action>
+    <action signal=\"file-changed\"condition=\"command_is_true(if grep -q scan /tmp/bluepup/current-operation;then echo true; fi)\">hide:CONN_BUT_BOX</action>
+  </timer>
+  <timer visible=\"false\" file-monitor=\"true\">
+   <variable>TIMERREG</variable>
+   <input file>/tmp/bluepup/reg-dev-chosen-processed</input>
+   <action signal=\"file-changed\">hide:ACTINFO</action>
+   <action signal=\"file-changed\">show:ACTFRAME</action>
+   <action signal=\"file-changed\">/usr/local/bluepup/support/get-connected</action>
+   <action signal=\"file-changed\" condition=\"command_is_true(cat /tmp/bluepup/reg-connected.flg)\">show:DISCONN_BUT_BOX</action>
+   <action signal=\"file-changed\" condition=\"command_is_true(cat /tmp/bluepup/reg-connected.flg)\">hide:CONN_BUT_BOX</action>
+   <action signal=\"file-changed\" condition=\"command_is_false(grep -q false /tmp/bluepup/reg-connected.flg && grep -q false /tmp/bluepup/device-is-a-phone && echo false)\">show:CONN_BUT_BOX</action>
+   <action signal=\"file-changed\" condition=\"command_is_false(cat /tmp/bluepup/reg-connected.flg)\">hide:DISCONN_BUT_BOX</action>
+   <action signal=\"file-changed\" condition=\"command_is_true(cat /tmp/bluepup/device-is-a-phone)\">hide:CONN_BUT_BOX</action>
+   <action signal=\"file-changed\" condition=\"command_is_true(cat /tmp/bluepup/device-is-a-phone)\">show:SENDTO_BUT_BOX</action>
+   <action signal=\"file-changed\">/usr/local/bluepup/support/set-status-icon reg</action>
+   <action signal=\"file-changed\">refresh:STATUS_PIX</action>
+   <action signal=\"file-changed\">show:STATUSFRAME</action>
+  </timer>
+  <timer visible=\"false\">
+   <variable>TIMERONESHOT</variable>
+   <action>echo -e \"\033[0;94m[bluetooth]\033[0m# bluetoothctl version\" >> /tmp/bluepup/btctl_in</action>
+   <action>bluetoothctl version >> /tmp/bluepup/btctl_in & </action>
+   <action>/usr/local/bluepup/support/startup & </action>
+   <action>disable:TIMERONESHOT</action>
+  </timer>
+ <hbox>
+  
+  <vbox width-request=\"310\">
+   <text use-markup=\"true\"><label>\"<b>$(gettext 'Bluetooth enabled')</b>\"</label></text>
+   <hbox>
+   <text><label>$(gettext 'Click to disable:')</label></text>
+   <button>
+    <label>$(gettext 'DISABLE')</label>
+    <action>echo -n 'disable' > /tmp/bluepup/current-operation</action>
+    <action>/etc/init.d/bluetooth stop</action>
+    <action>chmod 644 /etc/init.d/bluetooth</action>
+    <action>echo 'BLUETOOTH_ENABLED=0' > /etc/default/bluetooth</action>
+    <action>pupmessage -center -bg '#FF8080' '$(gettext 'Bluetooth disabled. Exiting BluePup')'</action>
+    <action type=\"exit\">DISABLED</action>
+   </button>
+   </hbox>
+  
+   <frame $(gettext 'Commands')>
+    <hbox>
+     <text><label>$(gettext 'Click for list of commands:')</label></text>
+     <button>
+      <label>$(gettext 'Help')</label>
+      <action>echo -e \"\033[0;94m[bluetooth]\033[0m# bluetoothctl help\" >> /tmp/bluepup/btctl_in</action>
+      <action>bluetoothctl help >> /tmp/bluepup/btctl_in & </action>
+      <action>hide:SCANBAR</action>
+     </button>
+    </hbox>
+    <hbox>
+     <entry>
+      <default>\"${DEFCOMM}\"</default>
+      <variable>GOCOMM</variable>
+     </entry>
+     <button>
+      <label>$(gettext 'GO')</label>
+      <action>echo -n 'go' > /tmp/bluepup/current-operation</action>
+      <action>/usr/local/bluepup/support/command-go \"\$GOCOMM\" & </action>
+      <action>hide:SCANBAR</action>
+     </button>
+     <button>
+      <input file>/usr/local/lib/X11/mini-icons/mini-question.xpm</input>
+      <action type=\"launch\">DLG_HELP_GO</action>
+     </button>
+    </hbox>
+    <text><label>\"  \"</label></text>
+    <hbox>
+     <text><label>$(gettext 'Search for new devices:')</label></text>
+     <button>
+      <label>$(gettext 'SCAN')</label>
+      <action>hide:STATUSFRAME</action>
+      <action>echo -e \"\x3Cb\x3E\x3Cspan color='#8000ff'\x3E$(gettext 'Scanning, please wait...')\x3C/span\x3E\x3C/b\x3E\" > /tmp/bluepup/scan-status</action>
+      <action>echo -n 'scan' > /tmp/bluepup/current-operation</action>
+      <action>/usr/local/bluepup/support/scan & </action>
+      <action>show:SCANBAR</action>
+      <action>refresh:SCANBAR</action>
+     </button>
+    </hbox>
+    <text use-markup=\"true\" align=\"1\" auto-refresh=\"true\">
+     <variable>SCANSTATUS</variable>
+     <input file>/tmp/bluepup/scan-status</input>
+    </text>
+    <pixmap visible=\"false\">
+     <variable>SCANBAR</variable>
+     <input file>/usr/local/bluepup/icons/bar240x14-30sec.gif</input>
+    </pixmap>
+
+   </frame>
+   
+   <frame $(gettext 'Status')>
+    <text use-markup=\"true\" auto-refresh=\"true\">
+     <input file>/tmp/bluepup/frame-status.msg</input>
+     <variable>STATUSINFO</variable>
+    </text>
+    <vbox visible=\"false\">
+     <pixmap>
+      <variable>STATUS_PIX</variable>
+      <height>48</height>
+      <width>48</width>
+      <input file>/tmp/bluepup/status.svg</input>
+     </pixmap>
+     <variable>STATUSFRAME</variable>
+    </vbox>
+   </frame>
+  
+   <frame $(gettext 'Actions')>
+    <text>
+     <input file>/tmp/bluepup/act-info.chosen</input>
+     <variable>ACTINFO</variable>
+    </text>
+    <vbox visible=\"false\">
+     <hbox>
+      <button>
+       <variable>REG_BUT</variable>
+       <label>$(gettext 'REGISTER')</label>
+       <action>echo -n 'register' > /tmp/bluepup/current-operation</action>
+       <action>/usr/local/bluepup/support/register & </action>
+      </button>
+      <button>
+       <input file>/usr/local/lib/X11/mini-icons/mini-question.xpm</input>
+       <action type=\"launch\">DLG_HELP_REG</action>
+      </button>
+      <variable>REG_BUT_BOX</variable>
+     </hbox>
+     <hbox>
+      <button>
+       <variable>CONN_BUT</variable>
+       <label>$(gettext 'CONNECT')</label>
+       <action>echo -n 'connect' > /tmp/bluepup/current-operation</action>
+       <action>/usr/local/bluepup/support/connect & </action>
+      </button>
+      <button>
+       <input file>/usr/local/lib/X11/mini-icons/mini-question.xpm</input>
+       <action type=\"launch\">DLG_HELP_CONN</action>
+      </button>
+      <variable>CONN_BUT_BOX</variable>
+     </hbox>
+     <hbox>
+      <button>
+       <variable>DISCONN_BUT</variable>
+       <label>$(gettext 'DISCONNECT')</label>
+       <action>echo -n 'disconnect' > /tmp/bluepup/current-operation</action>
+       <action>/usr/local/bluepup/support/disconnect & </action>
+      </button>
+      <button>
+       <input file>/usr/local/lib/X11/mini-icons/mini-question.xpm</input>
+       <action type=\"launch\">DLG_HELP_DISCONN</action>
+      </button>
+      <variable>DISCONN_BUT_BOX</variable>
+     </hbox>
+     <hbox>
+      <button>
+       <variable>RECEIVE_BUT</variable>
+       <label>$(gettext 'RECEIVE FILE')</label>
+       <action>echo -n 'receivefile' > /tmp/bluepup/current-operation</action>
+       <action>/usr/local/bluepup/support/receivefile & </action>
+      </button>
+      <button>
+       <variable>SENDTO_BUT</variable>
+       <label>$(gettext 'SEND FILE')</label>
+       <action>echo -n 'sendto' > /tmp/bluepup/current-operation</action>
+       <action>/usr/bin/bluetooth-sendto & </action>
+      </button>
+      <button>
+       <input file>/usr/local/lib/X11/mini-icons/mini-question.xpm</input>
+       <action type=\"launch\">DLG_HELP_SENDTO</action>
+      </button>
+      <variable>SENDTO_BUT_BOX</variable>
+     </hbox>
+     <hbox>
+      <button>
+       <variable>UNREG_BUT</variable>
+       <label>$(gettext 'UNREGISTER')</label>
+       <action signal=\"button-release-event\">echo -n 'unregister' > /tmp/bluepup/current-operation</action>
+       <action signal=\"button-release-event\">/usr/local/bluepup/support/unregister & </action>
+       <action signal=\"button-release-event\">echo -e \"\033[0;94m[bluetooth]\033[0m# bluetoothctl remove \$BTREGDEVICE\" >> /tmp/bluepup/btctl_in</action>
+       <action signal=\"button-release-event\">(bluetoothctl remove \$BTREGDEVICE >> /tmp/bluepup/btctl_in; echo \$? > /tmp/bluepup/btc-exit-value) & </action>
+       <action signal=\"button-release-event\">/usr/local/bluepup/support/wait-response \"remove \$BTREGDEVICE\" \"\" & </action>
+       <action signal=\"button-release-event\">sed -i \"/\$BTREGDEVICE/d\" /tmp/bluepup/found-reg-devices</action>
+       <action signal=\"button-release-event\">echo -e \"\x3Cb\x3E\x3Cspan color='#00a000'\x3E$(gettext 'Unregistered:')\x0D\${BTREGDEVICE}\x3C/span\x3E\x3C/b\x3E\" > /tmp/bluepup/frame-status.msg</action>
+       <action signal=\"button-release-event\">clear:BTREGDEVICE</action>
+       <action signal=\"button-release-event\">refresh:BTREGDEVICE</action>
+      </button>
+      <button>
+       <input file>/usr/local/lib/X11/mini-icons/mini-question.xpm</input>
+       <action type=\"launch\">DLG_HELP_UNREG</action>
+      </button>
+      <variable>UNREG_BUT_BOX</variable>
+     </hbox>
+     <variable>ACTFRAME</variable>
+    </vbox>
+   </frame>
+  
+   <hbox>
+    <button tooltip-text=\"$(gettext 'Help for BluePup')\">
+     <input file stock=\"gtk-help\"></input>
+     <label>$(gettext 'Help')</label>
+     <action>basichtmlviewer ${HELPFILE} & </action>
+    </button>
+    <text><label>\"   \"</label></text>
+    <button tooltip-text=\"$(gettext 'Finished setting up Bluetooth, exit')\">
+     <input file stock=\"gtk-quit\"></input>
+     <label>$(gettext 'Done')</label>
+     <action>echo -e \"\033[0;94m[bluetooth]\033[0m# bluetoothctl discoverable off\" >> /tmp/bluepup/btctl_in</action>
+     <action>bluetoothctl discoverable off >> /tmp/bluepup/btctl_in & </action>
+     <action type=\"exit\">EXIT</action>
+    </button>
+    <text><label>\"   \"</label></text>
+   </hbox>
+   
+  </vbox>
+
+  <vbox>
+   <frame $(gettext 'Output log')>
+    <terminal argv0=\"/tmp/bluepup/btcgui.sh\" hscrollbar-policy=\"2\" vscrollbar-policy=\"1\" sensitive=\"false\" cursor-background-color=\"#000000\">
+     <height>20</height>
+     <width>81</width>
+     <action>exit:finished</action>
+    </terminal>
+   </frame>
+   
+   <frame $(gettext 'New devices')>
+    <tree>
+     <label>$(gettext 'Address|Description')</label>
+     <variable>BTNEWDEVICE</variable>
+     <input icon-column=\"0\">cat /tmp/bluepup/found-new-devices</input>
+     <width>300</width>
+     <height>100</height>
+     <action signal=\"button-release-event\">echo -n 'new-device' > /tmp/bluepup/current-operation</action>
+     <action signal=\"button-release-event\">hide:SCANBAR</action>
+     <action signal=\"button-release-event\">echo -e \"\033[0;94m[bluetooth]\033[0m# bluetoothctl info \$BTNEWDEVICE\" >> /tmp/bluepup/btctl_in</action>
+     <action signal=\"button-release-event\">cat /tmp/bluepup/i18n-new-info.\$BTNEWDEVICE >> /tmp/bluepup/btctl_in</action>
+     <action signal=\"button-release-event\">echo -n \"\$BTNEWDEVICE\" > /tmp/bluepup/chosen-new-device</action>
+     <action signal=\"button-release-event\">echo -n \"\$BTNEWDEVICE\" > /tmp/bluepup/chosen-device-last</action>
+     <action signal=\"button-release-event\">hide:ACTINFO</action>
+     <action signal=\"button-release-event\">show:ACTFRAME</action>
+     <action signal=\"button-release-event\">hide:CONN_BUT_BOX</action>
+     <action signal=\"button-release-event\">hide:DISCONN_BUT_BOX</action>
+     <action signal=\"button-release-event\">hide:UNREG_BUT_BOX</action>
+     <action signal=\"button-release-event\">hide:SENDTO_BUT_BOX</action>
+     <action signal=\"button-release-event\">show:REG_BUT_BOX</action>
+     <action signal=\"button-release-event\">echo -e \"\x3Cb\x3E\x3Cspan color='#00a000'\x3E$(gettext 'See status report')\x0D$(gettext 'in Output log')\x3C/span\x3E\x3C/b\x3E\" > /tmp/bluepup/frame-status.msg</action>
+     <action signal=\"button-release-event\">/usr/local/bluepup/support/set-status-icon new</action>
+     <action signal=\"button-release-event\">refresh:STATUS_PIX</action>
+     <action signal=\"button-release-event\">show:STATUSFRAME</action>
+    </tree>
+   </frame>
+   
+   <frame $(gettext 'Registered devices')>
+    <tree>
+     <label>$(gettext 'Address|Description')</label>
+     <variable>BTREGDEVICE</variable>
+     <input icon-column=\"0\">cat /tmp/bluepup/found-reg-devices</input>
+     <width>300</width>
+     <height>100</height>
+     <action signal=\"button-release-event\">echo -n 'reg-device' > /tmp/bluepup/current-operation</action>
+     <action signal=\"button-release-event\">hide:SCANBAR</action>
+     <action signal=\"button-release-event\">hide:REG_BUT_BOX</action>
+     <action signal=\"button-release-event\">hide:SENDTO_BUT_BOX</action>
+     <action signal=\"button-release-event\">/usr/local/bluepup/support/reg-dev-chosen \$BTREGDEVICE & </action>
+    </tree>
+   </frame>
+   
+  </vbox>
+  
+ </hbox>
+
+ </vbox>
+</window>"
+echo "$BTGUI_DLG" > /tmp/bluepup/BTGUI_DLG #TEST
+
+#mono text for log box...
+echo 'style "specialmono"
+{
+  font_name="Mono 10"
+}
+class "GtkText*" style "specialmono"' > /tmp/gtkrc_mono_bt
+export GTK2_RC_FILES=/tmp/gtkrc_mono_bt:/root/.gtkrc-2.0
+
+RETPARAMS="`gtkdialog --program=BTGUI_DLG --center`" # -G +1+1
+#echo "$RETPARAMS" #TEST
+
+sleep 0.5
+killall tail 2>/dev/null
+killall bt-agent 2>/dev/null
+killall btcgui.sh 2>/dev/null
+killall inotifywait 2>/dev/null
+killall bt-agent-run 2>/dev/null
+killall bt-agent-monitor 2>/dev/null
+killall bt-obex 2>/dev/null
+killall obexd 2>/dev/null
+###end###

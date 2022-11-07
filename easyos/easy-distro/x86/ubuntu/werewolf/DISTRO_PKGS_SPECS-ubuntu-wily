@@ -1,0 +1,889 @@
+#Fallbacks when looking for pet pkgs.... (note, older: lucid karmic jaunty intrepid)
+#Note: Ubuntu 15.10 is Wiley Werewolf, 15.04 is Vivid Vervet, 14.10 is Utopic Unicron, 14.04 is Trusty Tahr, 13.10 is Saucy Salamander, 13.04 is Raring Ringtail, 12.04 is Precise Pangolin
+FALLBACKS_COMPAT_VERSIONS='wily utopic trusty saucy raring precise'
+
+#custom templates=cups,sylpheed,ghostscript,xorg-base
+
+#PKGS_SPECS_TABLE table format:
+#will pkg be in puppy-build.
+#    Generic name for pkg. Note: PET packages, if exist, use this name.
+#            Comma-separated list of compatible-distro pkg(s). '-' prefix, exclude.
+#            Must be exact name-only of pkg, else '*' on end is wildcard to search full name.
+#            Empty field, then use PET pkg.
+#                                    How the package will get split up in woof (optional redirection '>' operator).
+#                                    Missing field, it goes into exe. Can also redirect >null, means dump it.
+#yes|abiword|iceword,iceword-plugins|exe,dev,doc,nls
+
+#example showing wildcard. finds all full pkg names with 'gcc-4.3*',
+#but, exclude any 'gcc-4.3-doc*' matches...
+# yes|gcc|gcc,gcc-4.3*,-gcc-4.3-doc*|exe,dev,doc,nls
+
+#110817 Comments preferred to be on end of line, ex:
+# yes|abiword|iceword,iceword-plugins|exe,dev,doc,nls| #this is a comment.
+
+#110829 enhancements:
+#                                                     Force pkg is from compat-distro repo, specifically 'salix' repo.
+# yes|abiword|iceword,iceword-plugins|exe,dev,doc,nls|compat:salix
+#Generic format:
+# yes|genericpkgname|[pkgnames]|[splitup]|[pet:[repo]]
+# yes|genericpkgname|[pkgnames]|[splitup]|[compat:[repo]]
+#for a fuller explanation of the entries in PKGS_SPECS_TABLE, please see:
+# http://bkhome.org/blog/?viewDetailed=02414
+
+PKGS_SPECS_TABLE='
+yes|915resolution||exe,dev,doc,nls
+yes|a52dec|liba52-0.7.4,liba52-0.7.4-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|aalib|libaa1,libaa1-dev|exe,dev>null,doc,nls| #MERGED 20150717-08
+yes|abiword||exe,dev,doc,nls| #needs gtk2. ABIWORD. note, wily deb crashes.
+yes|acl|acl,libacl1,libacl1-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|advancecomp|advancecomp|exe>dev,dev,doc,nls
+yes|align||exe
+yes|alsa-base|alsa-base|exe,dev,doc,nls
+yes|alsa-driver|linux-sound-base|exe,dev,doc,nls| #ADDED 20150717-08
+yes|alsaequal||exe| #needed by pequalizer.
+yes|alsa-lib|libasound2,libasound2-data,libasound2-dev,libasound2-plugins|exe,dev,doc,nls
+yes|alsa-utils|alsa-utils|exe,dev,doc,nls
+no|apache2|apache2,apache2-dev|exe,dev,doc,nls| #ADDED 20150717-08 manually removed
+yes|apparmor|libapparmor1|exe,dev,doc,nls| #ADDED 20151029
+yes|arp-scan|arp-scan|exe,dev,doc,nls| #needed by peasyscan-noarch
+yes|aspell|libaspell15,libaspell-dev,libpspell-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|aspell-en|aspell-en|exe,dev,doc,nls| #ADDED 20150717-08
+yes|asunder||exe,dev,doc,nls| #asunder compiled in luci
+yes|atk|gir1.2-atk-1.0,libatk1.0-0,libatk1.0-data,libatk1.0-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|at-spi2-atk|libatspi2.0-0,libatk-bridge2.0-0,libatk-adaptor,libatk-bridge2.0-dev|exe,dev,doc,nls| #needed by gtk+3.
+yes|at-spi2-core|libatspi2.0-0,libatspi2.0-dev|exe,dev,doc,nls| #ADDED 20150717-08
+yes|attr|libattr1,libattr1-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|audiofile|libaudiofile1,libaudiofile-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|audit|libaudit1,libaudit-common,libaudit-dev,libauparse-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|aufsutils3||exe,dev,doc,nls|pet:april
+yes|autoconf|autoconf|exe>dev,dev,doc,nls
+yes|automake|automake,autotools-dev|exe>dev,dev,doc,nls
+yes|avahi|libavahi-client3,libavahi-client-dev,libavahi-common3,libavahi-common-data,libavahi-common-dev,libavahi-compat-libdnssd1,libavahi-compat-libdnssd-dev,libavahi-core-dev,libavahi-glib1,libavahi-glib-dev,libavahi-gobject-dev,libavahi-qt4-dev,libavahi-ui-dev,libavahi-ui-gtk3-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|axel|axel|exe,dev>null,doc,nls
+yes|babeltrace|libbabeltrace1,libbabeltrace-ctf-dev,libbabeltrace-dev|exe,dev,doc,nls| #ADDED 20150717-08
+yes|bacon||exe>dev,dev,doc>dev,nls|
+yes|bacon_runtime||exe,dev,doc,nls|
+yes|bash||exe,dev>null,doc,nls| #this is bash 4.1.
+yes|bbc_provided||exe
+yes|bbe|bbe|exe,dev,doc,nls| #sed-like editor for binary files.
+yes|bc|bc|exe,dev>null,doc,nls| #MERGED 20150717-08
+yes|bcrypt||exe
+yes|bdb|libdb5.3,libdb-dev,libdb5.3-dev,db-util,db5.3-util,libdb5.3++-dev,libdb5.3-java-dev,libdb5.3-sql-dev,libdb5.3-stl-dev|exe,dev,doc,nls| #MERGED 20150718 manually.
+yes|bin86|bin86|exe>dev,dev,doc,nls
+yes|binutils|binutils,binutils-dev|exe>dev,dev,doc,nls
+yes|bison|bison|exe>dev,dev,doc,nls
+yes|boehm-gc|libgc1c2,libgc-dev|exe,dev,doc,nls
+yes|bones||exe
+yes|boost|libboost-system1.58.0,libboost-filesystem1.58.0|exe,dev,doc,nls| #ADDED 20151027
+yes|bsdmainutils|bsdmainutils|exe,dev,doc,nls| #ADDED 20150717-08
+no|busybox||exe,dev>null,doc,nls
+yes|busybox|busybox-1.24*|exe,dev>null,doc,nls|pet:common| #20151118 has guess_fstype applet. compiled statically.
+yes|bzip2|bzip2,libbz2-1.0,libbz2-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|cairo|libcairo2,libcairo2-dev,libcairo-gobject2,libcairo-script-interpreter2|exe,dev,doc,nls| #MERGED 20150717-08
+no|caps|caps|exe,dev,doc,nls| #needed by zigberts pequalizer, refer t=31206&start=1290
+yes|cddetect|cddetect|exe,dev>null,doc,nls|compat:april| #MODIFIED 20151105
+yes|cddetect_quick|cddetect_quick|exe,dev>null,doc,nls|compat:april| #ADDED 20151105
+no|cdparanoia|cdparanoia,libcdparanoia0,libcdparanoia-dev|exe,dev,doc,nls| #MERGED 20150717-08. 20150730 use libcdio instead.
+no|cdrkit|genisoimage,wodim,icedax|exe,dev,doc,nls
+yes|cdrtools||exe,dev>null,doc,nls|compat:april| #ADDED 20151108
+yes|cgtkcalc||exe,dev>null,doc,nls
+yes|crystalhd|libcrystalhd3,libcrystalhd-dev,gstreamer1.0-crystalhd|exe,dev,doc,nls| #ADDED 20150719 needed by vlc
+yes|close-dvd+rwtools||exe
+yes|cmake|cmake,cmake-data|exe>dev,dev,doc,nls| #MERGED 20150717-08
+yes|colord|libcolord2,libcolord-dev|exe,dev,doc,nls| #needed by gtk+3.
+yes|console-setup|keyboard-configuration|exe,dev,doc,nls| #ADDED 20150717-08
+yes|coreutils|coreutils|exe,dev>null,doc,nls
+yes|cpio|cpio|exe,dev>null,doc,nls
+yes|chromaprint|libchromaprint0,libchromaprint-dev,libchromaprint-tools|exe,dev,doc,nls| #ADDED 20150719 needed by vlc
+yes|ctorrent|ctorrent|exe,dev>null,doc,nls
+yes|cups|cups,cups-bsd,cups-client,cups-common,cups-core-drivers,cups-daemon,cups-ppdc,cups-server-common,libcups2,libcups2-dev,libcupscgi1,libcupscgi1-dev,libcupsimage2,libcupsimage2-dev,libcupsmime1,libcupsmime1-dev,libcupsppdc1,libcupsppdc1-dev|exe,dev,doc>exe,nls| #MERGED 20150717-08
+yes|cups-filters|cups-filters,cups-filters-core-drivers,libcupsfilters1,libcupsfilters-dev,libfontembed1,libfontembed-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|cups_pdf||exe
+yes|curl|curl,libcurl3,libcurl4-gnutls-dev,libcurl4-nss-dev,libcurl4-openssl-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|curlftpfs||exe,dev,doc,nls| #ADDED 20151026
+yes|cvs|cvs|exe>dev,dev,doc,nls
+yes|cyrus-sasl2|libsasl2-2,libsasl2-dev,libsasl2-modules-db|exe,dev,doc,nls| #MERGED 20150717-08
+yes|dash|dash|exe>dev,dev,doc,nls
+yes|dbus|dbus,dbus-x11,libdbus-1-3,libdbus-1-dev|exe,dev,doc,nls| #ADDED 20151026
+yes|dbus-glib|libdbus-glib-1-2,libdbus-glib-1-dev|exe,dev,doc,nls| #ADDED 20151026
+no|dbus|libdbus-1-3,dbus-x11|exe,dev,doc,nls| #ADDED 20150717-08
+no|dbus-bin||exe,dev,doc,nls| #executables and infrastructure only, no libs. KEEP THIS
+no|dbus-libs|libdbus-1-3,libdbus-1-dev,libdbus-glib-1-2,libdbus-glib-1-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|d-conf|dconf-gsettings-backend,dconf-service,libdconf1,libdconf-dbus-1-0,libdconf-dbus-1-dev,libdconf-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|ddcprobe||exe,dev>null,doc,nls
+yes|debianutils|debianutils|exe,dev,doc,nls| #MERGED 20150717-08
+yes|defaults-chooser||exe|
+yes|desk_background_fadedgreenish||exe| #has default for werewolf.
+yes|desk_background_generic||exe|
+yes|desk_background_greenvapors||exe| #default for unicorn.
+no|desk_background_quirkywerewolf||exe|pet:noarch| #ADDED 20151028. default.
+yes|desk_background_werewolf72||exe|pet:noarch| #ADDED 20151105. new default.
+yes|desk_icon_theme_green_glow||exe| #default for unicorn.
+yes|desk_icon_theme_lagagreennight||exe| #default for werewolf.
+yes|desk_icon_theme_quirky60||exe
+yes|desktop-file-utils|desktop-file-utils|exe,dev,doc,nls
+yes|devmapper|libdevmapper1.02.1,libdevmapper-dev,libdevmapper-event1.02.1|exe,dev,doc,nls
+yes|dhcpcd||exe,dev,doc,nls|
+yes|dia|dia,dia-common,dia-libs|exe,dev,doc,nls| #ADDED 20151025
+yes|dialog|dialog|exe,dev>null,doc,nls
+yes|dictd_client||exe
+yes|dictionaries-common|dictionaries-common,dictionaries-common-dev|exe,dev,doc,nls| #ADDED 20150717-08
+yes|didiwiki||exe
+yes|dietlibc|dietlibc-dev|exe>dev,dev,doc,nls
+yes|diffstat|diffstat|exe,dev>null,doc,nls
+yes|diffutils||exe
+yes|directfb|libdirectfb-1.2-9,libdirectfb-dev,libdirectfb-extra|exe,dev,doc,nls| #MERGED 20150717-08
+yes|disktype||exe,dev,doc,nls|
+yes|dmidecode|dmidecode|exe,dev>null,doc,nls
+yes|dosfstools|dosfstools|exe,dev>null,doc,nls
+yes|dpkg|dpkg,dpkg-dev,libdpkg-dev|exe,dev>null,doc,nls| #MERGED 20150717-08
+yes|dvdauthor||exe,dev,doc,nls|
+yes|dvd+rwtools|dvd+rw-tools,growisofs|exe,dev,doc,nls
+yes|e2fsprogs|comerr-dev,e2fslibs,e2fslibs-dev,e2fsprogs,libblkid1,libblkid-dev,libcomerr2,libss2,libuuid1,ss-dev,uuid-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|e3||exe
+yes|ed|ed|exe,dev>null,doc,nls
+yes|edid|read-edid|exe,dev>null,doc,nls
+yes|efibootmgr|efibootmgr|exe,dev,doc,nls| #access efi boot manager. needs libefivar0
+yes|efivar|efivar,libefivar0,libefivar-dev|exe,dev>null,doc,nls| #MERGED 20150717-08
+yes|eject|eject|exe,dev>null,doc,nls
+yes|elfutils|libasm-dev,libdw-dev,libelf1,libelf-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|elspci||exe,dev>null,doc,nls
+yes|embutils_cut||exe
+yes|enca|libenca0,libenca-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|enchant|libenchant1c2a,libenchant-dev|exe,dev,doc,nls
+yes|esound|esound-common,libesd0,libesd0-dev|exe,dev,nls,doc| #MERGED 20150717-08
+yes|ethtool|ethtool|exe,dev>null,doc,nls
+yes|eudev||exe,dev,doc,nls| #note, requires kmod and a kernel with devtmpfs enabled.
+yes|evince|evince|exe,dev,doc,nls|compat:april| #pdf viewer, better than epdfview. needs gtk2, poppler. ADDED 20151119
+yes|exiv2|exiv2,libexiv2-14,libexiv2-dev|exe,dev,doc,nls
+yes|expat|libexpat1,libexpat1-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|f2fs-tools|f2fs-tools|exe,dev,doc,nls| #20151102
+yes|faac|libfaac0,libfaac-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|faad|faad,libfaad2,libfaad-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|farstream|libfarstream-0.2-5,libfarstream-0.2-dev|exe,dev,doc,nls| #ADDED 20151027. note there is another pkg older version.
+yes|ffmpeg|ffmpeg,libav-tools-links,libavcodec-dev,libavcodec-extra,libavcodec-ffmpeg-dev,libavcodec-ffmpeg-extra56,libavcodec-ffmpeg56,libavdevice-dev,libavdevice-ffmpeg-dev,libavdevice-ffmpeg56,libavfilter-dev,libavfilter-ffmpeg-dev,libavfilter-ffmpeg5,libavformat-dev,libavformat-ffmpeg-dev,libavformat-ffmpeg56,libavresample-dev,libavresample-ffmpeg-dev,libavresample-ffmpeg2,libavutil-dev,libavutil-ffmpeg-dev,libavutil-ffmpeg54,libpostproc-dev,libpostproc-ffmpeg-dev,libpostproc-ffmpeg53,libswresample-dev,libswresample-ffmpeg-dev,libswresample-ffmpeg1,libswscale-dev,libswscale-ffmpeg-dev,libswscale-ffmpeg3|exe,dev,doc,nls| #ADDED 20151025. removed libav
+yes|fftw3|libfftw3-double3|exe,dev,doc,nls| #ADDED 20151101. cutdown.
+yes|file||exe,dev,doc,nls|
+no|file|libmagic1,libmagic-dev|exe,dev,doc,nls| #ADDED 20150717-08
+yes|file-sharing-curlftpfs-mpscan-noarch||exe
+yes|findutils|findutils|exe,dev>null,doc,nls
+yes|firmware_linux_display|firmware_linux_display-4.2*|exe|pet:noarch| #20151102 refer /usr/local/firmware
+yes|firmware_linux_network|firmware_linux_network-4.2*|exe|pet:noarch| #refer input309/0-linux-network. #20151102 refer /usr/local/firmware
+yes|flac|flac,libflac8,libflac-dev,libflac++-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|flex|flex|exe>dev,dev,doc,nls
+yes|flite|libflite1,flite1-dev|exe,dev,doc,nls| #ADDED 20151027. rather big.
+yes|flsynclient||exe,dev,doc,nls|pet:common| #20151101 latest version.
+yes|fluidsynth|libfluidsynth1,libfluidsynth-dev|exe,dev,doc,nls| #ADDED 20151101
+yes|fontconfig|fontconfig-config,fontconfig|exe,dev,doc,nls| #ADDED 20150717-08
+no|fonts-freefont|fonts-freefont-ttf|exe,dev,doc,nls| #ADDED 20150717-08. REMOVED 20151116 why did i put this in, it is 10MB
+yes|fontwizard||exe,dev,doc,nls| #created by 01micko.
+no|foomatic-db-engine|foomatic-db-engine|exe,dev,doc,nls
+no|foomatic-filters|foomatic-filters|exe,dev,doc,nls| #do not need anymore. if use, make sure install after cups.
+yes|fossil|fossil|exe>dev,dev,doc>dev,nls
+yes|fpm2||exe
+yes|freeglut|freeglut3,freeglut3-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|freememapplet_tray||exe|pet:april
+no|freerdp|libfreerdp-client1.1,libfreerdp-dev,libwinpr-dev|exe,dev,doc,nls| #ADDED 20150717-08
+yes|freerdp|libfreerdp-core1.1,libfreerdp-codec1.1,libfreerdp-gdi1.1,libfreerdp-locale1.1,libfreerdp-utils1.1,libfreerdp-common1.1.0,libwinpr-path0.1,libwinpr-file0.1,libwinpr-utils0.1,libwinpr-synch0.1,libwinpr-crt0.1,libwinpr-thread0.1,libwinpr-handle0.1,libwinpr-sysinfo0.1,libfreerdp-client1.1,libfreerdp-dev,libwinpr-dev|exe,dev,doc,nls| #ADDED 20151027
+yes|freetds|libsybdb5,freetds-dev|exe,dev,doc,nls| #ADDED 20150717-08
+yes|freetype|libfreetype6,libfreetype6-dev|exe,dev,doc,nls
+yes|fribidi|libfribidi0,libfribidi-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|frisbee||exe,dev,doc,nls| #created by jemimah, puppified by rerwin.
+yes|fuse|fuse,libfuse2,libfuse-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|gadmin-rsync|gadmin-rsync|exe,dev>null,doc,nls
+yes|gadmin-samba|gadmin-samba|exe,dev>null,doc,nls| #ADDED 20151025
+yes|gail|libgail18,libgail-common,libgail-dev|exe,dev,doc,nls
+yes|galculator||exe,dev,doc,nls
+yes|game-music-emu|libgme0,libgme-dev|exe,dev,doc,nls| #ADDED 20151027
+yes|gamin|gamin,libgamin0,libgamin-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|gawk|gawk|exe,dev,doc,nls
+yes|gcc-5|cpp-5,g++-5,gcc-5,gcc-5-base,gcc-5-plugin-dev,libasan2,libatomic1,libcc1-0,libcilkrts5,libgcc-5-dev,libgccjit-5-dev,libgcj16-dev,libgfortran-5-dev,libgnatprj5-dev,libgnatvsn5-dev,libitm1,libmpx0,libobjc-5-dev,libphobos-5-dev,libstdc++-5-dev,libubsan0,libx32gcc-5-dev,libx32gfortran-5-dev,libx32objc-5-dev,libx32phobos-5-dev,libx32stdc++-5-dev|exe>dev,dev,doc,nls| #MERGED 20150717-08
+yes|gcc_lib|libgcc1,libgomp1,libquadmath0|exe,dev,doc,nls| #unicorn, now gcc 4.9.1. werewolf, now 5.1.1.
+yes|gcolor2|gcolor2|exe,dev>null,doc,nls
+yes|gconf|gconf2,gconf2-common,gconf-service,gconf-service-backend,gir1.2-gconf-2.0,libgconf-2-4,libgconf2-4,libgconf2-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|gdb|gdb|exe>dev,dev,doc,nls
+yes|gdbm|libgdbm3,libgdbm-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|gdk-pixbuf|gir1.2-gdkpixbuf-2.0,libgdk-pixbuf2.0-0,libgdk-pixbuf2.0-common,libgdk-pixbuf2.0-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|gdmap|gdmap|exe,dev>null,doc,nls
+yes|geany|geany|exe,dev,doc,nls|compat:april| #20151110
+no|getcurpos||exe|pet:common| #now in pup-tools
+yes|getflash||exe,dev,doc,nls
+yes|gettext|gettext,gettext-base,libasprintf0v5,libasprintf-dev,libgettextpo-dev|exe,dev>null,doc>null,nls>null| #MERGED 20150717-08
+yes|gettext_devxonly|gettext-base,gettext|exe>dev,dev,doc,nls
+yes|gfnrename||exe,dev>null,doc,nls
+yes|gfontsel||exe,dev>null,doc,nls
+yes|gftp|gftp-common,gftp-gtk|exe,dev>null,doc,nls| #MERGED 20150717-08
+yes|ghostscript|ghostscript,ghostscript-x,libgs9,libgs9-common,libgs-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|giflib|libgif4|exe,dev,doc,nls| #ADDED 20150717-08
+yes|gifsicle|gifsicle|exe,dev>null,doc,nls
+yes|git|git,git-doc,git-man,gitweb|exe>dev,dev,doc>dev,nls>dev| #MERGED 20150717-08
+no|glade2|glade-gtk2,libgladeui-1-11,libgladeui-1-dev|exe>dev,dev,doc,nls| #151025 crap, no longer there.
+yes|glib|libglib2.0-0,libglib2.0-bin,libglib2.0-data,libglib2.0-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|glibc|libc-bin,libc-dev-bin,libc6,libc6-dev,tzdata|exe,dev,doc,nls>exe| #MERGED 20150717-08
+yes|glibc_locales|locales|exe,dev,doc,nls>exe
+yes|glib-networking|glib-networking|exe,dev,doc,nls| #ADDED 20150717-08
+yes|glipper||exe,dev>null,doc,nls
+yes|gmeasures||exe,dev>null,doc,nls
+yes|gmp|libgmp10,libgmp3-dev,libgmp-dev,libgmpxx4ldbl|exe,dev,doc,nls| #MERGED 20150717-08
+yes|gnet|gnet|exe,dev,doc,nls|compat:april| #needed by helpsurfer. ADDED 20151113
+yes|gnome-doc-utils|gnome-doc-utils|exe>dev,dev,doc,nls|+python-libxml2
+yes|gnome-keyring|libgnome-keyring0,libgnome-keyring-dev|exe,dev,doc,nls
+yes|gnome-menus||exe,dev,doc,nls| #use my pet, version 2.14.3, needed by xdg_puppy.
+yes|gnome-vfs|libgnomevfs2-0,libgnomevfs2-common,libgnomevfs2-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|gnumeric||exe,dev,doc,nls| #gtk2 GNUMERIC.
+no|gnutls26||exe,dev,doc,nls| #my old cups needs this.
+yes|gnutls28|libgnutls28-dev,libgnutls-deb0-28,libgnutls-dev,libgnutls-openssl27,libgnutlsxx28|exe,dev,doc,nls| #MERGED 20150717-08
+yes|gobject-introspection|gir1.2-freedesktop,libgirepository1.0-dev|exe,dev,doc,nls| #ADDED 20150717-08
+yes|goffice||exe,dev,doc,nls| #gtk2 GNUMERIC
+yes|gpart|gpart|exe,dev,doc,nls| #useful utility used by gparted.
+yes|gparted||exe,dev>null,doc,nls|pet:april| #pet has f2fs support, gtkmm linked statically.
+yes|gperf|gperf|exe,dev,doc,nls|
+yes|gphoto2|gphoto2|exe,dev,doc,nls
+yes|gphotofs|gphotofs|exe,dev,doc,nls
+yes|gpm|libgpm2|exe,dev>null,doc,nls| #needed by mplayer, gphoto2.
+yes|gpptp||exe
+yes|gptfdisk|gptfdisk|exe,dev,doc,nls|compat:april| #ADDED 20151110
+yes|graphite2|libgraphite2-3,libgraphite2-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|grep|grep|exe,dev>null,doc,nls
+yes|grisbi||exe,dev,doc,nls|pet:april| #ADDED 20151025. instead of homebank.
+yes|groff|groff,groff-base|exe>dev,dev,doc,nls| #MERGED 20150717-08
+yes|gsettings-desktop-schemas|gsettings-desktop-schemas|exe,dev,doc,nls| #needs d-conf.
+no|gsfonts|gsfonts|exe,dev,doc,nls| #ADDED 20150717-08. REMOVED 20151116 size 5MB.
+yes|gsm|libgsm1,libgsm1-dev|exe,dev,doc,nls
+no|gstreamer0|gir1.2-freedesktop,gir1.2-glib-2.0,gir1.2-gst-plugins-base-0.10,gir1.2-gstreamer-0.10,libgirepository-1.0-1,libgstreamer0.10-0,libgstreamer0.10-dev,libgstreamer-plugins-bad0.10-dev,libgstreamer-plugins-base0.10-dev|exe,dev,doc,nls| #MERGED 20150717-08
+no|gstreamer1.0|gstreamer1.0-fluendo-mp3,gstreamer1.0-libav,libgstreamer1.0-0,libgstreamer1.0-dev,libgstreamer-plugins-bad1.0-0,libgstreamer-plugins-base1.0-0,libgstreamer-plugins-good1.0-0|exe,dev,doc,nls| #MERGED 20150717-08
+yes|gstreamer1.0|gstreamer1.0-fluendo-mp3,gstreamer1.0-libav,libgstreamer1.0-0,libgstreamer1.0-dev,libgstreamer-plugins-bad1.0-0,libgstreamer-plugins-base1.0-0,libgstreamer-plugins-good1.0-0,gir1.2-gstreamer-1.0,gir1.2-gst-plugins-base-1.0,gstreamer1.0-alsa,gstreamer1.0-plugins-base-apps,gstreamer1.0-plugins-base,gstreamer1.0-plugins-good,gstreamer1.0-tools,gstreamer1.0-x,libgstreamer-plugins-base1.0-dev,libgstreamer-plugins-good1.0-dev,gir1.2-gst-plugins-bad-1.0,gstreamer1.0-plugins-bad,gstreamer1.0-plugins-bad-faad,gstreamer1.0-plugins-bad-videoparsers,libgstreamer-plugins-bad1.0-dev|exe,dev,doc,nls| #MODIFIED 20151101
+yes|gtk+|gir1.2-gtk-2.0,libgtk2.0-0,libgtk2.0-common,libgtk2.0-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|gtk2-engines-pixbuf|gtk2-engines-pixbuf|exe,dev,doc,nls
+yes|gtk+3.0|libgtk-3-0,libgail-3-dev,libgtk-3-dev|exe,dev,doc,nls| #ADDED 20150717-08
+yes|gtkam|gtkam|exe,dev>null,doc,nls|
+yes|gtk-chtheme|gtk-chtheme|exe,dev>null,doc,nls
+yes|gtkdialog||exe,dev,doc>dev,nls|pet:common| #latest here.
+yes|gtkglext|libgtkglext1,libgtkglext1-dev|exe,dev,doc,nls| #ADDED 20151101
+yes|gtkhash||exe,dev,doc,nls
+yes|gtklp||exe,dev,doc,nls| #maybe better to use this anyway, as using cups from wary.
+yes|gtksourceview|libgtksourceview2.0-0,libgtksourceview2.0-common,libgtksourceview2.0-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|gtkspell|libgtkspell0,libgtkspell-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|gtk_theme_eucalypt2||exe| #default theme for werewolf.
+yes|gtkthememaker||exe
+yes|gtk_theme_polished_blue||exe
+yes|gtk_theme_quirky61||exe|pet:noarch
+no|guess_fs|guess_fs|exe,dev,doc,nls|compat:april| #MODIFIED 20151113. REMOVED 20151118 now in busybox.
+yes|gutenprint|cups-driver-gutenprint,ijsgutenprint,libgutenprint2,libgutenprint-dev,libgutenprintui2-1,libgutenprintui2-dev,printer-driver-gutenprint|exe,dev,doc,nls| #MERGED 20150717-08
+yes|gview||exe
+yes|gwhere|gwhere|exe
+yes|gxmessage||exe,dev,doc,nls| #use my pet, as has xmessage symlink to gxmessage.
+yes|gzip|gzip|exe,dev>null,doc,nls
+yes|hardinfo||exe,dev,doc,nls| #our pet is patched to recognise puppy linux distro.
+yes|harfbuzz|libharfbuzz0b,libharfbuzz-gobject0,libharfbuzz-icu0|exe,dev,doc,nls| #MERGED 20150717-08
+yes|harfbuzz-dev|libharfbuzz-dev|exe>dev,dev,doc,nls| #need harfbuzz.pc, for pkg-config --cflags gtk+-2.0. broken, leaving out libharfbuzz-icu0, libharfbuzz-gobject0
+yes|hdparm|hdparm|exe,dev>null,doc,nls
+yes|heimdal|heimdal-dev,heimdal-multidev,libasn1-8-heimdal,libgssapi3-heimdal,libhcrypto4-heimdal,libhdb9-heimdal,libheimbase1-heimdal,libheimntlm0-heimdal,libhx509-5-heimdal,libkadm5clnt7-heimdal,libkadm5srv8-heimdal,libkafs0-heimdal,libkdc2-heimdal,libkrb5-26-heimdal,libotp0-heimdal,libroken18-heimdal,libsl0-heimdal,libwind0-heimdal|exe,dev,doc,nls| #MERGED 20150717-08
+yes|helpsurfer|helpsurfer|exe,dev,doc,nls|compat:april| #needs gnet, libsystem. ADDED 20151113
+yes|hiawatha||exe
+yes|hicolor-icon-theme|hicolor-icon-theme|exe,dev>null,doc,nls
+yes|hotplug2stdout||exe
+yes|hunspell|hunspell,libhunspell-1.3-0,libhunspell-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|hunspell-en-us|hunspell-en-us|exe,dev,doc,nls| #MERGED 20150717-08
+yes|iconfinder||exe
+yes|icu|icu-devtools,libicu55,libicu-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|id3lib|libid3-3.8.3v5,libid3-3.8.3-dev|exe,dev,doc,nls
+yes|ifplugd||exe
+yes|ifplugd_old||exe
+yes|ijs|libijs-0.35,libijs-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|ilmbase|libilmbase12,libilmbase-dev|exe,dev,doc,nls| #ADDED 20151101
+yes|imake|xutils-dev|exe>dev,dev,doc,nls
+yes|indicator-messages|libmessaging-menu0,libmessaging-menu-dev|exe,dev,doc,nls| #ADDED 20151027
+yes|initscripts|initscripts|exe,dev,doc,nls
+yes|init-system-helpers|init-system-helpers|exe,dev,doc,nls| #ADDED 20150717-08
+yes|inkscapelite||exe
+yes|inotail|inotail|exe,dev,doc,nls
+yes|inotify-tools|inotify-tools,libinotifytools0,libinotifytools0-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|installwatch||exe
+yes|intltool|intltool|exe,dev,doc,nls| #previously only in devx, but need in main f.s. to run momanager without devx.
+yes|iptables|iptables,iptables-dev,libxtables10|exe,dev,doc,nls| #MERGED 20150717-08
+yes|isl|libisl13,libisl-dev|exe,dev,doc,nls| #ADDED 20150717-08
+yes|iso-codes|iso-codes|exe,dev,doc,nls| #MERGED 20150717-08
+yes|isomaster|isomaster|exe,dev,doc,nls
+yes|jack|libjack0|exe,dev,doc,nls
+yes|jackd2|libjack-jackd2-0,libjack-jackd2-dev|exe,dev,doc,nls| #ADDED 20150717-08
+yes|jasper|libjasper1,libjasper-dev,libjasper-runtime|exe,dev,doc,nls| #MERGED 20150717-08
+yes|jbig2dec|libjbig2dec0,libjbig2dec0-dev|exe,dev,doc,nls| #needed by ghostscript.
+yes|jbigkit|libjbig0,libjbig-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|jimtcl||exe
+yes|jquery|libjs-jquery|exe,dev,doc,nls| #ADDED 20150717-08
+yes|json-c|libjson0,libjson0-dev,libjson-c2,libjson-c-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|jwm||exe,dev,doc,nls|pet:april
+yes|jwmconfig2||exe
+yes|jwm_theme_greenwhitex2||exe| #default for werewolf.
+yes|jwmthememaker||exe
+yes|jwm_theme_quirky60||exe|pet:noarch
+yes|keyutils|libkeyutils1,libkeyutils-dev|exe,dev>null,doc,nls| #MERGED 20150717-08
+yes|kmod|kmod,libkmod2,libkmod-dev,module-init-tools|exe,dev,doc,nls| #MERGED 20150717-08
+yes|krb5|krb5-multidev,libgssapi-krb5-2,libk5crypto3,libkrad-dev,libkrb5-3,libkrb5-dev,libkrb5support0|exe,dev,doc,nls| #MERGED 20150717-08
+yes|lame|lame,libmp3lame0,libmp3lame-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|lcms1||exe,dev>null,doc,nls| #ADDED 20150719 needed by some april pets.
+yes|lcms2|liblcms2-2,liblcms2-dev,liblcms2-utils|exe,dev,doc,nls| #MERGED 20150717-08
+yes|ldb|libldb1,libldb-dev|exe,dev,doc,nls| #ADDED 20151027
+yes|leafpad|leafpad|exe,dev>null,doc,nls
+yes|less|less|exe,dev>null,doc,nls
+yes|libaacs|libaacs0,libaacs-dev|exe,dev,doc,nls| #mplayer needs this.
+yes|libaio|libaio1,libaio-dev|exe,dev,doc,nls| #ADDED 20151027
+yes|libao|libao4,libao-common,libao-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|libavc1394|libavc1394-0,libavc1394-dev|exe,dev,doc,nls| #ADDED 20150719
+yes|libarchive|libarchive13|exe,dev,doc,nls| #needed by cmake.
+yes|libart|libart-2.0-2,libart-2.0-dev|exe,dev,doc,nls
+yes|libass|libass5,libass-dev|exe,dev,doc,nls| #ADDED 20150717-08
+yes|libasyncns|libasyncns0,libasyncns-dev|exe,dev,doc,nls| #MERGED 20150717-08
+no|libav|libavcodec56,libavcodec-dev,libavdevice55,libavdevice-dev,libavfilter5,libavfilter-dev,libavformat56,libavformat-dev,libavresample2,libavresample-dev,libav-tools,libavutil54,libavutil-dev,libpostproc52,libpostproc-dev,libswscale3,libswscale-dev|exe,dev,doc,nls| #MERGED 20150717-08
+no|libav-extra|libavcodec-extra,libavcodec-extra-56,libdirac-encoder0,libopenjpeg5,libvo-aacenc0,libvo-amrwbenc0|exe,dev,doc,nls| #shinobar composed this, refer forum t=76961&start=750
+yes|libbluray|libbluray1,libbluray-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|libbonobo|libbonobo2-0,libbonobo2-common,libbonobo2-dev,libbonoboui2-0,libbonoboui2-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|libbonoboui|libbonoboui2-common|exe,dev,doc,nls| #ADDED 20150717-08
+yes|libbs2b|libbs2b0,libbs2b-dev|exe,dev,doc,nls| #ADDED 20151027
+yes|libbsd|libbsd0,libbsd-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|libcaca|libcaca0|exe,dev,doc,nls| #leave out dev
+yes|libcanberra|libcanberra0,libcanberra-dev,libcanberra-gtk3-dev,libcanberra-gtk-common-dev,libcanberra-gtk-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|libcap|libcap2,libcap-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|libcap-ng|libcap-ng0|exe,dev,doc,nls| #ADDED 20151028. alternative libcap, leave out dev.
+yes|libcddb|libcddb2,libcddb2-dev|exe,dev,doc,nls| #debian/ubuntu pkg missing cddb_query, also very old version (warning: .deb cddb package has nothing to do with libcddb pkg). 120907 yes.
+yes|libcdio|libcdio13,libcdio-cdda1,libcdio-cdda-dev,libcdio-dev,libcdio-paranoia1,libcdio-paranoia-dev,libcdio-utils,libiso9660-8,libiso9660-dev,libudf0,libudf-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|libcdk5|libcdk5,libcdk5-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|libcroco|libcroco3,libcroco3-dev|exe,dev,doc,nls
+yes|libcurl3-gnutls|libcurl3-gnutls|exe,dev,doc>null,nls>null| #this is needed by git in the devx sfs file. update: conky needs it in the main f.s.
+yes|libdaemon|libdaemon0,libdaemon-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|libdatrie|libdatrie1,libdatrie-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|libdbusmenu|libdbusmenu-glib4,libdbusmenu-glib-dev,libdbusmenu-gtk3-dev,libdbusmenu-gtk4,libdbusmenu-gtk-dev,libdbusmenu-jsonloader-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|libdc1394|libdc1394-22,libdc1394-22-dev|exe,dev,doc,nls| #ffmpeg3 compiled in luci needs this
+yes|libdca|libdca0,libdca-dev,libdts-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|libde265|libde265-0,libde265-dev|exe,dev,doc,nls| #ADDED 20151101
+yes|libdmx|libdmx1,libdmx-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|libdrm|libdrm-radeon1,libdrm-nouveau2,libdrm-intel1,libdrm2,libdrm-amdgpu1|exe,dev,doc,nls| #ADDED 20150717-08
+yes|libdv|libdv4,libdv4-dev|exe,dev,doc,nls| #ADDED 20151101
+yes|libdvbpsi|libdvbpsi10,libdvbpsi-dev|exe,dev,doc,nls| #ADDED 20150717-08
+yes|libdvdcss||exe,dev,doc,nls
+yes|libdvdnav|libdvdnav4,libdvdnav-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|libdvdread|libdvdread4,libdvdread-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|libedit|libedit2,libedit-dev|exe,dev,doc,nls
+yes|libelf|libelfg0,libelfg0-dev|exe,dev,doc,nls| #note, elfutils is a different pkg.
+yes|libebml|libebml4v5,libebml-dev|exe,dev,doc,nls| #ADDED 20150719 needed by vlc
+yes|libepoxy|libepoxy0,libepoxy-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|liberror-perl|liberror-perl|exe>dev,dev,doc,nls| #MERGED 20150717-08
+yes|libevdev|libevdev2,libevdev-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|libevent|libevent-2.0-5,libevent-core-2.0-5,libevent-dev,libevent-extra-2.0-5,libevent-openssl-2.0-5,libevent-pthreads-2.0-5|exe,dev,doc,nls| #MERGED 20150717-08
+yes|libexif|libexif12,libexif-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|libexif-gtk|libexif-gtk5,libexif-gtk-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|libffi|libffi6,libffi-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|libfs|libfs6,libfs-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|libgc|libgc1c2|exe,dev,doc,nls| #ADDED 20150717-08
+yes|libgcrypt11||exe,dev,doc,nls|pet:common| #for older pkgs.
+yes|libgcrypt20|libgcrypt11-dev,libgcrypt20,libgcrypt20-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|libgd2|libgd3,libgd-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|libgee|gir1.2-gee-1.0,libgee2,libgee-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|libgif|libgif4,libgif-dev|exe,dev,doc,nls
+yes|libgif7||exe| #ADDED 20151028. libgif.so.7 needed by some april64 pets.
+yes|libglade2|libglade2-0,libglade2-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|libglu|libglu1-mesa|exe,dev,doc,nls| #ADDED 20150717-08
+yes|libgnome|libgnome2-0,libgnome2-bin,libgnome2-common,libgnome2-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|libgnomecanvas|libgnomecanvas2-common,libgnomecanvas2-0,libgnomecanvas2-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|libgnome-keyring|libgnome-keyring-common,libgnome-keyring0,gir1.2-gnomekeyring-1.0|exe,dev,doc,nls| #ADDED 20150717-08
+yes|libgnomeui|libgnomeui-0,libgnomeui-common,libgnomeui-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|libgpg-error|libgpg-error0,libgpg-error-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|libgphoto2|libgphoto2-6,libgphoto2-dev,libgphoto2-port12|exe,dev,doc,nls| #MERGED 20150717-08
+yes|libgringotts|libgringotts2,libgringotts-dev|exe,dev,doc,nls
+yes|libgsf|gir1.2-gsf-1,libgsf-1-114,libgsf-1-common,libgsf-1-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|libgtkhtml||exe,dev,doc,nls| #needed by my osmo pet.
+yes|libhtml-tagset-perl|libhtml-tagset-perl|exe,dev,doc,nls| #ADDED 20150717-08
+yes|libical|libical1a,libical-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|libice|libice6|exe,dev,doc,nls| #ADDED 20150717-08
+yes|libid3tag|libid3tag0,libid3tag0-dev|exe,dev,doc,nls
+yes|libidl|libidl0,libidl-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|libidn|libidn11,libidn11-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|libiec61883|libiec61883-0,libiec61883-dev|exe,dev,doc,nls| #ADDED 20151027
+yes|libieee1284|libieee1284-3,libieee1284-3-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|libindicator|libindicator3-dev,libindicator7,libindicator-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|libintl-perl|libintl-perl,libintl-xs-perl|exe>dev,dev,doc,nls| #MERGED 20150717-08
+yes|libjpeg62|libjpeg62|exe,dev,doc,nls
+yes|libjpeg8-empty|libjpeg8,libjpeg-dev,libjpeg8-dev|exe,dev,doc,nls| #ADDED 20150717-08
+yes|libjpeg9||exe|pet:common| #lib used in april, needed for some april pets. werewolf only uses v8.
+yes|libjpeg_old7||exe,dev>null,doc,nls
+yes|libjpeg-turbo|libjpeg-turbo8,libjpeg-turbo8-dev,libjpeg-turbo-progs|exe,dev,doc,nls| #ADDED 20150717-08
+yes|libjsoncpp|libjsoncpp0v5,libjsoncpp-dev|exe,dev,doc,nls| #ADDED 20150717-08
+yes|libkate|libkate1,libkate-dev,liboggkate-dev|exe,dev,doc,nls| #ADDED 20150717-08
+yes|liblivemedia|libbasicusageenvironment0,libgroupsock1,liblivemedia23,libusageenvironment1,livemedia-utils,liblivemedia-dev|exe,dev,doc,nls| #ADDED 20150717-08
+yes|libloudmouth|libloudmouth1-0,libloudmouth1-dev|exe,dev,doc,nls
+yes|libltdl|libltdl7,libltdl-dev|exe,dev,doc,nls| #note, this is really part of libtool pkg, but libs needed at runtime.
+yes|libmad|libmad0,libmad0-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|libmatroska|libmatroska6v5,libmatroska-dev|exe,dev,doc,nls| #ADDED 20150719 needed by vlc
+yes|libmcrypt|libmcrypt4,libmcrypt-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|libmimic|libmimic0,libmimic-dev|exe,dev,doc,nls| #ADDED 20151101
+yes|libmng|libmng2,libmng-dev|exe,dev,doc,nls
+yes|libmnl|libmnl0,libmnl-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|libmodplug|libmodplug1,libmodplug-dev|exe,dev,doc,nls| #ADDED 20150719 needed by vlc
+yes|libmpc|libmpcdec6,libmpcdec-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|libmtp|libmtp9,libmtp-common,libmtp-dev,libmtp-runtime|exe,dev,doc,nls| #MERGED 20150717-08
+yes|libnatpmp|libnatpmp1,libnatpmp-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|libnetfilter-conntrack|libnetfilter-conntrack3,libnetfilter-conntrack-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|libnfnetlink|libnfnetlink0,libnfnetlink-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|libnl3|libnl-3-200,libnl-3-dev,libnl-cli-3-200,libnl-cli-3-dev,libnl-genl-3-200,libnl-genl-3-dev,libnl-idiag-3-dev,libnl-nf-3-200,libnl-nf-3-dev,libnl-route-3-200,libnl-route-3-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|libnotify|gir1.2-notify-0.7,libnotify4,libnotify-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|libofa|libofa0,libofapi0,libofa0-dev,libofapi-dev|exe,dev,doc,nls| #ADDED 20151101
+yes|libofx|libofx6,libofx-dev|exe,dev,doc,nls| #needed by homebank.
+yes|libogg|libogg0,libogg-dev|exe,dev,doc,nls| #MERGED 20150717-08
+no|liboil|liboil0.3,liboil0.3-dev|exe,dev,doc,nls| #151025 no longer there.
+yes|libopencore|libopencore-amrnb0,libopencore-amrnb-dev,libopencore-amrwb0,libopencore-amrwb-dev|exe,dev,doc,nls| #was libopencore dep for ffmpeg3 or mplayer2--can delete if mplayer2
+yes|libpaper|libpaper1,libpaper-dev,libpaper-utils|exe,dev,doc,nls| #MERGED 20150717-08
+yes|libpcap|libpcap0.8,libpcap0.8-dev,libpcap-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|libpciaccess|libpciaccess0,libpciaccess-dev|exe,dev,doc,nls
+yes|libpcsclite|libpcsclite1,libpcsclite-dev|exe,dev,doc,nls
+yes|libperl|libperl5.20,libperl-dev|exe,dev>null,doc,nls
+yes|libpgm|libpgm-5.1-0,libpgm-dev|exe,dev,doc,nls| #ADDED 20151027
+yes|libpipeline|libpipeline1,libpipeline-dev|exe>dev,dev,doc,nls| #MERGED 20150717-08
+yes|libpng|libpng12-0,libpng12-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|libproxy|libproxy1v5,libproxy1-plugin-networkmanager,libproxy1-plugin-gsettings,libproxy1-plugin-webkit,libproxy1-plugin-kconfig,libproxy0.4-cil,libproxy-dev,libproxy-cil-dev,python-libproxy,libproxy-tools|exe,dev,doc,nls| #ADDED 20150719 needed by vlc
+yes|libpthread-stubs|libpthread-stubs0-dev|exe>dev,dev,doc,nls
+yes|libraw1394|libraw1394-11,libraw1394-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|librest|librest-0.7-0,librest-dev|exe,dev,doc,nls| #ADDED 20151027
+yes|librevenge|librevenge-0.0-0,librevenge-dev|exe,dev,doc,nls
+yes|librsvg|gir1.2-rsvg-2.0,librsvg2-2,librsvg2-bin,librsvg2-common,librsvg2-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|libsamplerate|libsamplerate0,libsamplerate0-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|libsdl1.2|libsdl1.2debian,libsdl1.2-dev|exe,dev,doc,nls| #ADDED 20150717-08
+yes|libselinux|libselinux1,libselinux1-dev|exe,dev>null,doc,nls| #MERGED 20150717-08
+yes|libsepol|libsepol1,libsepol1-dev|exe,dev,doc,nls
+yes|libset-scalar-perl|libset-scalar-perl|exe,dev,doc,nls| #ADDED 20150717-08
+yes|libshout|libshout3,libshout3-dev|exe,dev,doc,nls| #ADDED 20150719 needed by vlc
+yes|libsigc++|libsigc++-2.0-0v5,libsigc++-2.0-dev|exe,dev,doc,nls
+yes|libsigsegv|libsigsegv2,libsigsegv-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|libslang|libslang2|exe,dev>null,doc,nls
+yes|libsndfile|libsndfile1,libsndfile1-dev,sndfile-programs|exe,dev,doc,nls| #MERGED 20150717-08
+yes|libsodium|libsodium13,libsodium-dev|exe,dev,doc,nls| #ADDED 20151027
+yes|libsoup2.4|gir1.2-soup-2.4,libsoup2.4-1,libsoup2.4-dev,libsoup-gnome2.4-1,libsoup-gnome2.4-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|libsoxr|libsoxr0,libsoxr-dev|exe,dev,doc,nls| #ADDED 20151027
+yes|libssh|libssh-gcrypt-4|exe,dev,doc,nls| #ADDED 20151027. old version. seems vlc need this.
+yes|libssh2|libssh2-1,libssh2-1-dev|exe,dev,doc,nls| #ADDED 20150719 needed by vlc
+no|libstdc++||exe,dev>null,doc>null,nls>null| #old libstdc++.so.5. some video codecs (/usr/lib/codecs) need it.
+yes|libstdc++6|libstdc++6,libstdc++-5-dev|exe,dev,doc,nls| #werewolf. see gcc-5 above.
+yes|libsystem|libsystem|exe,dev,doc,nls|compat:april| #needed by helpsurfer. ADDED 20151113
+yes|libtar|libtar0,libtar-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|libtasn1|libtasn1-6,libtasn1-6-dev|exe,dev,doc,nls
+yes|tevent|libtevent0,libtevent-dev|exe,dev,doc,nls| #ADDED 20151027
+yes|libtext-unidecode-perl|libtext-unidecode-perl|exe>dev,dev,doc,nls| #MERGED 20150717-08
+yes|libthai|libthai0,libthai-data,libthai-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|libtheora|libtheora0,libtheora-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|libtiff|libtiff5,libtiff5-dev|exe,dev,doc,nls
+yes|libtool|autotools-dev,libltdl7,libtool|exe>dev,dev,doc,nls| #MERGED 20150717-08
+yes|libunistring|libunistring0,libunistring-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|libupnp|libupnp6,libupnp-dev,libupnp6-dev|exe,dev,doc,nls| #ADDED 20150717-08
+yes|liburi-perl|liburi-perl|exe,dev,doc,nls| #ADDED 20150717-08
+yes|libusb|libusb-0.1-4,libusb-dev,libusb++-dev|exe,dev,doc,nls| #MERGED 20150717-08 note, this is old 0.1 series.
+yes|libusb-1.0|libusb-1.0-0,libusb-1.0-0-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|libva|libva1,libva-dev,libva-drm1,libva-egl1,libva-glx1,libva-tpi1,libva-wayland1,libva-x11-1|exe,dev,doc,nls| #MERGED 20150717-08
+yes|libvdpau|libvdpau1,libvdpau-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|libvisual|libvisual-0.4-0,libvisual-0.4-dev|exe,dev,doc,nls| #ADDED 20151101
+yes|libvncserver|libvncclient1,libvncserver-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|libvorbis|libvorbis0a,libvorbis-dev,libvorbisenc2,libvorbisfile3|exe,dev,doc,nls| #MERGED 20150717-08
+yes|libvpx|libvpx2,libvpx-dev|exe,dev,doc,nls| #MERGED 20150717-08  UPDATED 20150808
+yes|libwebp|libwebp5,libwebp-dev|exe,dev,doc,nls| #ADDED 20150717-08
+yes|libwmf|libwmf0.2-7,libwmf-dev|exe,dev,doc,nls
+yes|libwpd|libwpd-0.10-10,libwpd-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|libwpg|libwpg-0.3-3|exe,dev>null,doc,nls
+yes|libwww-perl|libwww-perl|exe,dev,doc,nls| #ADDED 20150717-08
+yes|libx11|libx11-xcb1,libx11-6|exe,dev,doc,nls| #ADDED 20150717-08
+yes|libx86|libx86-1,libx86-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|libxau|libxau6|exe,dev,doc,nls| #ADDED 20150717-08
+yes|libxcb_base|libxcb1,libxcb1-dev,libxcb-composite0,libxcb-composite0-dev,libxcb-damage0-dev,libxcb-dpms0-dev,libxcb-dri2-0,libxcb-dri2-0-dev,libxcb-dri3-0,libxcb-dri3-dev,libxcb-glx0,libxcb-glx0-dev,libxcb-present0,libxcb-present-dev,libxcb-randr0,libxcb-randr0-dev,libxcb-record0-dev,libxcb-render0,libxcb-render0-dev,libxcb-render-util0,libxcb-render-util0-dev,libxcb-res0-dev,libxcb-screensaver0-dev,libxcb-shape0,libxcb-shape0-dev,libxcb-shm0,libxcb-shm0-dev,libxcb-sync1,libxcb-sync-dev,libxcb-xevie0-dev,libxcb-xf86dri0-dev,libxcb-xfixes0,libxcb-xfixes0-dev,libxcb-xinerama0-dev,libxcb-xkb1,libxcb-xkb-dev,libxcb-xprint0-dev,libxcb-xtest0-dev,libxcb-xv0,libxcb-xv0-dev,libxcb-xvmc0-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|libxcomposite|libxcomposite1|exe,dev,doc,nls| #ADDED 20150717-08
+yes|libxcursor|libxcursor1|exe,dev,doc,nls| #ADDED 20150717-08
+yes|libxdamage|libxdamage1|exe,dev,doc,nls| #ADDED 20150717-08
+yes|libxdmcp|libxdmcp6|exe,dev,doc,nls| #ADDED 20150717-08
+yes|libxext|libxext6|exe,dev,doc,nls| #ADDED 20150717-08
+yes|libxfixes|libxfixes3|exe,dev,doc,nls| #ADDED 20150717-08
+yes|libxfont|libxfont1|exe,dev,doc,nls| #ADDED 20150717-08
+yes|libxi|libxi6|exe,dev,doc,nls| #ADDED 20150717-08
+yes|libxinerama|libxinerama1|exe,dev,doc,nls| #ADDED 20150717-08
+yes|libxkbcommon|libxkbcommon0,libxkbcommon-dev,libxkbcommon-x11-0,libxkbcommon-x11-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|libxkbfile|libxkbfile1|exe,dev,doc,nls| #ADDED 20150717-08
+yes|libxml2|libxml2,libxml2-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|libxml2-utils|libxml2-utils|exe>dev,dev,doc,nls
+yes|libxml-libxml-perl|libxml-libxml-perl|exe,dev,doc,nls| #ADDED 20150717-08
+yes|libxml-namespacesupport-perl|libxml-namespacesupport-perl|exe,dev,doc,nls| #ADDED 20150717-08
+yes|libxml-sax-perl|libxml-sax-perl|exe,dev,doc,nls| #ADDED 20150717-08
+yes|libxmu|libxmuu1,libxmu-headers,libxmu6|exe,dev,doc,nls| #ADDED 20150717-08
+yes|libxpm|libxpm4|exe,dev,doc,nls| #ADDED 20150717-08
+yes|libxrandr|libxrandr2|exe,dev,doc,nls| #ADDED 20150717-08
+yes|libxrender|libxrender1|exe,dev,doc,nls| #ADDED 20150717-08
+yes|libxres|libxres1|exe,dev,doc,nls| #ADDED 20150717-08
+yes|libxshmfence|libxshmfence1,libxshmfence-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|libxslt|libxslt1.1,libxslt1-dev,xsltproc|exe,dev,doc,nls| #MERGED 20150717-08
+yes|libxss|libxss1|exe,dev,doc,nls| #ADDED 20150717-08
+yes|libxt|libxt6|exe,dev,doc,nls| #ADDED 20150717-08
+yes|libxtst|libxtst6|exe,dev,doc,nls| #ADDED 20150717-08
+yes|libxv|libxv1|exe,dev,doc,nls| #ADDED 20150717-08
+yes|libxvmc|libxvmc1,libxvmc-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|libxxf86dga|libxxf86dga1|exe,dev,doc,nls| #ADDED 20150717-08
+yes|libxxf86vm|libxxf86vm1|exe,dev,doc,nls| #ADDED 20150717-08
+yes|libyahoo2|libyahoo2-11,libyahoo2-dev|exe,dev,doc,nls| #needed by ayttm.
+yes|linux_firewall||exe
+yes|linux_firmware_dvb||exe
+yes|linux-header|linux-libc-dev|exe>dev,dev,doc,nls
+no|linux_headers|linux_headers-3.17.*|exe>dev,dev,doc,nls|pet:
+yes|linux_headers|linux_headers-4.1.*|exe>dev,dev,doc,nls|pet:
+yes|lirc|liblircclient0,liblircclient-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|llvm|libllvm3.6v5|exe,dev,doc,nls| #needed by libgl1-mesa-dri, but huge 7MB deb. i left out dev components. 120605 removed. 120902 back.
+yes|lm-sensors|libsensors4,libsensors4-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|lsb|lsb-base|exe,dev,doc,nls| #MERGED 20150717-08 lsb-base is harmless, leave in
+yes|lua5.2|liblua5.2-0,liblua5.2-dev|exe,dev,doc,nls| #ADDED 20150717-08
+yes|lvm2|dmsetup,liblvm2-dev|exe,dev,doc,nls| #ADDED 20150717-08
+yes|lzma|lzma,lzma-dev|exe,dev,doc,nls
+yes|lzo2|liblzo2-2,liblzo2-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|m4|m4|exe>dev,dev,doc,nls| #MERGED 20150717-08
+yes|maag||exe| #make animated gif, created by rcrsn51.
+yes|madplay|madplay|exe,dev,doc,nls
+yes|make|make|exe>dev,dev,doc,nls
+yes|makebootfat||exe| #must use my patched makebootfat.
+yes|man|man-db|exe>dev,dev,doc,nls
+yes|man_cut||exe,dev>null,doc>null,nls>null
+yes|meanwhile|libmeanwhile1,libmeanwhile-dev|exe,dev,doc,nls| #ADDED 20151027
+yes|menu|menu|exe,dev,doc,nls| #ADDED 20150717-08
+yes|mesa|libegl1-mesa,libegl1-mesa-dev,libgbm1,libgbm-dev,libgles1-mesa,libgles1-mesa-dev,libgles2-mesa,libgles2-mesa-dev,libosmesa6-dev,libwayland-egl1-mesa,libxatracker-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|metamail||exe
+yes|mhash|libmhash2,libmhash-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|mhwaveedit||exe
+yes|mingetty||exe,dev,doc,nls
+yes|miniupnpc|libminiupnpc10,libminiupnpc-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|minixcal||exe,dev,doc,nls
+yes|mir|libmircommon5,libmirclient9,libmirprotobuf3,libmircommon-dev,libmirclient-dev|exe,dev,doc,nls| #ADDED 20150730
+yes|mirdir||exe
+yes|mjpegtools|mjpegtools,mjpegtools-gtk,libmplex2-2.1-0,libmjpegutils-2.1-0,libmpeg2encpp-2.1-0,libmjpegtools-dev|exe,dev,doc,nls| #ADDED 20151101
+yes|mktemp||exe
+yes|mmarchitect||exe,dev,doc,nls|pet:april| #ADDED 20151025
+yes|modem-stats||exe
+no|mountcifs||exe
+yes|mp||exe
+yes|mpclib|libmpc3,libmpc-dev|exe>dev,dev,doc,nls| #MERGED 20150717-08
+yes|mpeg2dec|libmpeg2-4,libmpeg2-4-dev|exe,dev,doc,nls| #needed by mplayer.
+yes|mpfr4|libmpfr4,libmpfr-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|mpg123|libmpg123-0,libmpg123-dev|exe,dev,doc,nls| #ADDED 20151101
+yes|mplayer_codecs_basic||exe
+yes|mpscan||exe,dev,doc,nls| #ADDED 20151026
+yes|mscw||exe| #multiple sound card wizard.
+no|ms-sys||exe
+yes|mtdev|libmtdev1,libmtdev-dev|exe,dev,doc,nls| #MERGED 20150717-08
+no|mtools|mtools|exe,dev,doc,nls| #needed by syslinux. 20151110 removed, syslinux not need.
+yes|mtpaint||exe,dev,doc,nls
+yes|mtr||exe
+no|mysql-5.6|mysql-common,libmysqlclient-dev,libmysqld-dev|exe,dev,doc,nls| #ADDED 20150717-08
+yes|nas|libaudio2,libaudio-dev|exe,dev,doc,nls| #needed by mplayer, qupzilla
+yes|nasm|nasm|exe>dev,dev,doc,nls
+yes|nbtscan||exe,dev,doc,nls|
+yes|ncurses|libncurses5,libncurses5-dev,libncursesw5,libncursesw5-dev,libtinfo5,libtinfo-dev,ncurses-base,ncurses-bin|exe,dev,doc,nls| #MERGED 20150717-08
+yes|nenscript||exe
+yes|netpbm||exe,dev,doc,nls|pet:april| #MODIFIED 20151029
+yes|net_setup||exe
+yes|net-snmp|libsnmp30,libsnmp-base,libsnmp-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|nettle|libhogweed4,libnettle6,nettle-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|net-tools|net-tools|exe,dev,doc,nls
+yes|network_roxapp||exe
+yes|network_tray||exe|pet:april| #version 3.0
+yes|newt|whiptail,libnewt0.52,libnewt-dev|exe,dev,doc,nls| #ADDED 20150717-08
+yes|normalize|normalize-audio|exe,dev,doc,nls
+yes|notecase||exe,dev,doc,nls
+no|nrg2iso||exe| #used by pburn.
+no|nspr|libnspr4,libnspr4-0d,libnspr4-dev|exe,dev,doc,nls| #20151112 now sm has this.
+no|nss|libnss3,libnss3-1d,libnss3-dev,libnss3-nssdb|exe,dev,doc,nls| #MERGED 20150717-08. #20151112 now sm has this.
+yes|ntdb|libntdb1,libntdb-dev|exe,dev,doc,nls| #ADDED 201501027
+yes|ntfs-3g|ntfs-3g,ntfs-3g-dev|exe,dev,doc,nls| #this seems to have taken over the full functionality of ntfsprogs.
+yes|ntpdate||exe| #used by psync to sync local time and date from the internet.
+yes|numactl|libnuma1,libnuma-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|numlockx||exe| #needed by shinobars firstrun.
+yes|openal-soft|libopenal1,libopenal-data,libopenal-dev|exe,dev,doc,nls| #ADDED 20151027
+yes|opencore-amr|libopencore-amrwb0,libopencore-amrnb0|exe,dev,doc,nls| #ADDED 20150717-08
+yes|opencv|libcvaux-dev,libcv-dev,libhighgui-dev,libopencv-calib3d-dev,libopencv-contrib-dev,libopencv-core2.4v5,libopencv-core-dev,libopencv-dev,libopencv-features2d-dev,libopencv-flann-dev,libopencv-gpu-dev,libopencv-highgui-dev,libopencv-imgproc2.4v5,libopencv-imgproc-dev,libopencv-legacy-dev,libopencv-ml-dev,libopencv-objdetect-dev,libopencv-ocl-dev,libopencv-photo-dev,libopencv-stitching-dev,libopencv-superres-dev,libopencv-ts-dev,libopencv-video-dev,libopencv-videostab-dev|exe,dev>null,doc,nls| #MERGED 20150717-08
+yes|openjpeg|libopenjpeg5,libopenjpeg-dev|exe,dev,doc,nls| #ADDED 20150717-08
+yes|openldap|libldap-2.4-2,libldap2-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|openslp|libslp1,libslp-dev|exe,dev,doc,nls
+yes|openslp-dfsg|libslp1|exe,dev,doc,nls| #ADDED 20150717-08
+yes|opensp|libosp5,libosp-dev,opensp|exe>dev,dev,doc,nls| #MERGED 20150717-08
+yes|opensp-runtime|libosp5|exe,dev,doc,nls| #needed by libofx and homebank.
+yes|openssh_client|openssh-client|exe,dev,doc,nls
+yes|openssl|libssl1.0.0,libssl-dev,openssl|exe,dev,doc,nls| #MERGED 20150717-08
+yes|optipng|optipng|exe>dev,dev,doc,nls
+yes|opus|libopus0,libopus-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|orbit2|liborbit2,liborbit-2-0,liborbit2-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|orc|liborc-0.4-0,liborc-0.4-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|osmo||exe,dev,doc,nls| #needs libnotify, libgtkhtml, libtar, libgringotts, libical.
+yes|ots|libots0,libots-dev|exe,dev,doc,nls
+yes|p11-kit|libp11-kit0,libp11-kit-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|pam|libpam0g,libpam0g-dev,libpam-modules|exe,dev,doc,nls| #MERGED 20150717-08
+yes|pango|gir1.2-pango-1.0,libpango-1.0-0,libpango1.0-0,libpango1.0-dev,libpangocairo-1.0-0,libpangoft2-1.0-0,libpangox-1.0-0,libpangoxft-1.0-0|exe,dev,doc,nls| #MERGED 20150717-08
+yes|parted|parted,libparted2,libparted-dev,libparted-fs-resize0|exe,dev,doc,nls|
+yes|patch|patch|exe>dev,dev,doc,nls
+yes|patchutils|patchutils|exe>dev,dev,doc,nls
+yes|pavrecord-precise||exe| #mcewanw: record audio and video, note needs ffplay -in ffmpeg in precise puppy.
+yes|pbackup||exe
+no|pburn3||exe| #older version, works with cdrkit.
+yes|pburn||exe| #20151108 now using cdrtools.
+yes|pcd||exe
+yes|pcdripper||exe
+yes|pciutils|pciutils,libpci3,libpci-dev|exe,dev,doc,nls
+yes|pclock||exe,dev,doc,nls
+yes|pcmciautils|pcmciautils|exe,dev,doc,nls
+yes|pcre|libpcre16-3,libpcre3,libpcre32-3,libpcre3-dev,libpcrecpp0v5|exe,dev,doc,nls| #MERGED 20150717-08
+yes|pcsc-lite|libpcsclite1|exe,dev,doc,nls| #ADDED 20150717-08
+yes|pctorrent||exe
+yes|pdiag||exe| #diagnostic tool created by rerwin.
+yes|pdvdrsab||exe
+yes|peasydisc||exe
+yes|peasyglue||exe,dev,doc,nls
+yes|peasypdf||exe,dev,doc,nls
+yes|peasyport-noarch||exe| #rcrsn51, alternative to superscan. needs pnscan, arp-scan
+yes|peasyprint||exe,dev,doc,nls
+yes|peasyscale-exec||exe,dev,doc,nls| #ADDED 20151026
+yes|peasyscale-noarch||exe| #rcrsn51, jpg image resizer.
+yes|peasyscan-exec||exe,dev,doc,nls| #ADDED 20151026
+yes|peasyscan-noarch||exe,dev,doc,nls
+no|peasyscan_pdf_plugin||exe,dev,doc,nls
+yes|perl|libperl5.20,perl,perl-base,perl-modules|exe>dev,dev,doc,nls| #MERGED 20150717-08
+yes|perl-compress-zlib|libcompress-raw-zlib-perl|exe>dev,dev,doc,nls
+yes|perl-digest-sha1|libdigest-sha-perl|exe,dev>null,doc>null,nls>null
+yes|perl-digest-sha1_devxonly|libdigest-sha-perl|exe>dev,dev,doc,nls
+yes|perl-extutils-depends|libextutils-depends-perl|exe>dev,dev,doc,nls
+yes|perl-extutils-pkgconfig|libextutils-pkgconfig-perl|exe>dev,dev,doc,nls
+yes|perl-html-parser|libhtml-parser-perl|exe,dev>null,doc>null,nls>null
+yes|perl-html-parser_devxonly|libhtml-parser-perl|exe>dev,dev,doc,nls
+yes|perl_tiny|perl,perl-base,perl-modules|exe,dev>null,doc>null,nls>null
+yes|perl-uri|liburi-perl|exe>dev,dev,doc,nls
+yes|perl-xml-parser|libxml-parser-perl|exe>dev,dev,doc,nls
+yes|perl-xml-simple|libxml-simple-perl|exe>dev,dev,doc,nls
+yes|pfilesearch||exe
+yes|pfind||exe
+yes|picocom|picocom|exe,dev,doc,nls
+yes|picpuz||exe
+yes|picscale||exe|
+yes|pidgin|pidgin,libpurple0,pidgin-data,pidgin-libnotify,finch|exe,dev,doc,nls| #ADDED 20151025
+yes|pixman|libpixman-1-0,libpixman-1-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|pkgconfig|pkg-config|exe>dev,dev,doc,nls| #MERGED 20150717-08
+yes|planner||exe,dev,doc,nls|
+yes|pmetatagger||exe
+yes|pmirror||exe
+yes|pmirrorget||exe
+yes|pmusic||exe| #aqualung is an alternative.
+no|pnethood||exe| #using network_roxapp and YASSM instead. leave it in, some users want it.
+yes|pnscan||exe,dev,doc,nls| #ADDED 20151026
+yes|poppler|gir1.2-poppler-0.18,libpoppler52,libpoppler-cpp-dev,libpoppler-dev,libpoppler-glib8,libpoppler-glib-dev,libpoppler-private-dev,libpoppler-qt4-dev,libpoppler-qt5-dev,poppler-utils|exe,dev,doc,nls| #MERGED 20150717-08
+no|poppler-data|poppler-data|exe,dev,doc,nls| #ADDED 20150717-08. REMOVED 20151116 have got away without it in april etc.
+yes|popt|libpopt0,libpopt-dev|exe,dev,doc,nls| #MERGED 20150717-08
+no|postgresql-9.4|libpq5,libecpg-dev,libpq-dev|exe,dev,doc,nls| #ADDED 20150717-08
+yes|powerapplet_tray||exe|pet:april
+yes|pplog||exe
+yes|ppp|ppp|exe,dev>null,doc,nls
+yes|pprocess||exe
+yes|pptp|pptp-linux|exe,dev,doc,nls
+yes|precord-precise||exe
+yes|procps|libprocps3,libprocps3-dev,procps|exe,dev,doc,nls| #MERGED 20150717-08
+yes|protobuf|libprotobuf-lite9v5,libprotobuf-dev|exe,dev,doc,nls| #ADDED 20150730 try -lite instead of full version. mir needs this.
+yes|prun||exe|pet:noarch| #ADDED 201510125
+yes|pschedule||exe
+yes|psmisc|psmisc|exe,dev>null,doc,nls
+yes|psync||exe,dev,doc,nls
+yes|ptiming||exe,dev,doc,nls
+yes|pulseaudio|libpulse0,libpulse-dev,libpulse-mainloop-glib0|exe,dev,doc,nls| #MERGED 20150717-08
+yes|puppyinputdetect||exe
+yes|puppy-podcast-grabber||exe
+yes|puppyserialdetect||exe
+yes|pupradio||exe,dev,doc,nls
+yes|Pup-SysInfo||exe,dev,doc,nls|pet:noarch| #ADDED 20151025. alternative to hardinfo.
+yes|pup-tools|pup-tools|exe,dev,doc,nls|compat:april| #ADDED 20151108 core utilities for puppy.
+yes|pupx||exe
+yes|pure_ftpd||exe
+yes|pwsget||exe
+yes|python|libpython2.7-minimal,libpython2.7-stdlib,libpython2.7,libpython2.7-dev,python,python2.7,python2.7-dev,python2.7-minimal|exe,doc,nls| #MERGED 20150717-08
+yes|python3.4|libpython3.4,libpython3.4-dev,python3.4-dev|exe,dev,doc,nls| #ADDED 20150717-08
+yes|python3-defaults|python3,libpython3-all-dev,libpython3-dev,python3-all-dev,python3-dev|exe,dev,doc,nls| #ADDED 20150717-08
+yes|python-defaults|libpython-stdlib,libpython-all-dev,libpython-dev,python-all-dev,python-dev|exe,dev,doc,nls| #ADDED 20150717-08
+yes|python-libxml2|python-libxml2|exe,doc,nls| #121022 moved from devx to main f.s.
+yes|qpdf|libqpdf13v5,libqpdf-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|qtbase-opensource-src|libqt5concurrent5,libqt5core5a,libqt5dbus5,libqt5gui5,libqt5libqgtk2,libqt5network5,libqt5opengl5,libqt5opengl5-dev,libqt5printsupport5,libqt5sql5,libqt5sql5-mysql,libqt5sql5-odbc,libqt5sql5-psql,libqt5sql5-sqlite,libqt5sql5-tds,libqt5test5,libqt5widgets5,libqt5xml5,qt5-default,qt5-qmake,qt5-qmake-arm-linux-gnueabihf,qt5-qmake-cross-armhf,qtbase5-dev,qtbase5-dev-tools,qtbase5-examples,qtbase5-private-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|qtchooser|qtchooser|exe,dev,doc,nls| #ADDED 20150717-08
+yes|qtx11extras-opensource-src|libqt5x11extras5,libqt5x11extras5-dev|exe,dev,doc,nls| #ADDED 20150717-08
+no|qutim|qutim|exe,dev,doc,nls| #multiprotocol chat client, uses qt4. qupzilla has installed many needed deps. needs qt4
+yes|raptor2|libraptor2-0,libraptor2-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|readline|libreadline6,libreadline6-dev,readline-common,libreadline-dev|exe,dev,doc,nls| #MERGED 20150717-08
+no|readline5|libreadline5,libreadline-gplv2-dev|exe,dev,doc,nls| #ADDED 20150717-08
+yes|readline5|libreadline5|exe,dev,doc,nls| #ADDED 20150717-08
+yes|retrovol||exe,dev,doc,nls|pet:april
+yes|rman|rman|exe>dev,dev,doc,nls
+no|rox-filer||exe|pet:april
+yes|rox-filer|rox-filer|exe,dev,doc,nls|compat:april| #20151109
+no|rpl||exe
+yes|rp_pppoe_cli||exe
+yes|rsync|rsync|exe,dev>null,doc>null,nls>null| #MERGED 20150717-08
+yes|rsync_devxonly|rsync|exe>dev,dev,doc,nls
+yes|rtmpdump|librtmp1,librtmp-dev|exe,dev,doc,nls
+yes|rubix||exe
+yes|rxvt-unicode||exe,dev>null,doc,nls|pet:werewolf| #20151110 april t2 pet crashes, had to compile.
+no|rxvt-unicode|rxvt-unicode-256color|exe,dev>null,doc,nls| #ADDED 20151028. removed, missing perl modules.
+no|samba||exe,dev,doc,nls|pet:werewolf| #ADDED 20150801 compiled it, version 4.2.3
+yes|samba|samba,samba-common-bin,samba-common,samba-libs,samba-dsdb-modules,samba-vfs-modules,libwbclient0,libsmbclient,libsmbclient-dev|exe,dev,doc,nls| #ADDED 20151025. 20151123 added libsmbclient, libsmbclient-dev
+no|samba_client||exe
+yes|sane-backends|libsane,libsane-common,libsane-dev,sane-utils|exe,dev,doc,nls| #MERGED 20150717-08
+yes|sbc|libsbc1,libsbc-dev|exe,dev,doc,nls| #ADDED 20151101
+yes|scale2x||exe
+yes|schroedinger|libschroedinger-1.0-0,libschroedinger-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|screeny||exe,dev,doc,nls| #alternate screenshot app, created by 01micko.
+yes|sdl|libsdl1.2debian,libsdl-image1.2,libwebp5|exe,dev,doc,nls
+yes|seamonkey||exe,dev,doc>null,nls>null|pet:werewolf
+yes|seamonkey_addon_TrueFullScreen||pet:noarch| #ADDED 20151102
+yes|sed|sed|exe,dev>null,doc,nls| #MERGED 20150717-08
+yes|sensible-utils|sensible-utils|exe,dev,doc,nls| #ADDED 20150717-08
+yes|serf|libserf-1-1|exe>dev,dev,doc,nls| #needed by svn.
+yes|setserial|setserial|exe,dev>null,doc,nls
+yes|setvol||exe
+yes|sgml-base|sgml-base|exe>dev,dev,doc,nls| #MERGED 20150717-08
+yes|sgml-data|sgml-data|exe>dev,dev,doc,nls
+yes|shared-mime-info||exe,dev|pet:april| #ADDED 20151028 need this, deb is broken.
+no|shared-mime-info|shared-mime-info|exe,dev,doc,nls| #ADDED 20150717-08
+yes|shine|libshine3,libshine-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|sidplay-libs|libresid-builder0c2a,libresid-builder-dev,libsidplay2v5,libsidplay2-dev,libsidutils0,libsidutils-dev|exe,dev,doc,nls| #ADDED 20150719 needed by vlc
+yes|slang2|libslang2,libslang2-dev|exe,dev,doc,nls| #ADDED 20150717-08
+yes|snap2||exe|pet:noarch
+yes|sound-theme-freedesktop|sound-theme-freedesktop|exe,dev,doc,nls| #ADDED 20150717-08
+yes|soundtouch|libsoundtouch0,libsoundtouch-dev|exe,dev,doc,nls| #ADDED 20151101
+yes|spandsp|libspandsp2,libspandsp-dev|exe,dev,doc,nls| #ADDED 20151101
+yes|speex|libspeex1,libspeex-dev,libspeexdsp1,libspeexdsp-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|sqlite|libsqlite3-0,libsqlite3-dev,sqlite3|exe,dev,doc,nls| #MERGED 20150717-08
+yes|squashfs-tools||exe|pet:april| #note, kernel-version sensitive
+yes|srtp|libsrtp0,libsrtp0-dev|exe,dev,doc,nls| #ADDED 20151101
+yes|ssh-gui||exe
+yes|sshpass|sshpass|exe,dev,doc,nls| #needed by bones.
+yes|ssl-certificate-fix||exe,dev,doc,nls|pet:noarch| #qtweb needs this.
+yes|startup-notification|libstartup-notification0,libstartup-notification0-dev|exe,dev,doc,nls
+yes|strace|strace|exe>dev,dev,doc,nls
+yes|streamripper||exe,dev,doc,nls
+yes|subversion|libapr1,libaprutil1,libmysqlclient18,libneon27-gnutls,libpq5,libsvn1,libsvn-dev,subversion|exe>dev,dev,doc,nls| #MERGED 20150717-08
+yes|sudo||exe,dev,doc,nls
+yes|sysfsutils|libsysfs2,libsysfs-dev,sysfsutils|exe,dev,doc,nls| #MERGED 20150717-08
+yes|syslinux|syslinux|exe,dev,doc,nls|compat:april| #ADDED 20151110
+yes|syslinux6_modules_efi||exe|pet:common| #ADDED 20151110. only has the efi modules, from syslinux 6.0.3
+yes|sysprof|sysprof|exe>dev,dev,doc,nls
+yes|systemd|libsystemd0,libsystemd-daemon-dev,libsystemd-dev,libsystemd-login-dev,libudev-dev|exe,dev>null,doc,nls| #MERGED 20150717-08
+yes|sysvinit||exe| #KEEP THIS
+no|sysvinit|sysv-rc,sysvinit-utils,initscripts|exe,dev,doc,nls| #ADDED 20150717-08
+yes|taglib|libtag1v5,libtag1-dev,libtag1v5-vanilla,libtagc0-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|talloc|libtalloc2,libtalloc-dev,python-talloc,python-talloc-dev|exe,dev,doc,nls| #MERGED 20150717-08 20150801
+yes|tar|tar|exe,dev>null,doc,nls
+yes|tbb|libtbb2,libtbb-dev|exe,dev>null,doc,nls| #MERGED 20150717-08
+yes|tcp-wrappers|libwrap0,libwrap0-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|tdb|libtdb1,libtdb-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|tex-common|tex-common|exe,dev,doc,nls| #ADDED 20150717-08
+yes|texinfo|texinfo|exe>dev,dev,doc,nls
+yes|tiff|libtiffxx5,libtiff5|exe,dev,doc,nls| #ADDED 20150717-08
+no|tile||exe| #what is this. an old game from puppy4.
+yes|time|time|exe,dev>null,doc,nls
+yes|transmission||exe,dev,doc,nls| #gtk2
+yes|truncate||exe
+yes|twolame|libtwolame0,libtwolame-dev|exe,dev,doc,nls| #ADDED 20150717-08
+yes|ucf|ucf|exe,dev,doc,nls| #ADDED 20150717-08
+yes|uget||exe
+yes|unclutter|unclutter|exe,dev>null,doc,nls
+no|unionfs_utils||exe
+yes|unixodbc|libodbc1,unixodbc-dev|exe,dev,doc,nls| #ADDED 20150717-08
+yes|unrar||exe,dev,doc,nls
+yes|unzip|unzip|exe,dev>null,doc,nls
+yes|update-inetd|update-inetd|exe,dev,doc,nls| #ADDED 20150717-08
+yes|urxvtset||exe| #needs urxvt, yad
+yes|usb-modeswitch||exe|
+yes|usb-modeswitch-data||exe|
+yes|usbutils|usbutils|exe,dev,doc,nls
+no|util-linux||exe,dev,doc,nls| #supports f2fs. note, 2.21.2 has f2fs patch, last version supporting losetup encryption.
+yes|util-linux|util-linux,mount,uuid-runtime,bsdutils,libuuid1,libblkid1,libfdisk1,libmount1,libsmartcols1,libfdisk-dev,libmount-dev,libsmartcols-dev,uuid-dev,libblkid-dev,libmount-dev|exe,dev,doc,nls| #ADDED 20150717-08 20150730 20150808
+yes|v4l-utils|libdvbv5-dev,libv4l-0,libv4l2rds0,libv4lconvert0,libv4l-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|vala-0.28|libvala-0.28-0,libvala-0.28-dev,valac,valac-0.28,valac-0.28-vapi|exe>dev,dev,doc>dev,nls| #MERGED 20150717-08
+no|valide||exe>dev,dev,doc>dev,nls
+yes|vamps|vamps|exe,dev,doc,nls
+yes|vcdimager|libvcdinfo0,libvcdinfo-dev,vcdimager|exe,dev,doc,nls| #MERGED 20150717-08
+yes|viewnior||exe,dev,doc,nls
+yes|vlc|vlc,vlc-nox,vlc-data,libvlc5,libvlc-dev,libvlccore8,libvlccore-dev|exe,dev,doc,nls
+no|vlc-browser-plugin|browser-plugin-vlc|exe,dev,doc,nls
+yes|vo-aacenc|libvo-aacenc0,libvo-aacenc-dev|exe,dev,doc,nls| #ADDED 20150717-08
+yes|vo-amrwbenc|libvo-amrwbenc0,libvo-amrwbenc-dev|exe,dev,doc,nls| #ADDED 20150717-08
+yes|vobcopy|vobcopy|exe,dev,doc,nls
+yes|vorbis-tools|vorbis-tools|exe,dev,doc,nls
+yes|wag_profiles||exe| #taken out of net_setup pet, see forum t=82092&start=300
+no|waitmax||exe| #have busybox timeout applet.
+yes|wavpack|libwavpack1,libwavpack-dev|exe,dev,doc,nls| #20151027
+yes|wavplay||exe
+yes|wayland|libwayland-client0,libwayland-cursor0,libwayland-dev,libwayland-server0|exe,dev,doc,nls| #MERGED 20150717-08
+yes|wcpufreq||exe,dev,doc,nls| #using this instead of cpu-scaling-ondemand.
+yes|webkitgtk|libjavascriptcoregtk-3.0-0|exe,dev,doc,nls| #20151027
+yes|wget|wget|exe,dev>null,doc,nls
+yes|whois|whois|exe,dev>null,doc,nls| #ADDED 20151025
+yes|wireless-tools|libiw30,libiw-dev,wireless-tools|exe,dev,doc,nls| #MERGED 20150717-08
+yes|wpa_supplicant|wpasupplicant|exe,dev>null,doc,nls
+yes|wv|libwv-1.2-4,libwv-dev|exe,dev,doc,nls| # ABIWORD
+yes|wvdial|wvdial|exe,dev,doc,nls|compat:april| #needs wvstreams. ADDED 20151115
+yes|wvstreams|wvstreams|exe,dev,doc,nls|compat:april| #ADDED 20151115
+yes|x11proto|x11proto-*-dev|exe>dev,dev,doc,nls
+yes|x264|libx264-146,libx264-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|x265|libx265-59,libx265-dev|exe,dev,doc,nls
+yes|xarchive||exe
+yes|xauth|xauth|exe,dev,doc,nls| #ADDED 20150717-08
+yes|xaw3d|xaw3dg|exe,dev,doc,nls| #ADDED 20151025. xvkbd uses this. leave out xaw3dg-dev
+yes|xcb-util|libxcb-util1,libxcb-util-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|xcb-util-image|libxcb-image0,libxcb-image0-dev|exe,dev,doc,nls
+yes|xcb-util-keysyms|libxcb-keysyms1,libxcb-keysyms1-dev|exe,dev,doc,nls| #ADDED 20150717-08
+yes|xcb-util-wm|libxcb-icccm4,libxcb-icccm4-dev|exe,dev,doc,nls
+yes|xclip||exe
+yes|xcur2png||exe
+yes|xdelta||exe
+yes|xdg_puppy||exe
+yes|xdialog|xdialog|exe,dev,doc,nls|compat:april| #see forum t=64795. ADDED 20151116
+yes|xemeraldia||exe
+yes|xfdiff-cut||exe
+yes|xfonts-encodings|xfonts-encodings|exe,dev,doc,nls| #ADDED 20150717-08
+yes|xkbconfigmanager||exe
+yes|xkeyboard-config|xkb-data|exe,dev,doc,nls| #ADDED 20150717-08
+yes|xlock_gui||exe
+yes|xlockmore||exe
+yes|xml-core|xml-core|exe>dev,dev,doc,nls
+yes|xorg_base|fontconfig,libdrm2,libdrm-dev,libdrm-intel1,libdrm-nouveau2,libdrm-radeon1,libfontconfig1,libfontconfig1-dev,libfontenc1,libfontenc-dev,libgl1-mesa-dev,libgl1-mesa-dri,libgl1-mesa-glx,libglapi-mesa,libglu1-mesa,libglu1-mesa-dev,libice6,libice-dev,libsm6,libsm-dev,libx11-6,libx11-data,libx11-dev,libx11-xcb1,libx11-xcb-dev,libxau6,libxau-dev,libxaw7,libxaw7-dev,libxcomposite1,libxcomposite-dev,libxcursor1,libxcursor-dev,libxdamage1,libxdamage-dev,libxdmcp6,libxdmcp-dev,libxext6,libxext-dev,libxfixes3,libxfixes-dev,libxfont1,libxfont-dev,libxft2,libxft-dev,libxi6,libxi-dev,libxinerama1,libxinerama-dev,libxkbfile1,libxkbfile-dev,libxmu6,libxmu-dev,libxmu-headers,libxmuu1,libxmuu-dev,libxpm4,libxpm-dev,libxrandr2,libxrandr-dev,libxrender1,libxrender-dev,libxres1,libxres-dev,libxss1,libxss-dev,libxt6,libxt-dev,libxtst6,libxtst-dev,libxv1,libxv-dev,libxxf86dga1,libxxf86dga-dev,libxxf86vm1,libxxf86vm-dev,mesa-common-dev,x11-apps,x11-common,x11-utils,x11-xkb-utils,x11-xserver-utils,xfonts-utils,xinit,xorg-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|xorg_dri|libgl1-mesa-dri,mesa-utils|exe,dev,doc,nls|
+no|xorg-server|xserver-common|exe,dev,doc,nls| #ADDED 20150717-08
+yes|xorg-sgml-doctools|xorg-sgml-doctools|exe,dev,doc,nls| #ADDED 20150717-08
+yes|xsane||exe
+yes|xserver_xorg|xserver-xorg-dev,xserver-common,xserver-xorg,xserver-xorg-core,xserver-xorg-video-*,xserver-xorg-input-kbd,xserver-xorg-input-mouse,xserver-xorg-input-synaptics,xserver-xorg-input-evdev,xserver-xorg-input-wacom,-xserver-xorg-video-*-dbg,-xserver-xorg-video-dummy,-xserver-xorg-video-glint,-xserver-xorg-video-ivtv,-xserver-xorg-video-nsc,-xserver-xorg-video-tga,-xserver-xorg-video-vga,-xserver-xorg-video-vmware,-xserver-xorg-video-fbdev|exe,dev,doc,nls| #for precise pangolin
+no|xserver-xorg-video-ati|xserver-xorg-video-ati|exe,dev,doc,nls| #ADDED 20150717-08
+no|xserver-xorg-video-cirrus|xserver-xorg-video-cirrus|exe,dev,doc,nls| #ADDED 20150717-08
+no|xserver-xorg-video-fbdev|xserver-xorg-video-fbdev|exe,dev,doc,nls| #ADDED 20150717-08
+no|xserver-xorg-video-geode|xserver-xorg-video-geode|exe,dev,doc,nls| #this is in universe repo.
+no|xserver-xorg-video-mga|xserver-xorg-video-mga|exe,dev,doc,nls| #ADDED 20150717-08
+no|xserver-xorg-video-neomagic|xserver-xorg-video-neomagic|exe,dev,doc,nls| #ADDED 20150717-08
+no|xserver-xorg-video-nouveau|xserver-xorg-video-nouveau|exe,dev,doc,nls| #ADDED 20150717-08
+no|xserver-xorg-video-savage|xserver-xorg-video-savage|exe,dev,doc,nls| #ADDED 20150717-08
+no|xserver-xorg-video-siliconmotion|xserver-xorg-video-siliconmotion|exe,dev,doc,nls| #ADDED 20150717-08
+no|xserver-xorg-video-sisusb|xserver-xorg-video-sisusb|exe,dev,doc,nls| #ADDED 20150717-08
+no|xserver-xorg-video-tdfx|xserver-xorg-video-tdfx|exe,dev,doc,nls| #ADDED 20150717-08
+no|xserver-xorg-video-trident|xserver-xorg-video-trident|exe,dev,doc,nls| #ADDED 20150717-08
+no|xserver-xorg-video-vesa|xserver-xorg-video-vesa|exe,dev,doc,nls| #ADDED 20150717-08
+no|xserver-xorg-video-vmware|xserver-xorg-video-vmware|exe,dev,doc,nls| #ADDED 20150717-08
+yes|xsoldier||exe
+yes|xtrans|xtrans-dev|exe>dev,dev,doc,nls
+yes|xvidcore|libxvidcore4,libxvidcore-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|xvkbd|xvkbd|exe,dev,doc,nls| #ADDED 20151025. needs xaw3d
+yes|xz|xz-utils,liblzma5,liblzma-dev|exe,dev,doc,nls
+yes|yad||exe,dev,doc,nls|
+no|yaf_splash||exe
+yes|yajl|libyajl2,libyajl-dev|exe,dev,doc,nls| #MERGED 20150717-08
+yes|yasm|yasm|exe>dev,dev,doc,nls|
+no|YASSM||exe| #alternative to pnethood.
+yes|ycalc||exe
+yes|zephyr|libzephyr4,libzephyr-dev|exe,dev,doc,nls| #ADDED 20151027
+yes|zeromq3|libzmq3,libzmq3-dev|exe,dev,doc,nls| #ADDED 20151027
+yes|z_geany_bacon_hack||exe|pet:noarch
+yes|zip|zip|exe,dev>null,doc,nls
+yes|zlib|libx32z1-dev,zlib1g,zlib1g-dev|exe,dev,doc,nls| #MERGED 20150717-08
+no|z_mpscan_fix_precise||exe| #refer forum t=81808
+yes|zvbi|libzvbi-common,libzvbi0,libzvbi-dev|exe,dev,doc,nls| #ADDED 20150717-08
+no|zzcups||exe,dev,doc,nls| #cups from trusty tahr, quick fix to get printing working. 20150730 removed, want to get proper cups working.
+yes|zz_ubuntu_precise_fixup||exe,dev,doc,nls
+'

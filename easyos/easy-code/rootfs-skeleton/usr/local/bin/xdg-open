@@ -1,0 +1,34 @@
+#!/bin/sh
+#this script created by Jemimah. see: http://murga-linux.com/puppy/viewtopic.php?t=63400&start=150
+#110115 xdg-open used to be a symlink to defaulthandler.
+#20220916 if running as a non-root client, restrict access to other apps. ref: /usr/local/clients/setup-client
+#20221023 may be running as zeus super-user.
+
+WHOIAM="$(whoami)"
+if [ "$WHOIAM" != "root" -a "$WHOIAM" != "zeus" ];then #20220916 20221023
+ grep -q "^${WHOIAM}=true" /root/.clients-status
+ if [ $? -eq 0 ];then
+  #whatever has called here is running as non-root client.
+  case "$1" in
+   *://*)
+    if [ -d /home/${WHOIAM}/.mozbare ];then
+     #app is allowed to run this html viewer.
+     exec mozbare "$1"
+    fi
+   ;;
+  esac
+  exit
+ fi
+fi
+
+case "$1" in 
+        '') exit
+                ;;
+        *://*) exec rox -U "$1"
+                ;;
+        *@*.*) exec rox -U "mailto:${1}"
+                ;;
+        *) exec rox "$1"
+                ;;
+esac
+

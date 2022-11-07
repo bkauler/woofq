@@ -1,0 +1,37 @@
+#note: DISTRO_BINARY_COMPAT and DISTRO_FILE_PREFIX are visible here, exported in 2createpackages.
+#140117 xARCHDIR, ARCHDIR and DISTRO_ARCHDIR_SYMLINKS exported in 2createpackages. 
+#140117 note, 2createpackages may move /lib, /usr/lib, /usr/bin in template to ARCHDIR subdir.
+
+#mageia 1, using my pet squashfs-tools4 (v4.2) compiled in wary, xz from mageia...
+#110906 slacko (slackware 13.37) xz has liblzma* in /lib/ ...
+if [ "$xARCHDIR" ];then #140117
+ if [ ! -e usr/lib/${ARCHDIR}/liblzma.so.0  ];then
+  LZMALIB="`find usr/lib/${ARCHDIR}/ -maxdepth 1 -type f -name 'liblzma.so*' 2> /dev/null | tail -n 1`"
+  if [ "$LZMALIB" ];then
+   BASELIB="`basename $LZMALIB`"
+   ln -s $BASELIB usr/lib/${ARCHDIR}/liblzma.so.0
+  else
+   LZMALIB="`find lib/${ARCHDIR}/ -maxdepth 1 -type f -name 'liblzma.so*' 2> /dev/null | tail -n 1`"
+   if [ "$LZMALIB" ];then
+    BASELIB="`basename $LZMALIB`"
+    #ln -s ../../../$LZMALIB usr/lib/${ARCHDIR}/liblzma.so.0
+    ln -s $BASELIB lib/${ARCHDIR}/liblzma.so.0
+   fi
+  fi
+ fi
+fi
+if [ ! -e usr/lib/liblzma.so.0  ];then
+ LZMALIB="`find usr/lib/ -maxdepth 1 -type f -name 'liblzma.so*' 2> /dev/null | tail -n 1`"
+ if [ "$LZMALIB" ];then
+  BASELIB="`basename $LZMALIB`"
+  ln -s $BASELIB usr/lib/liblzma.so.0
+ else
+  LZMALIB="`find lib/ -maxdepth 1 -type f -name 'liblzma.so*' 2> /dev/null | tail -n 1`"
+  if [ "$LZMALIB" ];then
+   BASELIB="`basename $LZMALIB`"
+   #ln -s ../../$LZMALIB usr/lib/liblzma.so.0
+   ln -s $BASELIB lib/liblzma.so.0
+  fi
+ fi
+fi
+

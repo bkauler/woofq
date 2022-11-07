@@ -1,0 +1,32 @@
+#!/bin/sh
+#20220209 popup containers menu. called from:
+# /usr/local/easy_containers/ec-create-desktop-icons-menu
+#20220406 fix placement of mouse over containers icon.
+#20220410 emulate key combination to popup menu.
+
+SCRN_X=$(cat /tmp/pup_event_frontend_scrn_x)
+SCRN_Y=$(cat /tmp/pup_event_frontend_scrn_y)
+
+Twidth0="$(grep -m 1 -o 'width="[^"]*' /root/.jwmrc-tray)" #ex: width="1172
+Twidth="${Twidth0/*\"/}"
+if [ "$Twidth" == "0" -o "$Twidth" == "" ];then
+ Xoff=86
+else
+ Xoff=$(((($SCRN_X - $Twidth) / 2) + 86))
+fi
+
+grep -q '<Tray .*valign="top"' /root/.jwmrc-tray
+if [ $? -eq 0 ];then
+ #tray is at top of screen.
+ Yoff=20
+else
+ Yoff=$(($SCRN_Y - 20))
+fi
+
+xdotool mousemove ${Xoff} ${Yoff} #on top of drives icon.
+#20220410 /root/.jwmrc (via /etc/xdg/templates/_root_.jwmrc and /root/.jwm/jwmrc-personal,
+# have assigned ALT-F8 to popup containerss menu. anyway, still good to have mouse
+# pointer over icon, so menu pops up in expected place.
+#right, so do not popup menu by emulating mouse scroll-up...
+#xdotool click 4 #scroll-up
+xdotool key Alt+F8

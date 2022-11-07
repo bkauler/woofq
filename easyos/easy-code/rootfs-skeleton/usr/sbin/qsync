@@ -1,0 +1,168 @@
+#!/bin/bash
+#(c) Copyright Barry Kauler, Nov. 2016. GPL v3 licence (refer: /usr/share/doc/legal).
+#set the date and time from the Internet. called from quicksetup, also in menu.
+#161104 first version. 
+#161105 passed param, run without X. also called from /root/Startup/network_tray (v3.2.1)
+#170703 L18L: completed i18n
+#180303 now called from /etc/init.d/qsync. add values to 'exit'.
+#180904 popup message when waiting for time to sync.
+#20210114 remove "Quirky" from text message. suppress error msg if hwclock fail.
+#20210118 fix test if ntpdate success. only run ntpdate if there is an internet connection.
+
+export TEXTDOMAIN=qsync
+export TEXTDOMAINDIR=/usr/share/locale
+export OUTPUT_CHARSET=UTF-8
+. gettext.sh
+
+if pidof ntpdate;then exit 1; fi #precaution
+
+NOX=0
+[ ! $DISPLAY ] && NOX=1
+PRE_ACTIVE_CHK="true"
+if [ $1 ];then
+ PRE_ACTIVE_CHK="$1" #true or false.
+ NOX=1
+fi
+
+. /etc/clock #has HWCLOCKTIME=localtime or utc. ref: /usr/sbin/quicksetup.
+
+#in all quirky builds, /etc/localtime is a symlink. some other distros have it as a file.
+LTflag='ok'
+[ ! -h /etc/localtime ] && LTflag='bad'
+[ "`ls -l /etc/localtime | grep 'usr/share/zoneinfo'`" == "" ] && LTflag='bad'
+if [ "$LTflag" != "ok" ];then
+ [ $NOX -eq 0 ] && popup "level=top terminate=ok background='#ff8080'|<big>$(gettext "ERROR")</big>, $(gettext "/etc/localtime is misconfigured. It must be a symlink to the appropriate file in /usr/share/zoneinfo.") $(gettext "Aborting.")"
+ exit 2
+fi
+
+if ! which ntpdate >/dev/null;then
+ [ $NOX -eq 0 ] && popup "level=top terminate=ok background='#ff8080'|<big>$(gettext "ERROR")</big>, $(gettext "the 'ntpdate' utility required by Qsync is missing.") $(gettext "Aborting.")"
+ exit 3
+fi
+
+mkdir -p /var/local/qsync
+mkdir -p /tmp/qsync
+TIMEZONE="$(readlink /etc/localtime | rev | cut -f 1 -d '/' | rev)" #ex: GMT-8
+case "$TIMEZONE" in
+ GMT-*) zTIMEZONE="$(echo -n "$TIMEZONE" | sed -e 's%GMT\-%GMT+%')" ;;
+ GMT+*) zTIMEZONE="$(echo -n "$TIMEZONE" | sed -e 's%GMT\+%GMT-%')" ;;
+ *) zTIMEZONE="$TIMEZONE" ;;
+esac
+
+SERVERLIST="$(gettext 'Africa'),africa.pool.ntp.org
+$(gettext 'Asia'),asia.pool.ntp.org
+$(gettext 'Europe'),europe.pool.ntp.org
+$(gettext 'North America'),north-america.pool.ntp.org
+$(gettext 'South America'),south-america.pool.ntp.org
+$(gettext 'Oceania'),oceania.pool.ntp.org
+$(gettext 'UK'),uk.pool.ntp.org"
+echo "$SERVERLIST" > /tmp/qsync/serverlist
+DEF_SERVER='North America'
+if [ -f /var/local/qsync/def_server ];then
+ zDEF_SERVER="$(cat /var/local/qsync/def_server)" #ex: north-america.pool.ntp.org
+ DEF_SERVER="$(echo "$SERVERLIST" | grep ",${zDEF_SERVER}$" | cut -f 1 -d ',')"
+fi
+
+#180303
+if [ ! -x /etc/init.d/qsync  ];then
+ echo -n "false" > /var/local/qsync/qsync_active
+fi
+
+QSYNC_ACTIVE='false'
+[ -f /var/local/qsync/qsync_active ] && QSYNC_ACTIVE="$(cat /var/local/qsync/qsync_active)"
+if [ "$QSYNC_ACTIVE" == "false" ];then
+ msgSTATUS="<span fgcolor='red'><big>$(gettext 'Qsync is currently disabled')</big></span>"
+ DEF_ACTIVE_CHK='true' #coz want to enable it.
+ msgCHK="$(gettext 'Tick to enable Qsync')"
+else
+ msgSTATUS="<span fgcolor='green'><big>$(gettext 'Qsync is currently enabled')</big></span>"
+ DEF_ACTIVE_CHK='true'
+ msgCHK="$(gettext 'Untick to disable Qsync')"
+fi
+
+export DLG_QSYNC="<window title=\"Qsync\" image-name=\"/usr/local/lib/X11/mini-icons/mini-clock.xpm\">
+ <vbox>
+  <text use-markup=\"true\"><label>\"<big><b>$(gettext "Set date and time from the Internet")</b></big>\"</label></text>
+  <text><label>$(gettext "Choose a NTP server, then click the OK button.") $(gettext "Local time will be immediately synchronized to the correct time retrieved from the server, if there is an Internet connection.") $(gettext "Sync will occur everytime in the future when a connection to the Internet is established.")</label></text>
+  
+  <frame $(gettext 'Status')>
+   <hbox>
+    <text use-markup=\"true\"><label>\"${msgSTATUS}\"</label></text>
+    <text><label>\"     \"</label></text>
+    <vbox>
+     <text><label>$(gettext 'Localtime set to:')</label></text>
+     <text><label>${zTIMEZONE}</label></text>
+    </vbox>
+   </hbox>
+  </frame>
+  
+  <frame $(gettext 'Setup')>
+   <hbox>
+    <vbox>
+     <checkbox>
+      <label>${msgCHK}</label>
+      <variable>ACTIVE_CHK</variable>
+      <default>${DEF_ACTIVE_CHK}</default>
+     </checkbox>
+    </vbox>
+    <text><label>\"  \"</label></text>
+    <vbox>
+     <text><label>$(gettext 'NTP server:')</label></text>
+     <comboboxtext>
+      <input>cut -f 1 -d ',' /tmp/qsync/serverlist</input>
+      <default>${DEF_SERVER}</default>
+      <variable>NEW_SERVER</variable>
+     </comboboxtext> 
+    </vbox>
+   </hbox>
+  </frame>
+  <hbox>
+   <button ok></button>
+   <button cancel></button>
+  </hbox>
+ </vbox>
+</window>"
+
+if [ $NOX -eq 0 ];then
+ RETVAL="$(gtkdialog --program=DLG_QSYNC --center)"
+ eval "$RETVAL"
+ [ "$EXIT" != "OK" ] && exit 4
+else
+ ACTIVE_CHK="$PRE_ACTIVE_CHK" #passed in when called from network_tray. no, now from /etc/init.d/qsync
+ NEW_SERVER="$DEF_SERVER"
+fi
+
+echo -n "$ACTIVE_CHK" > /var/local/qsync/qsync_active
+zNEW_SERVER="$(echo n "$SERVERLIST" | grep "^${NEW_SERVER}" | cut -f 2 -d ',')"
+echo -n "$zNEW_SERVER" > /var/local/qsync/def_server
+
+if [ "$ACTIVE_CHK" == "false" ];then
+ chmod 644 /etc/init.d/qsync #180303
+ exit 5
+else
+ chmod 755 /etc/init.d/qsync #180303
+fi
+
+#20210118 only run ntpdate if there is an internet connection...
+if [ -s /tmp/pup_event_backend/network_ ];then #will have "wlan0", "eth0" etc if network connection.
+ M1="$(gettext 'Syncing time, please wait...')"
+ [ $NOX -eq 0 ] && popup "terminate=never level=top background=#ffff80|<big><big>${M1}</big></big> "
+ # -s means log to syslog
+ ntpdate -s -b $zNEW_SERVER
+ if [ $? -eq 0 ];then
+  #set this to prevent re-sync in current session...
+  touch /tmp/qsync/have-run
+  hwclock --systohc --${HWCLOCKTIME}  2>/dev/null #ref: /etc/clock  20210114 rpi does not have hw clock.
+ fi
+ [ $NOX -eq 0 ] && killall popup #180904  20210118 moved below ntpdate success test.
+else
+ M1z="$(gettext 'Time will sync when network connection is established')"
+ [ $NOX -eq 0 ] && popup "terminate=never level=top background=#ffff80|<big><big>${M1z}</big></big> "
+ sleep 2
+ [ $NOX -eq 0 ] && killall popup
+fi
+
+exit 0
+#ntpdate will run at future internet connection if /var/local/qsync/qsync_active is "true".
+# refer /etc/init.d/qsync, runs when there is a network connection, via pup_event.
+###END###

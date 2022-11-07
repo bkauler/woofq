@@ -1,0 +1,22 @@
+#190730 created (based on gcc-7 template).
+#190816 added debs gcc,g++,cpp which have the symlinks. leave below check here though.
+
+#debian/ubuntu missing symlinks...
+for ANAME in gcc g++ cpp gcov gcc-ar gcc-nm gcc-ranlib gcov-dump gcov-tool
+do
+ FNDSPEC="$(find usr/bin -maxdepth 1 -name ${ANAME})"
+ if [ ! "$FNDSPEC" ];then
+  FNDEXE="$(find usr/bin -maxdepth 1 -name "${ANAME}"'-[0-9]*' | head -n 1)" #ex: gcc-5  ex: gcc-4.6 note, * is a glob wildcard.
+  if [ "$FNDEXE" ];then
+   DIREXE="$(dirname $FNDEXE)"
+   NAMEEXE="$(basename $FNDEXE)"
+   ln -s $NAMEEXE ${DIREXE}/${ANAME}
+   [ "$ANAME" == "gcc" ] && ln -s $NAMEEXE ${DIREXE}/cc
+   [ "$ANAME" == "g++" ] && ln -s $NAMEEXE ${DIREXE}/c++
+  fi
+ else
+  [ "$ANAME" == "gcc" ] && ln -s gcc usr/bin/cc
+  [ "$ANAME" == "g++" ] && ln -s g++ usr/bin/c++
+ fi
+done
+

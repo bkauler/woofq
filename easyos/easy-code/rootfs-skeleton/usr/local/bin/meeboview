@@ -1,0 +1,13 @@
+#!/bin/sh
+#20210612 replaced all yaf-splash with gtkdialog-splash. note, still ok to kill yaf-splash, see gtkdialog-splash script.
+
+if [ -e /usr/local/bin/bareview ];then
+ export MOZ_DISABLE_PANGO=1
+ /usr/local/bin/bareview http://www.meebo.com/ &
+ #  -placement top
+# /usr/X11R7/bin/yaf-splash -timeout 6 -font "8x16" -outline 0 -margin 4 -bg orange -text "Connecting to meebo.com, please wait..."
+ gtkdialog-splash -timeout 6 -bg orange -text "Connecting to meebo.com, please wait..."
+ exit
+fi
+
+exec defaultbrowser http://www.meebo.com/

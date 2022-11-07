@@ -1,0 +1,83 @@
+#!/bin/sh
+#called from bluepup
+
+export TEXTDOMAIN=bluepup
+export TEXTDOMAINDIR=/usr/share/locale
+export OUTPUT_CHARSET=UTF-8
+
+exit_func() {
+ echo -n 'limbo' > /tmp/bluepup/current-operation #20201105
+ exit $1
+}
+
+CR='
+'
+
+#mark end of vte.log, so can monitor events afterward...
+wc -l /tmp/bluepup/vte.log > /tmp/bluepup/cnt_full
+LINEMKR0="$(cut -f 1 -d " " /tmp/bluepup/cnt_full)"
+LINEMKR1="$(expr 1 + $LINEMKR0)"
+
+#/usr/local/bluepup/support/startup >/dev/null 2>&1
+#if [ $? -ne 0 ];then
+# ERRmsg1a="$(gettext 'Bluetooth controller')"
+# ERRmsg1b="$(gettext 'initialization failed,')"
+# ERRmsg1c="$(gettext 'unable to perform scan')"
+# echo "<b><span color='#ff0000'>${ERRmsg1a}${CR}${ERRmsg1b}${CR}${ERRmsg1c}</span></b>" > /tmp/bluepup/scan-status
+# exit
+#fi
+
+#have a situation where a device is not yet registered, but previously discovered.
+#before scan, remove it, so will be discovered as new...
+FNDDEVS="$(LANG=C bluetoothctl devices | tr -s ' ' | cut -f 2 -d ' ' | tr '\n' ' ')"
+for aFNDDEV in $FNDDEVS
+do
+ if [ ! -e /var/local/bluepup/reg-info.${aFNDDEV} ];then
+  bluetoothctl remove ${aFNDDEV}
+ fi
+done
+
+#20201103 getting info like this when scan:
+#[NEW] Device 7C:64:56:87:3C:33 7C-64-56-87-3C-33
+#[CHG] Device 7C:64:56:87:3C:33 Bluetooth Keyboard
+#...need to detect this
+
+#20201103 changed 40sec to 30 (see also gif in bluepup)...
+echo -e "\033[0;94m[bluetooth]\033[0m# bluetoothctl --timeout 30 scan on" >> /tmp/bluepup/btctl_in
+bluetoothctl --timeout 30 scan on >> /tmp/bluepup/btctl_in
+/usr/local/bluepup/support/wait-response 'scan on' "${?}"
+#...should do scan off after 30 seonds.
+
+echo -n '' > /tmp/bluepup/found-new-devices0
+if [ $? -eq 0 ];then
+ echo "<b><span color='#00a000'>$(gettext 'Scan finished')</span></b>" > /tmp/bluepup/scan-status
+
+ SCANDEVS="$(LANG=C bluetoothctl devices)" #ex: Device 20:15:10:15:1C:AF Bluetooth Mouse
+ echo "$SCANDEVS" |
+ while read aSCANDEV
+ do
+  aSCANADDR="$(echo -n "$aSCANDEV" | tr -s ' ' | cut -f 2 -d ' ')"
+  if [ ! -e /var/local/bluepup/reg-info.${aSCANADDR} ];then #test if registered.
+   LANG=C bluetoothctl info ${aSCANADDR} > /tmp/bluepup/new-info.${aSCANADDR}
+   bluetoothctl info ${aSCANADDR} > /tmp/bluepup/i18n-new-info.${aSCANADDR}
+   #20201103 compose found-new-devices...
+   aNAME="$(grep -o 'Name: .*' /tmp/bluepup/new-info.${aSCANADDR} | tr -s ' ' | cut -f 2- -d ' ')"
+   echo "defbticon|${aSCANADDR}|${aNAME}" >> /tmp/bluepup/found-new-devices0
+  fi
+ done
+fi
+
+#20201105 need false otherwise get wrong buttons in Actions frame (ref TIMERNEW).
+echo -n 'false' > /tmp/bluepup/reg-success-flg
+
+#if [ -s /tmp/bluepup/found-new-devices0 ];then #20201103 20201105 always auto-update via TIMERNEW.
+ cat /tmp/bluepup/found-new-devices0 > /tmp/bluepup/found-new-devices #will auto-update gui.
+#fi
+
+sleep 1.2
+echo -n 'limbo' > /tmp/bluepup/current-operation #20201105
+sleep 5
+echo "<span color='#ffa000'><b>$(gettext 'Click the SCAN button to')${CR}$(gettext 'search for new devices')</b></span>" > /tmp/bluepup/scan-status
+
+#touch /tmp/bluepup/scan-finished
+###end###

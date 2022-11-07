@@ -1,0 +1,301 @@
+'(c) Copyright Barry Kauler, February 2018, bkhome.org
+'License GPL V3 (refer: /usr/share/doc/legal)
+'part of pup_event. called from /root/.xinitrc
+'reads kernel uevents, notifies hardware changes, timeout housekeeping.
+'180216 first version, based on previous pup_event_frontend_d.bac
+'180219 string-optimization problems, must compile with bacon 3.0.2, or 3.7.2+
+'180222 add X up/down.
+'180224 try to wait until network properly up and working.
+'180408 support nvme drives.
+
+'NOTES:
+'must be compiled with bacon 3.0.2, or 3.7.2+
+'libc ref: http://www.gnu.org/software/libc/manual/html_node/Function-Index.html#Function-Index
+'problem string vars with $ postfix in usec:
+' http://basic-converter.proboards.com/thread/989/string-variable-inside-usec
+'suggestions how the USEC may be replaced with BaCon code...
+' http://basic-converter.proboards.com/thread/988/implicit-declaration-poll-function
+'problem with string optimization...
+'http://basic-converter.proboards.com/thread/992/string-manipulation-causes-segmentation-fault
+'http://basic-converter.proboards.com/thread/990/concat-error
+
+'initialization script... note, RETVAL has exit status.
+SYSTEM "/usr/local/pup_event/frontend_startup"
+IF RETVAL!=0 THEN END 9
+
+'for reading contents of /tmp/pup_event_ipc...
+PROTO opendir, readdir, closedir
+DECLARE dir1 TYPE DIR*
+DECLARE ent1 TYPE struct dirent*
+
+'from linux/netlink.h...
+CONST NETLINK_KOBJECT_UEVENT=15
+
+'linux/poll.h, only includes asm/poll.h, which only includes asm-generic/poll.h...
+CONST POLLIN=1
+
+'C functions, in libc.so. note, I originally used IMPORT, but PROTO is simpler...
+PROTO getpid, socket, bind, poll, recv, printf, strlen, strcmp
+
+'for poll()
+PRAGMA INCLUDE poll.h
+
+'struct sockaddr_nl, defined in linux/netlink.h...
+RECORD nls
+ LOCAL nl_family TYPE unsigned short
+ LOCAL nl_pad TYPE unsigned short
+ LOCAL nl_pid TYPE unsigned int
+ LOCAL nl_groups TYPE unsigned int
+END RECORD
+
+'struct pollfd, defined in asm-generic/poll.h...
+RECORD pfd
+ LOCAL fd TYPE int
+ LOCAL events TYPE short
+ LOCAL revents TYPE short
+END RECORD
+
+DECLARE buf TYPE char ARRAY 512
+DECLARE eventstatus TYPE int
+DECLARE bufin TYPE char*
+
+size_char=SIZEOF(char)
+size_buf=size_char*512
+size_us=SIZEOF(unsigned short)
+size_ui=SIZEOF(unsigned int)
+size_nls=(2*size_us)+(2*size_ui)
+
+'avoid using $ postfix, so variable recognised inside usec:
+DECLARE clientfile TYPE char*
+DECLARE outmsg TYPE char*
+
+'variables for network detection
+DECLARE flagactive TYPE int
+DECLARE netdir TYPE char*
+netdir_str$="/sys/class/net"
+netdir=netdir_str$
+DECLARE dip TYPE DIR*
+DECLARE dit TYPE struct dirent *
+DECLARE buf1 TYPE char ARRAY 1024
+DECLARE fp TYPE FILE*
+DECLARE char1 TYPE char
+DECLARE net_ifs TYPE char*
+net_ifs_str$="/tmp/pup_event_backend/network_"
+net_ifs=net_ifs_str$
+DECLARE line2 TYPE char*
+
+'initialise the nls structure...
+nls.nl_family = AF_NETLINK
+nls.nl_pad = 0
+nls.nl_pid = getpid()
+nls.nl_groups = -1
+
+FUNCTION ipc_post_func(STRING zipc_prefix$,STRING zipc_event$)
+ 'look for any files named /tmp/pup_event_ipc/ipc_prefix$* ...
+ 'ex: /tmp/pup_event_ipc/block_*
+ dir1=opendir("/tmp/pup_event_ipc")
+ IF dir1!=NULL THEN
+  WHILE TRUE DO
+   ent1=readdir(dir1)
+   IF ent1==NULL THEN BREAK
+   off1=INSTR((*ent1).d_name,zipc_prefix$)
+   IF off1!=0 THEN
+    'note $ postfix not allowed inside usec...
+    clientfile_str$=CONCAT$("/tmp/pup_event_ipc/",(*ent1).d_name)
+    outmsg_str$=CONCAT$(zipc_event$,"\n")
+    clientfile=clientfile_str$
+    outmsg=outmsg_str$
+    USEC
+     /*#define O_WRONLY	00000001*/
+     /*#define O_APPEND	00002000*/
+     int clientdescr;
+     clientdescr=open(clientfile, O_WRONLY | O_APPEND);
+     if (clientdescr>0) {
+      int wr=write(clientdescr,outmsg,strlen(outmsg));
+      close(clientdescr);
+     }
+    END USEC
+   ENDIF
+  WEND
+  closedir(dir1)
+ ENDIF
+ RETURN 0
+ENDFUNCTION
+
+
+'SYSTEM "mkdir -p /tmp/pup_event_backend"
+'SYSTEM "mkdir -p /tmp/pup_event_ipc"
+IF FILEEXISTS("/tmp/pup_event_backend")==0 THEN MAKEDIR "/tmp/pup_event_backend"
+IF FILEEXISTS("/tmp/pup_event_ipc")==0 THEN MAKEDIR "/tmp/pup_event_ipc"
+SYSTEM "touch /tmp/pup_event_backend/network_"
+SYSTEM "touch /tmp/pup_event_backend/x_"
+
+IF FILEEXISTS("/tmp/pup_event_backend/.network_")==0 THEN
+ OPEN "/tmp/pup_event_backend/.network_" FOR WRITING AS netflagid
+ CLOSE FILE netflagid
+ENDIF
+
+'X is up...
+xdisplay$=""
+IF FILEEXISTS("/tmp/.X11-unix/X1")==1 THEN xdisplay$="X1"
+IF FILEEXISTS("/tmp/.X11-unix/X0")==1 THEN xdisplay$="X0"
+OPEN "/tmp/pup_event_backend/x_" FOR WRITING AS xid
+IF ERROR == 0 THEN
+ WRITELN xdisplay$ TO xid
+ CLOSE FILE xid
+ENDIF
+'also post to any ipc clients...
+ipc_post_func("x_",xdisplay$)
+
+'Open hotplug event netlink socket...
+pfd.events = POLLIN
+pfd.fd = socket(PF_NETLINK, SOCK_DGRAM, NETLINK_KOBJECT_UEVENT)
+IF pfd.fd == -1 THEN END 1
+
+'listen to netlink socket...
+retval=bind(pfd.fd, (void *)&nls.nl_family, size_nls)
+IF retval==-1 THEN END 2
+
+cnt60=0
+cnt4=0
+diskevents$=""
+buf2$=""
+WHILE TRUE DO
+ '1000 milli-second timeout... note, -1 is wait indefinitely.
+ eventstatus=poll((struct pollfd *)&pfd.fd, 1, 1000)
+ IF eventstatus==-1 THEN END 3
+ 
+ IF eventstatus==0 THEN
+  'one-second timeout.
+
+  'graceful exit if shutdown X (see /usr/bin/restartwm,wmreboot,wmpoweroff)...
+  IF FILEEXISTS("/tmp/wmexitmode.txt")==1 THEN
+   xdisplay$=""
+   OPEN "/tmp/pup_event_backend/x_" FOR WRITING AS xid
+   IF ERROR == 0 THEN
+    WRITELN xdisplay$ TO xid
+    CLOSE FILE xid
+   ENDIF
+   'also post to any ipc clients...
+   ipc_post_func("x_",xdisplay$)
+   END 8
+  ENDIF
+  
+  IF diskevents$ != "" THEN
+   'this will update the desktop icons...
+   exe_change$=CONCAT$("/usr/local/pup_event/frontend_change ",diskevents$)
+   SYSTEM exe_change$
+   'other clients can monitor, look for any files named /tmp/pup_event_ipc/block_* ...
+   ipc_post_func("block_",diskevents$)
+   diskevents$=""
+  ENDIF
+  
+  'do not call /usr/local/pup_event/frontend_timeout directly, use ipc...
+  'look for any files named /tmp/pup_event_ipc/timeout1_* ...
+  ' except after 4 seconds, will post to "timeout4_" instead...
+  ' and after 60 seconds, will post to "timeout60_" instead...
+  INCR cnt60
+  INCR cnt4
+  IF cnt60>=60 THEN
+   ipc_prefix$="timeout60_"
+   cnt60=0
+  ELIF cnt4>=4 THEN
+   ipc_prefix$="timeout4_"
+   cnt4=0
+  ELSE
+   ipc_prefix$="timeout1_"
+  ENDIF
+  ipc_post_func(ipc_prefix$,"timeout")
+  
+  '180224 check for network connection...
+  'read /proc/net/fib_trie for quick check...
+  off1=0
+  netflag$="dn"
+  OPEN "/proc/net/fib_trie" FOR READING AS fibid
+   IF ERROR != 0 THEN CONTINUE
+   WHILE ISFALSE(ENDFILE(fibid))
+    READLN line1$ FROM fibid
+    'exclude all 127.* ip addresses...
+    off1 = REGEX(line1$," \\|-- [123456789][13456789]")
+    IF off1 > 0 THEN
+     netflag$="up"
+     BREAK
+    ENDIF
+   WEND
+  CLOSE FILE fibid
+  
+  'check if need to update network status file /tmp/pup_event_backend/network_
+  OPEN "/tmp/pup_event_backend/.network_" FOR READWRITE AS netflagid
+  IF ERROR != 0 THEN CONTINUE
+   READLN netflagdata$ FROM netflagid
+   IF netflag$ != netflagdata$ THEN
+    SEEK netflagid OFFSET 0 WHENCE START
+    WRITELN netflag$ TO netflagid
+    IF off1 > 0 THEN
+     buf2$ = EXEC$("/usr/sbin/getlocalip | grep -o '^[^lt][^:]*' | tr '\n' ' '")
+    ELSE
+     buf2$=""
+    END IF
+    OPEN net_ifs_str$ FOR WRITING AS netfileid
+    WRITELN buf2$ TO netfileid
+    CLOSE FILE netfileid
+    'also post to any ipc clients...
+    ipc_post_func("network_",buf2$)
+   ENDIF
+  CLOSE FILE netflagid
+  
+  CONTINUE
+ ENDIF
+ 
+ '##############################################
+ 'get the uevent...
+ len = recv(pfd.fd, buf, size_buf, MSG_DONTWAIT)
+ IF len==-1 THEN END 4
+ 
+ 'process the uevent...
+ 'only add@, remove@, change@ uevents...
+ devevent$=""
+ IF buf[0]=='a' THEN
+  IF buf[1]=='d' THEN
+   IF buf[2]=='d' THEN devevent$="add:"
+  ENDIF
+ ENDIF
+ IF buf[0]=='r' THEN
+  IF buf[1]=='e' THEN
+   IF buf[2]=='m' THEN devevent$="rem:"
+  ENDIF
+ ENDIF
+ IF buf[0]=='c' THEN
+  IF buf[1]=='h' THEN
+   IF buf[2]=='a' THEN devevent$="cha:"
+  ENDIF
+ ENDIF
+ IF devevent$=="" THEN CONTINUE
+ 
+ 'want uevents that have "SUBSYSTEM=block"...
+ 'buf has a sequence of zero-delimited strings...
+ 'certain order, ex: \00SUBSYSTEM=block\00DEVNAME=sdc\00DEVTYPE=disk\00
+ i=0
+ flag_block=0
+ flag_disk=0
+ devname$=""
+ WHILE i<len DO
+  bufin=buf+i
+  IF flag_block==1 THEN
+   IF INSTR(bufin,"DEVNAME")!=0 THEN
+    devname$=EXTRACT$(bufin,"DEVNAME=")
+    IF REGEX(devname$,"^sd[a-z]$|^hd[a-z]$|^mmcblk[0-9]$|^sr[0-9]$|^nvme[0-9]n[1-9]$")!=0 THEN
+     flag_disk=1
+     BREAK
+    ENDIF
+   ENDIF
+  ELSE
+   IF strcmp(bufin,"SUBSYSTEM=block")==0 THEN flag_block=1
+  ENDIF
+  i = i+strlen(bufin)+1
+ WEND
+ IF flag_disk==0 THEN CONTINUE
+ diskevents$=CONCAT$(diskevents$,devevent$,devname$," ")
+ 
+WEND
+

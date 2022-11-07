@@ -1,0 +1,14 @@
+#!/bin/sh
+
+LANG=C bluetoothctl show > /tmp/bluepup/controller-info
+
+grep -q 'Discoverable: yes' /tmp/bluepup/controller-info
+if [ $? -eq 0 ];then
+ echo -e "\033[0;94m[bluetooth]\033[0m# bluetoothctl discoverable off" >> /tmp/bluepup/btctl_in
+ bluetoothctl discoverable off >> /tmp/bluepup/btctl_in
+ /usr/local/bluepup/support/wait-response 'discoverable off' "${?}"
+ [ $? -ne 0 ] && exit 1
+fi
+
+exit 0
+###end###

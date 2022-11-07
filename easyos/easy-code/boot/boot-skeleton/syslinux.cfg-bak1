@@ -1,0 +1,30 @@
+ui menu.c32
+
+menu title EasyOS
+default normal
+timeout 100
+
+label normal
+menu label Normal startup
+kernel vmlinuz
+append initrd=initrd rw
+
+label fsck
+menu label Filesystem check
+kernel vmlinuz
+append initrd=initrd rw qfix=fsck
+
+label nox
+menu label Commandline only, do not start X
+kernel vmlinuz
+append initrd=initrd rw qfix=nox
+
+label bak
+menu label Rollback to last saved session
+kernel vmlinuz
+append initrd=initrd rw qfix=bak
+
+label vid
+menu label Fix broken video
+kernel vmlinuz
+append initrd=initrd rw qfix=vid

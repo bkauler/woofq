@@ -1,0 +1,56 @@
+#note: DISTRO_BINARY_COMPAT and DISTRO_FILE_PREFIX are visible here, exported in 2createpackages.
+#140117 xARCHDIR, ARCHDIR and DISTRO_ARCHDIR_SYMLINKS exported in 2createpackages. 
+#140117 note, 2createpackages may move /lib, /usr/lib, /usr/bin in template to ARCHDIR subdir.
+
+#t2 readline pkg is broken. symlinks broken...
+if [ "$xARCHDIR" ];then #140117
+ RLREALLIBS="`find usr/lib/${ARCHDIR} -maxdepth 1 -type f -name \*.so.\* | tr '\n' ' '`"
+ for ONEREALLIB in $RLREALLIBS
+ do
+  BASEREALLIB="`basename $ONEREALLIB`"
+  BASEREALNAME="`echo -n "$BASEREALLIB" | cut -f 1 -d '.'`"
+  ln -snf $BASEREALLIB usr/lib/${ARCHDIR}/${BASEREALNAME}.so
+  ln -snf $BASEREALLIB usr/lib/${ARCHDIR}/${BASEREALNAME}.so.5
+  ln -snf $BASEREALLIB usr/lib/${ARCHDIR}/${BASEREALNAME}.so.6
+ done
+fi
+RLREALLIBS="`find usr/lib -maxdepth 1 -type f -name \*.so.\* | tr '\n' ' '`"
+for ONEREALLIB in $RLREALLIBS
+do
+ BASEREALLIB="`basename $ONEREALLIB`"
+ BASEREALNAME="`echo -n "$BASEREALLIB" | cut -f 1 -d '.'`"
+ ln -snf $BASEREALLIB usr/lib/${BASEREALNAME}.so
+ ln -snf $BASEREALLIB usr/lib/${BASEREALNAME}.so.5
+ ln -snf $BASEREALLIB usr/lib/${BASEREALNAME}.so.6
+done
+
+if [ "$xARCHDIR" ];then #140117
+ if [ ! -e usr/lib/${ARCHDIR}/libreadline.so.5 ];then
+  if [ ! -e lib/${ARCHDIR}/libreadline.so.5 ];then
+   [ -e usr/lib/${ARCHDIR}/libreadline.so.6 ] && ln -s libreadline.so.6 usr/lib/${ARCHDIR}/libreadline.so.5
+   [ -e lib/${ARCHDIR}/libreadline.so.6 ] && ln -s libreadline.so.6 lib/${ARCHDIR}/libreadline.so.5
+  fi
+ fi
+fi
+if [ ! -e usr/lib/libreadline.so.5 ];then
+ if [ ! -e lib/libreadline.so.5 ];then
+  [ -e usr/lib/libreadline.so.6 ] && ln -s libreadline.so.6 usr/lib/libreadline.so.5
+  [ -e lib/libreadline.so.6 ] && ln -s libreadline.so.6 lib/libreadline.so.5
+ fi
+fi
+
+if [ "$xARCHDIR" ];then #140117
+ if [ ! -e usr/lib/${ARCHDIR}/libhistory.so.5 ];then
+  if [ ! -e lib/${ARCHDIR}/libhistory.so.5 ];then
+   [ -e usr/lib/${ARCHDIR}/libhistory.so.6 ] && ln -s libhistory.so.6 usr/lib/${ARCHDIR}/libhistory.so.5
+   [ -e lib/${ARCHDIR}/libhistory.so.6 ] && ln -s libhistory.so.6 lib/${ARCHDIR}/libhistory.so.5
+  fi
+ fi
+fi
+if [ ! -e usr/lib/libhistory.so.5 ];then
+ if [ ! -e lib/libhistory.so.5 ];then
+  [ -e usr/lib/libhistory.so.6 ] && ln -s libhistory.so.6 usr/lib/libhistory.so.5
+  [ -e lib/libhistory.so.6 ] && ln -s libhistory.so.6 lib/libhistory.so.5
+ fi
+fi
+

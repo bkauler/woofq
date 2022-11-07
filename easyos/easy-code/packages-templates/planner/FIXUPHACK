@@ -1,0 +1,11 @@
+
+#180518 easyos pyro64
+#190331 thud64: /usr/lib/plugins is used by qt5, cannot make it into a symlink!!!
+#this is likely a fault of configure when compiling...
+[ -d usr/lib/planner/file-modules ] && ln -s planner/file-modules usr/lib/file-modules
+#[ -d usr/lib/planner/plugins ] && ln -s planner/plugins usr/lib/plugins
+[ -d usr/lib/planner/storage-modules ] && ln -s planner/storage-modules usr/lib/storage-modules
+
+#190331 do this hack...
+mkdir -p usr/lib/plugins
+cp -a usr/lib/planner/plugins/* usr/lib/plugins/

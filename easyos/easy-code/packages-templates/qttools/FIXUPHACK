@@ -1,0 +1,49 @@
+#note: FIXUPHACK will execute in the EXE component, however if pkg-list specifies
+# exe>dev, then FIXUPHACK will execute in the _DEV component.
+# latter is the case with qttools.
+
+#180716 qttools compiled in OE has this wrong path:
+if [ -f usr/lib/cmake/Qt5LinguistTools/Qt5LinguistToolsConfig.cmake ];then
+ #has lines like this:
+ #    set(imported_location "${_qt5_linguisttools_install_prefix}//usr/bin/qt5/lrelease")
+ # which evaluates to /usr//usr/bin/qt5/lrelease
+ sed -i -e 's%//usr/bin%/bin%' usr/lib/cmake/Qt5LinguistTools/Qt5LinguistToolsConfig.cmake
+fi
+if [ -d usr/bin/qt5 ];then
+ #fix path...
+ sed -i -e 's%/bin/qt5%/bin%' usr/lib/cmake/Qt5LinguistTools/Qt5LinguistToolsConfig.cmake
+ sed -i -e 's%/bin/qt5%/bin%' usr/lib/cmake/Qt5Help/Qt5HelpConfigExtras.cmake
+ cp -a -f usr/bin/qt5/* usr/bin/
+ rm -rf usr/bin/qt5
+fi
+#qt5 built in oe, has an unwanted paragraph in some .cmake files...
+if [ -d usr/lib/cmake ];then
+ for aFILE in `find usr/lib/cmake -type f -name '*.cmake'`
+ do
+  #remove paragraph with this in it:
+  sed -i '/NOT DEFINED OE_QMAKE_PATH_EXTERNAL_HOST_BINS/,/^\s*$/{d}' ${aFILE}
+  #exported OE_QMAKE_PATH_EXTERNAL_HOST_BINS but not read in .cmake files, so delete all...
+  sed -i -e 's%\${OE_QMAKE_PATH_EXTERNAL_HOST_BINS}%/usr/bin%' ${aFILE}
+  #some .cmake files have a wrong path from original host...
+  #ex: _qt5gui_find_extra_libs(EGL "EGL" "" "/mnt/sdb1/projects/oe/pyro/oe-quirky/buildPC/tmp-glibc/work/nocona-64-oe-linux/qtbase/5.10.1+gitAUTOINC+6c6ace9d23-r0/recipe-sysroot/usr/include/libdrm")
+  sed -i -e 's%"/mnt/[a-zA-Z0-9+._/-]*/recipe\-sysroot/%"/%' ${aFILE}
+ done
+fi
+
+#191117 qcad wants libQt5Help and libQt5Designer...
+FNDQT5HLP="$(find usr -type f -name 'libQt5Help.so.*' | head -n 1)"
+if [ "$FNDQT5HLP" ];then
+ DIRQT5HLP="$(dirname $FNDQT5HLP)"
+ mkdir -p ../qttools/${DIRQT5HLP}
+ cp -a ${DIRQT5HLP}/libQt5Help.so.* ../qttools/${DIRQT5HLP}/
+ cp -a ${DIRQT5HLP}/libQt5Designer.so.* ../qttools/${DIRQT5HLP}/
+fi
+
+#20211218 oe
+mkdir -p ../qttools_DEV/usr/bin
+cp -a -f usr/bin/* ../qttools_DEV/usr/bin/
+mkdir -p ../qttools_DEV/usr/lib
+cp -a -f usr/lib/*.prl ../qttools_DEV/usr/lib/
+sync
+rm -f usr/lib/*.prl
+rm -rf usr/bin

@@ -1,0 +1,663 @@
+#!/bin/sh
+#(c) Copyright Barry Kauler 04 February 2017, barryk.org
+#Licence: GPL v3 (/usr/share/doc/legal)
+#170225 snapshot, create configuration-$DATE, new version configuration-<version>.
+#170524 remove 'session.sfs', this concept no longer used. various fixes.
+#170525 make 'session.sfs' an optional technique. reconstitute session.sfs.
+#170525 some exclusions from snapshot. 170527 fixes.
+#170528 fixes. new "Current status" frame. /mnt/files now /mnt/wkg/home.
+#170816 set a max. depth to number of versions.
+#170924 PUPSTATE has SESSIONSFSflag (see 'init' script in initrd.q) 0=no session.sfs
+#171218 fix backSNAP.
+#171226 was getting checkboxes "Release 0.6.4" and "Snapshot 0.6.4" -- remove latter.
+#171226 log all snapshots in one file.
+#171226 log all rollbacks in mnt/${WKG_DEV}/${WKG_DIR}repository/rollback-log
+#180428 fixed containers snapshot-comments, container rollback.
+#180602 boot-partition was not unmounted.
+#180606 fixed buglet. need path root/.XLOADED for mksquashfs
+#180624 erase container .session: aufs top-level .wh* dirs/files. confirmation dlg.
+#180904 $KERNELNAME (vmlinuz or kernel8.img). see also 3buildeasydistro, easy-remaster, initrd (init, rollback).
+#181006 fixed display of snapshot-comments file.
+#181017 handle .sessionSKEL when erase container.
+#181028 rename 'repository' folder to 'releases'.
+#181121 handle .session/.control
+#181122 q*.sfs renamed to easy*.sfs
+#181123 /.* should be /.[a-zA-Z]*
+#181130 'initrd.q' renamed to 'initrd'
+#190715 if boot-partition read-only, cannot change version. 190721 fix.
+#190829 /files symlink.
+#191022 change default save-depth from 3 to 5
+#200205 Esmourguit : gettexted Erase (ligne 290), Rollback and Snapshot (lignes 123, 295) and lines 188, 255, 271, 314, 329
+#200319 increase allowed DEPTH_MAX from 5 to 7.
+#200729 when rollback, do not rollback initrd, as older scripts may be broken.
+#200813 erase session, offer to save some things. code extracted to script erase-exceptions.
+#200829 copy easy.sfs when rollback. 200830 fix.
+#20201217 increase max allowed depth from 7 to 9.
+#20210125 version change, also roll-back the device-tree files (rpi).
+#20211212 /root/.ccache does oe create this? huge, 6.8GB
+#20211221 help text about /files fixed.
+#20220527 EOS_SUPPORT_CONTAINERS==0 then remove containers frame.
+#20220613 easy.sfs now in ${WKG_DEV}/${WKG_DIR}, not in boot-partition. 20220615
+#20220621 no longer have BOOT_* variables. hack for BOOT_DEV, BOOT_FS and BOOT_DIR for rpi4
+#20220626 fix snapshot if there is a top-level-zram
+#20220703 fix container erase and rollback if a top-level-zram.
+#20221015 get rid of .cache folders when create rw-* sfs, direct write to .session.
+
+export TEXTDOMAIN=version-control
+export OUTPUT_CHARSET=UTF-8
+
+. /etc/DISTRO_SPECS
+. /etc/rc.d/PUPSTATE #170924 has SESSIONSFSflag (see 'init' script in initrd) 0=no session.sfs
+
+if [ -d /boot/device-tree ];then #20220621 rpi
+ #this is a hack...
+ BOOT_DEV="${WKG_DEV%%[1-9]}1"
+ BOOT_FS='vfat'
+ BOOT_DIR=''
+fi
+
+DATE="$(date +%Y%m%d%H%M)"
+mkdir -p /tmp/easy_version_control
+
+test_cont_mntd_func() {
+ MNTDFLAG="$(mount | grep "containers/${EC_NAME}/container")"
+ if [ "$MNTDFLAG" ];then
+  pupdialog --background '#FF8080' --backtitle "$(gettext 'ERROR: container') ${EC_NAME}" --msgbox "$(gettext 'You cannot perform a session erase, snapshot, or rollback, when a container is in use.')" 0 0
+  return 1
+ fi
+ return 0
+}
+
+#170525 have coreutils 'sort', but this is cool...
+#busybox sort does not have that option (sort in coreutils has '-V'), so improvise...
+VERS="$(ls -l /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-* | rev | cut -f 1 -d '-' | rev)"
+#refer: http://stackoverflow.com/questions/4493205/unix-sort-of-version-numbers
+#sortedVERS="$(echo "$VERS" | sort -t. -k 1,1n -k 2,2n -k 3,3n -k 4,4n)" #lowest to highest.
+revsortedVERS="$(echo "$VERS" | busybox sort -t. -k 1,1nr -k 2,2nr -k 3,3nr -k 4,4nr)" #highest to lowest.
+
+#170525
+if grep -qw aufs /proc/filesystems; then
+ LAYERFS='aufs'
+ RO='=ro'
+else
+ LAYERFS='overlay'
+ RO=''
+fi
+
+#170816  180606 change depth from 2 to 3. 191022 change default to 5
+DEPTH_DEF="5"
+if [ ! -s /var/local/version-history-depth ];then
+ echo -n '5' > /var/local/version-history-depth
+else
+ DEPTH_DEF="$(cat /var/local/version-history-depth)"
+fi
+
+#180904
+KERNELNAME=vmlinuz
+[ -f /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${DISTRO_VERSION}/kernel8.img ] && KERNELNAME="kernel8.img" #rpi3
+
+#171226 log all snapshots in one file...
+touch /mnt/${WKG_DEV}/${WKG_DIR}releases/rollback-log
+echo -e 'SNAPSHOT LOG\n************' > /tmp/easy_version_control/all-snapshots
+touch /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${DISTRO_VERSION}/snapshot-comments
+for aSSC in $(find /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-* -maxdepth 1 -type f -name snapshot-comments)
+do
+ [ "$aSSC" == "" ] && continue
+ aVER="$(echo -n "$aSSC" | cut -f 5 -d '/' | cut -f 2 -d '-')"
+ echo -e "\n${aVER}" >> /tmp/easy_version_control/all-snapshots
+ dashchars="$(echo -n "$aVER" | tr '[0-9.]' '-')"
+ echo "$dashchars" >> /tmp/easy_version_control/all-snapshots
+ cat $aSSC  >> /tmp/easy_version_control/all-snapshots
+done
+echo -e "\n\nROLLBACK LOG\n************" >> /tmp/easy_version_control/all-snapshots
+if [ -s /mnt/${WKG_DEV}/${WKG_DIR}releases/rollback-log ];then
+ cat /mnt/${WKG_DEV}/${WKG_DIR}releases/rollback-log >> /tmp/easy_version_control/all-snapshots
+else
+ echo -e "\n-nothing yet-" >> /tmp/easy_version_control/all-snapshots
+fi
+
+#find all earlier versions and snapshots...
+#170218 actions to ensure only one checkbox is ticked --any simpler way to do this?
+BACKXML=""; REFRESHXML=""
+rm -f /tmp/easy_version_control/chkbx-*
+RELEASES="$(find /mnt/${WKG_DEV}/${WKG_DIR}releases -maxdepth 1 -type d -name 'easy-*' | rev | cut -f 1 -d '/' | rev | cut -f 2 -d '-' | sort -t. -k 1,1nr -k 2,2nr -k 3,3nr -k 4,4nr)" #version sort, highest to lowest
+HI_REL="$(echo "$RELEASES" | head -n 1)"
+for aVER in `echo "$RELEASES" | tr '\n' ' '`
+do
+ ZaVER="$(echo -n "$aVER" | tr '.' 'Z')" #cannot have . in label.
+ SNAPXML=""
+ for aSNAPDATE in $(find /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${aVER} -maxdepth 1 -type f -name 'rw-*' | rev | cut -f 1 -d '/' | cut -f 2- -d '.' | rev | cut -f 2 -d '-' | grep -v '\.' | tr '\n' ' ') #170525 171226
+ do
+  echo "false" > /tmp/easy_version_control/chkbx-RW_${ZaVER}_${aSNAPDATE}
+  REFRESHXML="${REFRESHXML}<action>refresh:RW_${ZaVER}_${aSNAPDATE}</action>"
+  SNAPXML="${SNAPXML}
+  <checkbox>
+    <input file>/tmp/easy_version_control/chkbx-RW_${ZaVER}_${aSNAPDATE}</input>
+    <label>Snapshot ${aSNAPDATE}</label>
+    <variable>RW_${ZaVER}_${aSNAPDATE}</variable>
+    <action>if true ls -1 /tmp/easy_version_control/chkbx-* | xargs -I SUB sed -i 's%.*%false%' SUB </action>
+    <action>if true echo true > /tmp/easy_version_control/chkbx-RW_${ZaVER}_${aSNAPDATE} </action>
+    REFRESHACTIONHERE
+  </checkbox>"
+ done
+ echo "false" > /tmp/easy_version_control/chkbx-EASYVC_${ZaVER}
+ REFRESHXML="${REFRESHXML}<action>refresh:EASYVC_${ZaVER}</action>"
+ BACKXML="${BACKXML}
+ <frame Easy ${aVER}>
+   <vbox>
+     <checkbox>
+       <input file>/tmp/easy_version_control/chkbx-EASYVC_${ZaVER}</input>
+       <label>Release ${aVER}</label>
+       <variable>EASYVC_${ZaVER}</variable>
+       <action>if true ls -1 /tmp/easy_version_control/chkbx-* | xargs -I SUB sed -i 's%.*%false%' SUB </action>
+       <action>if true echo true > /tmp/easy_version_control/chkbx-EASYVC_${ZaVER} </action>
+       REFRESHACTIONHERE
+     </checkbox>
+     ${SNAPXML}
+   </vbox>
+ </frame>"
+done
+PTN="s%REFRESHACTIONHERE%${REFRESHXML}%"
+BACKXML2="$(echo "$BACKXML" | sed -e "$PTN")"
+
+RO_NOTICE=""
+
+HI_CON=''
+CONTAINERS="$(ls -1 /mnt/${WKG_DEV}/${WKG_DIR}containers)"
+if [ "$CONTAINERS" ];then
+ HI_CON="$(echo "$CONTAINERS" | head -n 1)"
+ DEF_CON="<default>${HI_CON}</default>"
+fi
+#script to return list of snapshots in a container:  180428 fix...
+cat > /tmp/easy_version_control/ec-ver-snaps <<EOF
+#!/bin/sh
+#passed param is name of a container. else default to HI_CON
+. /etc/rc.d/PUPSTATE
+ EC_NAME="\$1"
+ [ ! "\$EC_NAME" ] && EC_NAME="${HI_CON}"
+ EC_SNAPS="\$(ls -1 /mnt/\${WKG_DEV}/\${WKG_DIR}containers/\${EC_NAME}/rw-*.sfs 2>/dev/null | rev | cut -f 1 -d '-' | cut -f 2- -d '.' | rev)"
+ if [ "\$EC_SNAPS" ];then
+  echo "\$EC_SNAPS"
+ else
+  echo '-empty-'
+ fi
+EOF
+chmod 755 /tmp/easy_version_control/ec-ver-snaps
+
+M_close="$(gettext 'Close')"
+
+M_help1="$(gettext 'Easy Linux keeps a record of everything. The user may take a snapshot of the current work at any time, and there will be upgrades to later versions. All snapshots and old versions are saved in the <i>releases</i> folder.')
+
+$(gettext 'Easy Linux also supports containers, which are in the <i>containers</i> folder. Snapshots of current work in each container may also be saved, in this case inside the appropriate container folder.')
+
+<b>$(gettext 'Warning')</b>
+$(gettext 'Note that although it is nice to keep all of the history in the releases, this can get out of hand if memory storage is limited. A Flash stick of 8GB for example, may seem like a lot, but can quickly fill.')
+$(gettext 'The <i>Depth</i> parameter sets a maximum limit to number of versions recorded. Older versions are deleted from the releases folder.')
+
+<b>$(gettext 'Technical notes')</b>
+$(gettext 'Location of releases folder:') /mnt/${WKG_DEV}/${WKG_DIR}releases
+$(gettext 'Location of containers folder:') /mnt/${WKG_DEV}/${WKG_DIR}containers
+$(gettext '<i>Depth</i> is stored in /var/local/version-history-depth')"
+export DLG_HELP1="<window resizable=\"false\" title=\"$(gettext 'Help: Easy Version Control')\" icon-name=\"gtk-index\" window_position=\"1\"><vbox><text use-markup=\"true\"><label>\"${M_help1}\"</label><variable>DLG_HELP1</variable></text><hbox><button><label>${M_close}</label><action type=\"closewindow\">DLG_HELP1</action></button></hbox></vbox></window>"
+
+M_help2="$(gettext 'Easy Linux runs on a layered filesystem. This has one or more read-only layers on the bottom, including <i>easy.sfs</i> that has the entire Easy Linux files.
+The top layer is read-write, and this has all of the changes you have made, such as new files and installed packages.')
+$(gettext 'It is this read-write (rw) layer that will be saved.')
+
+$(gettext 'Note that the purpose of taking a snapshot, is that it can be rolled back to at any future date.')
+
+<b>$(gettext 'Some reasons for taking a snapshot')</b>
+<b>$(gettext '1.')</b> $(gettext 'You have setup theming and network. Later on, you want to get rid of whatever you have done, and go back to this original state.')
+<b>$(gettext '2.')</b> $(gettext 'You have added the devx.sfs as a read-only layer. Take a snapshot before compiling and installing source packages, then later can remove them all by rolling back to the snapshot.')
+
+<b>$(gettext 'Technical notes')</b>
+$(gettext 'The rw layer is located at:')
+/mnt/${WKG_DEV}/${WKG_DIR}.session
+$(gettext 'The snapshot will be saved as:')
+/mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${DISTRO_VERSION}/rw-${DATE}.sfs"
+export DLG_HELP2="<window resizable=\"false\" title=\"$(gettext 'Help: take snapshot')\" icon-name=\"gtk-index\" window_position=\"1\"><vbox><text use-markup=\"true\"><label>\"${M_help2}\"</label><variable>DLG_HELP2</variable></text><hbox><button><label>${M_close}</label><action type=\"closewindow\">DLG_HELP2</action></button></hbox></vbox></window>"
+
+if [ $SESSIONSFSflag -eq 1 ];then #170525
+ M_help3b="$(gettext 'Files found inside each easy-<i>version</i> folder are:') ${KERNELNAME}, initrd, easy.sfs, session.sfs, $(gettext 'and any extra SFS files that are desired to be loaded.')"
+ M_help3c="
+session.sfs: $(gettext 'Merge of session.sfs and rw layer of previous version')"
+ M_help4b="$(gettext 'Easy Linux runs on a layered filesystem, with read-only (ro) layers <i>easy.sfs</i> and <i>session.sfs</i>, and a read-write (rw) layer on top.')"
+ M_help4c="
+$(gettext 'Note that session.sfs is the merge of session.sfs and the rw-layer from the previous version of Easy Linux.')
+"
+else
+ M_help3b="$(gettext 'Files found inside each easy-<i>version</i> folder are:') ${KERNELNAME}, initrd, easy.sfs, $(gettext 'and any extra SFS files that are desired to be loaded.')"
+ M_help3c=""
+ M_help4b="$(gettext 'Easy Linux runs on a layered filesystem, with read-only (ro) layer <i>easy.sfs</i>, and a read-write (rw) layer on top.')"
+ M_help4c=""
+fi
+
+if [ -d /boot/device-tree ];then #20210125 rpi
+ DTFmsg="
+$(gettext 'NOTE: Roll back or forward a version, the device-tree files will also roll back or forward. They are extracted from /boot/device-tree in easy.sfs.')"
+else
+ DTFmsg=""
+fi
+
+M_help3="$(gettext 'Previous versions (releases) of Easy Linux, if any, as well as any snapshots taken by the user, are saved in the <i>releases</i> folder.')
+
+$(gettext 'The reason for keeping all of this history in the releases folder, is that the user can roll back to any earlier version and/or snapshot.')
+$(gettext 'Reasons for doing this are varied. Sometimes, a later version proves to be troublesome, therefore it is a simple matter to rollback, until the problems with the later version are sorted out.')
+$(gettext 'Snapshots are also useful, as they capture the state of the system when the user has it setup in a particular desired way, which can be rolled back to if there is a mess created later on.')
+
+$(gettext 'As version upgrades occur, the amount of storage occupied by older versions may get excessive, hence the <i>Depth</i> parameter sets a maximum depth for the history. Older versions are deleted.')
+
+<b>$(gettext 'Technical notes')</b>
+$(gettext 'Location of releases:') /mnt/${WKG_DEV}/${WKG_DIR}releases
+$(gettext 'Folders within the repository are named easy-<i>version</i>, where <i>version</i> is the release number.')
+$(gettext 'The current easy-<i>version</i> folder:') easy-${DISTRO_VERSION}
+$(gettext '<i>Depth</i> is stored in /var/local/version-history-depth')
+${M_help3b}
+$(gettext 'If there are any snapshots, they are named:') rw-<i>date</i>.sfs
+${KERNELNAME}:  $(gettext 'This is the Linux kernel')
+initrd:      $(gettext 'This runs at bootup')
+easy.sfs:    $(gettext 'This has all of Easy Linux')${M_help3c}${DTFmsg}"
+export DLG_HELP3="<window resizable=\"false\" title=\"$(gettext 'Help: Rollback')\" icon-name=\"gtk-index\" window_position=\"1\"><vbox><text use-markup=\"true\" width-chars=\"60\"><label>\"${M_help3}\"</label><variable>DLG_HELP3</variable></text><hbox><button><label>${M_close}</label><action type=\"closewindow\">DLG_HELP3</action></button></hbox></vbox></window>"
+
+M_help4="${M_help4b}
+$(gettext 'It is this rw layer that will be erased.')
+${M_help4c}
+$(gettext 'The rw layer has all changes made by the user. Theming, network setup, installed packages, etc, are all in this rw layer.')
+$(gettext 'Note however, anything installed to /files is outside the rw layer, and will not be erased.')
+
+$(gettext 'NOTE: if you click the Erase button, there will be another window offering to preserve some things, such as browser, audio or video profiles.')
+
+<b>$(gettext 'Technical notes')</b>
+$(gettext 'Location of rw folder:') /mnt/${WKG_DEV}/${WKG_DIR}.session
+$(gettext 'It is the content of this folder that will be erased.')
+/mnt/${WKG_DEV}/${WKG_DIR}files $(gettext 'is bind-mounted on folder /files')
+$(gettext '/files will not be erased. This is where user personal files are kept, such as downloads, photos, videos.')"
+export DLG_HELP4="<window resizable=\"false\" title=\"$(gettext 'Help: Erase session')\" icon-name=\"gtk-index\" window_position=\"1\"><vbox><text use-markup=\"true\"><label>\"${M_help4}\"</label><variable>DLG_HELP4</variable></text><hbox><button><label>${M_close}</label><action type=\"closewindow\">DLG_HELP4</action></button></hbox></vbox></window>"
+
+M_help5="$(gettext 'A container is a copy of Easy Linux, to run applications isolated from the main Easy Linux and other containers.')
+
+$(gettext 'This is done for two main reasons, security, and/or to provide a working environment that does not compromise the main Easy Linux. An example of the latter would be compiling and testing source packages.')
+
+$(gettext 'A container is not really a copy, it just seems that way. It is built upon a layered filesystem, with <i>easy.sfs</i> and other read-only layers that are shared with the main Easy Linux and other containers.')
+
+$(gettext 'Each container has its own read-write layer, and this may be erased, or a snapshot taken. If there is a previous snapshot, then it can be rolled-back to.')
+
+<b>$(gettext 'Technical notes')</b>
+$(gettext 'Location of containers:') /mnt/${WKG_DEV}/${WKG_DIR}containers"
+export DLG_HELP5="<window resizable=\"false\" title=\"$(gettext 'Help: Containers')\" icon-name=\"gtk-index\" window_position=\"1\"><vbox><text use-markup=\"true\"><label>\"${M_help5}\"</label><variable>DLG_HELP5</variable></text><hbox><button><label>${M_close}</label><action type=\"closewindow\">DLG_HELP5</action></button></hbox></vbox></window>"
+
+if [ "$EOS_SUPPORT_CONTAINERS" == "0" ];then #20220527
+ CONTAINERSxml=""
+else
+CONTAINERSxml="  <frame $(gettext 'Containers')>
+    <text><label>$(gettext 'Take a snapshot or erase the working session, or rollback to an earlier snapshot, in a container')</label></text>
+    <hbox>
+      <comboboxtext><variable>EC_NAME</variable>${DEF_CON}<input>ls -1 /mnt/${WKG_DEV}/${WKG_DIR}containers</input><action>refresh:EC_SNAP</action></comboboxtext>
+      <button><label>$(gettext 'Erase')</label><action type=\"exit\">ec_erase</action></button>
+      <button><label>$(gettext 'Snapshot')</label><action type=\"exit\">ec_snapshot</action></button>
+      <text><label>\"  \"</label></text>
+      <comboboxtext><variable>EC_SNAP</variable><input>/tmp/easy_version_control/ec-ver-snaps \${EC_NAME} </input></comboboxtext>
+      <button><label>$(gettext 'Rollback')</label><action type=\"exit\">ec_rollback</action></button>
+      <button tooltip-text=\"$(gettext 'Snapshot comments')\"><input file>/usr/local/lib/X11/mini-icons/mini-Document.xpm</input><action>defaulttextviewer /mnt/${WKG_DEV}/${WKG_DIR}containers/\${EC_NAME}/snapshot-comments & </action></button>
+      <text><label>\"  \"</label></text>
+      <button><input file>/usr/local/lib/X11/mini-icons/mini-question.xpm</input><action type=\"launch\">DLG_HELP5</action></button>
+    </hbox>
+  </frame>
+"
+fi
+
+#20201217 increase max allowed depth from 7 to 9...
+export EVC_DIALOG="<window title=\"$(gettext 'Easy Version Control')\" icon-name=\"gtk-about\" window_position=\"1\">
+ <vbox>
+  <text><label>$(gettext 'Here you may choose to take a snapshot of the session, or roll back to an earlier snapshot or version')</label></text>
+
+  <hbox>
+    <vbox>
+      <frame $(gettext 'Current status')>
+        <text><label>$(gettext 'Version:') ${DISTRO_VERSION}</label></text>
+      </frame>
+    </vbox>
+    <vbox>
+      <frame $(gettext 'Session')>
+       <hbox>
+         <text><label>$(gettext 'Erase the working session:')</label></text>
+         <vbox><button><label>$(gettext 'Erase')</label><action type=\"exit\">erase</action></button></vbox>
+         <vbox><button><input file>/usr/local/lib/X11/mini-icons/mini-question.xpm</input><action type=\"launch\">DLG_HELP4</action></button></vbox>
+       </hbox>
+       <hbox>
+         <text><label>$(gettext 'Snapshot of the working session:')</label></text>
+         <vbox><button><label>$(gettext 'Snapshot')</label><action type=\"exit\">snapshot</action></button></vbox>
+         <vbox><button><input file>/usr/local/lib/X11/mini-icons/mini-question.xpm</input><action type=\"launch\">DLG_HELP2</action></button></vbox>
+       </hbox>
+      </frame>
+    </vbox>
+  </hbox>
+
+  <frame $(gettext 'Rollback')>
+   <hbox>
+    ${BACKXML2}
+    ${RO_NOTICE}
+    <text space-expand=\"true\"><label>\" \"</label></text>
+   </hbox>
+   <hbox>
+     <text><label>$(gettext 'Depth:')</label></text>
+     <comboboxtext><variable>DEPTH_MAX</variable><default>${DEPTH_DEF}</default><item>1</item><item>2</item><item>3</item><item>4</item><item>5</item><item>6</item><item>7</item><item>8</item><item>9</item></comboboxtext>
+     <text><label>\"  \"</label></text>
+     <button><label>$(gettext 'Rollback')</label><action type=\"exit\">rollback</action></button>
+     <button tooltip-text=\"$(gettext 'Snapshot comments')\"><input file>/usr/local/lib/X11/mini-icons/mini-Document.xpm</input><action>defaulttextviewer /tmp/easy_version_control/all-snapshots & </action></button>
+     <text><label>\"  \"</label></text>
+     <button><input file>/usr/local/lib/X11/mini-icons/mini-question.xpm</input><action type=\"launch\">DLG_HELP3</action></button>
+   </hbox>
+  </frame>
+  
+  ${CONTAINERSxml}
+  
+  <hbox>
+   <hbox><button cancel></button></hbox>
+   <button><input file>/usr/local/lib/X11/mini-icons/mini-question.xpm</input><action type=\"launch\">DLG_HELP1</action></button>
+  </hbox>
+ </vbox>
+ </window>"
+
+echo "$EVC_DIALOG" > evc.log
+RETVARS="$(gtkdialog --program=EVC_DIALOG)"
+eval "$RETVARS"
+
+#EXITNOW=1
+#[ "$EXIT" == "erase" ] && EXITNOW=0
+#[ "$EXIT" == "snapshot" ] && EXITNOW=0
+#[ "$EXIT" == "rollback" ] && EXITNOW=0
+#[ "$EXIT" == "ec_erase" ] && EXITNOW=0
+#[ "$EXIT" == "ec_snapshot" ] && EXITNOW=0
+#[ "$EXIT" == "ec_rollback" ] && EXITNOW=0
+#[ $EXITNOW -eq 1 ] && exit
+
+if [ "$DEPTH_MAX" != "$DEPTH_DEF" ];then
+ echo -n "$DEPTH_MAX" > /var/local/version-history-depth
+fi
+
+if [ "$EXIT" == "erase" ];then
+ ###NOTICE### cannot do it now, done in initramfs.
+ #rm -rf /mnt/${WKG_DEV}/${WKG_DIR}.session/*
+ 
+ #200813 ask about exceptions...
+ /usr/local/easy_version/erase-exceptions
+ if [ $? -eq 0 ];then 
+  echo -n ",erase" > /.rollback.flg #init in initramfs will read this.
+  pupdialog --background '#40FF40' --backtitle "$(gettext 'Erase almost completed')" --msgbox "$(gettext 'The rw layer will be erased. However, as this is currently in use, a reboot is required to take effect.')" 0 0
+ else
+  [ -f /.rollback.flg ] && rm -f /.rollback.flg
+  pupdialog --background '#FF8080' --backtitle "$(gettext 'Erase aborted')" --msgbox "$(gettext 'Confirming, you decided not to erase the working session.')" 0 0
+ fi
+ 
+fi
+
+if [ "$EXIT" == "snapshot" ];then
+ #170525 some exclusions from snapshot... 180606 need path root/.XLOADED  181121 exclude .control
+ echo -e 'dev\nmnt\nproc\nrun\nsys\ntmp\nvar\n.fsckme.flg\nlost+found\nroot/.XLOADED\n.control' > /tmp/easy_version_control/snapshot-exclusions1
+ if [ -d /root/.ccache ];then #20211212 does oe create this? huge, 6.8GB
+  echo 'root/.ccache' >> /tmp/easy_version_control/snapshot-exclusions1
+ fi
+ #20221015 get rid of .cache folders...
+ DOTC="$(find /mnt/${WKG_DEV}/${WKG_DIR}.session -maxdepth 3 -type d -name '.cache' | cut -f 6- -d '/' | tr '/n' ' ')" #ex: home/firefox/.cache
+ for aDOTC in $DOTC
+ do
+  echo "$aDOTC" >> /tmp/easy_version_control/snapshot-exclusions1
+ done
+ urxvt -geometry 80x10 -bg '#09A0FF' -e mksquashfs /mnt/${WKG_DEV}/${WKG_DIR}.session /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${DISTRO_VERSION}/rw-${DATE}.sfs -ef /tmp/easy_version_control/snapshot-exclusions1 -no-exports
+ 
+ if [ "$EOS_TOP_LEVEL_ZRAM" == "1" ];then #20220626 defined in PUPSTATE file.
+  #***TO DO*** figure out a more efficient way to do this.
+  #have to merge /mnt/.easy_rw/mainrw (top rw layer) into the snapshot...
+  sync
+  mkdir -p /mnt/${WKG_DEV}/${WKG_DIR}.session-snapshot/temp1
+  #mkdir -p /mnt/${WKG_DEV}/${WKG_DIR}.session-snapshot/mainrw
+  mount -t squashfs /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${DISTRO_VERSION}/rw-${DATE}.sfs /mnt/${WKG_DEV}/${WKG_DIR}.session-snapshot/temp1
+  cp -a /mnt/${WKG_DEV}/${WKG_DIR}.session-snapshot/temp1 /mnt/${WKG_DEV}/${WKG_DIR}.session-snapshot/mainrw
+  /etc/rc.d/rw-merge '.session-snapshot' "mainrw"
+  #...will merge to: /mnt/${WKG_DEV}/${WKG_DIR}.session-snapshot/mainrw
+  #now rebuild the sfs...
+  rm -f /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${DISTRO_VERSION}/rw-${DATE}XXXX.sfs 2>/dev/null
+  urxvt -geometry 80x10 -bg '#09A0FF' -e mksquashfs /mnt/${WKG_DEV}/${WKG_DIR}.session-snapshot/mainrw /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${DISTRO_VERSION}/rw-${DATE}XXXX.sfs
+  sync
+  umount /mnt/${WKG_DEV}/${WKG_DIR}.session-snapshot/temp1
+  rm -f /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${DISTRO_VERSION}/rw-${DATE}.sfs
+  mv -f /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${DISTRO_VERSION}/rw-${DATE}XXXX.sfs /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${DISTRO_VERSION}/rw-${DATE}.sfs
+  rm -rf /mnt/${WKG_DEV}/${WKG_DIR}.session-snapshot
+ fi
+ 
+ cp -f /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${DISTRO_VERSION}/configuration /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${DISTRO_VERSION}/configuration-${DATE} #170225
+ sync
+# popup "background=#40FF10 level=top terminate=ok|<big>$(gettext 'Snapshot created!')</big>
+#$(gettext 'Snapshot file:') /mnt/${WKG_DEV}/${WKG_DIR}releases/rw-${DATE}.sfs"
+ echo -n "${DATE} " >> /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${DISTRO_VERSION}/snapshot-comments
+ pupdialog --background '#40FF40' --backtitle "$(gettext 'Snapshot created')"  --inputbox "$(gettext 'Snapshot file:') /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${DISTRO_VERSION}/rw-${DATE}.sfs
+$(gettext 'Please type a short one-line comment about this snapshot:')" 0 0 2> /tmp/easy_version_control/comment
+ cat /tmp/easy_version_control/comment >> /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${DISTRO_VERSION}/snapshot-comments #170527
+ exit
+fi
+
+#170525
+reconstitute_sessionsfs_func() {
+ localBackVer="$1"
+ ROLAYERS=""
+ if [ ! -f /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${localBackVer}/session.sfs ];then
+  for APREVER in $revsortedVERS
+  do
+   [ "$APREVER" == "" ] && continue #precaution
+   if vercmp ${APREVER} gt ${localBackVer}; then continue; fi
+   if [ -f /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${localBackVer}/session.sfs ];then
+    mkdir -p /tmp/easy_version_control/sessionsfs
+    busybox mount -t squashfs -o loop,noatime /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${APREVER}/session.sfs /tmp/easy_version_control/sessionsfs
+    ROLAYERS="${ROLAYERS}:/tmp/easy_version_control/sessionsfs${RO}"
+    break
+   else
+    mkdir -p /tmp/easy_version_control/${APREVER}
+    busybox mount -t squashfs -o loop,noatime /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${APREVER}/rw-${APREVER}.sfs /tmp/easy_version_control/${APREVER}
+    ROLAYERS="${ROLAYERS}:/tmp/easy_version_control/${APREVER}${RO}"
+   fi
+  done
+ fi
+ if [ "$ROLAYERS" ];then
+  xROLAYERS="$(echo -n "$ROLAYERS" | sed -e 's%^:%%')"
+  mkdir -p /tmp/easy_version_control/tempwork
+  mkdir -p /tmp/easy_version_control/rwlayer
+  mkdir -p /tmp/easy_version_control/mntpt
+  if [ "$LAYERFS" == "aufs" ];then
+   mount -t aufs -o br=/tmp/easy_version_control/rwlayer=rw${ROLAYERS} aufs /tmp/easy_version_control/mntpt
+  else
+   mount -t overlay -o lowerdir=${xROLAYERS},upperdir=/tmp/easy_version_control/rwlayer,workdir=/tmp/easy_version_control/tempwork overlay /tmp/easy_version_control/mntpt
+  fi
+  urxvt -bg '#09A0FF' -e mksquashfs /tmp/easy_version_control/mntpt /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${localBackVer}/session.sfs #>/dev/null
+  sync
+  for AMNTD in `echo -n "$xROLAYERS" | tr ':' '\n' | cut -f 1 -d '=' | tr '\n' ' '`
+  do
+   busybox umount $AMNTD
+  done
+ fi
+}
+
+if [ "$EXIT" == "rollback" ];then
+ backEASYver="$(echo "$RETVARS" | grep '^EASYVC_' | grep '"true"' | cut -f 2 -d '_' | cut -f 1 -d '=' | tr 'Z' '.')"
+ if [ "$backEASYver" ];then
+  #roll back to this version
+  if [ "${DISTRO_VERSION}" != "${backEASYver}" ];then #200829 precaution.
+   UMNTFLG=0
+   if [ "$BOOT_DEV" ];then
+    if [ "$(mount | grep "/mnt/${BOOT_DEV} ")" == "" ];then
+     mkdir -p /mnt/${BOOT_DEV}
+     mount -t ${BOOT_FS} /dev/${BOOT_DEV} /mnt/${BOOT_DEV}
+     UMNTFLG=1
+    fi
+   fi
+   ###NOTICE### do not copy .session as in layer fs. init will do it.
+   cp -a -f /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${backEASYver}/${KERNELNAME} /mnt/${WKG_DEV}/${WKG_DIR} #200829 -a
+   #20220613 yes, must copy initrd, it now has /etc/DISTRO_SPECS...
+   cp -a -f /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${backEASYver}/initrd /mnt/${WKG_DEV}/${WKG_DIR} #200729 do not change this file.
+   cp -a -f /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${backEASYver}/configuration-${backEASYver} /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${backEASYver}/configuration #170225 200829
+   sync
+   if [ $SESSIONSFSflag -eq 1 ];then
+    #170525 if no session.sfs in previous easy- folder, reconstitute it...
+    reconstitute_sessionsfs_func ${backEASYver}
+    echo -n "${backEASYver},erase" > /.rollback.flg #init in initramfs will read this. 170526 170529
+   else
+    echo -n "${backEASYver},${backEASYver}" > /.rollback.flg #init in initramfs will read this. 170526
+   fi
+   sync
+
+   if [ -d /boot/device-tree ];then #20210125 rpi. see also easy-update.
+    mkdir -p /mnt/mntpt2
+    busybox mount -t squashfs -o loop,ro /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${backEASYver}/easy.sfs /mnt/mntpt2
+    if [ -d /mnt/mntpt2/boot/device-tree ];then
+     cp -a -f /mnt/mntpt2/boot/device-tree/* /mnt/${BOOT_DEV}/${BOOT_DIR}
+    fi
+    sync
+    umount /mnt/mntpt2
+    rmdir /mnt/mntpt2
+   fi
+   
+   [ $UMNTFLG -eq 1 ] && busybox umount /mnt/${BOOT_DEV}
+  fi
+  echo -e "\nDate: ${DATE}\n------------------\n$(gettext 'Current version:') ${DISTRO_VERSION}\n$(gettext 'Rolled-back version:') ${backEASYver}" >> /mnt/${WKG_DEV}/${WKG_DIR}releases/rollback-log #171226
+  pupdialog --background '#40FF40' --backtitle "$(gettext 'Rollback almost completed')" --msgbox "$(gettext 'Current version:') ${DISTRO_VERSION}
+$(gettext 'Rolled-back version:') ${backEASYver}
+$(gettext 'This requires a reboot to take effect')" 0 0
+ else
+  backSNAP="$(echo "$RETVARS" | grep '^RW_' | grep '"true"' | cut -f 2,3 -d '_' | cut -f 1 -d '=' | tr 'Z' '.')"
+  if [ "$backSNAP" ];then
+   backVER="$(echo -n "$backSNAP" | cut -f 1 -d '_')"
+   backDATE="$(echo -n "$backSNAP" | cut -f 2 -d '_')"
+   UMNTFLG=0
+   if [ "$backVER" != "$DISTRO_VERSION" ];then
+    if [ "$BOOT_DEV" ];then
+     if [ "$(mount | grep "/mnt/${BOOT_DEV} ")" == "" ];then
+      mkdir -p /mnt/${BOOT_DEV}
+      mount -t ${BOOT_FS} /dev/${BOOT_DEV} /mnt/${BOOT_DEV}
+      UMNTFLG=1
+     fi
+    fi
+    cp -a -f /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${backVER}/${KERNELNAME} /mnt/${WKG_DEV}/${WKG_DIR}
+    #20220613 must copy initrd, as now has /etc/DISTRO_SPECS...
+    cp -f /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${backVER}/initrd /mnt/${WKG_DEV}/${WKG_DIR}
+    if [ $SESSIONSFSflag -eq 1 ];then
+     #170525 if no session.sfs in previous easy- folder, reconstitute it...
+     reconstitute_sessionsfs_func ${backVER}
+    fi
+    sync
+   fi
+   cp -a -f /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${backVER}/configuration-${backDATE} /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${backVER}/configuration #200829
+   ###NOTICE### do not copy .session as in layer fs. init will do it.
+   sync
+   
+   if [ -d /boot/device-tree ];then #20210125 rpi. see also easy-update.
+    mkdir -p /mnt/mntpt2
+    busybox mount -t squashfs -o loop,ro /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${backVER}/easy.sfs /mnt/mntpt2
+    if [ -d /mnt/mntpt2/boot/device-tree ];then
+     cp -a -f /mnt/mntpt2/boot/device-tree/* /mnt/${BOOT_DEV}/${BOOT_DIR}
+    fi
+    sync
+    umount /mnt/mntpt2
+    rmdir /mnt/mntpt2
+   fi
+   
+   #busybox umount /tmp/evc-snap-mnt
+   [ $UMNTFLG -eq 1 ] && busybox umount /mnt/${BOOT_DEV}
+   if [ "$backVER" == "$DISTRO_VERSION" ];then
+    echo -e "\nDate: ${DATE}\n------------------\n$(gettext 'Version:') ${DISTRO_VERSION}\n$(gettext 'Rolled-back to snapshot:') rw-${backDATE}.sfs" >> /mnt/${WKG_DEV}/${WKG_DIR}releases/rollback-log #171226
+    echo -n ",${backDATE}" > /.rollback.flg #init in initramfs will read this.
+    MSGdone="$(gettext 'Rolled-back to snapshot:') rw-${backDATE}.sfs
+$(gettext 'This will be copied to:') /mnt/${WKG_DEV}/${WKG_DIR}.session
+$(gettext 'This requires a reboot to take effect.')"
+   else
+    echo -e "\nDate: ${DATE}\n------------------\n$(gettext 'Rolled-back to version:') ${backVER}\n$(gettext 'Rolled-back to snapshot:') ${backDATE}" >> /mnt/${WKG_DEV}/${WKG_DIR}releases/rollback-log #171226
+    echo -n "${backVER},${backDATE}" > /.rollback.flg #init in initramfs will read this.
+    MSGdone="$(gettext 'Rolled-back to version:') ${backVER}
+$(gettext 'Rolled-back to snapshot:') ${backDATE}
+$(gettext 'This will be copied to:') /mnt/${WKG_DEV}/${WKG_DIR}.session
+$(gettext 'This requires a reboot to take effect.')"
+   fi
+   pupdialog --background '#40FF40' --backtitle "$(gettext 'Rollback almost completed')" --msgbox "${MSGdone}" 0 0
+  fi
+ fi
+fi
+
+if [ "$EXIT" == "ec_erase" ];then
+ test_cont_mntd_func #test if container in use.
+ if [ $? -ne 0 ];then
+  if [ "$EC_NAME" == "desk" ];then #181017
+   pupdialog --background '#FF8080' --backtitle "$(gettext 'ERROR: Container') ${EC_NAME}" --msgbox "$(gettext 'Sorry the container is currently in use. The read-write layer cannot be erased. It is required to restart the X server or reboot (see the Shutdown menu) to stop the desk container. Aborting.')" 0 0
+  else
+   pupdialog --background '#FF8080' --backtitle "$(gettext 'ERROR: Container') ${EC_NAME}" --msgbox "$(gettext 'Sorry the container is currently in use. The read-write layer cannot be erased. Aborting.')" 0 0
+  fi
+  exit
+ fi
+ if [ "$EOS_TOP_LEVEL_ZRAM" == "1" ];then #20220703 defined in PUPSTATE file.
+  rm -rf /mnt/.easy_rw/${EC_NAME}
+  mkdir /mnt/.easy_rw/${EC_NAME}
+ fi
+ rm -rf /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_NAME}/.session/*
+ #181121 consider SKEL may have .control folder...
+ rm -rf /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_NAME}/.session/.[a-z]* 2>/dev/null #180624 aufs top-level .wh* dirs/files. 181121 avoid deleting .control  181123
+ [ -d /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_NAME}/.sessionSKEL ] && cp -a -f /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_NAME}/.sessionSKEL/* /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_NAME}/.session/ #181017
+ [ -d /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_NAME}/.sessionSKEL/.control ] && cp -a -f /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_NAME}/.sessionSKEL/.control /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_NAME}/.session/
+ pupdialog --background '#40FF40' --backtitle "$(gettext 'Container:') ${EC_NAME}" --msgbox "$(gettext 'The container read-write layer has been erased.')" 0 0
+fi
+
+if [ "$EXIT" == "ec_snapshot" ];then
+ test_cont_mntd_func #test if container in use.
+ [ $? -ne 0 ] && exit
+ #170525 some exclusions from snapshot... 180606 need path root/.XLOADED 181121 exclude .control
+ echo -e 'dev\nmnt\nproc\nrun\nsys\ntmp\nvar\n.fsckme.flg\nlost+found\nroot/.XLOADED\n.control' > /tmp/easy_version_control/snapshot-exclusions1
+ urxvt -geometry 80x10 -bg '#09A0FF' -e mksquashfs /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_NAME}/.session /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_NAME}/rw-${DATE}.sfs -ef /tmp/easy_version_control/snapshot-exclusions1 -no-exports
+ 
+ if [ "$EOS_TOP_LEVEL_ZRAM" == "1" ];then #20220626 defined in PUPSTATE file.
+  #***TO DO*** figure out a more efficient way to do this.
+  #have to merge /mnt/.easy_rw/$EC_NAME (top rw layer) into the snapshot...
+  sync
+  mkdir -p /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_NAME}/.session-snapshot/temp1
+  mount -t squashfs /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_NAME}/rw-${DATE}.sfs /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_NAME}/.session-snapshot/temp1
+  cp -a /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_NAME}/.session-snapshot/temp1 /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_NAME}/.session-snapshot/${EC_NAME}
+  /etc/rc.d/rw-merge '.session-snapshot' "${EC_NAME}"
+  #...merges to: /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_NAME}/.session-snapshot/$EC_NAME
+  #now rebuild the sfs...
+  rm -f /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_NAME}/rw-${DATE}XXXX.sfs 2>/dev/null
+  urxvt -geometry 80x10 -bg '#09A0FF' -e mksquashfs /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_NAME}/.session-snapshot/${EC_NAME} /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_NAME}/rw-${DATE}XXXX.sfs
+  sync
+  umount /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_NAME}/.session-snapshot/temp1
+  rm -f /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_NAME}/rw-${DATE}.sfs
+  mv -f /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_NAME}/rw-${DATE}XXXX.sfs /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_NAME}/rw-${DATE}.sfs
+  rm -rf /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_NAME}/.session-snapshot
+ fi
+
+ cp -f /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_NAME}/configuration /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_NAME}/configuration-${DATE}
+ sync
+ echo -n "${DATE} " >> /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_NAME}/snapshot-comments
+ pupdialog --background '#40FF40' --backtitle "$(gettext 'Snapshot created')"  --inputbox "$(gettext 'Snapshot file:') /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_NAME}/rw-${DATE}.sfs
+$(gettext 'Please type a short one-line comment about this snapshot:')" 0 0 2> /tmp/easy_version_control/comment
+ cat /tmp/easy_version_control/comment >> /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_NAME}/snapshot-comments #170527 180428
+fi
+
+if [ "$EXIT" == "ec_rollback" ];then
+ test_cont_mntd_func #test if container in use.
+ [ $? -ne 0 ] && exit
+ mkdir -p /tmp/easy_version_control/tmpmnt
+ busybox mount -t squashfs -o loop,noatime /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_NAME}/rw-${EC_SNAP}.sfs /tmp/easy_version_control/tmpmnt
+ if [ "$EOS_TOP_LEVEL_ZRAM" == "1" ];then #20220703 defined in PUPSTATE file.
+  rm -rf /mnt/.easy_rw/${EC_NAME}
+  mkdir /mnt/.easy_rw/${EC_NAME}
+ fi
+ rm -rf /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_NAME}/.session/*
+ #181121 consider SKEL may have .control folder...
+ rm -rf /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_NAME}/.session/.[a-z]* 2>/dev/null #180624 aufs top-level .wh* dirs/files. 181121 avoid deleting .control  181123
+ [ -d /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_NAME}/.sessionSKEL ] && cp -a -f /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_NAME}/.sessionSKEL/* /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_NAME}/.session/ #181017
+ [ -d /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_NAME}/.sessionSKEL/.control ] && cp -a -f /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_NAME}/.sessionSKEL/.control /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_NAME}/.session/
+ cp -a -f /tmp/easy_version_control/tmpmnt/* /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_NAME}/.session/
+ [ -f /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_NAME}/configuration-${EC_SNAP} ] && cp -f /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_NAME}/configuration-${EC_SNAP} /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_NAME}/configuration
+ sync
+ busybox umount /tmp/easy_version_control/tmpmnt
+ #20220703 completion msg...
+ MSGecr="$(gettext 'Container rollback completed:')"
+ popup "background=#a0ffa0 name=evcecr terminate=5 timecnt=dn|<big>${MSGecr} ${EC_NAME}</big>"
+fi
+
+###end###

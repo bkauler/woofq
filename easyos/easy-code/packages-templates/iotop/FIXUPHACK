@@ -1,0 +1,19 @@
+
+#20220512 debian bookworm, executable is iotop-py
+if [ -e usr/sbin/iotop-py ];then
+ IOTOPEXE='iotop-py'
+else
+ IOTOPEXE='iotop'
+fi
+
+mkdir -p usr/share/applications
+echo "[Desktop Entry]
+Encoding=UTF-8
+Name=iotop monitor I/O activity
+Icon=mini-run.xpm
+Comment=iotop monitor I/O activity
+Exec=urxvt -bg \"#f0f0f0\" -fg black -T iotop -n iotop -e ${IOTOPEXE} -o -a
+Terminal=false
+Type=Application
+Categories=X-System-process
+GenericName=iotop" > usr/share/applications/iotop.desktop

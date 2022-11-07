@@ -1,0 +1,10 @@
+#!/bin/ash
+#20220226 /usr/local/bin/defaultcalendar has "exec ical", which don't have.
+
+export TEXTDOMAIN=ical-popup
+export OUTPUT_CHARSET=UTF-8
+
+MSG1="$(gettext 'Please click on the <b>Osmo</b> icon in the systray')"
+
+popup "process=wait terminate=ok background=#ffa050 level=top|<big>${MSG1}</big>"
+

@@ -1,0 +1,35 @@
+#!/bin/sh
+#Add to /etc/rc.d/rc.local for auto startup: pure-ftpd -EbBADHk 90
+#130517 robwoj44: gettexted.
+
+. gettext.sh
+export TEXTDOMAIN=run-pureftpd
+export TEXTDOMAINDIR=/usr/share/locale
+export OUTPUT_CHARSET=UTF-8
+
+if [ "$(ps | grep $(cat /var/run/pure-ftpd.pid) | grep pure-ftpd)" != "" ] ; then
+
+Xdialog --wmclass "pure-ftpd" --title "$(gettext 'Start/Stop PureFTPD')" --stdout --ok-label "$(gettext 'Stop Server')" --cancel-label "$(gettext 'Cancel')" --yesno "$(gettext 'Pure-FTPD is running. \n Would you like to stop the server?')" 0 0
+
+ if  [ "$?" = "1" ] ;then 
+ exit
+ fi
+ kill -9 $(cat /var/run/pure-ftpd.pid)
+ exit
+fi
+vMsgH=15 ; vMsg=''
+   vMsgW=40
+   cfg=`Xdialog --title "$vServerTitle Start/Stop Pure-FTPD." \
+         --backtitle "$(gettext 'Pure-ftpd is currently not Running.')" \
+         --left --separator \  \
+         --ok-label "$(gettext 'Start Pure-ftpd')" \
+         --checklist " " \
+      15 85 4 \
+      '-u 1' "$(gettext 'Prevent user root connections.')" off \
+      '-E' "$(gettext 'Prevent anonymous connections.')" on \
+      2>&1 || echo .`
+   [ "$cfg" == "." ] && exit
+      
+pure-ftpd -bBADHk 90 $cfg
+ 
+Xdialog --wmclass "pure-ftpd" --title "$(gettext 'Start/Stop PureFTPD')" --stdout --ok-label "$(gettext 'OK')" --infobox "$(gettext 'Pure-ftpd is started. \n If you allowed anonymous connections, web browsers will connect as user ftp. \n User ftp's home directory is at /root/ftpd. \n If you allowed root logins you should set a root password. \n To set a password for root, open a terminal and type passwd. \n To stop the server run this script again.')" 0 0 90000

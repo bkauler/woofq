@@ -1,0 +1,146 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>joewing.net</title>
+    <link rel="stylesheet" href="/style.css">
+  </head>
+  <body>
+    <div id="content">
+      <h1>JWM v2.4 Release Notes</h1>
+
+<p>
+This is a collection of major changes between JWM v2.3 and JWM v2.4.<br>
+Version 2.4.0 was released 20211107.
+</p>
+
+<h2>New Features</h2>
+<div>
+<ul>
+   <li>Mouse bindings are now configurable (issue
+   <a href="http://github.com/joewing/jwm/issues/11">#11</a>).</li>
+   <li>Added key bindings (<span class="literal">send#</span>) to send a
+   window to a particular desktop (issue
+   <a href="http://github.com/joewing/jwm/issues/395">#395</a>).</li>
+   <li>Added <span class="literal">~/.config/jwm/jwmrc</span> as the
+   new default location for per-user configuration (issue
+   <a href="http://github.com/joewing/jwm/issues/394">#394</a>).</li>
+   <li>Maximized windows once again have borders and can be resized (issue
+   <a href="http://github.com/joewing/jwm/issues/392">#392</a>).</li>
+   <li>The placement of window buttons is now configurable (issue
+   <a href="http://github.com/joewing/jwm/issues/19">#19</a>).</li>
+   <li>Restored automatic tray &quot;autohide&quot; functionality using
+   <span class="attribute">autohide</span>=&quot;<span class="literal">on</span>&quot;
+   (issue
+   <a href="http://github.com/joewing/jwm/issues/398">#398</a>).</li>
+   <li>Added support for CDATA to the XML parser (issue
+   <a href="http://github.com/joewing/jwm/issues/344">#344</a>).</li>
+   <li>Moved the <span class="attribute">group</span> and
+   <span class="attribute">list</span> attributes to the
+   <span class="tag">TaskListStyle</span> tag (issue
+   <a href="http://github.com/joewing/jwm/issues/309">#309</a>).</li>
+   <li>Added key bindings to resize a window from a specific corner or side
+   (issue
+   <a href="http://github.com/joewing/jwm/issues/409">#409</a>).</li>
+   <li>Add Type tag to Group (issue
+   <a href="http://github.com/joewing/jwm/issues/453">#453</a>,
+   patch from rdnvndr).</li>
+</ul>
+</div>
+
+<h2>Configuration Changes</h2>
+<p>
+    The following XSLT is available to update JWM v2.3 configuration
+    files for use with JWM v2.4:
+    <a href="xslt/jwm-2.4.xslt">jwm-2.4.xslt</a>.
+</p>
+<p>
+    To convert an existing v2.3 configuration file using
+    <a href="http://xmlsoft.org/XSLT/xsltproc2.html">xsltproc</a>,
+    run:
+</p>
+<div class="code">
+    cp ~/.jwmrc ~/.jwmrc.old<br/>
+    xsltproc jwm-2.4.xslt ~/.jwmrc.old &gt; ~/.jwmrc
+</div>
+<p>
+    If you have multiple configuration files, it may be necessary
+    to apply the XSLT to some or all of them depending on what
+    configuration options are stored in the file.
+</p>
+<p>
+    A summary of configuration changes follows.
+</p>
+<div>
+<ul>
+  <li>The <span class="attribute">group</span> and
+   <span class="attribute">list</span> attributes have moved
+   to the <span class="tag">TaskListStyle</span> tag.</li>
+</ul>
+</div>
+<p>
+   See the <a href="config.html">configuration documentation</a>
+   for documentation on all configuration options.
+</p>
+
+<h2>Bug Fixes</h2>
+<div>
+<ul>
+  <li>Don't SetDefaultCursor in AddClientToWindow (issue
+  <a href="http://github.com/joewing/jwm/issue/521">#521</a>).</li>
+  <li>Use pango to address font fixes (issues
+  <a href="http://github.com/joewing/jwm/issue/502">#502</a>,
+  <a href="http://github.com/joewing/jwm/issue/498">#498</a>, and
+  <a href="http://github.com/joewing/jwm/issue/337">#337</a>).
+  </li>
+  <li>Fix for large titles that are centered or right aligned (issue
+  <a href="http://github.com/joewing/jwm/issues/479">#479</a>,
+  patch from rdnvndr).</li>
+  <li>Fix tooltip delay (issue
+  <a href="http://github.com/joewing/jwm/issue/431">#431</a>).</li>
+</ul>
+</div>
+
+<h2>Updated Translations</h2>
+<div>
+<ul>
+  <li>Portuguese (Hugo Carvalho)</li>
+  <li>Portuguese Brazil (marcelo cripe)</li>
+  <li>Turkish (Cihan Alkan)</li>
+  <li>Spanish (PAblo Roberto Francisco Lezaeta Reyes)</li>
+  <li>Danish (scootergrisen)</li>
+  <li>Lithuanian (Moo)</li>
+</ul>
+</div>
+
+      <div id="foot">
+        
+        
+        
+        
+        <div id="location">
+          <a href="http://joewing.net/">home</a>
+          
+            <span>/</span>
+            
+              
+                <a href="http://joewing.net/projects">projects</a> 
+              
+          
+            <span>/</span>
+            
+              
+                <a href="http://joewing.net/projects/jwm">jwm</a> 
+              
+          
+            <span>/</span>
+            
+              
+                JWM v2.4 Release Notes
+              
+          
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

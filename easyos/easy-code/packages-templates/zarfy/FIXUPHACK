@@ -1,0 +1,22 @@
+
+#20201012 oe dunfell
+mkdir -p usr/share/pixmaps
+if [ ! -e usr/share/pixmaps/zarfy.png ];then
+ if [ -f usr/share/icons/hicolor/48x48/apps/zarfy.png ];then
+  ln -s ../icons/hicolor/48x48/apps/zarfy.png usr/share/pixmaps/zarfy.png
+ fi
+fi
+#20210118 ...um, no, have put icon into usr/share/pixmaps
+
+#20201023 oe dunfell
+mkdir -p usr/share/applications
+echo '[Desktop Entry]
+Encoding=UTF-8
+Name=Zarfy manage multiple monitors
+Icon=zarfy.png
+Comment=Zarfy manage multiple monitors
+Exec=zarfywrapper
+Terminal=false
+Type=Application
+Categories=X-Setup-wizard
+GenericName=Zarfy' > usr/share/applications/zarfy.desktop

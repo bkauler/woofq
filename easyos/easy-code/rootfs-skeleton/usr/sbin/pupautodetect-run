@@ -1,0 +1,74 @@
+#!/bin/ash
+#Barry Kauler, Oct. 2011
+#called via udev /etc/udev/rules.d/88-puppy-autodetect.rules
+#111007 first release.
+#111010 maybe wait until delayedrun has done its stuff.
+#161008 ubuntu 16.01, /usr/bin/Xorg now a script, actual Xorg is at /usr/lib/xorg/
+#20201205 now have /usr/sbin/pupmtp, handles MTP device (Media Transfer Protocol).
+#20201208 workaround to prevent both pupmtp and pupcamera running.
+#20201215 if called from udev rule, LANG will not be set.
+#20211206 remove /root/my-applications
+#20211229 /etc/udev/rules.d/88-puppy-autodetect.rules detects plugged in audio pcm (sink) device.
+#20220501 do not want mscw etc to run if my /usr/bin/droidcam script is running. 
+#20220506  ditto easyhare, scrcpy
+#20220626 fix for mscw popping up twice. ref: https://forum.puppylinux.com/viewtopic.php?p=60565#p60565
+#20220828 sometimes get error msg at bootup, /tmp/pupautodetectrunlockpcm already exist.
+
+[ ! $1 ] && exit
+export PATH='/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin'
+export DISPLAY=':0'
+
+#[ "`pidof X`" == "" ] && exit #X not running.
+[ "`pidof X`" ] || [ "`pidof Xorg`" ] || exit #161008
+
+#20220501 do not want these apps to run if my /usr/bin/droidcam script is running
+#20220506 ditto if easyshare is running...
+pidof droidcam easyshare scrcpy >/dev/null
+if [ $? -eq 0 ];then
+ exit
+fi
+
+#20211229 detect already running... 20220828 hide err if dir exists...
+#ref: https://stackoverflow.com/questions/16807876/how-to-check-if-another-instance-of-my-shell-script-is-running
+lockdir="/tmp/pupautodetectrunlock${1}"
+mkdir ${lockdir} 2>/dev/null || exit
+
+#20201215 if called from udev rule, LANG will not be set...
+eval $(grep '^LANG=.*' /etc/profile)
+export LANG
+
+#111010 maybe wait until delayedrun has done its stuff...
+EXCNT=0
+while [ ! -f /tmp/delayedrun_finished_flag ];do #see /usr/sbin/delayedrun.
+ sleep 2
+ EXCNT=$(($EXCNT + 1))
+ [ $EXCNT -gt 10 ] && break #precaution
+done
+
+case $1 in
+ camera)
+  pupcamera &
+ ;;
+ android-device) #20201205
+  sleep 2 #20201208 do not run pupmtp if running pupcamera
+  pidof pupcamera >/dev/null
+  if [ $? -ne 0 ];then
+   pupmtp &
+  fi
+ ;;
+ pcm) #20211229 audio device
+  sleep 2
+  pidof pulseaudio >/dev/null
+  if [ $? -eq 0 ];then
+   pidof mscw >/dev/null
+   if [ $? -ne 0 ];then
+    if [ ! -s /var/local/mscw/selected ];then #20220626 see also delayedrun
+     mscw &
+    fi
+   fi
+  fi
+ ;;
+esac
+
+rm -rf ${lockdir} #20211229
+###end###

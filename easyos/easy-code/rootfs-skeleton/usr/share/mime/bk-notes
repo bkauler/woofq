@@ -1,0 +1,29 @@
+
+20180904
+--------
+placed image/png.xml, jpeg.xml in rootfs-skeleton in woofQ.
+this folder will be filled when 'devx' loaded, however,
+Scribus desktop publisher outputs an error if png.xml isn't there
+(but still seems to work ok).
+Threw in jpeg.xml
+
+20200711
+--------
+Note, still using an old 'shared-mime-info' package in EasyOS 2.3.2:
+woofq: woof-project/pet-construction/amd64/pet_packages-buster/shared-mime-info-0.90-r1-pyro64
+I posted about this years ago: later versions were mistaking some text files for
+octet-stream files, which was very annoying.
+
+Today I want to add mime handling for zstd files. 
+
+woofq: woof-project/easyos/easy-code/rootfs-skeleton/usr/share/mime/packages/puppy.xml
+has some special mime-types, and could add it there.
+
+ref: https://www.iana.org/assignments/media-types/application/zstd
+have created rootfs-skeleton/usr/share/mime/packages/zstd.xml
+
+Note: probably should take another look at latest 'shared-mime-info'.
+
+
+
+

@@ -1,0 +1,39 @@
+<JWM>
+	<Tray autohide="off" insert="right" x="0" y="-1" height="32" width="0" halign="center">
+
+		<!-- the main app menu. root:3 means mouse right-click -->
+		<TrayButton popup="Menu" icon="menu48.png">root:3</TrayButton>
+
+		<!-- TrayButton tags for extra menus -->
+		<!--STARTMENU-->
+		<!--ENDMENU-->
+
+		<Spacer width="5"/>
+		<Pager/>
+
+		<Spacer width="5"/>
+		<!-- TrayButton tags for apps -->
+		<!--STARTICONS-->
+		<!--ENDICONS-->
+
+		<Spacer width="5"/>
+		<TaskList labeled="false"/>
+
+		<Dock/>
+
+		<!--STARTSWALLOW-->
+		<Swallow name="xload" width="32">
+			xload -nolabel -bg "#888888" -fg red -hl white
+		</Swallow>
+		<!--ENDSWALLOW-->
+
+		<Spacer width="5"/>
+		<Clock format="%H:%M">exec:date-time-wizard</Clock>
+
+		<Spacer width="5"/>
+		<!-- TrayButton tags for apps at right side of tray -->
+		<!--STARTEXTRA-->
+		<!--ENDEXTRA-->
+
+	</Tray>
+</JWM>

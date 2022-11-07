@@ -1,0 +1,155 @@
+#!/bin/sh
+#100228 BK support default network tool.
+#100325 BK support Simple Network Setup.
+#16aug10 shinobar: netchoice. BK: but only if defaultconnect still set to 'exec connectwizard'.
+#110505 support sudo for non-root user.
+#130104 rerwin: add frisbee
+#130117 rerwin: remove redundant CURREXEC test, per shinobar
+#180127 rerwin: use interfaces for frisbee 1.4, if installed
+#180207 rerwin: make frisbee check first
+#180809 BK: if active eth was autodetected at bootup, selecting disconnect here did not work.
+#181119 BK: NetworkManager.
+#190219 BK: UltraSNS, minibase networking.
+#190805 may have nm-connection-editor (in network-manager-applet pkg) instead of nmtui (in network-manager pkg).
+#190922 BK: 190805: now "nm-setup" in defaultconnect.
+#200609 Use pgprs 2.0 interface.
+#20221023 may be running as zeus super-user. 20221031 think still need to bump to root.
+
+WHOIAM="$(whoami)"
+[ "${WHOIAM}" != "root" ] && exec sudo -A ${0} ${@} #110505 20221023 20221031
+
+CURREXEC="`cat /usr/local/bin/defaultconnect | tail -n 1 | tr -s " " | cut -f 2 -d " "`"
+[ "`grep 'gprs' /usr/local/bin/defaultconnect`" != "" ] && CURREXEC='pgprs' #200609
+[ "$CURREXEC" = "gkdial" ] && CURREXEC="pupdial" #for older pups.
+[ "`grep 'nmtui' /usr/local/bin/defaultconnect`" != "" ] && CURREXEC='nmtui' #181119 networkmanager
+[ "`grep 'nm\-connection\-editor' /usr/local/bin/defaultconnect`" != "" ] && CURREXEC='nm-setup' #190805 networkmanager. 190922
+[ "`grep 'nm\-setup' /usr/local/bin/defaultconnect`" != "" ] && CURREXEC='nm-setup' #190922 network-manager-applet.
+
+#16aug10 shinobar: netchoice... same code in rc.init
+if [ "$CURREXEC" = "connectwizard" ];then #BK
+  NETCHOICE=""
+  #try determine which tool was used to setup networking...
+  if grep -qs 'frisbee_mode=1' /etc/frisbee/frisbee.conf; then #180207
+   NETCHOICE='frisbee' #180207
+  elif [ -s /etc/simple_network_setup/connections ];then #100306 180207
+   NETCHOICE='sns'
+  elif [ -s /var/local/interfaces ];then #190219
+   NETCHOICE='usns'
+  else
+   CHECKOLDWIZ="`ls -1 /etc/*[0-9]mode 2>/dev/null`" #ex: eth0mode, wlan0mode.
+   if [ "$CHECKOLDWIZ" != "" -a -d /usr/local/net_setup ];then
+    NETCHOICE='net_wiz_classic'
+   else
+    CHECKNEWWIZ="`ls -1 /etc/network-wizard/network/interfaces 2>/dev/null`"
+    if [ "$CHECKNEWWIZ" != "" ];then
+     NETCHOICE='net-setup.sh'
+    else
+     [ -f /usr/local/Pwireless2/interface ] && NETCHOICE='Pwireless2' #100304
+    fi
+   fi
+  fi
+  if [ -x /etc/init.d/rc.networkmanager ];then #181119
+   if which nm-applet >/dev/null; then #190805 190922
+    NETCHOICE="nm-setup" #190922
+   else
+    NETCHOICE="nmtui"
+   fi
+  fi
+  [ "$NETCHOICE" != "" ] && CURREXEC="$NETCHOICE"
+fi
+#16aug10 shinobar: end
+
+RUNMODE="$1"
+
+case $RUNMODE in
+  --wizard) exec /usr/sbin/connectwizard 1>&2 ;;
+  --connect)
+   case $CURREXEC in #connect using default tool.
+    net-setup.sh)  exec /etc/rc.d/rc.network connect 1>&2 ;; #Dougal.
+    pgprs) pgprs --connect >/dev/null ;; #200609
+    pupdial) pupdial ;;
+    pppoe_gui) pppoe_gui ;;
+    connectwizard) #180809
+     if [ -s /tmp/apps-connect-was-eth-ifup ];then
+      /etc/rc.d/rc.network_eth
+     else
+      connectwizard
+     fi
+    ;;
+    Pwireless2) Pwireless2 ;;
+    net_wiz_classic) net_wiz_classic ;;
+    sns) /usr/local/simple_network_setup/rc.network ;;
+    frisbee) #130104 #180127...
+     if [ -f /usr/local/bin/frisbee ];then
+      if [ -x /usr/local/frisbee/frisbee-main ];then
+       frisbee --connect
+      else
+       /usr/local/frisbee/connect #130104
+      fi
+     fi
+    ;; #180127
+    nmtui) #181119
+     chmod 755 /etc/init.d/rc.networkmanager
+     if ! pidof NetworkManager >/dev/null ;then
+      /etc/init.d/rc.networkmanager start
+     else
+      /etc/init.d/rc.networkmanager restart
+     fi
+     urxvt -e nmtui
+    ;;
+    nm-setup) #190805 190922
+     chmod 755 /etc/init.d/rc.networkmanager
+     if ! pidof NetworkManager >/dev/null ;then
+      /etc/init.d/rc.networkmanager start
+     else
+      /etc/init.d/rc.networkmanager restart
+     fi
+     nm-setup #190922
+    ;;
+    usns) #190219
+     /usr/local/UltraSNS/rc.network restart
+     usns #this is a gui.
+    ;;
+   esac
+  ;;
+  --disconnect) #disconnect using default tool.
+   case $CURREXEC in
+    net-setup.sh)  exec /etc/rc.d/rc.network stop 1>&2 ;; #Dougal.
+    pgprs) pgprs --disconnect >/dev/null ;;  #200609
+    pupdial) killall wvdial; killall pppd ;;
+    pppoe_gui) pppoe_gui ;;
+    connectwizard) #180809
+     IFup="$(ifconfig | grep '^eth[0-9].*encap:Ethernet' | cut -f 1 -d ' ')"
+     echo -n "$IFup" > /tmp/apps-connect-was-eth-ifup
+     if [ "$IFup" ];then
+      /usr/sbin/networkdisconnect
+     else
+      connectwizard
+     fi
+    ;;
+    Pwireless2) Pwireless2 ;;
+    net_wiz_classic) net_wiz_classic ;;
+    sns) /usr/local/simple_network_setup/rc.network stop ;;
+    frisbee) #130104 180127...
+     if [ -f /usr/local/bin/frisbee ];then
+      if [ -x /usr/local/frisbee/frisbee-main ];then
+       frisbee --disconnect
+      else
+       /usr/local/frisbee/disconnect #130104
+      fi
+     fi
+    ;; #180127
+    #nmtui) #181119
+    # if pidof NetworkManager >/dev/null ;then
+    #  /etc/init.d/rc.networkmanager stop
+    # fi
+    #;;
+    *) #181119  181205 this will handle NetworkManager also...
+     /usr/sbin/networkdisconnect
+    ;;
+   esac
+  ;;
+  *) exec /usr/local/bin/defaultconnect 1>&2  ;;
+esac
+
+###end###

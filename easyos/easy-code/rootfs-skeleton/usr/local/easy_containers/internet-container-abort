@@ -1,0 +1,46 @@
+#!/bin/sh
+#called from /usr/bin/seamonkeyQNEW
+#pass in name of executable.
+#190723 created. 190811 fix.
+#190901 my pc, takes 5 seconds for getlocalip to return something in container.
+#190905 restore message MSGo. this check does not seem to be helpful, exit quick.
+
+export TEXTDOMAIN=easy-containers
+export OUTPUT_CHARSET=UTF-8
+
+EXE="$1"
+case "$EXE" in
+ seamonkey|www)
+  MSGo="$(gettext 'When no Internet, SeaMonkey is very slow to start and unstable. Aborting startup of SeaMonkey.')"
+ ;;
+ *)
+  MSGo="$(gettext 'Aborting startup.')"
+ ;;
+esac
+
+#if inside a container, test if have internet...
+CNT=0
+for INCONT in `find / -mindepth 1 -maxdepth 1 -name 'INSIDE_*'` #ex: file /INSIDE_www
+do
+ [ "$INCONT" == "" ] && break
+#190905 removed...
+# while [ 1 ];do
+#  FIP="$(getlocalip | grep '^[^l]')" #test if already a lease assigned (this method used in /usr/sbin/delayedrun)
+#  [ "$FIP" ] && break
+#  sleep 1
+#  CNT=$(($CNT+1))
+#  [ $CNT -gt 9 ] && break
+# done
+# if [ "$FIP" == "" ];then
+#  CR="
+#"
+#  MSGm="$(gettext 'No Internet in container')"
+#  MSGn="$(gettext 'Sorry, there is no Internet connection from inside the container.')"
+#  popup "background=#ff8080 process=wait terminate=ok|<big>${MSGm}</big>${CR}${MSGn}${CR}${MSGo}"
+#  exit 2
+# fi
+ exit 1 #have internet, running inside a container.
+done
+exit 0 #not running in a container.
+
+###end###

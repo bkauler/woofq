@@ -1,0 +1,61 @@
+#if the pkg created in packages-woof has something wrong, this file is a last
+#resort to fix it. Current-dir is where this file FIXUPHACK is located.
+#note: DISTRO_BINARY_COMPAT and DISTRO_FILE_PREFIX are visible here, exported in 2createpackages.
+#140117 xARCHDIR, ARCHDIR and DISTRO_ARCHDIR_SYMLINKS exported in 2createpackages. 
+#140117 note, 2createpackages may move /lib, /usr/lib, /usr/bin in template to ARCHDIR subdir.
+#20210824 fixes.
+
+#these old ones work properly (have to do it this way because of debian/ubuntu symlinks)...
+rm -rf usr/share/terminfo
+mv -f usr/share/terminfoOLD usr/share/terminfo
+
+#sh*t debian/ubuntu people love to mess around with pkg layout...
+HMMM=0
+if [ "$xARCHDIR" ];then #140117
+ if [ -d lib${xARCHDIR}/terminfo ];then
+  rm -rf lib${xARCHDIR}/terminfo
+  HMMM=1
+ fi
+fi
+if [ -d lib/terminfo ];then
+ rm -rf lib/terminfo
+ HMMM=1
+fi
+[ $HMMM -eq 1 ] && ln -s ../usr/share/terminfo lib/terminfo
+
+#can't remember why have this one...
+HMMM=0
+if [ "$xARCHDIR" ];then #140117
+ if [ -d usr/lib${xARCHDIR}/terminfo ];then
+  rm -rf usr/lib${xARCHDIR}/terminfo
+  HMMM=1
+ fi
+fi
+if [ -d usr/lib/terminfo ];then
+ rm -rf usr/lib/terminfo
+ HMMM=1
+fi
+[ $HMMM -eq 1 ] && ln -s ../../usr/share/terminfo usr/lib/terminfo
+
+#20210823 slackware 15.0
+if [ "$xARCHDIR" ];then
+ if [ -e usr/lib${xARCHDIR}/libncurses.so.6 ];then
+  ln -s libncurses.so.6 usr/lib${xARCHDIR}/libncurses.so.5 2>/dev/null
+  ln -s libncursesw.so.6 usr/lib${xARCHDIR}/libncursesw.so.5 2>/dev/null
+  ln -s libtinfo.so.6 usr/lib${xARCHDIR}/libtinfo.so.5 2>/dev/null
+ fi
+ if [ -e lib${xARCHDIR}/libncurses.so.6 ];then
+  ln -s libncurses.so.6 lib${xARCHDIR}/libncurses.so.5 2>/dev/null
+  ln -s libncursesw.so.6 lib${xARCHDIR}/libncursesw.so.5 2>/dev/null
+  ln -s libtinfo.so.6 lib${xARCHDIR}/libtinfo.so.5 2>/dev/null
+ fi
+fi
+
+##20220221 arch-linux, note currently building with xARCHDIR='' ***NO***
+#if [ -e usr/lib/libncursesw.so.6 ];then
+# ln -s libncurses.so.6 usr/lib/libncurses.so.5 2>/dev/null
+# ln -s libncursesw.so.6 usr/lib/libncursesw.so.5 2>/dev/null
+# ln -s libtinfo.so.6 usr/lib/libtinfo.so.5 2>/dev/null
+#fi
+
+

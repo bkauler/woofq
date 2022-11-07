@@ -1,0 +1,12 @@
+#150726 have exported BUILD_CHOICE_MERGE_DEVX in 2createpackages.
+
+#these files should be in devx:
+if [ "$BUILD_CHOICE_MERGE_DEVX" != "yes" ];then #150726
+ mkdir -p ../bacon_runtime_DEV/usr/share/BaCon
+ cp -a -f usr/share/BaCon/*.bac ../bacon_runtime_DEV/usr/share/BaCon/
+ sync
+ rm -f usr/share/BaCon/*.bac
+fi
+
+#180415 bacon needs this folder, else won't work...
+mkdir -p root/.bacon

@@ -1,0 +1,13 @@
+#!/bin/sh
+#used with UltraSNS (minibase-net based). called from /etc/net/conf-request
+
+IF="$1"
+PIDS=$(pidof dhcp-delayed | wc -w) #get 2 when only one running.
+#190211 have changed way this script called, now only one 1 (ref: conf-request)...
+[ $PIDS -gt 1 ] && exit
+sleep 40
+DNS="$(dhcp ${IF} show | grep '^dns ')"
+[ "$DNS" ] && exit
+
+echo "Attempting delayed execution: dhcp ${IF} request"
+dhcp $IF request

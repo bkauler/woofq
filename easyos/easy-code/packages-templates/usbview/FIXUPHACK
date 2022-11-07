@@ -1,0 +1,22 @@
+
+#20210427 compiled in oe
+
+mkdir -p usr/share/applications
+mkdir -p usr/bin
+echo '[Desktop Entry]
+Encoding=UTF-8
+Name=USBView USB topology viewer
+Exec=usbviewshell
+Icon=usb16.xpm
+Terminal=false
+Type=Application
+Categories=System
+GenericName=USBView' > /usr/share/applications/usbview.desktop
+
+echo '#!/bin/ash
+if [ ! -e /sys/kernel/debug/usb ];then
+ busybox mount -t debugfs debugfs /sys/kernel/debug
+ sleep 0.1
+fi
+exec usbview' > usr/bin/usbviewshell
+chmod 755 usr/bin/usbviewshell

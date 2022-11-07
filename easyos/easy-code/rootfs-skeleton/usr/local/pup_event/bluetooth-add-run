@@ -1,0 +1,95 @@
+#!/bin/sh
+#/usr/local/pup_event/bluetoothhw detects bt hardware interface.
+#this script, called via bluetooth-add, is to detect a bt device added to that
+#interface, such as a loudpspeaker.
+#20201020 first release. 20201021 tweak.
+
+#this script was created to popup Multiple Sound Card Wizard
+#whenever a new audio device is detected. connection is achieved with
+#blueman (or some other means), and it is then required to set the bt
+#audio device as the default, hence run /usr/sbin/mscw...
+
+#hotplug2stdout showed this when blueman connected to my bt speaker...
+#add@/devices/pci0000:00/0000:00:14.0/usb1/1-14/1-14:1.0/bluetooth/hci0/hci0:256 ACTION=add DEVPATH=/devices/pci0000:00/0000:00:14.0/usb1/1-14/1-14:1.0/bluetooth/hci0/hci0:256 SUBSYSTEM=bluetooth DEVTYPE=link SEQNUM=3770 
+#libudev ����(   (   �   ��S��        ACTION=add DEVPATH=/devices/pci0000:00/0000:00:14.0/usb1/1-14/1-14:1.0/bluetooth/hci0/hci0:256 DEVTYPE=link SEQNUM=3770 SUBSYSTEM=bluetooth USEC_INITIALIZED=4630900447
+
+if pidof mscw >/dev/null;then exit; fi
+#called from udev rule, won't have $DISPLAY, find out this way...
+DISPLAY=''
+[ -e /tmp/.X11-unix/X0 ] && DISPLAY=:0
+[ ! "$DISPLAY" ] && exit
+
+AUDIOD=''
+if pidof bluealsa >/dev/null;then AUDIOD='bluealsa'; fi
+if pidof pulseaudio >/dev/null;then AUDIOD='pulseaudio'; fi
+if [ ! "$AUDIOD" ];then exit; fi
+
+BT_DEVICES0=$(ls -d /var/lib/bluetooth/*/* | sed 's|/var/lib/bluetooth/.*/||; /:/!d')
+#...ex: 20:15:10:15:1C:AF
+
+if [ ! "$BT_DEVICES0" ];then exit; fi
+
+CNT=0
+sleep 2
+while [ $CNT -lt 20 ];do #might have come here before connection acquired.
+ sleep 2
+ AUDIO_DEVICES=''
+ for aBTDEV in $BT_DEVICES0
+ do
+  [ ! "$aBTDEV" ] && continue
+  DEVinfo="$(LANG=C bt-device -i ${aBTDEV})"
+  AUDIOflg="$(echo "$DEVinfo" | grep -o 'UUIDs.*AudioSink')"
+  if [ "$AUDIOflg" ];then
+   CONNECTflg="$(echo "$DEVinfo" | grep -o 'Connected: 1')"
+   if [ "$CONNECTflg" ];then
+    if [ ! "$AUDIO_DEVICES" ];then
+     AUDIO_DEVICES="$aBTDEV"
+    else
+     AUDIO_DEVICES="${AUDIO_DEVICES}
+${aBTDEV}"
+    fi
+   fi
+  fi
+ done
+ CNT=$(($CNT+1))
+ [ "$AUDIO_DEVICES" ] && break
+done
+
+[ ! "$AUDIO_DEVICES" ] && exit
+
+#problem, we don't know which is the new device. so, if $AUDIO_DEVICES has
+#any entry that is not in /root/.asoundrc, then run mscw...
+RUNflg=0
+if [ -e /root/.asoundrc ];then
+ for aDEV in $AUDIO_DEVICES
+ do
+  [ ! "$aDEV" ] && continue
+  grep -q -w "$aDEV" /root/.asoundrc
+  [ $? -ne 0 ] && RUNflg=1
+ done
+else
+ RUNflg=1
+fi
+
+#20201021 don't think necessary...
+##try to limit running mscw...
+#if [ -e /root/.asoundrc ];then
+# echo "#written by /usr/local/pup_event/bluetooth-add
+# ${AUDIO_DEVICES}" > /var/local/bluetooth-add-audio0
+# DEFdev="$(grep '^defaults\.bluealsa\.device' /root/.asoundrc | cut -f 2 -d '"')"
+# echo "$DEFdev" >> /var/local/bluetooth-add-audio0
+# if [ -e /var/local/bluetooth-add-audio1 ];then
+#  cmp -s /var/local/bluetooth-add-audio0 /var/local/bluetooth-add-audio1
+#  [ $? -eq 0 ] && RUNflg=0
+# fi
+# mv -f /var/local/bluetooth-add-audio0 /var/local/bluetooth-add-audio1
+#fi
+
+[ $RUNflg -ne 1 ] && exit
+
+#the big event...
+pidof mscw >/dev/null
+[ $? -eq 0 ] && exit
+DISPLAY=:0 exec mscw
+
+###end###

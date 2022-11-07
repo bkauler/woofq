@@ -1,0 +1,84 @@
+#!/bin/ash
+#(c) Copyright Barry Kauler Nov. 2010. License GPL v3 /usr/share/doc/legal.
+#101119 complete rewrite.
+#101121 variable delay, based on snd_ modules.
+#101210 new path /tmp/pup_event_backend for files logged by /sbin/pup_event_backend_*.
+#140219 execute hidden scripts in /etc/init.d
+#160405 bluetoothd must be started after dbusd (messagebus).
+#160921 bluetooth-raspberrypi must run after bluetooth service script!
+#160922 no. bluetooth-raspberrypi will create hci0, and udev rule 
+#       /lib/udev/rules.d/50-bluetooth-hci-auto-poweron.rules will automatically
+#       run "hciconfig hci0 up". AFTER that, run bluetoothd.
+#161130 run alsa_raspi last.
+#170305 more echoes.
+#180222 simple ipc-based service manager. 180228 handle one-shot services.
+#180410 remove wait for alsa snd_ modules to load. broken code.
+#191224 test for bt hardware interface.
+#200107 bluetooth now handled by ipc. ref: /etc/eventmanager, /usr/local/pup_event/bluetoothhw
+#200212 new 'dbus' dep for bluetooth, see /etc/eventmanager.
+#200212b if no match for glob, ash/bash uses literal filename.
+#20221023 ignore /etc/init.d/rcS if exists. this is a special busybox thing.
+
+. /etc/eventmanager #180222
+
+mkdir -p /tmp/pup_event_backend #200212
+mkdir -p /tmp/pup_event_ipc #200212
+
+#180222 simple ipc-based service manager
+#these must run before pup_event_frontend_d starts (launched from /root/.xinitrc)
+echo -n '' > /tmp/pup_event_backend/service-manager-services
+if [ "$PE_SERVICE_MANAGER" ];then #see /etc/eventmanager
+ for aPESM in $PE_SERVICE_MANAGER
+ do
+   SM_PARAMS="${aPESM/\%/ }" #ex: 'network%sshd:rc.samba' to 'network sshd:rc.samba'
+   SM_SERVICES="${SM_PARAMS/* /}"
+   echo -e "${SM_SERVICES//:/\\n}" >> /tmp/pup_event_backend/service-manager-services #one service per line
+   echo "rc.services: executing: rc.services_ipc ${SM_PARAMS} &"
+   /etc/rc.d/rc.services_ipc ${SM_PARAMS} &
+ done
+fi
+sed -i -e 's%ONESHOT$%%' /tmp/pup_event_backend/service-manager-services #180228
+
+#180410 remove wait for alsa snd_ modules to load. broken code.
+##101121 wait for snd_ modules to complete loading...
+#(code depended on the old pup_event_backend)
+
+for service_script in /etc/init.d/* /etc/init.d/.[a-z]* #140219
+do
+ if [ "$service_script" == "/etc/init.d/rcS" ];then #20221023
+  continue
+ fi
+ if [ -x $service_script ];then
+  
+  #180222 exclude those already run above...
+  baseSC="$(basename $service_script)"
+  if [ -s /tmp/pup_event_backend/service-manager-services ];then
+   echo "$baseSC" | grep -q -x -f /tmp/pup_event_backend/service-manager-services
+   [ $? -eq 0 ] && continue
+  fi
+  
+  [ "$service_script" == "/etc/init.d/alsa_raspi" ] && continue #161130
+  echo "rc.services: ${service_script}" #140219
+  $service_script start
+  
+  #200212 see /etc/eventmanager
+  if [ "${baseSC}" == "messagebus" ];then
+   echo -n "started" > /tmp/pup_event_backend/dbus_ #permanent flag (see rc.services_ipc).
+   for aSC in /tmp/pup_event_ipc/dbus_* #rc.services_ipc should have already created this.
+   do
+    [ "$aSC" == "" ] && continue
+    [ ! -f $aSC ] && continue #200212b if no match for glob, ash uses literal filename.
+    echo -n "started" > ${aSC}
+   done
+  fi
+ fi
+done
+unset service_script
+if [ -x /etc/init.d/alsa_raspi ];then #161130
+ /etc/init.d/alsa_raspi start
+ echo 'rc.services: /etc/init.d/alsa_raspi' #170305
+fi
+
+###END###
+
+

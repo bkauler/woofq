@@ -1,0 +1,37 @@
+#note: DISTRO_BINARY_COMPAT and DISTRO_FILE_PREFIX are visible here, exported in 2createpackages.
+#140117 xARCHDIR, ARCHDIR and DISTRO_ARCHDIR_SYMLINKS exported in 2createpackages. 
+#140117 note, 2createpackages may move /lib, /usr/lib, /usr/bin in template to ARCHDIR subdir.
+#141223 WOOF_HOSTARCH WOOF_TARGETARCH exported in 2createpackages.
+#150216 x86_64, different string.
+#150406 improve search for xsane.
+#200602 getuuid patch fix for amd64.
+
+#130122
+#xsane puts up a warning msg at startup if running as root, remove it...
+#this code is also in file /usr/local/petget/hacks-postinstall.sh.
+#WARNING: this may only work for x86 binary.
+
+if [ -f /usr/bin/bbe ];then #bbe is a sed-like utility for binary files.
+ XSANEEXE="$(find usr/bin -maxdepth 2 -type f -name xsane | head -n 1)"
+ if [ "$XSANEEXE" ];then
+  XSANEPATH="$(dirname $XSANEEXE)"
+   case "$WOOF_TARGETARCH" in
+    x86)
+     bbe -e 's/\x6b\x00getuid/\x6b\x00getpid/' ${XSANEPATH}/xsane > /tmp/xsane-temp1
+    ;;
+    *) #amd64
+     bbe -e 's/\x65\x00getuid/\x65\x00getpid/' ${XSANEPATH}/xsane > /tmp/xsane-temp0
+     #buster64 deb now requires same as for x86...
+     bbe -e 's/\x6b\x00getuid/\x6b\x00getpid/' /tmp/xsane-temp0 > /tmp/xsane-temp1
+     rm -f /tmp/xsane-temp0
+    ;;
+   esac
+   mv -f /tmp/xsane-temp1 ${XSANEPATH}/xsane
+   chmod 755 ${XSANEPATH}/xsane
+ fi
+fi
+
+#get rid of huge image:
+rm -f usr/share/sane/xsane/xsane-startimage.pnm
+ln -s xsane-calibration.pnm usr/share/sane/xsane/xsane-startimage.pnm
+

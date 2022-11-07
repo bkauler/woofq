@@ -1,0 +1,349 @@
+Content-type: text/html
+
+<HTML><HEAD><TITLE>Manpage of YAF-Splash</TITLE>
+</HEAD><BODY>
+<H1>YAF-Splash</H1>
+Section: User Commands  (1)<BR>Updated: 11-Feb-2003<BR><A HREF="#index">Index</A>
+<A HREF="http://localhost/cgi-bin/man/man2html">Return to Main Contents</A><HR>
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+YAF-splash - yet another fine text splash program for X
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<B>yaf-splash</B>
+
+[-<I>toolkitoption</I> ...] [-<I>option</I> ...]
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<I>yaf-splash</I> pops up a window of text, auto-sized and centered on
+the screen, that is dismissed when you click on it, rather like
+<I>xmessage</I>. Unlike <I>xmessage</I>, it lacks buttons and other
+window manager cruft, can appear transparent via the SHAPE extension,
+or overlays if your xserver supports them, and has a bunch of other 
+configuration options to tart it up with. 
+<P>
+It also includes a clock with a countdown timer and a mirror mode
+to aid in back projection, just to round out the feature bloat. 
+<P>
+<P>
+This program is the bastard grandson of xsplash and xdaliclock, by
+Jamie Zawinski, and xsublim, by Greg Knauss. 
+<A NAME="lbAE">&nbsp;</A>
+<H2>OPTIONS</H2>
+
+<I>yaf-splash</I>
+
+accepts all of the standard toolkit options, and also accepts the
+following options:
+<DL COMPACT>
+<DT><B>-help</B>
+
+<DD>
+Print a brief summary of the allowed options on the standard output.
+<DT><B>-text </B><I>string</I>
+
+<DD>
+The text you want to display. Multi-line text is ok. The characters
+that will be displayed depend on the font you use.
+<DT><B>-timeout </B><I>seconds</I>
+
+<DD>
+How long to leave the text on the screen before exiting. The default
+is 0, which means forever (until the window is clicked on or killed by
+other means).
+<DT><B>-clock </B>
+
+<DD>
+Enable the clock display instead of a text message.
+<DT><B>-12</B>
+
+<DD>
+Use a twelve hour clock. This is the default.
+<DT><B>-24</B>
+
+<DD>
+Use a twenty-four hour clock.
+<DT><B>-seconds</B>
+
+<DD>
+Update every second (default). 
+<DT><B>-noseconds</B>
+
+<DD>
+Update once per minute; don't display seconds at all.
+<DT><B>-countdown &lt;date&gt;</B>
+
+<DD>
+Countdown to the specified date instead of displaying a clock. The
+argument to -countdown should be a time_t integer (number of seconds
+past &quot;Jan 1 00:00:00 GMT 1970&quot;) or, a string of the form 
+&quot;Mmm DD HH:MM:SS YYYY&quot;,<TT>&nbsp;</TT> for example, &quot;Jan 1 00:00:00 2004&quot;. This<BR>
+string is interpreted in the local time zone. The countdown option 
+implies -clock.
+<DT><B>-countdownquit</B>
+
+<DD>
+Quit after the countdown has reached zero, if in countdown mode (default).
+<DT><B>-nocountdownquit</B>
+
+<DD>
+Keep on counting back up once the countdown has reached zero, if
+in countdown mode.
+<DT><B>-geometry </B><I>metry</I>
+
+<DD>
+Specifies the prefered size and position of the splash text.
+<DT><B>-placement </B><I>placement</I>
+
+<DD>
+Specifies the placement of the splash text using one of the following
+strings: top-left, top, top-right, left, center, right, bottom-left, 
+bottom, bottom-right. Specifying this setting overrides the position
+information given in the -geometry option. Center is the default.
+<DT><B>-font </B><I>fontname</I>
+
+<DD>
+Specifies the X font to use.
+<DT><B>-transparent</B>
+
+<DD>
+Causes the background of the window to be transparent, if possible.
+<P>
+If the server supports overlay planes, then they may be used (this is
+the case on SGIs, and on certain HP, DEC, and IBM systems.)
+<P>
+If overlay planes are not available, but the server supports the Shape
+extension, then that will be used instead.  If the Shape extension is 
+used, you will probably need to configure your window manager to not 
+put a titlebar on the yaf-splash window. If you don't do this, then 
+the window will flicker constantly in clock mode, as the window
+manager tries to add and remove the titlebar each second.
+<P>
+None of these problems occur if overlay planes are used (or if 
+the -transparent option is not requested.)
+<DT><B>-nontransparent</B>
+
+<DD>
+Don't make the window's background be transparent.  This is the default.
+<DT><B>-mirror</B>
+
+<DD>
+Flip the text about the vertical axis, so that it can be read in the
+mirror, or, more practically, when back-projecting. 
+<DT><B>-outline </B><I>width</I>
+
+<DD>
+Set's the (approximate) width of the text outline. Set to 0, no
+outline will be used, 1 and 2 look good, while more tends to reveal
+the weakness of the method used to render the outline. The default is 1.
+<B>-margin </B><I>width</I>
+
+The amount of space between the text and the edges of the
+window. Default is 0, which is to use no margin.
+
+
+
+<P>
+
+
+
+</DL>
+<P>
+
+The following standard X Toolkit command line arguments are commonly
+used with <I>yaf-splash</I>:
+<DL COMPACT>
+<DT><B>-display </B><I>host:dpy</I>
+
+<DD>
+This option specifies the X server to contact.
+<DT><B>-bg </B><I>color</I>
+
+<DD>
+<DT><B>-fg </B><I>color</I>
+
+<DD>
+These options specify the colours to use for the foreground and
+background of the window. The defaults are 'black' for the foreground
+and 'white' for the background, but a bit more explaination is
+necessary. When not using an outline, the text is the foreground
+colour and the rest is the background colour as you'd expect, but when
+using an outline, the outline is set to the foreground colour, and the
+text inside the outline is set to the background colour, as well as 
+the background itself. 
+<DT><B>-bd </B><I>color</I>
+
+<DD>
+This option specifies the color to use for the border of the window.
+The default is black.
+<DT><B>-bw </B><I>number</I>
+
+<DD>
+This option specifies the width in pixels of the border surrounding
+the window. Defaults to 2.
+<DT><B>-xrm </B><I>resourcestring</I>
+
+<DD>
+This option specifies a resource string to be used.
+</DL>
+<A NAME="lbAF">&nbsp;</A>
+<H2>COMMANDS</H2>
+
+Clicking anywhere on the <I>yaf-splash</I> window will dismiss it. Note
+that the window is just the visble text when the <I>-transparent</I>
+option is requested and the SHAPE extension is used.
+<A NAME="lbAG">&nbsp;</A>
+<H2>X RESOURCES</H2>
+
+<I>yaf-splash</I> understands all of the core resource names and
+classes, and most of it's options can be used in an X resource context.
+<P>
+
+<A NAME="lbAH">&nbsp;</A>
+<H2>ENVIRONMENT</H2>
+
+<P>
+
+<DL COMPACT>
+<DT><B>DISPLAY</B>
+
+<DD>
+to get the default host and display number.
+<DT><B>XENVIRONMENT</B>
+
+<DD>
+to get the name of a resource file that overrides the global resources
+stored in the RESOURCE_MANAGER property.
+<DT><B>TZ</B>
+
+<DD>
+to get the current time zone.  If you want to force the clock to display
+some other time zone, set this variable before starting it.  For example:
+
+
+<P>
+
+
+<PRE>
+ sh:   TZ=GMT0 yaf-splash -clock
+csh:   ( setenv TZ PST8PDT ; yaf-splash -clock)
+
+</PRE>
+
+
+<P>
+
+
+
+Here's what the <I>xdaliclock</I> man page has to say about TZ:
+</DL>
+<P>
+
+&quot;You may notice that the format of the TZ variable (which is used by the C library
+<B><A HREF="http://localhost/cgi-bin/man/man2html?3+ctime">ctime</A></B>(3)
+
+and
+<B><A HREF="http://localhost/cgi-bin/man/man2html?3+localtime">localtime</A></B>(3)
+
+routines) is not actually documented anywhere.  The fourth character (the
+digit) is the only thing that really matters: it is the offset in hours from
+GMT.  The first three characters are ignored.  The last three characters are
+used to flag daylight savings time: their presence effectively adds 1 to the
+zone offset.  (I am not making this up...)&quot;
+<A NAME="lbAI">&nbsp;</A>
+<H2>BUGS</H2>
+
+The process of putting the window together flickers far too often for
+<I>yaf-splash</I> to be continually called to display lots of text
+(such as for subtitles or song lyrics). I don't know whether this can
+be fixed, but based on the level of distain for X out there, I doubt
+it. A mode to display lines with a delay between each might help.
+<P>
+The correct default datemode should be extracted from the current
+locale. Should also support the ISO standard.
+<P>
+<A NAME="lbAJ">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<B><A HREF="http://localhost/cgi-bin/man/man2html?1+X">X</A></B>(1),
+
+<B><A HREF="http://localhost/cgi-bin/man/man2html?1+xrdb">xrdb</A></B>(1),
+
+<B><A HREF="http://localhost/cgi-bin/man/man2html?1+xlsfonts">xlsfonts</A></B>(1),
+
+<B><A HREF="http://localhost/cgi-bin/man/man2html?1+xmessage">xmessage</A></B>(1),
+
+<B><A HREF="http://localhost/cgi-bin/man/man2html?1+xscreensaver">xscreensaver</A></B>(1)
+
+<A NAME="lbAK">&nbsp;</A>
+<H2>COPYRIGHT</H2>
+
+Copyright &#169; 2003 by John Morton.  Permission to use, copy, modify,
+distribute, and sell this software and its documentation for any
+purpose is hereby granted without fee, provided that the above
+copyright notice appear in all copies and that both that copyright
+notice and this permission notice appear in supporting documentation.
+No representations are made about the suitability of this software for
+any purpose.  It is provided &quot;as is&quot; without express or implied
+warranty.
+<P>
+Copyright &#169; 1991, 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2002 by 
+Jamie Zawinski.  Permission to use, copy, modify, distribute, and sell this
+software and its documentation for any purpose is hereby granted without fee,
+provided that the above copyright notice appear in all copies and that both
+that copyright notice and this permission notice appear in supporting
+documentation.  No representations are made about the suitability of this
+software for any purpose.  It is provided &quot;as is&quot; without express or implied
+warranty.
+<P>
+Copyright &#169; 1999 by Greg fnord Knauss.  Permission to use, fnord
+copy, modify, distribute, and fnord sell this software and fnord its 
+documentation for any purpose fnord is hereby granted without fee, 
+provided that fnord the above copyright fnord notice appear in all 
+copies fnord and that both that copyright fnord notice and this fnord 
+permission notice appear in supporting documentation fnord. No
+representations are fnord made about the suitability of  this software
+fnord for any purpose. It is provided &quot;fnord as is&quot; without express or
+implied fnord warranty.
+<A NAME="lbAL">&nbsp;</A>
+<H2>AUTHORS</H2>
+
+John Morton &lt;<A HREF="mailto:jwm@plain.co.nz">jwm@plain.co.nz</A>&gt;, 11-feb-03.
+<P>
+
+Jamie Zawinski &lt;<A HREF="mailto:jwz@jwz.org">jwz@jwz.org</A>&gt;, 18-sep-91.
+<P>
+
+Greg Knauss &lt;<A HREF="mailto:greg@eod.com">greg@eod.com</A>&gt;, 16-Jul-99.
+<P>
+
+Please let me know if you find any bugs or make any improvements.
+<P>
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">OPTIONS</A><DD>
+<DT><A HREF="#lbAF">COMMANDS</A><DD>
+<DT><A HREF="#lbAG">X RESOURCES</A><DD>
+<DT><A HREF="#lbAH">ENVIRONMENT</A><DD>
+<DT><A HREF="#lbAI">BUGS</A><DD>
+<DT><A HREF="#lbAJ">SEE ALSO</A><DD>
+<DT><A HREF="#lbAK">COPYRIGHT</A><DD>
+<DT><A HREF="#lbAL">AUTHORS</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="http://localhost/cgi-bin/man/man2html">man2html</A>,
+using the manual pages.<BR>
+Time: 01:12:43 GMT, January 20, 2007
+</BODY>
+</HTML>

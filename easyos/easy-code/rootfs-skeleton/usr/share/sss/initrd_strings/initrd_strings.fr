@@ -1,0 +1,164 @@
+[general]
+#translations for scripts in the initrd.
+#Please type translation only between the last two % characters. For example: s%"done"%"fertig"%
+#Keep all formatting exactly the same, that is retain all " ' < > / \ characters.
+# -- do not replace the " and ' with left-side or right-side quote characters.
+#Keep all variables as-is, exs: ${DROPOUT} $DROPOUT -- do not translate!
+
+[_init]
+#this is /init script in the initrd.
+#note, some strings padded with spaces. this is due to background color.
+#  so, make sure translation of a text block ends on same column.
+s%ERROR:%ERREUR%
+s%Have now dropped into a shell in the initramfs.%Maintenant retombé dans un shell dans le initramfs.%
+s%Note1: Type "exit", the init script will attempt to continue, however,%Remarque 1: Tapez "exit", le script init tentera de continuer, cependant,%
+s%       only an expert who is debugging the bootup should do this.%       cependant, seul un expert en train de déboguer le démarrage devrait le faire.%
+s%Note2: On some PCs the keyboard does not work at this stage of bootup.%Remarque 2: sur certains ordinateurs, le clavier ne fonctionne pas à ce stade du démarrage.%
+s%PLEASE HOLD DOWN THE POWER BUTTON TO SHUTDOWN%VEUILLEZ MAINTENIR LE BOUTON D'ALIMENTATION PRESSÉ POUR ARRÊTE%
+s%Please enter the number corresponding to your keyboard layout.%Veuillez entrer le numéro correspondant à votre clavier.%
+s%Choose the closest match, there will an opportunity to fine-tune the layout after the desktop has loaded. Press ENTER only for US.%Choisissez la correspondance la plus proche, vous aurez alors la possibilité d’affiner la disposition a été effectuée après le chargement du bureau. Appuyez sur ENTRÉE uniquement pour US.%
+s%Note: on some PCs the keyboard does not work at this stage of bootup. In that case, wait 5 minutes for bootup.%Remarque: sur certains ordinateurs, le clavier ne fonctionne pas à ce stade du démarrage. Dans ce cas, attendez 5 minutes pour le démarrage.%
+s%Keyboard layout:%Choix du clavier :%
+s%...ok, ${KEYMAP} chosen%...ok, le clavier ${KEYMAP} a été choisi%
+s%Please enter a password, any characters a-z, A-Z, 0-9, any length. The password will encrypt parts of the working-partition, and must be remembered, as it will have to be entered at every bootup.%Veuillez entrer un mot de passe, n'importe quels caractères a-z, A-Z, 0-9. Le mot de passe cryptera des parties de la partition de travail et vous devrez vous en souvenir car il devra être saisi à chaque démarrage.%
+s%Or, just press ENTER key for no password.%Ou bien, pressez juste la touche Entrée pour aucun mot de passe.%
+s%Password:%Mot de passe :%
+s%Sorry, only a-z, A-Z, 0-9 characters allowed, try again%Désolé, seuls les caractères a-z, A-Z et 0-9 sont autorisés, réessayez%
+s%Please enter password to decrypt the working-partition%Veuillez entrer le mot de passe pour décrypter la partition de travail%
+s%Finding drives%Recherche de lecteurs%
+s%Creating compressed zram, using ${USEK}K of RAM%Création de zram compressé, en utilisant ${USEK}K de RAM%
+s%Boot drive not found%Lecteur de démarrage introuvable%
+s%Working drive not found%Lecteur de travail introuvable%
+s%Boot partition not found%Partition de démarrage introuvable%
+s%Working partition not found%Partition de travail introuvable%
+s%${Bdevs} partitions have conflicting id ${BOOT_UUID}%{Bdevs} partitions ont le même id ${BOOT_UUID}%
+s%${Wdevs} partitions have conflicting id ${WKG_UUID}%${Wdevs} partitions ont le même id ${WKG_UUID}%
+s%NOTICE: File easyos-persistent-iso found in ${WKG_DEV}, path /${WKG_DIR}%AVIS: Fichier easyos-persistent-iso trouvé dans ${WKG_DEV}, chemin /${WKG_DIR}%
+s%This will be used for persistent storage%Ce sera utilisé pour le stockage persistant%
+s%NOTICE: Create a file named easyos-persistent-iso in a drive for persistence%AVIS: Créez un fichier nommé easyos-persistent-iso dans un lecteur pour la persistance%
+s%NOTICE: EasyOS will run totally in RAM, no persistent storage%AVIS: EasyOS fonctionnera totalement en RAM, pas de stockage persistant%
+s%Creating compressed zram. RAM allocated:%Création de zram compressé. RAM allouée:%
+s%Boot filesystem is incorrect%Le système de fichiers de démarrage est incorrect%
+s%Working filesystem is incorrect%Le système de fichiers de travail est incorrect%
+s%Boot-partition:%Partition de démarrage :%
+s%Working-partition:%Partition de travail :%
+s%Working drive read speed test (lower the better):%Test de vitesse de lecture du lecteur de travail (le plus bas le mieux) :%
+s%Creating partition ${WKG_DEV} to fill drive%Création de la partition ${WKG_DEV} pour remplir le lecteur%
+s%Failed to create working partition ${WKG_DEV}%Échec de création de la partition de travail ${WKG_DEV}%
+s%Resizing working-partition to fill drive%Redimensionnement de la partition de travail pour remplir le lecteur%
+s%Creating ${WKG_FS} filesystem in partition ${WKG_DEV}%Création d'un système de fichiers ${WKG_FS} dans la partition ${WKG_DEV}%
+s%WARNING: unable to resize working-partition%ATTENTION: impossible de redimensionner la partition de travail%
+s%Resizing ext4 filesystem to fill ${Wnewsize} working-partition%Redimensionnement du système de fichiers ext4 pour remplir la partition de travail ${Wnewsize}%
+s%Unable to mount working-partition ${WKG_DEV}%Impossible de monter la partition de travail ${WKG_DEV}%
+s%already exists%elle existe déjà%
+s%Working-partition not ext4, cannot encrypt. You will not be asked for a password.%La partition de travail n'est pas ext4, cryptage impossible. Aucun mot de passe ne vous sera demandé.%
+s%Sorry, the folders in the working partition cannot be encrypted.%Désolé, les dossiers de la partition de travail ne peuvent pas être cryptés.%
+s%The password will only be set for root login.%Le mot de passe ne sera défini que pour l'identification root.%
+s%WARNING: Encryption is not enabled on the working-partition.%ATTENTION: le cryptage n'a pas été activé sur la partition de travail.%
+s%Press ENTER to enable, or any other character not to.%Pressez ENTRÉE pour activer ou alors sur tout autre caractère.%
+s%Note: on some PCs the keyboard does not work at this stage of bootup.%Remarque: sur certains ordinateurs, le clavier ne fonctionne pas à ce stade du démarrage.%
+s%In that case, wait 5 minutes for bootup, without encryption.%Dans ce cas, attendez 5 minutes pour le démarrage, sans cryptage.%
+s%Press ENTER to enable:%Pressez ENTRÉE pour activer :%
+s%Encryption capability enabled on working-partition%Fonction de cryptage activée sur la partition de travail%
+s%Failed to enabled encryption. You will not be asked for a password.%Échec de l'activation du cryptage. Aucun mot de passe ne vous sera demandé.%
+s%You chose not to enable encryption. You will not be asked for a password.%Vous avez choisi de ne pas activer le cryptage. Aucun mot de passe ne vous sera demandé.%
+s%Password incorrect. Try again%Mot de passe incorrect. Réessayer%
+s%Unable to mount boot-partition ${BOOT_DEV}%Impossible de monter la partition de démarrage ${BOOT_DEV}%
+s%Boot-partition does not have file easy.sfs%La partition de démarrage n'a pas de fichier easy.sfs%
+s%One-time only operation, creating a snapshot of EasyOS%Opération unique, création d'un instantané d'EasyOS%
+s%This will allow future rollback with the Easy Version Control Manager%Cela permettra une restauration future avec Easy Version Control Manager.%
+s%Creating:%Création :%
+s%Warning, deleting old version:%Attention, suppression de l'ancienne version :%
+s%FAILED:%ÉCHEC :%
+s%Please wait, synchronizing...%Veuillez patienter, synchronisation en cours ...%
+s%Recompressing easy.sfs, xz to gz, please wait%Recompression de easy.sfs, xz en gz, veuillez patienter%
+s%Mounting read-only layer of layered filesystem%Montage d'une couche en lecture seule d'un système de fichiers en couches%
+s%Mounting squashfs file easy.sfs%Montage du fichier squashfs easy.sfs%
+s%Copying easy.sfs to RAM, then mounting%Copie de easy.sfs dans la RAM, puis montage%
+s%Failed to mount easy.sfs%Impossible de monter easy.sfs%
+s%WARNING, versions do not match.%ATTENTION, les versions ne correspondent pas.%
+s%Mounting extra squashfs file: ${ANAME}.sfs%Montage d'un fichier squashfs supplémentaire: ${ANAME}.sfs%
+s%First-bootup security setup...%Configuration de la sécurité du premier démarrage ...%
+s%Setting same password for users zeus and root%Définition d'un même mot de passe pour les utilisateurs zeus et root%
+s%Creating gnugpg signed key pair, at /root/.gnupg%Création d'une paire de clés signée gnugpg, à /root/.gnupg%
+s%Creating layered filesystem, type:%Création d'un système de fichiers en couches, tapez :%
+s%Failed to create layered filesystem%Échec de la création du système de fichiers en couches%
+s%Performing a switch_root onto the layered filesystem%Exécution d'un switch_root sur le système de fichiers en couches%
+s%This copy failed:%%
+s%It is possible that the drive is failing.%%
+s%Attempting to copy again...%%
+s%Second attempt failed. Attempt recovery by restoring%%
+s%vmlinuz, initrd and easy.sfs of previous version.%%
+s%Second attempt to copy file failed. Maybe drive is failing.%%
+s%Second attempt succeeded, but warning drive might be failing.%%
+s%NOTICE: NO! You do not yet have a session, doing a normal bootup%%
+s%NOTICE: The session will be copied to RAM and EasyOS will run in RAM%%
+s%Copying last working session to RAM%%
+
+[_sbin_fixlayers]
+s%Fixing changed SFS layers%Correction des couches SFS modifiées%
+s%Scanning:%Recherche :%
+
+[_sbin_fscheck]
+s%ERROR:%ERREUR :%
+s%Could not check the filesystem of working partition, unable to unmount%Impossible de vérifier le système de fichiers de la partition de travail, démontage impossible%
+s%Filesystem operations are to be performed upon the working partition.%Les opérations du système de fichiers doivent être effectuées sur la partition de travail.%
+s%Working partition:%Partition de travail :%
+s%Growing partition to fill drive...%Augmentation de la partition pour remplir le lecteur ...%
+s%ERROR: ${WKG_DEV} seems to be the wrong partition.%ERREUR : ${WKG_DEV} semble être la mauvaise partition.%
+s%Start of ${WKG_DEV}: ${REAL_START} sectors.%Début de ${WKG_DEV}: ${REAL_START} secteurs.%
+s%Expected start: ${START_WKG_DEV} sectors.%Début prévu : ${START_WKG_DEV} secteurs.%
+s%Have you changed the removable drives since the last bootup?%Avez-vous changé les lecteurs amovibles depuis le dernier démarrage?%
+s%ABORTING resizing of partition to fill drive.%ABANDON du redimensionnement de la partition pour remplir le lecteur.%
+s%Unable to grow working partition, not found%Impossible d'augmenter la partition de travail, elle est introuvable%
+s%Performing filesystem check, maximal mount count...%Exécution de la vérification du système de fichiers, compte maximal de montages ...%
+s%Performing filesystem check, prior to growing it...%Exécution de la vérification du système de fichiers avant l'augmentation ...%
+s%Performing filesystem check, on request...%Exécution de la vérification du système de fichiers, à la demande ...%
+s%Performing filesystem check, after improper shutdown...%Exécution d'une vérification du système de fichiers après un arrêt intempestif ...%
+s%Filesystem check completed!%Vérification du système de fichiers terminée!%
+s%Resizing filesystem to fill partition...%Redimensionnement du système de fichiers pour remplir la partition ...%
+s%...done%... terminé%
+
+[_sbin_rollback]
+s%ERROR:%ERREUR :%
+s%Erasing current working session%Effacement de la session de travail en cours%
+s%(erasing the read-write layer)%(effacement de la couche lecture-écriture)%
+s%Rolling read-write layer back to last saved session%Retour, en couche lecture/écriture, à la dernière session enregistrée%
+s%Rolling back to an earlier version or snapshot%Retour à une version ou un instantané antérieur%
+s%Current version:%Version actuelle :%
+s%Back to:%Retour à :%
+s%Snapshot:%Instantané :%
+s%Cannot rollback, no saved session%Retour en arrière impossible, aucune session enregistrée%
+s%Erasing working session...%Effacement de la séance de travail ...%
+s%Rolling working session back...%Retour à la dernière séance de travail ...%
+s%Failed to mount snapshot:%Échec du montage de l'instantané:%
+s%Rolling back:%Retour en arrière :%
+s%Failed to mount snapshot:%Échec du montage de l'instantané :%
+s%The kernel has changed, a reboot will occur in 10 seconds...%Le noyau a changé, un redémarrage aura lieu dans 10 secondes ...%
+s%...done%... terminé%
+
+[_sbin_find-boot-specs]
+s%Searching for external BOOT_SPECS file%Recherche du fichier BOOT_SPECS externe%
+
+[_sbin_find-file]
+s%Searching for external file:%Recherche d'un fichier externe :%
+
+[_ask-country-x]
+s%Choose main language%Choix de la langue principale%
+s%Main Language%Langue principale%
+s%Locale has the format language_country, for example en_US is English as spoken in the USA%Le format régionnal est langue_pays, par exemple en_US est l'anglais parlé aux États-Unis.%
+s%Make the best choice possible here, there will be an opportunity to fine-tune the keyboard layout after the desktop has loaded%Faites le meilleur choix possible ici, vous aurez la possibilité d’affiner la disposition du clavier après le chargement du bureau.%
+s%Please choose your locale and keyboard layout%Veuillez choisir vos paramètres régionaux et de votre clavier%
+s%"OK"%%
+
+[_ask-pw-x]
+s%Please enter a password, any characters a-z, A-Z, 0-9, any length.%Veuillez entrer un mot de passe, n'importe quels caractères a-z, A-Z, 0-9.%
+s%The password will encrypt parts of the working-partition, and must be remembered, as it will have to be entered at every bootup.%Le mot de passe crypte des parties de la partition de travail et doit être gardé en mémoire, car il devra être saisi à chaque démarrage.%
+s%Or, just click the OK button for no password.%Ou, simplement cliquez sur le bouton OK pour aucun mot de passe.%
+s%Note, if a password is entered here, it will also be assigned to user <b>root</b>.%Notez que si un mot de passe est saisi ici, il sera également attribué à l'utilisateur <b>root</b>.%
+s%If no password entered, root will remain at the default, <b>woofwoof</b>.%Si aucun mot de passe n'est entré, l'utilisateur root restera à la valeur par défaut, <b>woofwoof</b>.%
+s%Please enter password to decrypt the working-partition%Veuillez entrer un mot de passe pour décrypter la partition de travail%
+s%"OK"%%
+s%Password:%Mot de passe :%
+s%Sorry, only a-z, A-Z, 0-9 characters allowed, try again%Désolé, seuls les caractères a-z, A-Z et 0-9 sont autorisés, réessayez%
+

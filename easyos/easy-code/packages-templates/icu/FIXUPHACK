@@ -1,0 +1,25 @@
+#note: DISTRO_BINARY_COMPAT and DISTRO_FILE_PREFIX are visible here, exported in 2createpackages.
+#xARCHDIR, ARCHDIR and DISTRO_ARCHDIR_SYMLINKS exported in 2createpackages. 
+#note, 2createpackages may move /lib, /usr/lib, /usr/bin in template to ARCHDIR subdir.
+#20210824 slackware 15.0 needs 66 for dunfell apps.
+
+#need to create symlinks for older 48, 49, 50 etc versions...
+LIBSUBVERS=""
+LIBPROBE="$(find . -type f -name 'libicu*.so*' | sort -V)"
+if [ "$LIBPROBE" ];then
+ for ALIBPROBE in $LIBPROBE
+ do
+  [ ! "$ALIBPROBE" ] && continue
+  ALIBPATH="$(dirname $ALIBPROBE)"
+  ALIBNAME="$(basename $ALIBPROBE)"                     #ex: libicudata.so.51.0
+  AMAINNAME="$(echo -n "$ALIBNAME" | cut -f 1 -d '.')"  #ex: libicudata
+  ALIBSUBVER=$(echo -n "$ALIBNAME" | cut -f 3 -d '.')   #ex: 51
+  [ ! $ALIBSUBVER ] && continue
+  for xLIBVER in 48 49 50 51 52 53 54 55 56 57 58 66
+  do
+   [ $ALIBSUBVER -lt $xLIBVER ] && break
+   LIBLINK="$(find . -name ${AMAINNAME}.so.${xLIBVER})"
+   [ ! "$LIBLINK" ] && ln -s $ALIBNAME ${ALIBPATH}/${AMAINNAME}.so.${xLIBVER}
+  done
+ done
+fi

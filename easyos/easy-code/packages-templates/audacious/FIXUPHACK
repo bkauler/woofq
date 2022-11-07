@@ -1,0 +1,26 @@
+
+echo '[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Audacious music player
+GenericName=Audacious
+Comment=Listen to music
+Icon=audacious.png
+Categories=Audio
+Exec=audacious
+StartupNotify=true
+Terminal=false
+MimeType=application/ogg;application/x-cue;application/x-ogg;application/xspf+xml;audio/*
+' > usr/share/applications/audacious.desktop
+
+#20211108 20211206 fix.
+if [ ! -e usr/share/pixmaps/audacious.png ];then
+ if [ -f usr/share/icons/hicolor/48x48/apps/audacious.png ];then
+  ln -s ../icons/hicolor/48x48/apps/audacious.png usr/share/pixmaps/audacious.png
+ fi
+fi
+if [ -e usr/share/pixmaps/audacious.png ];then
+ if [ -e usr/share/pixmaps/audacious.svg ];then
+  rm -f usr/share/pixmaps/audacious.svg
+ fi
+fi

@@ -1,0 +1,9 @@
+#!/bin/sh
+
+echo "+++ dhcp-dns $@"
+[ "$1" == "" ] && exit
+echo "#written by /etc/net/dhcp-dns" > /etc/resolv.conf
+for aIF in $@
+do
+ echo "nameserver ${aIF}" >> /etc/resolv.conf
+done

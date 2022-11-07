@@ -1,0 +1,34 @@
+#!/bin/ash
+#20-01-07 handler for bluetooth hardware.
+#not using pup_event_frontend_d to detect bluetooth, instead have a udev
+#rule, at /etc/udev/rules.d/91-pup_event.rules
+#creation or removal of hci0, hci1, etc in /sys/class/bluetooth will call this script.
+#200213 catch glob fallback literal name.
+#20201020 script called from udev rule must end quickly. see bluetoothhw
+
+#needs to be delayed until after rc.services_ipc has called 'bluetoothhw' value...
+. /etc/eventmanager
+
+mkdir -p /tmp/pup_event_backend
+HCIs="$(ls -1 /sys/class/bluetooth 2>/dev/null | tr '\n' ' ' | tr -s ' ' | sed -e 's% $%%')"
+echo -n "${HCIs}" > /tmp/pup_event_backend/bluetoothhw_
+
+if [ "${PE_SERVICE_MANAGER/* bluetoothhw*/}" == "" ];then
+ #/etc/rc.d/rc.services_ipc will have run pup_event_ipc which will be waiting on change
+ # to a /tmp/pup_event_ipc/bluetoothhw_* file...
+ CNT=0; FEXIST=0
+ while [ $CNT -lt 11 ];do
+  for aBT in /tmp/pup_event_ipc/bluetoothhw_*
+  do
+   [ "$aBT" == "" ] && continue
+   [ ! -f $aBT ] && continue #200213
+   echo -n "${HCIs}" > ${aBT}
+   FEXIST=1
+  done
+  [ $FEXIST -eq 1 ] && break
+  sleep 1
+  CNT=$(($CNT+1))
+ done
+fi
+
+###end###

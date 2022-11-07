@@ -1,0 +1,73 @@
+#!/bin/sh
+
+## Includes.
+. funcrcSet
+
+## Create the rcfiles.
+
+funcrcCreate() {
+	if [ -z "$BASH" ]; then local FUNCNAME=funcrcCreate; fi
+	if [ $DEBUG_TRANSITS -ne 0 ]; then echo "$FUNCNAME(): IN"; fi
+
+	## Local variables.
+	local f p t
+
+	## Create the missing rcfiles.
+	if [ ! -f $LOCAL_DATA_DIR/Version ]; then
+		funcrcSet Version "$VERSION"
+	fi
+	if [ ! -f $LOCAL_DATA_DIR/ReadmeForeground ]; then
+		funcrcSet ReadmeForeground "$ReadmeForeground"
+	fi
+	if [ ! -f $LOCAL_DATA_DIR/ReadmeBackground ]; then
+		funcrcSet ReadmeBackground "$ReadmeBackground"
+	fi
+	if [ ! -f $LOCAL_DATA_DIR/ReadmeFontName ]; then
+		funcrcSet ReadmeFontName "$ReadmeFontName"
+	fi
+	if [ ! -f $LOCAL_DATA_DIR/ProfileSelected ]; then
+		funcrcSet ProfileSelected "$ProfileSelected"
+	fi
+	if [ ! -f $LOCAL_DATA_DIR/WindowWidth ]; then
+		funcrcSet WindowWidth "$WindowWidth"
+	fi
+	if [ ! -f $LOCAL_DATA_DIR/WindowHeight ]; then
+		funcrcSet WindowHeight "$WindowHeight"
+	fi
+	if [ ! -f $LOCAL_DATA_DIR/xPlayed ]; then
+		funcrcSet xPlayed ""
+	fi
+
+	## Create the profiles.
+	p=0; while [ $p -lt $PROFILE_MAX ]; do
+		if [ ! -f $LOCAL_DATA_DIR/Profile${p}CommandLineArgs ]; then
+			funcrcSet Profile${p}CommandLineArgs ""
+		fi
+		if [ ! -f $LOCAL_DATA_DIR/Profile${p}Executable ]; then
+			funcrcSet Profile${p}Executable ""
+		fi
+		if [ ! -f $LOCAL_DATA_DIR/Profile${p}Arguments ]; then
+			funcrcSet Profile${p}Arguments ""
+		fi
+		if [ ! -f $LOCAL_DATA_DIR/Profile${p}Readme ]; then
+			funcrcSet Profile${p}Readme ""
+		fi
+		for f in 0 1 2; do
+			if [ ! -f $LOCAL_DATA_DIR/Profile${p}ROMsPath$f ]; then
+				funcrcSet Profile${p}ROMsPath$f ""
+			fi
+			if [ ! -f $LOCAL_DATA_DIR/Profile${p}ROMsPattern$f ]; then
+				funcrcSet Profile${p}ROMsPattern$f "*"
+			fi
+			if [ ! -f $LOCAL_DATA_DIR/Profile${p}ImagesPath$f ]; then
+				funcrcSet Profile${p}ImagesPath$f ""
+			fi
+			if [ ! -f $LOCAL_DATA_DIR/Profile${p}ImagesPattern$f ]; then
+				funcrcSet Profile${p}ImagesPattern$f ".*"
+			fi
+		done
+		p=$((p + 1))
+	done
+
+	if [ $DEBUG_TRANSITS -ne 0 ]; then echo "$FUNCNAME(): OUT"; fi
+}

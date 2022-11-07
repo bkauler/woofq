@@ -1,0 +1,35 @@
+
+20180120
+--------
+
+initrd-tree/skeleton/containers/ssh0/.session/etc/shadow
+...have changed root password to "ZcP0Wx1q"
+(that has numerical 0 and 1)
+
+initrd-tree/skeleton/containers
+-------------------------------
+skeleton folder contents gets copied to the working-partition by initrd-tree/init
+when working-partition is created.
+
+Some containers are pre-created, and rootfs-skeleton/usr/share/applications/
+has menu-entries for these (exception is ssh0), example ec-seamonkey.desktop
+and ec-sh0.desktop.
+
+rootfs-complete/usr/sbin/fixmenus generates the menu for jwm (and other window
+managers). This will read the *.desktop files.
+fixmenus is called from buildeasydistro, or if a cross-build, from /etc/rc.d/
+rc.sysinit at first bootup of the build.
+
+Note, fixmenus also gets called from /usr/sbin/quicksetup when locale is changed.
+
+During runtime, if /usr/local/easy_containers/easy-containers creates a new container,
+it also creates a *.desktop file, and will have to call fixmenus.
+
+------------------------------------------------
+20180530
+
+boot-skeleton
+-------------
+retire 'boot-dialog'
+boot-skeleton is used by '2createpcskeletonimage'
+reference: for refind see input469/0-refind

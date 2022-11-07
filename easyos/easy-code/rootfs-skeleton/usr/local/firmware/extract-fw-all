@@ -1,0 +1,63 @@
+#!/bin/sh
+#all of the ubuntu firmware debs installed, go through all modules and find
+#needed firmware, extract to needed-firmware
+#maybe these debs: atmel-firmware linux-firmware linux-firmware-nonfree nouveau-firmware prism2-usb-firmware-installer
+#ath10k firmware from here: https://github.com/kvalo/ath10k-firmware
+#grab all linux firmware: git clone git://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git
+#broadcom b43: http://linuxwireless.org/en/users/Drivers/b43/ -- need to compile b43-fwcutter and d/l firmware
+#broadcom brcm: http://linuxwireless.org/en/users/Drivers/brcm80211/
+#20220309 firmware param may have wildcards. fix symlinks.
+
+KERVER="$(uname -r)"
+rm -rf fnd-firmware 2> /dev/null
+rm -f missing-firmware 2> /dev/null
+sync
+
+ALLMODULES="$(find /lib/modules/${KERVER}/kernel -type f -name '*.ko' | tr '\n' ' ')"
+
+for AMODULE in $ALLMODULES
+do
+ BASENAME="$(basename $AMODULE .ko)" #ex: radeon
+ FIRMWARE="$(modinfo ${BASENAME} | grep '^firmware: ' | tr -s ' ' | cut -f 2- -d ' ')"
+ for AFIRMWARE in $FIRMWARE
+ do
+  if [ "$AFIRMWARE" == "" ];then #20220309
+   continue
+  fi
+  #20220309 handle wildcards, ex: AFIRMWARE='brcm/brcmfmac*-sdio.*.txt'
+  if [ "${AFIRMWARE/\*/}" != "${AFIRMWARE}" ];then
+   #keep this simple...
+   echo "FW WITH WILDCARD: ${AFIRMWARE}"
+   FIRMDIR="$(dirname /lib/firmware/$AFIRMWARE | head -n 1)"
+   echo "TEST1: cp -a -f /lib/firmware/${AFIRMWARE} fnd-firmware${FIRMDIR}/"
+   mkdir -p fnd-firmware${FIRMDIR}
+   cp -a -f /lib/firmware/${AFIRMWARE} fnd-firmware${FIRMDIR}/
+  else
+   if [ -f /lib/firmware/$AFIRMWARE ];then
+    FIRMDIR="$(dirname /lib/firmware/$AFIRMWARE)"
+    mkdir -p fnd-firmware${FIRMDIR}
+    if [ -h /lib/firmware/$AFIRMWARE ];then
+     REALFILE="$(readlink /lib/firmware/$AFIRMWARE)"
+     if [ "${REALFILE:0:1}" == "/" ];then
+      echo "BAD PATH: ${REALFILE}"
+     else
+      upRF="$(dirname ${FIRMDIR}/${REALFILE})"
+      mkdir -p fnd-firmware${upRF}
+      cp -a -f ${FIRMDIR}/${REALFILE} fnd-firmware${upRF}/
+     fi
+    fi
+    cp -a -f /lib/firmware/$AFIRMWARE fnd-firmware${FIRMDIR}/
+    sync
+   else
+    echo "${BASENAME}: ${AFIRMWARE}" >> missing-firmware
+   fi
+  fi
+  
+ done
+
+done
+
+
+
+
+

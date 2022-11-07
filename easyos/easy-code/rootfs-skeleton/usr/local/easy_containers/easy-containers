@@ -1,0 +1,557 @@
+#!/bin/bash
+#(c) Copyright Barry Kauler, Feb. 2017. License GPL v3 (usr/share/doc/legal)
+#170523 name change /usr/local/easy_containers/extra-sfss to extra-sfss-ec
+#171001 can only select from apps in easy.sfs.
+#180407 want to create desktop icons for containerized apps.
+#180409 log desktop-icon info, for script ec-fix-desktop. delete container fix.
+#180427 support linux capabilities. remove user-namespace. more help.
+#180429 allow user-installed apps in containers.
+#180524 have patched kernel for cap_sys_mount, extracted from cap_sys_admin. reverted.
+#180702 offer Xephyr|Xorg server. offer abstract|pipe|unix socket. 180703
+#180723 if xorg started with "-nolisten local" then cannot use abstract socket.
+#180930 tweak security settings.
+#181002 new Access section. 181006 sound.
+#181006 backup icon, may need it, see ec-fix-desktop.
+#181008 option to run as zeus in container.
+#181009 configuration defaults: /usr/local/easy_containers/templates/defaults/configuration
+#181014 need to launch via "urxvt -name eclaunch -iconic ..." which is hidden (see /root/.jwmrc)
+#181016 improve find icon for desktop.
+#181017 change 181014, use 'empty' instead of urxvt. 181025 typo.
+#181028 rename 'repository' folder to 'releases'.
+#181029 revert 180429 -- do NOT allow user-installed apps in containers.
+#181122 q*.sfs renamed to easy*.sfs, also q_ro to easy_ro, q_sfs to easy_sfs
+#190829 changed from /shared-folder to /files/shared, so same path as in main desktop.
+#190830 Security options -> Simple, security-level buttons.
+#190831 improve filtering of apps-list. manage existing container, security options by gui.
+#190904 extract common security code, to share with /usr/local/sfsget/ec-security
+#191016 need bash variable indirection. some variables needed to be set.
+#191201 revert 181029, but different: copy entire .session to the container.
+#191220 choose an sfs to run in a container.
+#191222 was getting duplicates in apps-list
+#200402 firefox-esr deb has a 16x16 image, pngoverlay failed.
+#20210409 now have pngoverlay-cairo, created by 01micko (dunfell series: compiled in oe). see also: dir2sfs, icon_switcher_cli, icon_switcher, 3buildeasydistro
+#20210918 screen out executables in sfs files. these should be handled differently.
+#20220208 set flag if rox is managing desktop icons. 20220210 read /etc/uimanager
+#20220218 generate-containers-menu writes to /root/.jwmrc-containers internally.
+#20220218 no longer using ROXDESKflg.
+#20220423 y-axis icon coords. ref: jwmdesk /usr/local/desksetup/func, see also ec-fix-desktop
+#20220524 rename mnt/easy_ro to mnt/.easy_ro, ditto easy_rw
+#20220603 replace DB_* with SFS_DB_* in sfs .specs files.
+#20220809 removed picscale, now resize images with ffmpeg.
+#20221006 new EC_ACCESS_DRI enable 3D graphics.
+#20221031 if running as zeus, think need to bump up to root.
+
+WHOIAM="$(whoami)"
+[ "${WHOIAM}" != "root" ] && exec sudo -A ${0} ${@} #20221031
+
+export TEXTDOMAIN=easy-containers
+export OUTPUT_CHARSET=UTF-8
+
+. /etc/rc.d/PUPSTATE
+. /etc/DISTRO_SPECS
+mkdir -p /tmp/easy_containers
+
+#20220208  20220210 20220218
+. /etc/uimanager #has UI_DESK_MANAGER='jwm' #or rox
+export UI_DESK_MANAGER
+
+#190830 this gets written to by set_defaults_func...
+echo -n '' > /tmp/easy_containers/btn-EC_SEC_PRESET
+CR='
+'
+
+#create a list of apps that could be run in a container...
+#171001 can only select from apps in easy.sfs... 180429 allow user-installed apps...
+#181029 revert 180429, do NOT allow user-installed apps... 191201 restore user apps...
+#APPSLIST1="$(grep '^Exec=' /usr/share/applications/*.desktop | cut -f 2 -d '=' | grep -v -E '/| ')"
+xAPPSLIST1="$(grep '^Exec=' /mnt/.easy_ro/easy_sfs/usr/share/applications/*.desktop | cut -f 2 -d '=' | grep -v -E '/| ')" #200402 restore. 20220524
+#APPSLIST1="$(grep '^Exec=' /mnt/easy_ro/easy_sfs/usr/share/applications/*.desktop | cut -f 2 -d '=' | grep -v -E '/| ')"
+#190831 improve filtering... 191201 include user-installed apps...
+#APPSLIST1="$(cat /mnt/easy_ro/easy_sfs/usr/share/applications/*.desktop | grep -v '^NoDisplay=true' | grep '^Exec=' | cut -f 2- -d '=' | sed -e 's%^HOME=/files %%' | cut -f 1 -d ' ' | grep -v -E '/| ')"
+APPSLIST1="$(cat /usr/share/applications/*.desktop | grep -v '^NoDisplay=true' | grep '^Exec=' | cut -f 2- -d '=' | sed -e 's%^HOME=/files %%' | cut -f 1 -d ' ' | grep -v -E '/| ')"
+#...note, filters out entry with prefix, ex: Exec=HOME=/files abiword
+
+#screen out already existing containers...
+ls -1 /mnt/${WKG_DEV}/${WKG_DIR}containers > /tmp/easy_containers/current-containers
+APPSLIST2="$(echo "$APPSLIST1" | grep -v -w -f /tmp/easy_containers/current-containers | sort -u)" #180429 sort. 191222 was getting duplicates.
+echo "$APPSLIST2" > /tmp/easy_containers/apps-list
+
+#20210918 screen out executables in sfs files. these should be handled differently... 20220603
+SFS_EXE_LIST="$(grep -h -E '^SFS_DB_apps=|^DB_apps=' /mnt/wkg/sfs/easyos/${DISTRO_BINARY_COMPAT}/${DISTRO_COMPAT_VERSION}/*.specs | cut -f 2 -d "'" | tr ',' '\n' | sed '/^$/d')"
+echo "$SFS_EXE_LIST" > /tmp/easy_containers/sfs-exe-list
+APPSLIST3="$(echo "$APPSLIST2" | grep -v -w -f /tmp/easy_containers/sfs-exe-list | sort -u)"
+echo "$APPSLIST3" > /tmp/easy_containers/apps-list
+
+#180723 if xorg started with "-nolisten local" then cannot use abstract socket...
+XORG_ABSTRACT_ALLOW='true'
+grep '^/usr/bin/xinit .*nolisten local' /usr/bin/xwin >/dev/null
+[ $? -eq 0 ] && XORG_ABSTRACT_ALLOW='false'
+
+#$(gettext 'User-installed packages are a problem, as they will have to be copied into the read-write layer of the container. If, for example, you install Firefox, and choose to run it in a container, all of the installed files of the Firefox package will be copied to the newly-created container. This is done automatically.')
+
+M_close="$(gettext 'Close')"
+M_help1="$(gettext 'Easy Containers is a nice GUI for creating and managing the running of apps in containers. Some useful notes:')
+
+<b>$(gettext 'Applications:')</b>
+$(gettext 'A container is composed of a read-write folder layered on top of easy.sfs. The bottom layer is all of EasyOS, with all the builtin apps. Any one of these apps may be chosen to run in a container, however, currently only apps with a menu-entry are offered in the drop-down list.')
+
+<b>$(gettext 'Important:')</b>
+$(gettext 'User-installed packages can be containerized, however the current method is a hack. The entire /mnt/wkg/.session folder is copied to the .session folder in the container.')
+
+<b>$(gettext 'SFS files:')</b>
+$(gettext 'An SFS file may also be run in a container. This is handled by <b>SFSget</b>, the SFS download and install manager.')"
+export DLG_HELP1="<window resizable=\"false\" title=\"$(gettext 'Help: Easy Containers')\" icon-name=\"gtk-index\" window_position=\"1\"><vbox><text use-markup=\"true\"><label>\"${M_help1}\"</label><variable>DLG_HELP1</variable></text><hbox><button><label>${M_close}</label><action type=\"closewindow\">DLG_HELP1</action></button></hbox></vbox></window>"
+
+. /usr/local/easy_containers/EC_SEC_INSERT #190904 security-frame
+# ...DLG_HELPcap, DLG_HELPns, DLG_HELPxorg, DLG_HELPenv, DLG_HELPseclevel, DLG_CHOOSER, REFRESH_EXPERT, EC_SEC_FRAME, set_defaults_func
+
+set_defaults_func #defaults 190830 don't pass anything initially. 190904
+
+export EC_DLG1="<window title=\"$(gettext "Easy Containers")\" icon-name=\"gtk-convert\">
+<vbox>
+  
+  ${EC_SEC_FRAME}
+  
+  <frame $(gettext 'Manage')>
+    <hbox>
+      <text><label>$(gettext 'Choose container to manage:')</label></text>
+      <comboboxtext>
+       <variable>EC_MANAGE</variable>
+       <input>ls -1 /mnt/${WKG_DEV}/${WKG_DIR}containers</input>
+       <action>set_defaults_func \$EC_MANAGE</action>
+       ${REFRESH_EXPERT}
+      </comboboxtext>
+    </hbox>
+    <hbox>
+     <text><label>$(gettext 'Load extra SFS files:')</label></text>
+     <button><label>$(gettext 'SFS')</label><action>/usr/local/easy_containers/extra-sfss-ec \${EC_MANAGE} </action></button>
+    </hbox>
+    <hbox>
+     <text><label>$(gettext 'Security options:')</label></text>
+     <button>
+      <label>$(gettext 'Update & exit')</label>
+      <action>exit:update</action>
+     </button>
+    </hbox>
+
+    <hbox>
+      <text><label>$(gettext 'Delete container:')</label></text>
+      <button><label>$(gettext 'Delete & exit')</label><action>exit:delete</action></button>
+    </hbox>
+  </frame>
+  
+  <frame $(gettext 'Create')>
+    
+    
+    <text><label>$(gettext 'Choose an application to run in a container:')</label></text>
+    <hbox>
+      <comboboxtext>
+        <variable>EC_CREATE</variable>
+        <input file>/tmp/easy_containers/apps-list</input>
+        <action>set_defaults_func \$EC_CREATE</action>
+        ${REFRESH_EXPERT}
+      </comboboxtext>
+      <button>
+        <label>$(gettext 'Create & exit')</label>
+        <action>exit:create</action>
+      </button>
+    </hbox>
+    <hbox>
+     <text><label>$(gettext 'Choose an SFS to run in a container:')</label></text>
+      <button>
+        <label>$(gettext 'Exit & run SFSget')</label>
+        <action>exit:sfs_create</action>
+      </button>
+    </hbox>
+  </frame>
+  
+  <hbox>
+    <button><label>$(gettext 'Exit')</label><action>exit:quit</action></button>
+    <button><input file>/usr/local/lib/X11/mini-icons/mini-question.xpm</input><action type=\"launch\">DLG_HELP1</action></button>
+  </hbox>
+</vbox>
+</window>"
+
+echo "$EC_DLG1" > /tmp/easy_containers/EC_DLG1 #191016 test.
+RETSTRING1="$(gtkdialog --program=EC_DLG1 --center)"
+[ $? -ne 0 ] && exit
+eval "$RETSTRING1"
+
+if [ "$EXIT" == "delete" ];then
+ pupdialog --backtitle "$(gettext 'Easy Containers: delete')" --yesno "$(gettext 'Confirm whether you want to delete. This folder and all of the contents will be deleted:')
+ /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_MANAGE}" 0 0
+ if [ $? -eq 0 ];then
+  #180409 if container currently running, must stop it...
+  #note, same code in /usr/bin/wmreboot, etc.
+  if [ "$(mount | grep "/containers/${EC_MANAGE}/container")" != "" ];then
+   /usr/local/easy_containers/stop-container ${EC_MANAGE}
+   sleep 0.5
+  fi
+  
+  rm -rf /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_MANAGE}
+  rm -f /usr/share/pixmaps/ec-${EC_MANAGE}48.png 2>/dev/null
+  rm -f /usr/share/applications/ec-${EC_MANAGE}.desktop 2>/dev/null
+  sync
+  
+  if [ "$UI_DESK_MANAGER" == "rox" ];then #20220208 20220218
+   #180407 remove icon from desktop...
+   #remove globicon, got code from /etc/rc.d/functions4puppy4 icon_remove_func()
+   echo "<?xml version=\"1.0\"?>
+<env:Envelope xmlns:env=\"http://www.w3.org/2001/12/soap-envelope\">
+ <env:Body xmlns=\"http://rox.sourceforge.net/SOAP/ROX-Filer\">
+  <UnsetIcon>
+   <Path>/usr/sbin/ec-chroot-${EC_MANAGE}</Path>
+  </UnsetIcon>
+ </env:Body>
+</env:Envelope>"  | rox -R
+   #pinboard remove...
+   echo "<?xml version=\"1.0\"?>
+<env:Envelope xmlns:env=\"http://www.w3.org/2001/12/soap-envelope\">
+ <env:Body xmlns=\"http://rox.sourceforge.net/SOAP/ROX-Filer\">
+  <PinboardRemove>
+   <Path>/usr/sbin/ec-chroot-${EC_MANAGE}</Path>
+  </PinboardRemove>
+ </env:Body>
+</env:Envelope>"  | rox -R
+  else
+   /usr/local/ui/jwm/generate-containers-menu #> /root/.jwmrc-containers
+  fi
+  
+  #now update the jwm menu...
+  cd /
+  fixmenus
+  jwm -reload
+  pupdialog --timeout 5 --background '#80FF80' --backtitle "$(gettext 'Deleted:') ${EC_DELETE}" --msgbox "$(gettext 'The container has been deleted')" 0 0
+ else
+  pupdialog --timeout 5 --background '#80C080' --backtitle "$(gettext 'Deletion canceled')" --msgbox "$(gettext 'You have chosen not to delete the container')" 0 0
+ fi
+fi
+
+if [ "$EXIT" == "create" ];then
+ 
+ #180429 find out if user-installed pkg... #181029 revert... 191201 restore...
+ M_user1=""
+ INBUILTflg="$(echo "$xAPPSLIST1" | grep -w "$EC_CREATE")"
+ if [ "$INBUILTflg" == "" ];then
+  M_user1="
+
+\Zb$(gettext 'NOTICE:')\ZB
+$(gettext 'This application is user-installed, not builtin to easy.sfs, hence will not automatically be available in a container.')
+$(gettext 'To remedy this, the application will be copied into the read-write layer, the .session folder of the new container. The thing to be aware of, is do not erase the session folder, as it will also erase the application.')"
+ fi
+ 
+ pupdialog --colors --backtitle "$(gettext 'Easy Containers: create')" --yesno "$(gettext 'Confirm whether you want to create a container. This folder will be created:')
+ /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_CREATE}${M_user1}" 0 0
+ if [ $? -eq 0 ];then
+  #create skeleton folders/files for container...
+  mkdir /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_CREATE}
+  mkdir /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_CREATE}/.session #rw layer
+  mkdir /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_CREATE}/.ro0
+  mkdir /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_CREATE}/.work
+  mkdir /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_CREATE}/container
+  echo "#$(gettext 'Information for setting up and running the container')" > /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_CREATE}/configuration
+  
+  #write security options to configuration file...
+  echo "
+#$(gettext 'Connect to X by abstract socket, pipe or unix domain socket (abstract|pipe|unix):')" >> /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_CREATE}/configuration
+  [ "$XSOCKET_ABSTRACT" == "true" ] && echo "EC_XSOCKET='abstract'" >> /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_CREATE}/configuration
+  [ "$XSOCKET_PIPE" == "true" ] && echo "EC_XSOCKET='pipe'" >> /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_CREATE}/configuration
+  [ "$XSOCKET_UNIX" == "true" ] && echo "EC_XSOCKET='unix'" >> /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_CREATE}/configuration
+  echo "#$(gettext 'Use Xorg or Xephyr server (xorg|xephyr):')" >> /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_CREATE}/configuration
+  [ "$XSERVER_XEPHYR" == "true" ] && echo "EC_XSERVER='xephyr'" >> /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_CREATE}/configuration
+  [ "$XSERVER_XORG" == "true" ] && echo "EC_XSERVER='xorg'" >> /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_CREATE}/configuration
+  #namespaces...
+  echo "
+#$(gettext 'For security, unshare these namespaces:')" >> /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_CREATE}/configuration
+  echo "EC_NS_UNSHARE_MOUNT='${NS_MOUNT}'" >> /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_CREATE}/configuration
+  echo "EC_NS_UNSHARE_UTS='${NS_UTS}'" >> /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_CREATE}/configuration
+  echo "EC_NS_UNSHARE_IPC='${NS_IPC}'" >> /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_CREATE}/configuration
+  echo "EC_NS_UNSHARE_NETWORK='${NS_NETWORK}'" >> /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_CREATE}/configuration
+  echo "EC_NS_UNSHARE_PID='${NS_PID}'" >> /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_CREATE}/configuration
+  #echo "EC_NS_UNSHARE_USER='${NS_USER}'" >> /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_CREATE}/configuration
+  #environment...
+  echo "
+#$(gettext 'Clear environment variables, except some such as TERM and DISPLAY:')" >> /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_CREATE}/configuration
+  echo "EC_UNSHARE_ENV_VARS='${ENV_VARS}'" >> /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_CREATE}/configuration
+echo '#Tick to run as user spot in container:' >> /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_CREATE}/configuration
+  echo "EC_ENV_SPOT='${ENV_SPOT}'" >> /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_CREATE}/configuration
+  #181002 access...
+  echo "
+#$(gettext 'Specify what you are allowed to access outside the container:')" >> /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_CREATE}/configuration
+  echo "EC_ACCESS_NET='${ACCESS_NET}'" >> /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_CREATE}/configuration
+  echo "EC_ACCESS_SND='${ACCESS_SND}'" >> /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_CREATE}/configuration
+  echo "EC_ACCESS_DRI='${ACCESS_DRI}'" >> /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_CREATE}/configuration
+  echo "EC_ACCESS_FOLDER='${ACCESS_FOLDER}'" >> /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_CREATE}/configuration
+  echo "EC_ACCESS_FOLDER_PATH='${ACCESS_FOLDER_PATH}'" >> /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_CREATE}/configuration
+  #capabilities...
+  echo "
+#$(gettext 'Drop these Linux capabilities:')" >> /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_CREATE}/configuration
+  echo "EC_CAP_system='${CAP_system}'" >> /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_CREATE}/configuration
+  echo "EC_CAP_file='${CAP_file}'" >> /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_CREATE}/configuration
+  echo "EC_CAP_network='${CAP_network}'" >> /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_CREATE}/configuration
+  echo "EC_CAP_module='${CAP_module}'" >> /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_CREATE}/configuration
+  echo "EC_CAP_resource='${CAP_resource}'" >> /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_CREATE}/configuration
+  echo "EC_CAP_mount='${CAP_mount}'" >> /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_CREATE}/configuration
+  
+  #190830 security-level preset buttons...
+  echo "
+#$(gettext 'If security-preset was ever chosen, this is it:')" >> /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_CREATE}/configuration
+  EC_SEC_PRESET="$(cat /tmp/easy_containers/btn-EC_SEC_PRESET)"
+  echo "EC_SEC_PRESET='${EC_SEC_PRESET}'" >> /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_CREATE}/configuration
+  
+  echo "
+#$(gettext 'Uncomment if you want to load another .sfs file, resident in the releases folder of the current version of Easy.')
+#$(gettext 'Glob wildcard accepted, in fact is recommended for automatic version updating:')
+#EASY_LAYER_RO1='devx*.sfs'" >> /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_CREATE}/configuration
+  
+  #finish creating the container...
+  /usr/local/easy_containers/setup-container ${EC_CREATE}
+  
+  if [ "$INBUILTflg" == "" ];then #180429  181029 revert. 191201 restore...
+#   #find pkg list, copy files...
+#   FNDfl=''
+#   FNDdt="$(grep -l "^Exec=.*${EC_CREATE}$" /usr/share/applications/*.desktop)"
+#   [ "$FNDdt" ] && FNDfl="$(grep -l "${FNDdt}" /root/.packages/*.files)" #ex: /root/.packages/firefox-45.9.0esr-r0.files
+#   if [ "$FNDfl" == "" ];then
+#    pupdialog --timeout 5 --background '#80C080' --backtitle "$(gettext 'Creation canceled')" --msgbox "$(gettext 'Sorry, unable to locate the file-list for the installed package. Aborting.')" 0 0
+#    exit
+#   else
+#    #this is a hack, make sure get all deps...
+#    Mpw="$(gettext 'Please wait, copying package into container...')"
+#    popup "level=top background=#FFFF80|<big>${Mpw}</big>"
+#    for aFL in `find /root/.packages -maxdepth 1 -type f -name '*.files'`
+#    do
+#     for aFILE in `cat $aFL`
+#     do
+#      if [ -e "$aFILE" ];then
+#       if [ ! -d "$aFILE" ];then
+#        aPTH="$(dirname "$aFILE")"
+#        mkdir -p /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_CREATE}/.session"${aPTH}"
+#        cp -a -f --remove-destination "$aFILE" /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_CREATE}/.session"${aPTH}"/
+#       else
+#        mkdir -p /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_CREATE}/.session"${aFILE}"
+#       fi
+#      fi
+#     done
+#     sync
+#    done
+#    killall popup
+#   fi
+   #191201 this is still a hack, copy all of .session to .session in container...
+   mkdir -p /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_CREATE}/.session
+   cp -a /mnt/${WKG_DEV}/${WKG_DIR}.session/* /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_CREATE}/.session/
+   sync
+  fi
+  
+  #want to modify the jwm menu, to run app in container...
+  #first, find the .desktop file...
+  DTFILE="$(grep "^Exec=${EC_CREATE}" /usr/share/applications/*.desktop | cut -f 1 -d ':' | head -n 1 | rev | cut -f 1 -d '/' | rev)"
+  cp -f /usr/share/applications/${DTFILE} /usr/share/applications/ec-${EC_CREATE}.desktop
+  sed -i -e "s%^Exec=[^ ]*%Exec=ec-chroot ${EC_CREATE}%" /usr/share/applications/ec-${EC_CREATE}.desktop
+  
+  #now modify the icon...
+  #170221 pngoverlay wants base and overlay the same size. remove this, just use a standard icon...
+  #ICON="$(grep '^Icon=' /usr/share/applications/ec-${EC_CREATE}.desktop | cut -f 2 -d '=')"
+  #[ -f "$ICON" ] && fndICON="$ICON"
+  #[ ! "$fndICON" ] && [ -f /usr/share/pixmaps/$ICON ] && fndICON="/usr/share/pixmaps/$ICON"
+  #[ ! "$fndICON" ] && [ -f /usr/local/lib/X11/mini-icons/$ICON ] && fndICON="/usr/local/lib/X11/mini-icons/$ICON"
+  #[ ! "$fndICON" ] && [ -f /usr/local/lib/X11/pixmaps/$ICON ] && fndICON="/usr/local/lib/X11/pixmaps/$ICON"
+  #[ ! "$fndICON" ] && fndICON="/usr/local/lib/X11/mini-icons/Executable.xpm" #fallback.
+  #IMGTYPE="$(echo -n "$fndICON" | rev | cut -f 1 -d '.' | rev)" #ex: xpm
+  #IMGBASE="$(basename "${fndICON}" .${IMGTYPE})"
+  #cp -f "$fndICON" /tmp/easy_containers/
+  #cd /tmp/easy_containers
+  #[ "$IMGTYPE" == "xpm" ] && xpmtoppm ${IMGBASE}.${IMGTYPE} | pnmtopng > ${IMGBASE}.png
+  #cp -f /usr/sbin/pngoverlay ./
+  #cp -f /usr/local/lib/X11/pixmaps/container-overlay48.png ./
+  #sync
+  #./pngoverlay ${IMGBASE}.png container-overlay48.png /usr/share/pixmaps/ec-${EC_CREATE}.png
+  #sed -i -e "s%^Icon=.*%Icon=ec-${EC_CREATE}.png%" /usr/share/applications/ec-${EC_CREATE}.desktop
+  ICON="$(grep '^Icon=' /usr/share/applications/ec-${EC_CREATE}.desktop | cut -f 2 -d '=')" #180407
+  sed -i -e "s%^Icon=.*%Icon=container48.png%" /usr/share/applications/ec-${EC_CREATE}.desktop
+  
+  #20220423 ref: jwmdesk /usr/local/desksetup/func, see also ec-fix-desktop
+  Y_EDGE_GAP=32; Y_SPACING=96
+  Y1=128; Y2=224; Y3=320; Y4=416
+  if [ -d /root/.desksetup ];then
+   #define gap between desk icons and screen top
+   Y_EDGE_GAP=$(cat /root/.desksetup/edge-gap 2>/dev/null)
+   [ ! "$Y_EDGE_GAP" ] && Y_EDGE_GAP=32
+   #spacing along y-axis changes if no labels...
+   ICON_LABEL="$(cat /root/.desksetup/icon-label 2>/dev/null)"
+   [ "$ICON_LABEL" == "Off" ] && Y_SPACING=76
+   Y1=$((${Y_EDGE_GAP}+${Y_SPACING}))
+   Y2=$((${Y1}+${Y_SPACING}))
+   Y3=$((${Y2}+${Y_SPACING}))
+   Y4=$((${Y3}+${Y_SPACING}))
+  fi
+  
+  #180407 want to create desktop icons for containerized apps...
+  #note, pre-created (seamonkey, sh0) already on desktop, refer rootfs-skeleton/root/Choices/ROX-Filer/PuppyPin and globicons
+  #  these pre-created are from boot/initrd-tree/skeleton, init script copies into wkg-partition.
+  #find a free space on desktop...
+  #  note, there is free_coord() in /usr/local/easy_containers/frontend_funcs, but just do it roughly here...
+  for aY in $Y1 $Y2 $Y3 $Y4 #128 224 320  20220423 see above.
+  do
+   for aX in 672 736
+   do
+    aPTN="x=\"${aX:0:2}[0-9]\" y=\"${aY:0:2}[0-9]\""
+    grep "$aPTN" /root/Choices/ROX-Filer/PuppyPin > /dev/null
+    [ $? -ne 0 ] && break 2
+   done
+  done
+  #...aX and aY are free coordinates.
+  #globicon...
+  #create the icon...
+  if [ ! -f /usr/share/pixmaps/ec-${EC_CREATE}48.png ];then
+   PWD=`pwd`
+   fndICON=''
+   [ ! "$ICON" ] && ICON=zzzzzzzz
+   [ -f "$ICON" ] && fndICON="$ICON"
+   #[ ! "$fndICON" ] && [ -f ${ICON}.png ] && fndICON="${ICON}.png"
+   [ ! "$fndICON" ] && fndICON="$(find /usr/share/icons/hicolor/48x48/apps -maxdepth 1 -type f -name "${ICON}*" | head -n 1)" #181016
+   [ ! "$fndICON" ] && [ -f /usr/share/pixmaps/$ICON ] && fndICON="/usr/share/pixmaps/$ICON"
+   [ ! "$fndICON" ] && [ -f /usr/local/lib/X11/mini-icons/$ICON ] && fndICON="/usr/local/lib/X11/mini-icons/$ICON"
+   [ ! "$fndICON" ] && [ -f /usr/local/lib/X11/pixmaps/$ICON ] && fndICON="/usr/local/lib/X11/pixmaps/$ICON"
+   [ ! "$fndICON" ] && fndICON="/usr/share/icons/Adwaita/scalable/mimetypes/application-x-executable-symbolic.svg" #fallback.
+   IMGTYPE="$(echo -n "$fndICON" | rev | cut -f 1 -d '.' | rev)" #ex: xpm
+   IMGBASE="$(basename "${fndICON}" .${IMGTYPE})"
+   cp -L -f "$fndICON" /tmp/easy_containers/
+   cd /tmp/easy_containers
+   if [ "$IMGTYPE" == "xpm" ];then
+    #xpmtoppm ${IMGBASE}.${IMGTYPE} | pnmtopng > ${IMGBASE}.png
+    xpmtoppm --alphaout=alpha.img ${IMGBASE}.${IMGTYPE} > body.img
+    pnmscale -xysize 48 48 alpha.img > alpha48.img
+    pnmscale -xysize 48 48 body.img > body48.img
+    pnmtopng -alpha=alpha48.img body48.img > ${IMGBASE}.png
+   fi
+   [ "$IMGTYPE" == "svg" ] && rsvg-convert --width=48 --height=48 --format=png ${IMGBASE}.${IMGTYPE} > ${IMGBASE}.png
+   #200402 firefox-esr deb has a 16x16 image, pngoverlay failed...
+   if [ "$IMGTYPE" == "png" ];then
+    #picscale -i ${IMGBASE}.png -o /tmp/xxxxx.png 48 48 9
+    ffmpeg -i ${IMGBASE}.png -s 48x48 /tmp/xxxxx.png >/dev/null 2>&1
+    mv -f /tmp/xxxxx.png ${IMGBASE}.png
+   fi
+   if [ ! -f ${IMGBASE}.png ];then
+    rsvg-convert --width=48 --height=48 --format=png /usr/share/icons/Adwaita/scalable/mimetypes/application-x-executable-symbolic.svg > ${IMGBASE}.png
+   fi
+   cp -f /usr/local/lib/X11/pixmaps/ec-overlay48.png ./
+
+   #20210409 now have pngoverlay-cairo, created by 01micko (dunfell series: compiled in oe)
+   PNGOVERLAYEXE=""
+   if [ -e /usr/sbin/pngoverlay-cairo ];then
+    PNGOVERLAYEXE="/usr/sbin/pngoverlay-cairo"
+   fi
+   if [ "$PNGOVERLAYEXE" ];then
+    sync
+    ${PNGOVERLAYEXE} ${IMGBASE}.png ec-overlay48.png /usr/share/pixmaps/ec-${EC_CREATE}48.png
+   else #old code...
+    cp -f /usr/sbin/pngoverlay ./
+    sync
+    xPWD="$PWD"
+    ./pngoverlay ${IMGBASE}.png ec-overlay48.png /usr/share/pixmaps/ec-${EC_CREATE}48.png
+    PWD="$xPWD" #20210409 bacon-based pngoverlay changes $PWD!
+   fi
+   
+   cd $PWD
+   #181006 backup icon, may need it, see ec-fix-desktop...
+   cp -a -f /usr/share/pixmaps/ec-${EC_CREATE}48.png /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_CREATE}/
+  fi
+  #globicons, note, got code from /etc/rc.d/functions4puppy4...
+  echo "<?xml version=\"1.0\"?>
+<env:Envelope xmlns:env=\"http://www.w3.org/2001/12/soap-envelope\">
+ <env:Body xmlns=\"http://rox.sourceforge.net/SOAP/ROX-Filer\">
+  <SetIcon>
+   <Path>/usr/sbin/ec-chroot-${EC_CREATE}</Path>
+   <Icon>/usr/share/pixmaps/ec-${EC_CREATE}48.png</Icon>
+  </SetIcon>
+ </env:Body>
+</env:Envelope>"  | rox -R
+  #now create an icon on desktop...
+  #181014 this has stopped working when launch from desktop icon...
+  #echo -e "#!/bin/sh\nexec ec-chroot ${EC_CREATE}" > /usr/sbin/ec-chroot-${EC_CREATE}
+  #need to launch via "urxvt -name eclaunch -iconic ..." which is hidden (see /root/.jwmrc)
+  #181017 now use 'empty' instead of urxvt...
+  echo "#!/bin/sh
+empty -f ec-chroot ${EC_CREATE}" > /usr/sbin/ec-chroot-${EC_CREATE}
+  chmod 755 /usr/sbin/ec-chroot-${EC_CREATE}
+  #  note, frontend_funcs has add_pinboard_func(), use code from it...
+  echo "<?xml version=\"1.0\"?>
+<env:Envelope xmlns:env=\"http://www.w3.org/2001/12/soap-envelope\">
+ <env:Body xmlns=\"http://rox.sourceforge.net/SOAP/ROX-Filer\">
+  <PinboardAdd>
+   <Path>/usr/sbin/ec-chroot-${EC_CREATE}</Path>
+   <X>${aX}</X>
+   <Y>${aY}</Y>
+   <Label>${EC_CREATE}</Label>
+   <Args></Args>
+  </PinboardAdd>
+ </env:Body>
+</env:Envelope>"  | rox -R
+  
+  #180409 log, read by ec-fix-desktop... 180428  190903 fix path.
+  echo "EC_LABEL=${EC_CREATE}
+EC_PATH=/usr/sbin/ec-chroot-${EC_CREATE}
+EC_ICON=/usr/share/pixmaps/ec-${EC_CREATE}48.png" > /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_CREATE}/desktop
+  
+  #now update the jwm menu...
+  cd /
+  fixmenus
+  jwm -reload
+  pupdialog --timeout 5 --background '#80FF80' --backtitle "$(gettext 'Creation completed')" --msgbox "$(gettext 'Container created, menu entry created, and icon on the desktop')" 0 0
+ else
+  pupdialog --timeout 5 --background '#80C080' --backtitle "$(gettext 'Creation canceled')" --msgbox "$(gettext 'You have chosen not to create the container')" 0 0
+ fi
+fi
+
+if [ "$EXIT" == "update" ];then #190831
+ pupdialog --backtitle "$(gettext 'Easy Containers: update')" --yesno "$(gettext 'Confirm whether you want to update the Security options from the previous window. This file will be updated:')
+ /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_MANAGE}/configuration" 0 0
+ if [ $? -eq 0 ];then
+  if [ "$(mount | grep "/containers/${EC_MANAGE}/container")" != "" ];then
+   M_upd1="$(gettext 'The container was running, so it has been stopped.')"
+   popup "background=#ffff80 terminate=3 timecount=dn name=ecupdatekill|<big>${M_upd1}</big>"
+   /usr/local/easy_containers/stop-container ${EC_MANAGE}
+   sleep 0.5
+  fi
+  #now update configure...
+  #191016 need to set some vars...
+  [ "$XSOCKET_ABSTRACT" == "true" ] && XSOCKET='abstract'
+  [ "$XSOCKET_PIPE" == "true" ] && XSOCKET='pipe'
+  [ "$XSOCKET_UNIX" == "true" ] && XSOCKET='unix'
+  [ "$XSERVER_XEPHYR" == "true" ] && XSERVER='xephyr'
+  [ "$XSERVER_XORG" == "true" ] && XSERVER='xorg'
+  NS_UNSHARE_MOUNT="${NS_MOUNT}"
+  NS_UNSHARE_UTS="${NS_UTS}"
+  NS_UNSHARE_IPC="${NS_IPC}"
+  NS_UNSHARE_NETWORK="${NS_NETWORK}"
+  NS_UNSHARE_PID="${NS_PID}"
+  #NS_UNSHARE_USER="${NS_USER}"
+  UNSHARE_ENV_VARS="${ENV_VARS}"
+  for aVAR in EC_XSOCKET EC_XSERVER EC_NS_UNSHARE_MOUNT EC_NS_UNSHARE_UTS EC_NS_UNSHARE_IPC EC_NS_UNSHARE_NETWORK EC_NS_UNSHARE_PID EC_UNSHARE_ENV_VARS EC_ENV_SPOT EC_ACCESS_NET EC_ACCESS_SND EC_ACCESS_DRI EC_ACCESS_FOLDER EC_ACCESS_FOLDER_PATH EC_CAP_system EC_CAP_file EC_CAP_network EC_CAP_module EC_CAP_resource
+  do
+   aCUT="${aVAR#EC_}"
+   #191016 bash variable indirection...
+   if [ "${!aCUT}" != "" ];then
+    sed -i -e "s%^${aVAR}=.*%${aVAR}='${!aCUT}'%" /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_MANAGE}/configuration
+   fi
+  done
+  SEC_PRESET="$(cat /tmp/easy_containers/btn-EC_SEC_PRESET)"
+  if [ "$SEC_PRESET" ];then #will only have value if clicked one of the buttons in Simple tab.
+   if grep '^EC_SEC_PRESET' /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_MANAGE}/configuration >/dev/null; then
+    sed -i -e "s%^EC_SEC_PRESET=.*%EC_SEC_PRESET='${SEC_PRESET}'%" /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_MANAGE}/configuration
+   else
+    echo "
+EC_SEC_PRESET='${SEC_PRESET}'" >> /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_MANAGE}/configuration
+   fi
+  fi
+  M_upd2="$(gettext 'Done. This configuration file has been updated:')"
+  popup "terminate=ok process=wait background=#80ff80 level=top|<big>${M_upd2}${CR}/mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_MANAGE}/configuration</big>"
+ fi
+fi
+
+if [ "$EXIT" == "sfs_create" ];then #191220
+ exec sfsget
+fi
+
+###end###

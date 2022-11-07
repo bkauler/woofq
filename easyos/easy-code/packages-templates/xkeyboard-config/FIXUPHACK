@@ -1,0 +1,17 @@
+#170727
+#/etc/X11/xkb rules were removed from xorg_base template awhile ago.
+#xerus currently building 'xkeyboard-config' package before 'xorg_base',
+#need to make sure paths match.
+#traditionally, have the rules in /etc/X11/xkb, with /usr/share/X11/xkb a symlink.
+#20210819 fix cp err msg.
+
+[ -L etc/X11/xkb ] && rm -f etc/X11/xkb
+[ -L usr/share/X11/xkb ] && rm -f usr/share/X11/xkb
+mkdir -p etc/X11/xkb
+mkdir -p usr/share/X11/xkb
+
+cp -a -f --remove-destination usr/share/X11/xkb/* etc/X11/xkb/ 2>/dev/null
+sync
+rm -rf usr/share/X11/xkb
+ln -s ../../../etc/X11/xkb usr/share/X11/xkb
+sync

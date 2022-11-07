@@ -1,0 +1,36 @@
+#!/bin/bash
+#upload $1 contents to remote site. exs: www www/news
+
+[ ! $1 ] && exit 1
+PATH0="${1#./}" #get rid of any leading ./
+PATH1="${PATH0/%\//}" #get rid of any trailing /
+[ ! -d ${PATH1}/cms_config ] && exit 1
+TOP1="${PATH1/\/*/}" #exs: www/news becomes www. www becomes www. www/more/news becomes www
+
+#autodetect nested shellCMSs, exclude them from upload
+EXCLUDE="$(find ${PATH1} -mindepth 2 -maxdepth 4 -type d -name cms_config | sed -e "s%^${TOP1}%%" -e 's%/cms_config%%')"
+#...ex: PATH1=www/news TOP1=www EXCLUDE=/news
+touch ${PATH1}/cms_config/excludelist
+if [ "$EXCLUDE" ];then
+ for aEXCL in $EXCLUDE
+ do
+  if ! grep "^${aEXCL}$" ${PATH1}/cms_config/excludelist >/dev/null ; then
+   echo "$aEXCL" >> ${PATH1}/cms_config/excludelist
+  fi
+ done
+fi
+
+# -r recursive -t preserve modification time -z compress
+# -v verbose   -u skip newer files at dest   --exclude=dir or file to exclude
+# -e execute   -c checksum comparison        -l copy symlinks as symlinks
+#rsync --delete -rltzvuc -e "ssh -p 22" LOCAL/ USER@HOST:REMOTEPATH
+###replace USER, HOST, REMOTEPATH, and change port if not 22. ex:
+#note, REMOTEPATH is relative to wherever ssh has logged in.
+
+#ex:
+#rsync --delete -rltzvuc -e "ssh -p 22" $PATH1/ mrperson@guardedhost.com:${PATH1}
+#...assumes that login is above 'www'. For omnis.com "../bkhome.org/" has to be prepended.
+#...some hosts have "public_html" instead of "www", so you will need to modify
+#   this script to change $PATH1 on the end of above example.
+
+rsync --exclude-from=${PATH1}/cms_config/excludelist --delete -rltzvuc -e "ssh -p 22" ${PATH1}/ USER@HOST:${PATH1}

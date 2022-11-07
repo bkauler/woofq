@@ -1,0 +1,17 @@
+
+#141227
+#binary pkg created in T2 is named 'busybox-pup' and installs to /opt
+#141228 changed to /defaults in t2
+
+if [ -f opt/busybox/bin/busybox ];then
+ cp -a -f opt/busybox/* ./
+ sync
+ rm -rf opt
+fi
+if [ -f defaults/busybox/bin/busybox ];then
+ cp -a -f defaults/busybox/* ./
+ sync
+ rm -rf defaults
+fi
+
+touch etc/busybox.conf

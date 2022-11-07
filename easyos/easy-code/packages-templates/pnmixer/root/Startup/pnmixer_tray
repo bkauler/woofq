@@ -1,0 +1,11 @@
+#!/bin/sh
+
+#171230
+#maybe module loading is slow, so wait (ref: /etc/init.d/10alsa)...
+for I in 1 2 3 4
+do
+ [ -e /proc/asound/card0 ] && break
+ sleep 0.5
+done
+
+exec pnmixer

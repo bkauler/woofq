@@ -1,0 +1,28 @@
+
+# BK 20141222
+# template for pidgin 2.10.11, don't know how well will work other versions.
+# BK 20150302 defaults/usr/share/icons has pidgin-tray-*.png icons, otherwise icons do not display in tray.
+
+mkdir -p usr/bin
+cp -a -f defaults/usr/bin/pidginshell usr/bin/
+
+mkdir -p usr/share
+rm -rf usr/share/applications 2> /dev/null
+cp -a -f defaults/usr/share/applications usr/share/
+
+rm -rf usr/share/icons 2> /dev/null
+cp -a -f defaults/usr/share/icons usr/share/
+
+rm -rf usr/share/locale 2> /dev/null
+cp -a -f defaults/usr/share/locale usr/share/
+
+rm -rf usr/share/pixmaps 2> /dev/null
+cp -a -f defaults/usr/share/pixmaps usr/share/
+
+rm -rf usr/share/sounds 2> /dev/null
+cp -a -f defaults/usr/share/sounds usr/share/
+
+sync
+
+rm -rf defaults
+

@@ -1,0 +1,130 @@
+#!/bin/sh
+#(c) Copyright Barry Kauler, May 2017. License: GPL V3 (/usr/share/doc/legal)
+#called from /usr/sbin/easy-bootmanager and /usr/local/sfsget/sfsget
+#170523 based on script extra-sfss-ec, but just for main f.s. not in a container.
+#170527 fixes. 170924 fix.
+#180607 fix name of extra sfs
+#181028 rename 'repository' folder to 'releases'.
+#181029 new 'sfs' folder, .sfs files are in here (see also extra-sfss-ec). 181108 fix.
+#181108 improve filtering. 181113 fix. #181120 also offer no-arch sfs files.
+#181122 q*.sfs renamed to easy*.sfs
+#190806 added help button.
+#200924 lockdown (running in ram), have to create 'configuration' path in zram0.
+
+export TEXTDOMAIN=easy-containers
+export OUTPUT_CHARSET=UTF-8
+
+. /etc/rc.d/PUPSTATE #has BOOT_DEV, BOOT_FS, BOOT_DIR, WKG_DEV, WKG_FS, WKG_DIR, QSFS_PATH
+. /etc/DISTRO_SPECS
+mkdir -p /tmp/easy_containers
+#200924 lockdown (running in ram), may have to create this in zram0...
+mkdir -p /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${DISTRO_VERSION}
+touch /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${DISTRO_VERSION}/configuration
+
+echo -n '' > /tmp/easy_containers/sfs-list
+#181029 these entries in 'configuration' file are now symlinks...
+#SFSVARS="$(grep '^EASY_LAYER_RO' /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${DISTRO_VERSION}/configuration | cut -f 2 -d '=' | cut -f 2 -d "'" | sed -e 's%\.%\\.%g' -e 's%\*%.*%g' | grep -v '^$')" #170523 convert glob * to regular-expression. 170527
+SFSVARS="$(grep '^EASY_LAYER_RO' /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${DISTRO_VERSION}/configuration | cut -f 2 -d '=' | cut -f 2 -d "'" | sed -e 's%\.sfs$%_\.*\\.sfs%' | grep -v '^$')" #181029 ex: convert devx.sfs to devx_.*\\.sfs
+echo -n "$SFSVARS" > /tmp/easy_containers/sfs-list-wanted #170527
+
+#181029 .sfs files are now in 'sfs' folder, including easy.sfs (which is renamed)... 181108...
+DEVX_PTNver="$(echo -n "devx_${DISTRO_VERSION}[_-]" | sed -e 's%\.%\\.%g')" #convert 1.2.3 to 1\.2\.3
+EXTRASFSS0="$(find /mnt/${WKG_DEV}/${WKG_DIR}sfs/easyos/${DISTRO_BINARY_COMPAT}/${DISTRO_COMPAT_VERSION} -maxdepth 1 -type f -name '*.sfs' | grep "_${DISTRO_TARGETARCH}\.sfs" | grep -v '/easy_.*\.sfs' | grep -v '/devx_.*\.sfs' | rev | cut -f 1 -d '/' | rev)" #181029 181108
+
+EXTRADEVXSFSS="$(find /mnt/${WKG_DEV}/${WKG_DIR}sfs/easyos/${DISTRO_BINARY_COMPAT}/${DISTRO_COMPAT_VERSION} -maxdepth 1 -type f -name '*.sfs' | grep "${DEVX_PTNver}" | grep "_${DISTRO_TARGETARCH}\.sfs" | rev | cut -f 1 -d '/' | rev)" #181108
+
+#181120 also offer no-arch sfs files...
+SRCSFSS="$(find /mnt/${WKG_DEV}/${WKG_DIR}sfs/easyos/${DISTRO_BINARY_COMPAT}/${DISTRO_COMPAT_VERSION} -maxdepth 1 -type f -name '*.sfs' | grep -E '_src\.sfs|_all\.sfs' | rev | cut -f 1 -d '/' | rev)"
+
+#181108
+echo -n '' > /tmp/easy_containers/extrasfss-found
+[ "$EXTRASFSS0" ] && echo "$EXTRASFSS0" >> /tmp/easy_containers/extrasfss-found
+[ "$EXTRADEVXSFSS" ] && echo "$EXTRADEVXSFSS" >> /tmp/easy_containers/extrasfss-found
+[ "$SRCSFSS" ] && echo "$SRCSFSS" >> /tmp/easy_containers/extrasfss-found
+EXTRASFSS="$(cat /tmp/easy_containers/extrasfss-found)"
+
+###TO DO: may need more filtering, check <name>.specs, DB_dependencies of candidate SFS pkgs.
+
+if [ ! "$EXTRASFSS" ];then
+  SFSXML="<text><label>$(gettext 'There are no extra SFS packages to load')</label></text>"
+else
+ CNT=1
+ for aSFS in `echo -n "$EXTRASFSS" | tr '\n' ' '` #ex: devx_0.9.8_amd64.sfs
+ do
+  if [ "$(echo -n "$aSFS" | grep -f /tmp/easy_containers/sfs-list-wanted)" == "" ];then
+   DEFCHK='false'
+  else
+   DEFCHK='true'
+  fi
+  SFSCHECK="${SFSCHECK}<checkbox><variable>SFSCHK${CNT}</variable><label>${aSFS}</label><default>${DEFCHK}</default></checkbox>"
+  echo "SFSCHK${CNT}=${aSFS}" >> /tmp/easy_containers/sfs-list
+  CNT=`expr $CNT + 1`
+ done
+ . /tmp/easy_containers/sfs-list
+ SFSXML="${SFSCHECK}"
+fi
+
+M_close="$(gettext 'Close')"
+M_help1="$(gettext 'Multiple SFS files may be stacked on top of each other, as an overlay filesystem, with easy.sfs, the main one for EasyOS, on the bottom.')
+
+<b>$(gettext 'Warning')</b>
+$(gettext 'SFS files from Puppy Linux cannot be used in EasyOS. They will be ignored. If you want to create your own SFS, use the dir2sfs utility in EasyOS.')"
+
+export DLG_HELP1="<window resizable=\"false\" title=\"$(gettext 'Help: load extra SFS files')\" icon-name=\"gtk-index\" window_position=\"1\"><vbox><text use-markup=\"true\"><label>\"${M_help1}\"</label><variable>DLG_HELP1</variable></text><hbox><button><label>${M_close}</label><action type=\"closewindow\">DLG_HELP1</action></button></hbox></vbox></window>"
+
+export EASY_SFS_DLG1="<window title=\"$(gettext "Easy BootManager: manage SFS")\" icon-name=\"gtk-convert\">
+<vbox>
+  <text use-markup=\"true\"><label>\"$(gettext 'Easy Linux runs on a layered filesystem. The bottom read-only layer is <i>easy.sfs</i>, the entire Easy Linux filesystem. Above easy.sfs, it is possible to insert more read-only layers. Choose from the available list:')\"</label></text>
+  ${SFSXML}
+  <text use-markup=\"true\"><label>\"
+<b>$(gettext 'Technical notes')</b>
+$(gettext 'Extra SFS files are located here:')
+/mnt/${WKG_DEV}/${WKG_DIR}sfs/easyos/${DISTRO_BINARY_COMPAT}/${DISTRO_COMPAT_VERSION}\"</label></text>
+<text><label>$(gettext 'The user may download and manually place .sfs files in this folder.')</label></text>
+
+  <hbox>
+    <button><label>$(gettext 'Commit')</label><action>exit:sfsload</action></button>
+    <button cancel></button>
+    <button><input file>/usr/local/lib/X11/mini-icons/mini-question.xpm</input><action type=\"launch\">DLG_HELP1</action></button>
+  </hbox>
+</vbox>
+</window>"
+
+RETSTRING1="$(gtkdialog --program=EASY_SFS_DLG1 --center)"
+[ $? -ne 0 ] && exit
+eval "$RETSTRING1"
+
+if [ "$EXIT" == "sfsload" ];then
+ #170523 a text string would be helpful...
+ sed -i '/Easy layer variables are numbered/d' /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${DISTRO_VERSION}/configuration
+ echo "#Easy layer variables are numbered, higher number, higher layer. 'RO0' is lowest, reserved for easy.sfs" >> /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${DISTRO_VERSION}/configuration
+ #remove all existing sfs entries...
+ grep -v '^EASY_LAYER_RO' /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${DISTRO_VERSION}/configuration > /tmp/easy_containers/tmp-configuration
+ cp -f /tmp/easy_containers/tmp-configuration /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${DISTRO_VERSION}/configuration
+ #append new...
+ CNT=1; FILELIST=""
+ for aSFSCHK in `echo "$RETSTRING1" | grep '^SFSCHK' | grep '"true"' | cut -f 1 -d '=' | tr '\n' ' '`
+ do
+  SFSFILE="$(grep "^${aSFSCHK}=" /tmp/easy_containers/sfs-list | cut -f 2 -d '=')"
+  #181029 use the name-only as a symlink to the actual .sfs file...
+  ##170523 convert so has glob wildcard...
+  #if [ "$(echo -n "$SFSFILE" | grep '\.[0-9]')" != "" ];then #180607 but only if #has version number
+  # SFSPREFIX="$(echo -n "$SFSFILE" | grep -o '^[^0-9]*' | sed -e 's%-$%%')"
+  # xSFSFILE="${SFSPREFIX}-*.sfs"
+  #else
+  # xSFSFILE="$SFSFILE"
+  #fi
+  NAMEONLY="${SFSFILE/_*/}" #ex: devx_1.2.3_amd64.sfs becomes devx
+  ln -snf ../../sfs/easyos/${DISTRO_BINARY_COMPAT}/${DISTRO_COMPAT_VERSION}/${SFSFILE} /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${DISTRO_VERSION}/${NAMEONLY}.sfs
+  echo "EASY_LAYER_RO${CNT}=${NAMEONLY}.sfs" >> /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${DISTRO_VERSION}/configuration
+  FILELIST="${FILELIST} ${SFSFILE}"
+  CNT=`expr $CNT + 1`
+ done
+ if [ $CNT -eq 1 ];then #170527
+  pupdialog --timeout 10 --background '#80FF80' --backtitle "$(gettext 'Extra SFSs')" --msgbox "$(gettext 'No extra SFS files will be loaded at bootup')" 0 0
+ else
+  pupdialog --timeout 10 --background '#80FF80' --backtitle "$(gettext 'Extra SFSs selected')" --msgbox "$(gettext 'These extra SFS files will be loaded at bootup:')${FILELIST}" 0 0
+ fi
+fi
+
+###end###

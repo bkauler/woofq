@@ -1,0 +1,40 @@
+#!/bin/sh
+#name of container passed in. called from ec-chroot.
+#creates a virtual ethernet interface, that can be passed into a container.
+
+[ ! $1 ] && exit 1
+EXE="$1"
+#any virtual interfaces such as eth0.5 need to be filtered out...
+IFIP="$(getlocalip | grep -v '^lo' | grep '^[a-z0-9]*: ' | tail -n 1)"
+[ ! "$IFIP" ] && exit 2
+
+IF="${IFIP/:*/}" #ex: eth0
+IP4="${IFIP/* /}"
+IP3="${IP4%.*}" #ex: 192.168.1.3 becomes 192.168.1
+
+if [ -f /tmp/ec-exe-veth-id ];then
+ IFID="$(grep "^${EXE} " /tmp/ec-exe-veth-id | cut -f 2 -d ' ')"
+ if [ "$IFID" ];then
+  echo -n "${IFID}" > /tmp/ec-bridge-if
+  exit 0 #already setup.
+ fi
+else
+ echo "${EXE} ${IF}.1" > /tmp/ec-exe-veth-id
+fi
+
+ID="$(grep "^${EXE} " /tmp/ec-exe-veth-id | cut -f 2 -d ' ' | cut -f 2 -d '.')"
+if [ ! "$ID" ];then
+ IDlast="$(cat /tmp/ec-exe-veth-id | wc -l)"
+ ID=$(($IDlast+1))
+ echo "${EXE} ${IF}.${ID}" >> /tmp/ec-exe-veth-id
+fi
+
+vconfig add ${IF} ${ID}
+[ $? -ne 0 ] && exit 3
+X=$(($ID+100))
+ifconfig ${IF}.${ID} ${IP3}.${X} netmask 255.255.255.0 broadcast ${IP3}.255
+[ $? -ne 0 ] && exit 4
+
+echo -n "${IF}.${ID}" > /tmp/ec-bridge-if
+exit 0
+###end###

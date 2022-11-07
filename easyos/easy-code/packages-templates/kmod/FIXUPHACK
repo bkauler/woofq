@@ -1,0 +1,66 @@
+#note: DISTRO_BINARY_COMPAT and DISTRO_FILE_PREFIX are visible here, exported in 2createpackages.
+#140117 xARCHDIR, ARCHDIR and DISTRO_ARCHDIR_SYMLINKS exported in 2createpackages. 
+#140117 note, 2createpackages may move /lib, /usr/lib, /usr/bin in template to ARCHDIR subdir.
+
+#for slackware...
+DISABLE_POST_INSTALL_SCRIPT=yes
+
+#get rid of stuff we don't need...
+rm -rf etc
+rm -rf usr/share
+
+if [ "$xARCHDIR" ];then #140117
+ #probably need this for slackware...
+ if [ -f bin/${ARCHDIR}/kmod ];then
+  ln -snf kmod bin/${ARCHDIR}/lsmod
+  ln -snf ../bin/${ARCHDIR}/kmod sbin/depmod
+  ln -snf ../bin/${ARCHDIR}/kmod sbin/insmod
+  ln -snf ../bin/${ARCHDIR}/kmod sbin/lsmod
+  ln -snf ../bin/${ARCHDIR}/kmod sbin/modinfo
+  ln -snf ../bin/${ARCHDIR}/kmod sbin/modprobe
+  ln -snf ../bin/${ARCHDIR}/kmod sbin/rmmod
+ else
+  #20130707 01micko...
+  if [ -f sbin/${ARCHDIR}/kmod ];then
+   ln -snf ../sbin/${ARCHDIR}/kmod bin/lsmod
+   ln -snf ${ARCHDIR}/kmod sbin/lsmod
+   ln -snf ${ARCHDIR}/kmod sbin/depmod
+   ln -snf ${ARCHDIR}/kmod sbin/insmod
+   ln -snf ${ARCHDIR}/kmod sbin/modinfo
+   ln -snf ${ARCHDIR}/kmod sbin/modprobe
+   ln -snf ${ARCHDIR}/kmod sbin/rmmod
+  fi
+ fi
+fi
+#probably need this for slackware...
+if [ -f bin/kmod ];then
+ ln -snf kmod bin/lsmod
+ ln -snf ../bin/kmod sbin/depmod
+ ln -snf ../bin/kmod sbin/insmod
+ ln -snf ../bin/kmod sbin/lsmod
+ ln -snf ../bin/kmod sbin/modinfo
+ ln -snf ../bin/kmod sbin/modprobe
+ ln -snf ../bin/kmod sbin/rmmod
+else
+ #20130707 01micko...
+ if [ -f sbin/kmod ];then
+  ln -snf ../sbin/kmod bin/lsmod
+  ln -snf kmod sbin/lsmod
+  ln -snf kmod sbin/depmod
+  ln -snf kmod sbin/insmod
+  ln -snf kmod sbin/modinfo
+  ln -snf kmod sbin/modprobe
+  ln -snf kmod sbin/rmmod
+ fi
+fi
+
+#20220122 arch-linux
+if [ -f usr/bin/kmod ];then
+ mkdir -p sbin
+ ln -snf ../usr/bin/kmod sbin/depmod
+ ln -snf ../usr/bin/kmod sbin/insmod
+ ln -snf ../usr/bin/kmod sbin/lsmod
+ ln -snf ../usr/bin/kmod sbin/modinfo
+ ln -snf ../usr/bin/kmod sbin/modprobe
+ ln -snf ../usr/bin/kmod sbin/rmmod
+fi

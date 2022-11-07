@@ -1,0 +1,101 @@
+#!/bin/sh
+#called from sfsget, passed param TREE1. ex: devx_0.9.8_amd64.sfs
+#181107 nothing passed in if no package.
+#190913 if $DB_nameonly=easy then label of desktop icon will be pyro or buster.
+#200824 BOOT_LOCK in PUPSTATE set if lockdown (running in RAM), containers will be disabled.
+#20210918 new DB_install='mainonly'
+#20220525 EOS_SUPPORT_CONTAINERS==0 do not support containers.
+#20220603 replace DB_* with SFS_DB_* in sfs .specs files.
+#20220607 fix install msg, when sfs cannot be in main f.s.
+
+export TEXTDOMAIN=sfsget
+export OUTPUT_CHARSET=UTF-8
+#eval_gettext ref: http://www.murga-linux.com/puppy/viewtopic.php?t=96326
+
+if [ "$1" == "" ];then
+ echo -n "" > /tmp/sfsget/pkgtext
+ exit
+fi
+
+. /etc/rc.d/PUPSTATE #200824
+. /etc/DISTRO_SPECS  #20220607
+
+FULLPKGNAME="${1}"
+PKGNAME="${FULLPKGNAME/.sfs/}"
+currentpath="$(cat /tmp/sfsget/current-path)"
+
+grep -q '^SFS_DB_' /mnt/wkg/sfs/${currentpath}/${PKGNAME}.specs #20220603 check for old format.
+if [ $? -ne 0 ];then
+ sed -i -e 's%^DB_%SFS_DB_%' /mnt/wkg/sfs/${currentpath}/${PKGNAME}.specs
+fi
+#if [ $? -eq 0 ];then
+. /mnt/wkg/sfs/${currentpath}/${PKGNAME}.specs
+#else
+# sed -e 's%^DB_%SFS_DB_%' /mnt/wkg/sfs/${currentpath}/${PKGNAME}.specs > /tmp/zzzzyyyyxxx.specs
+#. /tmp/zzzzyyyyxxx.specs
+# rm -f /tmp/zzzzyyyyxxx.specs
+#fi
+
+if [ "$EOS_SUPPORT_CONTAINERS" == "0" ];then #20220525
+ SFS_DB_install='mainonly'
+fi
+
+#190913
+xDISTRO_COMPAT_VERSION="$(basename $currentpath)" #exs: pyro or buster
+xLABEL="$SFS_DB_apps"
+[ "$SFS_DB_nameonly" == "easy" ] && xLABEL="${xDISTRO_COMPAT_VERSION}"
+
+[ "$SFS_DB_description_long" == "" ] && SFS_DB_description_long="there is supposed to be a long description in '${PKGNAME}.specs', field SFS_DB_description_long, but it is missing."
+
+echo "$SFS_DB_description_long" > /tmp/sfsget/pkgtext
+#cleanup...
+sed -i -e 's%&%&amp;%g' -e 's%>%&gt;%g' -e 's%<%&lt;%g' /tmp/sfsget/pkgtext
+
+#note special syntax below! ref: http://www.murga-linux.com/puppy/viewtopic.php?t=96326
+if [ "$EOS_SUPPORT_CONTAINERS" == "0" ];then #20220525
+ [ "$BOOT_LOCK" ] && SFS_DB_install='sanscontainer' #200824 locked-down in ram. ref: PUPSTATE
+fi
+case "$SFS_DB_install" in
+ desk) #190913...
+  M_install="$(eval echo `gettext 'A container named ${SFS_DB_nameonly} will be created, and an icon created on the main desktop, labeled ${xLABEL}, which will launch as a separate desktop.'`)"
+ ;;
+ terminal)
+  M_install="$(eval echo `gettext 'A container named ${SFS_DB_nameonly} will be created, and an icon created on the main desktop, labeled ${SFS_DB_apps}, which will launch a terminal window.'`)"
+ ;;
+ sanscontainer) #200824
+  M_install="$(gettext 'You are running in a lockdown mode, containers are not supported. The SFS will be offered to mount on the main desktop.')"
+ ;;
+ mainonly) #20210918
+  if [ "$EOS_SUPPORT_CONTAINERS" == "0" ];then #20220525
+   M_install="$(gettext 'This SFS will be installed as a layer on the desktop.')"
+  else
+   M_install="$(gettext 'This SFS is not compatible with running in a container. It will be installed as a layer on the main desktop.')"
+  fi
+ ;;
+ *) #individual
+  #20220607 different msg if cannot be in main desktop f.s. ...
+  if [ "$currentpath" == "easyos/${DISTRO_BINARY_COMPAT}/${DISTRO_COMPAT_VERSION}" ];then
+   M_install="$(eval echo `gettext 'May be installed to the main desktop, or in a container. In the latter case, a container named ${SFS_DB_nameonly} will be created, and icons created on the main desktop, labeled: ${SFS_DB_apps}'`)"
+  else
+   M_install="$(eval echo `gettext 'May be installed as a layer in an existing container, or in a standalone container. In the latter case, a container named ${SFS_DB_nameonly} will be created, and icons created on the main desktop, labeled: ${SFS_DB_apps}'`)"
+  fi
+ ;;
+esac
+echo "
+<b>$(gettext 'Install mode')</b>
+${M_install}" >> /tmp/sfsget/pkgtext
+
+#note special syntax below! ref: http://www.murga-linux.com/puppy/viewtopic.php?t=96326
+if [ "$SFS_DB_dependencies" == "" ];then
+ M_deps="$(eval echo `gettext 'There are no dependencies for ${SFS_DB_fullfilename}, so there will be no SFS files loaded below it.'`)"
+else
+ M_deps="$(eval echo `gettext '${SFS_DB_fullfilename} has these dependencies: ${SFS_DB_dependencies}. They will be loaded in the layered filesystem.'`)"
+fi
+M_deps="$(echo -n "$M_deps" | sed -e 's%&%&amp;%g')" #cleanup
+if [ "$SFS_DB_install" != "sanscontainer" ];then #200824
+ echo "
+<b>$(gettext 'Dependencies')</b>
+${M_deps}" >> /tmp/sfsget/pkgtext
+fi
+
+###end###

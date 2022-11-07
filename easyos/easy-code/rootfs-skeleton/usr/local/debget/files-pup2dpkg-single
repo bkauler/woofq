@@ -1,0 +1,72 @@
+#!/bin/bash
+#called from sync-woof2dpkg and sync-new2dpkg
+#pass name of pup pkg, pup pkg version, and name of deb pkg
+#convert pup file-list to dpkg format.
+
+export LANG=C
+
+PUPnameonly="$1"
+PUPversion="$2"
+DEBname="$3"
+mkdir -p /tmp/debget/working
+
+. /var/local/pkgget/deb_compat_specs #DEBDISTRO, DEBVERSION, DEBARCH
+
+#pup builtin file-lists are in /root/.packages/builtin_files
+#dpkg file-lists are in /var/lib/dpkg/info
+#ex: builtin_files/attr
+#/etc
+# xattr.conf
+#/usr
+#/usr/bin
+# attr
+# getfattr
+# setfattr
+#/usr/lib
+# libattr.so.1
+# libattr.so.1.1.2448
+
+#dpkg format is absolute path on every line, for example...
+#/usr
+#/usr/lib
+#/usr/lib/libattr.so.1
+#/usr/lib/libattr.so.1.1.2448
+
+echo -n '' > /tmp/debget/working/debfilelist
+echo -n '' > /tmp/debget/working/debfileconflist
+cat /root/.packages/builtin_files/${PUPnameonly} >/tmp/debget/working/foundfilelist 2>/dev/null
+if [ $? -ne 0 ];then
+ #maybe it is user-installed...
+ cat /root/.packages/${PUPnameonly}-${PUPversion}.files >/tmp/debget/working/foundfilelist 2>/dev/null
+fi
+if [ $? -ne 0 ];then
+ exit 1
+fi
+
+while read aLine
+do
+ case "${aLine}" in
+  /*)
+   aC=''
+   for aB in `echo ${aLine} | tr '/' ' '`
+   do
+    aC="${aC}/${aB}"
+    echo "${aC}" >> /tmp/debget/working/debfilelist
+   done
+  ;;
+  *)
+   echo "${aC}/${aLine}" >> /tmp/debget/working/debfilelist
+   case "${aC}/" in
+    /etc/*)
+     echo "${aC}/${aLine}" >> /tmp/debget/working/debfileconflist
+    ;;
+   esac
+  ;;
+ esac
+done <<_END1
+$(cat /tmp/debget/working/foundfilelist)
+_END1
+echo '/.' > /var/lib/dpkg/info/${DEBname}:${DEBARCH}.list
+sort -u /tmp/debget/working/debfilelist >> /var/lib/dpkg/info/${DEBname}:${DEBARCH}.list
+sort -u /tmp/debget/working/debfileconflist > /var/lib/dpkg/info/${DEBname}:${DEBARCH}.conffiles
+

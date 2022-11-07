@@ -1,0 +1,89 @@
+#!/bin/sh
+#(c) Copyright Barry Kauler, Nov. 2016, barryk.org. Licence GPL3 (ref: /usr/share/doc/legal)
+#called from simplevp, determine correct URI for playing optical media.
+#cli-player and drive node passed in, ex: sr0
+#returns 1=audio-cd, 2=dvd, 3=mounted filesystem, 0=fail
+
+PLAYER="$1" #exs: VLC, Omxplayer, MPlayer
+ONEDRVNAME="$2"
+
+echo -n "" > /tmp/simplevp/optical_uri #simplevp reads this after return.
+
+#analyse the media (code adapted from /usr/local/bin/drive_all)...
+dPATTERN='^/dev/'"$ONEDRVNAME"' '
+FLAGOPTICAL='no'
+case $ONEDRVNAME in
+ sr*)
+  FLAGOPTICAL='yes'
+ ;;
+ hd*)
+  [ -e /proc/ide/$ONEDRVNAME/media ] && [ "`cat /proc/ide/$ONEDRVNAME/media`" = "cdrom" ] && FLAGOPTICAL='yes'
+ ;;
+esac
+if [ "$FLAGOPTICAL" = "yes" ];then
+ if [ "`busybox mount | grep "$dPATTERN"`" == "" ];then
+  cddetect -q -d/dev/${ONEDRVNAME}
+  RETVAL=$?
+  case $RETVAL in
+  3) #iso file: normal data cd.
+   true
+  ;;
+  1) #audio
+   ln -snf /dev/${ONEDRVNAME} /dev/cdrom
+   echo -n "cdda://" > /tmp/simplevp/optical_uri
+   exit 1
+  ;;
+  5) #video dvd
+   ln -snf /dev/${ONEDRVNAME} /dev/dvd
+   case $PLAYER in
+    MPlayer) URI='dvdnav://' ;;
+    *)       URI='dvd://' ;;
+   esac
+   echo -n "$URI" > /tmp/simplevp/optical_uri
+   exit 2
+  ;;
+  0) #failed to detect type.
+   #cddetect does not work properly for dvd's, try something else...
+   if [ "`df | grep "$dPATTERN"`" == "" ];then #only test if not mounted.
+    FLAGDVDVIDEO="`dvd+rw-mediainfo /dev/${ONEDRVNAME} | grep 'Mounted Media: .* DVD-R[O ]'`"
+    if [ "$FLAGDVDVIDEO" == "" ];then
+     #mount and look for 'video_ts' directory (dir should contain file video_ts.ifo)...
+     mkdir -p /mnt/${ONEDRVNAME}
+     mount -t iso9660 /dev/${ONEDRVNAME} /mnt/${ONEDRVNAME}
+     if [ $? -eq 0 ];then
+      [ -d /mnt/${ONEDRVNAME}/video_ts -o -d /mnt/${ONEDRVNAME}/VIDEO_TS ] && FLAGDVDVIDEO="yes"
+      umount /mnt/${ONEDRVNAME}
+     fi
+    fi
+    if [ "$FLAGDVDVIDEO" != "" ];then
+     ln -snf /dev/${ONEDRVNAME} /dev/dvd
+     case $PLAYER in
+      MPlayer) URI='dvdnav://' ;;
+      *)       URI='dvd://' ;;
+     esac
+     echo -n "$URI" > /tmp/simplevp/optical_uri
+     exit 2
+    fi
+   fi
+  ;;
+  esac
+  
+  #fallen to here, not mounted, seems not a audio cd or dvd. try mounting it...
+  mkdir -p /mnt/${ONEDRVNAME}
+  mount -t iso9660 /dev/${ONEDRVNAME} /mnt/${ONEDRVNAME}
+  [ $? -ne 0 ] && exit 0
+ fi
+ 
+ #fallen to here, mounted, must have a filesystem...
+ #mounted, maybe it has audio or video files on it, that can be played. return the path:
+ MNTPT="$(busybox mount | grep "$dPATTERN" | cut -f 3 -d ' ')" #ex: /mnt/sr0
+ URI="${MNTPT}"
+ [ -d ${MNTPT}/video_ts ] && URI="${MNTPT}/video_ts"
+ echo -n "$URI" > /tmp/simplevp/optical_uri
+ exit 3
+fi
+
+#if dropped down here, give up...
+exit 0
+
+###END###

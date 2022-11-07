@@ -1,0 +1,67 @@
+#!/bin/sh
+
+## Includes.
+. funcrcfileGet
+. funcrcfileWrite
+
+## Read the rcfile.
+
+funcrcfileRead() {
+	if [ -z "$BASH" ]; then local FUNCNAME=funcrcfileRead; fi
+	if [ $DEBUG_TRANSITS -ne 0 ]; then echo "$FUNCNAME: IN"; fi
+
+	## Local variables.
+	local sectionfound=0
+	local char ifs name value version
+
+	## Upgrade an old rcfile before reading it.
+	version=`funcrcfileGet version`
+	if [ $version \< $VERSION ]; then
+		funcrcfileWrite $version
+	fi
+
+	ifs=$IFS
+	IFS='='
+	while read -r name value; do
+		if [ -n "$name" ]; then
+			if [ $sectionfound -eq 0 ]; then
+				## Section start?
+				if [ "$name" = "[options]" ]; then
+					sectionfound=1
+				fi
+			else
+				if [ -n "$BASH" ]; then
+					char="${name:0:1}"
+				else
+					char="`echo $name | cut -c 1`"
+				fi
+				## Section end?
+				if [ "$char" = '[' ]; then
+					break
+				elif [ "$char" != '#' -a -n "$value" ]; then
+					## Store values.
+					if [ "$name" = autonext_interval ]; then
+						AUTONEXT_INTERVAL="$value"
+					elif [ "$name" = debug_content ]; then
+						DEBUG_CONTENT="$value"
+					elif [ "$name" = debug_transits ]; then
+						DEBUG_TRANSITS="$value"
+					elif [ "$name" = cover_size ]; then
+						COVER_SIZE="$value"
+					elif [ "$name" = cover_thumb_size ]; then
+						COVER_THUMB_SIZE="$value"
+					elif [ "$name" = window_width ]; then
+						WINDOW_WIDTH="$value"
+					elif [ "$name" = cover_search_pattern ]; then
+						COVER_SEARCH_PATTERN="$value"
+					elif [ "$name" = dialog_readme_show ]; then
+						DIALOG_README_SHOW="$value"
+					fi
+				fi
+			fi
+		fi
+	done < $LOCAL_DATA_DIR/${TARGET}rc
+	IFS=$ifs
+
+	if [ $DEBUG_TRANSITS -ne 0 ]; then echo "$FUNCNAME: OUT"; fi
+}

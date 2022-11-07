@@ -1,0 +1,43 @@
+#note: DISTRO_BINARY_COMPAT and DISTRO_FILE_PREFIX are visible here, exported in 2createpackages.
+#140117 xARCHDIR, ARCHDIR and DISTRO_ARCHDIR_SYMLINKS exported in 2createpackages. 
+#140117 note, 2createpackages may move /lib, /usr/lib, /usr/bin in template to ARCHDIR subdir.
+
+FNDKONICAEN="$(find usr/share/libgphoto2 -mindepth 2 -maxdepth 3 -type f -name 'english' | head -n 1)"
+if [ "$FNDKONICAEN" ];then
+ DIRKONICA="$(dirname $FNDKONICAEN)"
+ mv -f ${DIRKONICA}/english /tmp/english-konica
+ rm -f usr/share/libgphoto2/*/konica/*
+ mv -f /tmp/english-konica ${DIRKONICA}/english
+fi
+
+if [ "$xARCHDIR" ];then #140117
+ if [ ! -e usr/lib${xARCHDIR}/libgphoto2.so.2 ];then
+  FNDLIBGPHOT="$(find usr/lib${xARCHDIR} -mindepth 1 -maxdepth 1 -type f -name 'libgphoto2.so.*' | head -n 1)"
+  if [ "$FNDLIBGPHOT" ];then
+   BASELIBGPHOT="$(basename $FNDLIBGPHOT)"
+   ln -s $BASELIBGPHOT usr/lib${xARCHDIR}/libgphoto2.so.2
+  fi
+ fi
+ if [ ! -e usr/lib${xARCHDIR}/libgphoto2_port.so.0 ];then
+  FNDLIBGPHOT="$(find usr/lib${xARCHDIR} -mindepth 1 -maxdepth 1 -type f -name 'libgphoto2_port.so.*' | head -n 1)"
+  if [ "$FNDLIBGPHOT" ];then
+   BASELIBGPHOT="$(basename $FNDLIBGPHOT)"
+   ln -s $BASELIBGPHOT usr/lib${xARCHDIR}/libgphoto2_port.so.0
+   ln -s $BASELIBGPHOT usr/lib${xARCHDIR}/libgphoto2_port.so.10 #161230
+  fi
+ fi
+fi
+if [ ! -e usr/lib/libgphoto2.so.2 ];then
+ FNDLIBGPHOT="$(find usr/lib -mindepth 1 -maxdepth 1 -type f -name 'libgphoto2.so.*' | head -n 1)"
+ if [ "$FNDLIBGPHOT" ];then
+  BASELIBGPHOT="$(basename $FNDLIBGPHOT)"
+  ln -s $BASELIBGPHOT usr/lib/libgphoto2.so.2
+ fi
+fi
+if [ ! -e usr/lib/libgphoto2_port.so.0 ];then
+ FNDLIBGPHOT="$(find usr/lib -mindepth 1 -maxdepth 1 -type f -name 'libgphoto2_port.so.*' | head -n 1)"
+ if [ "$FNDLIBGPHOT" ];then
+  BASELIBGPHOT="$(basename $FNDLIBGPHOT)"
+  ln -s $BASELIBGPHOT usr/lib/libgphoto2_port.so.0
+ fi
+fi

@@ -1,0 +1,168 @@
+#!/bin/sh
+#(c) Copyright Barry Kauler, 31 January 2017. Licence: GPL v3 (/usr/share/doc/legal).
+#called from /init, passed params are $WKG_DRV, $WKG_DEV
+#.rollback.flg has params <version>,<date> which is version to roll back to 
+#(default is keep current version), and date of rw snapshot (default is keep 
+#current rw session). Both fields are optional. Special case "*,erase" means
+#wipe the rw layer (.session folder).
+#Special case ",last" means go back to last saved session (or rw-<current-version>.sfs).
+#180331 if backVER='', set it to $DISTRO_VERSION
+#180601 users may forget to put a trailing slash. a leading slash is not allowed.
+#180602 hide error msg if .sfs is empty.
+#180602 fix version number in syslinux.cfg and refind.conf
+#180904 $KERNELNAME exported from init script (vmlinuz or kernel8.img).
+#180916 fix, remove ".sfs" from $SNAPS
+#181012 re-populate erased .session folders.
+#181028 'repository' folder changed to 'releases'.
+#181029 easy.sfs is now under sfs folder, with symlink from releases/easy-<version>/easy.sfs
+#181121 handle .control folder.
+#181122 q*.sfs renamed to easy*.sfs  181123 fix.
+#181130 'initrd.q' renamed to 'initrd'
+#190106 fix version change for refind.conf
+#190223 remove gettext.
+#190314 BOOT_SPECS no longer has *_FS, *_DISKID, has *_UUID
+#191010 curious, need to delete easy.sfs first, to avoid out-of-memory error when cp.
+#191225 bug 191010 is caused by easy.sfs mounted in aufs layer /tro (see init, line 782).
+#200729 fix lists: $VERS, $SNAPS. rolling back to an earlier version was broken.
+#200813 easy-version-control script has optional exceptions when erase session.
+#200828 .session write fix. 200830 fix.
+#20220613 easy.sfs now in ${WKG_DEV}/${WKG_DIR}, not in boot-partition.
+#20220613 do rollback initrd.
+#20220621 no longer have BOOT_DRV, BOOT_DEV
+#20220622 no longer have BOOT_SPECS file. WKG_DIR=$3
+
+WKG_DRV=$1 #ex: sda
+WKG_DEV=$2 #ex: sda2
+WKG_DIR=$3 #20220622
+#180601 users may forget to put a trailing slash... a leading slash is not allowed...
+[ "$WKG_DIR" ] && [ "${WKG_DIR##*/}" ] && WKG_DIR="${WKG_DIR}/"
+[ "$WKG_DIR" ] && [ "${WKG_DIR:0:1}" == "/" ] && WKG_DIR="${WKG_DIR:1:99}"
+
+. /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/DISTRO_SPECS #note, 'init' always copies this up. 170521 fix path.
+
+err_exit() {
+ echo -e "\\033[1;31mERROR: ${1}\\033[0;39m" #red
+ exit 1
+}
+
+backVER="$(cat /mnt/${WKG_DEV}/${WKG_DIR}.session/.rollback.flg | cut -f 1 -d ',')"
+backDATE="$(cat /mnt/${WKG_DEV}/${WKG_DIR}.session/.rollback.flg | cut -f 2 -d ',')"
+rm -f /mnt/${WKG_DEV}/${WKG_DIR}.session/.rollback.flg
+[ "$backVER" == "" ] && backVER="$DISTRO_VERSION" #180331
+
+case "$backDATE" in
+ erase)
+  echo -e "\\033[1;35mErasing current working session\\033[0;39m" #purple
+  echo "  (erasing the read-write layer)"
+ ;;
+ last)
+  echo -e "\\033[1;35mRolling read-write layer back to last saved session\\033[0;39m" #purple
+ ;;
+ *)
+  echo -e "\\033[1;35mRolling back to an earlier version or snapshot\\033[0;39m" #purple
+  echo "  Current version: ${DISTRO_VERSION}. Back to: ${backVER}, snapshot: ${backDATE}"
+ ;;
+esac
+
+#want to read the saved versions in 'releases' folder, and sort them by version-number.
+#busybox sort does not have that option (sort in coreutils has '-V'), so improvise...
+#200729 fix...
+#VERS="$(ls -l /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-* | rev | cut -f 1 -d '-' | rev)"
+VERS="$(find /mnt/${WKG_DEV}/${WKG_DIR}releases -mindepth 1 -maxdepth 1 -type d -name 'easy-*' | rev | cut -f 1 -d '-' | rev)"
+#refer: http://stackoverflow.com/questions/4493205/unix-sort-of-version-numbers
+#sortedVERS="$(echo "$VERS" | sort -t. -k 1,1n -k 2,2n -k 3,3n -k 4,4n)" #lowest to highest.
+#revsortedVERS="$(echo "$VERS" | sort -t. -k 1,1nr -k 2,2nr -k 3,3nr -k 4,4nr)" #highest to lowest.
+#...turns out, don't need this, but leave it here, it is so cool.
+
+#also read snapshots, if any... 180916 fix, remove ".sfs"...
+#200729 $SNAPS working, but potentially could go wrong...
+#SNAPS="$(ls -l /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${DISTRO_VERSION}/rw-* | rev | cut -f 1 -d '-' | cut -f 2- -d '.' | rev)"
+SNAPS="$(find /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${DISTRO_VERSION} -mindepth 1 -maxdepth 1 -type f -name 'rw-*' | rev | cut -f 1 -d '-' | cut -f 2- -d '.' | rev)"
+sortedSNAPS="$(echo "$SNAPS" | sort -t. -k 1,1n -k 2,2n -k 3,3n -k 4,4n)" #lowest to highest.
+#revsortedSNAPS="$(echo "$SNAPS" | sort -t. -k 1,1nr -k 2,2nr -k 3,3nr -k 4,4nr)" #highest to lowest.
+
+if [ "$backDATE" == "last" ];then
+ backDATE="$(echo "$sortedSNAPS" | grep -v "^${DISTRO_VERSION}$" | tail -n 1)"
+ if [ ! "$backDATE" ];then
+  backDATE="${DISTRO_VERSION}"
+  if [ ! -f /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${DISTRO_VERSION}/rw-${backDATE}.sfs ];then
+   echo -e "  \\033[1;31mCannot rollback, no saved session\\033[0;39m" #red
+   backDATE=""
+  fi
+ fi
+fi
+
+if [ "$backDATE" ];then
+ case "$backDATE" in
+  erase)
+   echo "  Erasing working session..."
+   rm -rf /mnt/${WKG_DEV}/${WKG_DIR}.session/*
+   rm -rf /mnt/${WKG_DEV}/${WKG_DIR}.session/.[a-z]* 2>/dev/null #181121 181123
+   #181121 handle .sessionSKEL and .control ...
+   [ -d /mnt/${WKG_DEV}/${WKG_DIR}.sessionSKEL ] && cp -a -f /mnt/${WKG_DEV}/${WKG_DIR}.sessionSKEL/* /mnt/${WKG_DEV}/${WKG_DIR}.session/
+   [ -d /mnt/${WKG_DEV}/${WKG_DIR}.sessionSKEL/.control ] && cp -a -f /mnt/${WKG_DEV}/${WKG_DIR}.sessionSKEL/.control /mnt/${WKG_DEV}/${WKG_DIR}.session/
+   #200813 optional things to keep...
+   if [ -d /mnt/${WKG_DEV}/${WKG_DIR}sfs/settings/erase-exceptions ];then
+    cp -a /mnt/${WKG_DEV}/${WKG_DIR}sfs/settings/erase-exceptions/* /mnt/${WKG_DEV}/${WKG_DIR}.session/
+    sync
+    rm -rf /mnt/${WKG_DEV}/${WKG_DIR}sfs/settings/erase-exceptions
+   fi
+   sync
+  ;;
+  *)
+   echo "  Rolling working session back..."
+   #170529 do not flag error if no rw-${backDATE}.sfs, just erase...
+   #[ ! -f /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${backVER}/rw-${backDATE}.sfs ] && err_exit "Missing snapshot: /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${backVER}/rw-${backDATE}.sfs"
+   rm -rf /mnt/${WKG_DEV}/${WKG_DIR}.session/*
+   rm -rf /mnt/${WKG_DEV}/${WKG_DIR}.session/.[a-z]* 2>/dev/null #181121 181123
+   #181121 handle .sessionSKEL and .control ...
+   [ -d /mnt/${WKG_DEV}/${WKG_DIR}.sessionSKEL ] && cp -a -f /mnt/${WKG_DEV}/${WKG_DIR}.sessionSKEL/* /mnt/${WKG_DEV}/${WKG_DIR}.session/
+   [ -d /mnt/${WKG_DEV}/${WKG_DIR}.sessionSKEL/.control ] && cp -a -f /mnt/${WKG_DEV}/${WKG_DIR}.sessionSKEL/.control /mnt/${WKG_DEV}/${WKG_DIR}.session/
+   if [ -f /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${backVER}/rw-${backDATE}.sfs ];then #170529
+    mkdir snapmnt
+    mount -t squashfs -o loop,noatime /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${backVER}/rw-${backDATE}.sfs snapmnt
+    [ $? -ne 0 ] && err_exit "Failed to mount snapshot: rw-${backDATE}.sfs"
+    cp -a snapmnt/* /mnt/${WKG_DEV}/${WKG_DIR}.session/ 2>/dev/null #180602 hide error if empty.
+    sync
+    umount snapmnt
+   fi
+  ;;
+ esac
+ echo "  ...done"
+fi
+
+[ "$backVER" == "$DISTRO_VERSION" -o "$backVER" == "" ] && exit 0
+
+#rolling back to earlier version, need to replace files in wkg partition...
+#note, WKG_DIR already have a trailing slash
+#note, 'version-control' script has already copied vmlinuz, checking here as precaution...
+echo -n "  Rolling back:"
+echo -n " ${KERNELNAME}"
+if [ ! -f /mnt/${WKG_DEV}/${WKG_DIR}/${KERNELNAME} ];then #precaution.
+ cp -a -f /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${backVER}/${KERNELNAME} /mnt/${WKG_DEV}/${WKG_DIR}
+fi
+echo -n " initrd"
+cp -a -f /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${backVER}/initrd /mnt/${WKG_DEV}/${WKG_DIR}
+echo " easy.sfs"
+# ...do nothing, easy.sfs is already in /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${backVER}
+if [ "$backDATE" == "" ];then #200828 coz may have already been done above.
+ #170524 also roll back .session folder...
+ rm -rf /mnt/${WKG_DEV}/${WKG_DIR}.session/*
+ rm -rf /mnt/${WKG_DEV}/${WKG_DIR}.session/.[a-z]* 2>/dev/null #181121 181123
+ #181121 handle .sessionSKEL and .control ...
+ [ -d /mnt/${WKG_DEV}/${WKG_DIR}.sessionSKEL ] && cp -a -f /mnt/${WKG_DEV}/${WKG_DIR}.sessionSKEL/* /mnt/${WKG_DEV}/${WKG_DIR}.session/
+ [ -d /mnt/${WKG_DEV}/${WKG_DIR}.sessionSKEL/.control ] && cp -a -f /mnt/${WKG_DEV}/${WKG_DIR}.sessionSKEL/.control /mnt/${WKG_DEV}/${WKG_DIR}.session/
+ if [ -f /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${backVER}/rw-${backVER}.sfs ];then #this will exist.
+  mkdir -p snapmnt
+  mount -t squashfs -o loop,noatime /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${backVER}/rw-${backVER}.sfs snapmnt
+  [ $? -ne 0 ] && err_exit "Failed to mount snapshot: rw-${backVER}.sfs"
+  cp -a snapmnt/* /mnt/${WKG_DEV}/${WKG_DIR}.session/ 2>/dev/null #180602 hide error if empty.
+  sync
+  umount snapmnt
+ fi
+fi
+sync
+echo "  ...done"
+
+exit 0
+###end###

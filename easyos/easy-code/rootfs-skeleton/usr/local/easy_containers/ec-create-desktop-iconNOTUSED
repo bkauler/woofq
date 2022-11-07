@@ -1,0 +1,128 @@
+#!/bin/sh
+#passed in param is name of container. create desktop icon and update jwm menu.
+#script easy-containers does this, when new container created, but want to do it from elsewhere.
+#/usr/local/petget/installpreview.sh also wants to do this, when installing an EasyPak (universal package).
+#...so, this script called from installpreview.sh, inside easypak0 container.
+#180627 first release.
+
+export TEXTDOMAIN=easy-containers
+export OUTPUT_CHARSET=UTF-8
+
+. /etc/rc.d/PUPSTATE #has BOOT_DEV, BOOT_FS, BOOT_DIR, WKG_DEV, WKG_FS, WKG_DIR, QSFS_PATH
+
+#code from easy-containers...
+EC_CREATE="$1"
+
+if [ ! -f /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_CREATE}/EASYPAK ];then
+ #for now, only handle easypak containers
+ exit
+fi
+
+#the ro layer is /mnt/${WKG_DEV}/${WKG_DIR}containers/easypak0/.session/debs-installed-here
+#where debs are installed and it is chrootable. refer to /usr/local/EasyPak/ep_pkg_chooser
+#start-container will ensure that /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_CREATE}/.ro0 is a
+#symlink to $DEBS_PATH
+DEBS_PATH="/mnt/${WKG_DEV}/${WKG_DIR}containers/easypak0/.session/debs-installed-here"
+
+#first, find and setup the .desktop file...
+DTFILE="$(grep "^Exec=${EC_CREATE}" ${DEBS_PATH}/usr/share/applications/*.desktop | cut -f 1 -d ':' | head -n 1 | rev | cut -f 1 -d '/' | rev)"
+cp -f ${DEBS_PATH}/usr/share/applications/${DTFILE} ${DEBS_PATH}/usr/share/applications/ec-${EC_CREATE}.desktop
+sed -i -e "s%^Exec=[^ ]*%Exec=ec-chroot ${EC_CREATE}%" ${DEBS_PATH}/usr/share/applications/ec-${EC_CREATE}.desktop
+
+#extract current icon...
+ICON="$(grep '^Icon=' ${DEBS_PATH}/usr/share/applications/ec-${EC_CREATE}.desktop | cut -f 2 -d '=')"
+sed -i -e "s%^Icon=.*%Icon=ec-${EC_CREATE}48.png%" /usr/share/applications/ec-${EC_CREATE}.desktop
+#...ec-${EC_CREATE}48.png gets created below...
+
+#find a free space on desktop...
+#  note, there is free_coord() in /usr/local/easy_containers/frontend_funcs, but just do it roughly here...
+for aY in 128 224 320
+do
+ for aX in 672 736
+ do
+  aPTN="x=\"${aX:0:2}[0-9]\" y=\"${aY:0:2}[0-9]\""
+  grep "$aPTN" /root/Choices/ROX-Filer/PuppyPin > /dev/null
+  [ $? -ne 0 ] && break 2
+ done
+done
+#...aX and aY are free coordinates.
+
+#create the icon...
+PWD=`pwd`
+if [ ! -f /usr/share/pixmaps/ec-${EC_CREATE}48.png ];then
+ fndICON=''
+ [ ! "$ICON" ] && ICON=zzzzzzzz
+ [ -f "${DEB_PATH}${ICON}" ] && fndICON="${DEB_PATH}$ICON" #in case $ICON is an absolute path
+ [ ! "$fndICON" ] && [ -f "$ICON" ] && fndICON="$ICON" #ditto
+ [ ! "$fndICON" ] && fndICON="$(find ${DEB_PATH}/usr/share/pixmaps -name "${ICON}.png" -o -name "${ICON}.xpm" -o -name "${ICON}.svg" -o -name "${ICON}" | head -n 1)"
+ [ ! "$fndICON" ] && fndICON="$(find /usr/share/pixmaps -name "${ICON}.png" -o -name "${ICON}.xpm" -o -name "${ICON}.svg" -o -name "${ICON}" | head -n 1)"
+ [ ! "$fndICON" ] && fndICON="$(find ${DEB_PATH}/usr/share/icons -name "${ICON}.png" -o -name "${ICON}.xpm" -o -name "${ICON}.svg" -o -name "${ICON}" | grep '48x48' | head -n 1)"
+ [ ! "$fndICON" ] && fndICON="$(find /usr/share/icons -name "${ICON}.png" -o -name "${ICON}.xpm" -o -name "${ICON}.svg" -o -name "${ICON}" | grep '48x48' | head -n 1)"
+ [ ! "$fndICON" ] && [ -f /usr/share/pixmaps/$ICON ] && fndICON="/usr/share/pixmaps/$ICON"
+ [ ! "$fndICON" ] && [ -f /usr/local/lib/X11/mini-icons/$ICON ] && fndICON="/usr/local/lib/X11/mini-icons/$ICON"
+ [ ! "$fndICON" ] && [ -f /usr/local/lib/X11/pixmaps/$ICON ] && fndICON="/usr/local/lib/X11/pixmaps/$ICON"
+ [ ! "$fndICON" ] && fndICON="/usr/share/icons/Adwaita/scalable/mimetypes/application-x-executable-symbolic.svg" #fallback.
+ IMGTYPE="$(echo -n "$fndICON" | rev | cut -f 1 -d '.' | rev)" #ex: xpm
+ IMGBASE="$(basename "${fndICON}" .${IMGTYPE})"
+ cp -L -f "$fndICON" /tmp/easy_containers/
+ cd /tmp/easy_containers
+ if [ "$IMGTYPE" == "xpm" ];then
+  #xpmtoppm ${IMGBASE}.${IMGTYPE} | pnmtopng > ${IMGBASE}.png
+  xpmtoppm --alphaout=alpha.img ${IMGBASE}.${IMGTYPE} > body.img
+  pnmscale -xysize 48 48 alpha.img > alpha48.img
+  pnmscale -xysize 48 48 body.img > body48.img
+  pnmtopng -alpha=alpha48.img body48.img > ${IMGBASE}.png
+ fi
+ [ "$IMGTYPE" == "svg" ] && rsvg-convert --width=48 --height=48 --format=png ${IMGBASE}.${IMGTYPE} > ${IMGBASE}.png
+ if [ ! -f ${IMGBASE}.png ];then
+  rsvg-convert --width=48 --height=48 --format=png /usr/share/icons/Adwaita/scalable/mimetypes/application-x-executable-symbolic.svg > ${IMGBASE}.png
+ fi
+ cp -f /usr/sbin/pngoverlay ./
+ cp -f /usr/local/lib/X11/pixmaps/ec-overlay48.png ./
+ sync
+ ./pngoverlay ${IMGBASE}.png ec-overlay48.png /usr/share/pixmaps/ec-${EC_CREATE}48.png
+ cd $PWD
+fi
+
+#rox-filer, icon on desktop...
+#globicons, note, got code from /etc/rc.d/functions4puppy4...
+echo "<?xml version=\"1.0\"?>
+<env:Envelope xmlns:env=\"http://www.w3.org/2001/12/soap-envelope\">
+ <env:Body xmlns=\"http://rox.sourceforge.net/SOAP/ROX-Filer\">
+  <SetIcon>
+   <Path>/usr/sbin/ec-chroot-${EC_CREATE}</Path>
+   <Icon>/usr/share/pixmaps/ec-${EC_CREATE}48.png</Icon>
+  </SetIcon>
+ </env:Body>
+</env:Envelope>"  | rox -R
+#now create an icon on desktop...
+echo -e "#!/bin/sh\nexec ec-chroot ${EC_CREATE}" > /usr/sbin/ec-chroot-${EC_CREATE}
+chmod 755 /usr/sbin/ec-chroot-${EC_CREATE}
+#  note, frontend_funcs has add_pinboard_func(), use code from it...
+echo "<?xml version=\"1.0\"?>
+<env:Envelope xmlns:env=\"http://www.w3.org/2001/12/soap-envelope\">
+ <env:Body xmlns=\"http://rox.sourceforge.net/SOAP/ROX-Filer\">
+  <PinboardAdd>
+   <Path>/usr/sbin/ec-chroot-${EC_CREATE}</Path>
+   <X>${aX}</X>
+   <Y>${aY}</Y>
+   <Label>${EC_CREATE}</Label>
+   <Args></Args>
+  </PinboardAdd>
+ </env:Body>
+</env:Envelope>"  | rox -R
+  
+#log, read by ec-fix-desktop...
+echo "EC_LABEL=${EC_CREATE}
+EC_PATH=/usr/sbin/ec-chroot-${EC_CREATE}
+EC_ICON=/usr/share/pixmaps/ec-${EC_CREATE}48.png" > /mnt/wkg/containers/${EC_CREATE}/desktop
+  
+#now update the jwm menu...
+cd /
+fixmenus
+jwm -reload
+pupdialog --timeout 5 --background '#80FF80' --backtitle "$(gettext 'Creation completed:') ${EC_CREATE}" --msgbox "$(gettext 'Container created, menu entry created, and icon on the desktop')" 0 0
+
+cd $PWD
+sync
+###end###

@@ -1,0 +1,24 @@
+#!/bin/sh
+#easyos, desk0 is a container, see /mnt/wkg/containers/desk0, launched at
+#bootup see /root/Startup/zephyr -- this script launches Xephyr X server, and
+#the desk0 container. apps in desk0 will run DISPLAY :1, which is the Xephyr window.
+#ec-chroot, the script that starts the container, copies /etc/resolv.conf into the
+#container, however, network connection is not established that early in bootup, and
+#that file is empty.
+#/etc/eventmanager specifies the dependency for this script, /etc/init.d/petget0,
+#as 'network', so the pup_event service manager will call this script when the network
+#goes up, or down.
+#180726 /root/Startup/zephyr removed, now, desk0 started when click on "desk" desktop icon. but still need this script.
+#191218 the desktop containers are called "pyro", "buster", so write to all of them. script renamed from "desk0" to "ec-net".
+
+case "$1" in
+ start|stop|restart)
+  #[ -f /mnt/wkg/containers/desk0/container/etc/resolv.conf ] && cp -a -f /etc/resolv.conf /mnt/wkg/containers/desk0/container/etc/
+  for aCONT in `ls -1 /mnt/wkg/containers`
+  do
+   [ -f /mnt/wkg/containers/${aCONT}/container/etc/resolv.conf ] && cp -a -f /etc/resolv.conf /mnt/wkg/containers/${aCONT}/container/etc/
+  done
+ ;;
+esac
+
+###end###

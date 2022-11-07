@@ -1,0 +1,15 @@
+#!/bin/sh
+#3buildeasydistro will use the downloaded file.
+
+curl -L https://youtube-dl.org/downloads/latest/youtube-dl -o ./youtube-dlNEW
+if [ $? -ne 0 ];then
+ rm -f youtube-dlNEW
+fi
+if [ ! -s youtube-dlNEW ];then
+ rm -f youtube-dlNEW
+fi
+if [ -e youtube-dlNEW ];then
+ mv -f youtube-dlNEW youtube-dl
+ chmod 755 youtube-dl
+fi
+

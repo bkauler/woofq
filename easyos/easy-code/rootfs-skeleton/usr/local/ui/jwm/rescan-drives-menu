@@ -1,0 +1,10 @@
+#!/bin/ash
+#20220217 call from "Rescan drives" entry in drives menu. ref: generate-drives-menu
+#20220218 generate-drives-menu writes to /root/.jwmrc-drives internally.
+
+/usr/local/ui/jwm/generate-drives-menu #> /root/.jwmrc-drives
+jwm -reload
+/usr/local/ui/jwm/popup-drives-menu
+
+###end###
+

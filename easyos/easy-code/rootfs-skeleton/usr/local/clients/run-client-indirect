@@ -1,0 +1,44 @@
+#!/bin/sh
+#when running in fscrypt encrypted folder, need to run this so as
+#to enable write-permission when logged into a non-root client.
+#ref: /usr/bin/chromium in chromium sfs, /usr/sbin/run-as-spot, support/setup-client
+#20211004 keyctl link ... seems sometime not working.
+
+APP="$1"; shift
+ARGS=""
+#[ $1 ] && while [ "$1" ]; do ARGS="$ARGS \"$1\""; shift; done
+if [ $1 ];then
+ while [ "$1" ]
+ do
+  #do not put quotes around if a single word. example is "-edit" for seamonkey, the quotes stuff it up entirely...
+  if [ "${1/ /}" == "${1}" ];then
+   ARGS="${ARGS} ${1}"
+  else
+   ARGS="${ARGS} \"${1}\""
+  fi
+  shift
+ done
+fi
+
+ID="$(grep " logon " /proc/keys | head -n 1 | cut -f 1 -d " ")"
+if [ "$ID" ];then
+ #we can read files, but need to do this to be able to write...
+ #20211004 try fix link sometimes not work...
+ KEYfnd="$(keyctl list @us | grep -o 'logon:')"
+ if [ "$KEYfnd" == "" ];then
+  keyctl link 0x${ID} @us #link fscrypt key to user-session.
+  sleep 0.1
+ fi
+ KEYfnd="$(keyctl list @us | grep -o 'logon:')"
+ if [ "$KEYfnd" == "" ];then
+  sleep 0.2
+ fi
+ KEYfnd="$(keyctl list @us | grep -o 'logon:')"
+ if [ "$KEYfnd" == "" ];then
+  xmessage -bg '#ffa0a0' 'Sorry, unable to link fscrypt key to client. Please inform BarryK.'
+  exit
+ fi
+fi
+
+exec ${APP} ${ARGS}
+###end###

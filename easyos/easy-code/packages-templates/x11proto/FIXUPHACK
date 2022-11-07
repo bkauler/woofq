@@ -1,0 +1,21 @@
+# 150928
+
+#T2: my xorg_base_t2quirky7 template has all the folder hierarchy, these ones just
+#mess things up...
+
+for APRE in './' #'../x11proto_DEV/'
+do
+ [ -d ${APRE}etc ] && rm -rf ${APRE}etc
+ [ -d ${APRE}usr/bin ] && rm -rf ${APRE}usr/bin
+ 
+ [ -h ${APRE}usr/include/X11 ] && rm -f ${APRE}usr/include/X11
+ [ -h ${APRE}usr/lib/X11 ] && rm -f ${APRE}usr/lib/X11
+ [ -h ${APRE}usr/X11 ] && rm -f ${APRE}usr/X11
+ 
+ [ -h ${APRE}usr/X11R7/lib/X11 ] && rm -f ${APRE}usr/X11R7/lib/X11
+ [ -d ${APRE}usr/X11R7/lib/X11 ] && rm -rf ${APRE}usr/X11R7/lib/X11
+ 
+ [ -h ${APRE}usr/X11R7/share/fonts ] && rm -f ${APRE}usr/X11R7/share/fonts
+ [ -d ${APRE}usr/X11R7/share/fonts ] && rm -rf ${APRE}usr/X11R7/share/fonts
+done
+

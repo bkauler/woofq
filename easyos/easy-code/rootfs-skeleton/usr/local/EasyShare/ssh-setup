@@ -1,0 +1,169 @@
+#!/bin/bash
+#called from /usr/sbin/easyshare
+#180129 first release. 180208
+#180811 no longer using user 'rover', nor 'ssh0' container. see also: /usr/local/EasySahre/easyshare, /etc/ssh/sshd_config
+#180811 easyos: /etc/rc.d/PUPSTATE has $BOOT_PW_FLG =X or empty.
+#180816 only guaranteed path on remote pc is /root
+
+export TEXTDOMAIN=easyshare
+export OUTPUT_CHARSET=UTF-8
+
+. /etc/rc.d/PUPSTATE #180811 want WKG_DEV, WKG_DIR
+if [ "$WKG_DEV" ];then #180811
+ MYPATH="/root" #"/mnt/${WKG_DEV}/${WKG_DIR}files" #easy linux  180816
+else
+ MYPATH="/root" #/file  180816
+fi
+
+mkdir -p /tmp/easyshare
+
+start_stop_sshd_func() {
+ if pidof sshd >/dev/null;then
+  /bin/sh /etc/init.d/sshd stop >/dev/null 2>&1
+  chmod 644 /etc/init.d/sshd
+ else
+  chmod 755 /etc/init.d/sshd
+  /etc/init.d/sshd start >/dev/null 2>&1
+ fi
+
+ if pidof sshd >/dev/null; then
+  M_di1='<span fgcolor="DarkGreen">'"$(gettext 'The SSH daemon is running, good. SSHFS can now be used. To disable SSHFS, click the <b>SSHD ON</b> button.')"'</span>'
+  ln -snf ../../usr/share/pixmaps/easyshare/sshd-on.png /tmp/easyshare/sshd-daemon.png
+ else
+  M_di1='<span fgcolor="DarkRed">'"$(gettext 'The SSH daemon is not running. You must click the <b>SSH OFF</b> button to turn it on.')"'</span>'
+  ln -snf ../../usr/share/pixmaps/easyshare/sshd-off.png /tmp/easyshare/sshd-daemon.png
+ fi
+ echo "$M_di1" > /tmp/easyshare/ssh-setup-daemon-info
+}
+export -f start_stop_sshd_func
+
+M_x1="$(gettext 'This is SSH Setup, to setup a SSH server for sharing of a folder over the local network.')"
+M_3="$(gettext 'Full path to shared folder:')"
+M_4="$(gettext 'Technical notes')"
+if [ "$BOOT_PW_FLG" ];then #180811 see PUPSTATE
+ M_5="$(gettext 'The password is the same as used to decrypt the working partition at bootup. It is recommended to leave this as-is. <b>Do not change the password boxes</b>.')"
+else
+ M_5="$(gettext 'The default password is <b>woofwoof</b>, however, it is strongly reommended to change this. Maximum of 8 characters, and you need to remember it.')"
+fi
+
+M_x2="
+<b>${M_4}</b>
+${M_3}
+${prePATHssh0}${MYPATH}"
+
+M_p1="$(gettext 'Displayed with X characters for security:')"
+ROOT_LOCAL_PASSWORD='XXXXXXXX'
+
+PWXML="  <hbox>
+   <entry max_length=\"8\" visibility=\"true\" tooltip-text=\"$(gettext 'Type a password that you can remember')\">
+    <width>100</width>
+    <default>${ROOT_LOCAL_PASSWORD}</default>
+    <variable>LOCALPASSWORD1</variable>
+   </entry>
+   <text><label> $(gettext 'Verify:')</label></text>
+   <entry max_length=\"8\" visibility=\"true\" tooltip-text=\"$(gettext 'Retype the password here')\">
+    <width>100</width>
+    <default>${ROOT_LOCAL_PASSWORD}</default>
+    <variable>LOCALPASSWORD2</variable>
+   </entry>
+  </hbox>"
+
+if pidof sshd; then
+ M_di1='<span fgcolor="DarkGreen">'"$(gettext 'The SSH daemon is running, good. SSHFS can now be used. To disable SSHFS, click the <b>SSHD ON</b> button.')"'</span>'
+ ln -snf ../../usr/share/pixmaps/easyshare/sshd-on.png /tmp/easyshare/sshd-daemon.png
+else
+ M_di1='<span fgcolor="DarkRed">'"$(gettext 'The SSH daemon is not running. You must click the <b>SSH OFF</b> button to turn it on.')"'</span>'
+ ln -snf ../../usr/share/pixmaps/easyshare/sshd-off.png /tmp/easyshare/sshd-daemon.png
+fi
+echo "$M_di1" > /tmp/easyshare/ssh-setup-daemon-info
+
+DAEMONxml="<hbox>
+ <text width-chars=\"35\" use-markup=\"true\">
+  <label>...</label>
+  <input file>/tmp/easyshare/ssh-setup-daemon-info</input>
+  <variable>TXT_DAEMON</variable>
+ </text>
+
+ <vbox>
+  <button>
+   <input file>/tmp/easyshare/sshd-daemon.png</input>
+   <variable>DAEMON_RUN</variable>
+   <action>start_stop_sshd_func</action>
+   <action>refresh:DAEMON_RUN</action>
+   <action>refresh:TXT_DAEMON</action>
+  </button>
+ </vbox>
+
+</hbox>"
+
+export ES_SSH_DLG="
+<window title=\"$(gettext 'EasyShare: SSH Setup')\" icon-name=\"gtk-network\">
+ <vbox>
+  <text use-markup=\"true\"><label>\"${M_x1}\"</label></text>
+  
+  <hseparator></hseparator>
+   ${DAEMONxml}
+  <hseparator></hseparator>
+  
+  <text use-markup=\"true\"><label>\"${M_5}
+
+${M_p1}\"</label></text>
+  
+  ${PWXML}
+
+  <text use-markup=\"true\"><label>\"${M_x2}\"</label></text>
+  
+  <hbox>
+   <button cancel></button>
+   <button ok></button>
+  </hbox>
+ </vbox>
+</window>"
+
+RETVALS="$(gtkdialog --program=ES_SSH_DLG --center)"
+
+eval "$RETVALS"
+
+if [ "$EXIT" == "OK" ];then
+ 
+ if ! pidof sshd >/dev/null;then
+  M_f1="$(gettext 'The SSHD daemon is not running, so SSHFS cannot be used.')"
+  #pupmessage -bg '#FFA0A0' -title "SSH Setup" "${M_f1}"
+  popup "background=#FFA0A0 terminate=ok level=top|<b><big>${M_f1}</big></b>"
+  exit
+ fi
+ 
+ [ "$(echo -n "$LOCALPASSWORD1" | tr -d 'X')" == "" ] && exit
+ [ "$LOCALPASSWORD1" == "" ] && exit
+ M_sa="$(gettext 'SSH Setup Error')"
+ if [ "$LOCALPASSWORD1" != "$LOCALPASSWORD2" ];then
+  M_sb="$(gettext 'Passwords are not the same')"
+  pupmessage -bg '#FFA0A0' -title "${M_sa}" "${M_sb}"
+  exec /usr/local/EasyShare/ssh-setup
+ fi
+ if [ "$(echo -n "$LOCALPASSWORD1" | tr -d '[a-zA-Z0-9]')" != "" ];then
+  M_sc="$(gettext 'Password may only contain a-z, A-Z and 0-9')"
+  pupmessage -bg '#FFA0A0' -title "${M_sa}" "${M_sc}"
+  exec /usr/local/EasyShare/ssh-setup
+ fi
+ #note, may need to set "ENCRYPT_METHOD SHA512" in /etc/login.defs
+ #sed -i -e 's%^#ENCRYPT_METHOD .*%ENCRYPT_METHOD SHA512%' ${prePATHssh0}/etc/login.defs
+ echo "root:${LOCALPASSWORD1}" | chpasswd -c SHA512 #180811
+ M_s1="$(gettext 'Password set to:')"
+ pupmessage -bg '#A0FFA0' -title "SSH Setup" "${M_s1} ${LOCALPASSWORD1}"
+fi
+
+#180201
+REMOTE_PROBE_METHOD="$(cat /tmp/easyshare/remote_probe_method)"
+if [ "$REMOTE_PROBE_METHOD" == "smbd" ];then
+ if ! pidof smbd > /dev/null ;then
+  . /root/.config/firewall/fw.conf
+  if [ "$CONFIG_SAMBA" == "true" -a "$CONFIG_SAMBA_CLIENT" == "true" ];then
+   M_s1="$(gettext 'EasyShare is configured to use Samba for network probing. Samba is also needed for printing from Windows to a Linux PC. <b>Samba Setup</b> will now be run, and you must enable the Samba daemon.')"
+   popup "process=wait backgrount=#ffa0a0 terminate=ok level=top|<big>${M_s1}</big>"
+   /usr/local/EasyShare/samba-setup
+  fi
+ fi
+fi
+
+###END###

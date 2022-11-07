@@ -1,0 +1,632 @@
+' (c) Copyright Barry Kauler March 2014, license GPL v3 /usr/share/doc/legal
+'140301 created
+'140303 peter eerten: showed how to replace low-level C open() with OPEN. ref: http://basic-converter.proboards.com/thread/637/usec-substitution-bug
+'140304 run as a daemon, pass 1st msg on commandline.
+'140305 remove inotify, polling only.
+'140307 handle queued messages (multiple lines in input file).
+'140307 optional close-box, top-left of popup.
+'140308 if terminate=<n> timecount!="off" then subst "COUNT" in display.
+'140308 dpi support. ...no, don't think necessary. 140310 yes.
+'140308 ok button.
+'140309 justify text.
+'140309 big bass: check running as root.
+'140310 fix fontname parsing. 01micko: use "X" instead of image for closebox, if image not exist.
+'150407 new control 'process'. new utility 'popadd'.
+'151207 fix help. remove ERROR test.
+'170209 "background" stopped working, a name conflict with the forking code, changed to "backcolor".
+'170526 fix, removed trailing semicolons.
+'20221101 allow super-user zeus to run popup. uid==100
+
+SETENVIRON "OUTPUT_CHARSET", "UTF-8"
+
+PROTO geteuid
+IF (geteuid() != 0) AND (getuid() != 100) THEN
+ PRINT "Error: Must be root (su user) to use the popup daemon "
+ END 2
+ENDIF
+
+'the first message must be passed on the commandline...
+help=0
+IF argc>=2 THEN
+ IF argv[1]=="-h" THEN help=1
+ IF argv[1]=="--help" THEN help=1
+ FOR ii=1 TO argc-1
+  IF ii=1 THEN
+   msg$=argv[ii]
+  ELSE
+   msg$=CONCAT$(msg$," ",argv[ii])
+  ENDIF
+ NEXT
+ 'IF argv[1]=="-h" THEN help=1
+ 'IF argv[1]=="--help" THEN help=1
+ELSE
+ help=1
+END IF
+
+IF help==1 THEN
+ PRINT "Popup utility, written in BaCon by Barry Kauler, 2014."
+ PRINT "The 1st text must be passed on the commandline, optional controls. Ex:"
+ PRINT "> popup 'name=mymsg placement=top-middle|the quick brown fox jumped high'"
+ PRINT " ...notice the '|' delimiter between controls and message."
+ PRINT " ...default is 'popup' daemonizes itself, returns to caller immediately."
+ PRINT "CONTROLS (defaults in square-brackets):"
+ PRINT "background Color, in format '#rrggbb' [current gtk theme]"
+ PRINT "fontname   Name of font. Can override in message [DejaVu Sans 12]"
+ PRINT "flash      on, off. send with new background, will flip between previous"
+ PRINT "justify    left, right, center, fill (must be in commandline) [left]"
+ PRINT "level      Layered relative to other windows: top, normal, bottom [normal]"
+ PRINT "           Note: top,bottom disabled if placement=bottom-left|middle|right"
+ PRINT "name       Name of window, use for subsequent controls/messages []"
+ PRINT "placement  top- or bottom- (left,middle,right suffix), center, mouse [center]"
+ PRINT "process    daemon, wait [daemon]"
+ PRINT "terminate  Never, <seconds> (need timecount=dn* and name), now, closebox, ok [never]"
+ PRINT "timecount  up, dn, upclk, dnclk, off (dn* needs terminate=<n> and name). Subst 'COUNT' in text [off]"
+ PRINT "width      Width of window, in pixels. or -1 all on one line. [-1]"
+ PRINT "writemode  Subsequent text updates: append, append-newline, replace [replace]"
+ PRINT " ...note, once sent, a control remains in effect for future updates."
+ PRINT "MESSAGE:"
+ PRINT "Allows Pango Text Attribute Markup Language tags in text."
+ PRINT "Ref: https://developer.gnome.org/pango/stable/PangoMarkupFormat.html"
+ PRINT "Note, '|' delimiter only required if there are controls."
+ PRINT "UPDATES:"
+ PRINT "Ex: popadd 'name=mymsg writemode=append|this text appends to previous'"
+ PRINT "Ex: popadd 'name=mymsg terminate=now|'"
+ PRINT "    Note, this alternative technique also works, ex:"
+ PRINT "    echo 'writemode=append|this text appends to previous' >> /tmp/popup_mymsg"
+ END 0
+END IF
+
+'170209 change "background" to "backcolor"
+msg2$=REPLACE$(msg$,"background","backcolor")
+msg$=msg2$
+
+'daemon ref: http://www.netzmafia.de/skripten/unix/linux-daemon-howto.html
+'another ref: http://www.microhowto.info/howto/cause_a_process_to_become_a_daemon_in_c.html
+IF NOT(INSTR(msg$,"process=wait")) THEN
+USEC
+ pid_t pid,sid;
+ // Fork off the parent process
+ pid = fork();
+ // An error occurred
+ if (pid < 0) exit(EXIT_FAILURE);
+ // Success: Let the parent terminate
+ if (pid > 0) exit(EXIT_SUCCESS);
+ // On success: The child process becomes session leader
+ if (sid=setsid() < 0) exit(EXIT_FAILURE);
+ // Change the file mode mask
+ umask(0);
+ // Close out the standard file descriptors (unusable in daemon)
+ //close(STDIN_FILENO);
+ //close(STDOUT_FILENO);
+ //close(STDERR_FILENO);
+ //open("/dev/null",O_RDONLY);
+ //open("/dev/null",O_WRONLY);
+ //open("/dev/null",O_RDWR);
+ close(STDIN_FILENO);
+ if (open("/dev/null",O_RDONLY) == -1) exit(EXIT_FAILURE);
+ int logfile_fileno = open("/tmp/popup_log",O_RDWR|O_CREAT|O_APPEND,S_IRUSR|S_IWUSR|S_IRGRP);
+ if (logfile_fileno == -1) exit(EXIT_FAILURE);
+ dup2(logfile_fileno,STDOUT_FILENO);
+ dup2(logfile_fileno,STDERR_FILENO);
+ close(logfile_fileno);
+END USEC
+END IF
+
+INCLUDE "/usr/share/BaCon/hug.bac",ATTACH,BUTTON,CALLBACK,DISPLAY,FONT,HIDE,HUGOPTIONS,IMAGE,INIT,MARK,MSGDIALOG,PROPERTY,QUIT,SHOW,TEXT,TIMEOUT,WINDOW
+'INCLUDE "/usr/share/BaCon/hug_imports.bac"
+INIT
+
+' fix window font layout regardless of dpi...
+' 96 is the Xft.dpi in /root/.Xresources when I designed the layout...
+HUGOPTIONS("BASEXFTDPI 96")
+' User may have GTK theme font size too big/small. set to required size...
+' i want this for the "OK" button and "X" closebox...
+HUGOPTIONS("FONT DejaVu Sans 14")
+
+PROTO close, ftruncate, lseek, poll, read, sizeof, strlen, write
+GLOBAL backcolor$,fontname$,justify$,level$,name$,placement$,terminate$,timecount$,width$,writemode$ TYPE STRING
+GLOBAL fd1,thisdescr,cnt,justify TYPE int
+size_char=sizeof(char)
+size_inbuf=size_char*4096
+GLOBAL inbuf,bufinotify TYPE char ARRAY size_inbuf
+GLOBAL msg_ptr,control_ptr TYPE char*
+GLOBAL red16,green16,blue16 TYPE unsigned short
+GLOBAL oldred16,oldgreen16,oldblue16 TYPE unsigned short
+GLOBAL newred16,newgreen16,newblue16 TYPE unsigned short
+cnt=0
+'name of window, any unique word. want unique window for each sender...
+name$=""
+'where on the screen to place message. top-, bottom-, -left, -middle, -right, center, mouse
+placement$="center"
+'width in pixels of the message window...
+width$="-1"
+'width=VAL(width$)
+width=-1
+'font to use...
+fontname$="DejaVu Sans 12"
+'justification, default left...
+justify$="left"
+justify=0
+'how text appears in window: append, append-newline, replace...
+writemode$="replace"
+'never (0), <seconds>, now (-1)...
+terminate$="never"
+terminate=0
+'background color of window...
+backcolor$="#ffff00"
+red16=0xffff
+green16=0xffff
+blue16=0x0000
+'position relative to other windows: top, normal, bottom...
+level$="normal"
+'count up or down...
+timecount$="off"
+
+GLOBAL oldmsg$,oldbackcolor$,oldlevel$,oldterminate$,outmsg$,clock$ TYPE STRING
+oldmsg$=""
+oldbackcolor$=""
+oldlevel$=""
+oldterminate$=""
+
+'functions here: https://developer.gnome.org/gtk2/stable/GtkWindow.html
+IMPORT "gtk_window_set_keep_above(long,int)" FROM "libgtk-x11-2.0.so.0" TYPE void
+IMPORT "gtk_window_set_keep_below(long,int)" FROM "libgtk-x11-2.0.so.0" TYPE void
+IMPORT "gtk_window_move(long,int,int)" FROM "libgtk-x11-2.0.so.0" TYPE void
+IMPORT "gtk_widget_modify_bg(long,int,long)" FROM "libgtk-x11-2.0.so.0" TYPE void
+'IMPORT "gtk_widget_set_tooltip_text(long,char*)" FROM "libgtk-x11-2.0.so.0" TYPE void
+IMPORT "gtk_widget_size_request(long,long)" FROM "libgtk-x11-2.0.so.0" TYPE void
+
+SUB exitsub(NUMBER i)
+ IF fd1>0 THEN close(fd1)
+ IF thisdescr>0 THEN close(thisdescr)
+ END i
+END SUB
+
+SUB parse_msg
+ LOCAL ctl_ref TYPE STRING
+ LOCAL ctl_ptr TYPE char*
+ 'msg$ can have various control variables before the actual message string...
+ control$=msg$
+ control_ptr=control$
+ control_ptr[off1-1]=0
+ SPLIT control$ BY " " TO cont_arr1$ SIZE arr1_num
+ IF arr1_num>0 THEN
+  FOR i=0 TO arr1_num-1
+   SPLIT cont_arr1$[i] BY "=" TO cont_arr2$ SIZE arr2_num
+   IF arr2_num==2 THEN
+    SELECT cont_arr2$[0]
+     CASE "name"
+      name$=CHOP$(cont_arr2$[1],"'\"")
+     CASE "placement"
+      placement$=CHOP$(cont_arr2$[1],"'\"")
+     CASE "width"
+      width$=CHOP$(cont_arr2$[1],"'\"")
+      width=VAL(width$)
+     CASE "fontname"
+      'problem, fontname may have spaces, grab all...
+      'fontname$=CHOP$(cont_arr2$[1],"'\"")
+      in3=REGEX(control$,"fontname=['\"]")
+      IF in3==0 THEN
+       'single word, without ' " delimiters...
+       fontname$=cont_arr2$[1]
+      ELSE
+       fontcut1$=EXTRACT$(control$,"^.*fontname=['\"]",TRUE)
+       fontname$=EXTRACT$(fontcut1$,"['\"].*$",TRUE)
+      ENDIF
+     CASE "justify"
+      justify$=CHOP$(cont_arr2$[1],"'\"")
+      IF justify$=="right" THEN
+       justify=1
+      ELIF justify$=="center" THEN
+       justify=2
+      ELIF justify$=="fill" THEN
+       justify=3
+      ELSE
+       justify=0
+      END IF
+     CASE "writemode"
+      writemode$=CHOP$(cont_arr2$[1],"'\"")
+     CASE "terminate"
+      terminate$=CHOP$(cont_arr2$[1],"'\"")
+      IF terminate$=="never" THEN
+       terminate=0
+      ELIF terminate$=="closebox" THEN
+       terminate=0
+      ELIF terminate$=="ok" THEN
+       terminate=0
+      ELIF terminate$=="now" THEN
+       terminate=-1
+      ELSE
+       terminate=VAL(terminate$)
+       'IF ERROR!=0 THEN terminate=0
+       cnt=0
+      ENDIF
+     CASE "timecount"
+      'note, requires terminate=<n> for timecount=dn or dnclk.
+      timecount$=CHOP$(cont_arr2$[1],"'\"")
+      SELECT timecount$
+       CASE "up"
+        cnt=0
+       CASE "upclk"
+        cnt=0
+      END SELECT
+     CASE "backcolor"
+      'save previous bg colors for flashing...
+      oldred16=red16
+      oldgreen16=green16
+      oldblue16=blue16
+      backcolor$=CHOP$(cont_arr2$[1],"'\"")
+      IF LEN(backcolor$)==7 THEN
+       red1$=MID$(backcolor$,2,2)
+       green1$=MID$(backcolor$,4,2)
+       blue1$=MID$(backcolor$,6,2)
+       red8=VAL(CONCAT$("0x",red1$))
+       green8=VAL(CONCAT$("0x",green1$))
+       blue8=VAL(CONCAT$("0x",blue1$))
+       red16=red8*257
+       green16=green8*257
+       blue16=blue8*257
+       newred16=red16
+       newgreen16=green16
+       newblue16=blue16
+      ENDIF
+     CASE "level"
+      level$=cont_arr2$[1]
+     CASE "flash"
+      flash$=cont_arr2$[1]
+    END SELECT
+   END IF
+  NEXT
+  'only allow timecount=dn or dnclk if terminate=<n> ...
+  IF terminate<=0 THEN
+   IF timecount$=="dn" THEN
+    timecount$="off"
+   ENDIF
+   IF timecount$=="dnclk" THEN
+    timecount$="off"
+   ENDIF
+  ENDIF
+ END IF
+END SUB
+
+SUB placement_func
+ SELECT placement$
+  CASE "mouse"
+   PROPERTY(mainwin,"window-position",2)
+  CASE "center"
+   PROPERTY(mainwin,"window-position",1)
+  CASE "top-left"
+   'window placement on screen: https://developer.gnome.org/gdk2/stable/gdk2-Windows.html#GDK-GRAVITY-NORTH-WEST:CAPS. 1=top-left
+   'PROPERTY(mainwin,"gravity",GDK_GRAVITY_NORTH_WEST)
+   gtk_window_move(mainwin,0,0)
+  CASE "top-middle"
+   IF width>0 THEN
+    midoff=width/2
+   ELSE
+    midoff=200
+   ENDIF
+   'PROPERTY(mainwin,"gravity",GDK_GRAVITY_NORTH_WEST)
+   gtk_window_move(mainwin,centerx-midoff,0)
+  CASE "top-right"
+   'PROPERTY(mainwin,"gravity",GDK_GRAVITY_NORTH_EAST)
+   gtk_window_move(mainwin,rootx-width,0)
+  CASE "bottom-left"
+   'PROPERTY(mainwin,"gravity",7)
+   '20 only suits 1-line, but jwm pushes entire window up so all displays...
+   gtk_window_move(mainwin,0,rooty-20)
+  CASE "bottom-middle"
+   IF width>0 THEN
+    midoff=width/2
+   ELSE
+    midoff=200
+   ENDIF
+   'PROPERTY(mainwin,"gravity",7)
+   gtk_window_move(mainwin,centerx-midoff,rooty-20)
+  CASE "bottom-right"
+   'PROPERTY(mainwin,"gravity",9)
+   gtk_window_move(mainwin,rootx-width,rooty-20)
+ END SELECT
+END SUB
+
+SUB width_func()
+ IF oldwidth!=width THEN
+  PROPERTY(msg_id,"width-request",width)
+  oldwidth=width
+ ENDIF
+END SUB
+
+SUB backcolor_func()
+ IF flash$=="on" THEN
+  'called from wait_func() every 500msec.
+  IF EVEN(cnt)==1 THEN
+   red16=newred16
+   green16=newgreen16
+   blue16=newblue16
+  ELSE
+   red16=oldred16
+   green16=oldgreen16
+   blue16=oldblue16
+  ENDIF
+ ENDIF
+ IF oldbackcolor$!=backcolor$ THEN
+  'set the background: http://www.gtk.org/api/2.6/gtk/GtkWidget.html
+  'for window background color... yellow... see: http://web.mit.edu/jhawk/mnt/spo/gtk/gtk_v2.0/src/gtk+-2.0.6/docs/reference/gdk/html/gdk-colormaps-and-colors.html
+  'GTK_STATE_NORMAL==1, see: https://developer.gnome.org/gtk2/stable/gtk2-Standard-Enumerations.html
+  'guint32==unsigned int, guint16=unsigned short
+  USEC
+  struct GdkColor
+  {
+   unsigned int pixel;
+   unsigned short red;
+   unsigned short green;
+   unsigned short blue;
+  };
+  struct GdkColor color1;
+  color1.red=red16;
+  color1.green=green16;
+  color1.blue=blue16;
+  typedef enum {
+   GTK_STATE_NORMAL,
+   GTK_STATE_ACTIVE,
+   GTK_STATE_PRELIGHT,
+   GTK_STATE_SELECTED,
+   GTK_STATE_INSENSITIVE
+  } GtkStateType;
+  gtk_widget_modify_bg(mainwin,GTK_STATE_NORMAL,(long int)&color1);
+  END USEC
+  IF flash$=="off" THEN oldbackcolor$=backcolor$
+ END IF
+END SUB
+
+SUB fontname_func()
+ IF oldfontname$!=fontname$ THEN
+  FONT(msg_id,fontname$)
+  oldfontname$=fontname$
+ ENDIF
+END SUB
+
+SUB level_func()
+ IF oldlevel$!=level$ THEN
+  'only allow normal level if window on bottom (-left, etc)...
+  off3=INSTR(placement$,"bottom")
+  IF off3>0 THEN level$="normal"
+  'ref: https://developer.gnome.org/gtk2/2.24/GtkWindow.html
+  IF level$=="top" THEN gtk_window_set_keep_above(mainwin,TRUE)
+  IF level$=="bottom" THEN gtk_window_set_keep_below(mainwin,TRUE)
+  oldlevel$=level$
+ ENDIF
+END SUB
+
+SUB closebox_func()
+ IF terminate$=="closebox" THEN
+  IF oldterminate$!=terminate$ THEN
+   IF FILEEXISTS("/usr/local/lib/X11/mini-icons/mini-cross.xpm")==1 THEN
+    button_x=BUTTON("",24,24)
+    image_x=IMAGE("/usr/local/lib/X11/mini-icons/mini-cross.xpm",16,16)
+    PROPERTY(button_x,"image",image_x)
+   ELSE
+    button_x=BUTTON("X",-1,-1)
+   ENDIF
+   'gtk_widget_set_tooltip_text(button_x,"Close window")
+   IF width==-1 THEN
+    'on one line, but note long lines still do wrap.
+    'ATTACH(mainwin,button_x,1,1)
+    RECORD sizereq
+     LOCAL req_width TYPE int
+     LOCAL req_height TYPE int
+    END RECORD
+    gtk_widget_size_request(msg_id,(long)&sizereq)
+    ATTACH(mainwin,button_x,sizereq.req_width+6,1)
+   ELSE
+    ATTACH(mainwin,button_x,width-19,1)
+   ENDIF
+   CALLBACK(button_x,QUIT)
+   oldterminate$=terminate$
+  ENDIF
+ ELSE
+  IF oldterminate$=="closebox" THEN
+   HIDE(button_x)
+  ENDIF
+ ENDIF
+END SUB
+
+SUB ok_func()
+ IF terminate$=="ok" THEN
+  IF oldterminate$!=terminate$ THEN
+   button_ok=BUTTON("OK",-1,-1)
+   'image_x=IMAGE("/usr/local/lib/X11/mini-icons/mini-tick.xpm",16,16)
+   'PROPERTY(button_ok,"image",image_x)
+   RECORD sizereq2
+    LOCAL req_width TYPE int
+    LOCAL req_height TYPE int
+   END RECORD
+   gtk_widget_size_request(msg_id,(long)&sizereq2)
+   ATTACH(mainwin,button_ok,sizereq2.req_width-30,sizereq2.req_height)
+   CALLBACK(button_ok,QUIT)
+   oldterminate$=terminate$
+  ENDIF
+ ELSE
+  IF oldterminate$=="ok" THEN
+   HIDE(button_ok)
+  ENDIF
+ ENDIF
+END SUB
+
+SUB sec_to_clock(int insecs)
+ mins=insecs/60
+ secs=MOD(insecs,60)
+ mins$=STR$(mins)
+ IF mins<10 THEN mins$=CONCAT$("0",mins$)
+ secs$=STR$(secs)
+ IF secs<10 THEN secs$=CONCAT$("0",secs$)
+ clock$=CONCAT$(mins$,":",secs$)
+END SUB
+
+SUB timecount_func()
+ IF timecount$!="off" THEN
+  SELECT timecount$
+   CASE "dn"
+    dcnt=((terminate*2)-cnt)/2
+    dcnt$=STR$(dcnt)
+   CASE "dnclk"
+    dcnt=((terminate*2)-cnt)/2
+    sec_to_clock(dcnt)
+    dcnt$=clock$
+   CASE "up"
+    dcnt$=STR$(cnt/2)
+   DEFAULT "upclk"
+    dcnt=cnt/2
+    sec_to_clock(dcnt)
+    dcnt$=clock$
+  END SELECT
+  tmpmsg$=REPLACE$(outmsg$,"COUNT",dcnt$)
+  outmsg$=tmpmsg$
+ ENDIF
+END SUB
+
+FUNCTION wait_func
+ INCR cnt
+ IF terminate==-1 THEN exitsub(0)
+ IF terminate>0 THEN
+  IF (terminate*2)<cnt THEN exitsub(0)
+ ENDIF
+ IF flash$=="on" THEN
+  backcolor_func()
+ ENDIF
+
+ 'doing polling of file here, return if zero-size file...
+ offt=lseek(thisdescr,0,SEEK_END)
+ jmpflg=0
+ IF timecount$!="off" THEN
+  IF offt==0 THEN
+   jmpflg=1
+  ENDIF
+ ENDIF
+ 
+ IF jmpflg==0 THEN
+  IF offt==0 THEN
+   RETURN TRUE
+  ENDIF
+ ELSE
+  outmsg$=oldmsg$
+  timecount_func()
+  TEXT(msg_id,outmsg$)
+  RETURN TRUE
+ ENDIF
+
+ offt=lseek(thisdescr,0,SEEK_SET)
+ numr=read(thisdescr,inbuf,size_inbuf)
+ ft=ftruncate(thisdescr,0)
+ IF numr>1 THEN
+  'get rid of carriage-return char on end...
+  inbuf[numr-1]=0
+  msg0$=inbuf
+  'find out if more than one line...
+  SPLIT msg0$ BY "\n" TO msg_arr$ SIZE numlines
+  FOR j=0 TO numlines-1
+   msg$=msg_arr$[j]
+   msg_ptr=msg$
+   off1=INSTR(msg$,"|")
+   IF off1>0 THEN
+    parse_msg()
+    level_func()
+    fontname_func()
+    backcolor_func()
+    placement_func()
+    width_func()
+   END IF
+   IF writemode$=="append" THEN
+    oldmsg$=CONCAT$(oldmsg$,msg_ptr+off1)
+    'TEXT(msg_id,oldmsg$)
+    outmsg$=oldmsg$
+   ELIF writemode$=="append-newline" THEN
+    oldmsg$=CONCAT$(oldmsg$,"\n",msg_ptr+off1)
+    'TEXT(msg_id,oldmsg$)
+    outmsg$=oldmsg$
+   ELSE
+    'TEXT(msg_id,msg_ptr+off1)
+    outmsg$=msg_ptr+off1
+    oldmsg$=msg_ptr+off1
+   ENDIF
+
+   timecount_func()
+   TEXT(msg_id,outmsg$)
+   IF off1>0 THEN
+    closebox_func()
+    ok_func()
+   ENDIF
+  NEXT
+ ENDIF
+ RETURN TRUE
+END FUNCTION
+
+'ex: 1280x800+0+0
+rootgeom$=EXEC$("xwininfo -root | grep -o ' \\-geometry .*' | cut -f 3 -d ' ' | cut -f 1 -d '+'")
+SPLIT rootgeom$ BY "x" TO geom_arr$ SIZE geom_num
+rootx=VAL(geom_arr$[0])
+rooty=VAL(geom_arr$[1])
+centerx=rootx/2
+
+msg_ptr=msg$
+off1=1
+off1=INSTR(msg$,"|")
+IF off1>0 THEN
+ parse_msg()
+END IF
+
+outmsg$=msg_ptr+off1
+timecount_func()
+
+'this lists all the allowed window properties...
+'https://developer.gnome.org/gtk2/stable/GtkWindow.html#GtkWindow.properties
+HUGOPTIONS("WIDGET_SHOW 0")
+'set xsize,ysize to -1,-1, then window will fit the widget...
+mainwin = WINDOW("",-1,-1)
+
+PROPERTY(mainwin,"decorated",FALSE)
+PROPERTY(mainwin,"skip-taskbar-hint",TRUE)
+PROPERTY(mainwin,"skip-pager-hint",TRUE)
+PROPERTY(mainwin,"accept-focus",FALSE)
+
+level_func()
+backcolor_func()
+placement_func()
+'oldwidth used in width_func()...
+oldwidth=width
+
+HUGOPTIONS("WIDGET_SHOW 1")
+
+'outmsg$ is a copy of msg_ptr+off1, maybe with some post-processing (such as COUNT substitution).
+msg_id=MARK(outmsg$,width,-1)
+'used for appending...
+oldmsg$=msg_ptr+off1
+FONT(msg_id,fontname$)
+oldfontname$=fontname$
+'gtkwidget properties ref: https://developer.gnome.org/gtk2/stable/GtkWidget.html
+'textview properties ref: https://developer.gnome.org/gtk2/stable/GtkTextView.html
+'gtkalignment ref: https://developer.gnome.org/gtk2/stable/GtkAlignment.html
+'gtklabel ref: https://developer.gnome.org/gtk2/stable/GtkLabel.html
+PROPERTY(msg_id,"xalign",0.0)
+PROPERTY(msg_id,"yalign",0.0)
+'0=left, 1=right, 2=center, 3=fill
+PROPERTY(msg_id,"justify",justify)
+PROPERTY(msg_id,"wrap",TRUE)
+ATTACH(mainwin,msg_id,5,0)
+
+closebox_func()
+ok_func()
+
+IF name$!="" THEN
+ thisfile$=CONCAT$("/tmp/popup_",name$)
+ IF FILEEXISTS(thisfile$)==1 THEN
+  OPTION DEVICE O_RDWR
+  OPEN thisfile$ FOR DEVICE AS thisdescr
+ ELSE
+  OPTION DEVICE O_RDWR|O_CREAT
+  OPEN thisfile$ FOR DEVICE AS thisdescr
+ ENDIF
+ TIMEOUT(500,wait_func)
+END IF
+
+SHOW(mainwin)
+DISPLAY

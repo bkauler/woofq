@@ -1,0 +1,21 @@
+
+#usr/bin/strings is not part of util-linux -- i checked sources of various versions, at
+# http://www.kernel.org/pub/linux/utils/util-linux/
+#see also: http://en.wikipedia.org/wiki/Util-linux
+#however, slackware binary pkg does have it.
+#strings is actually in pkg binutils, but slackware have renamed that 'strings-GNU'.
+#all other distros use the 'strings' in pkg binutils.
+
+#161025 native build in Pi2,
+# sbin/getty is a symlink to agetty, getting left in devx, messes up symlink to
+# busybox when install devx. this symlink actually gets copied into util-linux_DEV
+# after FIXUPHACK executes, so have to get rid of it this way (ref: 2createpackages, 161025)...
+[ -h ../../sandbox2b/sbin/getty ] && rm -f ../../sandbox2b/sbin/getty
+[ -h sbin/getty ] && rm -f sbin/getty
+#ditto usr/bin/lastb symlink to 'last'...
+[ -h ../../sandbox2b/usr/bin/lastb ] && rm -f ../../sandbox2b/usr/bin/lastb
+[ -h usr/bin/lastb ] && rm -f usr/bin/lastb
+#note, when 3builddistro builds the devx, it is supposed to get rid of invalid
+# symlinks. perhaps using overlayfs is doing this wrong? (the main rootfs-complete
+# will have sbin/getty a symlink to busybox, devx layer sbin/getty symlink to agetty).
+

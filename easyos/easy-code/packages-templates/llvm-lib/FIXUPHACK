@@ -1,0 +1,31 @@
+#20211018 easyos llvm compiled in oe
+
+rm -rf usr/bin
+
+DIRNAME="$(find usr/lib -mindepth 1 -maxdepth 1 -type d -name 'llvm*' | head -n 1 | rev | cut -f 1 -d '/' | rev)" #ex: llvm9.0.1
+if [ "$DIRNAME" ];then
+ 
+ cp -a -f --remove-destination usr/lib/${DIRNAME}/libLLVM* usr/lib/
+ cp -a -f --remove-destination usr/lib/${DIRNAME}/libLTO* usr/lib/
+ cp -a -f --remove-destination usr/lib/${DIRNAME}/libRemarks* usr/lib/
+ 
+ #mkdir -p ../llvm-lib_DEV/usr/include/${DIRNAME}
+ rm -rf ../llvm-lib_DEV/usr/include/${DIRNAME}/clang 2>/dev/null
+ rm -rf ../llvm-lib_DEV/usr/include/${DIRNAME}/clang-c 2>/dev/null
+ 
+ cp -a -f ../llvm-lib_DEV/usr/bin/${DIRNAME}/llvm-config ../llvm-lib_DEV/usr/bin/ 2>/dev/null
+ rm -rf ../llvm-lib_DEV/usr/bin/${DIRNAME}
+ 
+ cp -a -f --remove-destination ../llvm-lib_DEV/usr/lib/${DIRNAME}/libLLVM* ../llvm-lib_DEV/usr/lib/
+ cp -a -f --remove-destination ../llvm-lib_DEV/usr/lib/${DIRNAME}/libRemarks* ../llvm-lib_DEV/usr/lib/
+ for aLIB in `ls -1 ../llvm-lib_DEV/usr/lib`
+ do
+  [ ! "$aLIB" ] && continue
+  [ -e usr/lib/${aLIB} ] && rm -rf ../llvm-lib_DEV/usr/lib/${aLIB}
+ done
+ 
+ sync
+ rm -rf usr/lib/${DIRNAME}
+ rm -rf ../llvm-lib_DEV/usr/lib/${DIRNAME}
+ 
+fi

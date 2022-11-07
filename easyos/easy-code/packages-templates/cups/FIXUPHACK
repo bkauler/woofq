@@ -1,0 +1,145 @@
+
+#141218 BK complete rewrite.
+#so many different cups layouts (why does debian have to mess with the layout
+#so much?!).
+#see 'cupsOLD' folder. starting again. just accept distro layout as-is, apply
+#fixes as needed. my default files are in folder 'defaults', copy as needed.
+
+###IMPORTANT###
+#important: the target pkg-list must have exe,dev,doc>exe,nls
+#important also to know the order of execution: doinstall.sh (slackware post-install script), exe-dev-doc-nls splitting, template, FIXUPHACK
+
+mkdir -p etc/cups
+cp -a -f --remove-destination defaults/etc/cups/cupsd.conf etc/cups/
+cp -a -f --remove-destination defaults/etc/cups/printers.conf etc/cups/
+cp -a -f --remove-destination defaults/etc/cups/cups-files.conf etc/cups/ #170103
+
+#can delete some stuff in document root:
+DOCROOT=''
+[ -f usr/share/doc/cups/index.html ] && DOCROOT='usr/share/doc/cups'
+[ -f usr/share/cups/doc-root/index.html ] && DOCROOT='usr/share/cups/doc-root' #debian, ubuntu
+
+#170103 slackware 14.2, has /usr/doc/cups-2.1.4, and cups a symlink to it. this is the DOCROOT.
+if [ -d usr/doc/cups ];then
+ if [ -h usr/doc/cups ];then
+  REALCUPSDIR="$(readlink usr/doc/cups)"
+  DOCROOT="usr/doc/${REALCUPSDIR}"
+ fi
+fi
+
+if [ ! "$DOCROOT" ];then #this is old, superceded by above.
+ #slackware is weird...
+ DOCFND="$(find usr/share -maxdepth 3 -type f -name index.html | grep '/cups' | head -n 1)"
+ [ "$DOCFND" ] && DOCROOT="$(dirname $DOCFND)"
+fi
+
+#move out everything not needed for the web-interface...
+if [ "$DOCROOT" ];then
+ mkdir -p ../cups_DOC/${DOCROOT}
+ mkdir -p ../cups_NLS/${DOCROOT}
+ for adocdir in `find ${DOCROOT}/ -mindepth 1 -maxdepth 1 -type d | tr '\n' ' '`
+ do
+  adocbase="$(basename $adocdir)" #150120 fix.
+  [ "$adocbase" == "images" ] && continue
+  [ "$adocdir" == "" ] && continue #paranoid precaution
+  if [ "$adocbase" == "help" ];then
+   cp -a -f --remove-destination $adocdir ../cups_DOC/${DOCROOT}/
+  else
+   cp -a -f --remove-destination $adocdir ../cups_NLS/${DOCROOT}/
+  fi
+  rm -rf ./${adocdir}
+ done
+ mkdir -p ${DOCROOT}/help
+fi
+
+#default document root is /usr/share/doc/cups/, however debian uses --docdir=/usr/share/cups/doc-root
+#some apps expect document-root in the default location, so create a symlink:
+if [ "$DOCROOT" ];then
+ if [ ! -e usr/share/doc/cups ];then
+  mkdir -p usr/share/doc
+  ln -s ../../../${DOCROOT} usr/share/doc/cups
+ fi
+fi
+
+#T2 mangles some names...
+# lp to lp_cups, but T2 creates a lp script, seems ok to leave as-is.
+
+#another debian mangling issue, copy these where they can be used:
+BAFND="$(find usr/lib -maxdepth 3 -type d -name backend-available 2>/dev/null | grep '/cups' | head -n 1)"
+if [ "$BAFND" ];then
+ BAPATH="$(dirname $BAFND)"
+ [ -d ${BAPATH}/backend ] && cp -a -f --remove-destination ${BAFND}/* ${BAPATH}/backend/
+fi
+if [ "$xARCHIVE" ];then #161229
+ BAFND="$(find usr/lib${xARCHIVE} -maxdepth 3 -type d -name backend-available 2>/dev/null | grep '/cups' | head -n 1)"
+ if [ "$BAFND" ];then
+  BAPATH="$(dirname $BAFND)"
+  [ -d ${BAPATH}/backend ] && cp -a -f --remove-destination ${BAFND}/* ${BAPATH}/backend/
+ fi
+fi
+
+#need cups-config
+if [ -d ../cups_DEV/usr/bin ];then
+ CUPSCONFIG="$(find ../cups_DEV/usr/bin -maxdepth 2 -type f -name cups-config | head -n 1)"
+ if [ "$CUPSCONFIG" ];then
+  CCPATH="$(dirname $CUPSCONFIG | sed -e 's%^\.\./cups_DEV/%%')"
+  mkdir -p $CCPATH
+  cp -a -f $CUPSCONFIG ${CCPATH}/
+ fi
+fi
+
+#drake puppy 0.1, july 2011, rcrsn51 advises that /etc/cups/snmp.conf "needs to be world-readable in order to detect network printers"
+[ -f etc/cups/snmp.conf ] && chmod 644 etc/cups/snmp.conf
+
+#it seems we don't need folder ipptool:
+IPPTOOL="$(find usr/share -maxdepth 2 -type d -name ipptool | head -n 1)"
+if [ "$IPPTOOL" ];then
+ rm -rf ./$IPPTOOL
+fi
+
+#more stuff to move out:
+for ATXT in `find usr/share -type f -iname copyright -o -iname 'credits.*' -o -iname 'HOWTO*' -o -iname 'news*' -o -iname 'readme*' -o -iname 'changelog*' 2>/dev/null | tr '\n' ' '`
+do
+ DIRTXT="`dirname $ATXT`"
+ mkdir -p ../cups_DOC/${DIRTXT}
+ mv -f $ATXT ../cups_DOC/${DIRTXT}/
+ [ "`ls -1 $DIRTXT`" = "" ] && rmdir $DIRTXT
+done
+
+#there could be some init.d stuff, we don't want:
+[ -d sbin/init.d ] && rm -rf sbin/init.d
+[ -d etc/init.d ] && rm -rf etc/init.d
+[ -d etc/rc0.d ] && rm -rf etc/rc0.d
+[ -d etc/rc1.d ] && rm -rf etc/rc1.d
+[ -d etc/rc2.d ] && rm -rf etc/rc2.d
+[ -d etc/rc3.d ] && rm -rf etc/rc3.d
+[ -d etc/rc4.d ] && rm -rf etc/rc4.d
+[ -d etc/rc5.d ] && rm -rf etc/rc5.d
+[ -d etc/rc.d ] && rm -rf etc/rc.d
+
+#now put in our init.d:
+mkdir etc/init.d
+cp -a defaults/etc/init.d/cups etc/init.d/
+
+#20210418 have removed my ppd, as now including foomatic-db-compressed-ppds pkg in build...
+#this has ppd for my Brother HL2040 printer:
+mkdir -p usr/share/ppd
+cp -a -f defaults/usr/share/ppd/* usr/share/ppd/ 2>/dev/null #20210418 now empty.
+
+#no longer needed:
+rm -rf defaults
+
+#161229 slackware 14.2, has blacklist for 'usblp' module...
+[ -d lib/modprobe.d ] && rm -rf lib/modprobe.d
+
+#171207 oe pyro, don't want this
+[ -f usr/share/applications/cups.desktop ] && rm -f usr/share/applications/cups.desktop
+
+#20201001 oe dunfell
+#this applies to buster as well. cups web interface, none of the help
+#pages work. supposed to redirect to online, but doesn't.
+#apparently, 'help' folder is in source pkg, can be copied to doc-root/help
+#but very big. simple fix, get rid of them:
+cp -a -f ${DOCROOT}/index.html ${DOCROOT}/index.htmlORIG
+grep -v 'help/' ${DOCROOT}/index.htmlORIG > ${DOCROOT}/index.html
+

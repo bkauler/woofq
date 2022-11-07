@@ -1,0 +1,18 @@
+#!/bin/bash
+
+#killall seamonkey
+#sleep 1
+#seamonkey --new-instance -edit $@
+
+#do not kill other instances of seamonkey, do it this way...
+seamonkey -edit file://${@} &
+ID="$!"
+idflg=0
+while [ "$ID" ];do
+ ID="$(pidof mozilla)"
+ [ ! "$ID" ] && ID="$(pidof seamonkey)"
+ #171110 initially, may get ID=nothing, so...
+ [ "$ID" ] && idflg=$(($idflg+1))
+ [ $idflg -eq 0 ] && ID='xxx'
+ sleep 2
+done

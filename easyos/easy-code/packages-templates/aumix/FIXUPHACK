@@ -1,0 +1,22 @@
+
+mkdir -p usr/share/applications
+
+echo '[Desktop Entry]
+Encoding=UTF-8
+Name=Aumix audio mixer
+GenericName=Aumix
+Comment=Simple mixer control program
+Exec=aumix
+Icon=aumix.xpm
+Categories=X-Multimedia-sound
+Terminal=false
+Type=Application' > usr/share/applications/aumix-gtk.desktop
+
+#180212 this actually stuffs things up, sets volume to zero...
+if [ -f etc/init.d/aumix ];then
+ rm -f etc/init.d/aumix
+fi
+
+#180506
+mkdir -p usr/share/pixmaps
+ln -s ../aumix/aumix.xpm usr/share/pixmaps/aumix.xpm 2>/dev/null

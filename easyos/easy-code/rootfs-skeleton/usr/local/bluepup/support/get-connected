@@ -1,0 +1,21 @@
+#!/bin/sh
+
+#ADDR="$1"
+ADDR="$(cat /tmp/bluepup/chosen-reg-device)"
+
+if [ ! -f /tmp/bluepup/reg-info.${ADDR} ];then
+ echo '0' > /tmp/bluepup/reg-connected.flg #default to not connected.
+ exit
+fi
+
+CONNflg="$(grep -o 'Connected: .*' /tmp/bluepup/reg-info.${ADDR} | tr -s ' ' | cut -f 2 -d ' ')"
+[ "$CONNflg" == "0" ] && CONNflg='no' #for bt-device compatibility.
+[ "$CONNflg" == "1" ] && CONNflg='yes' # "
+
+if [ "$CONNflg" == "yes" ];then
+ echo -n 'true' > /tmp/bluepup/reg-connected.flg
+else
+ echo -n 'false' > /tmp/bluepup/reg-connected.flg
+fi
+
+###end###

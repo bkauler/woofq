@@ -1,0 +1,36 @@
+#150726 have exported BUILD_CHOICE_MERGE_DEVX in 2createpackages.
+
+if [ "$BUILD_CHOICE_MERGE_DEVX" != "yes" ];then #150726
+ if [ -f usr/bin/clang ];then
+  mkdir -p ../llvm_DEV/usr/bin
+  cp -a -f --remove-destination usr/bin/* ../llvm_DEV/usr/bin/
+  sync
+  rm -rf usr/bin
+ fi
+ 
+ LIBCLANG="$(find usr -type f -name libclang.so | head -n 1)"
+ if [ "$LIBCLANG" ];then
+  LCDIR="$(dirname $LIBCLANG)" #ex: usr/lib64
+  mkdir -p ../llvm_DEV/${LCDIR}
+  cp -a -f $LIBCLANG ../llvm_DEV/${LCDIR}/
+  sync
+  rm -f ./${LIBCLANG}
+ fi
+fi
+
+#150811 want this for android sdk...
+FNDLLVM="$(find usr -type f -name 'libLLVM-*.so*' | head -n 1)"
+if [ "$FNDLLVM" ];then
+ DIRLLVM="$(dirname "$FNDLLVM")"
+ NAMELLVM="$(basename "$FNDLLVM")"
+ ln -s ${NAMELLVM} ${DIRLLVM}/libLLVM.so 2>/dev/null
+fi
+
+#161231 get rid of everything except one lib...
+if [ -d ../llvm_DEV ];then
+ cp -a -f --remove-destination * ../llvm_DEV/
+ sync
+ rm -rf ./*
+ mkdir -p usr/lib${xARCHDIR}
+ cp -a ../llvm_DEV/usr/lib${xARCHDIR}/libLLVM*.so* usr/lib${xARCHDIR}/
+fi

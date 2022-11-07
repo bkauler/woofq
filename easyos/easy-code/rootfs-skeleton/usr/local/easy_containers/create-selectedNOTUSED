@@ -1,0 +1,27 @@
+#!/bin/sh
+#called from easy-containers
+#passed param is name of container.
+#after return, checkboxes in easy-containers will be updated from these files.
+
+[ ! $1 ] && exit
+EXE="$1"
+[ ! -f /usr/local/easy_containers/templates/${EXE}/configuration ] && exit
+
+#create files to set/clear the security checkboxes in easy-containers...
+for VARSPEC in `grep '^EC_' /usr/local/easy_containers/templates/${EXE}/configuration | cut -f 1 -d ' ' | tr '\n' ' '`
+do
+ #ex: EC_NS_UNSHARE_MOUNT='true'
+ aVAR="$(echo -n "$VARSPEC" | cut -f 1 -d '=')"
+ aVAL="$(echo -n "$VARSPEC" | cut -f 2 -d '=' | cut -f 2 -d "'")"
+ echo "$aVAL" > /tmp/easy_containers/chkbx-${aVAR}
+ case "$aVAL" in
+  abstract)
+   echo 'true' > /tmp/easy_containers/chkbx-XSOCKET_ABSTRACT
+   echo 'false' > /tmp/easy_containers/chkbx-XSOCKET_PIPE
+  ;;
+  pipe)      
+   echo 'false' > /tmp/easy_containers/chkbx-XSOCKET_ABSTRACT
+   echo 'true' > /tmp/easy_containers/chkbx-XSOCKET_PIPE
+  ;;
+ esac
+done

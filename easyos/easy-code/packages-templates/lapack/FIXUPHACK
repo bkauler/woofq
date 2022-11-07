@@ -1,0 +1,20 @@
+
+#20190731 buster puts these libs into sub-folders where cannot be used...
+aFND="$(find usr/lib -name libblas.so.3)"
+if [ "$aFND" ];then
+ aDIR="$(dirname $aFND)"
+ if [ "${aDIR##*/}" == "blas" -o "${aDIR##*/}" == "libblas" ];then
+  aUP="$(dirname $aDIR)"
+  ln -s ${aDIR##*/}/libblas.so.3 ${aUP}/libblas.so.3
+ fi
+fi
+
+#20190731 ditto...
+aFND="$(find usr/lib -name liblapack.so.3)"
+if [ "$aFND" ];then
+ aDIR="$(dirname $aFND)"
+ if [ "${aDIR##*/}" == "lapack" -o "${aDIR##*/}" == "liblapack" ];then
+  aUP="$(dirname $aDIR)"
+  ln -s ${aDIR##*/}/liblapack.so.3 ${aUP}/liblapack.so.3
+ fi
+fi

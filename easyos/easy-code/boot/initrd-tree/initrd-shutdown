@@ -1,0 +1,44 @@
+#!/bin/ash
+#called from init
+#200301
+
+EXE="$(cat /easy_new/.shutdown-req)" #poweroff or reboot
+[ ! "$EXE" ] && EXE='poweroff'
+
+#stop all processes using the aufs layers...
+#code adapted from /usr/local/easy_containers/stop-container
+sync
+LAYERMNT="/easy_new"
+#Find processes who's root folder is actually the aufs layer...
+for ROOT in $(find /proc/*/root)
+do
+ #Check where the symlink is pointing to
+ LINK=$(readlink -f $ROOT)
+ #If it's pointing to the $LAYERMNT, kill the process
+ if echo $LINK | grep -q ${LAYERMNT%/}
+ then
+  PID=$(basename $(dirname "$ROOT"))
+  [ ! "$PID" ] && continue
+  kill -0 $PID &>/dev/null && kill -9 $PID
+ fi
+done
+#Get a list of PIDs that are using $LAYERMNT for anything
+PID_LIST="$(lsof | grep "$LAYERMNT" | tail -n+2 | cut -d ' ' -f 1 | sort -nu | tr '\n' ' ')"
+#Kill all PIDs holding up unmounting $LAYERMNT
+for PID in $PID_LIST
+do
+ [ ! "$PID" ] && continue
+ kill -0 $PID &>/dev/null && kill -9 $PID
+done
+#unmount everything...
+umount $LAYERMNT
+MOUNTS="$(mount | grep "${LAYERMNT}" | cut -f 3 -d ' ' | tac | tr '\n' ' ')"
+for aMNT in $MOUNTS
+do
+ umount $aMNT #2>/dev/null
+done
+
+#shutdown...
+umount -a -r
+${EXE} -f
+###end###

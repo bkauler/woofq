@@ -1,0 +1,16 @@
+#these are overrides for /.control/<app>.specs file in the sfs
+#DB_install='mainonly' means run on main desktop only, not in container.
+#  chromium is an example that should be run on the main desktop, as a non-root client,
+#  not in a container. this is because of the chromium sandbox.
+
+#TEMPLATE_DB_install='mainonly'
+
+#ref: /usr/local/sfsget/sfsspec
+#note, "TEMPLATE_" gets changed to "SFS_"
+TEMPLATE_DB_description='Blender 3D modeler'
+TEMPLATE_DB_description_long='Free open-source 3D application for modeling, rigging, animation, simulation, rendering, compositing, motion-tracking and video editing.'
+TEMPLATE_DB_categories='Graphic'
+
+#20220916 give permission to run 'mozbare' (barebones html viewer) from client.
+# refs: /usr/local/bin/xdg-open, /usr/local/clients/setup-client
+TEMPLATE_ACCESS_MOZBARE='yes'

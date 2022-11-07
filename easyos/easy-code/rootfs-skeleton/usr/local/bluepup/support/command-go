@@ -1,0 +1,26 @@
+#!/bin/sh
+#called when user clicks "GO" button.
+
+GOCOMM="$1" #command to run.
+
+DEVICEID=''
+if [ -s /tmp/bluepup/chosen-device-last ];then
+ DEVICEID="$(cat /tmp/bluepup/chosen-device-last)"
+fi
+
+wc -l /tmp/bluepup/vte.log > /tmp/bluepup/cnt_full
+
+if [ "$DEVICEID" ];then
+ case "$GOCOMM" in
+  info|pair|trust|untrust|block|unblock|remove|connect|disconnect) GOCOMM="${GOCOMM} ${DEVICEID}" ;;
+ esac
+fi
+
+echo -e "\033[0;94m[bluetooth]\033[0m# bluetoothctl ${GOCOMM}" >> /tmp/bluepup/btctl_in
+bluetoothctl ${GOCOMM} >> /tmp/bluepup/btctl_in
+/usr/local/bluepup/support/wait-response "${GOCOMM}" "${?}"
+
+sleep 0.5
+echo -n 'limbo' > /tmp/bluepup/current-operation #20201105 ref bluepup
+###end###
+

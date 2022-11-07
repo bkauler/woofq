@@ -1,0 +1,33 @@
+#!/bin/sh
+#Barry Kauler 2007
+#130212 vicmz: internationalized.
+#130212 BK: link in /root/Startup. removed code from /root/.xinitrc.
+#141217 change /usr/local to /usr
+
+export TEXTDOMAIN=glipper_shell
+export OUTPUT_CHARSET=UTF-8
+
+Xdialog --center --title "$(gettext 'Glipper clipboard manager')" --ok-label "$(gettext 'Enable Glipper')" --cancel-label "$(gettext 'Disable Glipper')" --yesno "$(gettext 'Glipper is a great little taskbar applet for managing the clipboard.')
+
+$(gettext "If you click the 'Enable Glipper' button, then Glipper will appear in
+the tray, and will also start automatically in the future.")
+$(gettext "If you click the 'Disable Glipper' button, then if Glipper is running
+it will be terminated now and will not be started in the future.")" 0 0
+
+RETVAL=$?
+
+if [ $RETVAL -eq 0 ];then
+ #touch /root/.glipper_on
+ ln -snf ../../usr/bin/glipper /root/Startup/glipper_tray
+ PSRUN="`ps`"
+ [ "`echo "$PSRUN" | grep -v 'glipper_shell' | grep 'glipper'`" = "" ] && /root/Startup/glipper_tray &
+ exit
+fi
+
+if [ $RETVAL -eq 1 ];then
+ #rm -f /root/.glipper_on
+ rm -f /root/Startup/glipper_tray
+ killall glipper
+ killall glipper_tray
+ exit
+fi

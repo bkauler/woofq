@@ -1,0 +1,205 @@
+#!/bin/sh
+########################################
+##
+## Xkb Config Manager
+## 
+## author: Dougal
+## date: 
+## Created for Puppy 2.13
+##
+## A GUI for controlling the "Keyboard0"
+## part of the xorg.conf file.
+##
+## ( influenced by the jwmConfigMgr )
+########################################
+#130117 rodin.s: adding gettext. BK: slight mods.
+#170105 BK fixes for evdev and xorg.conf.d
+#170723 BK missing icons, changed to stock.
+#171015 BK change msg "apply when you restart X" to "after reboot".
+
+export TEXTDOMAIN=xkbconfig #xkb
+export TEXTDOMAINDIR=/usr/share/locale
+export OUTPUT_CHARSET=UTF-8
+. gettext.sh
+
+SCRIPT_DIR="`pwd`"
+IMAGES_DIR="$SCRIPT_DIR/images"
+#MINI_ICONS_DIR="/usr/local/lib/X11/mini-icons"
+# var added for gettext
+export gtxt1="$(gettext 'ERROR')"
+export gtxt2="$(gettext 'An Error has occured! Try again.')"
+export gtxt3="$(gettext 'Success!')"
+export gtxt4="$(gettext 'Changes applied successfuly!')"
+##########################
+export ERRMSG='Xdialog --title "$gtxt1" --msgbox "$gtxt2" 0 0'
+export SUCCESS='Xdialog --title "$gtxt3" --no-buttons --infobox "$gtxt4" 0 0 2000'
+
+# introduction window
+export Xkb_Config_Intro="
+<window title=\"$(gettext 'XKB Configuration Manager')\" icon-name=\"gtk-preferences\" window-position=\"1\">
+<vbox>
+ <frame $(gettext 'Information')>
+  <vbox><pixmap><input file>$IMAGES_DIR/xfce4-keys.png</input></pixmap></vbox>
+    <text wrap=\"true\" width-chars=\"20\">
+     <label>$(gettext 'This tool lets you modify the keyboard settings part of your Xorg config files.')</label>
+    </text>
+ </frame>
+  <hbox>
+   <button ok></button>
+  </hbox>
+</vbox>
+</window>"
+
+
+
+# main window
+export XKB_Config_Main="
+<window title=\"$(gettext 'XKB Configuration Manager')\" icon-name=\"gtk-preferences\" window-position=\"1\">
+ <vbox>
+  <notebook labels=\"$(gettext 'Main')|$(gettext 'Options')\">
+ <vbox>
+  <hbox>
+   <text>
+    <label>$(gettext 'Keyboard Model')</label>
+   </text>
+   <button>
+    <input file>$IMAGES_DIR/keyboard.png</input>
+    <action>$SCRIPT_DIR/XkbModelConfig &</action>
+   </button>
+  </hbox>
+  <hbox>
+   <text>
+    <label>$(gettext 'Layouts')</label>
+   </text>
+   <button>
+    <input file>./images/layout.png</input>
+    <action>$SCRIPT_DIR/XkbLayoutConfig &</action>
+   </button>
+  </hbox>
+  <hbox>
+   <text>
+    <label>$(gettext 'Layout Variants')</label>
+   </text>
+   <button>
+    <input file>$IMAGES_DIR/layout16.png</input>
+    <action>$SCRIPT_DIR/XkbVariantConfig &</action>
+   </button>
+  </hbox>
+ </vbox>
+ <vbox>
+  <hbox>
+   <text>
+    <label>$(gettext 'Group Shift/Lock behavior')</label>
+   </text>
+   <button>
+    <input file>$IMAGES_DIR/keys01.gif</input>
+    <action>$SCRIPT_DIR/XkbOptionsGrp &</action>
+   </button>
+  </hbox>
+  <hbox>
+   <text>
+    <label>$(gettext 'Third level choosers')</label>
+   </text>
+   <button>
+    <input file>$IMAGES_DIR/keys01.gif</input>
+    <action>$SCRIPT_DIR/XkbOptionsLv3 &</action>
+   </button>
+  </hbox>
+  <hbox>
+   <text>
+    <label>$(gettext 'Control key position')</label>
+   </text>
+   <button>
+    <input file>$IMAGES_DIR/keys01.gif</input>
+    <action>$SCRIPT_DIR/XkbOptionsCtrl &</action>
+   </button>
+  </hbox>
+  <hbox>
+   <text>
+    <label>$(gettext 'Use keyboard LED to show alternative group')</label>
+   </text>
+   <button>
+    <input file>$IMAGES_DIR/keys01.gif</input>
+    <action>$SCRIPT_DIR/XkbOptionsGrp_led &</action>
+   </button>
+  </hbox>
+  <hbox>
+   <text>
+    <label>$(gettext 'CapsLock key behavior')</label>
+   </text>
+   <button>
+    <input file>$IMAGES_DIR/keys01.gif</input>
+    <action>$SCRIPT_DIR/XkbOptionsCaps &</action>
+   </button>
+  </hbox>
+  <hbox>
+   <text>
+    <label>$(gettext 'Alt/Win key behavior')</label>
+   </text>
+   <button>
+    <input file>$IMAGES_DIR/keys01.gif</input>
+    <action>$SCRIPT_DIR/XkbOptionsAltwin &</action>
+   </button>
+  </hbox>
+  <hbox>
+   <text>
+    <label>$(gettext 'Compose key position')</label>
+   </text>
+   <button>
+    <input file>$IMAGES_DIR/keys01.gif</input>
+    <action>$SCRIPT_DIR/XkbOptionsCompose &</action>
+   </button>
+  </hbox>
+  <hbox>
+   <text>
+    <label>$(gettext 'Adding the EuroSign to certain keys')</label>
+   </text>
+   <button>
+    <input file>$IMAGES_DIR/euro16.png</input>
+    <action>$SCRIPT_DIR/XkbOptionsEuro &</action>
+   </button>
+  </hbox>
+ </vbox>
+  </notebook>
+  <frame>
+   <hbox>
+    <text><label>$(gettext 'Click 'Yes' to activate the new settings')</label></text>   
+    <button yes><action>$SCRIPT_DIR/XkbApplyNow &</action></button>
+   </hbox>
+   <hbox>
+    <text><label>$(gettext '...else they will apply after a reboot                ')</label></text>
+   </hbox>
+  </frame>
+  <hbox>
+   <button>
+    <label>$(gettext 'Help')</label>
+    <input file stock=\"gtk-help\"></input>
+    <action>defaulttextviewer /usr/local/apps/XkbConfigurationManager/Help & </action>
+   </button>
+   <text><label>\"     \"</label></text>
+   <button>
+    <label>$(gettext 'Exit')</label>
+    <input file stock=\"gtk-quit\"></input>
+    <action>EXIT:abort</action>
+   </button>
+  </hbox>
+ </vbox>
+</window>"
+##------------run------------->>
+gtkdialog --program Xkb_Config_Intro
+gtkdialog --program XKB_Config_Main
+
+##----------cleanup------------>>
+# var added for gettext
+unset gtxt1
+unset gtxt2
+unset gtxt3
+unset gtxt4
+########################
+unset Xkb_Config_Intro
+unset XKB_Config_Main
+unset ERRMSG
+unset SUCCESS
+clear
+exit 0
+

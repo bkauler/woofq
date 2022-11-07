@@ -1,0 +1,94 @@
+#!/bin/sh
+#call from apt-setup, run only once.
+
+export LANG=C
+
+#sync /root/.packages/woof-installed-packages & devx-only-installed-packages
+#with apt db in /var/apt/lists
+
+. /var/local/pkgget/deb_compat_specs #DEBDISTRO, DEBVERSION, DEBARCH
+
+#if [ -s /var/lib/dpkg/status ];then #only run this script once.
+# exit
+#fi
+#
+#APTflg=0
+#if [ ! -f /var/local/pkgget/deb_compat_specs ];then
+# #need to run 'apt-setup' first
+# APTflg=1
+#fi
+#if [ ! -d /var/lib/apt/lists ];then
+# #need to run 'apt-setup' first
+# APTflg=1
+#fi
+#Pfnd="$(find /var/lib/apt/lists -mindepth 1 -maxdepth 1 -type f -name '*_Packages')"
+#if [ "$Pfnd" == "" ];then
+# #need to run 'apt-setup' first
+# APTflg=1
+#fi
+#if [ $APTflg -eq 1 ];then
+# /usr/local/debget/apt-setup
+#fi
+
+PKGSa="$(find /var/lib/apt/lists -mindepth 1 -maxdepth 1 -type f -name '*_'"${DEBVERSION}"'-updates_*_Packages' | tr '\n' ' ')"
+PKGSb="$(find /var/lib/apt/lists -mindepth 1 -maxdepth 1 -type f -name '*_'"${DEBVERSION}"'_*_Packages' | tr '\n' ' ')"
+#...ex: /var/lib/apt/lists/deb.debian.org_debian_dists_bullseye_main_binary-amd64_Packages
+
+mkdir -p /var/lib/dpkg/updates
+mkdir -p /var/lib/dpkg/info
+mkdir -p /tmp/debget
+
+echo -n '' > /var/lib/dpkg/status
+while read aPUP
+do
+ echo -n "${aPUP}" > /tmp/debget/pup-db-single
+ /usr/local/debget/pupdb2debdb-single.sh
+ #...writes to /tmp/debget/working/fnd-deb-paras
+ #try hack, see if can fool dpkg and apt...
+ grep -q '^P' /tmp/debget/working/fnd-deb-paras
+ if [ $? -eq 0 ];then
+  PUPnameonly="$(cut -f 2 -d '|' /tmp/debget/pup-db-single)"
+  PUPversion="$(cut -f 3 -d '|' /tmp/debget/pup-db-single)"
+  cat /tmp/debget/working/fnd-deb-paras >> /var/lib/dpkg/status
+  for aNAME in $(grep '^Package: ' /tmp/debget/working/fnd-deb-paras | cut -f 2 -d ' ' | tr '\n' ' ')
+  do
+   #extract paragraph...
+   sed -n '/^Package: '"${aNAME}"'$/,/^$/p' /tmp/debget/working/fnd-deb-paras > /tmp/debget/extracted-para
+   #if a library, only record to dpkg as installed if version <= $PUPversion
+   grep -q '^Section: libs$' /tmp/debget/extracted-para
+   if [ $? -eq 0 ];then
+    DEBversion="$(grep '^Version: ' /tmp/debget/extracted-para | cut -f 2 -d ' ' | cut -f 2 -d ':')"
+    vercmp ${DEBversion} gt ${PUPversion}
+    if [ $? -eq 0 ];then
+     #do not show in dpkg as being installed. hence any pkg the dpkg installs,
+     # that has this dep, it will be installed from deb repo.
+     continue
+    fi
+   fi
+   /usr/local/debget/files-pup2dpkg-single ${PUPnameonly} ${PUPversion} ${aNAME}
+   # ...writes to /var/lib/dpkg/info/${aNAME}:${DEBARCH}.list
+   #    and /var/lib/dpkg/info/${aNAME}:${DEBARCH}.conffiles
+   touch /var/lib/dpkg/info/${aNAME}:${DEBARCH}.md5sums
+   touch /var/lib/dpkg/info/${aNAME}:${DEBARCH}.shlibs
+   touch /var/lib/dpkg/info/${aNAME}:${DEBARCH}.symbols
+   touch /var/lib/dpkg/info/${aNAME}:${DEBARCH}.triggers
+  done
+ fi
+done <<_END1
+$(cat /root/.packages/woof-installed-packages)
+_END1
+
+#some of these fields not allowed in 'status' file...
+# we want a Status entry...
+#sed -i '/^Filename: /d' /var/lib/dpkg/status
+sed -i -e 's%^Filename: .*%Status: install ok unpacked%' /var/lib/dpkg/status
+sed -i '/^Size: /d' /var/lib/dpkg/status
+sed -i '/^MD5sum: /d' /var/lib/dpkg/status
+sed -i '/^SHA256: /d' /var/lib/dpkg/status
+sed -i '/^Pre-Depends: /d' /var/lib/dpkg/status
+sed -i '/^Suggests: /d' /var/lib/dpkg/status
+sed -i '/^Description-md5: /d' /var/lib/dpkg/status
+sed -i '/^Tag: /d' /var/lib/dpkg/status
+sed -i '/^ /d' /var/lib/dpkg/status
+
+###end###

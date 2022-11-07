@@ -1,0 +1,29 @@
+
+#190805 buster, used by nm-applet in network-manager-applet pkg.
+#ref: https://wiki.archlinux.org/index.php/Desktop_notifications#Standalone
+
+ndFND=''
+if [ -d usr/lib ];then
+ ndFND="$(find usr/lib -type f -name 'notification-daemon' | head -n 1)"
+fi
+if [ "$ndFND" == "" ];then #20200929 oe dunfell
+ if [ -d usr/libexec ];then
+  ndFND="$(find usr/libexec -type f -name 'notification-daemon' | head -n 1)"
+ fi
+fi
+if [ "$ndFND" ];then
+ mkdir -p usr/share/dbus-1/services
+ echo "[D-BUS Service]
+Name=org.freedesktop.Notifications
+Exec=/${ndFND}" > usr/share/dbus-1/services/org.freedesktop.Notifications.service
+fi
+
+#20200929 oe dunfell
+mkdir -p usr/share/applications
+echo '[Desktop Entry]
+Name=Notification Daemon
+Comment=Display notifications
+Exec=notification-daemon
+Terminal=false
+Type=Application
+NoDisplay=true' > usr/share/applications/notification-daemon.desktop

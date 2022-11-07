@@ -1,0 +1,36 @@
+#!/bin/sh
+# BK 20151025
+
+XVKBDlangs="$(ls -1 /etc/X11/app-defaults | grep 'XVkbd\-' | grep -v -E 'common|small|strip' | cut -f 2 -d '-' | tr '\n' ' ')"
+# belgian danish fitaly french french2 german greek hebrew icelandic italian jisx6002 jisx6004 korean latin1 norwegian portuguese russian slovene spanish swedish swissgerman turkish uk 
+
+#console layout values: azerty be-latin1 br-abnt2 br-abnt br-latin1-abnt2 br-latin1-us by cf croat cz de de-latin1 dk dvorak dvorak-l dvorak-r es et fi fr gr hu101 hu il it jp106 lt mk nl no pl pt-latin1 ro ru se sg sk-qwerty sk-qwertz slovene srp sv-latin1 uk us wangbe (/lib/keymaps)
+xCONSKEYMAP="`cat /etc/keymap | cut -c 1-2`"
+[ "$xCONSKEYMAP" = "" ] && xCONSKEYMAP="us"
+case $xCONSKEYMAP in
+ be)  XVKEYMAP='belgian' ;;
+ de)  XVKEYMAP='danish' ;;
+ fr)  XVKEYMAP='french' ;;
+ de)  XVKEYMAP='german' ;;
+ gr)  XVKEYMAP='greek' ;;
+ il)  XVKEYMAP='hebrew' ;;
+ #)  XVKEYMAP='icelandic' ;;
+ it)  XVKEYMAP='italian' ;;
+ #)  XVKEYMAP='korean' ;;
+ no)  XVKEYMAP='norwegian' ;;
+ pt)  XVKEYMAP='portuguese' ;;
+ ru)  XVKEYMAP='russian' ;;
+ sl)  XVKEYMAP='slovene' ;;
+ es)  XVKEYMAP='spanish' ;;
+ se)  XVKEYMAP='swedish' ;;
+ #)  XVKEYMAP='turkish' ;;
+ uk)  XVKEYMAP='uk' ;;
+ *) XVKEYMAP='' ;;
+esac
+
+if [ "$XVKEYMAP" ];then
+ echo "xvkbd.customization: -${XVKEYMAP}" > /tmp/xrdb-xvkbd
+ xrdb -load /tmp/xrdb-xvkbd
+fi
+
+xvkbd -geometry +0+0

@@ -1,0 +1,22 @@
+#note: DISTRO_BINARY_COMPAT and DISTRO_FILE_PREFIX are visible here, exported in 2createpackages.
+#140117 xARCHDIR, ARCHDIR and DISTRO_ARCHDIR_SYMLINKS exported in 2createpackages. 
+#140117 note, 2createpackages may move /lib, /usr/lib, /usr/bin in template to ARCHDIR subdir.
+
+#mostly using libdvdnav4, but some apps require libdvdnav.so.3...
+
+if [ "$xARCHDIR" ];then #140117
+ LIBDVDNAV="`find usr/lib/${ARCHDIR} -maxdepth 1 -type f -name 'libdvdnav.so.*' | head -n 1`"
+ if [ "$LIBDVDNAV" ];then
+  BASELIBDVDNAV="`basename $LIBDVDNAV`"
+  if [ ! -e usr/lib/${ARCHDIR}/libdvdnav.so.3  ];then
+   ln -s $BASELIBDVDNAV usr/lib/${ARCHDIR}/libdvdnav.so.3
+  fi
+ fi
+fi
+LIBDVDNAV="`find usr/lib -maxdepth 1 -type f -name 'libdvdnav.so.*' | head -n 1`"
+if [ "$LIBDVDNAV" ];then
+ BASELIBDVDNAV="`basename $LIBDVDNAV`"
+ if [ ! -e usr/lib/libdvdnav.so.3  ];then
+  ln -s $BASELIBDVDNAV usr/lib/libdvdnav.so.3
+ fi
+fi

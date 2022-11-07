@@ -1,0 +1,1054 @@
+
+#w469 fallbacks when looking for pet pkgs (space-separated list)...
+FALLBACKS_COMPAT_VERSIONS=''
+
+#PKGS_SPECS_TABLE table format:
+#will pkg be in puppy-build.
+#    Generic name for pkg. Note: PET packages, if exist, use this name.
+#            Comma-separated list of compatible-distro pkg(s). '-' prefix, exclude.
+#            Must be exact name-only of pkg, else '*' on end is wildcard to search full name.
+#            Empty field, then use PET pkg.
+#                                    How the package will get split up in woof (optional redirection '>' operator).
+#                                    Missing field, it goes into exe. Can also redirect >null, means dump it.
+#yes|abiword|iceword,iceword-plugins|exe,dev,doc,nls
+
+#example showing wildcard. finds all full pkg names with 'gcc-4.3*',
+#but, exclude any 'gcc-4.3-doc*' matches...
+# yes|gcc|gcc,gcc-4.3*,-gcc-4.3-doc*|exe,dev,doc,nls
+
+#110817 Comments preferred to be on end of line, ex:
+# yes|abiword|iceword,iceword-plugins|exe,dev,doc,nls| #this is a comment.
+
+#110829 enhancements:
+#                                                     Force pkg is from compat-distro repo, specifically 'salix' repo.
+# yes|abiword|iceword,iceword-plugins|exe,dev,doc,nls|compat:salix
+#Generic format:
+# yes|genericpkgname|[pkgnames]|[splitup]|[pet:[repo]]
+# yes|genericpkgname|[pkgnames]|[splitup]|[compat:[repo]]
+#for a fuller explanation of the entries in PKGS_SPECS_TABLE, please see:
+# http://bkhome.org/blog/?viewDetailed=02414
+
+PKGS_SPECS_TABLE='
+yes|915resolution||exe,dev,doc,nls|pet:dunfell| #20171024
+yes|acl|acl|exe,dev,doc,nls|compat:dunfell| #20170510
+yes|acpid|acpid|exe,dev,doc,nls|compat:dunfell
+yes|adbfs|adbfs|exe,dev,doc,nls|compat:dunfell| #20180808 needs fuse and adb
+yes|align||exe|pet:noarch| #perl script.
+yes|alsa-lib|alsa-lib|exe,dev,doc,nls|compat:dunfell
+yes|alsa-utils|alsa-utils|exe,dev,doc,nls|compat:dunfell
+yes|alsa-plugins|alsa-plugins|exe,dev,doc,nls|compat:dunfell| #20201006 new.
+no|alsamixergui|alsamixergui|exe,dev,doc,nls|compat:dunfell| #20201012 new. needs fltk. 20201013 restored.
+yes|android-tools|android-tools|exe,dev,doc,nls|compat:dunfell| #20180808 has adb and fastboot.
+yes|appstream-glib|appstream-glib|exe,dev,doc,nls|compat:dunfell| #20210823 needed by celluloid.
+yes|apr|apr|exe,dev,doc,nls|compat:dunfell
+yes|apr-util|apr-util|exe,dev,doc,nls|compat:dunfell
+no|apt|apt|exe,dev,doc,nls|compat:dunfell| #20220811 needs dpkg
+no|apulse|apulse|exe,dev>exe,doc,nls|compat:dunfell| #20181007 needed by chromium. 20201006 removed now using pulseaudio. 20201013 restored. 20211030 removed.
+no|arp-scan|arp-scan|exe,dev,doc,nls|compat:dunfell| #20171030 needed by peasyscan-noarch
+yes|arp-scan||exe,dev,doc,nls|pet:dunfell| #20220731
+yes|aspell|aspell|exe,dev,doc,nls|compat:dunfell| #20200924 new. needed by epiphany, enchant, webkitgtk, inkscape
+yes|atk|atk|exe,dev,doc,nls|compat:dunfell
+yes|atkmm|atkmm|exe,dev,doc,nls|compat:dunfell
+yes|at-spi2-atk|at-spi2-atk|exe,dev,doc,nls|compat:dunfell| #180401 needed by gtk+3
+yes|at-spi2-core|at-spi2-core|exe,dev,doc,nls|compat:dunfell| #180401 needed by gtk+3
+yes|attr|attr|exe,dev,doc,nls|compat:dunfell
+yes|audacious|audacious|exe,dev,doc,nls|compat:dunfell| #20200924 new.
+yes|audacious-plugins|audacious-plugins|exe,dev,doc,nls|compat:dunfell| #20200924 new.
+yes|aufs-util|aufs-util|exe,dev,doc,nls|compat:dunfell|
+no|aumix|aumix|exe,dev,doc,nls|compat:dunfell| #20180505 using with pnmixer_tray. 20201008 now using pavucontrol. 20201013 restored. 20211030 removed.
+yes|autoconf|autoconf|exe>dev,dev,doc,nls|compat:dunfell
+yes|autoconf2.13||exe>dev,dev,doc,nls|pet:noarch| #20170511 needed to compile firefox and seamonkey.
+yes|automake|automake|exe>dev,dev,doc,nls|compat:dunfell
+no|awf||exe|pet:dunfell| #20220413 displays gtk widgets.
+yes|awf|awf|exe,dev,doc,nls|compat:dunfell| #20220423
+no|babl|babl|exe,dev,doc,nls|compat:dunfell| #20170510 needed by gegl and gimp.  20220611 
+yes|bacon|bacon|exe>dev,dev,doc,nls|compat:dunfell| #all goes into devx. #20170608  20180505  20220807 no longer need bacon.
+yes|bacon-hug|bacon-hug|exe,dev>exe,doc>dev,nls|compat:dunfell| #components of bacon needed at runtime. #20170608  20180505
+yes|bacon-hug-imports|bacon-hug-imports|exe>dev,dev,doc,nls|compat:dunfell| #all goes into devx. #20170608  20180505
+no|balsa||exe,dev,doc,nls|pet:dunfell| #20211203 need gmime and libgtkhtml and aspell. 20211209 now using claws-mail
+yes|bash|bash|exe,dev,doc,nls|compat:dunfell| #20201227 recompiled -r1 fixed bug.
+no|bash||exe,dev,doc,nls|pet:dunfell| #20201226 oe bash has a bug.
+yes|bbc_provided|bbc-provided|exe,dev,doc,nls|compat:dunfell| #20170617
+yes|bbe|bbe|exe,dev,doc,nls|compat:dunfell| #20171030
+yes|bc|bc|exe,dev,doc,nls|compat:dunfell
+no|bcrypt|bcrypt|exe,dev,doc,nls|compat:dunfell| #20170617. 20201018 replaced with ccrypt.
+yes|bdftopcf|bdftopcf|exe,dev,doc,nls|compat:dunfell| #20170510
+yes|bdwgc|bdwgc|exe,dev,doc,nls|compat:dunfell| #20180313 needed by inkscape
+yes|binutils|binutils|exe>dev,dev,doc,nls|compat:dunfell
+yes|bison|bison|exe>dev,dev,doc,nls|compat:dunfell
+no|bluegriffon||exe,dev,doc,nls|pet:dunfell| #20211201 html editor. 20220605 20220611 removed.
+no|blueman|blueman|exe,dev,doc,nls|compat:dunfell| #20201006 new. 20201031 replaced by bluepup. 20201102 keeping it for now, alongside bluepup. 20201104 rem.
+no|bluepup||exe|pet:noarch| #20201006 removed. 20201031 it is now in rootfs-skeleton.
+yes|bluepup_tray|bluepup-tray|exe,dev,doc,nls|compat:dunfell| #20180728 20201006 removed. 20201031 yes.
+yes|bluez|bluez5|exe,dev,doc,nls|compat:dunfell|  #20210125 has bluetoothctl internationalized.
+no|bluez-alsa|bluez-alsa|exe,dev,doc,nls|compat:dunfell| #20201013 new. 20211030 removed.
+yes|bluez-tools|bluez-tools|exe,dev,doc,nls|compat:dunfell| #20201007 new.
+no|bluetoothctl||exe|pet:dunfell| #20201028 new. internationalized. placed after bluez so installs later. 20210109 NOTICE: now compiled in bluez5 in oe.
+no|bogofilter|bogofilter|exe,dev,doc,nls|compat:dunfell| #20211209 dep of claws-mail
+yes|bones||exe|pet:noarch
+yes|boost|boost|exe>dev,dev,doc,nls|compat:dunfell
+yes|boost-runtime|boost|exe,dev>null,doc>null,nls>null|compat:dunfell
+yes|bridge-utils|bridge-utils|exe,dev,doc,nls|compat:dunfell| #20221104 maybe used by qemu.
+no|brightness-control||exe,dev,doc,nls|pet:noarch| #20210419 needs setcolortemperature. 20211121 now using rshift_tray.
+yes|brlaser|brlaser|exe,dev,doc,nls|compat:dunfell| #20210608
+yes|busybox||exe,dev>null,doc,nls|pet:dunfell| #20220730 compiled statically. KEEPPKG
+no|busybox|busybox-static|exe,dev,doc,nls|compat:dunfell| #20220730 does not have the applet symlinks.
+yes|bzip2|bzip2|exe,dev,doc,nls|compat:dunfell
+yes|c99-wrapper||exe>dev,dev,doc,nls|pet:noarch
+yes|ca-certificates|ca-certificates|exe,dev,doc,nls|compat:dunfell
+yes|cairo|cairo|exe,dev,doc,nls|compat:dunfell
+yes|cairomm|cairomm|exe,dev,doc,nls|compat:dunfell| #20170510
+yes|ccrypt|ccrypt|exe,dev,doc,nls|compat:dunfell| #20210125 new.
+yes|cddetect|cddetect|exe,dev>null,doc,nls|compat:dunfell| #20170617
+yes|cddetect_quick|cddetect-quick|exe,dev>null,doc,nls|compat:dunfell| #20170617
+yes|cdrkit|cdrkit|exe,dev,doc,nls|compat:dunfell| #20210125 new.
+no|cdrtools||exe|pet:dunfell| #20190609
+yes|celluloid|celluloid|exe,dev,doc,nls|compat:dunfell| #20200924 new.
+yes|cgtkcalc|cgtkcalc|exe,dev>null,doc,nls|compat:dunfell| #20170617
+no|chromium||exe,dev,doc,nls|pet:dunfell| #20211213 this is ungoogled chromium.
+yes|chrpath|chrpath|exe,dev,doc,nls|compat:dunfell| #20170626
+no|cifs-utils|cifs-utils|exe,dev,doc,nls|compat:dunfell| #20180715 has mount.cifs
+yes|cifs-utils||exe,dev,doc,nls|pet:dunfell| #compiled in oe but still does not work. use pet. 20220731
+no|claws-mail|claws-mail|exe,dev,doc,nls|compat:dunfell| #20211209
+yes|cmake|cmake|exe>dev,dev,doc,nls|compat:dunfell| #20170513
+yes|coreutils|coreutils|exe,dev,doc,nls|compat:dunfell| #180702 going back to this, cp works.
+yes|cpio|cpio|exe,dev>null,doc,nls|compat:dunfell
+yes|cppunit|cppunit|exe,dev,doc,nls|compat:dunfell| #20170510
+yes|cryptodev-linux|cryptodev-linux|exe,dev,doc,nls|compat:dunfell
+yes|ctorrent|ctorrent|exe,dev,doc,nls|compat:dunfell| #20170617
+yes|cups|cups|exe,dev,doc>exe,nls|compat:dunfell| #important doc goes into exe
+no|cups-filters|cups-filters|exe,dev,doc,nls|compat:dunfell| #20170609 20181209 recompiled.
+yes|cups-filters||exe,dev,doc,nls|pet:dunfell| #20201002 new. printing was broken. now works. 20201018 20220731
+yes|cups_pdf||exe|pet:noarch| #20171211 20201001 why do we still have this as can print to file anyway. 20210419 removed. nah leave it in for now, seem to recall some other ramification if remove it.
+yes|curl|curl|exe,dev,doc,nls|compat:dunfell
+yes|curlftpfs|curlftpfs|exe,dev,doc,nls|compat:dunfell| #20170617
+yes|db|db|exe,dev,doc,nls|compat:dunfell| #180606 libreoffice needs this for open/save
+yes|dbus|dbus|exe,dev,doc,nls|compat:dunfell
+yes|dbus-glib|dbus-glib|exe,dev,doc,nls|compat:dunfell
+no|debianutils|debianutils|exe,dev,doc,nls|compat:dunfell| #20200922 a dep of apt i think.
+yes|defaults-chooser||exe|pet:noarch
+no|desk_background_after-sunset-reddish-clouds-lake||exe|pet:noarch| #20220210
+no|desk_background_black||exe|pet:noarch| #20220319
+no|desk_background_black-with-color-patterns||exe|pet:noarch| #20220330
+no|desk_background_city_night_lights||exe|pet:noarch| #20211021
+no|desk_background_deepblueband||exe|pet:noarch| #20190118
+yes|desk_background_easyblue2||exe|pet:noarch| #20180504  20220413
+no|desk_background_easyos_darkblue||exe|pet:noarch| #20211022
+no|desk_background_nighticemoon||exe|pet:noarch| #20211023
+no|desk_background_peachy_red_slaq||exe|pet:noarch| #20220209
+no|desk_background_space-dark-red||exe|pet:noarch| #20220314
+no|desk_background_sunset-blood-red-orange||exe|pet:noarch| #20220210
+yes|desk_icon_theme_easyblue||exe|pet:noarch| #20180504  20220412
+no|desk_icon_theme_lagabluenight2||exe|pet:noarch| #190118
+no|desk_icon_theme_moblin_stark||exe|pet:noarch| #20220319
+yes|desk_icon_theme_multicolor_marble2||exe|pet:noarch| #20220210
+no|desk_icon_theme_peachy_red||exe|pet:noarch
+no|desk_icon_theme_quirky72green||exe|pet:noarch
+yes|desktop-file-utils|desktop-file-utils|exe,dev,doc,nls|compat:dunfell| #20170513
+yes|dhcpcd|dhcpcd|exe,dev,doc,nls|compat:dunfell| #20200926 new.
+no|dia|dia|exe,dev,doc,nls|compat:dunfell| #20220606
+yes|dialog|dialog|exe,dev>null,doc,nls|compat:dunfell| #20180718
+no|dictd_client|dictd|exe,dev,doc,nls|compat:dunfell| #20210125 new. no, forgot it.
+yes|dictd_client||exe,dev,doc,nls|pet:dunfell| #20210125 forgot to compile it in oe. 20220731
+no|didiwiki|didiwiki|exe,dev,doc,nls|compat:dunfell| #20220118 doesnt work properly.
+no|dietlibc||exe>dev,dev,doc,nls|pet:dunfell| #20170526 20210125 removed.
+yes|diffstat|diffstat|exe,dev,doc,nls|compat:dunfell
+yes|diffutils|diffutils|exe,dev,doc,nls|compat:dunfell
+yes|disktype|disktype|exe,dev,doc,nls|compat:dunfell| #20170617
+yes|dmidecode|dmidecode|exe,dev>null,doc,nls|compat:dunfell
+yes|dnsmasq|dnsmasq|exe,dev,doc,nls|compat:dunfell| #20181112 networkmanager needs this. 20190205 removed.
+yes|docbook-xml-dtd4|docbook-xml-dtd4|exe>dev,dev,doc,nls|compat:dunfell| #20170510
+yes|docbook-xsl-stylesheets|docbook-xsl-stylesheets|exe>dev,dev,doc,nls|compat:dunfell| #20170510
+yes|dosfstools|dosfstools|exe,dev,doc,nls|compat:dunfell
+no|double-conversion||exe,dev,doc,nls|pet:dunfell| #20201018 needed by inkscape.
+yes|double-conversion|double-conversion|exe,dev,doc,nls|compat:dunfell| #20210410 needed by inkscape.
+yes|dpkg|dpkg|exe,dev,doc,nls|compat:dunfell| #20170617  20220811 change generic from dpkg-deb to dpkg
+yes|droidcam|droidcam|exe,dev,doc,nls|compat:dunfell| #20220426 phone webcam.
+yes|Dropbox_GUI||exe|pet:noarch| #20171216
+yes|dtc|dtc|exe,dev,doc,nls|compat:dunfell| #20221104 device tree compiler.
+yes|dvdauthor|dvdauthor|exe,dev,doc,nls|compat:dunfell| #20170617
+yes|dvd_close|dvd-close|exe,dev,doc,nls|compat:dunfell| #20171031
+yes|dvd+rw-tools|dvd+rw-tools|exe,dev,doc,nls|compat:dunfell
+yes|e2fsprogs|e2fsprogs|exe,dev,doc,nls|compat:dunfell
+yes|EasyApps||exe,dev,doc,nls|pet:noarch| #20170927 by radky
+yes|easycast||exe,dev,doc,nls|pet:noarch| #20220301
+yes|ed|ed|exe,dev,doc,nls|compat:dunfell
+no|efibootmgr|efibootmgr|exe,dev,doc,nls|compat:dunfell| #20220710 need for grub2config. 20220819 removed.
+no|efivar|efivar|exe,dev,doc,nls|compat:dunfell| #20220710 need for grub2config. 20220819 removed.
+yes|elfutils|elfutils|exe,dev,doc,nls|compat:dunfell| #20171230 needed by mesa.
+yes|ell|ell|exe,dev,doc,nls|compat:dunfell| #20200923 new. needed by ofono
+yes|empty|empty|exe,dev,doc,nls|compat:dunfell| #20181017 needed for easy containers.
+yes|enca|enca|exe,dev,doc,nls|compat:dunfell| #20170510
+yes|enchant2|enchant2|exe,dev,doc,nls|compat:dunfell| #20200923 new. needed by evince.
+yes|encodings|encodings|exe,dev,doc,nls|compat:dunfell| #needed by font-util.
+no|epiphany|epiphany|exe,dev,doc,nls|compat:dunfell| #20200924 new. 20200930 removed. now have seamonkey.
+yes|ethtool|ethtool|exe,dev>null,doc,nls|compat:dunfell
+yes|eudev|eudev|exe,dev,doc,nls|compat:dunfell
+yes|evince|evince|exe,dev,doc,nls|compat:dunfell| #pdf viewer, better than epdfview. #20170610  20200930 removed. 20201001 back, last gtk2 version. also not require gstreamer.
+yes|exfat-utils|exfat-utils|exe,dev,doc,nls|compat:dunfell
+no|exiv2|exiv2|exe,dev,doc,nls|compat:dunfell| #20200924 new. needed by gimp.
+yes|expat|expat|exe,dev,doc,nls|compat:dunfell
+no|expect|expect|exe,dev,doc,nls|compat:dunfell| #20201008 requires tcl.
+yes|f2fs-tools|f2fs-tools|exe,dev,doc,nls|compat:dunfell
+yes|faac|faac|exe,dev,doc,nls|compat:dunfell
+yes|faad2|faad2|exe,dev,doc,nls|compat:dunfell
+no|fdk-aac|fdk-aac|exe,dev,doc,nls|compat:dunfell| #20220105 needed by shotcut
+yes|ffconvert||exe,dev,doc,nls|pet:noarch
+yes|ffmpeg|ffmpeg|exe,dev,doc,nls|compat:dunfell
+yes|fftag||exe|pet:noarch| #20220510 replaces pmetatagger.
+no|fftw|fftw|exe,dev,doc,nls|compat:dunfell| #20211220 reqd by lives. and flowblade. 20220611
+yes|file|file|exe,dev,doc,nls|compat:dunfell
+yes|findutils|findutils|exe,dev,doc,nls|compat:dunfell
+no|firefox||exe|pet:dunfell| #20211107 20211109
+yes|firefox-skeleton||exe|pet:noarch| #20211110 20211213 trying ungoogled chromium.
+no|firefox-skel-ask||exe|pet:noarch| #20220107 will download latest ff.
+yes|firmware_asus_e200ha||exe|pet:noarch| #needed for my asus e200ha notebook. #PC 20190824
+yes|firmware_linux_acer_aspire1||exe|pet:noarch| #20190813 for my acer aspire1 laptop. note has regulatory.db useful all wifi. 20190824
+yes|firmware_linux_all_k5p15||exe|pet:noarch| #20220309
+no|firmware_linux_amdgpu||exe|pet:noarch| #20220303
+yes|firmware_linux_b43_extra||exe|pet:noarch| #20220808
+yes|firmware_linux_base||exe|pet:noarch| #20180103 20190824
+yes|firmware_linux_mele_pcg35||exe|pet:noarch| #20170927 20190824
+yes|firmware_linux_rtlwifi||exe|pet:noarch| #20220816
+yes|flac|flac|exe,dev,doc,nls|compat:dunfell
+yes|flex|flex|exe>dev,dev,doc,nls|compat:dunfell
+yes|floppy-format-noarch||exe|pet:noarch| #needs ufiformat.
+no|flowblade||exe,dev,doc,nls|pet:noarch| #20220113 video editor.
+yes|flsynclient|flsynclient|exe,dev,doc,nls|compat:dunfell| #20210418 instead of psynclient.
+yes|fltk|fltk|exe,dev,doc,nls|compat:dunfell| #20201012 new. needed by alsamixergui. 20201013 removed. 20210418 flsynclient needs this.
+no|fluidsynth|fluidsynth|exe,dev,doc,nls|compat:dunfell| #20211227 needed by vlc
+yes|fontconfig|fontconfig|exe,dev,doc,nls|compat:dunfell
+yes|font_opensans_semibold_bold||exe|pet:noarch| #the semibold is the default, when want thick font.
+yes|font-util|font-util|exe,dev,doc,nls|compat:dunfell
+yes|foomatic-db-compressed-ppds||exe|pet:noarch| #20210418
+yes|formfactor|formfactor|exe,dev,doc,nls|compat:dunfell
+yes|fpm2|fpm2|exe,dev,doc,nls|compat:dunfell| #20170610
+yes|freememapplet_tray|freememapplet-tray|exe,dev,doc,nls|compat:dunfell| #20170625
+no|freeoffice||exe|pet:dunfell| #20220622 instead of libreoffice.
+yes|freetype|freetype|exe,dev,doc,nls|compat:dunfell
+no|frei0r|frei0r|exe,dev,doc,nls|compat:dunfell| #20220115 needed by mlt flowblade lives
+yes|fribidi|fribidi|exe,dev,doc,nls|compat:dunfell
+no|frisbee||exe,dev,doc,nls|pet:noarch| #created by jemimah, puppified by rerwin. 20210619 removed.
+yes|fuse|fuse|exe,dev,doc,nls|compat:dunfell
+yes|fuse3|fuse3|exe,dev,doc,nls|compat:dunfell| #20221102 maybe a compile option for qemu.
+no|fuse-exfat|fuse-exfat|exe,dev,doc,nls|compat:dunfell| #see also exfat-utils. 20210523 now have driver in kernel.
+yes|galculator|galculator|exe,dev,doc,nls|compat:dunfell| #20170522
+yes|gawk|gawk|exe,dev,doc,nls|compat:dunfell
+yes|gcab|gcab|exe,dev,doc,nls|compat:dunfell| #20220130 needed by appstream-glib which is needed by celluloid.
+yes|gcc|gcc,libgcc-initial|exe>dev,dev,doc,nls|compat:dunfell| #20220731
+no|gcc||exe>dev,dev,doc,nls|pet:dunfell| #20201016 recompiled for nocona target.
+yes|gccmakedep|gccmakedep|exe>dev,dev,doc,nls|compat:dunfell| #20170610
+yes|gcc-runtime|gcc-runtime,libgcc|exe,dev,doc,nls|compat:dunfell
+yes|gcc-sanitizers|gcc-sanitizers|exe>dev,dev,doc,nls|compat:dunfell
+yes|gcolorsel|gcolorsel|exe,dev,doc,nls|compat:dunfell| #20170610
+yes|gconf|gconf|exe,dev,doc,nls|compat:dunfell
+yes|gcr|gcr|exe,dev,doc,nls|compat:dunfell| #network-manager-applet needs this.
+yes|gdb|gdb|exe>dev,dev,doc,nls|compat:dunfell
+yes|gdbm|gdbm|exe,dev,doc,nls|compat:dunfell
+yes|gdk-pixbuf|gdk-pixbuf|exe,dev,doc,nls|compat:dunfell
+no|gdl||exe,dev,doc,nls|pet:dunfell| #20201018 needed by inkscape.
+yes|gdl|gdl|exe,dev,doc,nls|compat:dunfell| #20210410 needed by inkscape.
+yes|gdmap|gdmap|exe,dev>null,doc,nls|compat:dunfell| #20170610
+yes|geany|geany|exe,dev>null,doc,nls|compat:dunfell
+yes|geany-plugins|geany-plugins|exe,dev>null,doc,nls|compat:dunfell| #20220817 needs libgit2, libssh2
+no|gegl|gegl|exe,dev,doc,nls|compat:dunfell| #20170510 needed by gimp. 20220611
+no|getflash||exe,dev,doc,nls|pet:noarch| #20211121 removed.
+yes|gettext|gettext|exe,dev>null,doc>null,nls>null|compat:dunfell
+yes|gettext_devxonly|gettext|exe>dev,dev,doc,nls|compat:dunfell
+no|gexiv2|gexiv2|exe,dev,doc,nls|compat:dunfell| #20200923 new. needed by inkscape.
+yes|gfnrename|gfnrename|exe,dev>null,doc,nls|compat:dunfell| #20170617
+yes|gfontsel|gfontsel|exe,dev>null,doc,nls|compat:dunfell| #20170610
+yes|gftp|gftp|exe,dev>null,doc,nls|compat:dunfell
+no|ghasher|ghasher|exe,dev,doc,nls|compat:dunfell| #20170610
+no|ghasher||exe,dev,doc,nls|pet:dunfell| #20200922
+yes|ghostscript|ghostscript|exe,dev,doc,nls|compat:dunfell
+yes|gif2lss|gif2lss|exe,dev,doc,nls|compat:dunfell| #20170610
+yes|gifsicle|gifsicle|exe,dev,doc,nls|compat:dunfell| #20170610
+no|gimp|gimp|exe,dev,doc,nls|compat:dunfell| #20220611
+yes|git|git|exe>dev,dev,doc,nls|compat:dunfell
+yes|glade|glade|exe>dev,dev,doc,nls|compat:dunfell| #20220830 ui designer.
+yes|glew|glew|exe,dev,doc,nls|compat:dunfell| #20170510
+yes|glib|glib-2.0|exe,dev,doc,nls|compat:dunfell
+yes|glibc|glibc|exe,dev,doc,nls|compat:dunfell
+no|glibc-initial|glibc-initial|exe>dev,dev,doc,nls|compat:dunfell| #20200922 not in oe. what does it do
+yes|glibc-locale|glibc-locale|exe,dev,doc,nls>exe|compat:dunfell| #170515 oe, do not use glibc_locales template. new glibc-locale template.
+yes|glibmm|glibmm|exe,dev,doc,nls|compat:dunfell
+yes|glib-networking|glib-networking|exe,dev,doc,nls|compat:dunfell| #20180614
+yes|glipper-lite|glipper-lite|exe,dev>null,doc,nls|compat:dunfell| #20170610
+yes|glm|glm|exe,dev,doc,nls|compat:dunfell| #20170510
+yes|Global_IP_TV_Panel_For_EasyOS_using_mpv||exe|pet:noarch| #20220630
+yes|gmeasures|gmeasures|exe,dev>null,doc,nls|compat:dunfell| #20170611
+no|gmime||exe,dev,doc,nls|pet:dunfell| #20211203 needed by balsa email client.
+yes|gmp|gmp|exe,dev,doc,nls|compat:dunfell
+yes|gnet|gnet|exe,dev,doc,nls|compat:dunfell| #needed by helpsurfer #20170612
+yes|gnome-bluetooth|gnome-bluetooth|exe,dev,doc,nls|compat:dunfell| #20201022 new.
+yes|gnome-common|gnome-common|exe>dev,dev,doc,nls|compat:dunfell| #20211128
+no|gnome-desktop3|gnome-desktop3|exe,dev,doc,nls|compat:dunfell| #20200924 new. needed by evince. 20201002 removed, using gtk2 evince.
+yes|gnome-doc-utils-stub|gnome-doc-utils-stub|exe,dev,doc,nls|compat:dunfell| #20170510
+yes|gnome-icon-theme||exe>dev,dev,doc,nls|pet:noarch| #in devx, may need to extract some into main f.s.
+yes|gnome-keyring|gnome-keyring|exe,dev,doc,nls|compat:dunfell| #20200926 new.
+yes|gnome-menus|gnome-menus|exe,dev,doc,nls|compat:dunfell| #20170609 needed by xdg_puppy.
+yes|gnu-config|gnu-config|exe>dev,dev,doc,nls|compat:dunfell
+no|gnu-efi|gnu-efi|exe>dev,dev,doc,nls|compat:dunfell| #needed to compile refind. 20220819 removed.
+yes|gnupg|gnupg|exe,dev,doc,nls|compat:dunfell| #20180614 deps are libassuan, npth, libksba, pinentry
+yes|gnutls|gnutls|exe,dev,doc,nls|compat:dunfell
+yes|gobject-introspection|gobject-introspection|exe,dev,doc,nls|compat:dunfell| #20180523 move to devx. 20201006 blueman needs this.
+yes|gpart|gpart|exe,dev,doc,nls|compat:dunfell| #utility used by gparted. #20170611
+yes|gparted|gparted|exe,dev,doc,nls|compat:dunfell
+yes|gperf|gperf|exe>dev,dev,doc,nls|compat:dunfell|
+yes|gpgme|gpgme|exe,dev,doc,nls|compat:dunfell| #20180614 dep is libassuan
+yes|gphoto2|gphoto2|exe,dev,doc,nls|compat:dunfell
+yes|gphotofs|gphotofs|exe,dev,doc,nls|compat:dunfell| #20170611
+yes|gpicview|gpicview|exe,dev,doc,nls|compat:dunfell| #instead of viewnior.
+yes|gpptp|gpptp|exe,dev,doc,nls|compat:dunfell| #binary executables only. written by jafadmin. #20170611
+yes|gpptp-noarch||exe|pet:noarch| #created by jafadmin.
+yes|gptfdisk|gptfdisk|exe,dev,doc,nls|compat:dunfell
+yes|graphite2|graphite2|exe,dev,doc,nls|compat:dunfell| #20170510
+yes|grep|grep|exe,dev,doc,nls|compat:dunfell
+no|grisbi|grisbi|exe,dev,doc,nls|compat:dunfell| #alternative to homebank.
+yes|groff|groff|exe>dev,dev,doc,nls|compat:dunfell
+no|grub|grub|exe,dev,doc,nls|compat:dunfell| # 20220605
+no|grub-efi|grub-efi|exe,dev,doc,nls|compat:dunfell| # 20220605
+no|grub4dos||exe|pet:noarch| #20181201 for traditional-bios computers. 20220605
+yes|gsettings-desktop-schemas|gsettings-desktop-schemas|exe,dev,doc,nls|compat:dunfell| #20170521
+yes|gsl|gsl|exe,dev,doc,nls|compat:dunfell| #20200926 new. needed by inkscape. and claws-mail. and pitivi.
+yes|gspell|gspell|exe,dev,doc,nls|compat:dunfell| #20200923 new. needed by evince. 20201002 removed, using gtk2 evince. 20211214 inkscape wants.
+no|gst-devtools|gst-devtools|exe>dev,dev,doc,nls|compat:dunfell| #20220129 needed by pitivi but maybe only for installing. 20220605
+no|gst-editing-services|gst-editing-services|exe,dev,doc,nls|compat:dunfell| #20220129 needed by pitivi. 20220605
+no|gstreamer|gstreamer1.0|exe,dev,doc,nls|compat:dunfell| #20220129 needed by pitivi. 20220605
+no|gstreamer-libav|gstreamer1.0-libav|exe,dev,doc,nls|compat:dunfell| #20220129 needed by pitivi. 20220605
+no|gstreamer-plugins-bad|gstreamer1.0-plugins-bad|exe,dev,doc,nls|compat:dunfell| #20220129 needed by pitivi. 20220605
+no|gstreamer-plugins-base|gstreamer1.0-plugins-base|exe,dev,doc,nls|compat:dunfell| #20220129 needed by pitivi. 20220605
+no|gstreamer-plugins-good|gstreamer1.0-plugins-good|exe,dev,doc,nls|compat:dunfell| #20220129 needed by pitivi. 20220605
+no|gstreamer-python|gstreamer1.0-python|exe,dev,doc,nls|compat:dunfell| #20220129 needed by pitivi. 20220605
+yes|gtk+|gtk+|exe,dev,doc,nls|compat:dunfell
+yes|gtk+3|gtk+3|exe,dev,doc,nls|compat:dunfell| #180401 needs at-spi2-core, at-spi2-atk
+yes|gtk-chtheme|gtk-chtheme|exe,dev>null,doc,nls|compat:dunfell| #20170611
+yes|gtkdialog|gtkdialog|exe,dev,doc>dev,nls|compat:dunfell| #20170611
+yes|gtkhash|gtkhash|exe,dev,doc,nls|compat:dunfell| #20210125 new.
+yes|gtklp|gtklp|exe,dev,doc,nls|compat:dunfell| #20170611
+no|gtkmm|gtkmm|exe>dev,dev,doc,nls|compat:dunfell| #20211128 needed by nemiver in devx. 20220606
+yes|gtkmm3|gtkmm3|exe,dev,doc,nls|compat:dunfell| #20200923 fixed.
+yes|gtksourceview2|gtksourceview2|exe,dev,doc,nls|compat:dunfell
+yes|gtk_2_3_theme_easyblue||exe|pet:noarch| #20220412
+yes|gtk_theme_citrus_cut||exe|pet:noarch
+no|gtk_theme_easyblue||exe|pet:noarch| #20180504
+yes|gtk_theme_easyflatgrey2||exe|pet:noarch| #20220319
+no|gtk_theme_flatbluecontrast||exe|pet:noarch| #20190118
+no|gtk_theme_flatbluetinge||exe|pet:noarch| #202110121
+no|gtk_theme_gradient_grey||exe|pet:noarch
+yes|gtk_theme_grey-deep-flat||exe|pet:noarch| #20220319
+yes|gtk_theme_peachy_darkbrown||exe|pet:noarch| #20220212
+no|gtk_theme_quirky72green||exe|pet:noarch|
+no|gummiboot||exe|pet:dunfell| #20180304
+no|gutenprint|gutenprint|exe,dev,doc,nls|compat:dunfell| #20170612 20201006 new.
+yes|gutenprint||exe,dev,doc,nls|pet:dunfell| #20220731
+yes|guvcview|guvcview|exe,dev,doc,nls|compat:dunfell| #20220422 requires portaudio
+yes|gview|gview|exe,dev,doc,nls|compat:dunfell| #20170612
+yes|gwhere|gwhere|exe,dev,doc,nls|compat:dunfell| #20180505
+yes|gxlat||exe,dev,doc,nls|pet:noarch| #20180728
+yes|gxmessage|gxmessage|exe,dev,doc,nls|compat:dunfell| #20170612
+yes|gzip|gzip|exe,dev>null,doc,nls|compat:dunfell
+yes|hardinfo|hardinfo|exe,dev,doc,nls|compat:dunfell| #20171101 also using Pup-SysInfo
+yes|harfbuzz|harfbuzz|exe,dev,doc,nls|compat:dunfell
+yes|hdparm|hdparm|exe,dev,doc,nls|compat:dunfell
+yes|helpsurfer|helpsurfer|exe,dev,doc,nls|compat:dunfell| #needs gnet, libsystem. #20170612
+no|hexchat|hexchat|exe,dev,doc,nls|compat:dunfell| #20220606 irc client. 20220611 removed.
+yes|hiawatha|hiawatha|exe,dev,doc,nls|compat:dunfell| #20200924 new.
+yes|hicolor-icon-theme|hicolor-icon-theme|exe,dev,doc,nls|compat:dunfell
+yes|homebank|homebank|exe,dev,doc,nls|compat:dunfell| #20170611 needs libofx
+no|hostap-utils|hostap-utils|exe,dev,doc,nls|compat:dunfell| #20200922 no longer in oe.
+yes|hostname|hostname|exe,dev,doc,nls|compat:dunfell| #20170617
+yes|hotplug2stdout|hotplug2stdout|exe,dev,doc,nls|compat:dunfell| #20170612
+yes|hplip|hplip|exe,dev,doc,nls|compat:dunfell| #20210625
+yes|hunspell|hunspell|exe,dev,doc,nls|compat:dunfell
+yes|hunspell-en-au||exe|pet:noarch| #20190113
+yes|hunspell-en-gb||exe|pet:noarch| #20190113
+yes|hunspell-en-us||exe|pet:noarch
+yes|hyphen|hyphen|exe,dev,doc,nls|compat:dunfell| #20210411 reqd by libreoffice.
+yes|iceauth|iceauth|exe,dev,doc,nls|compat:dunfell| #20170510
+yes|iconfinder||exe,dev,doc,nls|pet:noarch
+yes|icu|icu|exe,dev,doc,nls|compat:dunfell
+yes|ifplugd|ifplugd|exe,dev,doc,nls|compat:dunfell
+yes|ifplugd_old|ifplugd-old|exe,dev,doc,nls|compat:dunfell| #20170613
+yes|ijs|ijs|exe,dev,doc,nls|compat:dunfell| #20170609
+no|imagemagick|imagemagick|exe,dev,doc,nls|compat:dunfell| #20211220 reqd by lives and obs. 20220130 removed.
+yes|imake|imake|exe>dev,dev,doc,nls|compat:dunfell| #20170613
+no|inkscape||exe,dev,doc,nls|pet:dunfell| #20180313 needs gsl, bdwgc. 20201018 needs double-conversion, potrace, gdl, gtkmm3
+yes|inkscape|inkscape|exe,dev,doc,nls|compat:dunfell| #20210410
+no|inkscapelite|inkscapelite|exe,dev,doc,nls|compat:dunfell| #20200929 new.
+yes|inotify-tools|inotify-tools|exe,dev,doc,nls|compat:dunfell
+yes|installwatch|installwatch|exe,dev,doc,nls|compat:dunfell| #20170617
+yes|intltool|intltool|exe,dev,doc,nls|compat:dunfell
+yes|iotop|iotop-py|exe,dev,doc,nls|compat:dunfell| #20201012 new. 20220519
+yes|iproute2|iproute2|exe,dev,doc,nls|compat:dunfell| #20181001 only has ip utility
+yes|iptables|iptables|exe,dev,doc,nls|compat:dunfell
+yes|iso-codes|iso-codes|exe,dev,doc,nls|compat:dunfell| #network-manager-applet needs this.
+yes|isomaster|isomaster|exe,dev,doc,nls|compat:dunfell| #20170613
+yes|itstool|itstool|exe>dev,dev,doc,nls|compat:dunfell| #20210414 needed to compile modem-manager-gui
+yes|iw|iw|exe,dev,doc,nls|compat:dunfell| #20200922 removed. 20201001 back. i think needed superceeds wireless-tools.
+yes|jack|jack|exe,dev,doc,nls|compat:dunfell| #20220613 celluloid audacious need this.
+yes|jansson|jansson|exe,dev,doc,nls|compat:dunfell| #20181112 networkmanager needs this. 20190205 removed.
+yes|jasper|jasper|exe,dev,doc,nls|compat:dunfell
+yes|jimtcl|jimtcl|exe,dev,doc,nls|compat:dunfell| #20201008 needed by usb-modeswitch.
+no|jre||exe|pet:dunfell| #20210920
+yes|json-c|json-c|exe,dev,doc,nls|compat:dunfell #needed by solvespace.
+yes|json-glib|json-glib|exe,dev,doc,nls|compat:dunfell| #20170510
+yes|jwm|jwm|exe,dev,doc,nls|compat:dunfell| #20180505 rev1679 20211117 v2.4.0 20220309 v2.4.1
+yes|jwm3_theme_black-deep||exe|pet:noarch| #20220319
+no|jwm3_theme_brightdeepblue||exe|pet:noarch| #20211021
+no|jwm3_theme_deepbluebold||exe|pet:noarch| #20190118
+yes|jwm3_theme_easyblue||exe|pet:noarch| #20180504
+yes|jwm3_theme_peachy-darkbrown||exe|pet:noarch| #20220210
+yes|jwm3_theme_peachy-red||exe|pet:noarch| #20220210
+no|jwm3_theme_quirky72green||exe|pet:noarch| #20180311
+yes|jwm3_theme_slate||exe|pet:noarch| #20180311
+yes|JWMDesk||exe|pet:noarch| #20220315
+yes|keyutils|keyutils|exe,dev,doc,nls|compat:dunfell| #20210912 kernel keyring management.
+yes|kmod|kmod|exe,dev,doc,nls|compat:dunfell
+yes|ktsuss|ktsuss|exe,dev,doc,nls|compat:dunfell| #20170613
+yes|lame|lame|exe,dev,doc,nls|compat:dunfell
+yes|lcms|lcms|exe,dev,doc,nls|compat:dunfell
+yes|leafpad|leafpad|exe,dev,doc,nls|compat:dunfell
+yes|less|less|exe,dev,doc,nls|compat:dunfell
+yes|liba52|liba52|exe,dev,doc,nls|compat:dunfell
+yes|libabw|libabw|exe,dev,doc,nls|compat:dunfell| #20210411 reqd by libreoffice.
+yes|libaio|libaio|exe,dev,doc,nls|compat:dunfell| #20170510
+yes|libao|libao|exe,dev,doc,nls|compat:dunfell| #20170619 needed by vorbis-tools
+yes|libarchive|libarchive|exe,dev,doc,nls|compat:dunfell
+yes|libart-lgpl|libart-lgpl|exe,dev,doc,nls|compat:dunfell| #needed by some april apps, ex dia.
+yes|libass|libass|exe,dev,doc,nls|compat:dunfell| #20170510
+yes|libassuan|libassuan|exe,dev,doc,nls|compat:dunfell| #20180614
+yes|libatomic-ops|libatomic-ops|exe,dev,doc,nls|compat:dunfell
+yes|libavc1394|libavc1394|exe,dev,doc,nls|compat:dunfell
+yes|libbluray|libbluray|exe,dev,doc,nls|compat:dunfell| #180506
+yes|libbsd|libbsd|exe,dev,doc,nls|compat:dunfell| #20180821
+no|libcamera|libcamera|exe,dev,doc,nls|compat:dunfell| #20211030  20211101 removed.
+no|libcamera||exe,dev,doc,nls|pet:dunfell| #20211101 later version required by pipewire. 20220611 big, remove.
+yes|libcanberra|libcanberra|exe,dev,doc,nls|compat:dunfell| #20201006 new. needed by pavucontrol. 20201022 needed by gnome-bluetooth.
+yes|libcap|libcap|exe,dev,doc,nls|compat:dunfell
+yes|libcap-ng|libcap-ng|exe,dev,doc,nls|compat:dunfell| #20180926 needed by pflask
+yes|libcddb|libcddb|exe,dev,doc,nls|compat:dunfell| #20170513
+yes|libcdio|libcdio|exe,dev,doc,nls|compat:dunfell
+yes|libcdio-paranoia|libcdio-paranoia|exe,dev,doc,nls|compat:dunfell| #20170513
+yes|libcdr|libcdr|exe,dev,doc,nls|compat:dunfell| #20210411 reqd by libreoffice.
+no|libcec|libcec|exe,dev,doc,nls|compat:dunfell| #20170510 20220606
+no|libcgi-perl|libcgi-perl|exe,dev,doc,nls|compat:dunfell| #20171123 20220606
+no|libcheck|libcheck|exe,dev,doc,nls|compat:dunfell| #2020102 removed.
+yes|libcmis|libcmis|exe,dev,doc,nls|compat:dunfell| #20210411 reqd by libreoffice.
+yes|libcroco|libcroco|exe,dev,doc,nls|compat:dunfell
+yes|libdaemon|libdaemon|exe,dev,doc,nls|compat:dunfell
+no|libdazzle|libdazzle|exe,dev,doc,nls|compat:dunfell| #20200924 new. needed by epiphany. 20200930 removed.
+no|libdbd-mysql-perl|libdbd-mysql-perl|exe,dev,doc,nls|compat:dunfell| #20170510 20220606
+no|libdbi-perl|libdbi-perl|exe,dev,doc,nls|compat:dunfell| #20170510 20220606
+yes|libdc1394|libdc1394|exe,dev,doc,nls|compat:dunfell
+no|libdigest-sha1-perl|libdigest-sha1-perl|exe,dev,doc,nls|compat:dunfell| #20171123 20220606
+yes|libdmx|libdmx|exe,dev,doc,nls|compat:dunfell| #20170510
+no|libdrm||exe,dev,doc,nls|pet:dunfell| #20211107 compiled later version than in oe.
+yes|libdrm|libdrm|exe,dev,doc,nls|compat:dunfell| #20211119 2.4.107 now compiled in oe.
+no|libdv|libdv|exe,dev,doc,nls|compat:dunfell| #20211220 reqd by lives and mjpegtools.
+yes|libdvdcss|libdvdcss|exe,dev,doc,nls|compat:dunfell| #20170613
+yes|libdvdnav|libdvdnav|exe,dev,doc,nls|compat:dunfell
+yes|libdvdread|libdvdread|exe,dev,doc,nls|compat:dunfell
+yes|libe-book|libe-book|exe,dev,doc,nls|compat:dunfell| #20210411 reqd by libreoffice.
+yes|libebml|libebml|exe,dev,doc,nls|compat:dunfell| #20210823 needed by planner.
+yes|libedit|libedit|exe,dev,doc,nls|compat:| #20210823 needed by llvm.
+yes|libepoxy|libepoxy|exe,dev,doc,nls|compat:dunfell| #20170510
+yes|libetonyek|libetonyek|exe,dev,doc,nls|compat:dunfell| #20210411 reqd by libreoffice.
+no|libetpan|libetpan|exe,dev,doc,nls|compat:dunfell| #20211209 dep of claws-mail
+yes|libevdev|libevdev|exe,dev,doc,nls|compat:dunfell
+yes|libevent|libevent|exe,dev,doc,nls|compat:dunfell
+yes|libexif|libexif|exe,dev,doc,nls|compat:dunfell
+yes|libexif-gtk|libexif-gtk|exe,dev,doc,nls|compat:dunfell| #20170613
+yes|libexttextcat|libexttextcat|exe,dev,doc,nls|compat:dunfell| #20210411 reqd by libreoffice.
+yes|libexttextcat-data||exe,dev,doc,nls|pet:dunfell| #20170511 oe should have installed this, it is in libexttextcat pkg. 20210411 still have this problem.
+yes|libffi|libffi|exe,dev,doc,nls|compat:dunfell
+yes|libfreehand|libfreehand|exe,dev,doc,nls|compat:dunfell| #20210411 reqd by libreoffice.
+yes|libgcrypt|libgcrypt|exe,dev,doc,nls|compat:dunfell
+yes|libgd|libgd|exe,dev,doc,nls|compat:dunfell| #needed by some libgphoto2 drivers. #20170614
+yes|libgee|libgee|exe,dev,doc,nls|compat:dunfell| #data-type extension library for vala.
+yes|libgif|giflib|exe,dev,doc,nls|compat:dunfell
+yes|libgit2|libgit2|exe,dev,doc,nls|compat:dunfell| #20220817 needed by geany-plugins
+yes|libglade|libglade|exe,dev,doc,nls|compat:dunfell| #20170522. needed by planner.
+yes|libgltf|libgltf|exe,dev,doc,nls|compat:dunfell| #20210411 reqd by libreoffice.
+yes|libglu|libglu|exe,dev,doc,nls|compat:dunfell| #needed by mpv.
+yes|libgnomecanvas|libgnomecanvas|exe,dev,doc,nls|compat:dunfell| #20170614 needed by planner.
+no|libgnomekbd|libgnomekbd|exe,dev,doc,nls|compat:dunfell| #20201102 new. needed by xapp. 20220606
+yes|libgpg-error|libgpg-error|exe,dev,doc,nls|compat:dunfell
+yes|libgphoto2|libgphoto2|exe,dev,doc,nls|compat:dunfell
+no|libgsf|libgsf|exe,dev,doc,nls|compat:dunfell| #20210125 new. needed by libgoffice and gnumeric. 20220606
+yes|libgtkhtml|libgtkhtml|exe,dev,doc,nls|compat:dunfell| #20170612
+no|libgtksourceviewmm||exe>dev,dev,doc,nls|pet:dunfell| #20211128 needed by nemiver in devx. 20220606
+no|libgtop|libgtop|exe,dev,doc,nls|compat:dunfell| #20201128 needed by nemiver in devx. 20220606
+yes|libgudev|libgudev|exe,dev,doc,nls|compat:dunfell
+yes|libhandy|libhandy|exe,dev,doc,nls|compat:dunfell| #20221105 needed by gnome-boxes
+no|libhtml-parser-perl|libhtml-parser-perl|exe,dev,doc,nls|compat:dunfell| #20171123 20220606
+yes|libical|libical|exe,dev,doc,nls|compat:dunfell
+yes|libid3tag|libid3tag|exe,dev,doc,nls|compat:dunfell
+yes|libidl|libidl|exe,dev,doc,nls|compat:dunfell| #20211129 needed by old versions of seamonkey.
+yes|libidn|libidn|exe,dev,doc,nls|compat:dunfell
+yes|libidn2|libidn2|exe,dev,doc,nls|compat:dunfell| #20200923 new.
+yes|libjpeg-turbo|libjpeg-turbo|exe,dev,doc,nls|compat:dunfell
+yes|libksba|libksba|exe,dev,doc,nls|compat:dunfell| #20180614 dep of gnupg
+yes|liblangtag|liblangtag|exe,dev,doc,nls|compat:dunfell| #20210411 reqd by libreoffice.
+yes|liblocale-gettext-perl|liblocale-gettext-perl|exe>dev,dev,doc,nls|compat:dunfell| #20210413 dep of po4a
+yes|libmaa|libmaa|exe,dev,doc,nls|compat:dunfell| #20170617 needed by dictd
+yes|libmad|libmad|exe,dev,doc,nls|compat:dunfell
+no|libmatroska|libmatroska|exe,dev,doc,nls|compat:dunfell| #20211220 reqd by lives.
+no|libmbim|libmbim|exe,dev,doc,nls|compat:dunfell| #20181118 needed by modemmanager. 20190205 removed. 20210412 added.
+yes|libmikmod|libmikmod|exe,dev,doc,nls|compat:dunfell| #20170510
+yes|libmime-charset-perl|libmime-charset-perl|exe>dev,dev,doc,nls|compat:dunfell| #20210413 dep of po4a
+yes|libmng|libmng|exe,dev,doc,nls|compat:dunfell
+yes|libmnl|libmnl|exe,dev,doc,nls|compat:dunfell| #20200923 new. needed by ip.
+yes|libmodplug|libmodplug|exe,dev,doc,nls|compat:dunfell| #20170510. used by kodi, xine.
+yes|libmpc|libmpc|exe,dev,doc,nls|compat:dunfell| #20170510 20220606 20220612 need this.
+yes|libmspub|libmspub|exe,dev,doc,nls|compat:dunfell| #20210411 reqd by libreoffice.
+yes|libmtp|libmtp|exe,dev,doc,nls|compat:dunfell| #20210125 new. needed by simple-mtpfs
+yes|libmwaw|libmwaw|exe,dev,doc,nls|compat:dunfell| #20210411 reqd by libreoffice.
+no|libmypaint|libmypaint|exe,dev,doc,nls|compat:dunfell| #20200924 new. needed by gimp. 20220611
+yes|libndp|libndp|exe,dev,doc,nls|compat:dunfell| #20181112 networkmanager needs this. 20190205 removed.
+yes|libnewt|libnewt|exe,dev,doc,nls|compat:dunfell| #20181113 needed by networkmanager. 20190205 removed.
+yes|libnl|libnl|exe,dev,doc,nls|compat:dunfell
+yes|libnotify|libnotify|exe,dev,doc,nls|compat:dunfell| #network-manager-applet needs this.
+yes|libnsl2|libnsl2|exe,dev,doc,nls|compat:dunfell| #20200923 new.
+yes|libodfgen|libodfgen|exe,dev,doc,nls|compat:dunfell| #20210411 reqd by libreoffice.
+yes|libofx|libofx|exe,dev,doc,nls|compat:dunfell| #20170611 optional needed by grisbi, homebank.
+yes|libogg|libogg|exe,dev,doc,nls|compat:dunfell
+no|liboil|liboil|exe,dev,doc,nls|compat:dunfell| #20200922 not in oe, maybe a libreoffice dep
+no|libosinfo|libosinfo|exe,dev,doc,nls|compat:dunfell| #20221105 needed by gnome-boxes
+yes|libpagemaker|libpagemaker|exe,dev,doc,nls|compat:dunfell| #20210411 reqd by libreoffice.
+yes|libpcap|libpcap|exe,dev,doc,nls|compat:dunfell
+yes|libpciaccess|libpciaccess|exe,dev,doc,nls|compat:dunfell
+yes|libpipeline|libpipeline|exe,dev,doc,nls|compat:dunfell| #20200923 new.
+yes|libpcre|libpcre|exe,dev,doc,nls|compat:dunfell
+yes|libpcre2|libpcre2|exe,dev,doc,nls|compat:dunfell| #20211218 qt5 needs this. 20220606  20220906 synaptic needs.
+no|libpeas|libpeas|exe,dev,doc,nls|compat:dunfell| #20220129 needed by pitivi. 20220605
+yes|libplist|libplist|exe,dev,doc,nls|compat:dunfell| #20220426 needed by droidcam.
+yes|libpng|libpng|exe,dev,doc,nls|compat:dunfell
+yes|libpng12|libpng12|exe,dev,doc,nls|compat:dunfell| #20170614 does not conflict with later libpng.
+yes|libproxy|libproxy|exe,dev,doc,nls|compat:dunfell
+yes|libpsl|libpsl|exe,dev,doc,nls|compat:dunfell| #20200923 new. needed by networkmanager.
+yes|libpthread-stubs|libpthread-stubs|exe,dev,doc,nls|compat:dunfell
+no|libqmi|libqmi|exe,dev,doc,nls|compat:dunfell| #20181118 needed by modemmanager. 20190205 removed. 20210412 added.
+yes|libraw1394|libraw1394|exe,dev,doc,nls|compat:dunfell
+no|libreoffice||exe,dev,doc,nls|pet:dunfell| #20200930 new. 20201017 recompiled. 20210411 recompiled.
+yes|libreoffice|libreoffice|exe,dev,doc,nls|compat:dunfell| #20210618 new.
+yes|libreoffice-icons-colibre-v7.1.3.2||exe|pet:noarch| #20220420 some colibre icons are missing from libreoffice pkg.
+yes|librevenge|librevenge|exe,dev,doc,nls|compat:dunfell| #20210411 reqd by libreoffice.
+yes|librsvg|librsvg|exe,dev,doc,nls|compat:dunfell
+yes|libsamplerate0|libsamplerate0|exe,dev,doc,nls|compat:dunfell
+no|libsass|libsass|exe>dev,dev,doc,nls|compat:dunfell| #20220411 a dep of sassc, whic is a dep of oomox. 20220611
+yes|libsdl|libsdl|exe,dev,doc,nls|compat:dunfell| #20170510
+no|libsdl-gfx|libsdl-gfx|exe,dev,doc,nls|compat:dunfell| #20211220 reqd by lives. 20220606
+yes|libsdl-image|libsdl-image|exe,dev,doc,nls|compat:dunfell| #20170510
+yes|libsdl-mixer|libsdl-mixer|exe,dev,doc,nls|compat:dunfell| #20170510
+yes|libsdl-ttf|libsdl-ttf|exe,dev,doc,nls|compat:dunfell| #20170513
+yes|libsdl2|libsdl2|exe,dev,doc,nls|compat:dunfell| #20200923 new.
+yes|libsdl2-image|libsdl2-image|exe,dev,doc,nls|compat:dunfell| #20221104 a config option for qemu.
+yes|libsdl2-ttf|libsdl2-ttf|exe,dev,doc,nls|compat:dunfell| #20221021
+no|libseccomp|libseccomp|exe,dev,doc,nls|compat:dunfell| #20180616 needed by flatpak. 20180922 used by contained.c  20220606
+yes|libsecret|libsecret|exe,dev,doc,nls|compat:dunfell| #network-manager-applet needs this.
+yes|libsigc++-2.0|libsigc++-2.0|exe,dev,doc,nls|compat:dunfell
+yes|libsndfile1|libsndfile1|exe,dev,doc,nls|compat:dunfell
+yes|libsombok3|libsombok3|exe>dev,dev,doc,nls|compat:dunfell| #20210413 dep of po4a
+no|libsoup3|libsoup|exe,dev,doc,nls|compat:dunfell| #20221105 libsoup-3.0 needed by gnome-boxes
+yes|libsoup|libsoup-2.4|exe,dev,doc,nls|compat:dunfell| #20180614 needed by networkmanager.
+yes|libssh|libssh|exe,dev,doc,nls|compat:dunfell| #20221102 seems config option for qemu.
+yes|libssh2|libssh2|exe,dev,doc,nls|compat:dunfell| #20200922 changed from libssh. needed by vlc, gstreamer. 20220817 needed by geany-plugins
+yes|libsystem|libsystem|exe,dev,doc,nls|compat:dunfell| #needed by helpsurfer. #20170612
+yes|libtalloc|libtalloc|exe,dev,doc,nls|compat:dunfell| #20210125 new. needed by samba.
+yes|libtasn1|libtasn1|exe,dev,doc,nls|compat:dunfell| #20180821 maybe needed samba.
+yes|libtdb|libtdb|exe,dev,doc,nls|compat:dunfell| #20201011 needed compile pulseaudio in running easyos.
+yes|libterm-readkey-perl|libterm-readkey-perl|exe>dev,dev,doc,nls|compat:dunfell| #20210413 dep of po4a
+yes|libtevent|libtevent|exe,dev,doc,nls|compat:dunfell| #20210125 new. needed by samba.
+yes|libtext-charwidth-perl|libtext-charwidth-perl|exe>dev,dev,doc,nls|compat:dunfell| #20210413 dep of po4a
+yes|libtext-wrapi18n-perl|libtext-wrapi18n-perl|exe>dev,dev,doc,nls|compat:dunfell| #20210413 dep of po4a
+yes|libtheora|libtheora|exe,dev,doc,nls|compat:dunfell
+yes|libtirpc|libtirpc|exe,dev,doc,nls|compat:dunfell
+yes|libtommath|libtommath|exe>dev,dev,doc,nls|compat:dunfell| #20171031 static lib, needed when compile libreoffice.
+yes|libtool|libtool|exe>dev,dev,doc,nls|compat:dunfell
+yes|libtool_runtime|libtool|exe,dev,doc,nls|compat:dunfell
+yes|libtubo|libtubo|exe,dev,doc,nls|compat:dunfell| #20210823 needed by xfdiff.
+yes|libunicode-linebreak-perl|libunicode-linebreak-perl|exe>dev,dev,doc,nls|compat:dunfell| #20210413 dep of po4a
+yes|libunistring|libunistring|exe,dev,doc,nls|compat:dunfell
+yes|liburcu|liburcu|exe,dev,doc,nls|compat:dunfell| #20170510
+no|liburi-perl|liburi-perl|exe,dev,doc,nls|compat:dunfell| #20171123 20220606
+yes|libusb|libusb1|exe,dev,doc,nls|compat:dunfell
+yes|libusb-compat|libusb-compat|exe,dev,doc,nls|compat:dunfell
+yes|libusbmuxd|libusbmuxd|exe,dev,doc,nls|compat:dunfell| #20220426 needed by droidcam.
+yes|libva|libva|exe,dev,doc,nls|compat:dunfell| #20170510
+yes|libvdpau|libvdpau|exe,dev,doc,nls|compat:dunfell| #20170510
+yes|libvdpau-va-gl|libvdpau-va-gl|exe,dev,doc,nls|compat:dunfell|
+no|libvirt|libvirt|exe,dev,doc,nls|compat:dunfell| #20221105 needed by gnome-boxes
+no|libvirt-glib|libvirt-glib|exe,dev,doc,nls|compat:dunfell| #20221105 needed by gnome-boxes
+yes|libvisio|libvisio|exe,dev,doc,nls|compat:dunfell| #20210411 reqd by libreoffice.
+yes|libvncserver|libvncserver|exe,dev,doc,nls|compat:dunfell| #20221104 config option for qemu use the client lib.
+yes|libvorbis|libvorbis|exe,dev,doc,nls|compat:dunfell
+yes|libvpx|libvpx|exe,dev,doc,nls|compat:dunfell
+yes|libwebp|libwebp|exe,dev,doc,nls|compat:dunfell| #20180506
+yes|libwpd|libwpd|exe,dev,doc,nls|compat:dunfell| #20210411 reqd by libreoffice.
+yes|libwpg|libwpg|exe,dev,doc,nls|compat:dunfell| #20210411 reqd by libreoffice.
+yes|libwps|libwps|exe,dev,doc,nls|compat:dunfell| #20210411 reqd by libreoffice.
+yes|libxaw|libxaw|exe,dev,doc,nls|compat:dunfell
+yes|libxcrypt|libxcrypt|exe,dev,doc,nls|compat:dunfell| #20200923 new.
+yes|libxcvt|libxcvt|exe,dev,doc,nls|compat:dunfell| #20220308 new. xorg needs this.
+yes|libxfont|libxfont|exe,dev,doc,nls|compat:dunfell| #20170510
+yes|libxkbcommon|libxkbcommon|exe,dev,doc,nls|compat:dunfell| #20180717
+yes|libxklavier|libxklavier|exe,dev,doc,nls|compat:dunfell| #20201102 new. needed by libgnomekbd
+yes|libxml++|libxml++|exe,dev,doc,nls|compat:dunfell| #20220130 needed by libofx which is needed by homebank.
+yes|libxml2|libxml2|exe,dev,doc,nls|compat:dunfell
+yes|libxml-parser-perl|libxml-parser-perl|exe,dev,doc,nls|compat:dunfell
+no|libxml-simple-perl|libxml-simple-perl|exe,dev,doc,nls|compat:dunfell| #20171123 20220606
+yes|libxpm|libxpm|exe,dev,doc,nls|compat:dunfell
+yes|libxscrnsaver|libxscrnsaver|exe,dev,doc,nls|compat:dunfell| #20170614
+yes|libxshmfence|libxshmfence|exe,dev,doc,nls|compat:dunfell| #needed by xorg.
+yes|libxslt|libxslt|exe,dev,doc,nls|compat:dunfell
+yes|libxv|libxv|exe,dev,doc,nls|compat:dunfell
+yes|libyaml|libyaml|exe,dev,doc,nls|compat:dunfell| #20220130 needed by appstream-glib which is needed by celluloid.
+yes|limine|limine|exe,dev,doc,nls|compat:dunfell| #20220620 bootloader
+no|limine||exe,dev,doc,nls|pet:dunfell| #20220720
+no|linux_headers|linux_headers-5.4.12*|exe>dev,dev,doc,nls|pet:dunfell| #20210125 no, just use linux-libc-headers
+yes|linux-libc-headers|linux-libc-headers|exe>dev,dev,doc,nls|compat:dunfell| #20170510
+yes|litehtml|litehtml|exe,dev,doc,nls|compat:dunfell| #20211209 dep of claws-mail
+no|live555|live555|exe,dev,doc,nls|compat:dunfell| #20211227 needed by vlc
+no|lives|lives|exe,dev,doc,nls|compat:dunfell| #20211226 20220101 20220104
+no|llvm-lib|llvm|exe,dev,doc,nls|compat:dunfell| #20211018
+no|llvm-clang|llvm|exe>dev,dev,doc,nls|compat:dunfell| #20211018
+no|lmarbles||exe,dev,doc,nls|pet:dunfell| #20180318
+yes|lockdev|lockdev|exe,dev,doc,nls|compat:dunfell| #20170510
+yes|lpsolve|lpsolve|exe,dev,doc,nls|compat:dunfell| #20210411 reqd by libreoffice.
+yes|lrzsz|lrzsz|exe,dev,doc,nls|compat:dunfell
+yes|lttng-ust|lttng-ust|exe,dev,doc,nls|compat:dunfell| #20170510
+yes|lua|lua|exe,dev,doc,nls|compat:dunfell| #20220104 mpv now needs libass lua luajit
+no|luajit|luajit|exe,dev,doc,nls|compat:dunfell| #20211220 needed by obs-studio and mpv
+yes|lz4|lz4|exe,dev,doc,nls|compat:dunfell| #20170510
+yes|lzo|lzo|exe,dev,doc,nls|compat:dunfell| #20170510
+yes|m4|m4|exe>dev,dev,doc,nls|compat:dunfell
+yes|maag||exe,dev,doc,nls|pet:noarch| #20180515
+yes|make|make|exe>dev,dev,doc,nls|compat:dunfell
+yes|makedepend|makedepend|exe,dev,doc,nls|compat:dunfell| #20170614
+yes|man|man-db|exe>dev,dev,doc,nls|compat:dunfell| #20200922
+yes|man_cut|man-db|exe,dev>null,doc>null,nls>null|compat:dunfell| #20200922
+yes|mdds-1.2|mdds-1.2|exe,dev,doc,nls|compat:dunfell| #20210411 reqd by libreoffice.
+no|mbedtls|mbedtls|exe,dev,doc,nls|compat:dunfell| #20211220 needed by obs-studio. 20220130 removed.
+yes|mdds-1.5|mdds-1.5|exe,dev,doc,nls|compat:dunfell| #20210411 reqd by libreoffice.
+yes|mdview|mdview|exe,dev,doc,nls|compat:dunfell| #20171031
+yes|memtester|memtester|exe,dev,doc,nls|compat:dunfell| #20180727
+yes|mercurial|mercurial|exe>dev,dev,doc,nls|compat:dunfell| #20211202
+yes|mesa|mesa|exe,dev,doc,nls|compat:dunfell| #20180623
+yes|mesa-demos|mesa-demos|exe,dev,doc,nls|compat:dunfell| #20180623
+yes|meson|meson|exe>dev,dev,doc,nls|compat:dunfell| #20180701 build system, deps re2c, ninja. 20211101 removed.
+no|meson||exe>dev,dev,doc>dev,nls>dev|pet:dunfell| #20211101 later version required to compile libcamera and pipewire.
+yes|metamail|metamail|exe,dev,doc,nls|compat:dunfell| #20170614
+yes|mhwaveedit|mhwaveedit|exe,dev,doc,nls|compat:dunfell| #20170614
+yes|mingetty|mingetty|exe,dev,doc,nls|compat:dunfell
+no|minibase-net||exe,dev,doc,nls|pet:dunfell| #20190219 needed for UltraSNS.
+yes|minicom|minicom|exe,dev,doc,nls|compat:dunfell
+yes|minixcal|minixcal|exe,dev,doc,nls|compat:dunfell #20170614
+yes|mirdir|mirdir|exe,dev,doc,nls|compat:dunfell| #20170614
+no|mjpegtools|mjpegtools|exe,dev,doc,nls|compat:dunfell| #20211220 reqd by lives.
+yes|mkfontscale|mkfontscale|exe,dev,doc,nls|compat:dunfell| #20200922 note, also has mkfontdir utility.
+no|mlt|mlt|exe,dev,doc,nls|compat:dunfell| #20220105 needed by shotcut. needed by flowblade.
+yes|mm-common|mm-common|exe>dev,dev,doc,nls|compat:dunfell| #20170510 20211106 move to devx.
+yes|mobile-broadband-provider-info|mobile-broadband-provider-info|exe,dev,doc,nls|compat:dunfell| #20190205 removed.
+no|modemmanager|modemmanager|exe,dev,doc,nls|compat:dunfell| #20181118 needed by networkmanager. 20190205 removed. 20201013 removed. 20210411 restored.
+no|modem-manager-gui||exe,dev,doc,nls|pet:dunfell| #20210414
+yes|modem-stats|modem-stats|exe,dev,doc,nls|compat:dunfell| #20170617
+yes|mp|mped|exe,dev,doc,nls|compat:dunfell| #20171102 bumped version 3.2.13 to 3.3.17 menu now works. 20180727
+yes|mpeg2dec|mpeg2dec|exe,dev,doc,nls|compat:dunfell| #20200924 new. needed by mpv.
+yes|mpfr|mpfr|exe,dev,doc,nls|compat:dunfell
+yes|mpg123|mpg123|exe,dev,doc,nls|compat:dunfell| #20180623
+yes|mplayer_codecs_basic2||exe|pet:dunfell| #
+yes|mpscan|mpscan|exe,dev,doc,nls|compat:dunfell| #20170614
+yes|mpv|mpv|exe,dev,doc,nls|compat:dunfell| #20200924 new.
+yes|mtdev|mtdev|exe,dev,doc,nls|compat:dunfell
+yes|mtools|mtools|exe,dev,doc,nls|compat:dunfell
+yes|mtpaint|mtpaint|exe,dev,doc,nls|compat:dunfell| #20170626
+no|mtr|mtr|exe,dev,doc,nls|compat:dunfell| #20171101
+no|mtr||exe,dev,doc,nls|pet:dunfell| #20201018 mtr compiled in oe is cli only.
+yes|mythes|mythes|exe,dev,doc,nls|compat:dunfell| #20210411 reqd by libreoffice.
+yes|nasm|nasm|exe>dev,dev,doc,nls|compat:dunfell
+yes|nbtscan|nbtscan|exe,dev,doc,nls|compat:dunfell| #20170614
+yes|ncurses|ncurses|exe,dev,doc,nls|compat:dunfell
+no|nemiver||exe>dev|pet:dunfell| #20211128 20220606
+yes|nenscript|nenscript|exe,dev,doc,nls|compat:dunfell| #20170617
+yes|neon|neon|exe,dev,doc,nls|compat:dunfell
+yes|netpbm|netpbm|exe,dev,doc,nls|compat:dunfell| #recent version.
+yes|nettle|nettle|exe,dev,doc,nls|compat:dunfell
+yes|networkmanager|networkmanager|exe,dev,doc,nls|compat:dunfell| #
+yes|network-manager-applet|network-manager-applet|exe,dev,doc,nls|compat:dunfell| #20200924 new.
+yes|network_tray|network-tray|exe,dev,doc,nls|compat:dunfell| #20170625 20180623
+no|nghttp2|nghttp2|exe,dev,doc,nls|compat:dunfell| #20221105 needed by libsoup-3.0 and gnome-boxes
+yes|nim|nim|exe>dev,dev,doc,nls|compat:dunfell| #20220814
+yes|ninja|ninja|exe>dev,dev,doc,nls|compat:dunfell| #20180701 build system used with meson.
+yes|nmap|nmap|exe,dev,doc,nls|compat:dunfell| #20200926 new.
+yes|normalize|normalize|exe,dev,doc,nls|compat:dunfell| #20170617
+yes|notecase|notecase|exe,dev,doc,nls|compat:dunfell| #20171102
+yes|notification-daemon|notification-daemon|exe,dev,doc,nls|compat:dunfell| #20200929 new.
+yes|npth|npth|exe,dev,doc,nls|compat:dunfell| #20180614 dep of gnupg
+yes|nspr|nspr|exe,dev,doc,nls|compat:dunfell
+yes|nss|nss|exe,dev,doc,nls|compat:dunfell
+yes|ntfs-3g-ntfsprogs|ntfs-3g-ntfsprogs|exe,dev,doc,nls|compat:dunfell|
+yes|ntpdate|ntp|exe,dev,doc,nls|compat:dunfell| #20171029 used by qsync to sync local time and date from the internet.
+yes|numlockx|numlockx|exe,dev,doc,nls|compat:dunfell| #needed by shinobars firstrun.
+yes|obexfs|obexfs|exe,dev,doc,nls|compat:dunfell| #20201022 new.
+yes|obexftp|obexftp|exe,dev,doc,nls|compat:dunfell| #20201022 new.
+no|obs|obs|exe,dev,doc,nls|compat:dunfell| #20211226  20220129 removed all qt5
+yes|ofono|ofono|exe,dev,doc,nls|compat:dunfell| #20181118 needed by iwd, optionally by networkmanager. 20190205 removed.
+yes|opencore-amr|opencore-amr|exe,dev,doc,nls|compat:dunfell
+yes|openjpeg|openjpeg|exe,dev,doc,nls|compat:dunfell
+yes|openldap|openldap|exe,dev,doc,nls|compat:dunfell| #20170510
+yes|openobex|openobex|exe,dev,doc,nls|compat:dunfell| #20201022 new. needed by obexftp
+yes|opensp|opensp|exe,dev,doc,nls|compat:dunfell| #20170611 needed by libofx. see also sgml-common.
+yes|openssh|openssh|exe,dev,doc,nls|compat:dunfell| #20180119
+yes|openssl|openssl|exe,dev,doc,nls|compat:dunfell
+yes|opkg-utils|opkg-utils|exe,dev,doc,nls|compat:dunfell| #20210823 needed by mingetty.
+yes|orc|orc|exe,dev,doc,nls|compat:dunfell
+yes|osmo|osmo|exe,dev,doc,nls|compat:dunfell| #20170618. 202104 crash fixed.
+no|osmo||exe,dev,doc,nls|pet:dunfell| #202100406 oe one crashes when create contact.
+yes|p11-kit|p11-kit|exe,dev,doc,nls|compat:dunfell| #network-manager-applet needs this.
+yes|p8platform|p8platform|exe,dev,doc,nls|compat:dunfell| #20170510
+yes|pa-applet|pa-applet|exe,dev,doc,nls|compat:dunfell| #volume control for pulseaudio. 20220611
+yes|pango|pango|exe,dev,doc,nls|compat:dunfell
+yes|pangomm|pangomm|exe,dev,doc,nls|compat:dunfell
+yes|parted|parted|exe,dev,doc,nls|compat:dunfell
+yes|patch|patch|exe,dev,doc,nls|compat:dunfell
+yes|patchutils|patchutils|exe>dev,dev,doc,nls|compat:dunfell| #20170615
+yes|pavucontrol|pavucontrol|exe,dev,doc,nls|compat:dunfell| #20201006 new. gui for pulseaudio. 20201013 removed. 20211030 restored.
+yes|pbackup||exe|pet:noarch
+no|pburn||exe|pet:noarch| #20190609 now have cdrtools.
+yes|pburn3||exe|pet:noarch| #20210125 using cdrkit, not cdrtools.
+yes|pcd||exe|pet:noarch
+yes|pcdripper||exe|pet:noarch
+yes|pciutils|pciutils|exe,dev,doc,nls|compat:dunfell
+yes|pclock||exe|pet:noarch| #190219 replaces ptimer, pstopwatch.
+yes|pctorrent||exe|pet:noarch| #needs ctorrent.
+yes|pdvdrip||exe|pet:noarch| #20201012 replaces pdvdrsab
+no|pdvdrsab||exe|pet:noarch
+yes|peasydisc||exe|pet:noarch
+yes|peasyglue||exe,dev,doc,nls|pet:noarch|
+yes|peasypdf||exe|pet:noarch
+yes|peasyport-noarch||exe,dev,doc,nls|pet:noarch| #rcrsn51, alternative to superscan. needs pnscan
+yes|peasyprint||exe|pet:noarch| #print graphics files png/jpg.
+yes|peasyscale-exec|peasyscale-exec|exe,dev,doc,nls|compat:dunfell| #binary needed by peasyscale. #20170619
+yes|peasyscale-noarch||exe|pet:noarch| #rcrsn51, jpg image resizer.
+yes|peasyscan-exec|peasyscan-exec|exe,dev,doc,nls|compat:dunfell| #rcrsn51, binary needed by peasyscan. #20170619
+yes|peasyscan-noarch||exe|pet:noarch| #rcrsn51, scanner gui
+yes|perl|perl|exe>dev,dev,doc,nls|compat:dunfell
+yes|perl-net-ident||exe|pet:noarch| #20180806 needed for ident-user-enum script
+yes|perl_tiny|perl|exe,dev>null,doc>null,nls>null|compat:dunfell
+yes|pfilesearch||exe|pet:noarch
+yes|pfind||exe|pet:noarch
+yes|pflask|pflask|exe,dev,doc,nls|compat:dunfell| #20180926 needs libcap-ng
+yes|phash||exe|pet:noarch
+yes|picpuz||exe,dev,doc,nls|pet:dunfell| #20180318
+no|picscale||exe,dev,doc,nls|pet:dunfell| #20220720  20220808 oe still broken.  20220809 no longer needed
+yes|picscale|picscale|exe,dev,doc,nls|compat:dunfell| #20220816 fixed.
+no|pidgin|pidgin|exe,dev,doc,nls|compat:dunfell| #20220606 now using hexchat.
+yes|pinentry|pinentry|exe,dev,doc,nls|compat:dunfell| #20180614 dep of gnupg
+no|pipewire||exe,dev,doc,nls|pet:dunfell| #20211101 needs libcamera, pulseaudio  20220611
+no|pitivi||exe,dev,doc,nls|pet:dunfell| #20220130 20220605
+yes|pixman|pixman|exe,dev,doc,nls|compat:dunfell
+yes|pkgconfig|pkgconfig|exe,dev,doc,nls|compat:dunfell
+yes|planner|planner|exe,dev,doc,nls|compat:dunfell| #20170615
+no|pmcputemp|pmcputemp|exe,dev,doc,nls|compat:dunfell| #20171030
+yes|pmcputemp||exe,dev,doc,nls|pet:dunfell| #20220731
+no|pmetatagger||exe|pet:noarch| #20220510 now using fftag.
+yes|pmirror||exe|pet:noarch
+yes|pmirrorget||exe|pet:noarch
+yes|pm-utils|pm-utils|exe,dev,doc,nls|compat:dunfell
+yes|pngoverlay-cairo|pngoverlay-cairo|exe|compat:dunfell| #20210409 replaces pngoverlay from pup-tools.
+no|pnmixer|pnmixer|exe,dev,doc,nls|compat:dunfell| #20200926 new. tray volume applet, use with aumix. 20211031 now with pavucontrol. 20211101 now using volumeicon.
+yes|pnscan|pnscan|exe,dev,doc,nls|compat:dunfell| #20171030
+yes|po4a|po4a|exe>dev,dev,doc,nls|compat:dunfell| #20210413 needed to compile modem-manager-gui
+yes|pointercal-xinput|pointercal-xinput|exe,dev,doc,nls|compat:dunfell| #20170510
+yes|poppler|poppler|exe,dev,doc,nls|compat:dunfell
+no|poppler-data|poppler-data|exe,dev,doc,nls| #20220130 needed by ghostscript but big so leave out.
+yes|popt|popt|exe,dev,doc,nls|compat:dunfell
+no|popup|popup|exe,dev,doc,nls|compat:dunfell| #20220807 was in pup-tools. converted to C. 20220816 back in pup-tools
+yes|portaudio|portaudio-v19|exe,dev,doc,nls|compat:dunfell| #20220422 needed by guvcview.
+no|potrace||exe,dev,doc,nls|pet:dunfell| #20201018 needed by inkscape.
+yes|potrace|potrace|exe,dev,doc,nls|compat:dunfell| #20210410 needed by inkscape.
+yes|powerapplet_tray|powerapplet-tray|exe,dev,doc,nls|compat:dunfell| #
+no|pplog||exe|pet:noarch| #20220606 today removed some perl pkgs has broken pplog.
+yes|ppp|ppp|exe,dev,doc,nls|compat:dunfell
+yes|pprocess||exe|pet:noarch
+yes|pps-tools|pps-tools|exe,dev,doc,nls| #20220130 needed by ntp.
+yes|pptp-linux|pptp-linux|exe,dev,doc,nls|compat:dunfell| #20220328 generic name must be pptp-linux
+yes|precord||exe|pet:noarch
+yes|prename||exe,dev,doc,nls|pet:noarch| #20180916
+no|printer-driver-samsung||exe|pet:dunfell| #20210419
+yes|procps|procps|exe,dev,doc,nls|compat:dunfell
+yes|programchooser||exe|pet:noarch
+yes|prun||exe|pet:noarch
+yes|pschedule||exe|pet:noarch
+yes|psmisc|psmisc|exe,dev,doc,nls|compat:dunfell
+no|psynclient||exe|pet:noarch| #20191105 replaces flsynclient. 20210418 back to flsynclient.
+yes|ptooltips||exe|pet:noarch
+no|pulseaudio-lib|pulseaudio|exe,dev,doc,nls|compat:dunfell| #20201013 removed. 20211030 restored.
+yes|pulseaudio|pulseaudio|exe,dev,doc,nls|compat:dunfell| #20211031 restored.
+yes|PupControl||exe,dev,doc,nls|pet:noarch| #20171027 by radky. has JWMDesk builtin, replaces jwmconfig2. 20220210 v3.4 does not have jwmdesk which is broken.
+no|pup-event-ipc|pup-event-ipc|exe,dev,doc,nls|compat:dunfell| #20220807 taken out of pup-tools, converted to C. 20220816 back in pup-tools
+yes|puppyinputdetect|puppyinputdetect|exe,dev,doc,nls|compat:dunfell| #20170615
+yes|puppy-podcast-grabber||exe|pet:noarch
+yes|puppyserialdetect|puppyserialdetect|exe,dev,doc,nls|compat:dunfell| #20170615
+yes|pupradio||exe,dev,doc,nls|pet:noarch
+yes|Pup-SysInfo||exe,dev,doc,nls|pet:noarch| #instead of hardinfo.
+no|pup-tools||exe|pet:dunfell| #20220720
+yes|pup-tools|pup-tools|exe,dev,doc,nls|compat:dunfell| #20220807 no longer requires bacon. 20220816 bacon restored.
+yes|pupx||exe|pet:noarch
+yes|pure-ftpd|pure-ftpd|exe,dev,doc,nls|compat:dunfell
+yes|pwsget||exe|pet:noarch
+yes|python3-tiny|python3|exe,dev>null,doc,nls|compat:dunfell| #20200929 new.
+yes|python3|python3|exe>dev,dev,doc,nls|compat:dunfell
+yes|python3-asn1crypto|python3-asn1crypto|exe>dev,dev,doc,nls|compat:dunfell| #20211019
+yes|python3-cffi|python3-cffi|exe,dev,doc,nls|compat:dunfell| #20211019 20220606 hexchat needs this.
+yes|python3-cryptography|python3-cryptography|exe>dev,dev,doc,nls|compat:dunfell| #20211019
+no|python3-cycler|python3-cycler|exe,dev,doc,nls|compat:dunfell| #20220129 needed by pitivi. 20220605
+yes|python3-cython|python3-cython|exe>dev,dev,doc,nls|compat:dunfell| #20211019
+no|python3-dateutil|python3-dateutil|exe,dev,doc,nls|compat:dunfell| #20220129 needed by pitivi. 20220605
+yes|python3-dbus|python3-dbus|exe,dev,doc,nls|compat:dunfell| #20201006 needed by blueman.
+yes|python3-docutils|python3-docutils|exe>dev,dev,doc,nls|compat:dunfell| #20211019
+yes|python3-idna|python3-idna|exe>dev,dev,doc,nls|compat:dunfell| #20211019
+yes|python3-jinja2|python3-jinja2|exe>dev,dev,doc,nls|compat:dunfell| #20211030
+no|python3-kiwisolver|python3-kiwisolver|exe,dev,doc,nls|compat:dunfell| #20220129 needed by pitivi. 20220605
+yes|python3-lxml|python3-lxml|exe>dev,dev,doc,nls|compat:dunfell| #20181119
+yes|python3-mako|python3-mako|exe>dev,dev,doc,nls|compat:dunfell| #20211019
+yes|python3-markupsafe|python3-markupsafe|exe>dev,dev,doc,nls|compat:dunfell| #20211030
+no|python3-matplotlib|python3-matplotlib|exe,dev,doc,nls|compat:dunfell| #20220129 needed by pitivi. 20220605
+no|python3-nose|python3-nose|exe,dev,doc,nls|compat:dunfell| #20220113 reqd by flowblade.
+no|python3-numpy|python3-numpy|exe,dev,doc,nls|compat:dunfell| #20220113 reqd by flowblade. 20220129 needed by pitivi. 20220605
+no|python3-pillow|python3-pillow|exe>dev,dev,doc,nls|compat:dunfell| #20220113 reqd by flowblade. 20220411 required by oomox, put into devx.
+yes|python3-pip|python3-pip|exe>dev,dev,doc,nls|compat:dunfell| #20180701 python package installer.
+yes|python3-ply|python3-ply|exe>dev,dev,doc,nls|compat:dunfell| #20211019
+yes|python3-prctl|python3-prctl|exe,dev,doc,nls|compat:dunfell| #20201010 needed by pulseaudio-autoconnect.
+yes|python3-pycairo|python3-pycairo|exe,dev,doc,nls|compat:dunfell| #20170510 20201006 needed by blueman.
+yes|python3-pycparser|python3-pycparser|exe,dev,doc,nls|compat:dunfell| #20211019 20220606 hexchat needs this.
+yes|python3-pygobject|python3-pygobject|exe,dev,doc,nls|compat:dunfell| #20181119 20201006 needed by blueman.
+yes|python3-pyparsing|python3-pyparsing|exe,dev,doc,nls|compat:dunfell| #20211019 20220130 pitivi needs this.
+no|python3-pyqt5|python3-pyqt5|exe,dev,doc,nls|compat:dunfell| #20220105 needed by shotcut
+no|python3-pystache|python3-pystache|exe>dev,dev,doc,nls|compat:dunfell| #20220411 a dep of oomox.
+no|python3-pytz|python3-pytz|exe,dev,doc,nls|compat:dunfell| #20220129 needed by pitivi. 20220605
+no|python3-pyyaml|python3-pyyaml|exe>dev,dev,doc,nls|compat:dunfell| #20211030  20220411 a dep of oomox.
+yes|python3-scons|python3-scons|exe>dev,dev,doc,nls|compat:dunfell| #20211019
+yes|python3-setuptools|python3-setuptools|exe>dev,dev,doc,nls|compat:dunfell| #20181119
+yes|python3-six|python3-six|exe,dev,doc,nls|compat:dunfell| #20211019  20220130 pitivi needs this.
+no|pyxdg|pyxdg|exe,dev,doc,nls|compat:dunfell| #20220129 needed by pitivi. 20220605
+yes|qpdf|qpdf|exe,dev,doc,nls|compat:dunfell| #20181209 recompiled.
+no|qt4|qt4-x11-free|exe,dev,doc,nls|compat:dunfell| #20211217
+yes|qt5-styleplugins|qt5-styleplugins|exe,dev,doc,nls|compat:dunfell| #20211218 gtk2 theme. 20220129 leave this in.
+no|qtbase|qtbase|exe,dev,doc,nls|compat:dunfell| #20211218  20220129 removed all qt5
+no|qtdeclarative|qtdeclarative|exe,dev,doc,nls|compat:dunfell| #20211218  20220129 removed all qt5
+no|qtquickcontrols|qtquickcontrols|exe,dev,doc,nls|compat:dunfell| #20220124 needed by shotcut
+no|qtquickcontrols2|qtquickcontrols2|exe,dev,doc,nls|compat:dunfell| #20220105 needed by shotcut
+no|qtscript|qtscript|exe,dev,doc,nls|compat:dunfell| #20211218 needed by vym.  20220129 removed all qt5
+no|qtsvg|qtsvg|exe,dev,doc,nls|compat:dunfell| #20211218 needed by vym.  20220129 removed all qt5
+no|qttools|qttools|exe>dev,dev,doc,nls|compat:dunfell| #20211218 needs qtdeclarative qtxmlpatterns. 20220127 removed.  20220129 removed all qt5
+no|qtwebsockets|qtwebsockets|exe,dev,doc,nls|compat:dunfell| #20220118 needed by shotcut.
+no|qtx11extras|qtx11extras|exe,dev,doc,nls|compat:dunfell| #20211218  20211220 obs-studio needs this.  20220129 removed all qt5
+no|qtxmlpatterns|qtxmlpatterns|exe,dev,doc,nls|compat:dunfell| #20211218  20220129 removed all qt5
+yes|quilt|quilt|exe>dev,dev,doc,nls|compat:dunfell
+yes|quota|quota|exe,dev,doc,nls|compat:dunfell
+yes|raptor2|raptor2|exe,dev,doc,nls|compat:dunfell| #20170510
+yes|rasqal|rasqal|exe,dev,doc,nls|compat:dunfell| #20210411 reqd by libreoffice.
+yes|re2c|re2c|exe>dev,dev,doc,nls|compat:dunfell| #20180701 i think need this to compile qt5 and meson.
+yes|read-edid|read-edid|exe,dev,doc,nls|compat:dunfell| #20170615 warning, i2c only, no vbe libx86 support.
+yes|readline|readline|exe,dev,doc,nls|compat:dunfell
+no|recordmydesktop||exe|pet:dunfell| #20220227 cli screen recorder.
+yes|recordmydesktop|recordmydesktop|exe,dev,doc,nls|compat:dunfell| #20220310
+yes|redland|redland|exe,dev,doc,nls|compat:dunfell| #20210411 reqd by libreoffice.
+no|redshift||exe,dev,doc,nls|pet:dunfell| #20211121 reqd by rshift_tray
+yes|redshift|redshift|exe,dev,doc,nls|compat:dunfell| #20220517 reqd by rshift_tray
+no|refind|refind|exe,dev,doc,nls|compat:dunfell| #20200926 new. 20220819 removed.
+yes|restarter|restarter|exe,dev,doc,nls|compat:dunfell| #20201102 new.
+yes|rgb|rgb|exe,dev,doc,nls|compat:dunfell
+yes|rman|rman|exe>dev,dev,doc,nls|compat:dunfell| #20170616
+no|rox-filer|rox-filer|exe,dev,doc,nls|compat:dunfell| #20180608 works both quirky and easy.
+yes|rox-filer||exe|pet:dunfell| #20220803
+yes|rpcbind|rpcbind|exe,dev,doc,nls|compat:dunfell
+yes|rpcsvc-proto|rpcsvc-proto|exe,dev,doc,nls|compat:dunfell| #20201228 has rpcgen needed for easy dunfell host for oe.
+yes|rpm|rpm|exe,dev,doc,nls|compat:dunfell| #20210925 busybox rpm2cpio is inadequate.
+yes|rp-pppoe|rp-pppoe|exe,dev,doc,nls|compat:dunfell
+yes|rshift_tray||exe|pet:noarch| #20211121 requires redshift.
+yes|rsync|rsync|exe,dev,doc,nls|compat:dunfell| #20170616
+yes|rubix|rubix|exe,dev,doc,nls|compat:dunfell| #
+yes|rxvt-unicode|rxvt-unicode|exe,dev>null,doc,nls|compat:dunfell| #20180728
+yes|sakura|sakura|exe,dev,doc,nls|compat:dunfell| #20171101 needs vte.
+yes|samba|samba|exe,dev,doc,nls|compat:dunfell| #20210125 new. 20220611 removed.
+yes|sane-backends|sane-backends|exe,dev,doc,nls|compat:dunfell| #20170513
+no|sassc|sassc|exe>dev,dev,doc,nls|compat:dunfell| #20220411 a dep of oomox. 20220611
+yes|sbc|sbc|exe,dev,doc,nls|compat:dunfell| #20200923 new.
+yes|scale2x|scale2x|exe,dev,doc,nls|compat:dunfell| #20170616
+yes|schroedinger|schroedinger|exe,dev,doc,nls|compat:dunfell
+yes|scons|scons|exe>dev,dev,doc,nls|compat:dunfell| #20201006 new. needed by serf to compile.
+yes|scrcpy|scrcpy|exe,dev,doc,nls|compat:dunfell| #20220504
+no|scribus|scribus|exe,dev,doc,nls|compat:dunfell| #20211218 desktop publishing. needs qtbase qttools. 20220129 removed all qt5
+no|seamonkey||exe,dev,doc,nls|pet:dunfell| #20200930 new. 20201017 recompiled. 20211214 20220604 20220611 restored.
+yes|seamonkey-skeleton||exe,dev,doc,nls|pet:noarch| #20220806
+yes|seamonkey_addon_github-wc-polyfill||exe|pet:noarch| #20210610 display github.com correctly. 20211214 20220604
+yes|sed|sed|exe,dev,doc,nls|compat:dunfell
+yes|serf|serf|exe,dev,doc,nls|compat:dunfell
+yes|setcolortemperature|setcolortemperature|exe,dev,doc,nls|compat:dunfell| #20210419 20211121 no longer using sct but keep it.
+yes|setserial|setserial|exe,dev>null,doc,nls|compat:dunfell
+yes|setvol|setvol|exe,dev,doc,nls|compat:dunfell| #20170616
+yes|setxkbmap|setxkbmap|exe,dev,doc,nls|compat:dunfell| #20170510
+yes|sgml-common|sgml-common|exe,dev,doc,nls|compat:dunfell| #20170611 needed by opensp, which needed by libofx.
+yes|shared-mime-info|shared-mime-info|exe,dev,doc,nls|compat:dunfell| #
+yes|simple-mtpfs||exe|pet:dunfell| #20201205 new. used by pupmtp builtin to woof. 20220731
+no|sip3|sip3|exe,dev,doc,nls|compat:dunfell| #20220105 needed by shotcut
+yes|slang|slang|exe,dev,doc,nls|compat:dunfell| #20181113 needed by networkmanager. 20190205 removed.
+yes|smbnetfs|smbnetfs|exe,dev,doc,nls|compat:dunfell| #20210125 new. needs samba. 20220611 note samba removed.
+yes|socat|socat|exe,dev,doc,nls|compat:dunfell| #20180701
+yes|solvespace|solvespace|exe,dev,doc,nls|compat:dunfell| #20210422
+no|sox|sox|exe,dev,doc,nls|compat:dunfell| #20211220 reqd by lives. and flowblade.
+yes|speex|speex|exe,dev,doc,nls|compat:dunfell
+yes|speexdsp|speexdsp|exe,dev,doc,nls|compat:dunfell
+yes|sqlite3|sqlite3|exe,dev,doc,nls|compat:dunfell
+yes|squashfs-tools|squashfs-tools|exe,dev>null,doc,nls|compat:dunfell
+yes|sshfs|sshfs-fuse|exe,dev,doc,nls|compat:dunfell| #20180715 needs fuse, openssh
+yes|ssh-gui|ssh-gui|exe,dev,doc,nls|compat:dunfell| #20170618
+yes|sshpass|sshpass|exe,dev,doc,nls|compat:dunfell| #20170618
+yes|startup-notification|startup-notification|exe,dev,doc,nls|compat:dunfell| #20170510
+yes|stat|stat|exe,dev,doc,nls|compat:dunfell
+no|strace|strace|exe>dev,dev,doc,nls|compat:dunfell| #20201220 removed. oe k5.10 fail.
+yes|streamripper|streamripper|exe,dev,doc,nls|compat:dunfell
+yes|subversion|subversion|exe>dev,dev,doc,nls|compat:dunfell
+yes|sudo|sudo|exe,dev,doc,nls|compat:dunfell
+no|swig|swig|exe,dev,doc,nls|compat:dunfell| #20211220 needed by obs-studio. 20220130 removed.
+no|synaptic|synaptic|exe,dev,doc,nls|compat:dunfell| #20220906 package manager.
+yes|sysfsutils|sysfsutils|exe,dev,doc,nls|compat:dunfell
+yes|syslinux|syslinux|exe,dev,doc,nls|compat:dunfell
+no|syslinux6_modules_efi||exe,dev,doc,nls|pet:dunfell| #20220628 removed.
+yes|sysvinit-utils-cut|sysvinit|exe,dev>null,doc>null,nls>null|compat:dunfell| #20170618
+yes|taglib|taglib|exe,dev,doc,nls|compat:dunfell
+yes|tar|tar|exe,dev>null,doc,nls|compat:dunfell
+yes|tas||exe,dev,doc,nls|pet:noarch| #20170715 take-a-shot
+no|tcl|tcl|exe,dev,doc,nls|compat:dunfell| #20201008 expect and usb-modeswitch need this. using jimtcl for usb-modeswitch.
+yes|tcp-wrappers|tcp-wrappers|exe,dev,doc,nls|compat:dunfell
+yes|texinfo|texinfo|exe>dev,dev,doc,nls|compat:dunfell
+yes|tiff|tiff|exe,dev,doc,nls|compat:dunfell| #also known as libtiff
+no|tigervnc|tigervnc|exe,dev,doc,nls|compat:dunfell| #20210125 new. needs fltk 1.3
+yes|tzdata|tzdata|exe,dev,doc,nls|compat:dunfell
+yes|ufiformat|ufiformat|exe,dev,doc,nls|compat:dunfell| #20171031
+yes|uget|uget|exe,dev,doc,nls|compat:dunfell| #20170618
+yes|unclutter|unclutter|exe,dev>null,doc,nls|compat:dunfell| #20170618
+no|unicap|unicap|exe,dev,doc,nls|compat:dunfell| #20211220 reqd by lives.
+yes|unifont||exe|pet:noarch| #20191117 needed by solvespace
+yes|unrar|unrar|exe,dev,doc,nls|compat:dunfell
+yes|unzip|unzip|exe,dev,doc,nls|compat:dunfell
+yes|UrxvtControl||exe,dev,doc,nls|pet:noarch| #20180103
+yes|usb-modeswitch|usb-modeswitch|exe,dev,doc,nls|compat:dunfell| #20200924 requires tcl or jimtcl.
+yes|usb-modeswitch-data|usb-modeswitch-data|exe|compat:dunfell| #20200924
+yes|usbutils|usbutils|exe,dev,doc,nls|compat:dunfell| #20200924
+yes|usbview|usbview|exe,dev,doc,nls|compat:dunfell| #20210427
+yes|util-linux|util-linux|exe,dev,doc,nls|compat:dunfell
+yes|util-macros|util-macros|exe,dev,doc,nls|compat:dunfell
+yes|v4l-utils|v4l-utils|exe,dev,doc,nls|compat:dunfell| #20180506
+yes|vala|vala|exe>dev,dev,doc>dev,nls|compat:dunfell
+yes|vamps|vamps|exe,dev,doc,nls|compat:dunfell| #20170618
+yes|vcdimager|vcdimager|exe,dev,doc,nls|compat:dunfell| #20170618
+yes|vigra|vigra|exe,dev,doc,nls|compat:dunfell| #20210411 reqd by libreoffice.
+no|vlc|vlc|exe,dev,doc,nls|compat:dunfell| #20211227 now with qt5 gui. needs deps live555 fluidsynth
+yes|vobcopy|vobcopy|exe,dev,doc,nls|compat:dunfell| #20170618
+no|volumeicon||exe,dev,doc,nls|pet:dunfell| #20211101 replaces pnmixer. 20211105 now using pa-applet.
+yes|vorbis-tools|vorbis-tools|exe,dev,doc,nls|compat:dunfell| #20170619
+yes|vte|vte|exe,dev,doc,nls|compat:dunfell| #20220906 needed by synaptic. gtk3 version. needed by remmina. 20221104 config option for qemu.
+yes|vte9|vte9|exe,dev,doc,nls|compat:dunfell| #20171101 needed by sakura. 20220905 gtk2 version.
+no|vulkan-loader|vulkan-loader|exe,dev,doc,nls|compat:dunfell| #20200924 new. needed by webkitgtk and epiphany. 20201002 removed.
+no|vym|vym|exe,dev,doc,nls|compat:dunfell| #20211218 needs qtbase qtscript qtsvg qttools
+yes|wag_profiles||exe|pet:noarch| #taken out of net_setup pet, see forum t=82092&start=300
+yes|wavpack|wavpack|exe,dev,doc,nls|compat:dunfell| #20170510
+yes|wavplay|wavplay|exe,dev,doc,nls|compat:dunfell| #20170619
+yes|wcpufreq||exe|pet:noarch
+no|webkitgtk|webkitgtk|exe,dev,doc,nls|compat:dunfell| #20200924 new. needed by epiphany. 20200930 removed.
+yes|wget|wget|exe,dev>null,doc,nls|compat:dunfell
+yes|whois|whois|exe,dev,doc,nls|compat:dunfell| #20170614
+yes|wireguard-tools||exe,dev,doc,nls|pet:dunfell| #20220731
+yes|wireless-regdb||exe|pet:noarch| #20190723
+no|wireless-tools|wireless-tools|exe,dev,doc,nls|compat:dunfell| #20200922 no longer in oe.
+no|wireless-tools||exe,dev,doc,nls|pet:dunfell| #20200922 this is deprecated i think.
+yes|wmctrl|wmctrl|exe,dev,doc,nls|compat:dunfell| #20201021 new.
+yes|wpa-supplicant|wpa-supplicant|exe,dev,doc,nls|compat:dunfell
+no|wvdial|wvdial|exe,dev,doc,nls|compat:dunfell| #20180505 needs wvstreams
+no|wvstreams|wvstreams|exe,dev,doc,nls|compat:dunfell| #20180505
+yes|x264|x264|exe,dev,doc,nls|compat:dunfell
+yes|x265|x265|exe,dev,doc,nls|compat:dunfell| #20200923 new.
+yes|xarchive|xarchive|exe,dev>null,doc,nls|compat:dunfell| #20170619
+yes|xauth|xauth|exe,dev,doc,nls|compat:dunfell
+yes|xbitmaps|xbitmaps|exe,dev,doc,nls|compat:dunfell| #20170510
+yes|xcalc|xcalc|exe,dev,doc,nls|compat:dunfell| #20170615
+yes|xcb-proto|xcb-proto|exe>dev,dev,doc,nls|compat:dunfell
+yes|xcb-util|xcb-util|exe,dev,doc,nls|compat:dunfell
+yes|xcb-util-image|xcb-util-image|exe,dev,doc,nls|compat:dunfell| #20180623 needed by xephyr x server.
+yes|xcb-util-keysyms|xcb-util-keysyms|exe,dev,doc,nls|compat:dunfell| #20180623 needed by xephyr x server.
+yes|xcb-util-renderutil|xcb-util-renderutil|exe,dev,doc,nls|compat:dunfell| #20180623 needed by xephyr x server.
+yes|xcb-util-wm|xcb-util-wm|exe,dev,doc,nls|compat:dunfell| #20180623 needed by xephyr x server.
+yes|xclip|xclip|exe,dev,doc,nls|compat:dunfell
+yes|xclipboard|xclipboard|exe,dev,doc,nls|compat:dunfell| #20170615
+yes|xconsole|xconsole|exe,dev,doc,nls|compat:dunfell| #20200926 new.
+yes|xcur2png|xcur2png|exe,dev,doc,nls|compat:dunfell| #20170619
+yes|xcursorgen|xcursorgen|exe,dev,doc,nls|compat:dunfell| #20170510
+yes|xdelta3|xdelta3|exe,dev,doc,nls|compat:dunfell
+yes|xdg-puppy|xdg-puppy|exe,dev,doc,nls|compat:dunfell| #20170609
+no|xdg-utils|xdg-utils|exe,dev,doc,nls| #20220130 needed by imagemagick. maybe clash with easyos.
+yes|xdialog|xdialog|exe,dev,doc,nls|compat:dunfell| #20170512
+yes|xdotool|xdotool|exe,dev,doc,nls|compat:dunfell| #20180518
+yes|xdpyinfo|xdpyinfo|exe,dev,doc,nls|compat:dunfell
+yes|xev|xev|exe,dev,doc,nls|compat:dunfell| #20170510
+yes|xf86-input-wacom|xf86-input-wacom|exe,dev,doc,nls|compat:dunfell| #20201102 new.
+yes|xfdiff-cut|xfdiff-cut|exe,dev,doc,nls|compat:dunfell| #20170620
+yes|xfontsel|xfontsel|exe,dev,doc,nls|compat:dunfell| #20170510
+yes|xgamma|xgamma|exe,dev,doc,nls|compat:dunfell| #20170510
+yes|xhost|xhost|exe,dev,doc,nls|compat:dunfell
+no|xine-lib|xine-lib|exe,dev,doc,nls|compat:dunfell| #20170627
+no|xine-ui|xine-ui|exe,dev,doc,nls|compat:dunfell| #20171102 fail in oe.
+yes|xinit|xinit|exe,dev,doc,nls|compat:dunfell
+yes|xinput|xinput|exe,dev,doc,nls|compat:dunfell
+yes|xinput-calibrator|xinput-calibrator|exe,dev,doc,nls|compat:dunfell
+yes|xkbcomp|xkbcomp|exe,dev,doc,nls|compat:dunfell
+yes|xkeyboard-config|xkeyboard-config|exe,dev,doc,nls|compat:dunfell
+no|xlennart||exe|pet:buster| #20201116 new.
+yes|xload|xload|exe,dev,doc,nls|compat:dunfell| #20170620
+yes|xlockmore|xlockmore|exe,dev,doc,nls|compat:dunfell| #20200922
+yes|xmessage|xmessage|exe,dev,doc,nls|compat:dunfell
+yes|xmlto|xmlto|exe>dev,dev,doc,nls|compat:dunfell
+yes|xmodmap|xmodmap|exe,dev,doc,nls|compat:dunfell
+yes|xorg_base|rgb,libfontenc,libice,libsm,libx11,libxau,libxcb,libxcomposite,libxcursor,libxdamage,libxdmcp,libxext,libxfixes,libxfont2,libxft,libxi,libxinerama,libxkbfile,libxmu,libxrandr,libxrender,libxt,libxtst,libxvmc,libxxf86vm|exe,dev,doc,nls|compat:dunfell| #20200922 removed ,libxxf86dga,libxxf86misc not in oe. took out libdrm.
+yes|xorgproto|xorgproto|exe>dev,dev,doc,nls|compat:dunfell|
+yes|xorriso|xorriso|exe,dev,doc,nls|compat:dunfell
+yes|xprop|xprop|exe,dev,doc,nls|compat:dunfell
+yes|xrandr|xrandr|exe,dev,doc,nls|compat:dunfell
+yes|xresprobe|xresprobe|exe,dev,doc,nls|compat:dunfell| #20170522 has ddcprobe utility.
+yes|xrdb|xrdb|exe,dev,doc,nls|compat:dunfell| #20170510
+yes|xsane||exe,dev>null,doc,nls|pet:dunfell| #20180516
+yes|xserver-xf86-config|xserver-xf86-config|exe,dev,doc,nls|compat:dunfell
+yes|xserver_xorg|xserver-xorg,xf86-input-*,xf86-video-*|exe,dev,doc,nls|compat:dunfell|
+no|xserver-fbdev-alt||exe|pet:dunfell| #20210423 xorg runs in initrd test.
+yes|xset|xset|exe,dev,doc,nls|compat:dunfell
+yes|xsetmode|xsetmode|exe,dev,doc,nls|compat:dunfell
+yes|xsetroot|xsetroot|exe,dev,doc,nls|compat:dunfell| #20170510
+yes|xsoldier|xsoldier|exe,dev,doc,nls|compat:dunfell| #20170620
+yes|xtrans|xtrans|exe>dev,dev,doc,nls|compat:dunfell
+yes|xvidcore|xvidcore|exe,dev,doc,nls|compat:dunfell| #20180623
+yes|xvidtune|xvidtune|exe,dev,doc,nls|compat:dunfell| #20170615
+yes|xvinfo|xvinfo|exe,dev,doc,nls|compat:dunfell|
+yes|xvkbd|xvkbd|exe,dev,doc,nls|compat:dunfell| #20170619
+yes|xwd|xwd|exe,dev,doc,nls|compat:dunfell| #needed by 01mickos screeny.
+yes|xwininfo|xwininfo|exe,dev,doc,nls|compat:dunfell
+yes|xxd|vim|exe,dev,doc,nls|compat:dunfell| #want xxd from vim not busybox xxd.
+yes|xz|xz|exe,dev,doc,nls|compat:dunfell
+yes|yad|yad0|exe,dev,doc,nls|compat:dunfell| #20170619 20180103 20180912 20210915 yad0 is gtk2
+yes|yaf-splash|yaf-splash|exe|compat:dunfell| #20210612
+yes|yajl|yajl|exe,dev,doc,nls|compat:dunfell| #20170510
+yes|yasm|yasm|exe>dev,dev,doc,nls|compat:dunfell
+no|ycalc||exe,dev,doc,nls|pet:dunfell|  #failed to compile in oe, retire it. 20180523 i like it
+yes|yelp-tools|yelp-tools|exe>dev,dev,doc,nls|compat:dunfell| #20211128
+yes|yelp-xsl|yelp-xsl|exe,dev,doc,nls|compat:dunfell| #20211128  20220201 want this in main fs in case install yelp
+yes|youtube-dl||exe|pet:noarch| #20171123
+yes|youtubedl-gui||exe|pet:noarch| #20171123
+yes|z2_geany_bacon_hack||exe|pet:noarch| #temp hack for geany. will probably have to remove soon. #20170527
+yes|zarfy|zarfy|exe,dev,doc,nls|compat:dunfell| #20200926 new. handle multiple monitors.
+yes|zip|zip|exe,dev>null,doc,nls|compat:dunfell|
+yes|zlib|zlib|exe,dev,doc,nls|compat:dunfell
+yes|zstd|zstd|exe,dev,doc,nls|compat:dunfell| #20180715
+'

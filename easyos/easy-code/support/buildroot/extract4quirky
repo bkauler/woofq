@@ -1,0 +1,114 @@
+#!/bin/sh
+#Copyright (c) Barry Kauler 2014
+#141118 created.
+#141120 buildroot does not put locale stuff into target.
+#141121 put pkgs-list and pkgs-list-versioned into folder audit, findwoofinstalledpkgs (called from 3builddistro) will read them.
+#141122 dont think need lib/udev/rc_keymaps
+
+TOPDIR="$(find . -mindepth 1 -maxdepth 1 -type d -name 'buildroot-[0-9]*' | sort -V | tail -n 1 | cut -f 2 -d '/')"
+
+echo -n "Press ENTER if ${TOPDIR} is the buildroot folder to be extracted from (else CTRL-C): "
+read goforit
+
+echo
+echo -n 'type in a build date, in format YYYYMMDD: '
+read MYDATE
+
+rm -rf 0buildroot-${MYDATE} 2>/dev/null
+mkdir 0buildroot-${MYDATE}
+echo "extracting rootfs.tar.gz to 0buildroot-${MYDATE}..."
+cp -f ${TOPDIR}/output/images/rootfs.tar.gz 0buildroot-${MYDATE}/
+cd 0buildroot-${MYDATE}
+tar -zxf rootfs.tar.gz
+sync
+rm -f rootfs.tar.gz
+cd ..
+
+mkdir -p 0buildroot-${MYDATE}/audit #141121
+cd $TOPDIR
+echo "creating 0buildroot-${MYDATE}/pkgs-list ..."
+#create file 'pkgs-list', to be placed into final .txz ...
+find output/build -mindepth 1 -maxdepth 1 -type d | grep -v '^output/build/host-' | sed -e 's%^output/build/%%' -e 's%-[0-9][0-9.a-zA-Z-]*$%%' -e 's%^xapp_%%' -e 's%^xdata_%%' -e 's%^xdriver_%%' -e 's%^xfont_%%' -e 's%^xlib_%%' -e 's%^xproto_%%' -e 's%^xserver_%%' -e 's%^xutil_%%' | sort > ../0buildroot-${MYDATE}/audit/buildroot-pkgs-list #141121
+sync
+#these are my meta-pkg templates...
+echo 'glibc_locales
+perl_tiny
+samba_client
+x11proto
+xorg_base
+xserver_xorg' >> ../0buildroot-${MYDATE}/audit/buildroot-pkgs-list #141121
+echo "creating 0buildroot-${MYDATE}/pkgs-list-versioned ..."
+find output/build -mindepth 1 -maxdepth 1 -type d | grep -v '^output/build/host-' | sed -e 's%^output/build/%%' -e 's%^xapp_%%' -e 's%^xdata_%%' -e 's%^xdriver_%%' -e 's%^xfont_%%' -e 's%^xlib_%%' -e 's%^xproto_%%' -e 's%^xserver_%%' -e 's%^xutil_%%' | sort > ../0buildroot-${MYDATE}/audit/buildroot-pkgs-list-versioned #141121
+sync
+cd ..
+#...refer to script findwoofinstalledpkgs (called from 3builddistro) in quirky, reads these files.
+
+echo "deleting some folders/files in 0buildroot-${MYDATE} ..."
+cd 0buildroot-${MYDATE}
+rm -f linuxrc
+rm -f run
+rm -rf etc/rc*
+rm -rf etc/sudoers.d
+rm -f etc/inittab
+rm -f etc/ld.so.conf.d/*
+rm -f etc/init.d/*
+#rm -f etc/localtime
+# ...ditto for fstab, group, hostname, hosts, inputrc, issue, ld.so.cache, ld.so.conf, mtab, nsswitch.conf, passwd, profile, protocols, resolv.conf, services, shells, sudo, sudoers, timezone
+for AFILE in fstab group hostname hosts inputrc issue ld.so.cache ld.so.conf localtime mtab nsswitch.conf passwd profile protocols resolv.conf services shells sudo sudoers timezone
+do
+ rm -f etc/${AFILE}
+done
+rm -f lib/udev/rules.d/*
+rm -rf lib/udev/rc_keymaps #141122 dont think need this
+sync
+cd ..
+
+#141120
+#buildroot does not put locale stuff into target...
+echo 'extracting locale files from buildroot...'
+ARCHPRE="$(find ${TOPDIR}/output/host/usr -maxdepth 1 -type d -name '*-buildroot-linux-gnu' | rev | cut -f 1 -d '/' | rev | cut -f 1 -d '-')" #ex: i686
+if [ ! "$ARCHPRE" ];then
+ echo "Sorry, could not find ${TOPDIR}/output/host/usr/*-buildroot-linux-gnu"
+ exit
+fi
+cp -a -f ${TOPDIR}/output/host/usr/${ARCHPRE}-buildroot-linux-gnu/sysroot/usr/bin/locale 0buildroot-${MYDATE}/usr/bin/
+cp -a -f ${TOPDIR}/output/host/usr/${ARCHPRE}-buildroot-linux-gnu/sysroot/usr/bin/localedef 0buildroot-${MYDATE}/usr/bin/
+[ -f 0buildroot-${MYDATE}/usr/lib/locale/locale-archive ] && rm -f 0buildroot-${MYDATE}/usr/lib/locale/locale-archive #don't know what this does.
+mkdir -p 0buildroot-${MYDATE}/usr/share/i18n/charmaps
+mkdir -p 0buildroot-${MYDATE}/usr/share/i18n/locales
+#i have put the glibc_locales template (part thereof) into bare-skeleton-rootfs, so 'charmaps' and 'locales' (see above) will actually already exist.
+for AFILE in `ls -1 0buildroot-${MYDATE}/usr/share/i18n/charmaps | tr '\n' ' '` #zero-byte files
+do
+ NAMEONLY="$(basename $AFILE)"
+ cp -a -f ${TOPDIR}/output/host/usr/${ARCHPRE}-buildroot-linux-gnu/sysroot/usr/share/i18n/charmaps/${NAMEONLY} 0buildroot-${MYDATE}/usr/share/i18n/charmaps/
+done
+for AFILE in `ls -1 0buildroot-${MYDATE}/usr/share/i18n/locales | tr '\n' ' '` #zero-byte files
+do
+ NAMEONLY="$(basename $AFILE)"
+ cp -a -f ${TOPDIR}/output/host/usr/${ARCHPRE}-buildroot-linux-gnu/sysroot/usr/share/i18n/locales/${NAMEONLY} 0buildroot-${MYDATE}/usr/share/i18n/locales/
+done
+
+###glibc###
+#ldconfig and ldd are not in target
+cp -a -f ${TOPDIR}/output/host/usr/${ARCHPRE}-buildroot-linux-gnu/sysroot/sbin/ldconfig 0buildroot-${MYDATE}/sbin/
+cp -a -f ${TOPDIR}/output/host/usr/${ARCHPRE}-buildroot-linux-gnu/sysroot/usr/bin/ldd 0buildroot-${MYDATE}/usr/bin/
+cp -a -f ${TOPDIR}/output/host/usr/${ARCHPRE}-buildroot-linux-gnu/sysroot/usr/bin/lddlibc4 0buildroot-${MYDATE}/usr/bin/
+
+echo "creating 0buildroot-${MYDATE}.txz ..."
+#to turn this into a binary pkg for use in quirky build system (to be placed in projects/local-repositories/x86/packages-buildroot-aug2014:
+cd 0buildroot-${MYDATE}
+tar -c -f ../0buildroot-${MYDATE}.tar *
+sync
+cd ..
+xz 0buildroot-${MYDATE}.tar
+sync
+#rename .tar.xz to .txz
+mv 0buildroot-${MYDATE}.tar.xz 0buildroot-${MYDATE}.txz
+echo "...done"
+echo "0buildroot-${MYDATE}.txz has to be copied to the quirky build system, at
+sdb11 projects/local-repositories/x86/packages-buildroot-aug2014/"
+
+BRSIZE="$(du -k -s 0buildroot-${MYDATE} | cut -f 1)"
+echo
+echo "DB entry for quirky/woofdistro/x86/buildroot/erik/Packages-buildroot-aug2014-official:"
+echo "0buildroot-${MYDATE}|0buildroot|${MYDATE}||BuildingBlock|${BRSIZE}K||0buildroot-${MYDATE}.txz||root filesystem compiled in buildroot, with X, gtk, X-apps|buildroot|aug2014||"

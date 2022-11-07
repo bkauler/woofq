@@ -1,0 +1,191 @@
+#!/bin/sh
+#called from easy-version-control, also easy-rollback, via menu "Shutdown -> Reboot, with rollback"
+#200814 first. 200816
+#200905 add cups checkbox.
+#20201121 save /var/local/bluepup folder.
+#20210605 save /var/local/qsync folder.
+#20210930 save /home/seamonkey/.mozilla if exists.
+#20211024 save kernel module blacklisting.
+#20211123 erase browser .cache folder.
+#20211123 ssh login keys.
+#20220117 PIM data -- osmo, pplog, didiwiki. 20220118 didiwiki retired.
+#20220612 put up please wait msg.
+#20220907 do not have /var symlink. do not have /root/.var or /root/.var0 see also: rc.sysinit, init, fixlayers
+
+export TEXTDOMAIN=erase-exceptions
+export OUTPUT_CHARSET=UTF-8
+
+. /etc/DISTRO_SPECS
+. /etc/rc.d/PUPSTATE
+
+EXC_FW_XML=''
+if [ -x /etc/init.d/rc.firewall ];then
+ EXC_FW_XML="<checkbox><label>$(gettext 'Firewall setup')</label><variable>EXC5</variable></checkbox>"
+fi
+if [ -d /var/lib/bluetooth ];then
+ BTflg="$(ls /var/lib/bluetooth | cut -c 1)"
+ if [ "$BTflg" ];then
+  BT_XML="<checkbox><label>$(gettext 'Bluetooth setup')</label><variable>EXC6</variable></checkbox>"
+ fi
+fi
+#200905 cups...
+CUPS_XML=''
+CUPSflg="$(find /etc/cups/ppd -mindepth 1 -maxdepth 1 -type f -name '*.ppd' | grep -v 'CUPS\-PDF')"
+if [ "$CUPSflg" ];then
+ CUPS_XML="<checkbox><label>$(gettext 'CUPS printer setup')</label><variable>EXC7</variable></checkbox>"
+fi
+
+#20220117
+FPM_XML=''
+if [ -d /root/.fpm ];then
+ FPM_XML="<checkbox><label>$(gettext 'Figaros Password Manager data')</label><variable>EXC11</variable></checkbox>"
+fi
+
+export EVC_EXC_DLG="<window title=\"$(gettext 'Easy Version Control: erase exceptions')\" icon-name=\"gtk-about\" window_position=\"1\">
+ <vbox>
+  <text><label>$(gettext 'Although the working session will be erased, you may opt to keep some things. tick any (or none) of the checkboxes, then click the OK button:')</label></text>
+  <frame>
+   <checkbox><label>$(gettext 'User profile (timezone, keyboard layout, etc.)')</label><variable>EXC0</variable></checkbox>
+   <checkbox><label>$(gettext 'PIM data (Osmo, PPLOG)')</label><variable>EXC10</variable></checkbox>
+   ${FPM_XML}
+   <checkbox><label>$(gettext 'Web browser profile (bookmarks, history, etc.)')</label><variable>EXC1</variable></checkbox>
+   <checkbox><label>$(gettext 'Audio profiles (chosen sound card, etc.)')</label><variable>EXC2</variable></checkbox>
+   <checkbox><label>$(gettext 'Video profiles (X drivers, acceleration, etc.)')</label><variable>EXC3</variable></checkbox>
+   <checkbox><label>$(gettext 'Network connection (wifi password, etc.)')</label><variable>EXC4</variable></checkbox>
+   <checkbox><label>$(gettext 'Network SSH login keys')</label><variable>EXC9</variable></checkbox>
+   <checkbox><label>$(gettext 'Kernel modules (blacklist, etc.)')</label><variable>EXC8</variable></checkbox>
+   ${EXC_FW_XML}
+   ${BT_XML}
+   ${CUPS_XML}
+   <hbox>
+    <text><label>$(gettext 'Click the OK button:')</label></text>
+    <button><label>$(gettext 'OK')</label><action>exit:save</action></button>
+   </hbox>
+  </frame>
+  <hbox>
+   <text><label>$(gettext 'If you have changed your mind and do not want to erase the session, click CANCEL button:')</label></text>
+   <vbox>
+    <button><label>$(gettext 'CANCEL')</label><action>exit:cancel</action></button>
+   </vbox>
+  </hbox>
+ </vbox>
+ </window>"
+RETexc="$(gtkdialog --program=EVC_EXC_DLG)"
+[ $? -ne 0 ] && exit 1
+eval "$RETexc"
+
+if [ "$EXIT" == "save" ];then
+ Ms1="$(gettext 'Please wait...')"
+ popup "level=top background=#ffc020|<big><b>${Ms1}</b></big> " #20220612
+ [ -d /mnt/wkg/sfs/settings/erase-exceptions ] && rm -rf /mnt/wkg/sfs/settings/erase-exceptions
+ mkdir -p /mnt/wkg/sfs/settings/erase-exceptions/etc
+ mkdir /mnt/wkg/sfs/settings/erase-exceptions/etc/X11
+ mkdir /mnt/wkg/sfs/settings/erase-exceptions/etc/init.d
+ mkdir /mnt/wkg/sfs/settings/erase-exceptions/root
+ mkdir /mnt/wkg/sfs/settings/erase-exceptions/root/.config
+ mkdir -p /mnt/wkg/sfs/settings/erase-exceptions/var/lib
+ mkdir /mnt/wkg/sfs/settings/erase-exceptions/var/local
+ mkdir /mnt/wkg/sfs/settings/erase-exceptions/home #20210930
+ if [ "$EXC0" == "true" ];then #User profile
+  XKEYS="$(find /mnt/wkg/.session/etc/X11 -mindepth 2 -maxdepth 2 -type f -name '10-evdev-puppy.conf' | sed -e 's%^/mnt/wkg/\.session%%' | tr '\n' ' ')"
+  for aXKEY in ${XKEYS} #10-evdev-puppy.conf has keyboard layout.
+  do
+   aPATH="$(dirname ${aXKEY})"
+   mkdir -p /mnt/wkg/sfs/settings/erase-exceptions${aPATH}
+   cp -a /mnt/wkg/.session${aPATH}/10-evdev-puppy.conf /mnt/wkg/sfs/settings/erase-exceptions${aPATH}/
+   cp -a /mnt/wkg/.session${aPATH}/PuppyHardwareProfile /mnt/wkg/sfs/settings/erase-exceptions${aPATH}/
+  done
+  for aETC in localtime clock keymap codepage adjtime fontmap keymap
+  do
+   if [ -e /mnt/wkg/.session/etc/${aETC} ];then
+    cp -a /mnt/wkg/.session/etc/${aETC} /mnt/wkg/sfs/settings/erase-exceptions/etc/
+   fi
+  done
+  for aROOT in .flSynclient #200816
+  do
+   if [ -e /mnt/wkg/.session/root/${aROOT} ];then
+    cp -a /mnt/wkg/.session/root/${aROOT} /mnt/wkg/sfs/settings/erase-exceptions/root/
+   fi
+  done
+ fi
+ if [ "$EXC1" == "true" ];then #Web browser profile
+  cp -a /root/.mozilla /mnt/wkg/sfs/settings/erase-exceptions/root/
+  rm -rf /mnt/wkg/sfs/settings/erase-exceptions/root/.mozilla/seamonkey/*.defaultOLD
+  #20210930 browsers running non-root...
+  for aB in seamonkey firefox chromium chrome
+  do
+   if [ -d /home/${aB} ];then
+    if [ -d /home/${aB}/.cache ];then #20211123
+     rm -rf /home/${aB}/.cache/* 2>/dev/null
+    fi
+    if [ -d /home/${aB}/Downloads ];then #20211123
+     rm -rf /home/${aB}/Downloads/* 2>/dev/null
+    fi
+    cp -a /home/${aB} /mnt/wkg/sfs/settings/erase-exceptions/home/
+   fi
+  done
+ fi
+ if [ "$EXC2" == "true" ];then #Audio profiles
+  cp -a /etc/asound* /mnt/wkg/sfs/settings/erase-exceptions/etc/
+  [ -f /root/.asoundrc ] && cp -a /root/.asoundrc /mnt/wkg/sfs/settings/erase-exceptions/root/
+  [ -d /var/local/mscw ] && cp -a /var/local/mscw /mnt/wkg/sfs/settings/erase-exceptions/var/local/
+ fi
+ if [ "$EXC3" == "true" ];then #Video profiles
+  cp -a -f /mnt/wkg/.session/etc/X11/* /mnt/wkg/sfs/settings/erase-exceptions/etc/X11/
+  [ -e /mnt/wkg/.session/etc/windowmanager ] && cp -a /mnt/wkg/.session/etc/windowmanager /mnt/wkg/sfs/settings/erase-exceptions/etc/
+ fi
+ if [ "$EXC4" == "true" ];then #Network connection
+  [ -e /mnt/wkg/.session/etc/hostname ] && cp -a /mnt/wkg/.session/etc/hostname /mnt/wkg/sfs/settings/erase-exceptions/etc/
+  [ -d /mnt/wkg/.session/etc/NetworkManager ] && cp -a /mnt/wkg/.session/etc/NetworkManager /mnt/wkg/sfs/settings/erase-exceptions/etc/
+  [ -d /mnt/wkg/.session/etc/samba ] && cp -a /mnt/wkg/.session/etc/samba /mnt/wkg/sfs/settings/erase-exceptions/etc/
+  [ -d /var/lib/NetworkManager ] && cp -a /var/lib/NetworkManager /mnt/wkg/sfs/settings/erase-exceptions/var/lib/
+  [ -d /var/local/easyshare ] && cp -a /var/local/easyshare /mnt/wkg/sfs/settings/erase-exceptions/var/local/
+  [ -d /var/local/sns ] && cp -a /var/local/sns /mnt/wkg/sfs/settings/erase-exceptions/var/local/
+  [ -d /var/local/qsync ] && cp -a /var/local/qsync /mnt/wkg/sfs/settings/erase-exceptions/var/local/ #20210605
+ fi
+ if [ "$EXC5" == "true" ];then
+  cp -a /etc/init.d/rc.firewall /mnt/wkg/sfs/settings/erase-exceptions/etc/init.d/
+  [ -d /root/.config/firewall ] && cp -a /root/.config/firewall /mnt/wkg/sfs/settings/erase-exceptions/root/.config/
+ fi
+ if [ "$EXC6" == "true" ];then #bluetooth
+  cp -a /var/lib/bluetooth /mnt/wkg/sfs/settings/erase-exceptions/var/lib/
+  [ -d /var/local/bluepup ] && cp -a /var/local/bluepup /mnt/wkg/sfs/settings/erase-exceptions/var/local/ #20201121
+  [ -x /etc/init.d/bluealsa ] && cp -a -f /etc/init.d/bluealsa /mnt/wkg/sfs/settings/erase-exceptions/etc/init.d/
+  [ -x /etc/init.d/bluetooth ] && cp -a -f /etc/init.d/bluetooth /mnt/wkg/sfs/settings/erase-exceptions/etc/init.d/
+ fi
+ if [ "$EXC7" == "true" ];then #200905 cups
+  mkdir -p /mnt/wkg/sfs/settings/erase-exceptions/etc/cups
+  cp -a -f /mnt/wkg/.session/etc/cups/* /mnt/wkg/sfs/settings/erase-exceptions/etc/cups/
+ fi
+ if [ "$EXC8" == "true" ];then #20211024 kernel modules
+  mkdir -p /mnt/wkg/sfs/settings/erase-exceptions/etc/rc.d
+  cp -a -f /mnt/wkg/.session/etc/modprobe.d* /mnt/wkg/sfs/settings/erase-exceptions/etc/ 2>/dev/null
+  cp -a -f /mnt/wkg/.session/etc/rc.d/MODULESCONFIG /mnt/wkg/sfs/settings/erase-exceptions/etc/rc.d/ 2>/dev/null
+ fi
+ if [ "$EXC9" == "true" ];then #20211123 ssh keys
+  if [ -d /root/.ssh ];then
+   cp -a /root/.ssh /mnt/wkg/sfs/settings/erase-exceptions/root/
+  fi
+ fi
+ if [ "$EXC10" == "true" ];then #20220117 PIM data
+  if [ -d /root/.osmo ];then
+   cp -a /root/.osmo /mnt/wkg/sfs/settings/erase-exceptions/root/
+  fi
+  #didiwiki...
+  cp -a /home/spot /mnt/wkg/sfs/settings/erase-exceptions/home/
+  #pplog...
+  if [ -d /root/Web-Server ];then
+   cp -a /root/Web-Server /mnt/wkg/sfs/settings/erase-exceptions/root/
+  fi
+ fi
+ if [ "$EXC11" == "true" ];then #20220117 figaros password manager
+  cp -a /root/.fpm /mnt/wkg/sfs/settings/erase-exceptions/root/
+ fi
+ #i think always save these extra...
+ [ -f /var/local/version-history-depth ] && cp -a /var/local/version-history-depth /mnt/wkg/sfs/settings/erase-exceptions/var/local/
+ killall popup #20220612
+ exit 0
+fi
+
+exit 1
+###end###

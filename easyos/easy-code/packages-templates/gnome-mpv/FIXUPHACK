@@ -1,0 +1,30 @@
+
+# 190824 buster
+mkdir -p usr/share/pixmaps
+if [ ! -e usr/share/pixmaps/io.github.GnomeMpv.svg ];then
+ if [ -e usr/share/icons/hicolor/scalable/apps/io.github.GnomeMpv.svg ];then
+  ln -s ../icons/hicolor/scalable/apps/io.github.GnomeMpv.svg usr/share/pixmaps/io.github.GnomeMpv.svg
+ fi
+fi
+
+[ -e usr/share/pixmaps/io.github.GnomeMpv.svg ] && cp -a usr/share/pixmaps/io.github.GnomeMpv.svg usr/share/pixmaps/gnome-mpv.svg
+
+# 190824 buster
+mkdir -p usr/bin
+echo '#!/bin/sh
+#turn off screensaver...
+TURNONAFTER=0
+if [ -e /root/.xset.sh ];then
+ if [ "$(grep "^xset .* s off" /root/.xset.sh)" = "" ];then
+  xset s off -dpms
+  TURNONAFTER=1
+ fi
+else
+ xset s off -dpms
+ TURNONAFTER=1
+fi
+gnome-mpv "$@" ###RUN IT###
+[ $TURNONAFTER -eq 1 ] && xset s on
+' > usr/bin/gnomempvshell
+chmod 755 usr/bin/gnomempvshell
+

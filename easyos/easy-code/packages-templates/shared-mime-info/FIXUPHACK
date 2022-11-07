@@ -1,0 +1,81 @@
+#141223 WOOF_HOSTARCH and WOOF_TARGETARCH are exported by 2createpackages.
+#150726 have exported BUILD_CHOICE_MERGE_DEVX in 2createpackages.
+#161001 wrong name.
+#170726 .md conflict. want text/markdown
+#171124 always run host update-mime-database
+#200711 rootfs-skeleton/usr/share/mime/packages must be in devx.
+#20201221 want to be able to run 'update-mime-database' without devx.
+#20210423 fix easy*.img mimetype. 20210530 fix.
+#20210801 debian bullseye does not have /usr/share/mime/globs, globs2 in deb.
+
+# BK 20141223
+# add puppy mime types, then update the database...
+
+#200711 get them from rootfs-skeleton...
+#cp -a -f defaults/usr/share/mime/packages/* usr/share/mime/packages/
+mkdir -p usr/share/mime
+cp -a -u ../../rootfs-skeleton/usr/share/mime/* usr/share/mime/
+
+#161001 ubuntu xerus...
+[ ! -e usr/bin/update-mime-database ] && [ -e usr/bin/update-mime-database.real ] && mv -f usr/bin/update-mime-database.real usr/bin/update-mime-database
+
+#20210801 remove...
+##170726 remove application/x-genesis-rom:*.md
+#sed -i '/x-genesis-rom:\*\.md/d' usr/share/mime/globs
+#sed -i '/x-genesis-rom:\*\.md/d' usr/share/mime/globs2
+
+#200711 already done above.
+##170726 rootfs-sksleton has some mime files, need before run update-mime-database...
+#cp -a -f --remove-destination ../../rootfs-skeleton/usr/share/mime/* usr/share/mime/
+
+#171023
+#[ -f usr/share/mime/application/x-genesis-rom.xml ] && rm -f usr/share/mime/application/x-genesis-rom.xml
+#...no, gets regenerated. do this:
+sed -i '/glob pattern="\*\.md"/d' usr/share/mime/packages/freedesktop.org.xml
+
+#20210530 use sed instead...
+#20210423 easyos dunfell, /usr/share/mime/packages/freedesktop.org.xml has .img
+# entries that conflict with easy*.img defined in puppy.xml.
+## using modified freedesktop.org.xml...
+#mv -f defaults/freedesktop.org.xml usr/share/mime/packages/freedesktop.org.xml
+#rm -rf defaults
+sed -i '/\*\.img/d' usr/share/mime/packages/freedesktop.org.xml
+
+#171124  20201221 restore the if...then
+##um, this will fail if a cross-build...
+if [ "$WOOF_HOSTARCH" == "$WOOF_TARGETARCH" ];then
+ usr/bin/update-mime-database usr/share/mime 2> /dev/null
+else
+ #use the host executable:
+ update-mime-database usr/share/mime 2> /dev/null
+fi
+#20201221 note, also going to run 'update-mime-database' in 3buildeasydistro,
+# to be sure got everything.
+
+#now take out everything not needed at runtime...
+
+#20201221 do not move to devx...
+if [ "$BUILD_CHOICE_MERGE_DEVX" != "yes" ];then #150726
+ mkdir -p ../shared-mime-info_DEV/usr/bin
+ mkdir -p ../shared-mime-info_DEV/usr/share/mime
+ rm -rf ./etc 2> /dev/null
+ rm -rf ./var 2> /dev/null
+# mv -f usr/bin/update-mime-database ../shared-mime-info_DEV/usr/bin/
+# cp -a -f usr/share/mime/* ../shared-mime-info_DEV/usr/share/mime/
+# sync
+# rm -rf usr/share/mime
+# mkdir usr/share/mime
+# #bring back only what needed... well, guessing...
+# cp -a -f ../shared-mime-info_DEV/usr/share/mime/globs usr/share/mime/
+# cp -a -f ../shared-mime-info_DEV/usr/share/mime/globs2 usr/share/mime/
+# cp -a -f ../shared-mime-info_DEV/usr/share/mime/aliases usr/share/mime/
+# cp -a -f ../shared-mime-info_DEV/usr/share/mime/generic-icons usr/share/mime/
+# cp -a -f ../shared-mime-info_DEV/usr/share/mime/icons usr/share/mime/
+# cp -a -f ../shared-mime-info_DEV/usr/share/mime/magic usr/share/mime/
+# cp -a -f ../shared-mime-info_DEV/usr/share/mime/mime.cache usr/share/mime/
+# cp -a -f ../shared-mime-info_DEV/usr/share/mime/subclasses usr/share/mime/
+# cp -a -f ../shared-mime-info_DEV/usr/share/mime/treemagic usr/share/mime/
+# cp -a -f ../shared-mime-info_DEV/usr/share/mime/types usr/share/mime/
+# cp -a -f ../shared-mime-info_DEV/usr/share/mime/XMLnamespaces usr/share/mime/
+fi
+

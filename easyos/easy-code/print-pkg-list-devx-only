@@ -1,0 +1,22 @@
+#!/bin/sh
+#list all pkgs in build, as genericname,version
+
+echo -n '' > /tmp/print-pkg-list-part1
+for aSPEC in `cat devx-only-installed-packages | grep '\.deb|' | cut -f 3,7 -d '|' | busybox sort -k 2,2 -t '|' -u`
+do
+ aVER="${aSPEC/|*/}"
+ aNAME1="${aSPEC/*|/}"
+ aNAME2="${aNAME1/*\//}"
+ echo "${aNAME2},${aVER}" >> /tmp/print-pkg-list-part1
+done
+
+echo -n '' > /tmp/print-pkg-list-part2
+for aSPEC in `cat devx-only-installed-packages | grep '\.pet|' | grep -v '_DEV-' | cut -f 2,3 -d '|' | sort -k 1,1 -t '|' -u`
+do
+ aVER="${aSPEC/*|/}"
+ aNAME="${aSPEC/|*/}"
+ echo "${aNAME},${aVER}" >> /tmp/print-pkg-list-part2
+done
+
+sort -k 1 -t '|' -u /tmp/print-pkg-list-part1 /tmp/print-pkg-list-part2 > pkg-list-devx-only.txt
+sync

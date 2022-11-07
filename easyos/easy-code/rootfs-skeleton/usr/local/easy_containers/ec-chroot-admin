@@ -1,0 +1,93 @@
+#!/bin/bash
+#(c) Copyright Barry Kauler, 31 January 2017. License: GPL V3 (/usr/share/doc/legal)
+#Easy Linux script for Easy Containers, to run an isolated application.
+#based on ec-chroot, to run in container with full admin rights.
+#first passed-in parameter is name of container (sh0, seamonkey, etc).
+#second passed-in param is name of an executable to run (/usr/bin/urxvt, /usr/bin/eppm, etc).
+#third param optional.
+#execution example, run leafpad in the seamonkey container:
+# /usr/local/easy_containers/ec-chroot-admin seamonkey /usr/bin/leafpad /usr/share/doc/home.htm
+#180619 first release.
+#180624 /usr/local/petget/installpkg.sh in container, 'df' may not work.
+#180624 if we run eppm in container, installing DEBs may break running of scripts in /usr/local/petget
+#180703 set timezone.
+#190830 support only one passed param.
+#20221031 if running as zeus, think need to bump up to root.
+
+WHOIAM="$(whoami)"
+[ "${WHOIAM}" != "root" ] && exec sudo -A ${0} ${@} #20221031
+
+[ ! $1 ] && exit 1
+#[ ! $2 ] && exit 1
+EXE="$1"
+ARG2=''
+[ $2 ] && ARG2="$2" #190830
+ARG3=''
+[ $3 ] && ARG3=" ${3}"
+
+. /etc/rc.d/PUPSTATE #has BOOT_DEV, BOOT_FS, BOOT_DIR, WKG_DEV, WKG_FS, WKG_DIR, QSFS_PATH
+
+#setup-container must have already been run.
+CONTAINER="/mnt/${WKG_DEV}/${WKG_DIR}containers/${EXE}/container"
+[ ! -d /mnt/${WKG_DEV}/${WKG_DIR}containers/${EXE}/container ] && exit 1 #precaution
+
+#start container, if not already...
+ALREADYSTARTED=1
+if [ "$(mount | grep "containers/${EXE}")" == "" ];then
+ start-container ${EXE}
+ [ $? -ne 0 ] && exit 1
+ ALREADYSTARTED=0
+fi
+
+if [ $ALREADYSTARTED -eq 0 ];then
+ #seamonkey wants this...
+ if [ ! -s /mnt/${WKG_DEV}/${WKG_DIR}containers/${EXE}/.session/etc/machine-id ];then
+  mkdir -p /mnt/${WKG_DEV}/${WKG_DIR}containers/${EXE}/.session/etc
+  cp -a -f /etc/machine-id /mnt/${WKG_DEV}/${WKG_DIR}containers/${EXE}/.session/etc/
+ fi
+ busybox mount -o bind /proc ${CONTAINER}/proc
+ busybox mount -o bind /sys ${CONTAINER}/sys
+ busybox mount -o bind /dev ${CONTAINER}/dev
+ busybox mount -o bind /tmp ${CONTAINER}/tmp
+ busybox mount -o bind /dev/pts ${CONTAINER}/dev/pts
+ busybox mount -o bind /dev/shm ${CONTAINER}/dev/shm
+ #needed for internet access...
+ cp -f /etc/resolv.conf ${CONTAINER}/etc/resolv.conf
+ #180703 timezone...
+ cp -a -f --remove-destination /etc/localtime ${CONTAINER}/etc/
+else
+ true
+fi
+
+export EC_CAP_DROP=''
+#read by /usr/local/petget/installpreview.sh, as may not be able to run 'df' in container...
+ecSIZEFREEM=`df -m | grep ' /$' | tr -s ' ' | cut -f 4 -d ' '`
+export ecSIZEFREEM
+#180624 /usr/local/petget/installpkg.sh in container, 'df' may not work...
+ecTMPK=`df -k /tmp | grep '^tmpfs' | tr -s ' ' | cut -f 4 -d ' '` #free space in /tmp
+export ecTMPK
+
+#180624 if we run eppm in container, installing DEBs may break running of scripts in /usr/local/petget
+if [ ! -f ${CONTAINER}/root/.bin/busybox ];then #note, busybox is static.
+ mkdir -p ${CONTAINER}/root/.bin
+ cp -f /bin/busybox ${CONTAINER}/root/.bin/
+ PWD="`pwd`"
+ cd ${CONTAINER}/root/.bin
+ ./busybox --list | busybox xargs -I RRR ln -s busybox RRR
+ cd "${PWD}"
+fi
+
+#190830 search for executable if no ARG2 defined...
+if [ "$ARG2" == "" ];then
+ [ -x ${CONTAINER}/usr/bin/${EXE} ] && ARG2="/usr/bin/${EXE}"
+ [ -x ${CONTAINER}/usr/sbin/${EXE} ] && ARG2="/usr/sbin/${EXE}"
+ [ "$ARG2" == "" ] && ARG2="/usr/bin/urxvt"
+fi
+
+echo "Executing: chroot ${CONTAINER} ${ARG2}${ARG3}"
+#PATH="/root/.bin:${PATH}" /bin/busybox chroot ${CONTAINER} ${ARG2}${ARG3}
+/bin/busybox chroot ${CONTAINER} ${ARG2}${ARG3}
+
+if [ $ALREADYSTARTED -eq 0 ];then
+ stop-container ${EXE}
+fi

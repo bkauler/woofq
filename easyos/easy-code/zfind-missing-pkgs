@@ -1,0 +1,45 @@
+#!/bin/sh
+#pass-in the package sub-names, wildcard will be appended.
+# ex: arch-20211231
+
+P1="$1"
+[ ! "$P1" ] && exit
+echo -n '' > /tmp/zdeps-list
+echo -n "" > zdeps-missing-db
+echo -n "" > zdeps-list
+D="$(date +%Y%m%d)"
+
+PKGLIST="$(cut -f 2 -d '|' woof-installed-packages | tr '\n' ' ')"
+
+for aPKG in $PKGLIST
+do
+ DEPS="$(grep "|${aPKG}|" Packages-${P1}-* | cut -f 9 -d '|' | tr ',' '\n' | sed -e 's%^\+%%' | sed -e 's%&.*%%')"
+ echo "$DEPS" >> /tmp/zdeps-list
+
+done
+
+sort -u /tmp/zdeps-list > zdeps-list
+
+for aDEP in `cat zdeps-list`
+do
+ [ "$aDEP" == "" ] && continue
+ grep -q "^yes|${aDEP}|" DISTRO_PKGS_SPECS-${P1}
+ if [ $? -ne 0 ];then
+  grep -q "[,|]${aDEP}[,|]" DISTRO_PKGS_SPECS-${P1}
+  if [ $? -ne 0 ];then
+   echo "yes|${aDEP}|${aDEP}|exe,dev,doc,nls| #${D}" >> zdeps-missing-db
+  fi
+ fi
+done
+
+#merge with DISTRO_PKGS_SPECS-${P1}
+. ./DISTRO_PKGS_SPECS-${P1}
+echo "$PKGS_SPECS_TABLE" > /tmp/zmerged-missing-db
+cat zdeps-missing-db >> /tmp/zmerged-missing-db
+busybox sort -t '|' -k 2 -u -f /tmp/zmerged-missing-db > zmerged-missing-db
+
+#arch-linux, remove...
+sed -i -r '/yes\|filesystem\|/d' zmerged-missing-db
+sed -i -r '/yes\|systemd\|/d' zmerged-missing-db
+sed -i -r '/yes\|xf86-input/d' zmerged-missing-db
+

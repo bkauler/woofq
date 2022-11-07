@@ -1,0 +1,21 @@
+
+#20211112
+grep -q '^yes|pulseaudio' ../../DISTRO_PKGS_SPECS-*-*
+if [ $? -eq 0 ];then
+ rm -f etc/alsa/conf.d/50-oss.conf 2>/dev/null
+ rm -f etc/alsa/conf.d/99-pulseaudio-default.conf 2>/dev/null
+ echo '# Default to PulseAudio
+
+pcm.!default {
+    type pulse
+    hint {
+        show on
+        description "Default ALSA Output (currently PulseAudio Sound Server)"
+    }
+}
+
+ctl.!default {
+    type pulse
+}' > etc/alsa/conf.d/99-pulseaudio-default.conf
+ 
+fi

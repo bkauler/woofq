@@ -1,0 +1,941 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html>
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8"/>
+	<title></title>
+	<meta name="generator" content="LibreOffice 5.1.6.2 (Linux)"/>
+	<meta name="created" content="00:00:00"/>
+	<meta name="changed" content="00:00:00"/>
+	<style type="text/css">
+		@page { margin-right: 0.39in }
+		p { direction: ltr; color: #000000; orphans: 0; widows: 0 }
+		p.western { font-family: "Nimbus Roman No9 L", "Times New Roman", serif; font-size: 12pt; so-language: en-US }
+		p.cjk { font-family: "DejaVu Sans"; font-size: 12pt; so-language: zh-CN }
+		p.ctl { font-family: "DejaVu Sans"; font-size: 12pt; so-language: hi-IN }
+		h1 { direction: ltr; color: #000000; orphans: 0; widows: 0 }
+		h1.western { font-family: "Thorndale", "Times New Roman", serif; so-language: en-US }
+		h1.cjk { font-family: "DejaVu Sans"; font-size: 24pt; so-language: zh-CN }
+		h1.ctl { font-family: "Thorndale", "Times New Roman", serif; so-language: hi-IN }
+		h2 { direction: ltr; color: #000000; orphans: 0; widows: 0 }
+		h2.western { font-family: "Nimbus Roman No9 L", "Times New Roman", serif; so-language: en-US }
+		h2.cjk { font-family: "DejaVu Sans"; so-language: zh-CN }
+		h2.ctl { font-family: "DejaVu Sans"; so-language: hi-IN }
+		h3 { direction: ltr; color: #000000; orphans: 0; widows: 0 }
+		h3.western { font-family: "Nimbus Roman No9 L", "Times New Roman", serif; so-language: en-US }
+		h3.cjk { font-family: "DejaVu Sans"; so-language: zh-CN }
+		h3.ctl { font-family: "DejaVu Sans"; so-language: hi-IN }
+		td p { direction: ltr; color: #000000; orphans: 0; widows: 0 }
+		td p.western { font-family: "Nimbus Roman No9 L", "Times New Roman", serif; font-size: 12pt; so-language: en-US }
+		td p.cjk { font-family: "DejaVu Sans"; font-size: 12pt; so-language: zh-CN }
+		td p.ctl { font-family: "DejaVu Sans"; font-size: 12pt; so-language: hi-IN }
+		th p { direction: ltr; color: #000000; orphans: 0; widows: 0 }
+		th p.western { font-family: "Nimbus Roman No9 L", "Times New Roman", serif; font-size: 12pt; so-language: en-US }
+		th p.cjk { font-family: "DejaVu Sans"; font-size: 12pt; so-language: zh-CN }
+		th p.ctl { font-family: "DejaVu Sans"; font-size: 12pt; so-language: hi-IN }
+		pre { direction: ltr; color: #000000; orphans: 0; widows: 0 }
+		pre.western { font-family: "Nimbus Mono L", "Courier New", monospace; so-language: en-US }
+		pre.cjk { font-family: "Nimbus Mono L", "Courier New", monospace; so-language: zh-CN }
+		pre.ctl { font-family: "Nimbus Mono L", "Courier New", monospace; so-language: hi-IN }
+		code { font-family: "Nimbus Mono L", "Courier New", monospace }
+	</style>
+</head>
+<body lang="en-US" text="#000000" dir="ltr">
+<center>
+	<table width="1009" cellpadding="2" cellspacing="0" style="page-break-before: always">
+		<col width="1005">
+		<tr>
+			<td width="1005" valign="top" style="border: none; padding: 0in">
+				<p class="western">Extract from:
+				<font color="#000080"><u><a href="http://wiki.bash-hackers.org/syntax/pe">http://wiki.bash-hackers.org/syntax/pe</a></u></font><br/>
+Date:
+				2017-08-06</p>
+				<h1 class="western"><a name="parameter_expansion"></a>Bash
+				Parameter expansion</h1>
+				<h2 class="western"><a name="indirection"></a>Indirection</h2>
+				<p class="western"><code>${!PARAMETER}</code> 
+				</p>
+				<p class="western">In some cases, like for example 
+				</p>
+				<pre class="western">${PARAMETER}
+
+${PARAMETER:0:3}</pre><p class="western">
+				you can instead use the form 
+				</p>
+				<pre class="western" style="margin-bottom: 0.2in">${!PARAMETER}</pre><p class="western">
+				to enter a level of indirection. The referenced parameter is not
+				<code>PARAMETER</code> itself, but the parameter whose name is
+				stored as the value of <code>PARAMETER</code>. If the parameter
+				<code>PARAMETER</code> has the value &quot;<code>TEMP</code>&quot;,
+				then <code>${!PARAMETER}</code> will expand to the value of the
+				parameter named <code>TEMP</code>: 
+				</p>
+				<pre class="western">read -rep 'Which variable do you want to inspect? ' look_var
+
+printf 'The value of &quot;%s&quot; is: &quot;%s&quot;\n' &quot;$look_var&quot; &quot;${!look_var}&quot; </pre><p class="western">
+				Of course the indirection also works with special variables: 
+				</p>
+				<pre class="western"># set some fake positional parameters
+set one two three four
+
+# get the LAST argument (&quot;#&quot; stores the number of arguments, so &quot;!#&quot; will reference the LAST argument)
+echo ${!#}</pre><p class="western">
+				You can think of this mechanism as being roughly equivalent to
+				taking any parameter expansion that begins with the parameter
+				name, and substituting the <code>!PARAMETER</code> part with the
+				value of PARAMETER. 
+				</p>
+				<pre class="western">echo &quot;${!var^^}&quot;
+# ...is equivalent to
+eval 'echo &quot;${'&quot;$var&quot;'^^}&quot;'</pre><p class="western">
+				It was an unfortunate design decision to use the <code>!</code>
+				prefix for indirection, as it introduces parsing ambiguity with
+				other parameter expansions that begin with <code>!</code>.
+				Indirection is not possible in combination with any parameter
+				expansion whose modifier requires a prefix to the parameter name.
+				Specifically, indirection isn't possible on the <code>${!var@}</code>,
+				<code>${!var*}</code>, <code>${!var[@]}</code>, <code>${!var[*]}</code>,
+				and <code>${#var}</code> forms. This means the <code>!</code>
+				prefix can't be used to retrieve the indices of an array, the
+				length of a string, or number of elements in an array indirectly
+				(see <font color="#000080"><u><a href="http://wiki.bash-hackers.org/syntax/arrays#indirection">indirection</a></u></font>
+				for workarounds). Additionally, the <code>!</code>-prefixed
+				parameter expansion conflicts with ksh-like shells which have the
+				more powerful &quot;name-reference&quot; form of indirection,
+				where the exact same syntax is used to expand to the name of the
+				variable being referenced. 
+				</p>
+				<p class="western">Indirect references to <font color="#000080"><u><a href="http://wiki.bash-hackers.org/syntax/arrays">array
+				names</a></u></font> are also possible since the Bash 3 series
+				(exact version unknown), but undocumented. See <font color="#000080"><u><a href="http://wiki.bash-hackers.org/syntax/arrays#indirection">indirection</a></u></font>
+				for details. 
+				</p>
+				<p class="western">Chet has added an initial implementation of
+				the ksh <code>nameref</code> declaration command to the git devel
+				branch. (<code>declare -n</code>, <code>local -n</code>, etc,
+				will be supported). This will finally address many issues around
+				passing and returning complex datatypes to/from functions. 
+				</p>
+				<h2 class="western"><a name="case_modification"></a>Case
+				modification</h2>
+				<p class="western"><code>${PARAMETER^}</code> 
+				</p>
+				<p class="western"><code>${PARAMETER^^}</code> 
+				</p>
+				<p class="western"><code>${PARAMETER,}</code> 
+				</p>
+				<p class="western"><code>${PARAMETER,,}</code> 
+				</p>
+				<p class="western"><code>${PARAMETER~}</code> 
+				</p>
+				<p class="western"><code>${PARAMETER~~}</code> 
+				</p>
+				<p class="western">These expansion operators modify the case of
+				the letters in the expanded text. 
+				</p>
+				<p class="western">The <code>^</code> operator modifies the first
+				character to uppercase, the <code>,</code> operator to lowercase.
+				When using the double-form (<code>^^</code> and <code>,,</code>),
+				all characters are converted. 
+				</p>
+				<p class="western">The (<strong>currently undocumented</strong>)
+				operators <code>~</code> and <code>~~</code> reverse the case of
+				the given text (in <code>PARAMETER</code>).<code>~</code>
+				reverses the case of first letter of words in the variable while
+				<code>~~</code> reverses case for all.Thanks to <code>Bushmills</code>
+				and <code>geirha</code> on the Freenode IRC channel for this
+				finding. 
+				</p>
+				<p class="western"><strong>Example: Rename all </strong><code>*.txt</code><strong>
+				filenames to lowercase</strong> 
+				</p>
+				<pre class="western">for file in *.txt; do
+  mv &quot;$file&quot; &quot;${file,,}&quot;
+done</pre><p class="western">
+				<strong>Note:</strong> The feature worked word-wise in Bash 4 RC1
+				(a modification of a parameter containing <code>hello world</code>
+				ended up in <code>Hello World</code>, not <code>Hello world</code>).
+				In the final Bash 4 version it works on the whole parameter,
+				regardless of something like &quot;words&quot;. IMHO a
+				technically cleaner implementation. Thanks to Chet. 
+				</p>
+				<h3 class="western"><a name="case_modificationarrays"></a>Case
+				modification: Arrays</h3>
+				<p class="western">For <font color="#000080"><u><a href="http://wiki.bash-hackers.org/syntax/arrays">array</a></u></font>
+				expansion, the case modification applies to <strong>every
+				expanded element, no matter if you expand an individual index or
+				mass-expand</strong> the whole array using <code>@</code> or <code>*</code>
+				subscripts. Some examples: 
+				</p>
+				<p class="western">Assume: <code>array=(This is some Text)</code>
+								</p>
+				<ul>
+					<li/>
+<p class="western" style="margin-bottom: 0in"><code>echo
+					&quot;${array[@],}&quot;</code></p>
+					<ul>
+						<li/>
+<p class="western" style="margin-bottom: 0in">⇒ <code>this
+						is some text</code></p>
+					</ul>
+					<li/>
+<p class="western" style="margin-bottom: 0in"><code>echo
+					&quot;${array[@],,}&quot;</code></p>
+					<ul>
+						<li/>
+<p class="western" style="margin-bottom: 0in">⇒ <code>this
+						is some text</code></p>
+					</ul>
+					<li/>
+<p class="western" style="margin-bottom: 0in"><code>echo
+					&quot;${array[@]^}&quot;</code></p>
+					<ul>
+						<li/>
+<p class="western" style="margin-bottom: 0in">⇒ <code>This
+						Is Some Text</code></p>
+					</ul>
+					<li/>
+<p class="western" style="margin-bottom: 0in"><code>echo
+					&quot;${array[@]^^}&quot;</code></p>
+					<ul>
+						<li/>
+<p class="western" style="margin-bottom: 0in">⇒ <code>THIS
+						IS SOME TEXT</code></p>
+					</ul>
+					<li/>
+<p class="western" style="margin-bottom: 0in"><code>echo
+					&quot;${array[2]^^}&quot;</code></p>
+					<ul>
+						<li/>
+<p class="western">⇒ <code>TEXT</code></p>
+					</ul>
+				</ul>
+				<h2 class="western"><a name="variable_name_expansion"></a>Variable
+				name expansion</h2>
+				<p class="western"><code>${!PREFIX*}</code> 
+				</p>
+				<p class="western"><code>${!PREFIX@}</code> 
+				</p>
+				<p class="western">This expands to a list of all set <strong>variable
+				names</strong> beginning with the string <code>PREFIX</code>. The
+				elements of the list are separated by the first character in the
+				<code>IFS</code>-variable (&lt;space&gt; by default). 
+				</p>
+				<p class="western">This will show all defined variable names (not
+				values!) beginning with &quot;BASH&quot;: 
+				</p>
+				<pre class="western">$ echo ${!BASH*}
+BASH BASH_ARGC BASH_ARGV BASH_COMMAND BASH_LINENO BASH_SOURCE BASH_SUBSHELL BASH_VERSINFO BASH_VERSION</pre><p class="western">
+				This list will also include <font color="#000080"><u><a href="http://wiki.bash-hackers.org/syntax/arrays">array
+				names</a></u></font>. 
+				</p>
+				<h2 class="western"><a name="substring_removal"></a>Substring
+				removal</h2>
+				<p class="western"><code>${PARAMETER#PATTERN}</code> 
+				</p>
+				<p class="western"><code>${PARAMETER##PATTERN}</code> 
+				</p>
+				<p class="western"><code>${PARAMETER%PATTERN}</code> 
+				</p>
+				<p class="western"><code>${PARAMETER%%PATTERN}</code> 
+				</p>
+				<p class="western">This one can <strong>expand only a part</strong>
+				of a parameter's value, <strong>given a pattern to describe what
+				to remove</strong> from the string. The pattern is interpreted
+				just like a pattern to describe a filename to match (globbing).
+				See <font color="#000080"><u><a href="http://wiki.bash-hackers.org/syntax/pattern">Pattern
+				matching</a></u></font> for more. 
+				</p>
+				<p class="western">Example string (<em>just a quote from a big
+				man</em>): 
+				</p>
+				<pre class="western" style="margin-bottom: 0.2in">MYSTRING=&quot;Be liberal in what you accept, and conservative in what you send&quot;</pre><h3 class="western">
+				<a name="from_the_beginning"></a>From the beginning</h3>
+				<p class="western"><code>${PARAMETER#PATTERN}</code> and
+				<code>${PARAMETER##PATTERN}</code> 
+				</p>
+				<p class="western">This form is to remove the described <font color="#000080"><u><a href="http://wiki.bash-hackers.org/syntax/pattern">pattern</a></u></font>
+				trying to <strong>match it from the beginning of the string</strong>.
+				The operator &quot;<code>#</code>&quot; will try to remove the
+				shortest text matching the pattern, while &quot;<code>##</code>&quot;
+				tries to do it with the longest text matching. Look at the
+				following examples to get the idea (matched text marked striked,
+				remember it will be removed!): 
+				</p>
+				<table width="578" cellpadding="2" cellspacing="0">
+					<col width="154">
+					<col width="416">
+					<thead>
+						<tr>
+							<th width="154" style="border: none; padding: 0in">
+								<p class="western" align="center">Syntax</p>
+							</th>
+							<th width="416" style="border: none; padding: 0in">
+								<p class="western" align="center">Result</p>
+							</th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr>
+							<td width="154" style="border: none; padding: 0in">
+								<p class="western"><code>${MYSTRING#* }</code></p>
+							</td>
+							<td width="416" style="border: none; padding: 0in">
+								<p class="western">Be liberal in what you accept, and
+								conservative in what you send</p>
+							</td>
+						</tr>
+						<tr>
+							<td width="154" style="border: none; padding: 0in">
+								<p class="western"><code>${MYSTRING##* }</code></p>
+							</td>
+							<td width="416" style="border: none; padding: 0in">
+								<p class="western">Be liberal in what you accept, and
+								conservative in what you send</p>
+							</td>
+						</tr>
+					</tbody>
+				</table>
+				<h3 class="western"><a name="from_the_end"></a>From the end</h3>
+				<p class="western"><code>${PARAMETER%PATTERN}</code> and
+				<code>${PARAMETER%%PATTERN}</code> 
+				</p>
+				<p class="western">In the second form everything will be the
+				same, except that Bash now tries to match the pattern from the
+				end of the string: 
+				</p>
+				<table width="578" cellpadding="2" cellspacing="0">
+					<col width="154">
+					<col width="416">
+					<thead>
+						<tr>
+							<th width="154" style="border: none; padding: 0in">
+								<p class="western" align="center">Syntax</p>
+							</th>
+							<th width="416" style="border: none; padding: 0in">
+								<p class="western" align="center">Result</p>
+							</th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr>
+							<td width="154" style="border: none; padding: 0in">
+								<p class="western"><code>${MYSTRING% *}</code></p>
+							</td>
+							<td width="416" style="border: none; padding: 0in">
+								<p class="western">Be liberal in what you accept, and
+								conservative in what you send</p>
+							</td>
+						</tr>
+						<tr>
+							<td width="154" style="border: none; padding: 0in">
+								<p class="western"><code>${MYSTRING%% *}</code></p>
+							</td>
+							<td width="416" style="border: none; padding: 0in">
+								<p class="western">Be liberal in what you accept, and
+								conservative in what you send</p>
+							</td>
+						</tr>
+					</tbody>
+				</table>
+				<h3 class="western"><a name="common_use"></a>Common use</h3>
+				<p class="western"><strong>How the heck does that help to make my
+				life easier?</strong> 
+				</p>
+				<p class="western">Well, maybe the most common use for it is to
+				<strong>extract parts of a filename</strong>. Just look at the
+				following list with examples: 
+				</p>
+				<ul>
+					<li/>
+<p class="western" style="margin-bottom: 0in"><strong>Get
+					name without extension</strong></p>
+					<ul>
+						<li/>
+<p class="western" style="margin-bottom: 0in"><code>${FILENAME%.*}</code></p>
+						<li/>
+<p class="western" style="margin-bottom: 0in">⇒
+						<code>bash_hackers</code>.txt</p>
+					</ul>
+					<li/>
+<p class="western" style="margin-bottom: 0in"><strong>Get
+					extension</strong></p>
+					<ul>
+						<li/>
+<p class="western" style="margin-bottom: 0in"><code>${FILENAME##*.}</code></p>
+						<li/>
+<p class="western" style="margin-bottom: 0in">⇒
+						bash_hackers.<code>txt</code></p>
+					</ul>
+					<li/>
+<p class="western" style="margin-bottom: 0in"><strong>Get
+					directory name</strong></p>
+					<ul>
+						<li/>
+<p class="western" style="margin-bottom: 0in"><code>${PATHNAME%/*}</code></p>
+						<li/>
+<p class="western" style="margin-bottom: 0in">⇒
+						<code>/files/bash</code>/bash_hackers.txt</p>
+					</ul>
+					<li/>
+<p class="western" style="margin-bottom: 0in"><strong>Get
+					filename</strong></p>
+					<ul>
+						<li/>
+<p class="western" style="margin-bottom: 0in"><code>${PATHNAME##*/}</code></p>
+						<li/>
+<p class="western">⇒ /files/bash/<code>bash_hackers.txt</code></p>
+					</ul>
+				</ul>
+				<p class="western">These are the syntaxes for filenames with a
+				single extension. Depending on your needs, you might need to
+				adjust shortest/longest match. 
+				</p>
+				<h3 class="western"><a name="substring_removalarrays"></a>Substring
+				removal: Arrays</h3>
+				<p class="western">As for most parameter expansion features,
+				working on <font color="#000080"><u><a href="http://wiki.bash-hackers.org/syntax/arrays">arrays</a></u></font>
+				<strong>will handle each expanded element</strong>, for
+				individual expansion and also for mass expansion. 
+				</p>
+				<p class="western">Simple example, removing a trailing <code>is</code>
+				from all array elements (on expansion): 
+				</p>
+				<p class="western">Assume: <code>array=(This is a text)</code> 
+				</p>
+				<ul>
+					<li/>
+<p class="western" style="margin-bottom: 0in"><code>echo
+					&quot;${array[@]%is}&quot;</code></p>
+					<ul>
+						<li/>
+<p class="western" style="margin-bottom: 0in">⇒ <code>Th
+						a text</code></p>
+						<li/>
+<p class="western">(it was: <code>Th</code>is<code> </code>is<code>
+						a text</code>)</p>
+					</ul>
+				</ul>
+				<p class="western">All other variants of this expansion behave
+				the same. 
+				</p>
+				<h2 class="western"><a name="search_and_replace"></a>Search and
+				replace</h2>
+				<p class="western"><code>${PARAMETER/PATTERN/STRING}</code> 
+				</p>
+				<p class="western"><code>${PARAMETER//PATTERN/STRING}</code> 
+				</p>
+				<p class="western"><code>${PARAMETER/PATTERN}</code> 
+				</p>
+				<p class="western"><code>${PARAMETER//PATTERN}</code> 
+				</p>
+				<p class="western">This one can substitute (<em>replace</em>) a
+				substring <font color="#000080"><u><a href="http://wiki.bash-hackers.org/syntax/pattern">matched
+				by a pattern</a></u></font>, on expansion time. The matched
+				substring will be entirely removed and the given string will be
+				inserted. Again some example string for the tests: 
+				</p>
+				<pre class="western" style="margin-bottom: 0.2in">MYSTRING=&quot;Be liberal in what you accept, and conservative in what you send&quot;</pre><p class="western">
+				The two main forms only differ in <strong>the number of slashes</strong>
+				after the parameter name: <code>${PARAMETER/PATTERN/STRING}</code>
+				and <code>${PARAMETER//PATTERN/STRING}</code> 
+				</p>
+				<p class="western">The first one (<em>one slash</em>) is to only
+				substitute <strong>the first occurrence</strong> of the given
+				pattern, the second one (<em>two slashes</em>) is to substitute
+				<strong>all occurrences</strong> of the pattern. 
+				</p>
+				<p class="western">First, let's try to say &quot;happy&quot;
+				instead of &quot;conservative&quot; in our example string: 
+				</p>
+				<pre class="western" style="margin-bottom: 0.2in">${MYSTRING//conservative/happy}</pre><p class="western">
+				⇒ <code>Be liberal in what you accept, and </code>conservative<code>happy
+				in what you send</code> 
+				</p>
+				<p class="western">Since there is only one &quot;conservative&quot;
+				in that example, it really doesn't matter which of the two forms
+				we use. 
+				</p>
+				<p class="western">Let's play with the word &quot;in&quot;, I
+				don't know if it makes any sense, but let's substitute it with
+				&quot;by&quot;. 
+				</p>
+				<p class="western"><strong>First form: Substitute first
+				occurrence</strong> 
+				</p>
+				<pre class="western" style="margin-bottom: 0.2in">${MYSTRING/in/by}</pre><p class="western">
+				⇒ <code>Be liberal </code>in<code>by what you accept, and
+				conservative in what you send</code> 
+				</p>
+				<p class="western"><strong>Second form: Substitute all
+				occurrences</strong> 
+				</p>
+				<pre class="western" style="margin-bottom: 0.2in">${MYSTRING//in/by}</pre><p class="western">
+				⇒ <code>Be liberal </code>in<code>by what you accept, and
+				conservative </code>in<code>by what you send</code> 
+				</p>
+				<p class="western"><strong>Anchoring</strong> Additionally you
+				can &quot;anchor&quot; an expression: A <code>#</code> (hashmark)
+				will indicate that your expression is matched against the
+				beginning portion of the string, a <code>%</code> (percent-sign)
+				will do it for the end portion. 
+				</p>
+				<pre class="western">MYSTRING=xxxxxxxxxx
+echo ${MYSTRING/#x/y}  # RESULT: yxxxxxxxxx
+echo ${MYSTRING/%x/y}  # RESULT: xxxxxxxxxy</pre><p class="western">
+				If the replacement part is completely omitted, the matches are
+				replaced by the nullstring, i.e., they are removed. This is
+				equivalent to specifying an empty replacement: 
+				</p>
+				<pre class="western">echo ${MYSTRING//conservative/}
+# is equivalent to
+echo ${MYSTRING//conservative}</pre><h3 class="western">
+				<a name="search_and_replacearrays"></a>Search and replace: Arrays</h3>
+				<p class="western">This parameter expansion type applied to
+				<font color="#000080"><u><a href="http://wiki.bash-hackers.org/syntax/arrays">arrays</a></u></font>
+				<strong>applies to all expanded elements</strong>, no matter if
+				an individual element is expanded, or all elements using the mass
+				expansion syntaxes. 
+				</p>
+				<p class="western">A simple example, changing the (lowercase)
+				letter <code>t</code> to <code>d</code>: 
+				</p>
+				<p class="western">Assume: <code>array=(This is a text)</code> 
+				</p>
+				<ul>
+					<li/>
+<p class="western" style="margin-bottom: 0in"><code>echo
+					&quot;${array[@]/t/d}&quot;</code></p>
+					<ul>
+						<li/>
+<p class="western" style="margin-bottom: 0in">⇒ <code>This
+						is a dext</code></p>
+					</ul>
+					<li/>
+<p class="western" style="margin-bottom: 0in"><code>echo
+					&quot;${array[@]//t/d}&quot;</code></p>
+					<ul>
+						<li/>
+<p class="western">⇒ <code>This is a dexd</code></p>
+					</ul>
+				</ul>
+				<h2 class="western"><a name="string_length"></a>String length</h2>
+				<p class="western"><code>${#PARAMETER}</code> 
+				</p>
+				<p class="western">When you use this form, the length of the
+				parameter's value is expanded. Again, a quote from a big man, to
+				have a test text: 
+				</p>
+				<pre class="western" style="margin-bottom: 0.2in">MYSTRING=&quot;Be liberal in what you accept, and conservative in what you send&quot;</pre><p class="western">
+				Using echo <code>${#MYSTRING}</code>… 
+				</p>
+				<p class="western">⇒ <code>64</code> 
+				</p>
+				<p class="western">The length is reported in characters, not in
+				bytes. Depending on your environment this may not always be the
+				same (multibyte-characters, like in UTF8 encoding). 
+				</p>
+				<p class="western">There's not much to say about it, mh? 
+				</p>
+				<h3 class="western"><a name="string_lengtharrays"></a>(String)
+				length: Arrays</h3>
+				<p class="western">For <font color="#000080"><u><a href="http://wiki.bash-hackers.org/syntax/arrays">arrays</a></u></font>,
+				this expansion type has two meanings: 
+				</p>
+				<ul>
+					<li/>
+<p class="western" style="margin-bottom: 0in">For
+					<strong>individual</strong> elements, it reports the string
+					length of the element (as for every &quot;normal&quot;
+					parameter)</p>
+					<li/>
+<p class="western">For the <strong>mass subscripts</strong>
+					<code>@</code> and <code>*</code> it reports the number of set
+					elements in the array</p>
+				</ul>
+				<p class="western">Example: 
+				</p>
+				<p class="western">Assume: <code>array=(This is a text)</code> 
+				</p>
+				<ul>
+					<li/>
+<p class="western" style="margin-bottom: 0in"><code>echo
+					${#array[1]}</code></p>
+					<ul>
+						<li/>
+<p class="western" style="margin-bottom: 0in">⇒ 2 (the
+						word &quot;is&quot; has a length of 2)</p>
+					</ul>
+					<li/>
+<p class="western" style="margin-bottom: 0in"><code>echo
+					${#array[@]}</code></p>
+					<ul>
+						<li/>
+<p class="western">⇒ 4 (the array contains 4 elements)</p>
+					</ul>
+				</ul>
+				<p class="western"><strong>Attention:</strong> The number of used
+				elements does not need to conform to the highest index. Sparse
+				arrays are possible in Bash, that means you can have 4 elements,
+				but with indexes 1, 7, 20, 31. <strong>You can't loop through
+				such an array with a counter loop based on the number of
+				elements!</strong> 
+				</p>
+				<h2 class="western"><a name="substring_expansion"></a>Substring
+				expansion</h2>
+				<p class="western"><code>${PARAMETER:OFFSET}</code> 
+				</p>
+				<p class="western"><code>${PARAMETER:OFFSET:LENGTH}</code> 
+				</p>
+				<p class="western">This one can expand only a <strong>part</strong>
+				of a parameter's value, given a <strong>position to start</strong>
+				and maybe a <strong>length</strong>. If <code>LENGTH</code> is
+				omitted, the parameter will be expanded up to the end of the
+				string. If <code>LENGTH</code> is negative, it's taken as a
+				second offset into the string, counting from the end of the
+				string. 
+				</p>
+				<p class="western"><code>OFFSET</code> and <code>LENGTH</code>
+				can be <strong>any</strong> <font color="#000080"><u><a href="http://wiki.bash-hackers.org/syntax/arith_expr">arithmetic
+				expression</a></u></font>. <strong>Take care:</strong> The <code>OFFSET</code>
+				starts at 0, not at 1! 
+				</p>
+				<p class="western">Example string (a quote from a big man):
+				<code>MYSTRING=&quot;Be liberal in what you accept, and
+				conservative in what you send&quot;</code> 
+				</p>
+				<h3 class="western"><a name="using_only_offset"></a>Using only
+				Offset</h3>
+				<p class="western">In the first form, the expansion is used
+				without a length value, note that the offset 0 is the first
+				character: 
+				</p>
+				<pre class="western" style="margin-bottom: 0.2in">echo ${MYSTRING:34}</pre><p class="western">
+				⇒ Be liberal in what you accept, and <code>conservative in what
+				you send</code> 
+				</p>
+				<h3 class="western"><a name="using_offset_and_length"></a>Using
+				Offset and Length</h3>
+				<p class="western">In the second form we also give a length
+				value: 
+				</p>
+				<pre class="western" style="margin-bottom: 0.2in">echo ${MYSTRING:34:13}</pre><p class="western">
+				⇒ Be liberal in what you accept, and <code>conservative</code>
+				in what you send 
+				</p>
+				<h3 class="western"><a name="negative_offset_value"></a>Negative
+				Offset Value</h3>
+				<p class="western">If the given offset is negative, it's counted
+				from the end of the string, i.e. an offset of -1 is the last
+				character. In that case, the length still counts forward, of
+				course. One special thing is to do when using a negative offset:
+				You need to separate the (negative) number from the colon: 
+				</p>
+				<pre class="western">${MYSTRING: -10:5}
+${MYSTRING:(-10):5}</pre><p class="western">
+				Why? Because it's interpreted as the parameter expansion syntax
+				to <font color="#000080"><u><a href="http://wiki.bash-hackers.org/syntax/pe#use_a_default_value">use
+				a default value</a></u></font>. 
+				</p>
+				<h3 class="western"><a name="negative_length_value"></a>Negative
+				Length Value</h3>
+				<p class="western">If the <code>LENGTH</code> value is negative,
+				it's used as offset from the end of the string. The expansion
+				happens from the first to the second offset then: 
+				</p>
+				<pre class="western" style="margin-bottom: 0.2in">echo &quot;${MYSTRING:11:-17}&quot;</pre><p class="western">
+				⇒ Be liberal <code>in what you accept, and conservative</code>
+				in what you send 
+				</p>
+				<p class="western">This works since Bash 4.2-alpha, see also <font color="#000080"><u><a href="http://wiki.bash-hackers.org/scripting/bashchanges">Bash
+				changes</a></u></font>. 
+				</p>
+				<h3 class="western"><a name="substringelement_expansionarrays"></a>
+				Substring/Element expansion: Arrays</h3>
+				<p class="western">For <font color="#000080"><u><a href="http://wiki.bash-hackers.org/syntax/arrays">arrays</a></u></font>,
+				this expansion type has again 2 meanings: 
+				</p>
+				<ul>
+					<li/>
+<p class="western" style="margin-bottom: 0in">For
+					<strong>individual</strong> elements, it expands to the
+					specified substring (as for every “normal” parameter)</p>
+					<li/>
+<p class="western">For the <strong>mass subscripts</strong>
+					<code>@</code> and <code>*</code> it mass-expands individual
+					array elements denoted by the 2 numbers given (<em>starting
+					element</em>, <em>number of elements</em>)</p>
+				</ul>
+				<p class="western">Example: 
+				</p>
+				<p class="western">Assume: <code>array=(This is a text)</code> 
+				</p>
+				<ul>
+					<li/>
+<p class="western" style="margin-bottom: 0in"><code>echo
+					${array[0]:2:2}</code></p>
+					<ul>
+						<li/>
+<p class="western" style="margin-bottom: 0in">⇒ <code>is</code>
+						(the &quot;is&quot; in &quot;This&quot;, array element 0)</p>
+					</ul>
+					<li/>
+<p class="western" style="margin-bottom: 0in"><code>echo
+					${array[@]:1:2}</code></p>
+					<ul>
+						<li/>
+<p class="western">⇒ <code>is a</code> (from element 1
+						inclusive, 2 elements are expanded, i.e. element 1 and 2)</p>
+					</ul>
+				</ul>
+				<h2 class="western"><a name="use_a_default_value"></a>Use a
+				default value</h2>
+				<p class="western"><code>${PARAMETER:-WORD}</code> 
+				</p>
+				<p class="western"><code>${PARAMETER-WORD}</code> 
+				</p>
+				<p class="western">If the parameter <code>PARAMETER</code> is
+				unset (never was defined) or null (empty), this one expands to
+				<code>WORD</code>, otherwise it expands to the value of
+				<code>PARAMETER</code>, as if it just was <code>${PARAMETER}</code>.
+				If you omit the <code>:</code> (colon), like shown in the second
+				form, the default value is only used when the parameter was
+				<strong>unset</strong>, not when it was empty. 
+				</p>
+				<pre class="western">echo &quot;Your home directory is: ${HOME:-/files/$USER}.&quot;
+echo &quot;${HOME:-/files/$USER} will be used to store your personal data.&quot;</pre><p class="western">
+				If <code>HOME</code> is unset or empty, everytime you want to
+				print something useful, you need to put that parameter syntax in.
+								</p>
+				<pre class="western">#!/bin/bash
+
+read -p &quot;Enter your gender (just press ENTER to not tell us): &quot; GENDER
+echo &quot;Your gender is ${GENDER:-a secret}.&quot;</pre><p class="western">
+				It will print &quot;Your gender is a secret.&quot; when you don't
+				enter the gender. Note that the default value is <strong>used on
+				expansion time</strong>, it is <strong>not assigned to the
+				parameter</strong>. 
+				</p>
+				<h3 class="western"><a name="use_a_default_valuearrays"></a>Use a
+				default value: Arrays</h3>
+				<p class="western">For <font color="#000080"><u><a href="http://wiki.bash-hackers.org/syntax/arrays">arrays</a></u></font>,
+				the behaviour is very similar. Again, you have to make a
+				difference between expanding an individual element by a given
+				index and mass-expanding the array using the <code>@</code> and <code>*</code>
+				subscripts. 
+				</p>
+				<ul>
+					<li/>
+<p class="western" style="margin-bottom: 0in">For
+					individual elements, it's the very same: If the expanded element
+					is <code>NULL</code> or unset (watch the <code>:-</code> and <code>-</code>
+					variants), the default text is expanded</p>
+					<li/>
+<p class="western" style="margin-bottom: 0in">For
+					mass-expansion syntax, the default text is expanded if the array</p>
+					<ul>
+						<li/>
+<p class="western" style="margin-bottom: 0in">contains no
+						element or is unset (the <code>:-</code> and <code>-</code>
+						variants mean the <strong>same</strong> here)</p>
+						<li/>
+<p class="western">contains only elements that are the
+						nullstring (the <code>:-</code> variant)</p>
+					</ul>
+				</ul>
+				<p class="western">In other words: The basic meaning of this
+				expansion type is applied as consistent as possible to arrays. 
+				</p>
+				<p class="western">Example code (please try the example cases
+				yourself): 
+				</p>
+				<pre class="western">####
+# Example cases for unset/empty arrays and nullstring elements
+####
+
+
+### CASE 1: Unset array (no array)
+
+# make sure we have no array at all
+unset array
+
+echo ${array[@]:-This array is NULL or unset}
+echo ${array[@]-This array is NULL or unset}
+
+### CASE 2: Set but empty array (no elements)
+
+# declare an empty array
+array=()
+
+echo ${array[@]:-This array is NULL or unset}
+echo ${array[@]-This array is NULL or unset}
+
+
+### CASE 3: An array with only one element, a nullstring
+array=(&quot;&quot;)
+
+echo ${array[@]:-This array is NULL or unset}
+echo ${array[@]-This array is NULL or unset}
+
+
+### CASE 4: An array with only two elements, a nullstring and a normal word
+array=(&quot;&quot; word)
+
+echo ${array[@]:-This array is NULL or unset}
+echo ${array[@]-This array is NULL or unset}</pre><h2 class="western">
+				<a name="assign_a_default_value"></a>Assign a default value</h2>
+				<p class="western"><code>${PARAMETER:=WORD}</code> 
+				</p>
+				<p class="western"><code>${PARAMETER=WORD}</code> 
+				</p>
+				<p class="western">This one works like the <font color="#000080"><u><a href="http://wiki.bash-hackers.org/syntax/pe#use_a_default_value">using
+				default values</a></u></font>, but the default text you give is
+				not only expanded, but also <strong>assigned</strong> to the
+				parameter, if it was unset or null. Equivalent to using a default
+				value, when you omit the <code>:</code> (colon), as shown in the
+				second form, the default value will only be assigned when the
+				parameter was <strong>unset</strong>. 
+				</p>
+				<pre class="western">echo &quot;Your home directory is: ${HOME:=/files/$USER}.&quot;
+echo &quot;$HOME will be used to store your personal data.&quot;</pre><p class="western">
+				After the first expansion here (<code>${HOME:=/files/$USER}</code>),
+				<code>HOME</code> is set and usable. 
+				</p>
+				<p class="western">Let's change our code example from above: 
+				</p>
+				<pre class="western">#!/bin/bash
+
+read -p &quot;Enter your gender (just press ENTER to not tell us): &quot; GENDER
+echo &quot;Your gender is ${GENDER:=a secret}.&quot;
+echo &quot;Ah, in case you forgot, your gender is really: $GENDER&quot;</pre><h3 class="western">
+				<a name="assign_a_default_valuearrays"></a>Assign a default
+				value: Arrays</h3>
+				<p class="western">For <font color="#000080"><u><a href="http://wiki.bash-hackers.org/syntax/arrays">arrays</a></u></font>
+				this expansion type is limited. For an individual index, it
+				behaves like for a &quot;normal&quot; parameter, the default
+				value is assigned to this one element. The mass-expansion
+				subscripts <code>@</code> and <code>*</code> <strong>can not be
+				used here</strong> because it's not possible to assign to them! 
+				</p>
+				<h2 class="western"><a name="use_an_alternate_value"></a>Use an
+				alternate value</h2>
+				<p class="western"><code>${PARAMETER:+WORD}</code> 
+				</p>
+				<p class="western"><code>${PARAMETER+WORD}</code> 
+				</p>
+				<p class="western">This form expands to nothing if the parameter
+				is unset or empty. If it is set, it does not expand to the
+				parameter's value, <strong>but to some text you can specify</strong>:
+								</p>
+				<pre class="western" style="margin-bottom: 0.2in">echo &quot;The Java application was installed and can be started.${JAVAPATH:+ NOTE: JAVAPATH seems to be set}&quot;</pre><p class="western">
+				The above code will simply add a warning if <code>JAVAPATH</code>
+				is set (because it could influence the startup behaviour of that
+				imaginary application). 
+				</p>
+				<p class="western">Some more unrealistic example… Ask for some
+				flags (for whatever reason), and then, if they were set, print a
+				warning and also print the flags: 
+				</p>
+				<pre class="western">#!/bin/bash
+
+read -p &quot;If you want to use special flags, enter them now: &quot; SPECIAL_FLAGS
+echo &quot;The installation of the application is finished${SPECIAL_FLAGS:+ (NOTE: there are special flags set: $SPECIAL_FLAGS)}.&quot;</pre><p class="western">
+				If you omit the colon, as shown in the second form
+				(<code>${PARAMETER+WORD}</code>), the alternate value will be
+				used if the parameter is set (and it can be empty)! You can use
+				it, for example, to complain if variables you need (and that can
+				be empty) are undefined: 
+				</p>
+				<pre class="western"># test that with the three stages:
+
+# unset foo
+# foo=&quot;&quot;
+# foo=&quot;something&quot;
+
+if [[ ${foo+isset} = isset ]]; then
+  echo &quot;foo is set...&quot;
+else
+  echo &quot;foo is not set...&quot;
+fi</pre><h3 class="western">
+				<a name="use_an_alternate_valuearrays"></a>Use an alternate
+				value: Arrays</h3>
+				<p class="western">Similar to the cases for <font color="#000080"><u><a href="http://wiki.bash-hackers.org/syntax/arrays">arrays</a></u></font>
+				to expand to a default value, this expansion behaves like for a
+				&quot;normal&quot; parameter when using individual array elements
+				by index, but reacts differently when using the mass-expansion
+				subscripts <code>@</code> and <code>*</code>: 
+				</p>
+				<ul>
+					<li/>
+<p class="western" style="margin-bottom: 0in">For
+					individual elements, it's the very same: If the expanded element
+					is <strong>not</strong> NULL or unset (watch the :+ and +
+					variants), the alternate text is expanded</p>
+					<li/>
+<p class="western" style="margin-bottom: 0in">For
+					mass-expansion syntax, the alternate text is expanded if the
+					array</p>
+					<ul>
+						<li/>
+<p class="western" style="margin-bottom: 0in">contains
+						elements where min. one element is <strong>not</strong> a
+						nullstring (the :+ and + variants mean the same here)</p>
+						<li/>
+<p class="western">contains <strong>only</strong>
+						elements that are <strong>not</strong> the nullstring (the :+
+						variant)</p>
+					</ul>
+				</ul>
+				<p class="western">For some cases to play with, please see the
+				code examples in the <font color="#000080"><u><a href="http://wiki.bash-hackers.org/syntax/pe#use_a_default_valuearrays">description
+				for using a default value</a></u></font>. 
+				</p>
+				<h2 class="western"><a name="display_error_if_null_or_unset"></a>Display
+				error if null or unset</h2>
+				<p class="western"><code>${PARAMETER:?WORD}</code> 
+				</p>
+				<p class="western"><code>${PARAMETER?WORD}</code> 
+				</p>
+				<p class="western">If the parameter <code>PARAMETER</code> is
+				set/non-null, this form will simply expand it. Otherwise, the
+				expansion of <code>WORD</code> will be used as appendix for an
+				error message: 
+				</p>
+				<pre class="western">$ echo &quot;The unset parameter is: ${p_unset?not set}&quot;
+bash: p_unset: not set</pre><p class="western">
+				After printing this message, 
+				</p>
+				<ul>
+					<li/>
+<p class="western" style="margin-bottom: 0in">an
+					interactive shell has <code>$?</code> to a non-zero value</p>
+					<li/>
+<p class="western">a non-interactive shell exits with a
+					non-zero exit code</p>
+				</ul>
+				<p class="western">The meaning of the colon (<code>:</code>) is
+				the same as for the other parameter expansion syntaxes: It
+				specifies if 
+				</p>
+				<ul>
+					<li/>
+<p class="western" style="margin-bottom: 0in">only unset
+					or</p>
+					<li/>
+<p class="western">unset and empty parameters</p>
+				</ul>
+				<p class="western">are taken into account. 
+				</p>
+				<p class="western"><br/>
+<br/>
+
+				</p>
+			</td>
+		</tr>
+	</table>
+</center>
+<p class="western"><br/>
+<br/>
+
+</p>
+</body>
+</html>

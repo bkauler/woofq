@@ -1,0 +1,251 @@
+#!/bin/sh
+#use gummiboot to create 'efiboot.img', which will go inside the iso.
+#based on code in woof/quirky/7build-live-cd
+#181204 first release.
+#181205 reserve disk-id hex random number 0x12345678
+#190706 assign label "EASYOSOPTICAL" to iso. simplify BOOT_SPECS in initrd.
+#190710 use pre-existing efiboot.img if exists, instead of requiring gummiboot.
+#190712 support international builds.
+#190716 revert 190710
+#190716 need mods for isolinux.cfg, need build-$DEFAULTLANG1. fr translation.
+#190718 de translation.
+
+export LANG=C
+err_exit() {
+ echo
+ echo "$1"
+ exit 1
+}
+
+[ ! -f ../DISTRO_SPECS ] && exit 1 #190706
+. ../DISTRO_SPECS #190706
+
+#190712 choose language...
+LANGSavail="$(find ../sandbox3 -mindepth 1 -maxdepth 1 -type d -name 'export-sfs-*' | rev | cut -f 1 -d '-' | rev | tr '\n' ' ')"
+echo "Available: ${LANGSavail}"
+echo -n "Type the two-letter code for language to build: "
+read DEFAULTLANG1
+if [ ! -d ../sandbox3/export-sfs-${DEFAULTLANG1} ];then
+ echo "Error: folder ../sandbox3/export-sfs-${DEFAULTLANG1} does not exist, aborting."
+ exit 1
+fi
+
+#190716
+[ -d build-${DEFAULTLANG1} ] && rm -rf build-${DEFAULTLANG1}
+cp -a build build-${DEFAULTLANG1}
+
+if ! which openssl ;then exit 1 ; fi
+RANDHEX8="$(openssl rand -hex 4)" #want this for disk identifier.
+[ "$RANDHEX8" == "12345678" ] && RANDHEX8="$(openssl rand -hex 4)" #181205 reserved, try again.
+echo "Random hex number: ${RANDHEX8}"
+
+#get some files...
+#isolinux.bin ...
+ISOLINUXPATH=''
+[ -f /usr/lib/syslinux/isolinux.bin ] && ISOLINUXPATH='/usr/lib/syslinux'
+[ -f /usr/share/syslinux/isolinux.bin ] && ISOLINUXPATH='/usr/share/syslinux' #my pet.
+[ -f /usr/lib/ISOLINUX/isolinux.bin ] && ISOLINUXPATH='/usr/lib/ISOLINUX' #debian/ubuntu.
+[ ! "$ISOLINUXPATH" ] && err_exit 'isolinux.bin missing. Aborting.'
+cp -f ${ISOLINUXPATH}/isolinux.bin ./
+cp -f ${ISOLINUXPATH}/isolinux.bin ./build-${DEFAULTLANG1}/
+#isohdpfx.bin ...
+ISOLINUXPATH=''
+[ -f /usr/lib/syslinux/isohdpfx.bin ] && ISOLINUXPATH='/usr/lib/syslinux'
+[ -f /usr/share/syslinux/isohdpfx.bin ] && ISOLINUXPATH='/usr/share/syslinux' #my pet.
+[ -f /usr/lib/ISOLINUX/isohdpfx.bin ] && ISOLINUXPATH='/usr/lib/ISOLINUX' #debian/ubuntu.
+[ ! "$ISOLINUXPATH" ] && err_exit 'isohdpfx.bin missing. Aborting.'
+cp -f ${ISOLINUXPATH}/isohdpfx.bin ./
+SYSLINUXC32PATH=''
+[ -f /usr/lib/syslinux/modules/bios/ldlinux.c32 ] && SYSLINUXC32PATH='/usr/lib/syslinux/modules/bios' #in syslinux-common, debian/ubuntu
+[ ! "$SYSLINUXC32PATH" ] && [ -f /usr/share/syslinux/ldlinux.c32 ] && SYSLINUXC32PATH='/usr/share/syslinux'
+cp -f ${SYSLINUXC32PATH}/ldlinux.c32 build-${DEFAULTLANG1}/
+[ ! -f build-${DEFAULTLANG1}/ldlinux.c32 ] && err_exit 'ldlinux.c32 not found. Aborting.'
+#gptmbr.bin ...
+GPTMBRPATH=''
+[ -f /usr/lib/syslinux/gptmbr.bin ] && GPTMBRPATH='/usr/lib/syslinux'
+[ -f /usr/share/syslinux/gptmbr.bin ] && GPTMBRPATH='/usr/share/syslinux'
+[ -f /usr/lib/SYSLINUX/gptmbr.bin ] && GPTMBRPATH='/usr/lib/SYSLINUX'
+[ ! "$GPTMBRPATH" ] && err_exit 'gptmbr.bin not found. Aborting'
+cp -f ${GPTMBRPATH}/gptmbr.bin ./
+#ldlinux.e64 ...
+ EFI64PATH=''
+ [ -f /usr/share/syslinux/efi64/ldlinux.e64 ] && EFI64PATH='/usr/share/syslinux/efi64' #my pet
+ [ -f /usr/lib/syslinux/modules/efi64/ldlinux.e64 ] && EFI64PATH='/usr/lib/syslinux/modules/efi64' #debian/ubuntu
+ [ ! "$EFI64PATH" ] && err_exit 'efi64/ldlinux.e64 missing. Aborting.'
+ cp -f ${EFI64PATH}/ldlinux.e64 ./
+#syslinux.efi ...
+ EFI64PATH=''
+ [ -f /usr/share/syslinux/efi64/syslinux.efi ] && EFI64PATH='/usr/share/syslinux/efi64' #my pet
+ [ -f /usr/lib/SYSLINUX.EFI/efi64/syslinux.efi ] && EFI64PATH='/usr/lib/SYSLINUX.EFI/efi64' #debian/ubuntu. 170710 fix path.
+ [ ! "$EFI64PATH" ] && err_exit 'efi64/syslinux.efi missing. Aborting.'
+ cp -f ${EFI64PATH}/syslinux.efi ./
+
+#vmlinuz ...
+[ ! -f ../sandbox3/vmlinuz ] && exit 1
+cp -f ../sandbox3/vmlinuz ./build-${DEFAULTLANG1}/
+#easy.sfs ... 190712...
+EASYSFS="$(find ../sandbox3/export-sfs-${DEFAULTLANG1} -type f -name 'easy_*.sfs' | head -n 1)"
+[ ! "$EASYSFS" ] && exit 1
+cp -f ${EASYSFS} ./build-${DEFAULTLANG1}/easy.sfs
+
+#initrd... 190712...
+[ ! -f ../sandbox3/initrd-${DEFAULTLANG1} ] && exit 1
+#open it up...
+cp -f ../sandbox3/initrd-${DEFAULTLANG1} ./initrd
+[ -d tree1 ] && rm -rf tree1
+mkdir tree1
+cd tree1
+cat ../initrd | cpio -i -d -m
+cd ..
+
+#190706 see init script in initrd...
+#normally have BOOT_UUID and WKG_UUID, however, init handles this as a special case...
+echo "BOOT_LABEL='EASYOSOPTICAL'
+BOOT_DIR=''
+WKG_LABEL='EASYOSZRAM'
+WKG_DIR=''" > tree1/BOOT_SPECS
+
+. ./tree1/BOOT_SPECS #load the variables for use further down.
+sync
+#close it up...
+rm -f initrd
+cd tree1
+find . | cpio -o -H newc > ../initrd
+sync
+cd ..
+mv -f initrd ./build-${DEFAULTLANG1}/initrd
+
+#190716 translate...
+case "$DEFAULTLANG1" in
+ fr)
+  B1="Attendez 5 secondes pour un demarrage normal!" #Attendez 5 secondes pour un démarrage normal!
+  B2="Pour obtenir de l'aide, appuyez sur la touche <F2>." #Pour obtenir de l'aide, appuyez sur la touche <F2>.
+  H1="Parametres de demarrage du noyau" #Paramètres de démarrage du noyau
+  H2="Pour les options de demarrage, tapez" #Pour les options de démarrage, tapez
+  H3="puis un espace, puis chaque option. Quelques options:" #puis un espace, puis chaque option. Quelques options:
+  H4="La valeur par defaut pour les PC>2001 peut donner des problemes de demarrage/arret." #La valeur par défaut pour les PC>2001 peut donner des problèmes de démarrage/arrêt.
+  H5="Ligne de commande uniquement, ne demarrez pas X (bureau graphique)." #Ligne de commande uniquement, ne démarrez pas X (bureau graphique).
+  H6="Exemple:" #Exemple:
+  H7="Ignorer ACPI, ne pas demarrer X." #Ignorer ACPI, ne pas démarrer X.
+  H8="ECHEC DE BUREAU: Ecran noir / se bloque, appuyez sur reset ou maintenez le bouton d'alimentation enfonce pendant 4 secondes." #ÉCHEC DE BUREAU: Écran noir / se bloque, appuyez sur reset ou maintenez le bouton d'alimentation enfoncé pendant 4 secondes.
+ ;;
+ de) #190718
+  B1="Warten Sie einfach 5 Sekunden auf den normalen Start!"
+  B2="Um Hilfe zu erhalten, drucken Sie die Taste <F2>." #Um Hilfe zu erhalten, drücken Sie die Taste <F2>.
+  H1="Kernel-Boot-Parameter"
+  H2="Geben Sie fur Startoptionen Folgendes ein" #Geben Sie für Startoptionen Folgendes ein
+  H3="dann ein Leerzeichen, dann jede Option. Einige Optionen:"
+  H4="Bei der Standardeinstellung fur PCs >2001 konnen Boot- / Shutdown-Probleme auftreten." #Bei der Standardeinstellung für PCs> 2001 können Boot- / Shutdown-Probleme auftreten.
+  H5="Nur Befehlszeile, X nicht starten (grafischer Desktop)."
+  H6="Beispiel:"
+  H7="ACPI ignorieren, X nicht starten."
+  H8="DESKTOP FAIL: Schwarzer Bildschirm / hangt, Reset drucken oder Power-Taste 4 Sekunden gedruckt halten." #DESKTOP FAIL: Schwarzer Bildschirm / hängt, Reset drücken oder Power-Taste 4 Sekunden gedrückt halten.
+ ;;
+ *)
+  B1=''
+ ;;
+esac
+if [ "$B1" ];then
+ sed -i -e "s%Just wait 5 seconds for normal startup!%${B1}%" build-${DEFAULTLANG1}/boot.msg
+ sed -i -e "s%For help press the <F2> key.%${B2}%" build-${DEFAULTLANG1}/boot.msg
+ sed -i -e "s%Kernel boot parameters%${H1}%" build-${DEFAULTLANG1}/help.msg
+ sed -i -e "s%For boot options, type%${H2}%" build-${DEFAULTLANG1}/help.msg
+ sed -i -e "s%then a space, then each option. Some options:%${H3}%" build-${DEFAULTLANG1}/help.msg
+ sed -i -e "s%Default on for PCs >2001, may give boot/shutdown probs.%${H4}%" build-${DEFAULTLANG1}/help.msg
+ sed -i -e "s%Commandline only, do not start X (graphical desktop).%${H5}%" build-${DEFAULTLANG1}/help.msg
+ sed -i -e "s%Example:%${H6}%" build-${DEFAULTLANG1}/help.msg
+ sed -i -e "s%Ignore ACPI, do not start X.%${H7}%" build-${DEFAULTLANG1}/help.msg
+ sed -i -e "s%DESKTOP FAIL: Black-screen/hangs, press reset or hold power-button down 4 secs.%${H8}%" build-${DEFAULTLANG1}/help.msg
+fi
+
+#20201127 creates efiboot.img ...
+./create-efi-img ${DEFAULTLANG1}
+[ $? -ne 0 ] && exit 1
+cp -f efiboot.img build-${DEFAULTLANG1}/
+
+#190716 old bios boot, turn on framebuffer...
+sed -i -e 's% rw$% rw vga=792%' ./build-${DEFAULTLANG1}/isolinux.cfg
+
+sync
+echo -n 'Press ENTER to continue: '
+read godoit
+
+###################################
+#now create the iso...
+echo
+echo "Now building live-CD ISO file..."
+ISONAME="easy-${DISTRO_VERSION}-${DEFAULTLANG1}.iso" #190706
+sync
+#190706 assign label "EASYOSOPTICAL" to iso...
+ xorriso -as mkisofs -volid "EASYOSOPTICAL" -o ${ISONAME} -isohybrid-mbr isohdpfx.bin \
+   -c boot.cat -b isolinux.bin -no-emul-boot -boot-load-size 4 -boot-info-table \
+   -eltorito-alt-boot -e efiboot.img -no-emul-boot -isohybrid-gpt-basdat ./build-${DEFAULTLANG1}/
+sync
+echo
+echo "${ISONAME} has been created."
+
+##################################
+#change the disk identifier...
+echo
+echo "Changing the disk identifier in iso..."
+echo -e "x\ni\n0x${RANDHEX8}\nr\nw" | fdisk ${ISONAME}
+sync
+md5sum ${ISONAME} > ${ISONAME}.md5.txt
+
+####################################
+#burn to cd...
+CDRECORD='xorrecord'
+MKISOFS='xorrisofs' #growisofs reads this variable.
+echo
+echo "Would you like to burn it to a CD or DVD? "
+echo -n "ENTER only for yes, or any printable char then ENTER not to: "
+read writeitnow
+if [ "$writeitnow" = "" ];then
+ CDR=""
+ [ -f /etc/cdburnerdevice ] && CDR="/dev/`cat /etc/cdburnerdevice`"
+ [ "$CDR" = "" ] && CDR='/dev/sr0'
+ CDDESCR="`probedisk | grep '|optical|' | grep "$CDR" | cut -f 3 -d '|'`"
+ BURNMULTI="-dao"
+ echo "Please insert CD or DVD into ${CDR}
+(which is described as: ${CDDESCR})
+-- also be sure that it is unmounted.
+NOTE1: Blank CD-R required, CD-RW not supported.
+NOTE2: DVD-RW with prior content will be automatically blanked."
+ echo -n "Then hit ENTER key: "
+ read yayburn
+ 
+ CDTYPE='cd'
+ dvd+rw-mediainfo ${CDR} > /tmp/7buildlivecd-probe-log 2>&1
+ [ $? -eq 0 ] && CDTYPE='dvd'
+ if [ "$CDTYPE" == "dvd" ];then
+  if [ "$(grep ' Disc status: *blank' /tmp/7buildlivecd-probe-log)" == "" ];then
+   echo "Fast erasing DVD-RW on ${CDR}..."
+   dvd+rw-format -force ${CDR}
+   sync
+  fi
+  echo "Burning ${ISONAME} to DVD..."
+  growisofs -speed=1 -Z ${CDR}="${ISONAME}"
+ else
+  echo "Burning ${ISONAME} to CD-R..."
+  $CDRECORD $BURNMULTI -data -eject -v speed=4 padsize=300k dev=$CDR ${ISONAME}
+ fi
+ sync
+ echo
+ echo -n 'Close tray, then press ENTER to verify burn: ' #151205
+ read verifyburn
+ if [ "$verifyburn" == "" ];then
+  echo "Verifying the burn..."
+  sleep 15 #190716
+  SUM2="$(dd if=${CDR} | head -c `stat --format=%s ${ISONAME}` | md5sum | cut -f 1 -d ' ')"
+  SUM1="$(md5sum ${ISONAME} | cut -f 1 -d ' ')"
+  if [ "$SUM1" == "$SUM2" ];then
+   echo ' ...verified OK'
+  else
+   echo ' ...failed verify, BAD BURN'
+  fi
+ fi
+ 
+ eject $CDR
+ echo "...done"
+fi
+###end###

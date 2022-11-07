@@ -1,0 +1,95 @@
+#!/bin/sh
+# A script to change the XkbOption "grp_led" variable in xorg.conf
+# Part of the Puppy XkbConfigurator
+#130117 rodin.s: adding gettext
+#170105 BK: support xorg.conf.d and evdev.
+
+export TEXTDOMAIN=xkbconfig #xkb
+export TEXTDOMAINDIR=/usr/share/locale
+export OUTPUT_CHARSET=UTF-8
+. gettext.sh
+
+#-----------------------------#
+
+##--------variables---------->>
+#must have "XkbLayout"...
+INFILE=''
+INTEST="$(grep '"XkbLayout"' /etc/X11/xorg.conf | grep -v '#.*"XkbLayout"')"
+[ "$INTEST" ] && INFILE='/etc/X11/xorg.conf'
+if [ "$INFILE" == "" ];then
+ if [ -f /etc/X11/xorg.conf.d/10-evdev-puppy.conf ];then
+  INTEST="$(grep '"XkbLayout"' /etc/X11/xorg.conf.d/10-evdev-puppy.conf | grep -v '#.*"XkbLayout"')"
+  [ "$INTEST" ] && INFILE='/etc/X11/xorg.conf.d/10-evdev-puppy.conf'
+ fi
+fi
+if [ "$INFILE" == "" ];then
+ Xdialog --title "$(gettext 'ERROR')" --msgbox "$(gettext 'Your Xorg config files do not contain any XkbLayout options!')" 0 0
+ exit
+fi
+
+OUTFILE='/etc/X11/xorg.conf.tmp7'
+OPTION='grp_led'
+LIST="/etc/X11/xkb/rules/xorg.lst"
+# exported the following from main
+#ERRMSG='Xdialog --title "ERROR" --msgbox "An Error has occured! Try again." 0 0'
+#SUCCESS='Xdialog --title "Success!" --no-buttons --infobox "Changes applied successfuly!" 0 0 2000'
+
+# the full line containing XkbOptions:
+ORIGINAL=`fgrep '"XkbOptions"' $INFILE | grep -v '^#'`
+
+#find current variants and layouts:
+CURRENT=`echo "$ORIGINAL" | cut -d'"' -f4`
+
+# check if already have one, find description and add to message.
+EXIST=`echo -n "$CURRENT" | tr ',' '\n' | fgrep "$OPTION:"`
+
+if [ ! "$EXIST" = "" ]; then
+	INFO=`fgrep -w "$EXIST" $LIST`
+	MESSAGE="$(gettext 'You are currently using the following LED setting'):
+	"$INFO"
+
+$(gettext 'To change it, select a new one below, then press OK.
+To remove it, select it below and press OK.
+To abort press cancel.')"
+else
+	MESSAGE="$(gettext 'Please select the setting you would like to use,
+ then press OK.
+To abort, press cancel.')"
+fi
+
+# give choice dialog
+CHOICE=`Xdialog --stdout --title "$(gettext 'Configure Xkb Option')" --left --menubox "$MESSAGE" 17 60 15 grp_led:num "$(gettext 'NumLock LED shows alternative group.')" grp_led:caps "$(gettext 'CapsLock LED shows alternative group.')" grp_led:scroll "$(gettext 'ScrollLock LED shows alternative group.')"`
+[ ! $? -eq 0 ] && echo "cancelled" && exit 
+echo "$CHOICE"
+
+if [ ! "$EXIST" = "" ]; then # if there's one already
+	if [ "$CHOICE" = "$EXIST" ]; then # the same -> remove
+		NEW=`echo -n $CURRENT | tr ',' '\n' | fgrep -v $CHOICE | tr '\n' ',' | tr -s ',' | sed 's/^,//;s/,$//'`
+	else # change
+		NEW=`echo "$CURRENT" | sed "s/$EXIST/$CHOICE/"`
+	fi
+else
+	NEW="$CURRENT,$CHOICE"
+	[ "$CURRENT" = "" ] && NEW="$CHOICE"
+fi
+
+# add new variant to line, or entire line, if it doesn't exist:
+if [ "$ORIGINAL" = "" ] ;then
+	ORIGINAL=`fgrep '"XkbVariant"' $INFILE | grep -v '^#'`
+	[ "$ORIGINAL" = "" ] && ORIGINAL=`fgrep '"XkbLayout"' $INFILE | grep -v '^#'`
+	MODIFIED="$ORIGINAL\n	Option 		\"XkbOptions\"   \"$NEW\""
+else
+	MODIFIED=`echo "$ORIGINAL" | sed "s%\"$CURRENT\"%\"$NEW\"%"`
+fi
+
+# add to file
+sed "s%$ORIGINAL%$MODIFIED%" ${INFILE} > $OUTFILE
+
+if ! fgrep -q '"XkbOptions"' $OUTFILE ;then
+	eval $ERRMSG
+	rm -f $OUTFILE
+else
+	mv -f $OUTFILE $INFILE
+	eval $SUCCESS
+fi
+exit

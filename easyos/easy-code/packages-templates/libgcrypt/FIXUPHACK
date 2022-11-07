@@ -1,0 +1,12 @@
+
+#191007 easy pyro
+# libgcrypt-config is broken, use this one (I got it from ubuntu buster, modified)...
+mkdir -p ../libgcrypt_DEV/usr/bin
+if [ -f ../libgcrypt_DEV/usr/bin/libgcrypt-config ];then
+ if grep 'should\-not\-have\-used' ../libgcrypt_DEV/usr/bin/libgcrypt-config >/dev/null;then
+  rm -f ../libgcrypt_DEV/usr/bin/libgcrypt-config
+  mv -f usr/bin/libgcrypt-config ../libgcrypt_DEV/usr/bin/libgcrypt-config
+ else
+  rm -f usr/bin/libgcrypt-config
+ fi
+fi

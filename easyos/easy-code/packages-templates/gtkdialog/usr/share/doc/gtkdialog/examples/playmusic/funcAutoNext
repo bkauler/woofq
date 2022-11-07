@@ -1,0 +1,23 @@
+#!/bin/sh
+
+## Includes.
+. funcPreviousNext
+. functmpGet
+
+## Automatically play the next track when the player terminates
+## (this is called periodically from a timer).
+
+funcAutoNext() {
+	if [ -z "$BASH" ]; then local FUNCNAME=funcAutoNext; fi
+	if [ $DEBUG_TRANSITS -ne 0 ]; then echo "$FUNCNAME: IN"; fi
+
+	if [ `functmpGet playerstate` = playing ]; then
+## 		ps -o s= `functmpGet playerpid` > /dev/null	Redundant: builtin found.
+		kill -0 `functmpGet playerpid` 2> /dev/null
+		if [ $? -ne 0 ]; then
+			funcPreviousNext 1
+		fi
+	fi
+
+	if [ $DEBUG_TRANSITS -ne 0 ]; then echo "$FUNCNAME: OUT"; fi
+}

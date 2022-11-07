@@ -1,0 +1,224 @@
+#!/bin/sh
+#(c) Copyright Barry Kauler 2009,2017. License GPL v3 (/usr/share/doc/legal)
+#creates a 520MB skeleton image for 3buildeasydistro. only need to run this once.
+#put resultant image into folder sd-skeleton-images, including the -DISKID file.
+#170129 first release.
+#170724 create skeleton with 2nd ext4 16MB partition.
+#181130 'initrd.q' renamed to 'initrd'
+
+. ./DISTRO_SPECS
+
+if ! which gdisk;then exit 1; fi
+if ! which syslinux;then exit 1; fi
+
+#check syslinux installed properly...
+MBRBIN=""; GPTMBRBIN=''; LDLINUXE64=''; SYSLINUXEFI=''
+[ -f /usr/lib/syslinux/gptmbr.bin ] && SLPATH="/usr/lib/syslinux"
+[ "$SLPATH" = "" ] && [ -f /usr/lib/SYSLINUX/gptmbr.bin ] && SLPATH="/usr/lib/SYSLINUX" #141102 ubuntu utopic unicorn.
+[ "$SLPATH" = "" ] && [ -f /usr/share/syslinux/gptmbr.bin ] && SLPATH="/usr/share/syslinux"
+[ "$SLPATH" ] && GPTMBRBIN="${SLPATH}/gptmbr.bin"
+[ -f ${SLPATH}/efi64/ldlinux.e64 ] && LDLINUXE64="${SLPATH}/efi64/ldlinux.e64"
+[ -f ${SLPATH}/efi64/syslinux.efi ] && SYSLINUXEFI="${SLPATH}/efi64/syslinux.efi"
+#170129 ubuntu 16.04 xenial xerus devs have really gone to town moving stuff around...
+[ ! "$GPTMBRBIN" ] && [ -f /usr/lib/syslinux/mbr/gptmbr.bin ] && GPTMBRBIN='/usr/lib/syslinux/mbr/gptmbr.bin'
+[ ! "$LDLINUXE64" ] && [ -f /usr/lib/syslinux/modules/efi64/ldlinux.e64 ] && LDLINUXE64='/usr/lib/syslinux/modules/efi64/ldlinux.e64'
+[ ! "$SYSLINUXEFI" ] && [ -f /usr/lib/SYSLINUX.EFI/efi64/syslinux.efi ] && SYSLINUXEFI='/usr/lib/SYSLINUX.EFI/efi64/syslinux.efi'
+echo
+if [ ! "$GPTMBRBIN" ];then
+ echo "Sorry, cannot find file 'gptmbr.bin'. Looked in /usr/lib/syslinux,
+/usr/lib/syslinux/mbr, /usr/lib/SYSLINUX and /usr/share/syslinux. You have an
+abnormal installation of Syslinux. Aborting"
+ exit
+fi
+if [ ! "$LDLINUXE64" ];then
+ echo "Sorry, syslinux version 6.x is required. 'ldlinux.e64' not found."
+ exit
+fi
+if [ ! "$SYSLINUXEFI" ];then
+ echo "Sorry, syslinux version 6.x is required. 'efi64/syslinux.efi' not found."
+ exit
+fi
+
+echo
+echo 'Plug in a usb flash stick, 1GB or greater.'
+echo -n 'Type drive name of stick (ex: sdc): '
+read TARGETDRIVE
+echo -n "It is ${TARGETDRIVE}, is that OK? ENTER if OK: "
+read isitok
+
+PARTNUM1="1"
+PARTNUM2="2"
+if [ "`echo -n "$TARGETDRIVE" | grep 'mm'`" != "" ];then
+ PARTNUM1="p1"
+ PARTNUM2="p2"
+fi
+
+#sizes...
+FDISKINFO="$(fdisk -l /dev/${TARGETDRIVE} 2>/dev/null)" #141104 leave as fdisk.
+SIZEBYTES=`echo "$FDISKINFO" | grep '^Disk /dev' | cut -f 5 -d ' '` #141104
+SIZEKB=`expr $SIZEBYTES \/ 1024`
+SIZEM=`expr $SIZEKB \/ 1024`
+SHORT20M=`expr $SIZEM - 20`
+SHORT5BLOCKS=`expr $SHORT20M \/ 4`
+echo "Size of drive=${SIZEM}MB,"
+
+#zeroize beginning and end of drive...
+echo
+echo "It is necessary to zeroize a part of the drive, the beginning
+and the end. The end, because if the drive previously had a GPT secondary
+partition on it, this has to be wiped."
+echo "Zeroizing first 522MB and last 20MB of drive..."
+#need to zeroize more than first 520MB, as may have an old ext4 partition starting immediately after the new fat32 partition, this confuses linux and fdisk/gdisk.
+dd if=/dev/zero of=/dev/${TARGETDRIVE} bs=4M count=138
+sync
+dd if=/dev/zero of=/dev/${TARGETDRIVE} bs=4M seek=${SHORT5BLOCKS} #2> /dev/null
+#...reason is if drive has previously had a GPT on it, the secondary-GPT at end of drive confuses fdisk.
+sync
+##nah, just zeroize the whole thing...
+#echo
+#echo "Zeroizing ${TARGETDRIVE}, please wait..."
+#dd if=/dev/zero of=/dev/${TARGETDRIVE} bs=4M
+#sync
+
+echo
+echo 'Creating a new dos partition table, using gdisk...'
+busybox echo -e 'o\nY\nw\nY\n' | gdisk /dev/${TARGETDRIVE}
+sync
+
+echo "Writing ${GPTMBRBIN}"
+dd bs=440 conv=notrunc count=1 if=${GPTMBRBIN} of=/dev/${TARGETDRIVE}
+sync
+
+#create 519MB partition, so total size of image will be 520MB (and a 2nd partition will start on a 8MB boundary)
+echo "Create 519MB esp partition"
+busybox echo -e 'n\n1\n2048\n+519M\nef00\nw\nY\n' | gdisk /dev/${TARGETDRIVE}
+sync
+
+echo "Set legacy_boot flag of esp:"
+busybox echo -e 'x\na\n2\n\nw\nY' | gdisk /dev/${TARGETDRIVE}
+sync
+
+echo "Create fat32 filesystem:"
+mkdosfs -F 32 -n easy1 /dev/${TARGETDRIVE}${PARTNUM1} #FAT32.
+sync
+
+echo "Install syslinux in 1st partition, ${TARGETDRIVE}${PARTNUM1}..."
+#syslinux efi files, for uefi booting, have to be copied in:
+mkdir -p /mnt/${TARGETDRIVE}${PARTNUM1}
+busybox mount -t vfat /dev/${TARGETDRIVE}${PARTNUM1} /mnt/${TARGETDRIVE}${PARTNUM1}
+mkdir -p /mnt/${TARGETDRIVE}${PARTNUM1}/EFI/BOOT
+#cp ${SLPATH}/efi32/ldlinux.e32 /mnt/${TARGETDRIVE}${PARTNUM1}/EFI/BOOT/
+#cp ${SLPATH}/efi32/syslinux.efi /mnt/${TARGETDRIVE}${PARTNUM1}/EFI/BOOT/BOOTIA32.EFI
+cp ${LDLINUXE64} /mnt/${TARGETDRIVE}${PARTNUM1}/EFI/BOOT/ #ldlinux.e64
+cp ${SYSLINUXEFI} /mnt/${TARGETDRIVE}${PARTNUM1}/EFI/BOOT/BOOTX64.EFI #syslinux.efi
+sync
+busybox umount /mnt/${TARGETDRIVE}${PARTNUM1}
+#this is for bios (not uefi) booting:
+syslinux --install /dev/${TARGETDRIVE}${PARTNUM1}
+sync
+
+echo "Populating 1st partition, ${TARGETDRIVE}${PARTNUM1}..."
+mkdir -p /mnt/${TARGETDRIVE}${PARTNUM1}
+mount -t vfat /dev/${TARGETDRIVE}${PARTNUM1} /mnt/${TARGETDRIVE}${PARTNUM1}
+if [ $? -ne 0 ];then
+ echo
+ echo "Error, failed to mount first partition, ${TARGETDRIVE}${PARTNUM1}. Aborting"
+ exit
+fi
+cp -a -f boot/boot-dialog/boot.msg /mnt/${TARGETDRIVE}${PARTNUM1}/
+cp -a -f boot/boot-dialog/help.msg /mnt/${TARGETDRIVE}${PARTNUM1}/
+cp -a -f boot/boot-dialog/logo.16 /mnt/${TARGETDRIVE}${PARTNUM1}/
+echo 'default easy
+display boot.msg
+prompt 1
+timeout 50
+
+F1 boot.msg
+F2 help.msg
+
+label easy
+kernel vmlinuz
+append initrd=initrd rw' > /mnt/${TARGETDRIVE}${PARTNUM1}/syslinux.cfg
+
+cp -a -f boot/boot-dialog/boot.msg /mnt/${TARGETDRIVE}${PARTNUM1}/EFI/BOOT/
+cp -a -f boot/boot-dialog/help.msg /mnt/${TARGETDRIVE}${PARTNUM1}/EFI/BOOT/
+cp -a -f boot/boot-dialog/logo.16 /mnt/${TARGETDRIVE}${PARTNUM1}/EFI/BOOT/
+echo 'default easy
+display boot.msg
+prompt 1
+timeout 50
+
+F1 boot.msg
+F2 help.msg
+
+label easy
+kernel ../../vmlinuz
+append initrd=../../initrd rw' > /mnt/${TARGETDRIVE}${PARTNUM1}/EFI/BOOT/syslinux.cfg
+
+sync
+umount /mnt/${TARGETDRIVE}${PARTNUM1}
+
+#150324 somehow won't boot, for amd64 install. reinstalling gptmbr.bin here fixes it...
+sync
+dd bs=440 conv=notrunc count=1 if=${GPTMBRBIN} of=/dev/${TARGETDRIVE}
+sync
+
+#have a daemon, send this uevent to it, then /usr/local/pup_event/frontend_change will be called...
+echo change > /sys/block/${TARGETDRIVE}/uevent
+sleep 5
+echo
+echo "${TARGETDRIVE} now has the 520MB skeleton image for Easy Linux."
+
+echo "Copying image to file 'easy-skeleton-${DISTRO_TARGETARCH}-520mb.img'"
+#copy an extra 1M. this will be zeroes, prevents an old ext4 partition being recognised when write it  to a drive.
+[ -f easy-skeleton-${DISTRO_TARGETARCH}-520mb.img ] && rm -f easy-skeleton-${DISTRO_TARGETARCH}-520mb.img
+dd if=/dev/${TARGETDRIVE} of=easy-skeleton-${DISTRO_TARGETARCH}-520mb.img bs=1M count=521 #instead of 520.
+sync
+
+DISKID="$(fdisk -l /dev/${TARGETDRIVE} | grep '^Disk identifier' | rev | cut -f 1 -d ' ' | rev)"
+echo -n "$DISKID" > easy-skeleton-${DISTRO_TARGETARCH}-520mb-DISKID
+
+echo "Compressing to easy-skeleton-${DISTRO_TARGETARCH}-520mb.img.gz"
+[ -f easy-skeleton-${DISTRO_TARGETARCH}-520mb.img.gz ] && rm -f easy-skeleton-${DISTRO_TARGETARCH}-520mb.img.gz
+gzip easy-skeleton-${DISTRO_TARGETARCH}-520mb.img
+sync
+
+echo
+echo "Done. Copy easy-skeleton-${DISTRO_TARGETARCH}-520mb.img.gz and easy-skeleton-${DISTRO_TARGETARCH}-520mb-DISKID to folder sd-skeleton-images"
+
+################
+echo
+echo "Now can create a skeleton image with a second partition, ext4 no-journal, 16M size"
+echo -n 'ENTER to do this: '
+read goondoit
+[ "$goondoit" != "" ] && exit
+echo
+echo "Creating 16MB partition /dev/${TARGETDRIVE}${PARTNUM2}"
+echo -e "n\n2\n\n+16384K\nw" | fdisk -u /dev/${TARGETDRIVE}
+sync
+echo
+echo "Creating ext4 f.s. without journal in /dev/${TARGETDRIVE}${PARTNUM2}"
+mke2fs -q -t ext4 -O ^has_journal -L easy2 -m 0 -b 4096 /dev/${TARGETDRIVE}${PARTNUM2}
+sync
+echo change > /sys/block/${TARGETDRIVE}/uevent
+sleep 5
+echo
+echo "Copying image to file 'easy-skeleton-${DISTRO_TARGETARCH}-536mb.img'"
+#copy an extra 1M. this will be zeroes, prevents an old ext4 partition being recognised when write it  to a drive.
+[ -f easy-skeleton-${DISTRO_TARGETARCH}-536mb.img ] && rm -f easy-skeleton-${DISTRO_TARGETARCH}-536mb.img
+dd if=/dev/${TARGETDRIVE} of=easy-skeleton-${DISTRO_TARGETARCH}-536mb.img bs=1M count=537 #instead of 520.
+sync
+echo
+echo "Creating easy-skeleton-${DISTRO_TARGETARCH}-536mb-DISKID"
+DISKID="$(fdisk -l /dev/${TARGETDRIVE} | grep '^Disk identifier' | rev | cut -f 1 -d ' ' | rev)"
+echo -n "$DISKID" > easy-skeleton-${DISTRO_TARGETARCH}-536mb-DISKID
+echo
+echo "Compressing to easy-skeleton-${DISTRO_TARGETARCH}-536mb.img.gz"
+[ -f easy-skeleton-${DISTRO_TARGETARCH}-536mb.img.gz ] && rm -f easy-skeleton-${DISTRO_TARGETARCH}-536mb.img.gz
+gzip easy-skeleton-${DISTRO_TARGETARCH}-536mb.img
+sync
+echo
+echo "Done. Copy easy-skeleton-${DISTRO_TARGETARCH}-536mb.img.gz and easy-skeleton-${DISTRO_TARGETARCH}-536mb-DISKID to folder sd-skeleton-images"
+###END###
+
+

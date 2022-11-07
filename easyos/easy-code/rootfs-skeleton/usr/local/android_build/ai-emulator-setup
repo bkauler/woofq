@@ -1,0 +1,72 @@
+#!/bin/sh
+#(c) Copyright Barry Kauler, Aug 2015. License GPL3 (/usr/share/doc/legal)
+#called from /usr/sbin/appinventor.sh
+#150815 /usr/sbin/qtcreator calls this script, passes in "QtCreator"
+#150816 /usr/bin/livecode calls this script, passes in "LiveCode"
+
+#refs:
+#http://developer.android.com/tools/devices/emulator.html
+#http://developer.android.com/tools/devices/managing-avds-cmdline.html
+
+#only intended to be run once, so put precaution in here:
+[ -d /root/.android/avd/aiavd.avd ] && exit
+
+APPNAME='App Inventor'
+[ $1 ] && APPNAME="$1"
+
+#aistarter already does this at bootup, but let's be sure...
+export ANDROID_EMULATOR_FORCE_32BIT=true
+
+#create an avd...
+cd /root/Android/Sdk/tools
+#this will list the targets in android-sdk, for example android-15:
+# ./android list targets
+#my android-sdk pet has android-15, so:
+#piping in a return supplies "no" response to question "Do you wish to create a custom hardware profile"
+#-c 64M creates an sdcard in the emulator.
+echo '' | ./android create avd -n aiavd -t 'android-15' -c 64M --skin HVGA
+
+#now run the emulator...
+sleep 2
+./emulator -avd aiavd &
+
+#now need to wait awhile...
+popup "process=wait level=top placement=top-middle terminate=ok background=#F809BC|<big>Emulator setup</big>
+The Android emulator needs to be setup for ${APPNAME} to use.
+Please wait a few minutes, until you are able to bring up the home-screen in the emulator, then click the <b>OK</b> button to close this window"
+cd /root/Android/Sdk/platform-tools #this is where adb is.
+CNT=0
+while [ 1 ];do
+ CNT=`expr $CNT + 1`
+ if [ -d /root/.android/avd/aiavd.avd ];then
+  if [ "$(./adb devices | grep '^emulator\-5554.*device')" != "" ];then
+   break
+  fi
+ fi
+ sleep 0.5
+ [ $CNT -gt 20 ] && break
+done
+if [ $CNT -gt 20 ];then
+ popup "process=wait level=top terminate=ok background=#FF6060|<big>There seems to be a problem with running the emulator. ${APPNAME} will not be able to use it.</big>"
+ exit
+fi
+
+#after emulator is running, need to install the ai companion app...
+popup 'name=aiemul1 background=#CC500 level=top|<big>Installing the <b>MIT AI2 Companion.apk</b> into the emulator, please wait...</big>'
+./adb install -r "/opt/appinventor/MIT AI2 Companion.apk"
+RETVAL=$?
+sleep 2
+popadd 'name=aiemul1 terminate=now|'
+[ $RETVAL -ne 0 ] && popup 'process=wait level=top terminate=ok background=#FF6060|<big>There seems to have been a problem with installing the Companion .apk into the emulator. AI2 will not be able to use the emulator.</big>'
+
+#kill the emulator...
+kill 99999999 `pidof emulator emulator64-arm emulator64-mips emulator64-x86 emulator-arm emulator-mips emulator-x86` 2>/dev/null
+
+#if [ $RETVAL -eq 0 ];then
+# #this is where ai2 was keeping its data...
+# #don't think need these, but have just in case ai2 checks if these files exist...
+ mkdir -p /root/.appinventor/emulator
+# touch /root/.appinventor/emulator/Appinventor-emulator-data
+# touch /root/.appinventor/emulator/sdcard.img
+# #...or could be symlinks to /root/.android/avd/aiavd.avd/sdcard.img, userdata.img
+#fi

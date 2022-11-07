@@ -1,0 +1,11 @@
+#!/bin/sh
+
+DEPS="$(grep -o '\+[a-zA-Z_-]*' woof-installed-packages | cut -c 2- | sed '/^$/d' | sort -u | tr '\n' ' ')"
+
+for aDEP in $DEPS
+do
+ grep -q "|${aDEP}|" woof-installed-packages
+ if [ $? -ne 0 ];then
+  echo "MISSING: ${aDEP}"
+ fi
+done

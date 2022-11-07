@@ -1,0 +1,75 @@
+#!/bin/sh
+#/usr/local/pup_event/bluetoothhw detects bt hardware interface.
+#this script, called via bluetooth-remove, is to detect a bt device removed from that
+#interface, such as a loudpspeaker.
+#20211113 pa, no longer using /root/.asoundrc
+#20221031 /root/Startup/pulseaudio changed to /etc/init.d/pulseaudio
+
+#this script was created to popup Multiple Sound Card Wizard
+#whenever a audio device is removed. connection is achieved with
+#blueman (or some other means), and it is then required to set the bt
+#audio device as the default, hence run /usr/sbin/mscw...
+
+#hotplug2stdout showed this when turned off bt speaker...
+#remove@/devices/pci0000:00/0000:00:14.0/usb1/1-14/1-14:1.0/bluetooth/hci0/hci0:256 ACTION=remove DEVPATH=/devices/pci0000:00/0000:00:14.0/usb1/1-14/1-14:1.0/bluetooth/hci0/hci0:256 SUBSYSTEM=bluetooth DEVTYPE=link SEQNUM=3822 
+#libudev ����(   (   �   ��S��        ACTION=remove DEVPATH=/devices/pci0000:00/0000:00:14.0/usb1/1-14/1-14:1.0/bluetooth/hci0/hci0:256 DEVTYPE=link SEQNUM=3822 SUBSYSTEM=bluetooth USEC_INITIALIZED=1913713857
+
+#if default audio not set to a bt device, just exit...
+if [ -e /etc/init.d/pulseaudio ];then #20211113 20221031
+ grep -q '^defaults' /etc/asound.conf
+ if [ $? -eq 0 ];then
+  #using legacy asound.conf for internal card.
+  exit
+ fi
+else
+ if [ ! -f /root/.asoundrc ];then
+  exit
+ fi
+fi
+
+if pidof mscw >/dev/null;then exit; fi
+#called from udev rule, won't have $DISPLAY, find out this way...
+DISPLAY=''
+[ -e /tmp/.X11-unix/X0 ] && DISPLAY=:0
+[ ! "$DISPLAY" ] && exit
+
+AUDIOD=''
+if pidof bluealsa >/dev/null;then AUDIOD='bluealsa'; fi
+if pidof pulseaudio >/dev/null;then AUDIOD='pulseaudio'; fi
+if [ ! "$AUDIOD" ];then exit; fi
+
+#BT_DEVICES0=$(ls -d /var/lib/bluetooth/*/* | sed 's|/var/lib/bluetooth/.*/||; /:/!d')
+#...ex: 20:15:10:15:1C:AF
+
+#the problem is to relate the mac addr in .asoundrc to the device that has been
+# turned off. is it the same device? 
+
+#for now, just do it this simple way...
+mkdir -p /tmp/bluepup
+OFFflg=0
+REGDEVS="$(find /var/local/bluepup -maxdepth 1 -type f -name 'reg-info.*' | tr '\n' ' ')"
+for aREGDEV in $REGDEVS
+do
+ grep -q 'audio-card' $aREGDEV
+ [ $? -ne 0 ] && continue
+ grep -q 'Connected: yes' $aREGDEV
+ [ $? -ne 0 ] && continue
+ LANG=C bluetoothctl info $aREGDEV > /tmp/bluepup/reg-info.${aREGDEV}
+ cp -a -f /tmp/bluepup/reg-info.${aREGDEV} /var/local/bluepup/reg-info.${aREGDEV}
+ grep -q 'Connected: no' /tmp/bluepup/reg-info.${aREGDEV}
+ if [ $? -eq 0 ];then
+  OFFflg=1
+ fi
+done
+[ $OFFflg -eq 0 ] && exit
+
+#if any audio device was connected and is not now, and is set as default in mscw,
+# then bring up mscw...
+#for now, just bring it up...
+
+#the big event...
+pidof mscw >/dev/null
+[ $? -eq 0 ] && exit
+DISPLAY=:0 exec mscw
+
+###end###

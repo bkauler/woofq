@@ -1,0 +1,36 @@
+#!/bin/sh
+#ref: /usr/local/easyshare/easyshare
+#ref: /usr/local/easyshare/dnsmasq-notes
+#this daemon is managed by pup_event to start when network is up, ref: /etc/eventmanager
+#180730 first release.
+
+#desktop "share" icon launches /usr/local/easyshare/easyshare, which creates this...
+[ ! -s /var/local/easyshare/local-ip-exe ] && exit
+#this file is empty...
+[ ! -f /etc/easyshare-dnsmasq.conf ] && touch /etc/easyshare-dnsmasq.conf
+
+case "${1}" in
+ start)
+  LOCALIPexe="$(cat /var/local/easyshare/local-ip-exe)"
+  if [ "$LOCALIPexe" == "getlocalip" ];then
+   LOCALIPADDRESS="$(getlocalip | grep -v '^lo' | tail -n 1 | cut -f 2 -d ' ')"
+  else
+   LOCALIPADDRESS="$(hostname -I | cut -f 1 -d ' ')"
+  fi
+  LOCALHOSTNAME="$(hostname)"
+  #the content of /etc/easyshare-hosts is read by dnsmasq daemon when query from remote pc.
+  #the first value is arbitrary, but will always be deducable by remote pcs...
+  #compute this everytime, as local hostname may have changed...
+  LIP24="${LOCALIPADDRESS%.*}" #ex: 192.168.0.3 becomes 192.168.0
+  echo "${LIP24}.254 ${LOCALHOSTNAME}" > /etc/easyshare-hosts
+  #listens on port 53, remote pcs will be able to query and obtain hostname of this pc...
+  dnsmasq -y -R -b --cache-size=0 --listen-address=${LOCALIPADDRESS} --conf-file=/etc/easyshare-dnsmasq.conf --no-hosts --addn-hosts=/etc/easyshare-hosts
+ ;;
+ stop)
+  killall dnsmasq
+ ;;
+ restart)
+  killall dnsmasq
+  exec /etc/init.d/dnsmasq start
+ ;;
+esac

@@ -1,0 +1,15 @@
+#these are overrides for /.control/<app>.specs file in the sfs
+#DB_install='mainonly' means run on main desktop only, not in container.
+#  chromium is an example that should be run on the main desktop, as a non-root client,
+#  not in a container. this is because of the chromium sandbox.
+
+#20220914 audio not work in container, pulseaudio daemon not running.
+TEMPLATE_DB_install='mainonly'
+
+#20220914 ref: /usr/local/sfsget/sfsspec
+TEMPLATE_DB_description='Zoom video conferencing'
+TEMPLATE_DB_description_long='Closed source free for personal use, video conferencing. Works on all platforms, including mobile phones.'
+TEMPLATE_DB_categories='Network'
+TEMPLATE_DB_apps='zoom'
+TEMPLATE_DB_icons='zoom'
+

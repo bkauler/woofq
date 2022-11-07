@@ -1,0 +1,115 @@
+#!/bin/sh
+#my own humble download accelerator frontend for axel.
+#(c) copyright 2004 Barry Kauler www.goosee.com/puppy
+#130517 robwoj44: gettexted.
+#150807 missing icons.
+
+#choices:
+# multiple servers or one
+# if one, then number connections
+# destination path.
+
+. gettext.sh
+export TEXTDOMAIN=puppydownload
+export TEXTDOMAINDIR=/usr/share/locale
+export OUTPUT_CHARSET=UTF-8
+
+COMMANDTAIL="$@"
+
+if [ "$COMMANDTAIL" ];then
+ #this means that a url has been passed in on the commandline.
+ echo "$COMMANDTAIL" | grep -i "http://"
+ if [ ! $? -eq 0 ];then #=0 if found.
+  echo "$COMMANDTAIL" | grep -i "ftp://"
+  if [ ! $? -eq 0 ];then
+   Xdialog --wmclass "puppyaxel" --title "'$(gettext 'Puppy download accelerator')'" --no-buttons --icon "/usr/local/lib/X11/pixmaps/error.xpm" --infobox "'(gettext 'The URL is incomplete. It needs http:// or ftp:// prefix.')'" 0 0 20000 &
+  fi
+ fi
+fi
+
+DOSETUPLOOP="true"
+while [ "$DOSETUPLOOP" = "true" ];do
+ DOSETUPLOOP="false"
+
+RETSTR=`Xdialog --wmclass "puppyaxel" --title "$(gettext 'Puppy Axel download accelerator')" --stdout --left --separator "|" --icon "/usr/local/lib/X11/pixmaps/www48.png" --check "$(gettext 'Bypass any proxy server')" off --3inputsbox "$(gettext 'This is a frontend for the Axel download accelerator.\nIt is capable of multiple connections to the same server,\nor download simultaneously from multiple servers.\n\nNote: you can paste from the clipboard with CTRL-V.\nDo not forget the ftp:// or http:// prefix.\nRecommend leave bypass-proxy checkbox unticked.')" 0 0 "$(gettext 'First server URL:')" "$COMMANDTAIL" "$(gettext 'Second server URL (optional):')" "" "$(gettext 'Third server URL (optional):')" ""`
+
+if [ $? -eq 0 ];then
+URL1=`echo -n "$RETSTR" | head -n 1 | cut -f 1 -d "|"`
+URL2=`echo -n "$RETSTR" | head -n 1 | cut -f 2 -d "|"`
+URL3=`echo -n "$RETSTR" | head -n 1 | cut -f 3 -d "|"`
+BYPASSPROXY=`echo -n "$RETSTR" | tail -n 1`
+else
+ exit
+fi
+
+MULTISERVE="$URL2$URL3"
+if [ ! "$MULTISERVE" ];then
+ MULTICONN=`Xdialog --wmclass "puppyaxel" --title "$(gettext 'Puppy Axel download accelerator')" --stdout --no-tags --radiolist "$(gettext 'Choose one or more simultaneous connections to the server.\nMultiple connections will speed download, but a slow\ndialup connection may still be the bottleneck\n(choose 3 and above only if you have broadband).\nAlso, some servers will disconnect if download\nacceleration is attempted.')" 0 0 0 "1" "$(gettext 'Single connection, no acceleration')" on "2" "$(gettext 'Two simultaneous connections')" off "3" "$(gettext 'Three simultaneous connections')" off "4" "$(gettext 'Four simultaneous connections')" off`
+fi
+
+if [ ! $? -eq 0 ];then
+ exit
+fi
+
+ DESTDIR="`Xdialog --wmclass "puppyaxel" --title "$(gettext 'Choose destination directory:')" --wizard --no-cancel --help "$(gettext 'if you leave the Selection field blank, the destination filename\nwill be the same as the source filename.\nOtherwise, type in the new name for the downloaded file.')" --stdout --dselect "/root/" 0 0 `"
+
+ RETVAL=$?
+ #note, returns 3 if "previous" button clicked.
+ if [ $RETVAL -eq 3 ];then #=0 "next".
+  DOSETUPLOOP="true"
+ else
+  if [ ! $RETVAL -eq 0 ];then
+   exit
+  fi
+ fi
+
+done
+
+#now do the actual download...
+
+ls "$DESTDIR" 2>&1 | grep "No such file or directory"
+if [ $? -eq 0 ];then
+ #this means that dest is not an existing file nor directory, so must
+ #have typed a filename into directory selection dialog.
+ FULLDEST="$DESTDIR"
+else
+ file $DESTDIR | grep "directory"
+ if [ $? -eq 0 ];then
+  #DESTDIR is only a path. get filename off url...
+  FILEDEST=`basename "$URL1"`
+  FULLDEST="$DESTDIR$FILEDEST"
+ else
+  #dest filename must already exist.
+  FULLDEST="$DESTDIR"
+ fi
+fi
+
+if [ "$BYPASSPROXY" = "checked" ];then
+ BYPASSPROXY="--no-proxy"
+else
+ BYPASSPROXY=""
+fi
+
+echo -e "#!/bin/sh
+axel $BYPASSPROXY --alternate --verbose --num-connections=\"$MULTICONN\" --output=\"$FULLDEST\" \"$URL1\" $URL2 $URL3
+if [ ! \$? -eq 0 ];then
+ echo
+ echo \"'$(gettext DOWNLOAD FAILURE!\')'"
+ if [ -f $FULLDEST ];then
+  echo \"'$(gettext 'The file has not been fully downloaded.\')'"
+  echo -n \"'$(gettext 'Deleting partially downloaded file...\')'"
+  echo \"'$(gettext  'done\')'"
+ else
+  echo \"'$(gettext 'The file has not been downloaded.\')'"
+ fi
+ echo
+ echo -n \"'$(gettext 'Press ENTER key to exit: \')'"
+ read nnn
+fi
+" > /tmp/axelrun.sh
+#'geany
+
+chmod 755 /tmp/axelrun.sh
+rxvt -name puppyaxel -bg orange -geometry 80x10 -title "'$(gettext 'Puppy Axel download accelerator')'" -e /tmp/axelrun.sh
+
+###END###

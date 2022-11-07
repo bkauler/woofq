@@ -1,0 +1,449 @@
+#!/bin/sh
+#(c) Copyright 2017 Barry Kauler.
+#this script is for importing binary packages compiled in OE.
+#170414 first release. 170416 fixes.
+#170424 deps in file 'Packages' are split pkg name, lookup generic name. 170425 fixes.
+#170426 "DEPENDS = " line in .bb recipe files may have "\" line-continuation. also "=" or "+=". 170427 fixes.
+#170507 easier way to find deps, reading 'recipe-depends.dot'. 170517 fix OE_SUPPORT.
+#170516 ignore pkgs named packagegroup-*
+#170517 strip the files. 170530 fix.
+#170601 tmp-glibc/work/${ACAT}-oe-linux in buildQ, -oe-linux-gnueabi in buildPi
+#170622 default build folder changed from 'buildQ' to 'buildPC'
+#171019 allow stripping for WOOF_TARGETARCH='amd64x32' WOOF_HOSTARCH='amd64'
+#180723 support cross-build strip.
+#180724 calc size of a package after stripping.
+#180820 fix. *NOTICE* 'cross-strip' code needs attention. will not work if amd64 OE host, then i686 host woof build.
+#181121 quirky/woof-distro now easyos/easy-distro
+#190329 default build folder: buildPC64
+#190329 ${OEPATH}/${BUILDFOLDER}/tmp-glibc/deploy/deb/${ACAT}/Packages no longer exists.
+#200922 'tmp-glibc' now just named 'tmp' (dunfell).
+#200927 recipe-depends.dot now task-depends.dot in dunfell.
+#201007 fix stripping. 20201014 /tmp/0pre-oe
+#20220307 path now /mnt/build
+#20221016 improve deps search. 20221029 fix.
+
+export LANG=C #faster.
+. ./DISTRO_SPECS #DISTRO_COMPAT_VERSION=pyro, DISTRO_BINARY_COMPAT=oe
+if [ "$DISTRO_BINARY_COMPAT" != "oe" ];then #200922
+ echo "ERROR: DISTRO_BINARY_COMPAT has value '${DISTRO_BINARY_COMPAT}'"
+ echo "It is required to be 'oe'. Aborting."
+fi
+[ ! "$DISTRO_DB_SUBNAME" ] && DISTRO_DB_SUBNAME="$DISTRO_COMPAT_VERSION" #fallback if DISTRO_DB_SUBNAME not defined in file DISTRO_SPECS.
+. ./DISTRO_COMPAT_REPOS-${DISTRO_BINARY_COMPAT}-${DISTRO_COMPAT_VERSION} #has PKG_DOCS_DISTRO_COMPAT
+. ./DISTRO_PKGS_SPECS-${DISTRO_BINARY_COMPAT}-${DISTRO_COMPAT_VERSION}
+
+if [ ! -f WOOFMERGEVARS ];then
+ echo
+ echo "ERROR: file WOOFMERGEVARS is created by merge2out. not there"
+ exit
+fi
+. ./WOOFMERGEVARS #has WOOF_TARGETARCH
+
+#200922
+if [ ! -s PROJECTPATH ];then
+ echo "ERROR: file PROJECTPATH is created by merge2out. not there"
+ exit
+fi
+. ./PROJECTPATH
+if [ -d ${PROJECTPATH}/easy-code ];then
+ WOOFNAME='easy'
+else
+ if [ -d ${PROJECTPATH}/woof-code ];then #older woof project
+  WOOFNAME='woof'
+ else
+  echo "ERROR: file ${PROJECTPATH}/merge2out does not exist. need path to woof project."
+  exit
+ fi
+fi
+
+mkdir -p status
+#20201014...
+[ -d /tmp/0pre-oe ] && rm -rf /tmp/0pre-oe
+mkdir /tmp/0pre-oe
+#delete older pkgs...
+rm -f packages-${DISTRO_BINARY_COMPAT}-${DISTRO_COMPAT_VERSION}/*
+#get rid of old db...
+[ -f Packages-${DISTRO_BINARY_COMPAT}-${DISTRO_COMPAT_VERSION}-official ] && mv -f Packages-${DISTRO_BINARY_COMPAT}-${DISTRO_COMPAT_VERSION}-official Packages-${DISTRO_BINARY_COMPAT}-${DISTRO_COMPAT_VERSION}-officialPREV
+
+FIND_CAT="./support/find_cat"
+PKGLISTS_COMPAT="`echo "$PKG_DOCS_DISTRO_COMPAT" | tr ' ' '\n' | cut -f 3 -d '|' | head -n 1`" #see file DISTRO_PKGS_SPECS-oe-pyro
+#...ex: Packages-${DISTRO_BINARY_COMPAT}-${DISTRO_COMPAT_VERSION}-official, which is Packages-oe-pyro-official
+PKGREPO_COMPAT="`echo "$PKG_DOCS_DISTRO_COMPAT" | tr ' ' '\n' | cut -f 2 -d '|' | head -n 1`" #see file DISTRO_PKGS_SPECS-oe-pyro
+
+#db format:
+#pkgname|nameonly|version|pkgrelease|category[;subcategory]|size|path|fullfilename|dependencies|description|
+#ex: abiword-1.2.4|abiword|1.2.4|5|Document|999K|slackware/ab|abiword-1.2.4-5-i486.tgz|+aiksausus,+gtk2|a nice wordprocessor|
+#optionally on the end: compileddistro|compiledrelease|repo| (fields 11,12,13)
+#ex: slackware|12.2|official|
+#this is not normally needed, as the name of the file holding the database info, for ex
+#'Packages-slackware-12.2-official' identifies this extra information.
+
+echo "This script is for a developer who has compiled with OpenEmbedded."
+echo "The OE build system is local, with compiled binary packages."
+echo "This script will read from OE and create a Puppy standard"
+echo "package database. Normally this is then uploaded to the Internet,"
+echo "to a location specified by the PKG_DOCS_DISTRO_COMPAT variable"
+echo "in file DISTRO_COMPAT_REPOS-${DISTRO_BINARY_COMPAT}-${DISTRO_COMPAT_VERSION}."
+
+if [ -f status/OE_SUPPORT ];then
+ echo
+ echo "NOTICE:"
+ echo "The path to OE is recorded in file status/OE_SUPPORT."
+ echo "To change this, delete that file and rerun this script."
+. ./status/OE_SUPPORT
+else
+ echo
+ echo "Please enter the full path to the OE build system"
+ echo -n "[/mnt/build/oe-builds/oe-quirky]: "
+ read OEPATH
+ [ "$OEPATH" == "" ] && OEPATH="/mnt/build/oe-builds/oe-quirky"
+ echo "OEPATH='${OEPATH}'" > status/OE_SUPPORT
+fi
+#170425 170515
+if [ ! "$OEPROFILE" ];then
+ echo
+ echo -n 'Also, the name of the build folder [build-amd64]: '
+ read BUILDFOLDER
+ [ ! "$BUILDFOLDER" ] && BUILDFOLDER='build-amd64'
+ echo "OEPROFILE='${BUILDFOLDER}'" >> status/OE_SUPPORT
+ OEPROFILE="$BUILDFOLDER" #180820
+else
+ BUILDFOLDER="$OEPROFILE"
+fi
+
+PATHOK=yes
+[ ! -d $OEPATH ] && PATHOK="$OEPATH"
+if [ -d ${OEPATH}/${BUILDFOLDER}/tmp-glibc ];then #200922
+ TMPFOLDER='tmp-glibc' #pyro and thud
+else
+ if [ -d ${OEPATH}/${BUILDFOLDER}/tmp-musl ];then
+  TMPFOLDER='tmp-musl' #pyro and thud
+ else
+  TMPFOLDER='tmp' #dunfell
+ fi
+fi
+[ ! -d ${OEPATH}/${BUILDFOLDER}/${TMPFOLDER}/deploy/deb ] && PATHOK="$OEPATH/${BUILDFOLDER}/${TMPFOLDER}/deploy/deb"
+if [ "$PATHOK" != "yes" ];then
+ echo
+ rm -f status/OE_SUPPORT
+ echo "ERROR: OE path '${PATHOK}' is wrong"
+ exit
+fi
+
+yPWD="`pwd`"
+
+#200922
+#180723 find the cross-build strip executable in oe... (for aarch64 build it will be aarch64-oe-linux-strip)
+CROSS_STRIP_FND="$(find ${OEPATH}/${OEPROFILE}/${TMPFOLDER}/sysroots-components -type f -name '*-strip' | grep '/binutils\-cross\-' | head -n 1)"
+if [ "$CROSS_STRIP_FND" ];then
+ CROSSSTRIP="$(basename $CROSS_STRIP_FND)"
+ if [ ! -e support/${CROSSSTRIP} ];then
+  cp -a -f ${CROSS_STRIP_FND} support/
+ fi
+else
+ echo "ERROR: unable to find the cross-strip executable in OE, aborting"
+ exit 2
+fi
+
+#170426 .bb recipe files may have "DEPENDS =" value over multiple lines...
+expand_lines_func() {
+ #pass in name of file to process
+ NEW="$(cat ${1} | sed -e 's%|%ZZZZZZ%g' | tr '\n' '|' | sed -e 's%\\|%%g' | sed -e 's%|%\n%g' | sed -e 's%ZZZZZZ%|%g')"
+ echo "$NEW" > ${1}
+}
+
+#remove prior imported binary pkgs...
+rm -f packages-${DISTRO_BINARY_COMPAT}-${DISTRO_COMPAT_VERSION}/*.tar.xz
+
+#'Packages' files have db data for the deployed deb/rpm pkgs...
+DEBFOLDERS="$(ls -1 ${OEPATH}/${BUILDFOLDER}/${TMPFOLDER}/deploy/deb | grep -v 'deb\.lock' | tr '\n' ' ')" #ex: "all core2-64 genericx86_64" 170530
+echo -n '' > /tmp/0pre-oe/0pre-oe-alldata
+for ACAT in $DEBFOLDERS
+do
+ [ ! -d ${OEPATH}/${BUILDFOLDER}/${TMPFOLDER}/deploy/deb/${ACAT} ] && continue #170530 may have file 'deb.lock'
+ #convert paragraphs to single line: 190329 no longer exists...
+ ALLDATA="$(cat ${OEPATH}/${BUILDFOLDER}/${TMPFOLDER}/deploy/deb/${ACAT}/Packages 2>/dev/null | tr '\t' ' ' | tr '|' ' ' | tr -s ' ' | tr '\n' '|' | sed -e 's%||%\n%g')"
+ echo "$ALLDATA" >> /tmp/0pre-oe/0pre-oe-alldata
+done
+
+#170424 have split pkg name, lookup generic name... 170427
+echo
+echo 'Creating a lookup table, generic name to split-names, take1...'
+echo -n '' > /tmp/0pre-oe/0pre-oe-split2gen-namesXXX
+cat /tmp/0pre-oe/0pre-oe-alldata |
+while read ALINE
+do
+ [ "$ALINE" == "" ] && continue #190329
+ SPLITNAME="$(echo -n "$ALINE" | grep -o '^Package: [^|]*' | cut -f 2 -d ' ')"
+ GENERICNAME="$(echo -n "$ALINE" | grep -o '|OE: [^|]*' | cut -f 2 -d ' ')"
+ AVER="$(echo -n "$ALINE" | grep -o '|Version: [^|]*' | cut -f 2 -d ' ')"
+ echo "${GENERICNAME}|${AVER} ${SPLITNAME} " >> /tmp/0pre-oe/0pre-oe-split2gen-namesXXX
+done
+
+#170601 find, replace "-oe-linux" with "-oe-linux*". 20200922 now "-*-linux*"
+#170425 many deb pkgs missing, do it this way... 170427 need the above also.
+echo 'Creating a lookup table, generic name to split-names, take2...'
+echo -n '' > /tmp/0pre-oe/0pre-oe-split2gen-names
+for ACAT in $DEBFOLDERS
+do
+ [ ! -d ${OEPATH}/${BUILDFOLDER}/${TMPFOLDER}/deploy/deb/${ACAT} ] && continue #170530 may have file 'deb.lock'
+ NAMEPATHS="$(find ${OEPATH}/${BUILDFOLDER}/${TMPFOLDER}/work/${ACAT}-*-linux* -mindepth 1 -maxdepth 1 -type d | tr '\n' ' ')"
+ for AGENPATH in $NAMEPATHS #ex: /mnt/sda1/projects/oe/oe-project/buildPC/${TMPFOLDER}/work/core2-64-oe-linux/alsa-lib
+ do
+  AGENNAME="$(basename $AGENPATH)" #ex: alsa-lib
+  AVER="$(find $AGENPATH -mindepth 1 -maxdepth 1 -type d | head -n 1 | rev | cut -f 1 -d '/' | rev)" #ex: 1.1.3-r0
+  ASPLITNAMES="$(find ${AGENPATH}/${AVER}/packages-split -mindepth 1 -maxdepth 1 -type d 2>/dev/null | rev | cut -f 1 -d '/' | rev | tr '\n' ' ')"
+  #...ex: alsa-conf alsa-doc alsa-lib alsa-lib-dbg alsa-lib-dev alsa-lib-doc alsa-lib-locale alsa-lib-staticdev
+  echo "${AGENNAME}|${AVER} ${ASPLITNAMES} " >> /tmp/0pre-oe/0pre-oe-split2gen-names
+ done
+done
+
+#170425 find recipe (.bb file) for each generic name, hence lookup pkg details...
+echo
+echo 'Extracting homepage, description and dependencies for all pkgs...'
+echo -n '' > /tmp/0pre-oe/0pre-oe-descriptions0
+echo -n '' > /tmp/0pre-oe/0pre-oe-homepages0
+echo -n '' > /tmp/0pre-oe/0pre-oe-dependencies0
+for AGENVER in `cat /tmp/0pre-oe/0pre-oe-split2gen-names | cut -f 1 -d ' ' | tr '\n' ' '`
+do
+ AGENNAME="$(echo -n $AGENVER | cut -f 1 -d '|')"
+ AVER="$(echo -n $AGENVER | cut -f 2 -d '|')"
+ for AMETA in `find ${OEPATH} -mindepth 1 -maxdepth 1 -type d -name 'meta*' | tr '\n' ' '`
+ do
+  echo -n '.'
+  BB1="$(find ${AMETA} -type f -name "${AGENNAME}_*.bb")"
+  [ ! "$BB1" ] && BB1="$(find ${AMETA} -type f -name "${AGENNAME}.bb")" #only one i know of is libreoffice.bb
+  if [ "$BB1" ];then
+   BB2a="$(echo "$BB1" | head -n 1)"
+   #170426 convert multilines to single line...
+   cp -f $BB2a /tmp/0pre-oe/0pre-oe-bb2
+   expand_lines_func /tmp/0pre-oe/0pre-oe-bb2
+   BB2='/tmp/0pre-oe/0pre-oe-bb2'
+   BBPATH="$(dirname $BB2a)"
+   INC="$(find ${BBPATH} -mindepth 1 -maxdepth 1 -type f -name "${AGENNAME}*.inc" | head -n 1)"
+   if [ "$INC" ];then
+    #170426 convert multilines to single line...
+    cp -f $INC /tmp/0pre-oe/0pre-oe-inc
+    expand_lines_func /tmp/0pre-oe/0pre-oe-inc
+    INC='/tmp/0pre-oe/0pre-oe-inc'
+   fi
+   ASUMMARY="$(grep '^SUMMARY = ' ${BB2} ${INC} | head -n 1 | cut -f 2 -d '"')"
+   AHOMEPAGE="$(grep '^HOMEPAGE = ' ${BB2} ${INC} | head -n 1 | cut -f 2 -d '"')"
+   
+   #ADEPENDS0="$(grep '^DEPENDS = ' ${BB2} ${INC} | head -n 1 | cut -f 2 -d '"' | tr '\t' ' ' | tr -s ' ')"
+   #ADEPENDS1="$(grep '^DEPENDS += ' ${BB2} ${INC} | head -n 1 | cut -f 2 -d '"' | tr '\t' ' ' | tr -s ' ')"
+   #if [ "$ADEPENDS1" ];then
+   # ADEPENDS="${ADEPENDS0} ${ADEPENDS1}"
+   #else
+   # ADEPENDS="${ADEPENDS0}"
+   #fi
+   #20221016 improve deps search...
+   #extended reg-exp needs these escaped: $ +
+   #also include RDEPENDS...
+   ADEPENDS="$(grep -E '^DEPENDS = |^DEPENDS \+= |^DEPENDS_\${PN} = |^DEPENDS_\${PN} \+= |^RDEPENDS = |^RDEPENDS \+= |^RDEPENDS_\${PN} = |^RDEPENDS_\${PN} \+= ' ${BB2} ${INC} | cut -f 2 -d '"' | tr '\t' ' ' | tr '\n' ' ' | tr -s ' ')"
+
+   [ "$ASUMMARY" ] && echo "${AGENNAME} ${ASUMMARY}" >> /tmp/0pre-oe/0pre-oe-descriptions0
+   [ "$AHOMEPAGE" ] && echo "${AGENNAME} ${AHOMEPAGE}" >> /tmp/0pre-oe/0pre-oe-homepages0
+   if [ "$ADEPENDS" ];then #20221029 fix...
+    zADEPENDS="$(echo -n "$ADEPENDS" | sed -e 's%{[^}]*}%%g' | tr -d "'" | tr -s ' ' | tr ' ' '\n' | grep -v -E ',|\$|\)|}|\(' | rev | cut -f 1 -d '/' | rev | grep -v -E '\-native$|\-cross$|packagegroup\-' | sort -u | tr '\n' ' ' | tr -s ' ')" #'
+    echo "${AGENNAME} ${zADEPENDS}" >> /tmp/0pre-oe/0pre-oe-dependencies0
+   fi
+  fi
+ done
+done
+sync
+sort -u -t ' ' -k 1,1 /tmp/0pre-oe/0pre-oe-descriptions0 > /tmp/0pre-oe/0pre-oe-descriptions
+sort -u -t ' ' -k 1,1 /tmp/0pre-oe/0pre-oe-homepages0 > /tmp/0pre-oe/0pre-oe-homepages
+sort -u -t ' ' -k 1,1 /tmp/0pre-oe/0pre-oe-dependencies0 > /tmp/0pre-oe/0pre-oe-dependencies
+echo
+echo '...created /tmp/0pre-oe/0pre-oe-descriptions, -homepages, -dependencies'
+
+#find all the packages. do not use the split DEBs...
+echo
+echo "Finding packages in OE..."
+echo -n '' > PKGS_HOMEPAGES
+echo -n '' > $PKGLISTS_COMPAT
+echo -n '' > /tmp/0pre-oe/0pre-oe-dependsx-TEST
+DB_pkgrelease=''
+for ACAT in $DEBFOLDERS
+do
+ [ ! -d ${OEPATH}/${BUILDFOLDER}/${TMPFOLDER}/deploy/deb/${ACAT} ] && continue #170530 may have file 'deb.lock'
+ #convert paragraphs to single line: 190329 no longer exists...
+ ALLDATA="$(cat ${OEPATH}/${BUILDFOLDER}/${TMPFOLDER}/deploy/deb/${ACAT}/Packages 2>/dev/null | tr '\t' ' ' | tr '|' ' ' | tr -s ' ' | tr '\n' '|' | sed -e 's%||%\n%g')"
+ 
+ #170601 fix  20200922
+ IMGPATHS="$(find ${OEPATH}/${BUILDFOLDER}/${TMPFOLDER}/work/${ACAT}-*-linux* -mindepth 3 -maxdepth 3 -type d -name image | tr '\n' ' ')"
+ for AIMG in $IMGPATHS
+ do
+
+  DB_version="$(echo -n "$AIMG" | rev | cut -f 2 -d '/' | rev)"
+  DB_nameonly="$(echo -n "$AIMG" | rev | cut -f 3 -d '/' | rev)"
+  [ "$(echo -n "$DB_nameonly" | cut -f 1 -d '-')" == "packagegroup" ] && continue #170516 ignore pkgs named packagegroup-*
+  echo -n "${DB_nameonly} "
+  DB_pkgname="${DB_nameonly}-${DB_version}"
+  DB_fullfilename="${DB_pkgname}-${ACAT}.tar.xz"
+  DB_path="${DISTRO_COMPAT_VERSION}"
+  
+  #170427 problems, always use fallback...
+  DB_dependencies=''; DB_description=''
+  if [ "$(echo "$ALLDATA" | grep "^Package: ${DB_nameonly}[0-9]*|")" != "" ];then
+   DB_description="$(echo "$ALLDATA" | grep "^Package: ${DB_nameonly}[0-9]*|" | grep -o '|Description: .*' | head -n 1 | cut -f 2- -d ' ' | cut -f 1 -d '|' | sed -e 's%[^a-zA-Z0-9_. -]%%g')"
+   DEPENDS0="$(echo "$ALLDATA" | grep "^Package: ${DB_nameonly}[0-9]*|" | grep -o '|Depends: .*' | cut -f 2- -d ' ' | cut -f 1 -d '|' | sed -e 's%, %\n%g' | cut -f 1 -d ' ' | tr '\n' ' ' | sed -e 's% $%%')"
+  else
+   #190329 echo -n 'FALLBACK '
+   #170425 many missing deb pkgs, so need fallback...
+   DB_description="$(grep "^${DB_nameonly} " /tmp/0pre-oe/0pre-oe-descriptions | cut -f 2- -d ' ' | sed -e 's%[^a-zA-Z0-9_. -]%%g')"
+   DEPENDS0="$(grep "^${DB_nameonly} " /tmp/0pre-oe/0pre-oe-dependencies | cut -f 2- -d ' ')"
+  fi
+  
+  #170507 better way to find deps.... 200927 note, using this in 0pre-oe-add
+  FLGdep=0
+  if [ -f ${OEPATH}/${BUILDFOLDER}/recipe-depends.dot ];then
+   PTNdot='^"'"${DB_nameonly}"'" -'
+   DEPENDSx="$(grep "$PTNdot" ${OEPATH}/${BUILDFOLDER}/recipe-depends.dot | cut -f 4 -d '"' | grep -v '\-native$' | grep -v '\-cross' | grep -v 'packagegroup\-')"
+  else #200927 dunfell
+   if [ -f ${OEPATH}/${BUILDFOLDER}/task-depends.dot ];then
+    DEPENDSx="$(grep "^\"${DB_nameonly}\.do_prepare_recipe_sysroot" ${OEPATH}/${BUILDFOLDER}/task-depends.dot | cut -f 4 -d '"' | cut -f 1 -d '.' | grep -vE "^${DB_nameonly}$|^${DB_nameonly} |\-native|\-cross|packagegroup" | sort -u)"
+   fi
+  fi
+  if [ "$DEPENDSx" ];then
+   DEPENDS0="$(echo "$DEPENDSx" | tr '\n' ' ' | sed -e 's% $%%')"
+   FLGdep=1
+   echo "${DB_nameonly}: ${DEPENDS0}" >> /tmp/0pre-oe/0pre-oe-dependsx-TEST
+  fi
+  
+  xDB_description="$DB_description"
+  [ "$DB_description" = "" ] && xDB_description="nothing"
+  DB_category="$(${FIND_CAT} $DB_nameonly "$xDB_description")" #see updated find_cat
+  
+  #170424 lookup generic names...
+  DEPENDS=''
+  echo -n '' > /tmp/0pre-oe/0pre-oe-depends
+  if [ $FLGdep -eq 0 ];then #170507
+   if [ "$DEPENDS0" ];then
+    for ADEP in $DEPENDS0
+    do
+     GENDEP="$(cat /tmp/0pre-oe/0pre-oe-split2gen-namesXXX /tmp/0pre-oe/0pre-oe-split2gen-names | grep " ${ADEP} " | cut -f 1 -d '|')" #170427
+     [ ! "$GENDEP" ] && GENDEP="$ADEP"
+     [ "$GENDEP" != "$DB_nameonly" ] && echo "$GENDEP" >> /tmp/0pre-oe/0pre-oe-depends
+    done
+   fi
+   [ -s /tmp/0pre-oe/0pre-oe-depends ] && DEPENDS="$(sort -u /tmp/0pre-oe/0pre-oe-depends | tr '\n' ' ' | sed -e 's% $%%')"
+  else
+   DEPENDS="$DEPENDS0"
+  fi
+  
+  [ "$DEPENDS" ] && DB_dependencies="$(echo -n "$DEPENDS" | sed -e 's%^%+%' -e 's% %,+%g' -e 's%,$%%' | sed -e 's% %%g' -e 's%,$%%' -e 's%+$%%')"
+  
+  DB_homepage="$(echo "$ALLDATA" | grep "^Package: ${DB_nameonly}|" | grep -o '|Homepage: .*' | cut -f 2 -d ' ' | cut -f 1 -d '|')"
+  [ ! "$DB_homepage" ] && DB_homepage="$(grep "^${DB_nameonly} " /tmp/0pre-oe/0pre-oe-homepages | cut -f 2- -d ' ')"
+  [ "$DB_homepage" ] && echo "${DB_nameonly} ${DB_homepage}" >> PKGS_HOMEPAGES
+  
+  #170517 strip the files... 180723 now support cross-build strip...
+  echo "Stripping files..."
+  [ -d ${AIMG}XXX ] && rm -rf ${AIMG}XXX
+  cp -a ${AIMG} ${AIMG}XXX
+  
+  #201007 need to cast the net wider...
+  find ${AIMG}XXX -mindepth 2 -type f 2>/dev/null |
+  while read ONEFILE
+  do
+   [ "$ONEFILE" == "" ] && continue
+   ONENOT="$(echo "${ONEFILE/*imageXXX/}" | grep -E 'firmware|/share/|/doc/|/include/|/man/|/var/|/root/|/dev/|/font/')" #20201014
+   [ "$ONENOT" ] && continue
+   ONEBASE="`basename "$ONEFILE"`"
+   [ "$ONEBASE" == "e3" ] && continue #cannot be stripped.
+   [ "$ONEBASE" == "QtWeb" ] && continue #cannot be stripped.
+   if [ "$(file "$ONEFILE" | grep -oE 'ELF.*executable|ELF.*shared')" != "" ];then #20201014
+    echo -n " ${ONEBASE}"
+    ${yPWD}/support/${CROSSSTRIP} --strip-unneeded "$ONEFILE"
+   fi
+  done
+  sync
+  
+#  ##171019 allow WOOF_TARGETARCH='amd64x32' WOOF_HOSTARCH='amd64' ...
+#  #if [[ ${WOOF_TARGETARCH} == ${WOOF_HOSTARCH}* ]] ;then #strip will not work for cross-build.
+#   find ${AIMG}XXX/bin ${AIMG}XXX/sbin ${AIMG}XXX/usr/bin ${AIMG}/sbin -type f 2>/dev/null |
+#   while read ONEFILE
+#   do
+#    [ "$ONEFILE" == "" ] && continue
+#    ONEBASE="`basename "$ONEFILE"`"
+#    [ "$ONEBASE" == "e3" ] && continue #cannot be stripped.
+#    [ "$ONEBASE" == "QtWeb" ] && continue #cannot be stripped.
+#    if [ "`file "$ONEFILE" | grep 'ELF' | grep -E 'executable|shared'`" != "" ];then #201007 fix.
+#     echo -n "."
+#     ${yPWD}/support/${CROSSSTRIP} --strip-unneeded "$ONEFILE" #180723
+#    fi
+#   done
+#   echo
+#   find ${AIMG}XXX/lib ${AIMG}XXX/usr/lib -type f -name \*.so* 2>/dev/null |
+#   while read ONEFILE
+#   do
+#    [ "$ONEFILE" == "" ] && continue
+#    ONEBASE="`basename "$ONEFILE"`"
+#    if [ "`file "$ONEFILE" | grep 'ELF' | grep 'shared object'`" != "" ];then
+#     echo -n "."
+#     ${yPWD}/support/${CROSSSTRIP} --strip-unneeded "$ONEFILE" #180723
+#    fi
+#   done
+#  #fi
+  
+  #180724 this has to be done after stripping...
+  DB_size="$(du -s -k ${AIMG}XXX | cut -f 1)K"
+  DBENTRY="$DB_pkgname|$DB_nameonly|$DB_version|$DB_pkgrelease|$DB_category|${DB_size}|$DB_path|$DB_fullfilename|$DB_dependencies|$DB_description|$DISTRO_BINARY_COMPAT|$DISTRO_COMPAT_VERSION||"
+  echo "$DBENTRY" >> $PKGLISTS_COMPAT
+  
+  sync
+  echo ; echo '...done'
+  
+  #import the package...
+  echo "${DBENTRY}${ACAT}|${DB_homepage}|" > ${AIMG}XXX/pkg.specs #maybe useful to have in the pkg.
+  cd ${AIMG}XXX
+  tar -c -f  ${yPWD}/packages-${DISTRO_BINARY_COMPAT}-${DISTRO_COMPAT_VERSION}/${DB_pkgname}-${ACAT}.tar *
+  cd "$yPWD"
+  cd packages-${DISTRO_BINARY_COMPAT}-${DISTRO_COMPAT_VERSION}
+  xz ${DB_pkgname}-${ACAT}.tar
+  cd ..
+  sync
+  rm -f ${AIMG}/pkg.specs
+ done
+done
+echo
+echo '...done'
+
+#sort...
+echo
+echo "Sorting: ${PKGLISTS_COMPAT} PKGS_HOMEPAGES ..."
+sort --key=1 --field-separator='|' $PKGLISTS_COMPAT > /tmp/0pre-$PKGLISTS_COMPAT
+mv -f /tmp/0pre-$PKGLISTS_COMPAT $PKGLISTS_COMPAT
+#note: file PKGS_HOMEPAGES read in /usr/sbin/indexgen.sh and /usr/local/petget/fetchinfo.sh
+sort --key=1,1 --field-separator=" " --unique ./PKGS_HOMEPAGES > /tmp/woof-homepages.sorted
+mv -f /tmp/woof-homepages.sorted ./PKGS_HOMEPAGES
+sync
+echo '...done'
+echo
+echo "Binary packages have been imported to folder packages-${DISTRO_BINARY_COMPAT}-${DISTRO_COMPAT_VERSION}"
+echo "A Puppy-format pkg db has been created, name '${PKGLISTS_COMPAT}'"
+echo "A list of pkg homepages has been created in file 'PKGS_HOMEPAGES'"
+
+if [ -d ${PROJECTPATH}/${WOOFNAME}-distro/${WOOF_TARGETARCH}/${WOOF_COMPATDISTRO}/${WOOF_COMPATVERSION} ];then
+  echo
+  echo "Suggest also copy pkg-db to the master woofQ (Quirky build system):"
+  echo "${PROJECTPATH}/${WOOFNAME}-distro/${WOOF_TARGETARCH}/${WOOF_COMPATDISTRO}/${WOOF_COMPATVERSION}/${PKGLISTS_COMPAT}"
+  #ex: ...easy-distro/amd64/oe/pyro/Packages-oe-pyro-official
+  echo -n "Press ENTER only to copy this file:"
+  read t2update
+  [ "$t2update" == "" ] && cp -a -f ${PKGLISTS_COMPAT} ${PROJECTPATH}/${WOOFNAME}-distro/${WOOF_TARGETARCH}/${WOOF_COMPATDISTRO}/${WOOF_COMPATVERSION}/
+fi
+
+##################
+echo
+echo "${PKGLISTS_COMPAT} has been created."
+echo "This needs to be uploaded to: "
+echo "  $PKGREPO_COMPAT"
+echo "It will also be used locally by the Woof build scripts."
+echo "If you run '0setup', it will see local $PKGLISTS_COMPAT"
+echo "and will not download it."
+echo "Good to run '0setup' though as it checks validity of some things."
+
+###END###

@@ -1,0 +1,7 @@
+# 20211204 oe
+mkdir -p ../gpgme_DEV/usr/bin
+echo '#!/bin/sh
+ PARAM1="$@"
+ [ "$PARAM1" == "--version" ] && PARAM1="--modversion"
+ pkg-config $PARAM1 gpgme' > ../gpgme_DEV/usr/bin/gpgme-config
+chmod 755 ../gpgme_DEV/usr/bin/gpgme-config

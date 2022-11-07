@@ -1,0 +1,21 @@
+#20211227 oe dunfell
+
+if [ -f usr/share/applications/com.obsproject.Studio.desktop ];then
+ rm -f usr/share/applications/com.obsproject.Studio.desktop
+fi
+
+echo '[Desktop Entry]
+Version=1.0
+Name=OBS Studio video streaming/recording
+GenericName=OBS Studio
+Comment=Free and Open Source Streaming/Recording Software
+Exec=obs
+Icon=obs.png
+Terminal=false
+Type=Application
+Categories=AudioVideoEditing
+StartupNotify=true
+StartupWMClass=obs' > usr/share/applications/obs.desktop
+
+mkdir -p usr/share/pixmaps
+ln -s ../icons/hicolor/256x256/apps/com.obsproject.Studio.png usr/share/pixmaps/obs.png

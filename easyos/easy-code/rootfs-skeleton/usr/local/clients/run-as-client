@@ -1,0 +1,67 @@
+#!/bin/sh
+#generic wrapper to run as user (when currently running as root)
+#based on run-as-spot, originally created by James Budiono
+#a requirement of this script is that $1 is the name of app to run,
+# and it will be run as user of same name.
+#20210916 remove /INSIDE_* test.
+
+[ ! $1 ] && exit
+CWD=$(pwd)
+APP="$1"; shift
+ARGS=""
+#[ $1 ] && while [ "$1" ]; do ARGS="$ARGS \"$1\""; shift; done
+if [ $1 ];then
+ while [ "$1" ]
+ do
+  #do not put quotes around if a single word. example is "-edit" for seamonkey, the quotes stuff it up entirely...
+  if [ "${1/ /}" == "${1}" ];then
+   ARGS="${ARGS} ${1}"
+  else
+   ARGS="${ARGS} \"${1}\""
+  fi
+  shift
+ done
+fi
+
+if [ $(id -u) -ne 0 ]; then
+ exec "$APP" $ARGS
+fi
+
+##if inside a container, do not run as client...
+#ls -1 /INSIDE_* >/dev/null 2>&1 #20210916 file(s) exists if in container.
+#if [ $? -eq 0 ];then
+# exec "$APP" $ARGS
+#fi
+ 
+#this is a method to authorize x server to run by user ${APP}. works when server running.
+#note: this setting does not seem to be stored in a file. it affects the currently running
+#      x server and will be lost when x quits.
+ALLOWflg="$(xhost | grep -o ":${APP}$")"
+if [ ! "$ALLOWflg" ];then
+ xhost +SI:localuser:${APP}
+fi
+
+#[ $XAUTHORITY ] && cp $XAUTHORITY -f /home/${APP}/.Xauthority 2>/dev/null
+#touch /home/${APP}/.Xauthority
+
+#following line is mostly there to catch any root:root files that may have got copied in...
+chown -R ${APP}:${APP} /home/${APP} &
+sleep 0.1
+export XAUTHORITY=/home/${APP}/.Xauthority  
+export XDG_CONFIG_HOME=/home/${APP}/.config
+export XDG_CACHE_HOME=/home/${APP}/.cache
+export XDG_DATA_HOME=/home/${APP}/.local/share
+ 
+#20210912 need to allow write inside encrypted fs...
+which keyctl >/dev/null
+if [ $? -eq 0 ];then
+ IDflg="$(grep -o ' logon ' /proc/keys)"
+else
+ IDflg=""
+fi
+if [ "$IDflg" ];then
+ exec su -l ${APP} -s /bin/sh -c "DISPLAY=${DISPLAY} /usr/local/clients/run-client-indirect \"$APP\" $ARGS"
+else
+ exec su -l ${APP} -s /bin/sh -c "DISPLAY=${DISPLAY} \"$APP\" $ARGS"
+fi
+###end###

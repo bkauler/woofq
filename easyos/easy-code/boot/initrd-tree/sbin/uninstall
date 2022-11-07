@@ -1,0 +1,61 @@
+#!/bin/sh
+#if user has installed a pkg that is now in easy.sfs, remove it.
+#called from fixlayers whenever version update.
+#20221021 first version.
+
+PREpath="/mnt/${WKG_DEV}/${WKG_DIR}.session"
+if [ ! -s ${PREpath}/root/.packages/user-installed-packages ];then
+ exit
+fi
+
+USERpkgs="$(cut -f 1,2,3 -d '|' ${PREpath}/root/.packages/user-installed-packages | tr '\n' ' ')"
+# ex: alsa-lib-1.2.1.2-r9|alsa-lib|1.2.1.2-r9
+
+for A in $USERpkgs
+do
+ USERpkgname="${A%%|*}"
+ B="${A#*|}"
+ USERnameonly="${B%|*}"
+ USERversion="${B#*|}"
+ 
+ USERnameptn="|${USERnameonly}|"
+ WOOFfnd="$(grep "$USERnameptn" /easy_ro/easy_sfs/root/.packages/woof-installed-packages | tail -n 1)"
+ if [ "$WOOFfnd" ];then
+  WOOFversion="$(echo -n "$WOOFfnd" | cut -f 3 -d '|')"
+  vercmp ${USERversion} gt ${WOOFversion}
+  if [ $? -eq 0 ];then
+   continue #keep user-installed pkg.
+  fi
+  
+  if [ ! -e ${PREpath}/root/.packages/${USERpkgname}.files ];then #precaution
+   touch ${PREpath}/root/.packages/${USERpkgname}.files
+  fi
+  
+  #code from /usr/local/petget/removepreview.sh. delete files...
+  #/ on end, it is a directory entry...
+  cat ${PREpath}/root/.packages/${USERpkgname}.files | grep -v '/$' | sed -e "s%^/%${PREpath}/%" | xargs -r rm -f 2>/dev/null
+  #do it again, looking for empty directories...
+  cat ${PREpath}/root/.packages/${USERpkgname}.files |
+  while read ONESPEC
+  do
+   if [ "$ONESPEC" == "" ];then
+    continue
+   fi
+   if [ -d "${PREpath}${ONESPEC}" ];then
+    if [ "$(ls -1 "${PREpath}${ONESPEC}")" == "" ];then
+     rmdir "${PREpath}${ONESPEC}" 2>/dev/null
+    fi
+   fi
+  done
+  rm -f ${PREpath}/root/.packages/${USERpkgname}.files
+  
+  if [ -f ${PREpath}/audit/deposed/${USERpkgname}DEPOSED.sfs ];then
+   rm -f ${PREpath}/audit/deposed/${USERpkgname}DEPOSED.sfs
+  fi
+  rm -f ${PREpath}/audit/packages/${USERpkgname}* 2>/dev/null
+  
+  sed -i "/${USERnameptn}/d" ${PREpath}/root/.packages/user-installed-packages
+ fi
+done
+
+###end###

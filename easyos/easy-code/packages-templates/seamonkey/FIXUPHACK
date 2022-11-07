@@ -1,0 +1,99 @@
+#141213 rewritten.
+#150316 milestone seems need to be truncated. ex: 36.0.1 needs to be 36.0
+#150316 fix for broken absolute-path symlink.
+#150726 have exported BUILD_CHOICE_MERGE_DEVX in 2createpackages.
+#151002 fix for 1st startup home page.
+#161230 fix lib path. 161231
+#20210824 fixes for slackware 15.0
+
+DISABLE_POST_INSTALL_SCRIPT=yes #161230 slackware
+
+SMLIBPATH="$(find usr/lib -mindepth 1 -maxdepth 1 -type d -name 'seamonkey-[0-9]*' 2>/dev/null | head -n 1)"
+if [ ! "$SMLIBPATH" ];then
+ SMLIBPATH="$(find usr/lib${xARCHDIR} -mindepth 1 -maxdepth 1 -type d -name 'seamonkey-[0-9]*' | head -n 1)"
+fi
+if [ ! "$SMLIBPATH" ];then #20210824
+ SMLIBPATH="$(find usr/lib${xARCHDIR} -mindepth 1 -maxdepth 1 -type d -name 'seamonkey' | head -n 1)"
+fi
+if [ "$SMLIBPATH" ];then
+ SMPATH="$(dirname $SMLIBPATH)"
+ SMDIR="$(basename $SMPATH)"
+ SMFOLDER="$(basename $SMLIBPATH)"
+ if [ ! -d ${SMPATH}/seamonkey ];then #20210824
+  ln -snf $SMFOLDER ${SMPATH}/seamonkey
+ fi
+ 
+ #20210824 think not need this anymore...
+ #if [ "$BUILD_CHOICE_MERGE_DEVX" != "yes" ];then #150726
+ # mkdir -p ../seamonkey_DEV/usr/include
+ # ln -snf $SMFOLDER ../seamonkey_DEV/usr/include/seamonkey
+ #else
+ # ln -snf $SMFOLDER usr/include/seamonkey
+ #fi
+
+ #150128 do this in pinstall.sh:
+ #for ALIBLINK in libnspr4.so libnss3.so libplc4.so libplds4.so libsmime3.so libsoftokn3.so libssl3.so
+ #do
+ # [ ! -e usr/lib/${ALIBLINK} ] && ln -s seamonkey/${ALIBLINK} usr/lib/${ALIBLINK}
+ #done
+
+ if [ -f ${SMPATH}/seamonkey/platform.ini ];then
+  #150316 seems need to be truncated. ex: 36.0.1 needs to be 36.0 ...
+  SMMILESTONE="`cat ${SMPATH}/seamonkey/platform.ini | grep '^Milestone' | cut -f 2 -d '=' | cut -f 1 -d '.'`.0" #151002 keep first field only. change 2nd to 0.
+  SMPREFSJS="`find root/.mozilla/seamonkey -maxdepth 2 -type f -name prefs.js`"
+  #this makes the puppy home page display at first run of sm...
+  if [ "$SMMILESTONE" ];then
+   smPATTERN="s% \"rv:.*\"% \"rv:${SMMILESTONE}\"%"
+   sed -i -e "$smPATTERN" $SMPREFSJS
+  fi
+  #151002 ...above is not working for sm 2.35. platform.ini has "38.2.0esrpre",
+  #after running, sm prefs.js has "38.0". i have made a mod above to fix it,
+  #but see this ref:
+  #http://murga-linux.com/puppy/viewtopic.php?t=97897&start=210
+  #jamesbond discovered this method:
+  echo 'user_pref("startup.homepage_override_url","file:///usr/share/doc/home.htm");
+user_pref("startup.homepage_welcome_url","file:///usr/share/doc/home.htm");' >> $SMPREFSJS
+ fi
+ 
+ #not needed, have hunspell
+ if [ -d ${SMPATH}/seamonkey/dictionaries ];then
+  rm -f ${SMPATH}/seamonkey/dictionaries/*
+ fi
+
+ if [ -d ${SMPATH}/seamonkey/extensions ];then
+  rm -f ${SMPATH}/seamonkey/extensions/modern*
+ fi
+ 
+ #20210824 slackware 15.0 
+ if [ ! -e ${SMPATH}/seamonkey/seamonkey ];then #huh, slackware doesn't have seamonkey binary!
+  ln -s seamonkey-bin ${SMPATH}/seamonkey/seamonkey
+ fi
+ 
+ #150103. 161231 slackware 14.2 puts actual binary executable at /usr/bin/seamonkey, change to a symlink...
+ #if [ ! -e usr/bin/seamonkey ];then
+  if [ ! -h usr/bin/seamonkey ];then #150316 coz absolute symlink to non-exist target will come here.
+   ln -snf ../${SMDIR}/seamonkey/seamonkey usr/bin/seamonkey
+  fi
+ #fi
+ 
+ #20210824 don't think need this anymore...
+ ##150115
+ #if [ "$BUILD_CHOICE_MERGE_DEVX" != "yes" ];then #150726
+ # SMDEVLIB="$(find ${SMPATH} -mindepth 1 -maxdepth 1 -type d -name 'seamonkey-devel-[0-9]*' | head -n 1)"
+ # if [ "$SMDEVLIB" ];then
+ #  mkdir -p ../seamonkey_DEV/${SMDEVLIB}
+ #  cp -a -f --remove-destination ./${SMDEVLIB}/* ../seamonkey_DEV/${SMDEVLIB}/
+ #  sync
+ #  rm -rf ./${SMDEVLIB}
+ # fi
+ #fi
+ 
+ #150128 hack to get menu font right for april...
+ case $DISTRO_FILE_PREFIX in
+  april*)
+   sed -i 's%12px%11pt%' root/.mozilla/seamonkey/3o1ptd5r.default/chrome/userChrome.css
+   sed -i 's%DejaVu Sans%Open Sans%' root/.mozilla/seamonkey/3o1ptd5r.default/chrome/userChrome.css
+  ;;
+ esac
+
+fi

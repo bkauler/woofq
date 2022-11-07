@@ -1,0 +1,1242 @@
+#!/bin/sh
+#(c) copyright Barry Kauler 2017, bkhome.org
+#Licence 2018 GPL V3 (/usr/share/doc/legal)
+#called from the "sfsget" icon on the desktop, or via the Setup menu.
+#181031 first version.
+#181106 test for sha512sum or sha256sum
+#181107 fix when no pkgs of current version. hide install btn.
+#181108 rename 'load-list' to 'base-load-list'. fixes.
+#181120 new button "INSTALL" when sfs already downloaded. extra install checking.
+#181122 q*.sfs renamed to easy*.sfs  181124 fix.
+#181123 took me by surprise, the "*" fed into for-loop got expanded, completely wrong.
+#181124 fix bug. 181203 see note.
+#181227 offer to upgrade if container already installed.
+#190106 before delete old sfs, check whether still in use anywhere.
+#190812 BOOT_CAPS_DROPPED set in PUPSTATE, by initrd.
+#190812 remote_sync script uploads 'date-last-upload' file. improve install management. 190818
+#190911 3buildeasydistro creates easy.sfs without easy.configuration file. 190912 changed some red to purple text.
+#190913 date-last-upload needs to be downloaded first time access sfs repo.
+#190930 when create radiobuttons, want current distro path to be on top.
+#191001 fix sfs-load-list.
+#191020 inbuilt containers do not have 'specs' file.
+#191220 allow to run off-line.
+#200331 now have online 'sfs-repo-file-list'. do not list files not in currently-selected repo.
+#200405 esmourguit: gettext'ed more strings.
+#200601 .desktop is normal, .ec-desktop for running in container. see also /sbin/fixlayers in intrd, dir2sfs, ec-create-desktop-icons-menu
+#200824 BOOT_LOCK in PUPSTATE set if lockdown (running in RAM), containers will be disabled.
+#20210504 testing a new sfs, created local path puppy/slackware/14.2 but it not in a radiobutton.
+#20210917 now may have DB_install='mainonly'
+#20210918 new msg under, or in place of, the INSTALL button.
+#20220126 PETget now named PKGget.
+#20220525 changed extra-sfss-repo path. EOS_SUPPORT_CONTAINERS==0 do not support containers.
+#20220603 replace DB_* with SFS_DB_* in sfs .specs files.
+#20220607 resolve problems with easy*sfs deps.
+#20220607 problem when remove online sfs files, but user already has downloaded .specs and .png files.
+#20220608 fixes.
+
+export TEXTDOMAIN=sfsget
+export OUTPUT_CHARSET=UTF-8
+#export ORIGLANG="$LANG"
+#export LANG=C
+
+. /etc/rc.d/PUPSTATE #has PUP_HOME  20220525 EOS_SUPPORT_CONTAINERS
+. /etc/DISTRO_SPECS #has DISTRO_BINARY_COMPAT, DISTRO_COMPAT_VERSION DISTRO_DB_SUBNAME
+. /root/.packages/DISTRO_PET_REPOS #has PET_REPOS, PACKAGELISTS_PET_ORDER, SFS_REPOS
+
+[ ! "$SFS_REPOS" ] && exit 1
+mkdir -p /tmp/sfsget
+CR='
+'
+mkdir -p /var/local/sfsget #190812
+echo -n "easyos/${DISTRO_BINARY_COMPAT}/${DISTRO_COMPAT_VERSION}" > /tmp/sfsget/sfs-main-path #20210918 need this coz variables don't work inside funcs called from main gtkdialog dlg.
+
+#20220525 BOOT_LOCK is an older variable, these are doing the same thing...
+if [ "$EOS_SUPPORT_CONTAINERS" == "0" ];then
+ BOOT_LOCK='1'
+fi
+
+err_exit_func() {
+ echo "${2}"
+ popup "process=wait background=#ff8080 level=top terminate=ok|<b>${2}</b>"
+ exit ${1}
+}
+
+check_hash_func() {
+ #passed in: $SFS_DB_hash $SFS_DB_fullfilename
+ aDB_hash="${1}"
+ aDB_fullfilename="${2}"
+ HASHLEN="$(echo -n "$aDB_hash" | wc -m)"
+ case "$HASHLEN" in
+  128) HASHEXE="sha512sum" ;;
+  *)   HASHEXE="sha256sum" ;; #64
+ esac
+ HASH="$(${HASHEXE} ${aDB_fullfilename} | cut -f 1 -d ' ')"
+ if [ "$HASH" != "$aDB_hash" ];then #181124
+  M_f3="<b>${aDB_fullfilename}</b>
+$(gettext 'File checksum wrong, aborting install')"
+  popup "background=#ff8080 level=top terminate=ok process=wait|<big>${M_f3}</big>"
+  [ -f ./${aDB_fullfilename} ] && rm -f ./${aDB_fullfilename} #181108 precaution.
+  exit 1
+ fi
+}
+
+if [ "$EOS_SUPPORT_CONTAINERS" == "0" ];then #20220525
+ Hr1="$(gettext 'The actual SFS files are required to be stored three-deep in the repository. The dir2sfs utility provides guidance for this. Currently this must be:')"
+ Hr2=" easyos/${DISTRO_BINARY_COMPAT}/${DISTRO_COMPAT_VERSION}"
+else
+ Hr1="$(gettext 'The actual SFS files are required to be stored three-deep in the repository. The dir2sfs utility provides guidance for this. Examples:')"
+ Hr2=" easyos/oe/pyro  puppy/slackware/14.2  puppy/ubuntu/16.04"
+fi
+
+export HLP_REPO="<window title=\"$(gettext 'Help: SFS online repositories')\" icon-name=\"gtk-index\" window_position=\"1\">
+  <vbox>
+    <text use-markup=\"true\">
+     <label>\"$(gettext 'SFS packages are available in online repositories, for installation in EasyOS. You need to choose which repository, in the case of there being more than one.')
+
+<b>$(gettext 'Technical notes')</b>
+$(gettext 'Anyone can setup an SFS repository, and provide the URL for others to use. To setup, there are certain guidelines:')
+
+$(gettext 'The SFS file must be created by the <b>dir2sfs</b> utility. This ensures that correct meta-data is created inside the SFS file. The procedure is simple, open a terminal where the folder is that is desired to convert to a SFS, and run <i>dir2sfs name-of-folder</i>. The folder needs to be named in the format <b>name_version_arch</b>')
+
+${Hr1}
+${Hr2}
+
+$(gettext 'Users can add a new URL to the variable <b>SFS_REPOS</b>, found in file /root/.packages/DISTRO_PET_REPOS -- this is a space-delimited list of URLs.')\"</label>
+      <variable>HLP_REPO</variable>
+    </text>
+    <hbox>
+    <button>
+      <label>$(gettext 'Close')</label>
+      <action type=\"closewindow\">HLP_REPO</action>
+    </button>
+    </hbox>
+  </vbox>
+ </window>"
+
+if [ "$EOS_SUPPORT_CONTAINERS" == "0" ];then #20220525
+ Hsg1=""
+ Hsg2=""
+ Hsg3="$(gettext 'After clicking the <b>DOWNLOAD</b> button, the package will be downloaded, and an offer made to install as a layer in the main filesystem.')"
+ Hsg4="$(gettext 'SFS packages as implemented in EasyOS, also go by the name <b>EasyPak</b>, as they are <i>universal packages</i> similar to <b>FlatPak</b>, but simple to use and very light-weight.')"
+else
+ Hsg1="$(gettext 'Or, it may even be a complete Linux distribution.')"
+ Hsg2="
+$(gettext 'Yes, a complete Linux distro, that you can run inside EasyOS, and flick into and out of!')
+"
+ Hsg3="$(gettext 'After clicking the <b>DOWNLOAD</b> button, the package will be downloaded, and an offer made to install as a new container, or as a layer in an existing container, or as a layer in the main filesystem.')"
+ Hsg4="$(gettext 'SFS packages as implemented in EasyOS, also go by the name <b>EasyPak</b>, as they are <i>universal packages</i> similar to <b>FlatPak</b>, but simple to use and very light-weight. It is <b>EasyContainers</b> that makes SFS packages so powerful, our simpler alternative to the mainstream container mechanisms such as <b>Docker</b>.')"
+fi
+
+export HLP_SFSGET="<window title=\"$(gettext 'Help: SFS packages')\" icon-name=\"gtk-index\" window_position=\"1\">
+  <vbox>
+    <text use-markup=\"true\">
+     <label>\"$(gettext 'An SFS package is, essentially, a folder that has been converted into a single file and made read-only and compressed. This file may be <i>mounted</i> as a filesystem and the original folder contents accessed.')
+
+$(gettext 'As to what is inside an SFS file, it can be anything, from a single app such as LibreOffice, to a collection of apps on a theme such as graphics editing.') ${Hsg1}
+${Hsg2}
+${Hsg4}
+
+<b>$(gettext 'Installation')</b>
+${Hsg3}
+
+<b>$(gettext 'NOTICE:')</b>
+$(gettext 'On the desktop you will see an icon labeled <i>pkg</i>, alongside <i>sfs</i>. The former is the traditional package manager, and you may use it to install themes and applications. However, for the larger apps and combinations of apps, the latter is a good choice.')\"</label>
+      <variable>HLP_SFSGET</variable>
+    </text>
+    <hbox>
+    <button>
+      <label>$(gettext 'Close')</label>
+      <action type=\"closewindow\">HLP_SFSGET</action>
+    </button>
+    </hbox>
+  </vbox>
+ </window>"
+
+if [ "$EOS_SUPPORT_CONTAINERS" == "0" ];then #20220525
+ HLP_SFSINSTALL="<window title=\"$(gettext 'Help: SFS package install')\" icon-name=\"gtk-index\" window_position=\"1\">
+  <vbox>
+    <text use-markup=\"true\">
+     <label>\"$(gettext 'Downloaded SFS file and dependencies may be found in /mnt/wkg/sfs. These may be used as required.')
+
+<b>$(gettext 'Main filesystem')</b>
+$(gettext 'The EasyOS desktop is built with layered SFS files, with easy.sfs at the bottom. SFS files may be inserted, for example the <b>devx</b> SFS file.')
+
+<b>$(gettext 'Do not install')</b>
+$(gettext 'Do nothing with the downloaded SFS file for now. Later, <b>Easy BootManager</b> in the Filesystem menu may be used to manage insertion of SFS files.')
+
+<b>$(gettext 'Technical notes:')</b>
+$(gettext 'Every downloaded SFS file has an associated <b>.specs</b> file. Look at these for further information about the capabilities of the SFS.')\"</label>
+      <variable>HLP_SFSINSTALL</variable>
+    </text>
+    <hbox>
+    <button>
+      <label>$(gettext 'Close')</label>
+      <action type=\"closewindow\">HLP_SFSINSTALL</action>
+    </button>
+    </hbox>
+  </vbox>
+ </window>"
+else
+ HLP_SFSINSTALL="<window title=\"$(gettext 'Help: SFS package install')\" icon-name=\"gtk-index\" window_position=\"1\">
+  <vbox>
+    <text use-markup=\"true\">
+     <label>\"$(gettext 'Downloaded SFS file and dependencies may be found in /mnt/wkg/sfs. These may be used as required.')
+
+<b>$(gettext 'New container')</b>
+$(gettext 'A container will be created in /mnt/wkg/containers, usually with an icon on the desktop and menu entry to launch it.')
+
+<b>$(gettext 'Existing container')</b>
+$(gettext 'Containers are built with a layered filesystem. Any SFS many be inserted into the layers of an existing container.')
+
+<b>$(gettext 'Main filesystem')</b>
+$(gettext 'The EasyOS desktop is not a container, but it is built with layered SFS files, with easy.sfs at the bottom. SFS files may be inserted, for example the <b>devx</b> SFS file.')
+
+<b>$(gettext 'Do not install')</b>
+$(gettext 'Do nothing with the downloaded SFS file for now. Later, <b>Easy BootManager</b> and <b>Easy Container Management</b> in the Filesystem menu may be used to create containers and manage insertion of SFS files.')
+
+<b>$(gettext 'Technical notes:')</b>
+$(gettext 'Every downloaded SFS file has an associated <b>.specs</b> file. Look at these for further information about the capabilities of the SFS.')\"</label>
+      <variable>HLP_SFSINSTALL</variable>
+    </text>
+    <hbox>
+    <button>
+      <label>$(gettext 'Close')</label>
+      <action type=\"closewindow\">HLP_SFSINSTALL</action>
+    </button>
+    </hbox>
+  </vbox>
+ </window>"
+fi
+export HLP_SFSINSTALL
+
+
+###SFS_DB_repo###
+for ONECHOICE in ${SFS_REPOS}
+do
+ aREPO="$(echo -n "$ONECHOICE" | cut -f 2 -d '|')"
+ ITEMSREPO="${ITEMSREPO}<item>${aREPO}</item>"
+done
+
+#190812 BOOT_CAPS_DROPPED set in PUPSTATE, by initrd...
+case "$BOOT_CAPS_DROPPED" in
+ *cap_sys_mount*|*cap_sys_admin*|*cap_mknod*) #190818
+  if [ "$EOS_SUPPORT_CONTAINERS" == "0" ];then #20220525
+   MSGcaps1=""
+  else
+   MSGcaps1="${CR}<text use-markup=\"true\"><label>\"<span color='red'><b>$(gettext 'NOTICE: Linux Capabilities are restricted, so SFS files can only be installed on the main desktop, not in a container.')</b></span>\"</label></text>${CR}"
+  fi
+  KEPTmntg=0
+ ;;
+ *)
+  MSGcaps1=""
+  KEPTmntg=1
+ ;;
+esac
+
+#191220 test if internet...
+FIP="$(getlocalip | grep '^[^l]')" #ex: "eth0: 192.168.1.3"
+echo -n "$FIP" > /tmp/sfsget/internet-flag #read in filterpkgs
+if [ "$FIP" == "" ];then
+ MSGnoi="$(gettext 'There is currently no Internet connection, so SFSget will run in offline mode')"
+ popup "background=#a0d0ff level=top process=wait terminate=ok|<big>${MSGnoi}</big>"
+fi
+
+if [ "$EOS_SUPPORT_CONTAINERS" == "0" ];then #20220525
+ Hpi1="$(gettext 'SFS packages are large apps, or collections of apps, that may be installed as a layer on the main desktop.')"
+else
+ Hpi1="$(gettext 'SFS packages are large apps, or collections of apps, that may be installed either on the main desktop or in containers.')"
+fi
+
+#  window_position=\"1\"
+export SFSGET_DLG1="<window title=\"$(gettext 'SFSget: SFS package installer')\" icon-name=\"gtk-about\">
+  <vbox>
+    
+    <text use-markup=\"true\">
+      <label>\"<b>${Hpi1}</b>\"</label>
+    </text>
+    ${MSGcaps1}
+    <text>
+      <label>\"$(gettext 'SFSget is the preferred mechanism for installing packages in EasyOS. For more information about what SFS packages are, click the Help button at bottom-right of this window.')\"</label>
+    </text>
+
+    <text>
+      <label>\"  \"</label>
+    </text>
+    
+    <frame $(gettext 'STEP1: Choose repository')>
+      <hbox>
+        <text space-expand=\"true\">
+          <label>$(gettext 'Please choose the SFS online repository:')</label>
+        </text>
+        <button>
+          <input file>/usr/local/lib/X11/mini-icons/mini-question.xpm</input>
+          <action type=\"launch\">HLP_REPO</action>
+        </button>
+      </hbox>
+      <combobox width-request=\"480\">
+        <variable>SFS_DB_repo</variable>
+	    ${ITEMSREPO}
+      </combobox>
+    </frame>
+
+    <text>
+      <label>\"  \"</label>
+    </text>
+    
+    <frame $(gettext 'STEP2: Browse repository')>
+      <hbox>
+        <vbox>
+          <text>
+            <label>\"$(gettext 'Having chosen the online repository in STEP1, the SFS files may now be browsed, and one chosen for download and installation.')\"</label>
+          </text>
+          <text>
+            <label>\"$(gettext 'Click the button to browse:')\"</label>
+          </text>
+        </vbox>
+        <button>
+          <input file>/usr/share/pixmaps/puppy/package_sfs.svg</input>
+          <action type=\"exit\">BROWSE</action>
+        </button>
+      </hbox>
+    </frame>
+
+    <text>
+      <label>\"  \"</label>
+    </text>
+    
+    <hbox>
+      <button cancel></button>
+      <button>
+        <input file>/usr/local/lib/X11/mini-icons/mini-question.xpm</input>
+        <action type=\"launch\">HLP_SFSGET</action>
+      </button>
+    </hbox>
+  </vbox>
+</window>"
+
+if [ "$FIP" == "" ];then #191220 test-internet flag
+ #run offline...
+ if [ "$EOS_SUPPORT_CONTAINERS" == "0" ];then #20220525
+  SFS_PROBE="$(find /mnt/wkg/sfs/easyos/${DISTRO_BINARY_COMPAT}/${DISTRO_COMPAT_VERSION} -type f -name '*.sfs' | sed -e 's%^/mnt/wkg/sfs/%%')"
+  #...ex: easyos/debian/buster/scribus_1.4.8_amd64.sfs
+ else
+  SFS_PROBE="$(find /mnt/wkg/sfs -type f -name '*.sfs' | sed -e 's%^/mnt/wkg/sfs/%%')"
+  #...ex: easyos/debian/buster/scribus_1.4.8_amd64.sfs
+ fi
+ if [ "$SFS_PROBE" == "" ];then
+  MSG2="$(gettext 'ERROR: something wrong, no SFS files found. Aborting.')"
+  popup "background=#ff8080 level=top terminate=ok|<big><b>${MSG2} </b></big>"
+  exit 1
+ fi
+ if [ "$EOS_SUPPORT_CONTAINERS" == "0" ];then #20220525
+  PATHS="easyos/${DISTRO_BINARY_COMPAT}/${DISTRO_COMPAT_VERSION}"
+ else
+  PATHS="$(echo -n "${SFS_PROBE}" | cut -f 1,2,3 -d '/' | sort -u)"
+  #when create radiobuttons, want current distro path to be on top...
+  PATHTOP="$(echo "${PATHS}" | grep "easyos/${DISTRO_BINARY_COMPAT}/${DISTRO_COMPAT_VERSION}")"
+  PATHOTHER="$(echo "${PATHS}" | grep -v "easyos/${DISTRO_BINARY_COMPAT}/${DISTRO_COMPAT_VERSION}")"
+  if [ "${PATHTOP}" ];then
+   PATHS="${PATHTOP}
+${PATHOTHER}"
+  fi
+ fi
+else
+ RETPARAMS="$(gtkdialog --program=SFSGET_DLG1 --center)"
+ [ $? -ne 0 ] && exit 0
+ eval "$RETPARAMS"
+ [ "$EXIT" != "BROWSE" ] && exit 0
+ 
+ ###browse###
+ #200331 now have 'sfs-repo-file-list', has list all online files...
+ repostring="$(echo -n "$SFS_DB_repo" | sed -e 's%[^a-zA-Z0-9]%%g')"
+ if [ ! -s /tmp/sfsget/SFS_PROBE_ALL_${repostring} ];then
+  MSG1="$(gettext 'Please wait, probing online repository...')"
+  popup "background=#ffc040 level=top terminate=never|<big><b>${MSG1} </b></big>"
+  wget -4 -t 2 -T 20 --waitretry=20 -P /tmp/sfsget ${SFS_DB_repo}/sfs-repo-file-list
+  RET1=$?
+  if [ "$EOS_SUPPORT_CONTAINERS" == "0" ];then #20220525
+   grep "^easyos/${DISTRO_BINARY_COMPAT}/${DISTRO_COMPAT_VERSION}" /tmp/sfsget/sfs-repo-file-list > /tmp/sfsget/sfs-repo-file-listX
+   mv -f /tmp/sfsget/sfs-repo-file-listX /tmp/sfsget/sfs-repo-file-list
+  fi
+  if [ $RET1 -eq 0 -a -s /tmp/sfsget/sfs-repo-file-list ];then
+   cp -f /tmp/sfsget/sfs-repo-file-list /tmp/sfsget/SFS_PROBE_ALL_${repostring}
+   grep '\.sfs$' /tmp/sfsget/sfs-repo-file-list > /tmp/sfsget/SFS_PROBE_${repostring}
+   cp -f /tmp/sfsget/SFS_PROBE_${repostring} /var/local/sfsget/SFS_PROBE_${repostring}
+   cp -f /tmp/sfsget/SFS_PROBE_${repostring} /tmp/sfsget/SFS_PROBE_currentrepo
+  else
+   #[ -f /tmp/sfsget/SFS_PROBE_${repostring} ] && echo -n '' > /tmp/sfsget/SFS_PROBE_${repostring}
+   killall popup
+   MSG1x="$(gettext 'Probing of online repository failed. Aborting.')"
+   popup "background=#ff8080 level=top terminate=ok|<big><b>${MSG1x} </b></big>"
+   exit 1
+  fi
+  killall popup
+ fi
+ 
+ SFS_PROBE="$(cat /tmp/sfsget/SFS_PROBE_${repostring})"
+ 
+ if [ "$SFS_PROBE" == "" ];then
+  MSG2="$(gettext 'ERROR: something wrong, no SFS files found. Aborting.')"
+  popup "background=#ff8080 level=top terminate=ok|<big><b>${MSG2} </b></big>"
+  exit 1
+ fi
+ 
+ PATHS="$(echo -n "${SFS_PROBE}" | cut -f 1,2,3 -d '/' | sort -u)"
+
+ if [ "$EOS_SUPPORT_CONTAINERS" != "0" ];then #20220525
+  #20210504 add local path if not online... "-not -empty" to ignore folders with nothing in them...
+  LOCALSFSPATHS="$(find /mnt/wkg/sfs -mindepth 3 -type d -not -empty | sort -u | grep -v '^settings'| sed -e 's%^/mnt/wkg/sfs/%%')"
+  if [ "$LOCALSFSPATHS" ];then
+   xPATHS="${PATHS}
+$LOCALSFSPATHS"
+   PATHS="$(echo "$xPATHS" | sort -u | sed '/^$/d')"
+  fi
+ fi
+  
+ if [ "$EOS_SUPPORT_CONTAINERS" != "0" ];then #20220525
+  #190930 when create radiobuttons, want current distro path to be on top...
+  PATHTOP="$(echo "${PATHS}" | grep "easyos/${DISTRO_BINARY_COMPAT}/${DISTRO_COMPAT_VERSION}")"
+  PATHOTHER="$(echo "${PATHS}" | grep -v "easyos/${DISTRO_BINARY_COMPAT}/${DISTRO_COMPAT_VERSION}")"
+  if [ "${PATHTOP}" ];then
+   PATHS="${PATHTOP}
+${PATHOTHER}"
+  fi
+ fi
+ 
+ [ "$BOOT_LOCK" ] && PATHS="easyos/${DISTRO_BINARY_COMPAT}/${DISTRO_COMPAT_VERSION}" #200824 set if running in ram. ref: PUPSTATE
+ 
+ for aPATH in $PATHS
+ do
+  [ ! "$aPATH" ] && continue
+  mkdir -p /mnt/wkg/sfs/${aPATH}
+ done
+ 
+ #download icons and .specs files... 20210917 popup...
+ MSG1="$(gettext 'Please wait, still probing online repository...')"
+ popup "background=#f5a607 level=top terminate=never|<big><b>${MSG1} </b></big>"
+ for aSPEC in ${SFS_PROBE}
+ do
+  aSFS="${aSPEC##*/}" #ex: racy_5.5-r0_i686.sfs
+  aPATH="${aSPEC%/*}" #ex: puppy/t2/racy
+  aNAME="${aSFS%%_*}" #ex: racy
+  aPKGNAME="${aSFS/.sfs/}" #ex: racy_5.5-r0_i686
+  if [ ! -f /mnt/wkg/sfs/${aPATH}/${aPKGNAME}.specs ];then
+   wget -4 -P /mnt/wkg/sfs/${aPATH} ${SFS_DB_repo}/${aPATH}/${aPKGNAME}.specs
+  fi
+  if [ ! -f /mnt/wkg/sfs/${aPATH}/${aNAME}.png ];then
+   wget -4 -P /mnt/wkg/sfs/${aPATH} ${SFS_DB_repo}/${aPATH}/${aNAME}.png
+  fi
+ done
+ killall popup
+ 
+fi #191220 end test-internet
+
+#20220608 small delay before gui appears, put up msg...
+MSGs1="$(gettext 'Starting SFSget main window...')"
+popup "background=#f5a607 level=top terminate=never|<big><b>${MSGs1} </b></big>"
+
+#191220 check that .sfs have matching .specs and .png...
+MSGerr0="$(gettext 'ERROR:')"
+MSGerr1="$(gettext 'SFS exists but this file missing:')"
+MSGerr2="$(gettext 'Aborting SFSget')"
+for aSFS in $SFS_PROBE #ex: easyos/debian/buster/scribus_1.4.8_amd64.sfs
+do
+ [ "$aSFS" == "" ] && continue
+ aMAIN="${aSFS/.sfs/}"
+ if [ ! -f /mnt/wkg/sfs/${aMAIN}.specs ];then
+  #20220607 do not exit, just ignore...
+  #popup "background=#ff8080 level=top process=wait terminate=ok|<big><b>${MSGerr0}</b>${CR}${MSGerr1}</big>${CR}/mnt/wkg/sfs/${aMAIN}.specs${CR}<big>${MSGerr2}</big>"
+  #exit 1
+  true
+ fi
+ aPNG="${aSFS/_*/}.png"
+ if [ ! -f /mnt/wkg/sfs/${aPNG} ];then
+  #20220607 ignore this also...
+  #popup "background=#ff8080 level=top process=wait terminate=ok|<big><b>${MSGerr0}</b>${CR}${MSGerr1}</big>${CR}/mnt/wkg/sfs/${aPNG}${CR}<big>${MSGerr2}</big>"
+  #exit 1
+  true
+ fi
+done
+
+if [ "$FIP" != "" -a -s /tmp/sfsget/SFS_PROBE_${repostring} ];then #20220607
+ #20220607 problem when remove online sfs files, but user already has downloaded
+ # .specs and .png files...
+ for aPATH in $(echo -n "${SFS_PROBE}" | cut -f 1,2,3 -d '/' | tr '\n' ' ') #ex: puppy/t2/racy
+ do
+  for pSPECS in $(find /mnt/wkg/sfs/${aPATH} -mindepth 1 -maxdepth 1 -type f -name '*.specs' | sed -e 's%^/mnt/wkg/sfs/%%' | tr '\n' ' ')
+  do
+   pSFS="${pSPECS/.specs/}.sfs" #ex: easyos/debian/buster/kernel_5.4.128-p1_src.sfs
+   pPATH="${pSPECS%/*}" #ex: easyos/debian/buster
+   grep -q "^${pSFS}" /tmp/sfsget/SFS_PROBE_${repostring} #same as $SFS_PROBE
+   if [ $? -ne 0 ];then
+    if [ ! -f /mnt/wkg/sfs/${pSFS} ];then #test if a local sfs.
+     rm -f /mnt/wkg/sfs/${pSPECS} #.specs file has no matching online or local .sfs
+     oSFS="${pSPECS##*/}" #ex: kernel_5.4.128-p1_src.specs
+     oNAME="${oSFS/_*/}"  #ex: kernel
+     grep -q "/${oNAME}_.*\.sfs" /tmp/sfsget/SFS_PROBE_${repostring}
+     if [ $? -ne 0 ];then
+      ls -1 /mnt/wkg/sfs/${pPATH}/${oNAME}_*.sfs >/dev/null 2>&1
+      if [ $? -ne 0 ];then
+       #there are no online or local sfs's matching the png, so delete it...
+       rm -f /mnt/wkg/sfs/${pSPECS/.specs/}.png
+      fi
+     fi
+    fi
+   fi
+  done
+ done
+fi
+
+###main gui###
+PATHRADIO=""
+for aPATH in $PATHS
+do
+ [ ! "$aPATH" ] && continue
+ if [ $KEPTmntg -eq 0 ];then #190812
+  [ "$aPATH" != "easyos/${DISTRO_BINARY_COMPAT}/${DISTRO_COMPAT_VERSION}" ] && continue #restrict choices.
+ fi
+ #191220 when offline, only display available sfs's...
+ if [ "$FIP" == "" ];then
+  xaTREE1="$(ls /mnt/wkg/sfs/${aPATH}/*.sfs | sort | head -n 1 | rev | cut -f 2- -d '.' | cut -f 1 -d '/' | rev)" #ex: racy_5.5-r0_amd64
+  [ "$xaTREE1" == "" ] && continue #note, this won't happen, as PATHS only has paths that contain sfs's.
+  aTREE1="${xaTREE1}.sfs"
+ else
+  aTREE1="$(ls /mnt/wkg/sfs/${aPATH}/*.specs | sort | head -n 1 | rev | cut -f 2- -d '.' | cut -f 1 -d '/' | rev).sfs" #ex: racy_5.5-r0_amd64.sfs
+ fi
+ PATHRADIO="${PATHRADIO}
+ <radiobutton>
+  <label>${aPATH}</label>
+  <action signal=\"button-release-event\">echo -n ${aPATH} > /tmp/sfsget/current-path</action>
+  <action signal=\"button-release-event\">/usr/local/sfsget/filterpkgs ${aPATH}</action>
+  <action signal=\"button-release-event\">/usr/local/sfsget/pkgtext-compose ${aTREE1}</action>
+  <action signal=\"button-release-event\">echo -n ${aTREE1} > /tmp/sfsget/fullfilename</action>
+  <action signal=\"button-release-event\" condition=\"command_is_true( cat /tmp/sfsget/vis-data-flg )\">show:BOX_DATA</action>
+  <action signal=\"button-release-event\" condition=\"command_is_false( cat /tmp/sfsget/vis-data-flg )\">hide:BOX_DATA</action>
+
+  <action signal=\"button-release-event\" condition=\"command_is_true( cat /tmp/sfsget/downloaded-flg )\">hide:BTN_DOWNLOAD</action>
+  <action signal=\"button-release-event\" condition=\"command_is_false( cat /tmp/sfsget/downloaded-flg )\">show:BTN_DOWNLOAD</action>
+  <action signal=\"button-release-event\" condition=\"command_is_true( cat /tmp/sfsget/downloaded-flg )\">show:PIX_DOWNLOADED</action>
+  <action signal=\"button-release-event\" condition=\"command_is_false( cat /tmp/sfsget/downloaded-flg )\">hide:PIX_DOWNLOADED</action>
+  <action signal=\"button-release-event\" condition=\"command_is_true( cat /tmp/sfsget/vis-install-btn-flg )\">show:BTN_INSTALL</action>
+  <action signal=\"button-release-event\" condition=\"command_is_false( cat /tmp/sfsget/vis-install-btn-flg )\">hide:BTN_INSTALL</action>
+          
+  <action signal=\"button-release-event\" condition=\"command_is_true( cat /tmp/sfsget/vis-already-installed-msg-flg )\">show:MSG_INSTALLED</action>
+  <action signal=\"button-release-event\" condition=\"command_is_false( cat /tmp/sfsget/vis-already-installed-msg-flg )\">hide:MSG_INSTALLED</action>
+
+  <action signal=\"button-release-event\">refresh:BTN_DOWNLOAD</action>
+  <action signal=\"button-release-event\">refresh:PIX_DOWNLOADED</action>
+  <action signal=\"button-release-event\">refresh:BTN_INSTALL</action>
+  <action signal=\"button-release-event\">refresh:MSG_INSTALLED</action>
+
+  <action signal=\"button-release-event\">refresh:TREE1</action>
+  <action signal=\"button-release-event\">refresh:PKGICON</action>
+  <action signal=\"button-release-event\">refresh:PKGTEXT</action>
+  <action signal=\"button-release-event\">refresh:FULLFILENAME</action>
+  <action signal=\"button-release-event\">refresh:BOX_DATA</action>
+ </radiobutton>"
+done
+currentpath="$(echo "$PATHS" | head -n 1)"
+echo -n "$currentpath" > /tmp/sfsget/current-path
+
+/usr/local/sfsget/filterpkgs ${currentpath} #ex: puppy/slackware/14.2
+#...creates /tmp/sfsget/filterpkgs.results.tree, and symlink /tmp/sfsget/name.png
+
+TREE1="$(cat /tmp/sfsget/filterpkgs.results.tree | head -n 1 | cut -f 1 -d '|')" #ex: devx_0.9.7.1_amd64.sfs
+/usr/local/sfsget/pkgtext-compose "${TREE1}"
+#...creates /tmp/sfsget/pkgtext
+echo -n "${TREE1}" > /tmp/sfsget/fullfilename
+
+if [ -f /mnt/wkg/sfs/${currentpath}/${TREE1} ];then #181107 ex: /mnt/wkg/sfs/puppy/t2/racy/racy_5.5-r0_i686.sfs
+ VIS_DOWNLOAD="false"
+ VIS_DOWNLOADED="true"
+else
+ VIS_DOWNLOAD="true"
+ VIS_DOWNLOADED="false"
+fi
+
+#20210918 do not display "INSTALL" button if already installed...
+VIS_ALREADY_INSTALLED_MSG="false"
+#list already installed on main desktop...
+SFSVARS="$(grep '^EASY_LAYER_RO' /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${DISTRO_VERSION}/configuration | cut -f 2 -d '=' | cut -f 2 -d "'" | sed -e 's%\.sfs$%_\.*\\.sfs%' | grep -v '^$')" #181029 ex: convert devx.sfs to devx_.*\\.sfs
+echo -n "${SFSVARS/_*/}" > /tmp/sfsget/sfs-list-loaded-main #ex: chromium_.*\.sfs um, just want the name "chromium"
+
+if [ "$EOS_SUPPORT_CONTAINERS" != "0" ];then #20220525
+ #find out if installed as container...
+ SFSCONT="$(find /mnt/wkg/containers -mindepth 1 -maxdepth 1 -type d | rev | cut -f 1 -d '/' | rev)"
+ echo "$SFSCONT" > /tmp/sfsget/sfs-list-installed-containers
+fi
+
+echo -n 'false' > /tmp/sfsget/vis-already-installed-msg-flg
+if [ "$VIS_DOWNLOADED" == "true" ];then
+ VIS_INSTALL_BTN="true"
+ #um, looks like also need this code in test_installed_func
+ #need to find out if can still be installed to main desktop or in a container...
+ #chromium is a particular problem, as has SFS_DB_install='mainonly'
+ 
+ if [ "$EOS_SUPPORT_CONTAINERS" == "0" ];then #20220525
+  SFSinstallmode='mainonly'
+ else
+  FILENAMEsanssfs="${TREE1/.sfs/}" #ex: remove ".sfs" from "chromium_93.0.4577.63-bk1_amd64.sfs"
+  #SFSinstallmode="$(grep '^SFS_DB_install=' /mnt/${WKG_DEV}/${WKG_DIR}sfs/easyos/${DISTRO_BINARY_COMPAT}/${DISTRO_COMPAT_VERSION}/${FILENAMEsanssfs}.specs | cut -f 2 -d "'")"
+  SFSinstallmode="$(grep '^SFS_DB_install=' /mnt/${WKG_DEV}/${WKG_DIR}sfs/${currentpath}/${FILENAMEsanssfs}.specs | cut -f 2 -d "'")" #20220608 fix.
+  if [ "$SFSinstallmode" == "" ];then #20220603 check for old format
+   SFSinstallmode="$(grep '^DB_install=' /mnt/${WKG_DEV}/${WKG_DIR}sfs/${currentpath}/${FILENAMEsanssfs}.specs | cut -f 2 -d "'")" #20220608 fix.
+  fi
+ fi
+ 
+ grep -q -x "${TREE1/_*/}" /tmp/sfsget/sfs-list-loaded-main
+ if [ $? -eq 0 ];then
+  if [ "$SFSinstallmode" == "mainonly" ];then
+   VIS_INSTALL_BTN="false"
+   VIS_ALREADY_INSTALLED_MSG="true"
+   echo -n 'true' > /tmp/sfsget/vis-already-installed-msg-flg
+   echo "$(gettext 'Already installed main desktop')" > /tmp/sfsget/already-installed-msg
+  fi
+ fi
+else
+ VIS_INSTALL_BTN="false"
+fi
+
+test_installed_func() {
+ echo -n "" > /tmp/sfsget/already-installed-msg
+ echo -n 'false' > /tmp/sfsget/vis-already-installed-msg-flg
+ FULLYINSTALLEDflg=0
+ tMAINPATH="$(cat /tmp/sfsget/sfs-main-path)" #ex: easyos/oe/dunfell
+ tPATH="$(cat /tmp/sfsget/current-path)"
+ tPKG="$(cat /tmp/sfsget/fullfilename)"
+ if [ -f /mnt/wkg/sfs/${tPATH}/${tPKG} ];then
+  echo -n "true" > /tmp/sfsget/vis-install-btn-flg #show install button.
+  echo -n "true" > /tmp/sfsget/downloaded-flg
+ else
+  echo -n "false" > /tmp/sfsget/vis-install-btn-flg
+  echo -n "false" > /tmp/sfsget/downloaded-flg
+ fi
+ 
+ #20210918
+ SFSINSTALLEDMAINflg=0; SFSINSTALLEDCONTflg=0; SFSINSTALLEDLAYERflg=0
+ #need to find out if can still be installed to main desktop or in a container`...
+ #chromium is a particular problem, as has SFS_DB_install='mainonly'
+ FILENAMEsanssfs="${tPKG/.sfs/}" #ex: remove ".sfs" from "chromium_93.0.4577.63-bk1_amd64.sfs"
+ 
+ if [ "$EOS_SUPPORT_CONTAINERS" == "0" ];then #20220525
+  SFSinstallmode='mainonly'
+ else
+  #SFSinstallmode="$(grep '^SFS_DB_install=' /mnt/wkg/sfs/${tMAINPATH}/${FILENAMEsanssfs}.specs | cut -f 2 -d "'")"
+  SFSinstallmode="$(grep '^SFS_DB_install=' /mnt/wkg/sfs/${tPATH}/${FILENAMEsanssfs}.specs | cut -f 2 -d "'")" #20220608 fix.
+  if [ "$SFSinstallmode" == "" ];then #20220603 check for old format.
+   #SFSinstallmode="$(grep '^DB_install=' /mnt/wkg/sfs/${tMAINPATH}/${FILENAMEsanssfs}.specs | cut -f 2 -d "'")"
+   SFSinstallmode="$(grep '^DB_install=' /mnt/wkg/sfs/${tPATH}/${FILENAMEsanssfs}.specs | cut -f 2 -d "'")" #20220608
+  fi
+ fi
+ 
+ grep -q -x "${tPKG/_*/}" /tmp/sfsget/sfs-list-loaded-main
+ if [ $? -eq 0 ];then
+  SFSINSTALLEDMAINflg=1 #already installed on main desktop.
+  echo "$(gettext 'Already installed main desktop')" >> /tmp/sfsget/already-installed-msg
+ fi
+ 
+ if [ "$EOS_SUPPORT_CONTAINERS" == "0" ];then #20220525
+  INSTALLEDPATTERN="${SFSINSTALLEDMAINflg}"
+ else
+  grep -q -x "${tPKG/_*/}" /tmp/sfsget/sfs-list-installed-containers
+  if [ $? -eq 0 ];then
+   SFSINSTALLEDCONTflg=1 #already installed as a container
+   echo "$(gettext 'Already installed as a container')" >> /tmp/sfsget/already-installed-msg
+  fi
+  #ls -1 /mnt/wkg/containers/*/${tPKG/_*/}.sfs >/dev/null 2>&1 
+  #find if sfs installed as a layer in another container...
+  find /mnt/wkg/containers -mindepth 2 -maxdepth 2 -type l -name "${tPKG/_*/}.sfs" >/dev/null 2>&1
+  if [ $? -eq 0 ];then
+   SFSINSTALLEDLAYERflg=1
+   echo "$(gettext 'Already installed inside a container')" >> /tmp/sfsget/already-installed-msg
+  fi
+  INSTALLEDPATTERN="${SFSINSTALLEDMAINflg}${SFSINSTALLEDCONTflg}${SFSINSTALLEDLAYERflg}"
+ fi
+ 
+ if [ $SFSINSTALLEDMAINflg -eq 1 ];then
+  if [ "$SFSinstallmode" == "mainonly" ];then
+   echo -n 'true' > /tmp/sfsget/vis-already-installed-msg-flg
+   echo "$(gettext 'Already installed main desktop')" > /tmp/sfsget/already-installed-msg
+   FULLYINSTALLEDflg=1
+  fi
+ fi
+ 
+ if [ -f /mnt/wkg/sfs/${tPATH}/${tPKG} ];then #test if downloaded again.
+  if [ $FULLYINSTALLEDflg -eq 0 ];then
+   echo -n 'true' > /tmp/sfsget/vis-install-btn-flg
+  else
+   echo -n 'false' > /tmp/sfsget/vis-install-btn-flg #hide the install button
+  fi
+ fi
+
+}
+export -f test_installed_func
+
+VIS_DATA='true'
+[ "$TREE1" == "" ] && VIS_DATA='false'
+
+#200824
+PATHS_XML=''
+if [ "$EOS_SUPPORT_CONTAINERS" != "0" ];then #20220525
+ if [ "$BOOT_LOCK" == "" ];then
+  PATHS_XML="<vbox>
+        <text><label>\"  \"</label></text>
+        <text><label>$(gettext 'Paths:')</label></text>
+        ${PATHRADIO}
+      </vbox>"
+ fi
+fi
+
+#20220608 after selecting an sfs, not local, "DOWNLOAD" button displays, and this file
+# might not have been created, gtkdialog prints warning msg cannot read it...
+touch /tmp/sfsget/already-installed-msg
+#startup sfsget, lots of msgs that these are missing...
+echo -n "false" > /tmp/sfsget/downloaded-flg
+echo -n "false" > /tmp/sfsget/vis-install-btn-flg
+
+export SFSGET_MAINDLG="<window title=\"$(gettext 'SFSget package installer')\" icon-name=\"gtk-about\" allow-grow=\"false\">
+  <vbox>
+    <hbox>
+      ${PATHS_XML}
+      <vbox>
+        <tree>
+          <label>$(gettext 'Package|Description')</label>
+          <height>200</height><width>568</width>
+          <variable>TREE1</variable>
+          <input icon-column=\"1\">cat /tmp/sfsget/filterpkgs.results.tree</input>
+          <action signal=\"button-release-event\">ln -snf /usr/share/pixmaps/\${TREE1/_*/}.png /tmp/sfsget/name.png</action>
+          <action signal=\"button-release-event\">/usr/local/sfsget/pkgtext-compose \${TREE1}</action>
+          <action signal=\"button-release-event\">echo -n \${TREE1} > /tmp/sfsget/fullfilename</action>
+          
+          <action signal=\"button-release-event\">test_installed_func</action>
+          <action signal=\"button-release-event\" condition=\"command_is_true( cat /tmp/sfsget/downloaded-flg )\">hide:BTN_DOWNLOAD</action>
+          <action signal=\"button-release-event\" condition=\"command_is_false( cat /tmp/sfsget/downloaded-flg )\">show:BTN_DOWNLOAD</action>
+          <action signal=\"button-release-event\" condition=\"command_is_true( cat /tmp/sfsget/downloaded-flg )\">show:PIX_DOWNLOADED</action>
+          <action signal=\"button-release-event\" condition=\"command_is_false( cat /tmp/sfsget/downloaded-flg )\">hide:PIX_DOWNLOADED</action>
+          <action signal=\"button-release-event\" condition=\"command_is_true( cat /tmp/sfsget/vis-install-btn-flg )\">show:BTN_INSTALL</action>
+          <action signal=\"button-release-event\" condition=\"command_is_false( cat /tmp/sfsget/vis-install-btn-flg )\">hide:BTN_INSTALL</action>
+          
+          <action signal=\"button-release-event\" condition=\"command_is_true( cat /tmp/sfsget/vis-already-installed-msg-flg )\">show:MSG_INSTALLED</action>
+          <action signal=\"button-release-event\" condition=\"command_is_false( cat /tmp/sfsget/vis-already-installed-msg-flg )\">hide:MSG_INSTALLED</action>
+          
+          <action signal=\"button-release-event\">refresh:BTN_DOWNLOAD</action>
+          <action signal=\"button-release-event\">refresh:PIX_DOWNLOADED</action>
+          <action signal=\"button-release-event\">refresh:BTN_INSTALL</action>
+          <action signal=\"button-release-event\">refresh:MSG_INSTALLED</action>
+          
+          <action signal=\"button-release-event\">refresh:PKGICON</action>
+          <action signal=\"button-release-event\">refresh:PKGTEXT</action>
+          <action signal=\"button-release-event\">refresh:FULLFILENAME</action>
+        </tree>
+      </vbox>
+    </hbox>
+    
+    <hbox visible=\"${VIS_DATA}\">
+      <vbox>
+        <pixmap>
+          <height>96</height>
+          <width>96</width>
+          <input file>/tmp/sfsget/name.png</input>
+          <variable>PKGICON</variable>
+        </pixmap>
+        <text>
+         <input file>/tmp/sfsget/fullfilename</input>
+         <variable>FULLFILENAME</variable>
+        </text>
+        <hbox homogenous=\"true\">
+          <button space-expand=\"true\" visible=\"${VIS_DOWNLOAD}\">
+            <label>$(gettext 'DOWNLOAD')</label>
+            <variable>BTN_DOWNLOAD</variable>
+            <action>exit:DOWNLOAD</action>
+          </button>
+          <pixmap space-expand=\"true\" visible=\"${VIS_DOWNLOADED}\">
+            <width>48</width>
+            <height>48</height>
+            <input file>/usr/share/pixmaps/easyshare/tick_green.svg</input>
+            <variable>PIX_DOWNLOADED</variable>
+          </pixmap>
+        </hbox>
+        <hbox homogenous=\"true\">
+          <button space-expand=\"true\" visible=\"${VIS_INSTALL_BTN}\">
+            <label>$(gettext 'INSTALL')</label>
+            <variable>BTN_INSTALL</variable>
+            <action>exit:INSTALL</action>
+          </button>
+        </hbox>
+        <hbox homogenous=\"true\">
+         <text visible=\"${VIS_ALREADY_INSTALLED_MSG}\">
+          <variable>MSG_INSTALLED</variable>
+          <input file>/tmp/sfsget/already-installed-msg</input>
+         </text>
+        </hbox>
+      </vbox>
+      <vbox>
+        <text use-markup=\"true\">
+          <input file>/tmp/sfsget/pkgtext</input>
+          <variable>PKGTEXT</variable>
+        </text>
+      </vbox>
+      <variable>BOX_DATA</variable>
+    </hbox>
+    
+    <hbox>
+      <pixmap space-expand=\"false\" space-fill=\"false\">
+        <width>24</width>
+        <height>24</height>
+        <input file>/usr/share/pixmaps/easyshare/tick_green.svg</input>
+      </pixmap>
+      <text space-expand=\"false\" space-fill=\"false\">
+        <label>$(gettext ' = already downloaded')</label>
+      </text>
+      <text space-expand=\"true\" space-fill=\"true\"><label>\" \"</label></text>
+      <button>
+        <label>$(gettext 'Quit')</label>
+        <action type=\"exit\">QUIT</action>
+      </button>
+      <button>
+        <input file>/usr/local/lib/X11/mini-icons/mini-question.xpm</input>
+        <action type=\"launch\">HLP_SFSGET</action>
+      </button>
+    </hbox>
+
+  </vbox>
+</window>"
+
+killall popup #20220608
+echo "$SFSGET_MAINDLG" > /tmp/sfsget/SFSGET_MAINDLG
+RETPARAMS="$(gtkdialog --program=SFSGET_MAINDLG --center)"
+[ $? -ne 0 ] && exit 0
+echo "$RETPARAMS" > /tmp/sfsget/RETPARAMS_MD
+eval "$RETPARAMS"
+OK=1
+[ "$EXIT" == "DOWNLOAD" ] && OK=0
+[ "$EXIT" == "INSTALL" ] && OK=0
+[ $OK -eq 1 ] && exit
+
+###download###
+#$SFS_DB_repo is the online URL.
+#/tmp/sfsget/current-path is the path inside URL, ex: puppy/t2/racy
+#/tmp/sfsget/fullfilename is selected SFS, ex: racy_5.5-r0_i686.sfs
+echo -n '' > /tmp/sfsget/sfs-deps-list
+SFS_DB_path="$(cat /tmp/sfsget/current-path)"
+SFS_DB_fullfilename="$(cat /tmp/sfsget/fullfilename)"
+echo "$SFS_DB_fullfilename" > /tmp/sfsget/sfs-load-list
+CURRDIR="`pwd`"
+cd /mnt/wkg/sfs/${SFS_DB_path}
+
+if [ "$EXIT" == "DOWNLOAD" ];then
+ download_file ${SFS_DB_repo}/${SFS_DB_path}/${SFS_DB_fullfilename}
+ if [ $? -ne 0 ];then
+  M_f1="<b>${SFS_DB_fullfilename}</b>
+$(gettext 'Failed to download, aborting install')"
+  popup "background=#ff8080 level=top terminate=ok process=wait|<big>${M_f1}</big>"
+  [ -f ./${SFS_DB_fullfilename} ] && rm -f ./${SFS_DB_fullfilename} #181108 precaution.
+  exit 1
+ fi
+
+ FULLPKGNAME="$(basename "$SFS_DB_fullfilename" .sfs)"
+ grep -q '^SFS_DB_' /mnt/wkg/sfs/${SFS_DB_path}/${FULLPKGNAME}.specs #20220603 check for old format.
+ if [ $? -ne 0 ];then
+  sed -i -e 's%^DB_%SFS_DB_%' /mnt/wkg/sfs/${SFS_DB_path}/${FULLPKGNAME}.specs
+ fi
+# if [ $? -eq 0 ];then
+. /mnt/wkg/sfs/${SFS_DB_path}/${FULLPKGNAME}.specs
+# else
+#  sed -e 's%^DB_%SFS_DB_%' /mnt/wkg/sfs/${SFS_DB_path}/${FULLPKGNAME}.specs > /tmp/zzzxxxyyy.specs
+#. /tmp/zzzxxxyyy.specs
+#  rm -f /tmp/zzzxxxyyy.specs
+# fi
+
+ #check hash... 181106 length...
+ check_hash_func "${SFS_DB_hash}" "${SFS_DB_fullfilename}"
+else #already downloaded...
+ FULLPKGNAME="$(basename "$SFS_DB_fullfilename" .sfs)"
+ grep -q '^SFS_DB_' /mnt/wkg/sfs/${SFS_DB_path}/${FULLPKGNAME}.specs #20220603 check for old format.
+ if [ $? -ne 0 ];then
+  sed -i -e 's%^DB_%SFS_DB_%' /mnt/wkg/sfs/${SFS_DB_path}/${FULLPKGNAME}.specs
+ fi
+# if [ $? -eq 0 ];then
+. /mnt/wkg/sfs/${SFS_DB_path}/${FULLPKGNAME}.specs
+# else
+#  sed -e 's%^DB_%SFS_DB_%' /mnt/wkg/sfs/${SFS_DB_path}/${FULLPKGNAME}.specs > /tmp/zzzxxxyyy.specs
+#. /tmp/zzzxxxyyy.specs
+#  rm -f /tmp/zzzxxxyyy.specs
+# fi
+fi #download
+
+#181123 took me by surprise, the "*" fed into for-loop got expanded, completely wrong...
+DEPS="$(echo -n "$SFS_DB_dependencies" | tr ',' ' ' | sed -e 's%\*%STAR%g')"
+[ "$BOOT_LOCK" ] && DEPS='' #200824
+
+#download deps, if not already...
+#download deps...
+#ex: SFS_DB_dependencies=rust_3.9,yabbo,easy_1.*
+for aDEPSPEC0 in ${DEPS} #181123
+do
+ [ "$aDEPSPEC0" == "" ] && continue #20220607 precaution
+ 
+ #20220607 problem that some sfs's specify a specific version of easy sfs as a dep.
+ # but no longer have them online. we do now have $SFS_DB_compiledrelease*sfs
+ case "$aDEPSPEC0" in
+  easy*)
+   easySFS="$(ls -1 easy*.sfs 2>/dev/null | tail -n 1)"
+   if [ "$easySFS" ];then
+    echo "$easySFS" >> /tmp/sfsget/sfs-load-list
+    continue
+   else
+    easySFS="$(ls -1 ${SFS_DB_compiledrelease}*.sfs 2>/dev/null | tail -n 1)"
+    if [ "$easySFS" ];then
+     echo "$easySFS" >> /tmp/sfsget/sfs-load-list
+     continue
+    else
+     aDEPSPEC0="${SFS_DB_compiledrelease}"
+    fi
+   fi
+  ;;
+ esac
+
+ aDEPSPEC="$(echo -n "$aDEPSPEC0" | sed -e 's%STAR%*%g')" #181123 change it back to *
+ aDEPNAME="${aDEPSPEC/_*/}"
+ aDEPVER="${aDEPSPEC#*_}"
+ [ "$aDEPNAME" == "$aDEPVER" ] && aDEPVER="*"
+ #PTNspec="${aDEPNAME}_${aDEPVER}*.specs"
+ #191001 ...could end up with two "**" which still works, but get rid of it...
+ PTNspec="$(echo -n "${aDEPNAME}_${aDEPVER}*.specs" | tr -s '*')" 
+ #191001 "--key=2" does not work, has to be "--key=2,2"...
+ #20220608 now have language-specific sfs files, like this: abiword_1.2.3-de_amd64.sfs
+ # ...that "de" is actually the revision-field, SFS_DB_revision
+ if [ "${LANG:0:2}" == "en" ];then
+  FNDspec="$(ls -1 /mnt/wkg/sfs/${SFS_DB_path}/${PTNspec} | grep -v '\-[a-z][a-z]_' | sort --field-separator='_' --key=2,2 --version-sort | tail -n 1)"
+ else
+  FNDspec="$(ls -1 /mnt/wkg/sfs/${SFS_DB_path}/${PTNspec} | grep "\-${LANG:0:2}_" | sort --field-separator='_' --key=2,2 --version-sort | tail -n 1)"
+  if [ "$FNDspec" == "" ];then
+   FNDspec="$(ls -1 /mnt/wkg/sfs/${SFS_DB_path}/${PTNspec} | sort --field-separator='_' --key=2,2 --version-sort | tail -n 1)" #181123
+  fi
+ fi
+ if [ "$FNDspec" ];then
+  DEPfullfilename="$(grep '^SFS_DB_fullfilename=' ${FNDspec} | cut -f 2 -d "'")"
+  DEPhash="$(grep '^SFS_DB_hash=' ${FNDspec} | cut -f 2 -d "'")"
+  if [ ! -f /mnt/wkg/sfs/${SFS_DB_path}/${DEPfullfilename} ];then #181108 check already downloaded.
+   download_file ${SFS_DB_repo}/${SFS_DB_path}/${DEPfullfilename}
+   if [ $? -ne 0 ];then
+    M_f2="<b>${DEPfullfilename}</b>
+$(gettext 'Failed to download, aborting install')"
+    popup "background=#ff8080 level=top terminate=ok process=wait|<big>${M_f2}</big>"
+    [ -f /mnt/wkg/sfs/${SFS_DB_path}/${DEPfullfilename} ] && rm -f /mnt/wkg/sfs/${SFS_DB_path}/${DEPfullfilename} #181108 precaution.
+    exit 1
+   fi
+   check_hash_func "${DEPhash}" "${DEPfullfilename}"
+  fi
+  echo "${DEPfullfilename}" >> /tmp/sfsget/sfs-load-list
+  echo "${DEPfullfilename}" >> /tmp/sfsget/sfs-deps-list
+ fi
+done
+
+###insert###
+#181108 offer to insert as layer into existing container, or main f.s.
+M_deps=""
+if [ -s /tmp/sfsget/sfs-deps-list ];then
+ M_deps="$(gettext 'As well as these dependencies:')
+  $(cat /tmp/sfsget/sfs-deps-list | tr '\n' ' ')"
+fi
+[ "$BOOT_LOCK" ] && SFS_DB_install='sanscontainer' #200824 locked-down in ram. ref: PUPSTATE
+case "$SFS_DB_install" in #variable in .specs file
+ desk)
+  if [ $KEPTmntg -eq 1 ];then #190812
+   INSTALLXML="
+  <text><label>$(gettext 'This SFS is designed to be installed as a new container only. It will run as a complete desktop, with a icon on the main desktop to launch it.')</label></text>
+  <text><label>\"  \"</label></text>
+      <hbox>
+        <text><label>$(gettext 'Install as a new container:')</label></text>
+        <button><label>$(gettext 'NEW')</label><action>exit:NEW</action></button>
+      </hbox>
+  <text><label>\"  \"</label></text>
+  <text use-markup=\"true\"><label>\"<b>$(gettext 'Notice')</b>
+$(gettext 'These install options are not being offered:')
+ <i>$(gettext 'Insert as layer in existing container')</i>
+ <i>$(gettext 'Insert as layer in the main filesystem')</i>\"</label></text>"
+  else #190812
+   INSTALLXML="
+<text><label>$(gettext 'This SFS is designed to be installed as a new container only.')</label></text>
+<text use-markup=\"true\"><label>\"<span color='red'><b>$(gettext 'As you are currently running with partition mounting disabled, a container cannot be created. Therefore, no install button is provided here.')</b></span>\"</label></text>"
+  fi
+ ;;
+ sanscontainer) #200824
+  INSTALLXML="
+  <text use-markup=\"true\"><label>\"<span color='red'><b>$(gettext 'As you are currently running in a lockdown mode, containers are disabled. Therefore, the only option is to install to the main filesystem.')</b></span>\"</label></text>
+        <hbox>
+        <text><label>$(gettext 'Insert as layer in the main filesystem:')</label></text>
+        <button><label>$(gettext 'MAIN')</label><action>exit:MAIN</action></button>
+      </hbox>"
+ ;;
+ *)
+  #190812 careful about sfs belonging to different distro...
+  if [ "$SFS_DB_path" != "easyos/${DISTRO_BINARY_COMPAT}/${DISTRO_COMPAT_VERSION}" ];then
+   #cannot install to main filesystem...
+   if [ $KEPTmntg -eq 1 ];then #190812
+    
+    #find out if any existing containers in same distro...
+    mkdir -p /tmp/easy_containers #191220 did not exist.
+    echo -n '' > /tmp/easy_containers/CONTS
+    for aCONT in `ls -1 /mnt/${WKG_DEV}/${WKG_DIR}containers | tr '\n' ' '`
+    do
+     #191020 inbuilt containers do not have 'specs' file...
+     if [ -f /mnt/${WKG_DEV}/${WKG_DIR}containers/${aCONT}/specs ];then
+      if ! grep "^SFS_DB_path='${SFS_DB_path}'" /mnt/${WKG_DEV}/${WKG_DIR}containers/${aCONT}/specs >/dev/null;then
+       continue
+      fi
+     fi
+     echo "$aCONT" >> /tmp/easy_containers/CONTS
+    done
+    if [ -s /tmp/easy_containers/CONTS ];then
+     exXML="<hbox>
+        <text><label>$(gettext 'Insert as layer in existing container:')</label></text>
+        <button><label>$(gettext 'EXISTING')</label><action>exit:EXISTING</action></button>
+      </hbox>"
+    else
+     exXML="<text use-markup=\"true\"><label>\"<span color='purple'><b>$(gettext 'There are no compatible existing containers, so this SFS cannot be installed to an existing container.')</b></span>\"</label></text>"
+    fi
+    
+    INSTALLXML="
+  <text><label>$(gettext 'Please choose to install as a new container, unless you really understand what the other options do...')</label></text>
+  <text><label>\"  \"</label></text>
+      <hbox>
+        <text><label>$(gettext 'Install as a new container:')</label></text>
+        <button><label>$(gettext 'NEW')</label><action>exit:NEW</action></button>
+      </hbox>
+  <text><label>\"  \"</label></text>
+  ${exXML}
+  <text use-markup=\"true\"><label>\"<span color='purple'><b>$(gettext 'This SFS belongs to a different distribution, so it cannot be installed to the main filesystem, only into a container.')</b></span>\"</label></text>"
+   else #190812
+    INSTALLXML="
+  <text use-markup=\"true\"><label>\"<span color='purple'><b>$(gettext 'This SFS belongs to a different distribution, so it cannot be installed to the main filesystem, only into a container.')</b></span>\"</label></text>
+  <text use-markup=\"true\"><label>\"<span color='red'><b>$(gettext 'As you are currently running with partition mounting disabled, containers are also disabled. Therefore, this SFS cannot be installed.')</b></span>\"</label></text>"
+   fi
+  else
+   DEPS="$(echo -n "${SFS_DB_dependencies}" | tr ',' ' ' | tr ' ' '\n')"
+   QDEP="$(echo "$DEPS" | grep -E '^easy$|^easy_')"
+   case "$QDEP" in
+    easy) QOK='yes' ;;
+    easy_*)
+     QVER="${QDEP/*_/}"
+     QVERptn="$(echo -n "$QVER" | sed -e 's%\*%.*%')" #convert glob wildcard * to .*
+     QOK="$(echo -n "${DISTRO_VERSION}" | grep "${QVERptn}")"
+    ;;
+    *) QOK='' ;;
+   esac
+   if [ "$QOK" == "" ];then
+    INSTALLQXML="
+     <text><label>\"  \"</label></text>
+     <text use-markup=\"true\"><label>\"<b>$(gettext 'Notice')</b>
+$(gettext 'This install option is not being offered, as easy.sfs is not a dependency:')
+ <i>$(gettext 'Insert as layer in the main filesystem')</i>\"</label></text>"
+   else
+    INSTALLQXML="      <hbox>
+        <text><label>$(gettext 'Insert as layer in the main filesystem:')</label></text>
+        <button><label>$(gettext 'MAIN')</label><action>exit:MAIN</action></button>
+      </hbox>"
+   fi
+   if [ $KEPTmntg -eq 1 ];then #190812
+    INSTALLXML="
+  <text><label>$(gettext 'Please choose to install as a new container, unless you really understand what the other options do...')</label></text>
+  <text><label>\"  \"</label></text>
+      <hbox>
+        <text><label>$(gettext 'Install as a new container:')</label></text>
+        <button><label>$(gettext 'NEW')</label><action>exit:NEW</action></button>
+      </hbox>
+  <text><label>\"  \"</label></text>
+      <hbox>
+        <text><label>$(gettext 'Insert as layer in existing container:')</label></text>
+        <button><label>$(gettext 'EXISTING')</label><action>exit:EXISTING</action></button>
+      </hbox>
+      ${INSTALLQXML}"
+   else #190812
+    INSTALLXML="
+<text use-markup=\"true\"><label>\"<span color='red'><b>$(gettext 'As you are currently running with partition mounting disabled, containers are also disabled. Therefore, the only option is to install to the main filesystem.')</b></span>\"</label></text>
+      <hbox>
+        <text><label>$(gettext 'Insert as layer in the main filesystem:')</label></text>
+        <button><label>$(gettext 'MAIN')</label><action>exit:MAIN</action></button>
+      </hbox>"
+   fi
+   #20210917...
+   if [ "$SFS_DB_install" == "mainonly" ];then
+    if [ "$QOK" ];then
+     INSTALLXML="
+<text use-markup=\"true\"><label>\"<span color='red'><b>$(gettext 'This SFS can only be run in the main filesystem, not in a container.')</b></span>\"</label></text>
+      <hbox>
+        <text><label>$(gettext 'Insert as layer in the main filesystem:')</label></text>
+        <button><label>$(gettext 'MAIN')</label><action>exit:MAIN</action></button>
+      </hbox>"
+    else
+     INSTALLXML="
+<text use-markup=\"true\"><label>\"<span color='red'><b>$(gettext 'This SFS can only be run in the main filesystem, not in a container. However, the dependencies are not compatible, so cannot install.')</b></span>\"</label></text>
+
+<text><label>\"Dependencies required by SFS:
+${SFS_DB_dependencies}\"</label></text>"
+    fi
+   fi
+  fi
+ ;;
+esac
+
+export SFSGET_INSTALLDLG="<window title=\"$(gettext 'SFSget package installer')\" icon-name=\"gtk-about\" allow-grow=\"false\">
+  <vbox>
+    <text>
+      <label>\"$(gettext 'This SFS package has been downloaded:')
+  /mnt/wkg/sfs/${SFS_DB_path}/${SFS_DB_fullfilename}
+${M_deps}\"</label>
+    </text>
+    
+    <frame $(gettext 'Install')>
+      ${INSTALLXML}
+    </frame>
+    
+    <hbox>
+      <text><label>$(gettext 'Click EXIT button to not install:')</label></text>
+      <button><label>$(gettext 'EXIT')</label><action>exit:NOINSTALL</action></button>
+      <button>
+        <input file>/usr/local/lib/X11/mini-icons/mini-question.xpm</input>
+        <action type=\"launch\">HLP_SFSINSTALL</action>
+      </button>
+    </hbox>
+  </vbox>
+</window>"
+
+echo "$SFSGET_INSTALLDLG" > /tmp/sfsget/SFSGET_INSTALLDLG
+RETPARAMS="$(gtkdialog --program=SFSGET_INSTALLDLG --center)"
+[ $? -ne 0 ] && exit 0
+echo "$RETPARAMS" > /tmp/sfsget/RETPARAMS_ID
+eval "$RETPARAMS"
+
+if [ "$EXIT" == "NOINSTALL" ];then
+ if [ -s /tmp/sfsget/sfs-deps-list ];then
+  M_noinstall="$(gettext 'The SFS package has been downloaded, but not installed. It has not been deleted, so can be installed at any future date.')"
+ else
+  M_noinstall="$(gettext 'The SFS package and dependencies have been downloaded, but not installed. They have not been deleted, so can be installed at any future date.')"
+ fi
+ popup "background=#80ff80 level=top terminate=ok process=wait|${M_noinstall}"
+ exit
+fi
+
+if [ "$EXIT" == "EXISTING" ];then
+ #easy-containers
+ /usr/local/easy_containers/extra-sfss-ec "" "${SFS_DB_path}" #190812 added empty 1st param and SFS_DB_path, ex: easyos/debian/buster
+ exit
+fi
+
+if [ "$EXIT" == "MAIN" ];then
+ #181203 .desktop file may be setup to run in container, gets fixed in /sbin/fixlayers in initrd.
+ /usr/local/sfsget/extra-sfss-repo #20220525 script moved.
+ exit
+fi
+
+if [ "$EOS_SUPPORT_CONTAINERS" == "0" ];then #20220525
+ exit
+fi
+
+###new container###
+[ "$EXIT" != "NEW" ] && exit
+if [ -d /mnt/wkg/containers/${SFS_DB_nameonly} ];then
+ #181227 offer to upgrade...
+ OLDSFS="$(realpath /mnt/wkg/containers/${SFS_DB_nameonly}/${SFS_DB_nameonly}.sfs)"
+ NEWSFS="$(realpath /mnt/wkg/sfs/${SFS_DB_path}/${SFS_DB_fullfilename})"
+ if [ "$OLDSFS" == "$NEWSFS" ];then
+  M_new1="<big>$(gettext 'New Container:') <b>${SFS_DB_nameonly}</b></big>
+$(gettext 'Sorry, but the SFS is already installed as a container:')
+ /mnt/wkg/containers/${SFS_DB_nameonly}
+$(gettext 'Aborting this install. If you want to delete the existing container, go to <i>Easy Container Mnagement</i> in the Filesystem menu.')"
+  popup "background=#ff8080 level=top terminate=ok process=wait|${M_new1}"
+  exit
+ fi
+ export SFSGET_UGDLG="<window title=\"$(gettext 'SFSget package installer')\" icon-name=\"gtk-about\" allow-grow=\"false\">
+  <vbox>
+    <text use-markup=\"true\">
+      <label>\"<b>$(gettext 'A container of this name already exists:')</b>
+  /mnt/wkg/containers/${SFS_DB_nameonly}
+
+$(gettext 'You have a choice here, to upgrade to the SFS file just downloaded, or to abort the install. Explaining each option:')
+
+<b>$(gettext 'Upgrade')</b>
+$(gettext 'This is a symlink:')
+  /mnt/wkg/containers/${SFS_DB_nameonly}/${SFS_DB_nameonly}.sfs
+$(gettext 'It will be changed to point to the newly downloaded SFS:')
+  ${NEWSFS}
+$(gettext 'WARNING: the old SFS will be deleted:')
+  ${OLDSFS}
+
+<b>$(gettext 'Abort')</b>
+$(gettext 'The new SFS will not be installed. If you wish, later, you can delete the container, by running <i>Filesystem --> Easy Container Management</i>, then you could run SFSget again and install the new SFS.')\"</label>
+    </text>
+    
+    <hbox>
+      <button><label>$(gettext 'Abort')</label><action>exit:NOUG</action></button>
+      <button><label>$(gettext 'Upgrade')</label><action>exit:YESUG</action></button>
+    </hbox>
+  </vbox>
+</window>"
+ echo "$SFSGET_UGDLG" > /tmp/sfsget/SFSGET_UGDLG
+ RETUG="$(gtkdialog --program=SFSGET_UGDLG --center)"
+ [ $? -ne 0 ] && exit 0
+ echo "$RETUG" > /tmp/sfsget/RETUG
+ EXIT="$(grep '^EXIT=' /tmp/sfsget/RETUG | cut -f 2 -d '"')"
+ [ "$EXIT" != "YESUG" ] && exit 0
+ #have chosen to upgrade
+ stop-container ${SFS_DB_nameonly}
+ #190106 before delete old sfs, check whether still in use anywhere...
+ ELSEfnd="$(losetup -a | grep -v "containers/${SFS_DB_nameonly}/" | grep "/${SFS_DB_nameonly}\.sfs")"
+ if [ "$ELSEfnd" == "" ];then
+  rm -f ${OLDSFS%.sfs}.sfs #paranoid delete.
+  rm -f ${OLDSFS%.sfs}.specs
+  #remove any symlinks... no, this is complicated...
+  #find /mnt/wkg/containers -type l -name ${SFS_DB_nameonly}.sfs -delete
+ fi
+ ln -snfr /mnt/wkg/sfs/${SFS_DB_path}/${SFS_DB_fullfilename} /mnt/wkg/containers/${SFS_DB_nameonly}/${SFS_DB_nameonly}.sfs
+ NEWSPECS="${SFS_DB_fullfilename%.sfs}.specs"
+ cp -af /mnt/wkg/sfs/${SFS_DB_path}/${NEWSPECS} /mnt/wkg/containers/${SFS_DB_nameonly}/specs
+ M_new2="<big>$(gettext 'Container:') <b>${SFS_DB_nameonly}</b></big>
+$(gettext 'Path:') /mnt/wkg/containers/${SFS_DB_nameonly}
+$(gettext 'Has been updated with the new SFS file.')"
+ popup "background=#80ff80 level=top terminate=ok process=wait|${M_new2}"
+ exit 0
+fi
+#will have to mount it, to get out the 'configuration' file...
+mkdir -p mntpt
+busybox mount -t squashfs ${SFS_DB_fullfilename} mntpt
+mkdir -p /usr/local/easy_containers/templates/${SFS_DB_nameonly}
+#/usr/local/easy_containers/setup-container will read this...
+#190911 3buildeasydistro creates easy.sfs without easy.configuration file...
+if [ -f mntpt/.control/${SFS_DB_nameonly}.configuration ];then
+ if [ ! -f /usr/local/easy_containers/templates/${SFS_DB_nameonly}/configuration ];then
+  cp -f --remove-destination mntpt/.control/${SFS_DB_nameonly}.configuration /usr/local/easy_containers/templates/${SFS_DB_nameonly}/configuration
+ fi
+fi
+
+###setup container###
+#190911 note, if creating a container of easy*sfs different series, say "pyro" when running
+# "buster", the container will be named "easy", so /mnt/wkg/containers/easy
+# that is ok, as the inbuilt buster desktop-container is named buster.
+# the only thing we will do is set the desktop icon label to "pyro" (see ec-create-desktop-icons-menu, called below).
+
+/usr/local/easy_containers/setup-container ${SFS_DB_nameonly}
+
+#/usr/local/easy_containers/start-container will read this...
+cp -f mntpt/.control/${SFS_DB_nameonly}.specs /mnt/wkg/containers/${SFS_DB_nameonly}/specs
+
+#specify which sfs files are to be loaded, start-container will use this...
+echo -n "" > /mnt/wkg/containers/${SFS_DB_nameonly}/base-load-list #181108
+for aSFS in `cat /tmp/sfsget/sfs-load-list`
+do
+ [ "$aSFS" == "" ] && continue
+ ln -s ../../sfs/${SFS_DB_path}/${aSFS} /mnt/wkg/containers/${SFS_DB_nameonly}/${aSFS/_*/}.sfs
+ echo "${aSFS/_*/}.sfs" >> /mnt/wkg/containers/${SFS_DB_nameonly}/base-load-list #ex: devx.sfs  181108
+done
+
+
+#create desktop icon and menu entry... 200601...
+/usr/local/easy_containers/ec-create-desktop-icons-menu ${SFS_DB_path} ${FULLPKGNAME}
+
+sync
+busybox umount mntpt
+rmdir mntpt
+
+###end###

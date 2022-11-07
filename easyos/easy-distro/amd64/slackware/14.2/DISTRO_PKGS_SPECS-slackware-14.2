@@ -1,0 +1,761 @@
+#w469 fallbacks when looking for pet pkgs (space-separated list)...
+FALLBACKS_COMPAT_VERSIONS='14.2 14.0 13.37 13.1'
+
+#PKGS_SPECS_TABLE table format:
+#will pkg be in puppy-build.
+#    Generic name for pkg. Note: PET packages, if exist, use this name.
+#            Comma-separated list of compatible-distro pkg(s). '-' prefix, exclude.
+#            Must be exact name-only of pkg, else '*' on end is wildcard to search full name.
+#            Empty field, then use PET pkg.
+#                                    How the package will get split up in woof (optional redirection '>' operator).
+#                                    Missing field, it goes into exe. Can also redirect >null, means dump it.
+#yes|abiword|iceword,iceword-plugins|exe,dev,doc,nls
+
+#example showing wildcard. finds all full pkg names with 'gcc-4.3*',
+#but, exclude any 'gcc-4.3-doc*' matches...
+#yes|gcc|gcc,gcc-4.3*,-gcc-4.3-doc*|exe,dev,doc,nls
+
+PKGS_SPECS_TABLE='
+yes|915resolution||exe,dev,doc,nls|pet:
+yes|a2dp-alsa||exe|pet:sq142| #bluetooth audio support, jamesbond. requires bluez v5
+yes|a52dec||exe,dev,doc,nls|compat:
+yes|abiword||exe,dev,doc,nls|pet:april
+yes|acl|acl|exe,dev,doc,nls|compat:
+yes|acpid|acpid|exe,dev,doc,nls|compat:
+yes|align||exe,dev,doc,nls|pet:noarch
+yes|alsaequal|alsaequal|exe,dev,doc,nls|compat:
+no|alsa-info||exe,dev,doc,nls|pet:
+yes|alsa-lib|alsa-lib|exe,dev,doc,nls|compat:
+yes|alsa-utils|alsa-utils|exe,dev,doc,nls|compat:
+no|appres|appres|exe,dev,doc,nls|compat:| #XORGBASE
+yes|apr|apr|exe>dev,dev,doc,nls|compat:
+yes|apr-util|apr-util|exe>dev,dev,doc,nls|compat:
+yes|aspell|aspell|exe,dev,doc,nls|compat:| #i think abiword needs this.
+yes|atk|atk|exe,dev,doc,nls|compat:
+yes|atkmm|atkmm|exe,dev,doc,nls|
+yes|attr|attr|exe,dev,doc,nls|compat:
+yes|audiofile|audiofile|exe,dev,doc,nls|compat:
+no|aufs-util||exe,dev,doc,nls|pet:
+yes|autoconf|autoconf|exe>dev,dev,doc,nls|compat:
+yes|autologin||exe,dev,doc,nls|pet:
+yes|automake|automake|exe>dev,dev,doc,nls|compat:
+yes|bacon_runtime||exe,dev,doc,nls|pet:xerus
+yes|bacon||exe>dev,dev,doc>dev,nls|pet:xerus
+yes|bash|bash|exe,dev,doc,nls|compat:
+yes|bbc_provided||exe,dev,doc,nls|pet:
+yes|bbe||exe,dev,doc,nls|pet:april| #sed-like editor for binary files.
+yes|bc|bc|exe,dev,doc,nls|compat:
+yes|bcrypt||exe,dev,doc,nls|pet:
+yes|db44|db44|exe>dev,dev,doc,nls|compat:
+yes|db48|db48|exe>dev,dev,doc,nls|compat:
+no|bdftopcf|bdftopcf|exe,dev,doc,nls|compat:| #XORGBASE
+no|bigreqsproto|bigreqsproto|exe>dev,dev,doc,nls|compat:| #X11PROTO
+yes|bin86|bin|exe>dev,dev,doc,nls|compat:
+yes|binutils|binutils|exe>dev,dev,doc,nls|compat:
+yes|bison|bison|exe>dev,dev,doc,nls|compat:
+no|bitmap|bitmap|exe,dev,doc,nls|compat:| #XORGBASE
+yes|bluepup_tray||exe|pet:xerus
+yes|bluez|bluez|exe,dev,doc,nls|compat:
+yes|bluez-firmware|bluez-firmware|exe,dev,doc,nls|compat:
+yes|boehm-gc|gc|exe,dev,doc,nls|compat:
+no|broadcom_sta||exe,dev,doc,nls|pet:
+yes|busybox||exe,dev>null,doc,nls|pet:xerus| #compiled input401 landley rootfs. #PC
+yes|bzip2|bzip2|exe,dev,doc,nls|compat:
+yes|cairo|cairo|exe,dev,doc,nls|compat:
+yes|cairomm|cairomm|exe,dev,doc,nls|compat:
+yes|cddetect||exe,dev,doc,nls|pet:
+yes|cdparanoia|cdparanoia|exe,dev,doc,nls|compat:
+yes|cdrdao|cdrdao|exe,dev,doc,nls|compat:
+yes|cdrtools|cdrtools|exe,dev,doc,nls|compat:
+yes|chmlib|chmlib|exe,dev,doc,nls|compat:
+yes|cmake|cmake|exe>dev,dev,doc,nls|compat:
+no|compositeproto|compositeproto|exe>dev,dev,doc,nls|compat:| #X11PROTO
+yes|coreutils|coreutils|exe,dev,doc,nls|compat:
+yes|cpio|cpio|exe,dev,doc,nls|compat:
+yes|crda|crda|exe,dev,doc,nls| #seems needed by wifi for channels 12,13
+yes|cups|cups|exe,dev,doc>exe,nls|compat:| #note doc goes to exe, for the web interface
+yes|cups-filters|cups-filters|exe,dev,doc,nls|compat:
+yes|cups-pdf||exe,dev,doc,nls|compat:
+yes|curl|curl|exe,dev,doc,nls|compat:
+yes|curlftpfs||exe,dev,doc,nls|pet:
+yes|cvs|cvs|exe>dev,dev,doc,nls|compat:
+yes|cyrus-sasl|cyrus-sasl|exe,dev,doc,nls|compat:
+no|damageproto|damageproto|exe>dev,dev,doc,nls|compat:| #X11PROTO
+yes|dbus|dbus|exe,dev,doc,nls|
+yes|dbus-glib|dbus-glib|exe,dev,doc,nls|
+yes|dconf|dconf|exe,dev,doc,nls|
+yes|ddcprobe||exe,dev,doc,nls|pet:
+no|defaultmixer||exe,dev,doc,nls|pet:
+yes|defaults-chooser||exe,dev,doc,nls|pet:noarch
+no|desk_background_greenvapors||exe|pet:noarch|
+yes|desk_background_peachy_red_slaq||exe|pet:noarch|
+yes|desk_icon_theme_peachy_red||exe|pet:noarch
+yes|desk_icon_theme_smooth_color||exe,dev,doc,nls|pet:noarch
+no|desksetup||exe,dev,doc,nls|pet:
+yes|dhcpcd|dhcpcd|exe,dev,doc,nls|compat:
+yes|dia|dia|exe,dev,doc,nls|compat:
+yes|dialog|dialog|exe,dev,doc,nls|compat:
+yes|dictd_client|dictd|exe,dev,doc,nls|compat:
+yes|didiwiki||exe,dev,doc,nls|pet:
+yes|dietlibc|dietlibc|exe>dev,dev,doc,nls|compat:
+yes|diffstat|diffstat|exe,dev,doc,nls|compat:
+yes|diffutils|diffutils|exe,dev,doc,nls|compat:
+yes|disktype||exe,dev,doc,nls|pet:
+yes|dmapi|dmapi|exe,dev,doc,nls|compat:
+yes|dmidecode|dmidecode|exe,dev,doc,nls|compat:
+no|dmxproto|dmxproto|exe>dev,dev,doc,nls|compat:| #X11PROTO
+yes|dosfstools|dosfstools|exe,dev,doc,nls|compat:
+yes|dpkg-deb||exe,dev,doc,nls|pet:
+no|dri2proto|dri2proto|exe>dev,dev,doc,nls|compat:| #X11PROTO
+yes|dvdauthor|dvdauthor|exe,dev,doc,nls|compat:
+yes|dvd+rw-tools|dvd+rw-tools|exe,dev,doc,nls|compat:
+yes|e2fsprogs|e2fsprogs|exe,dev,doc,nls|compat:
+no|e3_utf8||exe,dev,doc,nls|pet:
+no|edid||exe,dev,doc,nls|pet:
+no|editres|editres|exe,dev,doc,nls|compat:| #XORGBASE
+yes|eject|eject|exe,dev,doc,nls|compat:
+yes|elfutils|elfutils|exe,dev,doc,nls|compat:
+yes|elspci||exe,dev,doc,nls|pet:
+yes|embutils_cut||exe,dev,doc,nls|pet:
+yes|enchant|enchant|exe,dev,doc,nls|compat:
+yes|esound|esound|exe,dev,doc,nls|compat:
+yes|ethtool|ethtool|exe,dev,doc,nls|compat:
+yes|eudev||exe,dev,doc,nls|pet:xerus| #instead of udev.
+no|evieext|evieext|exe,dev,doc,nls|compat:| #XORGBASE
+yes|evince||exe,dev,doc,nls|pet:xerus
+yes|exiv2|exiv2|exe,dev,doc,nls|compat:
+yes|expat|expat|exe,dev,doc,nls|compat:
+yes|faac|faac|exe,dev,doc,nls|compat:salix| #also in slacky.
+yes|faad2|faad2|exe,dev,doc,nls|compat:salix| #also in slacky.
+yes|ffconvert||exe,dev,doc,nls|pet:noarch
+yes|ffmpeg||exe,dev,doc,nls|pet:sq142| #compiled with less deps.
+yes|file||exe,dev,doc,nls|pet:
+yes|findutils|findutils|exe,dev,doc,nls|compat:
+yes|firmware-network|zd1211-firmware,ipw2100-fw,ipw2200-fw|exe,dev,doc,nls|compat:
+yes|firmware_asus_e200ha||exe|pet:noarch| #ADDED 20160324, needed for my asus e200ha notebook. #PC
+yes|firmware_linux_display|firmware_linux_display-4.4*|exe|pet:noarch| #20151102 refer /usr/local/firmware. UPDATED 20160322 #PC
+yes|firmware_linux_network|firmware_linux_network-4.4*|exe|pet:noarch| #refer input309/0-linux-network. #20151102 refer /usr/local/firmware. UPDATED 20160322
+yes|firmware-nonfree||exe| #got this from raspberry pi site, see url in pinstall script.
+no|fixesproto|fixesproto|exe>dev,dev,doc,nls|compat:| #X11PROTO
+yes|flac|flac|exe,dev,doc,nls|compat:
+yes|flex|flex|exe>dev,dev,doc,nls|compat:
+yes|floppy-format-noarch||exe|pet:noarch| #needs ufiformat.
+yes|flsynclient||exe,dev,doc,nls|pet:common
+no|fontcacheproto|fontcacheproto|exe>dev,dev,doc,nls|compat:| #X11PROTO
+no|fontconfig|fontconfig|exe,dev,doc,nls|compat:| #XORGBASE
+yes|font_opensans_semibold_bold||exe|pet:noarch| #the semibold is the default, when want thick font.
+no|fontsproto|fontsproto|exe>dev,dev,doc,nls|compat:| #X11PROTO
+no|fonttosfnt|fonttosfnt|exe,dev,doc,nls|compat:| #XORGBASE
+yes|fontwizard||exe,dev,doc,nls|pet:
+no|foomatic-filters|foomatic-filters|exe,dev,doc,nls|compat:
+yes|fpm2||exe,dev,doc,nls|pet:
+no|freeglut|freeglut|exe,dev,doc,nls|compat:| #MESA
+yes|freememapplet_tray||exe,dev,doc,nls|pet:
+yes|freetype|freetype|exe,dev,doc,nls|compat:
+yes|fribidi|fribidi|exe,dev,doc,nls|compat:
+yes|frisbee||exe,dev,doc,nls|pet:noarch
+no|fslsfonts|fslsfonts|exe,dev,doc,nls|compat:| #XORGBASE
+no|fstobdf|fstobdf|exe,dev,doc,nls|compat:| #XORGBASE
+yes|fuse|fuse|exe,dev,doc,nls|compat:
+yes|galculator||exe,dev,doc,nls|pet:
+yes|gamin|gamin|exe,dev,doc,nls|compat:
+yes|gawk|gawk|exe,dev,doc,nls|compat:
+no|gcc|gcc|exe,dev,doc,nls|compat:| #GCCDEV GCCLIB
+no|gcc-g++|gcc-g++|exe,dev,doc,nls|compat:| #GCCDEV GCCLIB
+yes|gcc_dev|gcc,gcc-g++,gmp,libmpc,mpfr|exe>dev,dev,doc,nls|compat:| #GCCDEV
+yes|gcc_lib|gcc,gcc-g++|exe,dev>null,doc>null,nls>null| #GCCLIB
+yes|gcolor2||exe,dev,doc,nls|pet:
+yes|gd|gd|exe,dev,doc,nls|compat:
+yes|gdb|gdb|exe>dev,dev,doc,nls|compat:
+yes|gdbm|gdbm|exe,dev,doc,nls|compat:
+yes|gdk-pixbuf2|gdk-pixbuf2|exe,dev,doc,nls|compat:
+yes|gdmap||exe,dev,doc,nls|pet:
+yes|geany|geany|exe,dev,doc,nls|compat:
+yes|getcurpos||exe,dev,doc,nls|pet:
+no|getdir||exe,dev,doc,nls|pet:
+yes|getflash||exe,dev,doc,nls|pet:
+yes|gettext|gettext|exe,dev,doc,nls|compat:
+yes|gettext-tools|gettext-tools|exe>dev,dev,doc,nls|compat:
+yes|gexec||exe,dev,doc,nls|pet:common
+yes|gfnrename||exe,dev,doc,nls|pet:
+yes|gfontsel||exe,dev,doc,nls|pet:
+yes|gftp|gftp|exe,dev,doc,nls|compat:
+no|ghostscript||exe,dev,doc,nls|pet:
+yes|ghostscript|ghostscript|exe,dev,doc,nls|compat:
+yes|gif2lss||exe,dev,doc,nls
+no|giflib|giflib|exe,dev,doc,nls|compat:| #LIBGIF
+yes|gifsicle|gifsicle|exe,dev,doc,nls|compat:
+yes|git|git|exe>dev,dev,doc,nls|compat:
+yes|glade3|glade3|exe>dev,dev,doc,nls|compat:
+no|glew|glew|exe,dev,doc,nls|compat:| #MESA
+yes|glib2||exe,dev,doc,nls|compat:
+no|glibc|glibc|exe>dev,dev,doc,nls|compat:| #GLIBC GLIBCLOCALES. doinstall.sh broken, needs zoneinfo.
+yes|glibc-solibs|glibc-solibs,glibc-zoneinfo|exe,dev>exe,doc,nls|compat:| #GLIBC
+no|glibc-zoneinfo|glibc-zoneinfo|exe,dev,doc,nls|compat:| #GLIBC
+no|glibc|glibc,glibc-solibs,glibc-zoneinfo|exe,dev,doc,nls|compat:| #GLIBC. keep glibc and glibc-solibs separate, as doinstall.sh scripts conflict when concatenated by 2createpackages.
+yes|glibc|glibc,glibc-zoneinfo|exe>dev,dev,doc,nls|compat:| #GLIBC
+yes|glibc_locales|glibc,glibc-zoneinfo,glibc-i18n|exe,dev,doc,nls>exe|compat:| #GLIBCLOCALES
+yes|glibmm|glibmm|exe,dev,doc,nls|
+no|glproto|glproto|exe>dev,dev,doc,nls|compat:| #X11PROTO
+no|glu|glu|exe,dev,doc,nls|compat:| #MESA
+yes|gmeasures||exe,dev,doc,nls|pet:
+yes|gmp|gmp|exe,dev,doc,nls|compat:| #GCCDEV need this in main f.s.
+yes|gmtk|gmtk|exe,dev,doc,nls|compat:slacky
+yes|gnet||exe,dev,doc,nls|pet:april| #needed by helpsurfer
+yes|gnome-menus||exe,dev,doc,nls|pet:
+yes|gnumeric||exe,dev,doc,nls|pet:april
+yes|gnutls|gnutls|exe,dev,doc,nls|compat:
+yes|goffice||exe,dev,doc,nls|pet:april
+yes|gparted|gparted|exe,dev,doc,nls|
+yes|gpart|gpart|exe,dev,doc,nls|compat:
+no|gphoto2|gphoto2|exe,dev,doc,nls|compat:| #needs slang. do we use this for anything
+yes|gphotofs||exe,dev,doc,nls|pet:april
+yes|gpptp||exe,dev,doc,nls|pet:
+yes|gptfdisk||exe,dev,doc,nls|compat:
+yes|grep|grep|exe,dev,doc,nls|compat:
+yes|grisbi||exe,dev,doc,nls|pet:april| #uses april goffice pet, does not need libofx
+yes|groff|groff|exe>dev,dev,doc,nls|compat:
+no|grub4dos||exe,dev,doc,nls|pet:
+no|grub||exe,dev,doc,nls|pet:
+yes|gsm|gsm|exe,dev,doc,nls|compat:
+yes|gtk+2|gtk+2|exe,dev,doc,nls|compat:
+yes|gtk-chtheme||exe,dev,doc,nls|pet:
+yes|gtkdialog||exe,dev,doc,nls|pet:common
+yes|gtklp||exe,dev,doc,nls|pet:april
+yes|gtkmm2|gtkmm2|exe,dev,doc,nls|
+yes|gtksourceview|gtksourceview|exe,dev,doc,nls|compat:
+yes|gtk_theme_flat_grey_rounded||exe,dev,doc,nls|pet:noarch
+yes|gtk_theme_peachy_red||exe|pet:noarch
+yes|gtkthememaker||exe,dev,doc,nls|pet:noarch
+yes|gtk-vnc||exe,dev,doc,nls|pet:sq142
+no|guess_fs||exe,dev,doc,nls|pet:
+yes|guile|guile|exe,dev,doc,nls|compat:
+yes|gummiboot||exe,dev,doc,nls|pet:xerus| #PC
+yes|gutenprint|gutenprint|exe,dev,doc,nls|compat:
+yes|gview||exe,dev,doc,nls|pet:
+yes|gwhere||exe,dev,doc,nls|pet:
+yes|gxmessage||exe,dev,doc,nls|pet:
+yes|gzip|gzip|exe,dev,doc,nls|compat:
+yes|hardinfo||exe,dev,doc,nls|pet:sq142| #april64 pet fixed for lib64
+yes|harfbuzz|harfbuzz|exe,dev,doc,nls|compat:
+yes|helpsurfer||exe,dev,doc,nls|pet:april| #html viewer, needs gnet, libsystem, libgtkhtml
+no|hiawatha||exe,dev,doc,nls|pet:april| #needed by pplog
+yes|hicolor-icon-theme|hicolor-icon-theme|exe,dev,doc,nls|compat:
+no|homebank||exe,dev,doc,nls|pet:
+yes|hotplug2stdout||exe,dev,doc,nls|pet:
+yes|htop|htop|exe,dev,doc,nls|compat:
+yes|hunspell|hunspell|exe,dev,doc,nls|compat:
+yes|hunspell-en-us||exe,dev,doc,nls|pet:noarch
+no|iceauth|iceauth|exe,dev,doc,nls|compat:| #XORGBASE
+yes|icu4c|icu4c|exe,dev,doc,nls|compat:
+yes|ifplugd||exe,dev,doc,nls|pet:
+yes|ifplugd_old||exe,dev,doc,nls|pet:
+yes|imake|imake|exe>dev,dev,doc,nls|compat:
+yes|infozip|infozip|exe,dev,doc,nls|compat:
+yes|inkscapelite||exe,dev,doc,nls|pet:xerus| #this one has some ruler fixes.
+no|inotail||exe,dev,doc,nls|pet:
+yes|inotify-tools|inotify-tools|exe,dev,doc,nls|compat:
+no|inputproto|inputproto|exe>dev,dev,doc,nls|compat:| #X11PROTO
+yes|installwatch||exe,dev,doc,nls|pet:sq142
+yes|intltool|intltool|exe>dev,dev,doc,nls|compat:
+yes|iptables|iptables|exe,dev,doc,nls|compat:
+yes|isomaster|isomaster|exe,dev,doc,nls|compat:
+yes|iw|iw|exe,dev,doc,nls|compat:
+yes|jasper|jasper|exe,dev,doc,nls|compat:
+yes|jimtcl||exe,dev,doc,nls|pet:
+no|json-c|json-c|exe,dev,doc,nls|compat:
+yes|jwmconfig2||exe,dev,doc,nls|pet:
+yes|jwm||exe,dev,doc,nls|pet:
+yes|jwm_theme_peachy-red||exe|pet:noarch
+yes|jwmthememaker||exe|pet:noarch
+no|kbproto|kbproto|exe>dev,dev,doc,nls|compat:| #X11PROTO
+yes|kernel-firmware|kernel-firmware|exe,dev,doc,nls|compat:
+yes|kernel-headers|kernel-headers|exe,dev,doc,nls|compat:| #v4.4.x
+yes|kmod|kmod|exe,dev,doc,nls|compat:
+yes|ktsuss|ktsuss|exe,dev,doc,nls|compat:
+yes|lame|lame|exe,dev,doc,nls|compat:salix| #also in slacky.
+yes|lcms2|lcms2|exe,dev,doc,nls|compat:
+yes|lcms|lcms|exe,dev,doc,nls|compat:
+yes|leafpad|leafpad|exe,dev,doc,nls|compat:
+yes|less|less|exe,dev,doc,nls|compat:
+yes|libaio|libaio|exe,dev,doc,nls|compat:
+yes|libao|libao|exe,dev,doc,nls|compat:
+yes|libarchive|libarchive|exe,dev,doc,nls|compat:
+yes|libart_lgpl|libart_lgpl|exe,dev,doc,nls|compat:
+yes|libass|libass|exe,dev,doc,nls|compat:
+yes|libbluray|libbluray|exe,dev,doc,nls|compat:
+yes|libcap|libcap|exe,dev,doc,nls|compat:
+yes|libcddb|libcddb|exe,dev,doc,nls|compat:
+yes|libcdio|libcdio|exe,dev,doc,nls|compat:
+yes|libcdio-paranoia|libcdio-paranoia|exe,dev,doc,nls|compat:
+yes|libcroco|libcroco|exe,dev,doc,nls|compat:
+yes|libdaemon|libdaemon|exe,dev,doc,nls|compat:
+yes|libdbusmenu-qt|libdbusmenu-qt|exe,dev,doc,nls|compat:
+yes|libdc1394|libdc1394|exe,dev,doc,nls|compat:
+no|libdmx|libdmx|exe,dev,doc,nls|compat:| #XORGBASE
+no|libdrm|libdrm|exe,dev,doc,nls|compat:| #XORGBASE
+yes|libdvdcss|libdvdcss|exe,dev,doc,nls|compat:
+yes|libdvdnav|libdvdnav|exe,dev,doc,nls|compat:
+yes|libdvdplay||exe,dev,doc,nls|pet:april
+yes|libdvdread|libdvdread|exe,dev,doc,nls|compat:
+no|libelf|libelf|exe>dev,dev,doc,nls|compat:| #GCCDEV
+yes|libepoxy|libepoxy|exe,dev,doc,nls|compat:
+yes|libevdev|libevdev|exe,dev,doc,nls|compat:
+yes|libevent|libevent|exe,dev,doc,nls|compat:
+yes|libexif-gtk|libexif-gtk|exe,dev,doc,nls|compat:
+yes|libexif|libexif|exe,dev,doc,nls|compat:
+yes|libffi|libffi|exe,dev,doc,nls|compat:
+no|libfontenc|libfontenc|exe,dev,doc,nls|compat:| #XORGBASE
+no|libFS|libFS|exe,dev,doc,nls|compat:| #XORGBASE
+yes|libgcrypt|libgcrypt|exe,dev,doc,nls|compat:
+yes|libgee|libgee|exe,dev,doc,nls|compat:
+yes|libgif|giflib|exe,dev,doc,nls|compat:| #LIBGIF
+yes|libglade|libglade|exe,dev,doc,nls|compat:
+yes|libgnomecanvas|libgnomecanvas|exe,dev,doc,nls|compat:salix| #also in slacky.
+yes|libgpg-error|libgpg-error|exe,dev,doc,nls|compat:
+yes|libgphoto2|libgphoto2|exe,dev,doc,nls|compat:
+yes|libgsf|libgsf|exe,dev,doc,nls|compat:
+yes|libgtkhtml||exe,dev,doc,nls|pet:
+yes|libical|libical|exe,dev,doc,nls|compat:
+no|libICE|libICE|exe,dev,doc,nls|compat:| #XORGBASE
+yes|libid3tag|libid3tag|exe,dev,doc,nls|compat:
+yes|libidl|libidl|exe,dev,doc,nls|compat:
+yes|libidn|libidn|exe,dev,doc,nls|compat:
+yes|libieee1284|libieee1284|exe,dev,doc,nls|compat:
+yes|libisofs|libisofs|exe,dev,doc,nls|compat:
+yes|libjpeg|libjpeg-9*|exe,dev>null,doc>null,nls>null|pet:april
+yes|libjpeg-turbo|libjpeg-turbo|exe,dev,doc,nls|compat:
+yes|libmaa|libmaa|exe,dev,doc,nls|compat:
+yes|libmad|libmad|exe,dev,doc,nls|compat:
+yes|libmng|libmng|exe,dev,doc,nls|compat:
+yes|libmnl|libmnl|exe,dev,doc,nls|compat:
+yes|libmodplug|libmodplug|exe,dev,doc,nls|compat:
+no|libmpc|libmpc|exe>dev,dev,doc,nls|compat:| #GCCDEV
+yes|libmpeg2|libmpeg2|exe,dev,doc,nls|compat:
+yes|libnl3|libnl3|exe,dev,doc,nls|compat:
+yes|libnl|libnl|exe,dev,doc,nls|compat:
+yes|libnetfilter_conntrack|libnetfilter_conntrack|exe,dev,doc,nls|compat:
+yes|libnfnetlink|libnfnetlink|exe,dev,doc,nls|compat:
+yes|libnftnl|libnftnl|exe,dev,doc,nls|compat:
+yes|libnotify|libnotify|exe,dev,doc,nls|compat:
+no|libofx|libofx|exe,dev,doc,nls|compat:| #using grisbi pet compiled without needing this.
+yes|libogg|libogg|exe,dev,doc,nls|compat:
+yes|liboil|liboil|exe,dev,doc,nls|compat:
+yes|libpcap|libpcap|exe,dev,doc,nls|compat:
+yes|libpciaccess|libpciaccess|exe,dev,doc,nls|compat:
+yes|libpng|libpng|exe,dev,doc,nls|compat:
+no|libpng12|libpng-1.2.*|exe,dev>null,doc,nls|pet:april
+yes|libpng12|libpng-legacy12|exe,dev>exe,doc,nls|compat:
+yes|libpthread-stubs|libpthread-stubs|exe>dev,dev,doc,nls|compat:
+yes|libraw1394|libraw1394|exe,dev,doc,nls|compat:
+yes|librsvg|librsvg|exe,dev,doc,nls|compat:
+yes|libsamplerate|libsamplerate|exe,dev,doc,nls|compat:
+yes|libsigc++|libsigc++|exe,dev,doc,nls|compat:
+yes|libsigsegv|libsigsegv|exe,dev,doc,nls|compat:
+no|libSM|libSM|exe,dev,doc,nls|compat:| #XORGBASE
+yes|libsndfile|libsndfile|exe,dev,doc,nls|compat:
+yes|libssh|libssh|exe,dev>null,doc,nls|compat:
+yes|libssh2|libssh2|exe,dev,doc,nls|compat:
+yes|libsystem||exe,dev,doc,nls|pet:april| #needed by helpsurfer
+yes|libtasn1|libtasn1|exe,dev,doc,nls|compat:
+yes|libtermcap|libtermcap|exe,dev,doc,nls|compat:
+yes|libtheora|libtheora|exe,dev,doc,nls|compat:
+yes|libtiff|libtiff|exe,dev,doc,nls|compat:
+yes|libtool|libtool|exe,dev,doc,nls|compat:
+yes|libunistring|libunistring|exe,dev,doc,nls|compat:
+yes|libusb-compat|libusb-compat|exe,dev,doc,nls|compat:
+yes|libusb1|libusb|exe,dev,doc,nls|compat:
+yes|libva|libva|exe,dev,doc,nls|compat:
+yes|libvdpau|libvdpau|exe,dev,doc,nls|compat:
+yes|libvdpau-va-gl|libvdpau-va-gl|exe,dev,doc,nls|compat:
+yes|libvorbis|libvorbis|exe,dev,doc,nls|compat:
+yes|libvpx|libvpx|exe,dev,doc,nls|compat:
+yes|libwebp|libwebp|exe,dev,doc,nls|compat:
+yes|libwmf|libwmf|exe,dev,doc,nls|compat:| #needed by abiword
+no|libX11|libX11|exe,dev,doc,nls|compat:| #XORGBASE
+yes|libx86|libx86|exe,dev,doc,nls|compat:
+no|libXau|libXau|exe,dev,doc,nls|compat:| #XORGBASE
+no|libXaw|libXaw|exe,dev,doc,nls|compat:| #XORGBASE
+no|libXaw3d|libXaw3d|exe,dev,doc,nls|compat:| #want this for xvkbd. no, using xvkbd linked against libXaw
+yes|libxcb_base|libxcb|exe,dev,doc,nls|compat:
+no|libXcomposite|libXcomposite|exe,dev,doc,nls|compat:| #XORGBASE
+no|libXcursor|libXcursor|exe,dev,doc,nls|compat:| #XORGBASE
+no|libXdamage|libXdamage|exe,dev,doc,nls|compat:| #XORGBASE
+no|libXdmcp|libXdmcp|exe,dev,doc,nls|compat:| #XORGBASE
+no|libXevie|libXevie|exe,dev,doc,nls|compat:| #XORGBASE
+no|libXext|libXext|exe,dev,doc,nls|compat:| #XORGBASE
+no|libXfixes|libXfixes|exe,dev,doc,nls|compat:| #XORGBASE
+no|libXfontcache|libXfontcache|exe,dev,doc,nls|compat:| #XORGBASE
+no|libXfont|libXfont|exe,dev,doc,nls|compat:| #XORGBASE
+no|libXft|libXft|exe,dev,doc,nls|compat:| #XORGBASE
+no|libXi|libXi|exe,dev,doc,nls|compat:| #XORGBASE
+no|libXinerama|libXinerama|exe,dev,doc,nls|compat:| #XORGBASE
+no|libxkbfile|libxkbfile|exe,dev,doc,nls|compat:| #XORGBASE
+yes|libxml2|libxml2|exe,dev,doc,nls|compat:
+no|libXmu|libXmu|exe,dev,doc,nls|compat:| #XORGBASE
+no|libXp|libXp|exe,dev,doc,nls|compat:| #XORGBASE
+no|libXpm|libXpm|exe,dev,doc,nls|compat:| #XORGBASE
+no|libXrandr|libXrandr|exe,dev,doc,nls|compat:| #XORGBASE
+no|libXrender|libXrender|exe,dev,doc,nls|compat:| #XORGBASE
+no|libXres|libXres|exe,dev,doc,nls|compat:| #XORGBASE
+no|libXScrnSaver|libXScrnSaver|exe,dev,doc,nls|compat:| #XORGBASE
+yes|libxshmfence|libxshmfence|exe,dev,doc,nls|compat:
+yes|libxslt|libxslt|exe,dev,doc,nls|compat:
+no|libXt|libXt|exe,dev,doc,nls|compat:| #XORGBASE
+no|libXtst|libXtst|exe,dev,doc,nls|compat:| #XORGBASE
+no|libXv|libXv|exe,dev,doc,nls|compat:| #XORGBASE
+no|libXvMC|libXvMC|exe,dev,doc,nls|compat:| #XORGBASE
+no|libXxf86dga|libXxf86dga|exe,dev,doc,nls|compat:| #XORGBASE
+no|libXxf86misc|libXxf86misc|exe,dev,doc,nls|compat:| #XORGBASE
+no|libXxf86vm|libXxf86vm|exe,dev,doc,nls|compat:| #XORGBASE
+no|linuxtv-dvb-apps||exe,dev,doc,nls|pet:
+no|listres|listres|exe,dev,doc,nls|compat:| #XORGBASE
+yes|llvm|llvm|exe,dev,doc,nls|compat:
+no|luit|luit|exe,dev,doc,nls|compat:| #XORGBASE
+yes|lvm2|lvm2|exe,dev,doc,nls|compat:
+yes|lzo|lzo|exe,dev,doc,nls|compat:
+yes|m4|m4|exe>dev,dev,doc,nls|compat:
+yes|makebootfat||exe,dev,doc,nls|pet:
+no|makedepend|makedepend|exe,dev,doc,nls|compat:| #XORGBASE
+yes|make|make|exe>dev,dev,doc,nls|compat:
+yes|man_cut|man|exe,dev,doc,nls|compat:
+yes|man|man|exe>dev,dev,doc,nls|compat:
+no|mesa|mesa|exe,dev,doc,nls|compat:| #MESA
+yes|mesa|mesa,freeglut,glew,glu|exe,dev,doc,nls|compat:| #MESA
+yes|metamail|metamail|exe,dev,doc,nls|compat:
+yes|mhwaveedit||exe,dev,doc,nls|pet:sq142| #compiled to avoid extra deps.
+yes|minicom|minicom|exe,dev,doc,nls|compat:
+yes|mingetty||exe,dev,doc,nls|pet:
+yes|mirdir||exe,dev,doc,nls|pet:
+no|mkcomposecache|mkcomposecache|exe,dev,doc,nls|compat:| #XORGBASE
+no|mkfontdir|mkfontdir|exe,dev,doc,nls|compat:| #XORGBASE
+no|mkfontscale|mkfontscale|exe,dev,doc,nls|compat:| #XORGBASE
+yes|mktemp||exe,dev,doc,nls|pet:april
+yes|modem-stats||exe,dev,doc,nls|pet:
+no|mozilla-firefox|mozilla-firefox|exe,dev,doc,nls|compat:
+yes|mp|mp_static|exe,dev,doc,nls|pet:common| #menu broken, using nano instead. now have static works.
+yes|mpfr|mpfr|exe,dev,doc,nls|compat:| #GCCDEV need this in main f.s.
+no|mplayer_codecs_basic||exe,dev,doc,nls|pet:noarch
+yes|mpscan||exe,dev,doc,nls|pet:
+yes|mscw||exe,dev,doc,nls|pet:noarch
+no|ms-sys||exe,dev,doc,nls|pet:
+no|mtdev|mtdev|exe,dev,doc,nls|compat:| #XORGBASE
+yes|mtpaint||exe,dev,doc,nls|pet:
+yes|mtr|mtr|exe,dev,doc,nls|compat:
+no|nano||exe,dev,doc,nls|pet:common| #compiled statically.
+yes|nasm|nasm|exe>dev,dev,doc,nls|compat:
+yes|nbtscan|nbtscan|exe,dev,doc,nls|compat:
+yes|ncurses|ncurses|exe,dev,doc,nls|compat:
+no|ndiswrapper||exe,dev,doc,nls|pet:april
+yes|nenscript||exe,dev,doc,nls|pet:
+yes|neon|neon|exe>dev,dev,doc,nls|compat:
+yes|netpbm||exe,dev,doc,nls|pet:
+yes|net_setup||exe,dev,doc,nls|pet:noarch
+yes|nettle|nettle|exe,dev,doc,nls|compat:
+yes|net-tools|net-tools|exe,dev,doc,nls|compat:
+no|network_roxapp||exe,dev,doc,nls|pet:noarch
+yes|network_tray||exe,dev,doc,nls|pet:xerus
+yes|normalize|normalize|exe,dev,doc,nls|compat:
+yes|notecase||exe,dev,doc,nls|pet:
+no|nrg2iso||exe
+yes|ntfs-3g|ntfs-3g|exe,dev,doc,nls|compat:
+no|ntfsprogs||exe,dev,doc,nls|pet:| #functionality is now all in ntfs-3g pkg.
+yes|ntpdate||exe,dev,doc,nls|pet:
+yes|numlockx|numlockx|exe,dev,doc,nls|compat:
+yes|openal-soft|openal-soft|exe,dev,doc,nls|compat:
+yes|opencore-amr|opencore-amr|exe,dev,doc,nls|compat:salix| #also in slacky.
+yes|openjpeg|openjpeg|exe,dev,doc,nls|compat:
+yes|openldap-client|openldap-client|exe,dev,doc,nls|compat:
+yes|openssh_client|openssh|exe,dev,doc,nls|compat:
+yes|openssl|openssl,openssl-solibs|exe,dev,doc,nls|compat:
+yes|opus|opus|exe,dev,doc,nls|compat:
+yes|orc|orc|exe,dev,doc,nls|compat:
+yes|osmo||exe,dev,doc,nls|pet:april
+yes|p11-kit|p11-kit|exe,dev,doc,nls|compat:
+no|p7zip||exe,dev,doc,nls|pet:
+yes|pangomm|pangomm|exe,dev,doc,nls|
+yes|pango|pango|exe,dev,doc,nls|compat:
+yes|parcellite||exe,dev,doc,nls|pet:
+yes|parted|parted|exe,dev,doc,nls|compat:
+yes|patch|patch|exe>dev,dev,doc,nls|compat:
+yes|pavrecord||exe,dev,doc,nls|pet:
+yes|pbackup||exe,dev,doc,nls|pet:noarch
+yes|pburn||exe,dev,doc,nls|pet:noarch
+yes|pciutils||exe,dev,doc,nls|pet:april
+yes|pclock||exe,dev,doc,nls|pet:noarch
+no|pcmciautils|pcmciautils|exe,dev,doc,nls|compat:
+yes|pcre|pcre|exe,dev,doc,nls|compat:
+yes|pcurlftp_file_sharing||exe,dev,doc,nls|pet:noarch
+yes|pdiag||exe,dev,doc,nls|pet:noarch
+yes|pdvdrsab||exe,dev,doc,nls|pet:noarch
+yes|peasydisc||exe|pet:noarch
+yes|peasyglue||exe,dev,doc,nls
+yes|peasypdf||exe,dev,doc,nls|pet:noarch
+yes|peasyport-noarch||exe,dev,doc,nls|pet:
+yes|peasyprint||exe,dev,doc,nls|pet:noarch
+yes|peasyscale-noarch||exe|pet:noarch| #rcrsn51, jpg image resizer.
+yes|peasyscale-exec|peasyscale-exec|exe,dev,doc,nls|compat:april| #binary needed by peasyscale.
+yes|peasyscan-noarch||exe|pet:noarch| #rcrsn51, scanner gui
+yes|peasyscan-exec|peasyscan-exec|exe,dev,doc,nls|compat:april| #binary needed by peasyscan.
+yes|pequalizer||exe,dev,doc,nls|pet:noarch
+yes|perl|perl|exe>dev,dev,doc,nls|compat:
+yes|perl_tiny|perl|exe,dev>null,doc>null,nls>null|compat:
+yes|perl-digest-sha1|perl-digest-sha1|exe>dev,dev,doc,nls|compat:
+yes|perl-html-parser|perl-html-parser|exe>dev,dev,doc,nls|compat:
+yes|pfilesearch||exe,dev,doc,nls|pet:noarch
+yes|pfind||exe,dev,doc,nls|pet:noarch
+no|pfontview||exe,dev,doc,nls|pet:
+no|picocom||exe,dev,doc,nls|pet:
+yes|picpuz||exe,dev,doc,nls|pet:
+yes|pixman|pixman|exe,dev,doc,nls|compat:
+yes|pkg-config|pkg-config|exe>dev,dev,doc,nls|compat:
+no|pmirc||exe,dev,doc,nls|pet:
+yes|pmirror||exe,dev,doc,nls|pet:noarch
+yes|pmirrorget||exe,dev,doc,nls|pet:noarch
+no|pnmixer_tray||exe,dev,doc,nls|pet:xerus| #with aumix, replaces retrovol.
+yes|pmusic||exe,dev,doc,nls|pet:noarch
+yes|pnscan|pnscan|exe,dev,doc,nls|compat:april| #needed by peasyport-noarch.
+no|pns_tool_pup||exe,dev,doc,nls|pet:
+yes|poppler|poppler|exe,dev,doc,nls|compat:
+yes|popt|popt|exe,dev,doc,nls|compat:
+yes|powerapplet_tray||exe,dev,doc,nls|pet:
+no|pplog||exe,dev,doc,nls|pet:noarch| #needs hiawatha. broken.
+yes|ppp|ppp|exe,dev,doc,nls|compat:
+yes|pprocess||exe,dev,doc,nls|pet:noarch
+yes|pptp|pptp-linux|exe,dev,doc,nls|compat:april
+yes|precord||exe,dev,doc,nls|pet:noarch
+yes|prename||exe,dev,doc,nls|pet:noarch
+no|printproto|printproto|exe>dev,dev,doc,nls|compat:| #X11PROTO
+yes|procps|procps-ng|exe,dev,doc,nls|compat:
+yes|programchooser||exe,dev,doc,nls|pet:noarch
+yes|pschedule||exe,dev,doc,nls|pet:noarch
+yes|psmisc||exe,dev,doc,nls|pet:april
+no|psync||exe,dev,doc,nls|pet:noarch| #broken, now have qsync builtin to woofq. qsync needs ntpdate.
+yes|ptiming||exe,dev,doc,nls|pet:noarch
+no|PupControl||exe,dev,doc,nls|pet:
+yes|puppyinputdetect||exe,dev,doc,nls|pet:
+yes|puppyserialdetect||exe,dev,doc,nls|pet:
+yes|pupradio||exe,dev,doc,nls|pet:noarch
+yes|pup-tools||exe,dev,doc,nls|pet:xerus| #core utilities for puppy.
+yes|pupx||exe,dev,doc,nls|pet:noarch
+yes|pure-ftpd||exe,dev,doc,nls|pet:common
+no|pwallpaper||exe,dev,doc,nls|pet: #now using qwallpaper
+yes|pwsget||exe,dev,doc,nls|pet:noarch
+yes|python|python|exe>dev,dev,doc,nls|compat:
+yes|pzchmview||exe,dev,doc,nls|pet:noarch
+yes|qpdf|qpdf|exe,dev,doc,nls|compat:
+yes|radeontool|radeontool|exe,dev,doc,nls|compat:
+no|randrproto|randrproto|exe>dev,dev,doc,nls|compat:| #X11PROTO
+yes|rdesktop|rdesktop|exe,dev,doc,nls|compat:
+yes|readline|readline|exe,dev,doc,nls|compat:
+no|recordproto|recordproto|exe>dev,dev,doc,nls|compat:| #X11PROTO
+no|rendercheck|rendercheck|exe,dev,doc,nls|compat:| #XORGBASE
+no|renderproto|renderproto|exe>dev,dev,doc,nls|compat:| #X11PROTO
+no|replaceit||exe,dev,doc,nls|pet:
+no|resourceproto|resourceproto|exe>dev,dev,doc,nls|compat:| #X11PROTO
+yes|retrovol||exe,dev,doc,nls|pet:
+yes|rman||exe>dev,dev,doc,nls|pet:april
+yes|rox-filer|rox-filer-2011*|exe|pet:sq142| #have issues with most recent source, use this.
+yes|rp_pppoe_cli|rp-pppoe|exe,dev,doc,nls|compat:
+yes|rsync|rsync|exe>dev,dev,doc,nls|compat:
+yes|rtmpdump|rtmpdump|exe,dev,doc,nls|compat:
+yes|rubix||exe,dev,doc,nls|pet:
+yes|rxvt-unicode||exe,dev,doc,nls|pet:sq142
+no|samba|samba|exe,dev,doc,nls|compat:
+yes|sane|sane|exe,dev,doc,nls|compat:
+yes|scale2x||exe,dev,doc,nls|pet:
+yes|schroedinger|schroedinger|exe,dev,doc,nls|compat:
+yes|screeny||exe,dev,doc,nls|pet:| #01micko
+no|scrnsaverproto|scrnsaverproto|exe>dev,dev,doc,nls|compat:| #X11PROTO
+yes|sdl|sdl|exe,dev,doc,nls|compat:
+yes|seamonkey|seamonkey|exe,dev,doc,nls|compat:
+yes|sed|sed|exe,dev,doc,nls|compat:
+no|Send-to-Backgrounds-update||exe,dev,doc,nls|pet:
+no|sessreg|sessreg|exe,dev,doc,nls|compat:| #XORGBASE
+yes|setserial||exe,dev,doc,nls|pet:
+yes|setvol||exe,dev,doc,nls|pet:
+no|setxkbmap|setxkbmap|exe,dev,doc,nls|compat:| #XORGBASE
+yes|sfontview||exe,dev,doc,nls|pet:
+yes|sfs-converter||exe,dev,doc,nls|pet:noarch
+no|sfs_manager||exe,dev,doc,nls|pet:
+yes|shared-mime-info||exe,dev,doc,nls|pet:april
+no|showfont|showfont|exe,dev,doc,nls|compat:| #XORGBASE
+yes|slang|slang|exe,dev,doc,nls|compat:
+yes|slang1|slang1|exe,dev,doc,nls|compat:
+no|smbw_cups_backend||exe,dev,doc,nls|pet:slacko
+no|smproxy|smproxy|exe,dev,doc,nls|compat:| #XORGBASE
+yes|snap2||exe,dev,doc,nls|pet:
+yes|speex|speex|exe,dev,doc,nls|compat:
+yes|sqlite|sqlite|exe,dev,doc,nls|compat:
+yes|squashfs-tools|squashfs-tools|exe,dev>null,doc,nls|compat:
+yes|ssh-gui||exe,dev,doc,nls|compat:april
+yes|sshpass|sshpass|exe,dev,doc,nls|compat:april
+yes|ssl-certificate-fix||exe,dev,doc,nls|pet:noarch| #qtweb needs this.
+yes|startup-notification|startup-notification|exe,dev,doc,nls|compat:
+yes|strace|strace|exe>dev,dev,doc,nls|compat:
+yes|streamripper|streamripper|exe,dev,doc,nls|compat:
+yes|subversion|subversion|exe>dev,dev,doc,nls|compat:
+yes|sudo|sudo|exe,dev,doc,nls|compat:
+yes|svgalib|svgalib|exe,dev,doc,nls|compat:
+no|sylpheed|sylpheed|exe,dev,doc,nls|compat:
+no|sys-freedos||exe,dev,doc,nls|pet:
+yes|sysfsutils|sysfsutils|exe,dev,doc,nls|compat:
+yes|sys-info||exe,dev,doc,nls|pet:
+yes|syslinux|syslinux|exe,dev,doc,nls|compat:| #v4.07
+yes|syslinux6_modules_efi||exe,dev,doc,nls|pet:common
+no|sysprof||exe>dev,dev,doc,nls|pet:
+yes|sysvinit||exe,dev,doc,nls|pet:
+yes|tar|tar|exe,dev,doc,nls|compat:
+yes|tcpdump|tcpdump|exe,dev,doc,nls|compat:
+yes|texinfo|texinfo|exe>dev,dev,doc,nls|compat:
+yes|transmission||exe,dev,doc,nls|pet:
+yes|twolame|twolame|exe,dev,doc,nls|compat:
+no|udev||exe,dev,doc,nls| #now using eudev.
+yes|ufiformat|ufiformat|exe,dev,doc,nls|compat:april| #needed by floppy-format pet.
+yes|unclutter||exe,dev,doc,nls|pet:
+yes|unrar|unrar|exe,dev,doc,nls|compat:
+yes|unzip||exe,dev,doc,nls|pet:april
+no|updates_mgr||exe,dev,doc,nls|pet:
+yes|usb-modeswitch-data||exe,dev,doc,nls|pet:noarch
+yes|usb-modeswitch||exe,dev,doc,nls|pet:
+yes|usbutils|usbutils|exe,dev,doc,nls|compat:
+yes|util-linux|util-linux|exe,dev,doc,nls|compat:
+yes|util-macros|util-macros|exe>dev,dev,doc,nls|compat:
+yes|v4l-utils|v4l-utils|exe,dev,doc,nls|compat:
+yes|vala|vala|exe>dev,dev,doc,nls|compat:
+yes|vamps||exe,dev,doc,nls|pet:
+no|videoproto|videoproto|exe>dev,dev,doc,nls|compat:| #X11PROTO
+no|video_upgrade||exe,dev,doc,nls|pet:
+yes|viewnior|viewnior|exe,dev,doc,nls|compat:
+no|viewres|viewres|exe,dev,doc,nls|compat:| #XORGBASE
+yes|vobcopy|vobcopy|exe,dev,doc,nls|compat:
+yes|vte|vte|exe,dev,doc,nls|compat:
+yes|wag_profiles||exe,dev,doc,nls|pet:noarch
+yes|wallmaker||exe|pet:noarch
+yes|wavpack|wavpack|exe,dev,doc,nls|compat:
+yes|wavplay||exe,dev,doc,nls|pet:
+yes|wcpufreq||exe,dev,doc,nls|pet:
+yes|wget|wget|exe,dev,doc,nls|compat:
+yes|wireless-tools|wireless-tools|exe,dev,doc,nls|compat:|
+yes|wpa_supplicant|wpa_supplicant|exe,dev,doc,nls|compat:| #also in salix.
+yes|wvdial|wvdial|exe,dev,doc,nls|compat:| #needs wvstreams
+yes|wv||exe,dev,doc,nls|pet:april
+yes|wvstreams|wvstreams|exe,dev,doc,nls|compat:
+no|x11perf|x11perf|exe,dev,doc,nls|compat:| #XORGBASE
+yes|x11proto|bigreqsproto,compositeproto,damageproto,dmxproto,dri2proto,fixesproto,fontcacheproto,fontsproto,glproto,inputproto,kbproto,printproto,randrproto,recordproto,renderproto,resourceproto,scrnsaverproto,videoproto,xcb-proto,xcmiscproto,xextproto,xf86bigfontproto,xf86dgaproto,xf86driproto,xf86miscproto,xf86vidmodeproto,xineramaproto,xproto|exe>dev,dev,doc,nls|compat:| #X11PROTO
+yes|x264|x264|exe,dev,doc,nls|compat:
+yes|x265|x265|exe,dev,doc,nls|compat:
+yes|xarchive||exe,dev,doc,nls|pet:sq142| #compiled april64, shifted /usr/lib to /usr/lib64
+no|xauth|xauth|exe,dev,doc,nls|compat:| #XORGBASE
+no|xbacklight|xbacklight|exe,dev,doc,nls|compat:| #XORGBASE
+no|xbiff|xbiff|exe,dev,doc,nls|compat:| #XORGBASE
+no|xbindkeys||exe,dev,doc,nls|pet:
+no|xcalc|xcalc|exe,dev,doc,nls|compat:| #XORGBASE
+no|xcb-proto|xcb-proto|exe>dev,dev,doc,nls|compat:| #X11PROTO
+yes|xcb-util|xcb-util|exe,dev,doc,nls|compat:
+no|xchat||exe,dev,doc,nls|pet:
+no|xclipboard|xclipboard|exe,dev,doc,nls|compat:| #XORGBASE
+yes|xclip|xclip|exe,dev,doc,nls|compat:
+no|xclock|xclock|exe,dev,doc,nls|compat:| #XORGBASE
+no|xcmiscproto|xcmiscproto|exe>dev,dev,doc,nls|compat:| #X11PROTO
+yes|xcompmgr|xcompmgr|exe,dev,doc,nls|compat:
+no|xconsole|xconsole|exe,dev,doc,nls|compat:| #XORGBASE
+yes|xcur2png||exe,dev,doc,nls|pet:
+no|xcursorgen|xcursorgen|exe,dev,doc,nls|compat:| #XORGBASE
+yes|xdelta||exe,dev,doc,nls|pet:
+yes|xdg_puppy||exe,dev,doc,nls|pet:
+yes|xdialog||exe,dev,doc,nls|pet:
+no|xditview|xditview|exe,dev,doc,nls|compat:| #XORGBASE
+no|xdpyinfo|xdpyinfo|exe,dev,doc,nls|compat:| #XORGBASE
+no|xdriinfo|xdriinfo|exe,dev,doc,nls|compat:| #XORGBASE
+no|xev|xev|exe,dev,doc,nls|compat:| #XORGBASE
+no|xextproto|xextproto|exe>dev,dev,doc,nls|compat:| #X11PROTO
+no|xf86bigfontproto|xf86bigfontproto|exe>dev,dev,doc,nls|compat:| #X11PROTO
+no|xf86dgaproto|xf86dgaproto|exe>dev,dev,doc,nls|compat:| #X11PROTO
+no|xf86dga|xf86dga|exe,dev,doc,nls|compat:| #XORGBASE
+no|xf86driproto|xf86driproto|exe>dev,dev,doc,nls|compat:| #X11PROTO
+no|xf86-input-evdev|xf86-input-evdev|exe,dev,doc,nls|compat:| #XSERVER
+no|xf86-input-keyboard|xf86-input-keyboard|exe,dev,doc,nls|compat:| #XSERVER
+no|xf86-input-mouse|xf86-input-mouse|exe,dev,doc,nls|compat:| #XSERVER
+no|xf86-input-synaptics|xf86-input-synaptics|exe,dev,doc,nls|compat:
+no|xf86miscproto|xf86miscproto|exe>dev,dev,doc,nls|compat:| #X11PROTO
+no|xf86-video-apm|xf86-video-apm|exe,dev,doc,nls|compat:| #XSERVER
+no|xf86-video-ark|xf86-video-ark|exe,dev,doc,nls|compat:| #XSERVER
+no|xf86-video-ast|xf86-video-ast|exe,dev,doc,nls|compat:| #XSERVER
+no|xf86-video-ati|xf86-video-ati|exe,dev,doc,nls|compat:| #XSERVER
+no|xf86-video-chips|xf86-video-chips|exe,dev,doc,nls|compat:| #XSERVER
+no|xf86-video-cirrus|xf86-video-cirrus|exe,dev,doc,nls|compat:| #XSERVER
+no|xf86-video-geode|xf86-video-geode|exe,dev,doc,nls|compat:| #XSERVER
+no|xf86-video-i128|xf86-video-i128|exe,dev,doc,nls|compat:| #XSERVER
+no|xf86-video-i740|xf86-video-i740|exe,dev,doc,nls|compat:| #XSERVER
+no|xf86-video-intel|xf86-video-intel|exe,dev,doc,nls|compat:| #XSERVER
+no|xf86-video-mach64|xf86-video-mach64|exe,dev,doc,nls|compat:| #XSERVER
+no|xf86-video-mga|xf86-video-mga|exe,dev,doc,nls|compat:| #XSERVER
+no|xf86-video-modesetting|xf86-video-modesetting|exe,dev,doc,nls|compat:| #XSERVER ***NOT IN SLACK REPO***
+no|xf86-video-neomagic|xf86-video-neomagic|exe,dev,doc,nls|compat:| #XSERVER
+no|xf86-video-nouveau|xf86-video-nouveau|exe,dev,doc,nls|compat:| #XSERVER
+no|xf86-video-nv|xf86-video-nv|exe,dev,doc,nls|compat:| #XSERVER
+no|xf86-video-openchrome|xf86-video-openchrome|exe,dev,doc,nls|compat:| #XSERVER
+no|xf86-video-r128|xf86-video-r128|exe,dev,doc,nls|compat:| #XSERVER
+no|xf86-video-rendition|xf86-video-rendition|exe,dev,doc,nls|compat:| #XSERVER
+no|xf86-video-s3virge|xf86-video-s3virge|exe,dev,doc,nls|compat:| #XSERVER
+no|xf86-video-s3|xf86-video-s3|exe,dev,doc,nls|compat:| #XSERVER
+no|xf86-video-savage|xf86-video-savage|exe,dev,doc,nls|compat:| #XSERVER
+no|xf86-video-siliconmotion|xf86-video-siliconmotion|exe,dev,doc,nls|compat:| #XSERVER
+no|xf86-video-sis|xf86-video-sis|exe,dev,doc,nls|compat:| #XSERVER
+no|xf86-video-tdfx|xf86-video-tdfx|exe,dev,doc,nls|compat:| #XSERVER
+no|xf86-video-trident|xf86-video-trident|exe,dev,doc,nls|compat:| #XSERVER
+no|xf86-video-v4l|xf86-video-v4l|exe,dev,doc,nls|compat:| #XSERVER
+no|xf86-video-vesa|xf86-video-vesa|exe,dev,doc,nls|compat:| #XSERVER
+no|xf86-video-vmware|xf86-video-vmware|exe,dev,doc,nls|compat:| #XSERVER. needs llvm
+no|xf86-video-voodoo|xf86-video-voodoo|exe,dev,doc,nls|compat:| #XSERVER
+no|xf86vidmodeproto|xf86vidmodeproto|exe>dev,dev,doc,nls|compat:| #X11PROTO
+yes|xfdiff-cut||exe,dev,doc,nls|pet:
+no|xfontsel|xfontsel|exe,dev,doc,nls|compat:| #XORGBASE
+no|xgamma|xgamma|exe,dev,doc,nls|compat:| #XORGBASE
+no|xhost|xhost|exe,dev,doc,nls|compat:| #XORGBASE
+yes|xine-lib||exe,dev,doc,nls|pet:sq142| #compiled with less deps.
+no|xinetd||exe,dev,doc,nls|compat:| #super-server
+yes|xine-ui|xine-ui|exe,dev,doc,nls|compat:
+no|xineramaproto|xineramaproto|exe>dev,dev,doc,nls|compat:| #X11PROTO
+no|xinit|xinit|exe,dev,doc,nls|compat:| #XORGBASE
+no|xkbcomp|xkbcomp|exe,dev,doc,nls|compat:| #XORGBASE
+no|xkbconfigmanager||exe,dev,doc,nls|pet:noarch| #now builtin to woofQ.
+no|xkbutils|xkbutils|exe,dev,doc,nls|compat:| #XORGBASE
+yes|xkeyboard-config|xkeyboard-config|exe,dev,doc,nls|compat:| #have removed /etc/x11/xkb in xorg_base template.
+no|xkill|xkill|exe,dev,doc,nls|compat:| #XORGBASE
+no|xload|xload|exe,dev,doc,nls|compat:| #XORGBASE
+yes|xlock_gui||exe,dev,doc,nls|pet:noarch
+yes|xlockmore||exe,dev,doc,nls|pet:
+no|xmag|xmag|exe,dev,doc,nls|compat:| #XORGBASE
+no|xmessage|xmessage|exe,dev,doc,nls|compat:| #XORGBASE
+no|xmodmap|xmodmap|exe,dev,doc,nls|compat:| #XORGBASE
+yes|xorg_base|appres,bdftopcf,bitmap,editres,evieext,fontconfig,fonttosfnt,fslsfonts,fstobdf,iceauth,libdmx,libfontenc,libFS,libICE,libSM,libX11,libXau,libXaw,libXcomposite,libXcursor,libXdamage,libXdmcp,libXevie,libXext,libXfixes,libXfont,libXfontcache,libXft,libXi,libXinerama,libxkbfile,libXmu,libXp,libXpm,libXrandr,libXrender,libXres,libXScrnSaver,libXt,libXtst,libXv,libXvMC,libXxf86dga,libXxf86misc,libXxf86vm,listres,luit,makedepend,mkcomposecache,mkfontdir,mkfontscale,mtdev,rendercheck,sessreg,setxkbmap,showfont,smproxy,viewres,x11perf,xauth,xbacklight,xbiff,xcalc,xclipboard,xclock,xconsole,xcursorgen,xditview,xdpyinfo,xdriinfo,xev,xf86dga,xfontsel,xgamma,xhost,xinit,xkbcomp,xkbutils,xkill,xload,xmag,xmessage,xmodmap,xprop,xrandr,xrdb,xrefresh,xset,xsetroot,xsm,xstdcmap,xvidtune,xvinfo,xwd,xwininfo,libdrm|exe,dev,doc,nls|compat:| #XORGBASE
+no|xorg-server|xorg-server|exe,dev,doc,nls|compat:| #XSERVER
+yes|xorriso||exe|pet:sq142| #libisofs, libburn, libjte statically linked.
+no|xprop|xprop|exe,dev,doc,nls|compat:| #XORGBASE
+no|xproto|xproto|exe>dev,dev,doc,nls|compat:| #X11PROTO
+no|xrandr|xrandr|exe,dev,doc,nls|compat:| #XORGBASE
+no|xrdb|xrdb|exe,dev,doc,nls|compat:| #XORGBASE
+no|xrefresh|xrefresh|exe,dev,doc,nls|compat:| #XORGBASE
+yes|xsane||exe,dev,doc,nls|pet:sq142| #compiled with less deps.
+yes|xserver_xorg|xorg-server,xf86-input-evdev,xf86-input-keyboard,xf86-input-mouse,xf86-input-synaptics,xf86-video-apm,xf86-video-ark,xf86-video-ast,xf86-video-ati,xf86-video-chips,xf86-video-cirrus,xf86-video-i128,xf86-video-i740,xf86-video-intel,xf86-video-mach64,xf86-video-mga,xf86-video-neomagic,xf86-video-nouveau,xf86-video-nv,xf86-video-openchrome,xf86-video-r128,xf86-video-rendition,xf86-video-s3,xf86-video-s3virge,xf86-video-savage,xf86-video-siliconmotion,xf86-video-sis,xf86-video-tdfx,xf86-video-trident,xf86-video-v4l,xf86-video-vesa,xf86-video-vmware,xf86-video-voodoo|exe,dev,doc,nls|compat:| #XSERVER
+no|xsetroot|xsetroot|exe,dev,doc,nls|compat:| #XORGBASE
+no|xset|xset|exe,dev,doc,nls|compat:| #XORGBASE
+no|xsm|xsm|exe,dev,doc,nls|compat:| #XORGBASE
+yes|xsoldier||exe,dev,doc,nls|pet:
+no|xstdcmap|xstdcmap|exe,dev,doc,nls|compat:| #XORGBASE
+yes|xtrans|xtrans|exe>dev,dev,doc,nls|compat:
+yes|xvidcore|xvidcore|exe,dev,doc,nls|compat:
+no|xvidtune|xvidtune|exe,dev,doc,nls|compat:| #XORGBASE
+no|xvinfo|xvinfo|exe,dev,doc,nls|compat:| #XORGBASE
+yes|xvkbd||exe,dev,doc,nls|pet:common
+no|xwd|xwd|exe,dev,doc,nls|compat:| #XORGBASE
+no|xwininfo|xwininfo|exe,dev,doc,nls|compat:| #XORGBASE
+yes|xz|xz|exe,dev,doc,nls|compat:
+no|yaf_splash||exe,dev,doc,nls|pet:
+yes|yasm|yasm|exe>dev,dev,doc,nls|compat:
+no|YASSM||exe,dev,doc,nls|pet:noarch
+yes|z_geany_bacon_hack||exe,dev,doc,nls|pet:noarch
+yes|zlib|zlib|exe,dev,doc,nls|compat:
+'

@@ -1,0 +1,207 @@
+#!/bin/sh
+#(c) Copyright Barry Kauler, February 2017. License: GPL V3 (/usr/share/doc/legal)
+#called from /usr/sbin/easy-containers
+#passed param is name of container. offer to load any extra sfs files.
+#170523 replaced 'EC_LAYER' with 'EASY_LAYER'
+#170523 may have a glob wildcard, ex: EASY_LAYER_RO1=devx*.sfs
+#170527 fixes. 170924 fix.
+#180607 fix name of extra sfs
+#181028 rename 'repository' folder to 'releases'.
+#181029 new 'sfs' folder, .sfs files are in here (see also extra-sfss-repo).
+#181108 if no container name passed-in, ask (for calling from sfsget).
+#181108 $DB_path may vary, not fixed at easyos/${DISTRO_BINARY_COMPAT}/${DISTRO_COMPAT_VERSION}
+#181108 rename 'load-list' to 'base-load-list'. improve filtering.
+#181120 also offer no-arch sfs files.
+#181122 q*.sfs renamed to easy*.sfs
+#190812 /usr/local/sfsget/sfsget calls here with optional passed 2nd param $DB_path (ex: easyos/debian/buster).
+#191020 CR was not set. fix for inbuilt containers, they don't have 'specs' file.
+#20220607 DB_* now named SFS_DB_*
+
+EC_MANAGE="$1"
+export TEXTDOMAIN=easy-containers
+export OUTPUT_CHARSET=UTF-8
+
+. /etc/rc.d/PUPSTATE #has BOOT_DEV, BOOT_FS, BOOT_DIR, WKG_DEV, WKG_FS, WKG_DIR, QSFS_PATH
+. /etc/DISTRO_SPECS
+mkdir -p /tmp/easy_containers
+
+CR='
+' #191020
+
+VALIDpath=''
+if [ $2 ];then #190812 ex: easyos/debian/buster
+ #narrow choices of containers to only those in same distro...
+ VALIDpath="$2"
+ echo -n '' > /tmp/easy_containers/CONTS
+ for aCONT in `ls -1 /mnt/${WKG_DEV}/${WKG_DIR}containers | tr '\n' ' '`
+ do
+  #191020 fix for inbuilt containers, they don't have 'specs' file...
+  if [ -f /mnt/${WKG_DEV}/${WKG_DIR}containers/${aCONT}/specs ];then
+   #20220607 fix an old specs file...
+   grep -q '^SFS_DB_' /mnt/${WKG_DEV}/${WKG_DIR}containers/${aCONT}/specs
+   if [ $? -ne 0 ];then
+    sed -i -e 's%^DB_%SFS_DB_%' /mnt/${WKG_DEV}/${WKG_DIR}containers/${aCONT}/specs
+   fi
+   if ! grep "^SFS_DB_path='${VALIDpath}'" /mnt/${WKG_DEV}/${WKG_DIR}containers/${aCONT}/specs >/dev/null;then #20220607
+    continue
+   fi
+  else
+   if [ "${VALIDpath}" != "easyos/${DISTRO_BINARY_COMPAT}/${DISTRO_COMPAT_VERSION}" ];then
+    continue
+   fi
+  fi
+  echo "$aCONT" >> /tmp/easy_containers/CONTS
+ done
+else
+ ls -1 /mnt/${WKG_DEV}/${WKG_DIR}containers > /tmp/easy_containers/CONTS
+fi
+
+if [ ! "$EC_MANAGE" ];then #181108
+ if [ "$VALIDpath" ];then
+  if [ ! -s /tmp/easy_containers/CONTS ];then
+   X_1="$(gettext 'Distribution path:')"
+   X_2="$(gettext 'There are no existing containers belonging to this distribution. Aborting.')"
+   popup "background=#ff8080 level=top terminate=ok|<big>${X_1} ${VALIDpath}${CR}${X_2}</big>"
+   exit 1
+  fi
+ fi
+ export EC_SFSS_DLG0="<window title=\"$(gettext "Easy Containers: manage SFS")\" icon-name=\"gtk-convert\">
+<vbox>
+  <text>
+   <label>$(gettext 'Extra SFS packages may be inserted into the layered filesystem of a container. You need to choose a container:')</label>
+  </text>
+  
+  <hbox>
+    <text><label>$(gettext 'Choose container to manage:')</label></text>
+    <comboboxtext><variable>EC_MANAGE</variable><input>cat /tmp/easy_containers/CONTS</input></comboboxtext>
+  </hbox>
+
+  <hbox>
+    <button><label>$(gettext 'OK')</label><action>exit:OKAY</action></button>
+    <button cancel></button>
+  </hbox>
+</vbox>
+</window>"
+
+ RETSTRING0="$(gtkdialog --program=EC_SFSS_DLG0 --center)"
+ [ $? -ne 0 ] && exit 1
+ eval "$RETSTRING0"
+ [ "$EXIT" != "OKAY" ] && exit 1
+ [ "$EC_MANAGE" == "" ] && exit 2
+ [ ! -d /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_MANAGE} ] && exit 2
+fi
+[ ! "$EC_MANAGE" ] && exit 2
+
+touch /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_MANAGE}/configuration
+
+#181108 sfsget will have installed 'specs' file...
+SFS_DB_compileddistro="${DISTRO_BINARY_COMPAT}"
+SFS_DB_compiledrelease="${DISTRO_COMPAT_VERSION}"
+SFS_DB_path="easyos/${DISTRO_BINARY_COMPAT}/${DISTRO_COMPAT_VERSION}" #ex: easyos/oe/pyro
+SFS_DB_arch="${DISTRO_TARGETARCH}"
+SFS_DB_version="${DISTRO_VERSION}"
+if [ -f /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_MANAGE}/specs ];then
+ . /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_MANAGE}/specs
+fi
+
+echo -n '' > /tmp/easy_containers/sfs-list
+#181029 entries in 'configuration' file are now symlinks...
+#SFSVARS="$(grep '^EASY_LAYER_RO' /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_MANAGE}/configuration | cut -f 2 -d '=' | cut -f 2 -d "'" | sed -e 's%\.%\\.%g' -e 's%\*%.*%g' | grep -v '^$')" #170523 convert glob * to regular-expression. 170527
+SFSVARS="$(grep '^EASY_LAYER_RO' /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_MANAGE}/configuration | cut -f 2 -d '=' | cut -f 2 -d "'" | sed -e 's%\.sfs$%_\.*\\.sfs%' | grep -v '^$')" #181029 ex: convert devx.sfs to devx_.*\\.sfs
+echo -n "$SFSVARS" > /tmp/easy_containers/sfs-list-wanted #170527
+
+#181029 .sfs files are now in 'sfs' folder, including easy.sfs (which is renamed)... 181108...
+DEVX_PTNver="$(echo -n "devx_${SFS_DB_version}[_-]" | sed -e 's%\.%\\.%g')" #convert 1.2.3 to 1\.2\.3
+EXTRASFSS0="$(find /mnt/${WKG_DEV}/${WKG_DIR}sfs/${SFS_DB_path} -maxdepth 1 -type f -name '*.sfs' | grep "_${SFS_DB_arch}\.sfs" | grep -v '/easy_.*\.sfs' | grep -v '/devx_.*\.sfs' | rev | cut -f 1 -d '/' | rev)" #181029 181108
+
+EXTRADEVXSFSS="$(find /mnt/${WKG_DEV}/${WKG_DIR}sfs/${SFS_DB_path} -maxdepth 1 -type f -name '*.sfs' | grep "${DEVX_PTNver}" | grep "_${SFS_DB_arch}\.sfs" | rev | cut -f 1 -d '/' | rev)" #181108
+
+#181120 also offer no-arch sfs files...
+SRCSFSS="$(find /mnt/${WKG_DEV}/${WKG_DIR}sfs/${SFS_DB_path} -maxdepth 1 -type f -name '*.sfs' | grep -E '_src\.sfs|_all\.sfs' | rev | cut -f 1 -d '/' | rev)"
+
+echo -n '' > /tmp/easy_containers/extrasfss-found
+[ "$EXTRASFSS0" ] && echo "$EXTRASFSS0" >> /tmp/easy_containers/extrasfss-found
+[ "$EXTRADEVXSFSS" ] && echo "$EXTRADEVXSFSS" >> /tmp/easy_containers/extrasfss-found
+[ "$SRCSFSS" ] && echo "$SRCSFSS" >> /tmp/easy_containers/extrasfss-found
+
+#181108 if file 'base-load-list' exists, exclude those...
+if [ -s /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_MANAGE}/base-load-list ];then #see sfsget
+ sed -e 's%\.sfs$%_.*\\.sfs%' /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_MANAGE}/base-load-list > /tmp/easy_containers/load-list-regex
+ grep -v -f /tmp/easy_containers/load-list-regex /tmp/easy_containers/extrasfss-found > /tmp/easy_containers/extrasfss-found-cut
+ cp -f /tmp/easy_containers/extrasfss-found-cut /tmp/easy_containers/extrasfss-found
+fi
+
+###TO DO: may need more filtering, check <name>.specs, SFS_DB_dependencies of candidate SFS pkgs.
+
+EXTRASFSS="$(cat /tmp/easy_containers/extrasfss-found)"
+
+if [ ! "$EXTRASFSS" ];then
+  SFSXML="<text><label>There are no extra SFS packages to load</label></text>"
+else
+ CNT=1
+ for aSFS in `echo -n "$EXTRASFSS" | tr '\n' ' '` #ex: devx_0.9.8_amd64.sfs
+ do
+  if [ "$(echo -n "$aSFS" | grep -f /tmp/easy_containers/sfs-list-wanted)" == "" ];then
+   DEFCHK='false'
+  else
+   DEFCHK='true'
+  fi
+  SFSCHECK="${SFSCHECK}<checkbox><variable>SFSCHK${CNT}</variable><label>${aSFS}</label><default>${DEFCHK}</default></checkbox>"
+  echo "SFSCHK${CNT}=${aSFS}" >> /tmp/easy_containers/sfs-list
+  CNT=`expr $CNT + 1`
+ done
+ . /tmp/easy_containers/sfs-list
+ SFSXML="${SFSCHECK}"
+fi
+
+
+
+export EC_SFS_DLG1="<window title=\"$(gettext "Easy Containers: manage SFS")\" icon-name=\"gtk-convert\">
+<vbox>
+  <text use-markup=\"true\"><label>\"$(gettext 'Each container in Easy Linux runs on its own layered filesystem. It is possible to insert more read-only layers above the base layer. Choose from the available list:')\"</label></text>
+  ${SFSXML}
+  <text use-markup=\"true\"><label>\"
+<b>$(gettext 'Technical notes')</b>
+$(gettext 'Extra SFS files are located here:')
+/mnt/${WKG_DEV}/${WKG_DIR}sfs/${SFS_DB_path}\"</label></text>
+<text><label>$(gettext 'The user may download and manually place .sfs files in this folder.')</label></text>
+
+  <hbox>
+    <button><label>$(gettext 'Commit')</label><action>exit:sfsload</action></button>
+    <button cancel></button>
+  </hbox>
+</vbox>
+</window>"
+
+RETSTRING1="$(gtkdialog --program=EC_SFS_DLG1 --center)"
+[ $? -ne 0 ] && exit
+eval "$RETSTRING1"
+
+if [ "$EXIT" == "sfsload" ];then
+ #170523 a text string would be helpful...
+ sed -i '/Easy layer variables are numbered/d' /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_MANAGE}/configuration
+ echo "#Easy layer variables are numbered, higher number, higher layer. 'RO0' is lowest, reserved for easy.sfs" >> /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_MANAGE}/configuration
+ #remove all existing sfs entries...
+ grep -v '^EASY_LAYER_RO' /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_MANAGE}/configuration > /tmp/easy_containers/tmp-configuration
+ cp -f /tmp/easy_containers/tmp-configuration /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_MANAGE}/configuration
+ #append new...
+ CNT=1; FILELIST=""
+ for aSFSCHK in `echo "$RETSTRING1" | grep '^SFSCHK' | grep '"true"' | cut -f 1 -d '=' | tr '\n' ' '`
+ do
+  SFSFILE="$(grep "^${aSFSCHK}=" /tmp/easy_containers/sfs-list | cut -f 2 -d '=')"
+  #181029 use the name-only as a symlink to the actual .sfs file...
+  NAMEONLY="${SFSFILE/_*/}" #ex: devx_1.2.3_amd64.sfs becomes devx
+  ln -snf ../../sfs/${SFS_DB_path}/${SFSFILE} /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_MANAGE}/${NAMEONLY}.sfs
+  echo "EASY_LAYER_RO${CNT}=${NAMEONLY}.sfs" >> /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_MANAGE}/configuration
+  FILELIST="${FILELIST} ${SFSFILE}"
+  CNT=`expr $CNT + 1`
+ done
+ if [ $CNT -eq 1 ];then #170527
+  pupdialog --timeout 10 --background '#80FF80' --backtitle "$(gettext 'Extra SFSs')" --msgbox "$(gettext 'No extra SFS files will be loaded when the container is started.')" 0 0
+ else
+  pupdialog --timeout 5 --background '#80FF80' --backtitle "$(gettext 'Extra SFSs selected')" --msgbox "$(gettext 'These extra SFS files will be loaded when the container is started:')
+${FILELIST}" 0 0
+ fi
+fi
+
+###end###

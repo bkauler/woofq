@@ -1,0 +1,968 @@
+#!/bin/sh
+#written for easyos, to convert a folder into a sfs file.
+#181027 first release.
+#181029 remove DB_repo, do not want hard-coded url.
+#181031 <nameonly>.specs inside sfs, <pkgname_arch>.specs outside.
+#181102 first release.
+#181105 hack to fix rox startup in container. popup fix. audio applet fix.
+#181105 reshape the backround image. cutdown jwm menu some more.
+#181106 what if there is already a <folder>/.control/${NAME}.specs?
+#181106 change sha512sum to sha256sum.
+#181108 fix when no .desktop file. fix icon in .desktop files.
+#181109 allow arch to be "src" or "all".
+#181115 fixes for xenialpup. improve icon find. 181116
+#181117 start-up scripts in /.control in sfs.
+#181217 tweak some delays, reports still get mangled background sometimes.
+#181225 change "q_" to "easy_"
+#190806 buster, slow usb stick, still getting corrupted wallpaper for easy container.
+#190911 "easy" container name changed to "pyro" or "buster".
+#191006 bug fix.
+#191009 maybe fix Name field in .desktop. 191029
+#200601 .desktop file needs to be EasyPup compatible. see also /sbin/fixlayers in intrd, sfsget, ec-create-desktop-icons-menu
+#20210117 add ARCH of "armhf".
+#20210407 'ec-run' has "sleep 4" to fix rox corrupted wallpaper, but seems not needed with 5.10 kernel. see also 3buildeasydistro.
+#20210409 now have pngoverlay-cairo, created by 01micko (dunfell series: compiled in oe). see also: easy-containers, icon_switcher_cli, icon_switcher, 3buildeasydistro
+#20210503 change 20210407 sleep, 0.5 to 1.
+#20210505 support fatdog.
+#20210507 support scpup.
+#20210508 support carolina (based on saluki, which is based on racy).
+#20210509 redesign .control/${DB_nameonly} and desk-delayedrun.
+#20210510 handle PuppyPin in different paths.
+#20210915 offer default app run as a client.
+#20210917 override DB_install='mainonly' if cannot run in container.
+#20210920 precaution, only create .desktop if executable exists.
+#20211003 fix if arch _dunfell64 ...but don't do that, use only _amd64 or _aarch64
+#20211007 commandline fix for chromium no audio at youtube, see /usr/local/clients/setup-client
+#20211022 set correct "Name=" for chrome.
+#20220211 read /etc/uimanager
+#20220212 easy.run-once-top read /etc/uimanager. see also 3buildeasydistro
+#20220603 replace DB_* with SFS_DB_* in sfs .specs files.
+#20220604 change mksquashfs from gzip to lz4-hc.
+#20220606 fixes for *.run-once-top
+#20220607 remove /lib/firmware, /lib/modules
+#20220809 removed picscale, now resize images with ffmpeg.
+#20220914 DB_dependencies just 'easy' not 'easy_<version>'
+#20220915 zoom, blender, shotcut menu text. 20220917 openshot, vscode, astudio, flutter
+#20220927 add smartgit. 20221006 add supertuxkart
+
+. /etc/rc.d/PUPSTATE
+. /etc/DISTRO_SPECS
+mkdir -p /tmp/sfsget
+xPWD="`pwd`"
+LANGORIG="$LANG" #20210915
+export LANG=C
+
+err_exit_func() {
+ echo "${2}"
+ popup "process=wait background=#ff8080 level=top terminate=ok|<b>${2}</b>"
+ exit ${1}
+}
+
+[ ! $DISPLAY ] && err_exit_func 1 "X required for this script. Aborting."
+PARAM1="$1"
+[ ! "$PARAM1" ] && err_exit_func 2 "No parameter passed-in when called this script. Aborting."
+[ ! -d "$PARAM1" ] && err_exit_func 3 "Folder ${PARAM1} does not exist. Aborting."
+PATH1="$(dirname "PARAM1")" #if nothing, then "."
+DIR="$(basename "$PARAM1" /)" #also drops any tailing "/'
+#...expected to be folder of form <name>_<version>[-revision][_<arch>]
+
+if [ "$(echo -n "$DIR" | grep '[a-zA-Z]_[0-9]')" == "" ];then
+ #echo "Error: folder must be of the format <name>_<version>[-revision][_<arch>]"
+ err_exit_func 4 "Error: folder must be of the format <name>_<version>[-revision][_<arch>]. Aborting."
+fi
+
+NAME="${DIR/_*/}"
+VERARCH="${DIR#*_}"
+VERREV="${VERARCH/_*/}"
+ARCH="$(echo -n "$VERARCH" | cut -f 2- -d '_')"
+[ "$VERREV" == "$ARCH" ] && ARCH="`arch`"
+#if [ "$ARCH" == "dunfell64" ];then #20211003. no, better not allow this.
+# ARCH="`arch`"
+#fi
+case "$ARCH" in
+ x86_64) ARCH="amd64" ;;
+ i*86)    true ;;
+ amd64)   true ;;
+ armhf)   true ;; #20210117
+ aarch64) true ;;
+ src|all) true ;; #181109
+ *)
+  #echo "Sorry, only i[456]86, amd64 (x86_64), armhf and aarch64 are supported."
+  err_exit_func 5 "Sorry, only i[456]86, amd64 (x86_64), armhf and aarch64 are supported. Aborting."
+ ;;
+esac
+VER="${VERREV/-*/}"
+REV="$(echo -n "$VERREV" | cut -f 2- -d '-')"
+[ "$VER" == "$REV" ] && REV=''
+
+#meta-data inside the SFS...
+# ${NAME}.specs ${NAME}.configuration
+# ${NAME}.configuration (will end up in /usr/local/easy_containers/templates/${NAME}/configuration
+#i suggest a folder, /.control will have these files.
+
+#${NAME}.specs to be multi-line, with these variables:
+# SFS_DB_pkgname SFS_DB_nameonly SFS_DB_version SFS_DB_revision SFS_DB_arch SFS_DB_categories SFS_DB_size SFS_DB_path
+# SFS_DB_fullfilename SFS_DB_dependencies SFS_DB_description SFS_DB_description_long SFS_DB_compileddistro SFS_DB_compiledrelease
+# SFS_DB_apps SFS_DB_icons SFS_DB_install SFS_DB_hash 
+#SFS_DB_categories: comma-separated list of menu categories (for each app).
+#SFS_DB_apps:       comma-separated list of applications. note, name of executables will be inside the <app>.desktop
+#SFS_DB_icons:      comma-separated list of icons (incl. extension), for each executable.
+#SFS_DB_install:    individual|desk|terminal --launch as individual icons on main desktop, or as one desktop icon, or as one terminal on main desktop --latter two, will use $NAME as name of container.
+#20210917 SFS_DB_install: mainonly --cannot run in container.
+#SFS_DB_hash:       sha256sum or sha512sum checksum for the sfs file.
+
+
+###install mode###
+#need to decide this in advance...
+##############
+/usr/local/sfsget/sfsspec-mode ${NAME}
+##############
+#...will write to /tmp/sfsget/sfsspec-install-mode
+[ $? -ne 0 ] && err_exit_func 6 "/usr/local/sfsget/sfsspec-mode failed. Aborting."
+SFS_DB_install="$(cat /tmp/sfsget/sfsspec-install-mode)"
+
+
+###apps###
+ICON=""
+mkdir -p ${PATH1}/${DIR}/usr/share/applications
+case "$SFS_DB_install" in
+ individual|mainonly) #20210917
+  if [ -f ${PATH1}/${DIR}/usr/share/applications/${NAME}.desktopBACKUP ];then
+   mv -f ${PATH1}/${DIR}/usr/share/applications/${NAME}.desktopBACKUP ${PATH1}/${DIR}/usr/share/applications/${NAME}.desktop
+  fi
+  #use the name of the .desktop files...
+  APPS="$(find ${PATH1}/${DIR}/usr/share/applications -maxdepth 1 -type f -name '*.desktop' | rev | cut -f 1 -d '/' | cut -f 2- -d '.' | rev | sort)"
+  SFS_DB_apps="$(echo -n "$APPS" | tr '\n' ',')"
+  if [ -f ${PATH1}/${DIR}/usr/share/pixmaps/${NAME}48.png ];then #181117
+   ICON="${NAME}48.png"
+  elif [ -f ${PATH1}/${DIR}/usr/share/pixmaps/${NAME}.png ];then
+   ICON="${NAME}.png"
+  fi
+ ;;
+ desk)
+  #only one icon on desktop...
+  APPS="$NAME"
+  SFS_DB_apps="$NAME"
+  if [ -f ${PATH1}/${DIR}/usr/share/applications/${NAME}.desktop ];then
+   mv -f ${PATH1}/${DIR}/usr/share/applications/${NAME}.desktop ${PATH1}/${DIR}/usr/share/applications/${NAME}.desktopBACKUP
+  fi
+  mkdir -p ${PATH1}/${DIR}/usr/share/pixmaps
+  if [ -f /usr/share/doc/${NAME}48.png ];then
+   cp /usr/share/doc/${NAME}48.png ${PATH1}/${DIR}/usr/share/pixmaps/ 2>/dev/null
+   ICON="${NAME}48.png"
+  elif [ -f ${PATH1}/${DIR}/usr/share/pixmaps/${NAME}48.png ];then #181115
+   ICON="${NAME}48.png"
+  else
+   ICON="${NAME}"
+  fi
+  #this does not appear in the menu...
+  echo "[Desktop Entry]
+NoDisplay=true
+Name=${NAME}
+Exec=xxxxxxxxxxx
+Icon=${ICON}
+Categories=X-Utility" > ${PATH1}/${DIR}/usr/share/applications/${NAME}.desktop
+ ;;
+ *) #terminal
+  #only one icon on desktop...
+  APPS="$NAME"
+  SFS_DB_apps="$NAME"
+  if [ -f ${PATH1}/${DIR}/usr/share/pixmaps/${NAME}48.png ];then #181118
+   ICON="${NAME}48.png"
+  elif [ -f ${PATH1}/${DIR}/usr/share/pixmaps/${NAME}.png ];then
+   ICON="${NAME}.png"
+  fi
+  if [ -f ${PATH1}/${DIR}/usr/share/applications/${NAME}.desktop ];then
+   mv -f ${PATH1}/${DIR}/usr/share/applications/${NAME}.desktop ${PATH1}/${DIR}/usr/share/applications/${NAME}.desktopBACKUP
+  fi
+  #this does not appear in the menu...
+  echo "[Desktop Entry]
+NoDisplay=true
+Name=${NAME}
+Exec=xxxxxxxxxxx
+Icon=${NAME}
+Categories=X-Utility" > ${PATH1}/${DIR}/usr/share/applications/${NAME}.desktop
+ ;;
+esac
+
+###category###
+. /etc/xdg/menus/hierarchy #has PUPHIERARCHY variable.
+SFS_DB_categories=""
+for aDT in $APPS
+do
+ [ "$aDT" == "" ] && continue
+ CAT=""
+ #read Categories from .desktop file, see if any match with puppy menu hierarchy...
+ CATS="$(grep '^Categories=' ${PATH1}/${DIR}/usr/share/applications/${aDT}.desktop | cut -f 2 -d '=' | tr ';' ' ')" #may be ; delimited
+ for aCAT in $CATS
+ do
+  aCATptn="[ ,]${aCAT}[ ,]"
+  CAT="$(echo "$PUPHIERARCHY" | grep "$aCATptn" | grep -E '^Desktop|^System|^Setup|^Utility|^Filesystem|^Graphic|^Document|^Business|^Personal|^Network|^Internet|^Multimedia|^Fun' | tr -s ' ' | cut -f 1,2 -d ' ' | tr -d ' ' | sed 's%:Sub%%' | tr ':' ';')" #ex: Multimedia;sound
+  [ "$CAT" ] && break
+ done
+ #not found, fallback to looking in categories.dat...
+ if [ ! "$CAT" ];then
+  aDTptn=" ${aDT} "
+  CAT="$(grep -i "$aDTptn" /usr/local/petget/categories.dat | grep '^PKGCAT' | head -n 1 | cut -f 1 -d '=' | cut -f 2,3 -d '_' | sed 's%_Sub%%' | tr '_' ';')" #ex: System;security
+ fi
+ [ ! "$CAT" ] && CAT="BuildingBlock"
+ if [ "$SFS_DB_categories" == "" ];then
+  SFS_DB_categories="$CAT"
+ else
+  SFS_DB_categories="${SFS_DB_categories},${CAT}"
+ fi
+done
+
+
+###icons###
+SFS_DB_icons=""
+CNTicon=1
+mkdir -p ${PATH1}/${DIR}/usr/share/pixmaps
+mkdir -p ${PATH1}/${DIR}/usr/share/icons
+#20210409 now have pngoverlay-cairo, created by 01micko (dunfell series: compiled in oe)
+if [ -e /usr/sbin/pngoverlay-cairo ];then
+ cp -f /usr/sbin/pngoverlay-cairo /tmp/sfsget/pngoverlay #note, doesn't have to be copied to same directory.
+else #old code...
+ cp -f /usr/sbin/pngoverlay /tmp/sfsget/
+fi
+#can get these out of the .desktop files...
+for aDT in $APPS
+do
+ [ "$aDT" == "" ] && continue
+ [ "${ICON}" == "" ] && ICON="$(grep '^Icon=' ${PATH1}/${DIR}/usr/share/applications/${aDT}.desktop | cut -f 2 -d '=')"
+ #want to create a containerized-icon in /usr/share/pixmaps...
+ fndICON=''
+ [ ! "$ICON" ] && ICON=zzzzzzzz
+ [ -f "${PATH1}/${DIR}${ICON}" ] && fndICON="${PATH1}/${DIR}${ICON}"
+ [ ! "$fndICON" ] && [ -f "$ICON" ] && fndICON="$ICON"
+ [ ! "$fndICON" ] && fndICON="$(find ${PATH1}/${DIR}/usr/share/icons -mindepth 1 -type f -name "$ICON" -o -name "${ICON}.*" | grep '48x48/apps/' | head -n 1)"
+ [ ! "$fndICON" ] && fndICON="$(find ${PATH1}/${DIR}/usr/share/pixmaps -mindepth 1 -type f -name "$ICON" -o -name "${ICON}.*" | head -n 1)"
+ [ ! "$fndICON" ] && fndICON="$(find /usr/local/lib/X11/pixmaps -mindepth 1 -type f -name "$ICON" -o -name "${ICON}.*" | head -n 1)"
+ [ ! "$fndICON" ] && fndICON="$(find ${PATH1}/${DIR}/usr/share/icons -mindepth 1 -type f -name "$ICON" -o -name "${ICON}.*" | grep 'scalable/apps/' | head -n 1)"
+ if [ ! "$fndICON" ];then #fallback
+  fndCAT="$(echo -n "$SFS_DB_categories" | cut -f ${CNTicon} -d ',' | tr ';' '-')"
+  if [ "$fndCAT" ];then
+   if [ -f /usr/local/lib/X11/mini-icons/mini-${fndCAT}.xpm ];then #ex: mini-Utility-development.xpm
+    fndICON="/usr/local/lib/X11/mini-icons/mini-${fndCAT}.xpm"
+   fi
+  fi
+ fi
+ [ ! "$fndICON" ] && fndICON="/usr/share/pixmaps/puppy/execute.svg" #final fallback.
+ IMGTYPE="$(echo -n "$fndICON" | rev | cut -f 1 -d '.' | rev)" #ex: xpm
+ IMGBASE="$(basename "${fndICON}" .${IMGTYPE})"
+ #picscale -i "$fndICON" -o /tmp/sfsget/${aDT}.png 48 48 9 #vovchik
+ #20220809 ffmpeg cannot handle svg...
+ rm -f /tmp/sfsget/${aDT}.png 2>/dev/null
+ if [ "$IMGTYPE" == "svg" ];then
+  rsvg-convert --width=48 --height=48 --format=png "${fndICON}" > /tmp/sfsget/${aDT}.png
+  IMGTYPE='png'
+ else
+  ffmpeg -i ${fndICON} -s 48x48 /tmp/sfsget/${aDT}.png >/dev/null 2>&1 #20220809
+ fi
+ cd /tmp/sfsget
+ cp -f /usr/local/lib/X11/pixmaps/ec-overlay48.png ./
+ ./pngoverlay ${aDT}.png ec-overlay48.png ec-${aDT}48.png
+ cd $xPWD #oh my, pngoverlay has changed $PWD, have to use a different name!
+ cp -a -f /tmp/sfsget/ec-${aDT}48.png ${PATH1}/${DIR}/usr/share/pixmaps/
+ cp -a -f --remove-destination /tmp/sfsget/${aDT}.png ${PATH1}/${DIR}/usr/share/pixmaps/${aDT}48.png
+ if [ "$SFS_DB_icons" == "" ];then
+  SFS_DB_icons="$aDT"
+ else
+  SFS_DB_icons="${SFS_DB_icons},${aDT}"
+ fi
+ CNTicon=$(($CNTicon+1))
+done
+rm -f /tmp/sfsget/pngoverlay
+
+####install###
+#SFS_DB_install="individual"
+#[ "SFS_DB_apps" == "" ] && SFS_DB_install="terminal" #no .desktop files, must run as a terminal. um, think 'desk' ok also.
+
+###hash###
+#cannot create hash *before* creating the sfs file!
+SFS_DB_hash=""
+
+###arch###
+ARCH="`arch`"
+case "$ARCH" in
+ x86_64) ARCH="amd64" ;;
+esac
+SFS_DB_arch="$ARCH"
+
+###basic puppy fields###
+if [ "$REV" == "" ];then
+ SFS_DB_pkgname="${NAME}_${VER}"
+else
+ SFS_DB_pkgname="${NAME}_${VER}-${REV}"
+fi
+SFS_DB_nameonly="${NAME}"
+SFS_DB_version="${VER}"
+SFS_DB_revision="${REV}"
+SFS_DB_path="easyos/${DISTRO_BINARY_COMPAT}/${DISTRO_COMPAT_VERSION}" #ex: easyos/oe/pyro
+SFS_DB_size="$(busybox du -s -k ${PATH1}/${DIR} | cut -f 1)"
+SFS_DB_fullfilename="${SFS_DB_pkgname}_${ARCH}.sfs"
+SFS_DB_dependencies="easy"
+SFS_DB_compileddistro="${DISTRO_BINARY_COMPAT}"
+SFS_DB_compiledrelease="${DISTRO_COMPAT_VERSION}"
+#SFS_DB_repo="distro.ibiblio.org/easyos/amd64/packages/sfs"
+
+#181106 what if there is already a .control/${NAME}.specs?
+SFS_DB_description_long=''
+if [ -s ${PATH1}/${DIR}/.control/${NAME}.specs ];then
+ grep -q '^SFS_DB_' ${PATH1}/${DIR}/.control/${NAME}.specs #20220603 check for old format.
+ if [ $? -ne 0 ];then
+  sed -i -e 's%^DB_%SFS_DB_%' ${PATH1}/${DIR}/.control/${NAME}.specs
+ fi
+ SFS_DB_arch="$(grep '^SFS_DB_arch=' ${PATH1}/${DIR}/.control/${NAME}.specs | cut -f 2 -d "'")"
+ SFS_DB_dependencies="$(grep '^SFS_DB_dependencies=' ${PATH1}/${DIR}/.control/${NAME}.specs | cut -f 2 -d "'")"
+ SFS_DB_description="$(grep '^SFS_DB_description=' ${PATH1}/${DIR}/.control/${NAME}.specs | cut -f 2 -d "'")"
+ SFS_DB_description_long="$(grep '^SFS_DB_description_long=' ${PATH1}/${DIR}/.control/${NAME}.specs | cut -f 2 -d "'")"
+ SFS_DB_compileddistro="$(grep '^SFS_DB_compileddistro=' ${PATH1}/${DIR}/.control/${NAME}.specs | cut -f 2 -d "'")"
+ SFS_DB_compiledrelease="$(grep '^SFS_DB_compiledrelease=' ${PATH1}/${DIR}/.control/${NAME}.specs | cut -f 2 -d "'")"
+ SFS_DB_path="$(grep '^SFS_DB_path=' ${PATH1}/${DIR}/.control/${NAME}.specs | cut -f 2 -d "'")"
+fi
+
+###gui###
+#bring up a gui to finalize <name>.specs file
+#need to decide how this is going to run
+# -- individual apps on main desktop
+# -- in their own xephyr container, individual apps or as a desktop
+echo "#prelimiary values, generated by dir2sfs:
+SFS_DB_pkgname='$SFS_DB_pkgname'
+SFS_DB_nameonly='$SFS_DB_nameonly'
+SFS_DB_version='$SFS_DB_version'
+SFS_DB_revision='$SFS_DB_revision'
+SFS_DB_arch='$SFS_DB_arch'
+SFS_DB_categories='$SFS_DB_categories'
+SFS_DB_size='$SFS_DB_size'
+SFS_DB_fullfilename='$SFS_DB_fullfilename'
+SFS_DB_dependencies='$SFS_DB_dependencies'
+SFS_DB_description='$SFS_DB_description'
+SFS_DB_description_long='$SFS_DB_description_long'
+SFS_DB_compileddistro='$SFS_DB_compileddistro'
+SFS_DB_compiledrelease='$SFS_DB_compiledrelease'
+SFS_DB_path='$SFS_DB_path'
+SFS_DB_apps='$SFS_DB_apps'
+SFS_DB_icons='$SFS_DB_icons'
+SFS_DB_install='$SFS_DB_install'
+SFS_DB_hash='$SFS_DB_hash'" > /tmp/sfsget/new-db-entry-fields0 #read by sfsspec
+###############
+/usr/local/sfsget/sfsspec
+###############
+[ $? -ne 0 ] && err_exit_func 7 "/usr/local/sfsget/sfsspec failed. Aborting."
+#created by sfsspec...
+. /tmp/sfsget/new-db-entry-fields
+
+
+###update .desktop files###
+CNTapp=1
+for aAPP in `echo -n "$SFS_DB_apps" | tr ',' ' '`
+do
+ aIMAGE="$(echo -n "$SFS_DB_icons" | cut -f ${CNTapp} -d ',')"   #ex: abiword
+ aCAT="X-$(echo -n "$SFS_DB_categories" | cut -f ${CNTapp} -d ',' | tr ';' '-')" #ex: X-Utility-development
+ 
+ #200601 normal icon...
+ if [ -f ${PATH1}/${DIR}/usr/share/pixmaps/${aIMAGE}48.png ];then
+  xIMAGE=${aIMAGE}48.png
+ elif [ -f ${PATH1}/${DIR}/usr/share/pixmaps/${aIMAGE}.png ];then
+  xIMAGE=${aIMAGE}.png
+ else
+  xIMAGE=Executable.xpm
+ fi
+ 
+ #190911 if aAPP=easy then create container with name "pyro" or "buster"...
+ xAPP="$aAPP"
+ [ "easy" == "$aAPP" ] && xAPP="${DISTRO_COMPAT_VERSION}"
+ 
+ case "$xAPP" in #191009
+  chromium) xNAME="Chromium web browser" ;;
+  firefox|firefox-esr) xNAME="Firefox web browser" ;; #191029
+  chrome) xNAME="Chrome web browser" ;; #20211022
+  zoom) xNAME="Zoom video conference" ;; #20220915
+  blender) xNAME="Blender 3D modeler" ;; #20220915
+  shotcut) xNAME="Shotcut video editor" ;; #20220915
+  openshot) xNAME="OpenShot video editor" ;; #20220917
+  vscode) xNAME="Visual Studio Code editor" ;; #20220917
+  astudio) xNAME="Android Studio SDK" ;; #20220917
+  flutter) xNAME="Flutter SDK" ;; #20220917
+  smartgit) xNAME="SmartGit Git client" ;; #20220927
+  stk|supertuxkart) xNAME="SuperTuxKart 3D arcade game" ;; #20221006
+  *)
+   #xNAME="$xAPP"
+   #20221006 can do better than that...
+   xNAME="${xAPP} ${SFS_DB_description}"
+   DIR2SFSMENUNAMEDLG="<window><vbox>
+ <text><label>Menu entry, edit as required:</label></text>
+ <entry><default>${xNAME}</default><variable>ENTRY</variable></entry>
+ <hbox><button ok></button></hbox>
+</vbox></window>"
+   export DIR2SFSMENUNAMEDLG
+   RETS="$(gtkdialog --program=DIR2SFSMENUNAMEDLG --center)"
+   xNAME="$(echo "$RETS" | grep '^ENTRY' | cut -f 2 -d '"')"
+  ;;
+ esac
+ 
+ #200601 prior, created .desktop for running in a container, and if sfs is on main desktop
+ # then /sbin/fixlayers in intrd modified the .desktop for running on main desktop.
+ # however, for EasyPup compatibility, want .desktop default for main desktop...
+ if [ -f ${PATH1}/${DIR}/usr/share/applications/${xAPP}.desktop ];then
+  cp -a -f ${PATH1}/${DIR}/usr/share/applications/${xAPP}.desktop ${PATH1}/${DIR}/usr/share/applications/${xAPP}.ec-desktop
+  sed -i -e "s%^Categories=.*%Categories=${aCAT}%" ${PATH1}/${DIR}/usr/share/applications/${xAPP}.ec-desktop
+  sed -i -e "s%^Icon=.*%Icon=container48.png%" ${PATH1}/${DIR}/usr/share/applications/${xAPP}.ec-desktop
+  sed -i -e "s%^Exec=.*%Exec=ec-chroot-${xAPP}%" ${PATH1}/${DIR}/usr/share/applications/${xAPP}.ec-desktop
+  sed -i -e "s%^Name=.*%Name=${xNAME}%" ${PATH1}/${DIR}/usr/share/applications/${xAPP}.ec-desktop
+  #default is for running on main desktop...
+  sed -i -e "s%^Categories=.*%Categories=${aCAT}%" ${PATH1}/${DIR}/usr/share/applications/${xAPP}.desktop
+  sed -i -e "s%^Icon=.*%Icon=${xIMAGE}%" ${PATH1}/${DIR}/usr/share/applications/${xAPP}.desktop
+  sed -i -e "s%^Exec=.*%Exec=${xAPP}%" ${PATH1}/${DIR}/usr/share/applications/${xAPP}.desktop
+  sed -i -e "s%^Name=.*%Name=${xNAME}%" ${PATH1}/${DIR}/usr/share/applications/${xAPP}.desktop
+ else
+  #20210920 precaution...
+  echo -n '' > /tmp/sfsget/dir2sfs-find
+  find ${PATH1}/${DIR}/usr/bin ${PATH1}/${DIR}/usr/sbin ${PATH1}/${DIR}/.control -maxdepth 1 -type f -name "${xAPP}" >/tmp/sfsget/dir2sfs-find 2>/dev/null
+  if [ -s /tmp/sfsget/dir2sfs-find ];then 
+   #create it...
+   echo "[Desktop Entry]
+Type=Application
+Name=${xNAME}
+Comment=${SFS_DB_description}
+Exec=ec-chroot-${xAPP}
+Icon=container48.png
+Terminal=false
+Categories=${aCAT}" > ${PATH1}/${DIR}/usr/share/applications/${xAPP}.ec-desktop
+   #create it...
+   echo "[Desktop Entry]
+Type=Application
+Name=${xNAME}
+Comment=${SFS_DB_description}
+Exec=${xAPP}
+Icon=${xIMAGE}
+Terminal=false
+Categories=${aCAT}" > ${PATH1}/${DIR}/usr/share/applications/${xAPP}.desktop
+  fi
+ fi
+ 
+ 
+ CNTapp=$(($CNTapp+1))
+done
+
+###create /.control###
+mkdir -p ${PATH1}/${DIR}/.control
+cat /tmp/sfsget/new-db-entry-fields > ${PATH1}/${DIR}/.control/${SFS_DB_nameonly}.specs
+
+###configuration###
+#need '${SFS_DB_nameonly}.configuration', after installation
+# will go into host /usr/local/easy_containers/templates/${SFS_DB_nameonly}/configuration
+#some overrides...
+echo -n "" > /tmp/sfsget/security-overrides
+case "$SFS_DB_install" in
+ desk)
+  echo -e "EC_XSOCKET='unix'\nEC_XSERVER='xephyr'\nEC_NS_UNSHARE_IPC='true'" >> /tmp/sfsget/security-overrides
+ ;;
+esac
+#############
+/usr/local/sfsget/ec-security ${SFS_DB_nameonly}
+#############
+#...writes to /tmp/sfsget/ec-configuration
+[ $? -ne 0 ] && err_exit_func 8 "/usr/local/sfsget/ec-security failed. Aborting."
+cat /tmp/sfsget/ec-configuration > ${PATH1}/${DIR}/.control/${SFS_DB_nameonly}.configuration
+
+
+###desk###
+mkdir -p ${PATH1}/${DIR}/usr/bin
+mkdir -p ${PATH1}/${DIR}/usr/sbin
+mkdir -p ${PATH1}/${DIR}/.control
+if [ "$SFS_DB_install" == "desk" ];then
+ #there will be one icon on desktop, label same as name of container.
+ #the way EC works, /.control/ec-run will look for /.control/$SFS_DB_nameonly after the chroot
+ #model this after /,control/desk in the pre-created 'desk' container...
+ #note, refer also script 3buildeasydistro
+ #this is for a puppy-compatible distro...
+ #20210505 support fatdog...
+ case "$SFS_DB_path" in
+  *easyos*|*puppy*|*fatdog*)
+   [ -e ${PATH1}/${DIR}/.control/${SFS_DB_nameonly} ] && rm -f ${PATH1}/${DIR}/.control/${SFS_DB_nameonly}
+   cat << 'EOF1' >> ${PATH1}/${DIR}/.control/${SFS_DB_nameonly}
+#!/bin/sh
+#this script generated by /usr/local/sfsget/dir2sfs
+#the way EC works, /.control/ec-run will look for /.control/$SFS_DB_nameonly after
+# the chroot, where $SFS_DB_nameonly is name of this script.
+
+#20210505 hack for fatdog, these paths need to be fixed...
+#PuppyPin backup...
+
+#20210510 need to decide where PuppyPin is located...
+PP=''
+mkdir -p /root/.config/rox.sourceforge.net/ROX-Filer
+if [ -f /etc/xdg/rox.sourceforge.net/ROX-Filer/PuppyPin ];then #fatdog.
+ if [ ! -f /root/.config/rox.sourceforge.net/ROX-Filer/PuppyPin ];then
+  cp -f /etc/xdg/rox.sourceforge.net/ROX-Filer/PuppyPin /root/.config/rox.sourceforge.net/ROX-Filer/
+  cp -f /etc/xdg/rox.sourceforge.net/ROX-Filer/globicons /root/.config/rox.sourceforge.net/ROX-Filer/
+ fi
+fi
+if [ -f /root/Choices/ROX-Filer/PuppyPin -a ! -h /root/Choices/ROX-Filer/PuppyPin ];then
+ PP='/root/Choices/ROX-Filer/PuppyPin'
+elif [ -f /root/.config/rox.sourceforge.net/ROX-Filer/PuppyPin ];then
+ PP='/root/.config/rox.sourceforge.net/ROX-Filer/PuppyPin'
+fi
+
+if [ "$PP" ];then #20210508 20210510
+ if [ -f ${PP}BACKUP ];then
+  if [ "$(grep 'defaultbrowser' ${PP})" == "" ];then
+   cp -a -f ${PP}BACKUP ${PP}
+  fi
+ fi
+ cp -a -f ${PP} ${PP}BACKUP
+fi
+
+#181115 xenialpup puppy package manager needs this...
+#20210509 hmmm, df-FULL in racy does not understand -m option...
+FREEM="$(busybox df -m / | tail -n 1 | tr -s ' ' | cut -f 4 -d ' ')"
+echo -n "${FREEM}" > /tmp/pup_event_sizefreem
+
+#unexpected change of screen dimensions may cause desktop drive icons to be displaced...
+#20210509 xwininfo tried to open display ":0", fix...
+SCRNXY="`xwininfo -display ${DISPLAY} -root | grep -o '\-geometry .*' | tr -s ' ' | cut -f 2 -d ' ' | cut -f 1 -d '+'`"
+SCRN_X="`echo -n "$SCRNXY" | cut -f 1 -d 'x'`"
+SCRN_Y="`echo -n "$SCRNXY" | cut -f 2 -d 'x'`"
+echo -n "$SCRN_X" > /tmp/pup_event_frontend_scrn_x #read by frontend_change.
+echo -n "$SCRN_Y" > /tmp/pup_event_frontend_scrn_y #read by frontend_change.
+if [ -f /var/local/pup_event_frontend_scrn_x ];then
+ oldSCRNX="$(cat /var/local/pup_event_frontend_scrn_x)"
+ oldSCRNY="$(cat /var/local/pup_event_frontend_scrn_y)"
+ [ "$SCRN_X" != "$oldSCRNX" ] && echo "ICONWIPE" > /var/local/pup_event_icon_change_flag
+ [ "$SCRN_Y" != "$oldSCRNY" ] && echo "ICONWIPE" > /var/local/pup_event_icon_change_flag
+ #.../var/local/pup_event_icon_change_flag is read by /sbin/clean_desk_icons.
+fi
+echo -n "$SCRN_X" > /var/local/pup_event_frontend_scrn_x
+echo -n "$SCRN_Y" > /var/local/pup_event_frontend_scrn_y
+
+#make sure /usr/local/bin in path:
+[ "$(echo -n "$PATH" | grep '/usr/local/bin')" == "" ] && export PATH="/usr/local/bin:${PATH}"
+
+if [ -f /etc/windowmanager ];then #20210508
+ WM="$(cat /etc/windowmanager)"
+else
+ WM="jwm"
+fi
+
+#20210509 also launch rox here, instead of in current script... 20210510 add $PP...
+/usr/bin/desk-delayedrun ${WM} "${PP}" & #this will launch tray applets.
+
+#20210509 start the window manager. when it terminates, the container will exit...
+${WM}
+
+###end###
+EOF1
+   chmod 755 ${PATH1}/${DIR}/.control/${SFS_DB_nameonly}
+   chown spot:spot ${PATH1}/${DIR}/.control/${SFS_DB_nameonly}
+   #181117 the run-once scripts...
+   [ -f ${PATH1}/${DIR}/.control/${SFS_DB_nameonly}.run-once-base ] && rm -f ${PATH1}/${DIR}/.control/${SFS_DB_nameonly}.run-once-base
+   [ -f ${PATH1}/${DIR}/.control/${SFS_DB_nameonly}.run-once-top ] && rm -f ${PATH1}/${DIR}/.control/${SFS_DB_nameonly}.run-once-top
+   #the .run-once-base is called when sfs is in layer, not on top...
+   #scenario, xenialpup sfs on bottom, an app sfs on top, just fix xenialpup enough to work...
+   #this will be called from /.control/ec-run...
+   cat << 'EOFrob' >> ${PATH1}/${DIR}/.control/${SFS_DB_nameonly}.run-once-base
+#!/bin/sh
+ #this script generated by /usr/local/sfsget/dir2sfs
+ #181115 xenialpup has not precreated the pixbuf cache...
+ GDKPIXBUFDIR="$(find /usr/lib* -type d -name 'gdk-pixbuf-2.0' | head -n 1)"
+ if [ "${GDKPIXBUFDIR}" ];then
+  if [ ! -e ${GDKPIXBUFDIR}/2.10.0/loaders.cache ];then
+   gdk-pixbuf-query-loaders --update-cache
+  fi
+ fi
+ #181115 xenialpup already has the icon-theme.cache files, but just in case...
+ find /usr/share/icons -mindepth 1 -maxdepth 1 -type d |
+ while read ALINE
+ do
+  [ "${ALINE}" == "" ] && continue
+  [ ! -d "${ALINE}"/16x16 ] && continue
+  gtk-update-icon-cache -f "${ALINE}"
+ done
+ #181105 check these...
+ #fc-cache -s #regenerate fontconfig caches (in /var/cache/fontconfig).
+ if [ -d /usr/share/glib-2.0/schemas ];then
+  if [ ! -f /usr/share/glib-2.0/schemas/gschemas.compiled ];then
+   if [ -e /usr/bin/glib-compile-schemas ];then
+    /usr/bin/glib-compile-schemas /usr/share/glib-2.0/schemas
+   fi
+  fi
+ fi
+EOFrob
+   chmod 755 ${PATH1}/${DIR}/.control/${SFS_DB_nameonly}.run-once-base
+   chown spot:spot ${PATH1}/${DIR}/.control/${SFS_DB_nameonly}.run-once-base
+   
+   #the .run-once-top is called if sfs is on top layer...
+   cat << 'EOFrot' >> ${PATH1}/${DIR}/.control/${SFS_DB_nameonly}.run-once-top
+#!/bin/sh
+#this script generated by /usr/local/sfsget/dir2sfs
+#this script is called by /usr/local/easy_containers/ec-chroot, if the sfs is
+# on top layer. only runs once.
+
+#20220212
+UI_DESK_MANAGER='rox' #or jwm
+if [ -f /etc/uimanager ];then
+. /etc/uimanager
+fi
+ 
+#20210510 need to decide where PuppyPin is located...
+PP=''
+mkdir -p /root/.config/rox.sourceforge.net/ROX-Filer
+if [ -f /etc/xdg/rox.sourceforge.net/ROX-Filer/PuppyPin ];then #fatdog.
+ if [ ! -f /root/.config/rox.sourceforge.net/ROX-Filer/PuppyPin ];then
+  cp -f /etc/xdg/rox.sourceforge.net/ROX-Filer/PuppyPin /root/.config/rox.sourceforge.net/ROX-Filer/
+  cp -f /etc/xdg/rox.sourceforge.net/ROX-Filer/globicons /root/.config/rox.sourceforge.net/ROX-Filer/
+ fi
+fi
+if [ -f /root/Choices/ROX-Filer/PuppyPin -a ! -h /root/Choices/ROX-Filer/PuppyPin ];then
+ PP='/root/Choices/ROX-Filer/PuppyPin'
+elif [ -f /root/.config/rox.sourceforge.net/ROX-Filer/PuppyPin ];then
+ PP='/root/.config/rox.sourceforge.net/ROX-Filer/PuppyPin'
+fi
+
+
+ #take out the pre-created "www", "console", "desk" container desktop icons...
+ if [ "$PP" ];then #20210508 20210510
+  sed -i '/ec\-chroot\-/d' ${PP}
+  #take out these desktop icons also...
+  sed -i '/Connect/d' ${PP}
+  sed -i '/EasyShare/d' ${PP}
+ 
+  #20220606 easyos specific...
+  #remove the "sfs" or "sfsget" desktop icon...
+  grep 'sfsget' ${PP} | grep -q '288'
+  if [ $? -eq 0 ];then
+   sed -i '/sfsget/d' ${PP}
+   #...that creates a gap, should close it up...
+   sed -i -e 's%x="352"%x="288"%' ${PP} #setup
+   sed -i -e 's%x="416"%x="352"%' ${PP} #edit
+   sed -i -e 's%x="480"%x="416"%' ${PP} #console
+  fi
+  #do not want "update" icon on desktop...
+  sed -i '/update/d' ${PP}
+  #20220606 do not want "save" icon on desktop (coz containers are save via main desktop "save")...
+  sed -i '/save/d' ${PP}
+
+ fi
+ 
+ #missing, probably good to create it...
+ touch /root/.packages/user-installed-packages
+ #we need equivalent to /usr/sbin/delayedrun (which starts from /root/.xinitrc), which starts the tray applets.
+ #see 'desk-delayedrun' below.
+ #181115 xenialpup is launching the tray applets...
+ # seems a bit weird, need to delete this...
+ [ -d /root/.config/autostart ] && rm -rf /root/.config/autostart/*
+ #181105 need to cutout some entries from /etc/xdg/templates/_root_.jwmrc ...
+ if [ -f /etc/xdg/templates/_root_.jwmrc ];then #20210505
+  sed -i '/puppy\-setup\.menu/d' /etc/xdg/templates/_root_.jwmrc
+  sed -i '/"Shutdown"/,/^\s*$/{d}' /etc/xdg/templates/_root_.jwmrc #removed entire paragraph.
+  sed -i '/label="Exit"/d' /etc/xdg/templates/_root_.jwmrc #181116 xenialpup.
+  sed -i '/logout_gui/d' /etc/xdg/templates/_root_.jwmrc #20210507 scpup.
+ fi
+ #20210507 scpup more hacking reqd...
+ if [ -d /root/.jwm ];then
+  for L1 in `find /root/.jwm -type f -name 'jwmrc-*'`
+  do
+   [ "$L1" == "" ] && continue
+   sed -i '/logout_gui/d' $L1
+   sed -i '/exec:dotpup/d' $L1
+  done
+ fi
+ #20210507 scpup more hacking...
+ if [ -d /usr/local/jwm_config ];then
+  sed -i '/logout_gui/d' /usr/local/jwm_config/menu_build_main 2>/dev/null
+  sed -i "s%<item>'\$(gettext 'Leave')'</item>%%" /usr/local/jwm_config/tray 2>/dev/null
+  sed -i "s%<item>'\$(gettext 'Shutdown NOW')'</item>%%" /usr/local/jwm_config/tray 2>/dev/null
+  sed -i "s%<item>'\$(gettext 'Reboot NOW')'</item>%%" /usr/local/jwm_config/tray 2>/dev/null
+ fi
+ [ -f /root/.jwm/jwmrc-personal ] && sed -i '/defaultscreenshot/d' /root/.jwm/jwmrc-personal #181116 up-arrow launches screeny.
+ [ -f /root/.jwm/jwmrc-personal2 ] && sed -i '/defaultscreenshot/d' /root/.jwm/jwmrc-personal2 #181116 up-arrow launches screeny.
+ #have to run fixmenus, but firstly, delete some .desktop files...
+ for aDT in BootManagerSTAR easy-STAR ec-STAR childproof cups Desktop-STAR easydd firewall-STAR floppy-STAR Internet-STAR loginmanager MoManagerSTAR MouseSTAR Multiple-Sound-Card-Wizard Partview Pdisk-STAR Pmount-STAR printer-STAR PuddSTAR qsync QuickSetup remove-builtin Set-STAR TopSTAR video-STAR
+ do
+  rm -f /usr/share/applications/${aDT/STAR/*}.desktop 2>/dev/null
+ done
+ #and some apps...
+ for aDT in bluepup GPartedSTAR gpptp hardinfo pschedule Puppy-Event-Manager PupScanSTAR Pup-SysInfo pupXSTAR xinput_calibrator wcpufreq
+ do
+  rm -f /usr/share/applications/${aDT/STAR/*}.desktop 2>/dev/null
+ done
+ #181105 and for some old pups...
+ for aDT in Floppy_Formatter Format-floppy-disk Gpptp GrubSTAR legacy_grub_2013 mtp_detect pbackup pgprs-connect PupsaveSTAR Remaster-STAR Resize-personal-storage-file
+ do
+  rm -f /usr/share/applications/${aDT/STAR/*}.desktop 2>/dev/null
+ done
+ #20210507 scpup...
+ for aDT in ALSA-sound-Wizard diskpup edit-initramfs f2stickpup frugalpup Pup-Kview Puppy-universal-installer SaveFolderBackup SFS-Load SS-control startupcontrol stickpup sys-update Xlock-lock-screen Xlock-setup Xorg-Video-Wizard
+ do
+  rm -f /usr/share/applications/${aDT/STAR/*}.desktop 2>/dev/null
+ done
+ if [ -x /usr/sbin/fixmenus ];then #20210505
+  fixmenus
+ elif [ -x /usr/bin/jwm ];then #20210505
+  jwm -reload
+ fi
+ #181105 reshape the backround image...
+ if [ -x /usr/sbin/background_reshape ];then #20210505
+  /usr/sbin/background_reshape
+ fi
+ #...ok for old pups, easyos and quirky need extra code...
+ RET1=$?
+ if [ $RET1 -eq 11 ];then
+  if [ -s /tmp/qwallpaper_reshaped ];then
+   NEWIMAGE="`cat /tmp/qwallpaper_reshaped`"
+   if [ -f $NEWIMAGE ];then #sanity check.
+    if [ "$PP" ];then #20210508 20210510
+     #truncated image created, update rox...
+     iPTN="s%>.*</backdrop>%>${NEWIMAGE}</backdrop>%"
+     sed -i -e "$iPTN" ${PP}
+     if [ "$UI_DESK_MANAGER" == "jwm" ];then #20220212
+      jPTN="s%<Background.*%<Background type=\"image\">${NEWIMAGE}</Background>%"
+      sed -i -e "$jPTN" /root/.jwm/jwmrc-personal
+     fi
+    fi
+   fi
+  fi
+ fi
+ #181115 xenialpup needs fix for desktop install icon...
+ if [ -f /usr/sbin/dotpup ];then
+  echo '#!/bin/sh
+exec /usr/local/petget/pkg_chooser.sh' > /usr/sbin/dotpup
+  chmod 755 /usr/sbin/dotpup
+ fi
+ #20210510 radky's JWMdesk calls 01micko's desksetup.sh, which needs a fix...
+ if [ -f /usr/local/desksetup/desksetup.sh ];then
+  sed -i -e 's%/usr/local/apps/ROX-Filer/ROX-Filer -p %/usr/local/apps/ROX-Filer/ROX-Filer -n -p %' /usr/local/desksetup/desksetup.sh
+ fi
+ if [ "$UI_DESK_MANAGER" == "jwm" ];then #20220212
+  #populate app icons in /root/.jwmrc-tray ...
+  /usr/local/ui/jwm/ec-jwmrc-insert-icons
+ fi
+###end###
+EOFrot
+   chmod 755 ${PATH1}/${DIR}/.control/${SFS_DB_nameonly}.run-once-top
+   chown spot:spot ${PATH1}/${DIR}/.control/${SFS_DB_nameonly}.run-once-top
+   
+   #and the delayedrun script...
+   [ -f ${PATH1}/${DIR}/usr/bin/desk-delayedrun ] && mv -f ${PATH1}/${DIR}/usr/bin/desk-delayedrun ${PATH1}/${DIR}/usr/bin/desk-delayedrunORIG
+   cat << 'EOF2' >> ${PATH1}/${DIR}/usr/bin/desk-delayedrun
+#!/bin/sh
+#this script generated by /usr/local/sfsget/dir2sfs
+#the sequence is chroot firstly runs .control/ec-run, then .control/$SFS_DB_nameonly.
+# the latter script launches desk-delayedrun as a separate process, then starts the
+# window manager. name of window manager is passed in.
+#202100510 pathspec to PuppyPin also passed in.
+#20220211 read /etc/uimanager
+
+WM="$1"
+[ ! "$WM" ] && WM='jwm'
+PP="$2" #20210510
+
+#20220211
+UI_DESK_MANAGER='rox' #or jwm
+if [ -f /etc/uimanager ];then
+. /etc/uimanager
+fi
+
+CR='
+'
+
+#give enough time for jwm to start...
+KERNMINOR=$(uname -r | cut -f 2 -d '.') #20210407...
+if [ $KERNMINOR -ge 10 ];then
+ sleep 0.5
+else
+ sleep 1.5 #must be >2  181217 increase from 3. 190202 increase from 3.5. 190806 increased from 4.
+fi
+if ! pidof ${WM} >/dev/null ;then sleep 2; fi
+if ! pidof ${WM} >/dev/null ;then sleep 4; fi
+sleep 0.5
+
+case "$WM" in #20210508
+ jwm)
+  #start rox...
+  #relocates right-side icons to actual right-side of screen...
+  if [ "$PP" ];then #20210508 20210510
+   if [ -x /usr/sbin/fixPuppyPin ];then
+    /usr/sbin/fixPuppyPin ${PP}
+   fi
+  fi
+  if [ "$PP" != "/root/.config/rox.sourceforge.net/ROX-Filer/PuppyPin" ];then
+   cp -f ${PP} /root/.config/rox.sourceforge.net/ROX-Filer/
+   DIRPP="$(dirname $PP)"
+   if [ -f ${DIRPP}/globicons ];then
+    cp -f ${DIRPP}/globicons /root/.config/rox.sourceforge.net/ROX-Filer/
+   fi
+  fi
+  #put text on background...
+  if [ -x /usr/sbin/popup ];then
+   popup "level=bottom placement=center background=#06ee9b|<b><big><big>Containerized desk ${CR}Press Alt-F6 to flip</big></big></b>"
+  elif [ -x /usr/bin/gtkdialog-splash ];then
+   gtkdialog-splash -close never -fontsize large -text "Containerized desk${CR}Press Alt-F6 to flip" &
+  elif [ -x /usr/bin/gxmessage ];then #20210505
+   gxmessage -center -borderless -nofocus -noescape -buttons "" -fn "Sans 16" "Containerized desk${CR}Press ALT-F6 to flip" &
+  fi
+  #wallpaper is sometimes corrupted, so take it out of PuppyPin...
+  BG="$(grep '<backdrop' ${PP} | cut -f 2 -d '>' | cut -f 1 -d '<')" #ex: /usr/share/backgrounds/default.jpg
+  if [ ! "$BG" ];then
+   if [ -s /etc/Puppybackgroundpicture ];then
+    BG="$(cut -f 2 -d '"' /etc/Puppybackgroundpicture | cut -f 1 -d '"')"
+   else
+    BG="/usr/share/backgrounds/$(ls -1 /usr/share/backgrounds | tail -n 1)"
+   fi
+  fi
+  sed -i '/<backdrop/d' ${PP}
+  if [ "$UI_DESK_MANAGER" == "rox" ];then #20220211
+   ####start ROX-Filer####
+   rox -n -p ${PP} &
+  fi
+  #after a delay, set the wallpaper...
+  sleep 1
+  mkdir -p /root/.config/wallpaper #see /usr/sbin/set_bg
+  #cannot be sure that target distro has set_bg, or background_reshape...
+  if [ -x /usr/sbin/set_bg ];then
+   set_bg ${BG}
+  else
+   if [ "$UI_DESK_MANAGER" == "rox" ];then #20220211
+    rox --RPC << EOF
+<?xml version="1.0"?>
+<env:Envelope xmlns:env="http://www.w3.org/2001/12/soap-envelope">
+ <env:Body xmlns="http://rox.sourceforge.net/SOAP/ROX-Filer">
+  <SetBackdrop>
+   <Filename>${BG}</Filename>
+   <Style>Stretched</Style>
+  </SetBackdrop>
+ </env:Body>
+</env:Envelope>
+
+EOF
+   fi
+  fi
+ ;;
+ startxfce4) #20210508
+  true
+ ;;
+esac
+
+#now start the tray applets...
+if [ -x /root/Startup/pa-applet_tray ];then #20220212
+ if ! pidof pa-applet >/dev/null; then
+  /usr/bin/pa-applet &
+ fi
+elif [ -x /root/Startup/pnmixer_tray ];then
+ if ! pidof pnmixer >/dev/null; then
+  /root/Startup/pnmixer_tray &
+ fi
+elif [ -x /root/Startup/retrovol_tray ];then
+ if ! pidof retrovol >/dev/null; then
+  /root/Startup/retrovol_tray &
+ fi
+elif [ -x /usr/bin/retrovol ];then #181115
+ retrovol -hide &
+elif [ -x /root/Startup/xfce4-volumed ];then #20210508
+ /root/Startup/xfce4-volumed &
+fi
+###end###
+EOF2
+   chmod 755 ${PATH1}/${DIR}/usr/bin/desk-delayedrun
+   chown spot:spot ${PATH1}/${DIR}/usr/bin/desk-delayedrun
+  ;;
+ esac
+ #container launch script...
+ if [ "$SFS_DB_nameonly" == "easy" ];then #190911
+  echo "#!/bin/sh
+empty -f ec-chroot ${DISTRO_COMPAT_VERSION} easy" >  ${PATH1}/${DIR}/usr/sbin/ec-chroot-${DISTRO_COMPAT_VERSION}
+  chmod 755 ${PATH1}/${DIR}/usr/sbin/ec-chroot-${DISTRO_COMPAT_VERSION}
+ else
+  echo "#!/bin/sh
+empty -f ec-chroot ${SFS_DB_nameonly}" >  ${PATH1}/${DIR}/usr/sbin/ec-chroot-${SFS_DB_nameonly}
+  chmod 755 ${PATH1}/${DIR}/usr/sbin/ec-chroot-${SFS_DB_nameonly}
+ fi
+ 
+ #20220607 these are not needed...
+ if [ -d ${PATH1}/${DIR}/lib/modules ];then
+  rm -rf ${PATH1}/${DIR}/lib/modules
+ fi
+ if [ -d ${PATH1}/${DIR}/lib/firmware ];then
+  rm -rf ${PATH1}/${DIR}/lib/firmware
+ fi
+ 
+fi
+
+###terminal###
+if [ "$SFS_DB_install" == "terminal" ];then
+ [ -e ${PATH1}/${DIR}/usr/bin/${SFS_DB_nameonly} ] && mv -f ${PATH1}/${DIR}/usr/bin/${SFS_DB_nameonly} ${PATH1}/${DIR}/usr/bin/${SFS_DB_nameonly}.bin
+ #container launch script...
+ echo "#!/bin/sh
+empty -f ec-chroot ${SFS_DB_nameonly} sakura" >  ${PATH1}/${DIR}/usr/sbin/ec-chroot-${SFS_DB_nameonly}
+ chmod 755 ${PATH1}/${DIR}/usr/sbin/ec-chroot-${SFS_DB_nameonly}
+fi
+
+###individual###
+if [ "$SFS_DB_install" == "individual" -o "$SFS_DB_install" == "mainonly" -o "$SFS_DB_install" == "sanscontainer" ];then #20210918
+ 
+ if [ "$SFS_DB_install" == "individual" ];then
+  for aAPP in `echo "$SFS_DB_apps" | tr ',' ' '`
+  do
+   aEXEC="$(grep '^Exec=' ${PATH1}/${DIR}/usr/share/applications/${aAPP}.desktop | cut -f 2 -d '=')"
+   #container launch script...
+   if [ -e ${PATH1}/${DIR}/usr/bin/${aAPP} ];then
+    echo "#!/bin/sh
+empty -f ec-chroot ${aAPP}" >  ${PATH1}/${DIR}/usr/sbin/ec-chroot-${aAPP}
+    chmod 755 ${PATH1}/${DIR}/usr/sbin/ec-chroot-${aAPP}
+   else
+    echo "#!/bin/sh
+empty -f ec-chroot ${aAPP} ${aEXEC}" >  ${PATH1}/${DIR}/usr/sbin/ec-chroot-${aAPP}
+    chmod 755 ${PATH1}/${DIR}/usr/sbin/ec-chroot-${aAPP}
+   fi
+  done
+ fi
+ 
+ #20210915 offer to run the application as a client...
+ export DIR2SFS_CLIENT_DLG="
+ <window title=\"dir2sfs: ask if run as client\" icon-name=\"gtk-index\">
+  <vbox>
+   <text><label>Do you want ${SFS_DB_nameonly} to default run as a non-root client?</label></text>
+   <hbox>
+    <button>
+     <label>YES</label>
+     <action type=\"exit\">yes</action>
+    </button>
+    <button>
+     <label>NO</label>
+     <action type=\"exit\">no</action>
+    </button>
+   </hbox>
+  </vbox>
+ </window>"
+ RETVALS="$(gtkdialog --program=DIR2SFS_CLIENT_DLG --center)"
+ if [ $? -eq 0 ];then
+  eval "$RETVALS"
+ else
+  EXIT='no'
+ fi
+ if [ "$EXIT" == "yes" ];then
+  setup-client ${SFS_DB_nameonly}=true ${PATH1}/${DIR}
+ fi
+ 
+fi
+
+###mksquashfs###
+sync
+if [ -f ${PATH1}/${DIR}/usr/share/pixmaps/${SFS_DB_icons/,*/}48.png ];then #20210920
+ cp -f ${PATH1}/${DIR}/usr/share/pixmaps/${SFS_DB_icons/,*/}48.png ${SFS_DB_nameonly}.png
+else
+ cp -f ${PATH1}/${DIR}/usr/share/pixmaps/${SFS_DB_icons/,*/}.png ${SFS_DB_nameonly}.png
+fi
+cp -f ${PATH1}/${DIR}/.control/${SFS_DB_nameonly}.specs ${DIR}.specs
+mksquashfs ${PATH1}/${DIR} ${DIR}.sfs -comp lz4 -Xhc #20220604
+sync
+SFS_DB_hash="$(sha256sum ${DIR}.sfs | cut -f 1 -d ' ')"
+sed -i -e "s%^SFS_DB_hash=.*%SFS_DB_hash='${SFS_DB_hash}'%" ${DIR}.specs
+echo "Created:
+ ${DIR}.sfs
+ ${DIR}.specs
+ ${SFS_DB_nameonly}.png"
+
+###end###

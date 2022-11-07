@@ -1,0 +1,33 @@
+
+#150420
+
+echo '[Desktop Entry]
+Version=1.0
+Name=Inkscape vector editor
+GenericName=Inkscape
+Comment=Create and edit Scalable Vector Graphics images
+Type=Application
+Categories=X-Graphic-draw
+Exec=inkscape
+Terminal=false
+StartupNotify=true
+MimeType=image/svg+xml;image/svg+xml-compressed;application/vnd.corel-draw;application/pdf;application/postscript;image/x-eps;application/illustrator;image/cgm;image/x-wmf;application/x-xccx;application/x-xcgm;application/x-xcdt;application/x-xsk1;application/x-xcmx;image/x-xcdr;application/visio;application/x-visio;application/vnd.visio;application/visio.drawing;application/vsd;application/x-vsd;image/x-vsd;
+Icon=inkscape.png' > usr/share/applications/inkscape.desktop
+
+#20210419 image name has changed...
+mkdir -p usr/share/pixmaps
+if [ -f usr/share/icons/hicolor/16x16/apps/inkscape.png ];then
+ ln -s ../icons/hicolor/16x16/apps/inkscape.png usr/share/pixmaps/inkscape.png
+else
+ ln -s ../icons/hicolor/16x16/apps/org.inkscape.Inkscape.png usr/share/pixmaps/inkscape.png
+fi
+
+##200514 keep quirky support
+#if [ "$WOOF_VARIANT" == "quirky" ];then
+# sed -i -e 's%/home%/file%' root/.config/inkscape/preferences.xml
+#fi
+
+#20210414 oe
+if [ -f usr/share/applications/org.inkscape.Inkscape.desktop ];then
+ rm -f usr/share/applications/org.inkscape.Inkscape.desktop
+fi

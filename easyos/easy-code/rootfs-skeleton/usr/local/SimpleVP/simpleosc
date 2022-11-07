@@ -1,0 +1,107 @@
+#!/bin/sh
+#(c) Copyright Barry Kauler, Oct.2016, license GPL3 (/usr/share/doc/legal)
+#called from simplevp.
+#161030 changed name from SimpleVLC to SimpleVP, now frontend for both VLC and Omxplayer.
+#161101 $WID may change, update from file (written by simplevp).
+#161109 for omxplayer, remove fullscreen button. remove next button if not required.
+#161109b ffplay hot-keys.
+
+export TEXTDOMAIN=simplevp
+export OUTPUT_CHARSET=UTF-8
+. gettext.sh
+
+[ ! $DISPLAY ] && exit #need X
+[ ! $3 ] && exit
+WID="$(tail -n 1 /tmp/simplevp/wids.log)" #created in simplevp.
+PLAYLIST_NUM=$3 #number of files to play (but note, simpleosc reruns for each one).
+PLAYER="$1" #ex: VLC
+VOUT="$2"   #ex: SDL
+
+#    <button tooltip-text=\"$(gettext 'Rewind')\">
+#      <variable>REWIND_BUTTON</variable>
+#      <width>32</width>
+#      <input file>/usr/local/SimpleVP/osc-images/rewind48.png</input>
+#      <action>xdotool key --clearmodifiers --window ${WID} 0x2d</action>
+#    </button>
+#    <button tooltip-text=\"$(gettext 'Fast forward')\">
+#      <variable>FF_BUTTON</variable>
+#      <width>32</width>
+#      <input file>/usr/local/SimpleVP/osc-images/fastforward48.png</input>
+#      <action>xdotool key --clearmodifiers --window ${WID} 0x2b</action>
+#    </button>
+
+#161109 for omxplayer, remove fullscreen button...
+FULLSCREEN_XML="    <button tooltip-text=\"$(gettext 'Fullscreen')\" relief=\"2\">
+      <width>32</width>
+      <input file>/usr/local/SimpleVP/images/fullscreen.svg</input>
+      <action>xdotool key --window \`tail -n 1 /tmp/simplevp/wids.log\` f</action>
+    </button>"
+case $PLAYER in
+ Omxplayer) FULLSCREEN_XML="" ;;
+esac
+
+#161109 hot-keys
+HOT_STOP='s' #works vlc.
+case $PLAYER in
+ Omxplayer|FFplay)
+  HOT_STOP='q'
+ ;;
+esac
+
+#161109 remove if not required...
+NEXT_XML=""
+if [ $PLAYLIST_NUM -gt 1 ];then
+ NEXT_XML="    <button tooltip-text=\"$(gettext 'Next in playlist')\" relief=\"2\">
+      <width>32</width>
+      <input file>/usr/local/SimpleVP/images/next.svg</input>
+      <action>xdotool key --window \`tail -n 1 /tmp/simplevp/wids.log\` s</action>
+      <action>exit:next</action>
+    </button>"
+fi
+
+#play/pause=space key (0x20), normal spped key =, minus (0x2d), plus (0x2b)
+export SIMPLEOSC_DLG1="<window title=\"SimpleOSC\" decorated=\"false\"  resizable=\"false\"  skip_taskbar_hint=\"true\">
+  <hbox>
+    <button tooltip-text=\"$(gettext 'Play')\" relief=\"2\">
+      <variable>PLAY_BUTTON</variable>
+      <sensitive>false</sensitive>
+      <width>32</width>
+      <input file>/usr/local/SimpleVP/images/play.svg</input>
+      <action function=\"disable\">PLAY_BUTTON</action>
+      <action function=\"enable\">PAUSE_BUTTON</action>
+      <action>xdotool key --window \`tail -n 1 /tmp/simplevp/wids.log\` 0x20</action>
+    </button>
+    <button tooltip-text=\"$(gettext 'Pause')\" relief=\"2\">
+      <variable>PAUSE_BUTTON</variable>
+      <width>32</width>
+      <input file>/usr/local/SimpleVP/images/pause.svg</input>
+      <action function=\"disable\">PAUSE_BUTTON</action>
+      <action function=\"enable\">PLAY_BUTTON</action>
+      <action>xdotool key --window \`tail -n 1 /tmp/simplevp/wids.log\` 0x20</action>
+    </button>
+    <button tooltip-text=\"$(gettext 'Stop')\" relief=\"2\">
+      <width>32</width>
+      <input file>/usr/local/SimpleVP/images/stop.svg</input>
+      <action>xdotool key --window \`tail -n 1 /tmp/simplevp/wids.log\` ${HOT_STOP}</action>
+      <action>exit:stop</action>
+    </button>
+    
+    ${NEXT_XML}
+    
+    ${FULLSCREEN_XML}
+
+    <button tooltip-text=\"$(gettext 'Close SimpleVP')\" relief=\"2\">
+      <width>32</width>
+      <input file>/usr/local/SimpleVP/images/shutdown.svg</input>
+      <action>xdotool windowkill \`tail -n 1 /tmp/simplevp/wids.log\`</action>
+      <action>exit:close</action>
+    </button>
+  </hbox>
+</window>"
+
+echo "$SIMPLEOSC_DLG1" > /tmp/simplevp/simpleosc_dlg1 #TEST
+RETVALS="`gtkdialog --program=SIMPLEOSC_DLG1 --geometry='+0+0' --name='simpleoscwindow'`" #x and y position, top-left screen.
+eval "$RETVALS"
+
+echo -n "$EXIT" > /tmp/simplevp/osc-exit-status #close, stop, next
+exit 0

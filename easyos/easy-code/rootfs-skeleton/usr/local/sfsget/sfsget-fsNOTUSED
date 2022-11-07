@@ -1,0 +1,208 @@
+#!/bin/sh
+#(c) copyright Barry Kauler 2017, bkhome.org
+#Licence 2017 GPL V3 (/usr/share/doc/legal)
+#170814 rewritten for easy os, new website distro.ibiblio.org/easyos
+#170815 added sfs-descriptions.txt
+#171224 popup default runs as a daemon, $! is wrong. instead "process=wait" non-daemon.
+#181028 rename 'repository' folder to 'releases'.
+
+export TEXTDOMAIN=sfsget
+export OUTPUT_CHARSET=UTF-8
+
+SFS_FILE=''; SFS_URL=''
+if [ $1 ];then
+ [ "`echo "$1" | grep '\.sfs$'`" = "" ] && exit 1
+ SFS_FILE="`basename $1`"
+ SFS_URL="dirname $1"
+fi
+
+. /etc/rc.d/PUPSTATE #has PUP_HOME
+. /etc/DISTRO_SPECS #has DISTRO_BINARY_COMPAT, DISTRO_COMPAT_VERSION DISTRO_DB_SUBNAME
+. /root/.packages/DISTRO_PET_REPOS #has PET_REPOS, PACKAGELISTS_PET_ORDER, SFS_REPOS
+
+#170814
+#ex: SFS_REPOS='ibiblio.org|http://distro.ibiblio.org/easyos/amd64/packages/sfs/xerus|'
+[ ! "$SFS_REPOS" ] && exit 1
+x_REPOS="$(echo -n "$SFS_REPOS" | tr -s ' ' | tr ' ' '\n')"
+SFS_REPOS0="`echo -n "$x_REPOS" | sort --key=1 --field-separator="|" --unique | cut -f 1,2 -d '|'`"
+#ex: ibiblio.org|http://distro.ibiblio.org/easyos/amd64/packages/sfs/xerus
+SFS_REPOS="$(echo -n "$SFS_REPOS0" | tr '\n' ' ')"
+echo "$SFS_REPOS0" > /tmp/petget_repos #used by /usr/local/petget/testurls.sh
+
+#where to download to...
+DL_PATH="/mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${DISTRO_VERSION}"
+cd ${DL_PATH}
+
+#probe remote site...
+yaf-splash -placement center -bg yellow -close never -fontsize large -text "$(gettext 'Please wait, probing primary remote site...')" &
+YPID=$!
+echo -n '' > /tmp/sfsget-probe
+[ -f sfs-descriptions.txt ] && mv -f sfs-descriptions.txt sfs-descriptions.bak
+xSFS_FILE="$SFS_FILE"
+[ ! "$SFS_FILE" ] && xSFS_FILE='*.sfs'
+PRIMARYREPO="`echo "$SFS_REPOS0" | grep 'distro\.ibiblio\.org' | head -n 1 | cut -f 2 -d '|'`"
+if [ "$SFS_URL" ];then
+ wget -4 -t 2 -T 20 --waitretry=20 --spider --recursive --level=1 --accept "${xSFS_FILE}" -S ${SFS_URL}/  2>&1 | grep '\.sfs$' | rev | cut -f 1 -d '/' | rev > /tmp/sfsget-probe
+else
+ wget -4 -t 2 -T 20 --waitretry=20 --spider --recursive --level=1 --accept "${xSFS_FILE}" -S ${PRIMARYREPO}/  2>&1 | grep '\.sfs$' | rev | cut -f 1 -d '/' | rev > /tmp/sfsget-probe
+ #ex: devx-0.3.1-xerus64.sfs
+ SFS_URL="$PRIMARYREPO"
+fi
+
+wget -4 -t 2 -T 10 ${SFS_URL}/sfs-descriptions.txt
+if [ ! -s sfs-descriptions.txt ];then
+ #create something
+ echo '#name of file may have glob wildcard, ex: devx-*.sfs
+devx-*.sfs Turn Easy into a complete development environment' > sfs-descriptions.txt
+fi
+
+sync
+kill $YPID
+
+if [ ! -s /tmp/sfsget-probe ];then
+ yaf-splash -placement center -bg red -close box -fontsize large -text "$(gettext 'Either your Internet connection is not working, or the primary repository is down, or there are no SFS files available. Aborting SFS Downloader')"
+ exit 1
+fi
+
+#already downloaded:
+HERESFS="$(ls -1 ${DL_PATH}/*.sfs | rev | cut -f 1 -d '/' | rev | grep -v -E '^q\.sfs|^rw-|^session')"
+
+while [ 1 ];do
+ echo -n '' > /tmp/sfsget-avail
+ if [ ! "$SFS_FILE" ];then
+  #ask which sfs to download...
+  SFSBUTTONS=''; CNT=1
+  for ONESFS in `cat /tmp/sfsget-probe | sort -u | tr '\n' ' '`
+  do
+   #find description...
+   #for aLINE in `cat sfs-descriptions.txt | tr '\n' ' '`
+   while read aLINE
+   do
+    [ "$aLINE" == "" ] && continue
+    [ "${aLINE:0:1}" == "#" ] && continue
+    aNAME="${aLINE/ */}"
+    aDESCR="$(echo -n "$aLINE" | cut -f 2- -d ' ' | cut -c 1-50)"
+    aPTN="^$(echo -n "$aNAME" | sed -e 's%\.%\\.%g' | sed -e 's%\*%.*%g')"
+    if [ "$(echo -n "$ONESFS" | grep "$aPTN")" != "" ];then
+     DESCR="$aDESCR"
+     break
+    fi
+   done<<EOF
+$(cat sfs-descriptions.txt)
+EOF
+   [ ! "$DESCR" ] && DESCR="$(gettext 'No description')"
+   #create xml...
+   SFSBUTTONS="${SFSBUTTONS}<radiobutton><label>${ONESFS} (${DESCR})</label><variable>RADIO_URL_${CNT}</variable></radiobutton>"
+   echo "${CNT} ${ONESFS}" >> /tmp/sfsget-avail
+   CNT=`expr $CNT + 1`
+  done
+  export SFS_DIALOG="<window title=\"$(gettext 'SFS Downloader: choose file')\" icon-name=\"gtk-about\" window_position=\"1\">
+ <vbox>
+  <text><label>$(gettext 'Please choose an SFS file that you would like to download:')</label></text>
+  <frame>
+   ${SFSBUTTONS}
+  </frame>
+  
+  <text><label>\"  \"</label></text>
+  <text><label>$(gettext 'The chosen SFS file will be downloaded to here:')</label></text>
+  <text><label>${DL_PATH}</label></text>
+  <text><label>$(gettext 'The BootManager will be subsequently run, to choose which SFS files to load at bootup.')</label></text>
+  
+  <text><label>\"  \"</label></text>
+  <text><label>$(gettext 'These SFS files are already downloaded:')</label></text>
+  <text><label>\"${HERESFS}\"</label></text>
+  
+  <hbox>
+   <button ok></button>
+   <button cancel></button>
+  </hbox>
+ </vbox>
+ </window>"
+  RETPARAMS="`gtkdialog --program=SFS_DIALOG`"
+  [ "$(echo "$RETPARAMS" | grep '^EXIT' | grep 'OK')" = "" ] && exit 1
+  CNT="$(echo "$RETPARAMS" | grep '"true"' | grep -o 'RADIO_URL_[0-9]*' | cut -f 3 -d '_')"
+  newSFS_FILE="$(grep "^${CNT} " /tmp/sfsget-avail | cut -f 2 -d ' ')"
+ else
+  newSFS_FILE="$SFS_FILE"
+ fi
+ 
+ #check if already downloaded, maybe in use...
+ if [ -f ${DL_PATH}/${newSFS_FILE} ];then
+  xSFS_FILE="$(basename $newSFS_FILE .sfs)"
+  USEflg="$(mount | grep -o "/q_ro/${xSFS_FILE} ")" #ref: init script in initrd
+  if [ "$USEflg" ];then
+   MSG1="<b>${newSFS_FILE}</b>
+$(gettext 'Sorry, this SFS file is already downloaded, and is currently in use.')"
+   popup "terminate=ok background=#ff8080 level=top process=wait|<big>${MSG1}</big>" #171224
+   [ "$SFS_FILE" ] && exit 1 #was passed in on cmd line
+   continue
+  else
+   #ask if want to delete...
+   MSG2="$(gettext 'This SFS file is already downloaded. Do you want to overwrite it?')"
+   pupdialog --background '#ff8080' --backtitle "${SFS_FILE}" --yesno "${MSG2}" 0 0
+   if [ $? -ne 0 ];then
+    [ "$SFS_FILE" ] && exit 1
+    continue
+   fi
+  fi
+ fi
+ break
+done
+
+#download
+[ -f ${DL_PATH}/${newSFS_FILE} ] && rm -f ${DL_PATH}/${newSFS_FILE}
+MSG3="$(gettext 'Please wait, downloading SFS file...')"
+#171224 default runs as a daemon, $! is wrong. instead "process=wait" non-daemon...
+popup "background=#fcc0oo level=top process=wait|${MSG3}" &
+POPID="$!"
+[ -f sfs-sha1sums.txt ] && rm -f ./sfs-sha1sums.txt
+download_file ${SFS_URL}/sfs-sha1sums.txt
+if [ $? -ne 0 ];then
+ kill $POPID
+ MSG4="$(gettext "Error, unable to download file 'sfs-sha1sums.txt'")"
+ popup "background=#ff8080 level=top terminate=ok process=wait|${MSG4}" #171224
+ [ -f sfs-sha1sums.txt ] && rm -f ./sfs-sha1sums.txt
+ exit 2
+fi
+download_file ${SFS_URL}/${newSFS_FILE}
+if [ $? -ne 0 ];then
+ kill $POPID
+ MSG5="$(gettext "Error, unable to download SFS file")"
+ popup "background=#ff8080 level=top terminate=ok process=wait|${MSG5}" #171224
+ [ -f ${newSFS_FILE} ] && rm -f ./${newSFS_FILE}
+ exit 2
+fi
+sync
+kill $POPID
+
+#check sha1sum
+SHA1SUM="$(sha1sum ${newSFS_FILE} | cut -f 1 -d ' ')"
+onlineSUM="$(grep " ${newSFS_FILE}$" sfs-sha1sums.txt | cut -f 1 -d ' ')"
+if [ "$SHA1SUM" != "$onlineSUM" ];then
+ MSG7="<big>ERROR</big>
+
+$(gettext 'File:') ${newSFS_FILE}
+$(gettext 'Path:') ${DL_PATH}
+
+$(gettext 'Expected sha1sum:') ${onlineSUM}
+$(gettext 'Actual sha1sum:') ${SHA1SUM}
+
+$(gettext 'The sha1sums do not match. It appears that download is corrupted. Leaving file there, try if you wish, but recommend download again.')"
+ popup "background=#ff8080 level=top terminate=ok process=wait|${MSG7}" #171224
+ exit 3
+fi
+
+#run bootmanager
+MSG6="<big>$(gettext 'Successful download!')</big>
+
+$(gettext 'File:') ${newSFS_FILE}
+$(gettext 'Path:') ${DL_PATH}
+
+$(gettext 'The BootManager will now be run, to choose which SFS files to load at bootup.')
+$(gettext 'Note, the BootManager may be run at any time, via the <i>Filesystem</i> category in the menu.')"
+popup "background=#80ff80 level=top terminate=ok process=wait|${MSG6}" #171224
+
+cd $PUP_HOME #ref: /etc/rc.d/PUPSTATE
+bootmanager
+exit 0
+###END###

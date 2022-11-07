@@ -1,0 +1,64 @@
+#!/bin/sh
+#gui wrapper for droidcam-cli
+#20220501
+
+#guvcview template FIXUPHACK sets these as default save paths:
+mkdir -p /files/media/video/GUVCView
+mkdir -p /files/media/images/GUVCView
+
+VX='640'; VY='480'
+WIFI_IP='192.168.43.1'
+PORT='4747'
+CONN='wifi' #or usbandroid or usbios
+mkdir -p /root/.droidcam
+touch /root/.droidcam/droidcamrc
+. /root/.droidcam/droidcamrc
+
+CONNxml="
+ <radiobutton>
+  <label>$(gettext '')</label>
+ </radiobutton>
+ <radiobutton>
+  <label>$(gettext '')</label>
+ </radiobutton>
+ <radiobutton>
+  <label>$(gettext '')</label>
+ </radiobutton>"
+
+
+
+modprobe snd-aloop
+#...causes mscw to run, which we don't want. kill...
+#sleep 0.2
+#PIDm="$(pgrep -f MSCW_DIALOG)"
+#if [ "$PIDm" ];then
+# kill $PIDm
+#fi
+#...don't need this, see /usr/sbin/pupautodetect-run
+
+#get loopback card number...
+sleep 0.2
+LCARD="$(grep '^ [0-9] \[Loopback ' /proc/asound/cards | cut -f 2 -d ' ')"
+
+modprobe v4l2loopback-dc width=$VX height=$VY
+
+droidcam-cli -a -v -size=${VX}x${VY} adb $PORT &
+droidcam-cli -a -v -size=${VX}x${VY} $WIFI_IP $PORT &
+droidcam-cli -a -v -size=${VX}x${VY} ios $PORT &
+
+pacmd load-module module-alsa-source device=hw:Loopback,1,0
+#or, i think...
+#pacmd load-module module-alsa-source device=hw:${LCARD},1,0
+
+#audio_device=1 should be the loaded Loopback input
+guvcview --audio=pulse --audio_device=1 --resolution=${VX}x${VY}
+
+
+#unload the above-loaded Loopback input...
+pactl unload-module module-alsa-source
+killall droidcam-cli
+rmmod v4l2loopback-dc
+#cannot rmmod snd_aloop
+
+
+

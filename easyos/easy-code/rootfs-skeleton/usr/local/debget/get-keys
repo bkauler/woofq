@@ -1,0 +1,75 @@
+#!/bin/ash
+#called from 3buildeasydistro in woofq.
+#was doing this in apt-setup, however when run by chroot in woof
+# the get-keys code in apt-setup doesn't work.
+
+export LANG=C
+mkdir -p /tmp/debget
+#ref: https://wiki.debian.org/SecureApt
+#keyring is kept in /etc/apt/trusted.gpg or /etc/apt/trusted.gpg.d/
+
+if [ -d rootfs-complete ];then
+ #running from 3buildeasydistro in woof
+ . ./rootfs-complete/etc/DISTRO_SPECS
+ PUPRUN=0
+ #read in /usr/bin/apt-key script...
+ #export TRUSTEDFILE='./rootfs-complete/etc/apt/trusted.gpg'
+else
+ . /etc/DISTRO_SPECS
+ PUPRUN=1
+fi
+
+if [ "$FOREIGN_BINARY_COMPAT" -a "$FOREIGN_COMPAT_VERSION" ];then
+ DEBDISTRO="$FOREIGN_BINARY_COMPAT"
+ DEBVERSION="$FOREIGN_COMPAT_VERSION"
+elif [ "$DISTRO_BINARY_COMPAT" == "debian" ];then
+ DEBDISTRO='debian'
+ DEBVERSION="${DISTRO_COMPAT_VERSION}"
+fi
+
+#too difficult getting apt-key to read rootfs-complete/etc/apt, hack...
+if [ $PUPRUN -eq 0 ];then
+ mv -f /etc/apt /etc/aptHIDE
+ cp -a rootfs-complete/etc/apt /etc/
+fi
+
+#if [ $PUPRUN -eq 1 ];then
+ apt-get -y update >/tmp/debget/apt-get-update.log 2>&1
+#else
+# #apt-get -y --config-file rootfs-complete/etc/apt/apt.conf --with-source rootfs-complete/etc/apt/sources.list update >/tmp/debget/apt-get-update.log 2>&1
+# #apt-get -y --config-file ./rootfs-complete/etc/apt/apt.conf -o Dir::Etc::SourceList=./rootfs-complete/etc/apt/sources.list update >/tmp/debget/apt-get-update.log 2>&1
+# apt-get -y -o Dir::Etc=./rootfs-complete/etc/apt update >/tmp/debget/apt-get-update.log 2>&1
+#fi
+
+rm -f /tmp/debget/apt-get-update-try2.log 2>/dev/null
+rm -f /tmp/debget/apt-get-update-try3.log 2>/dev/null
+grep -o 'NO_PUBKEY .*' /tmp/debget/apt-get-update.log > /tmp/debget/apt-get-update-no-pubkey.log
+if [ $? -eq 0 ];then
+ KEYS="$(sed -e 's%NO_PUBKEY %%g' /tmp/debget/apt-get-update-no-pubkey.log | tr '\n' ' ')"
+ for aKEY in ${KEYS}
+ do
+  case "$DEBDISTRO" in
+   ubuntu)
+    apt-key adv --keyserver keyserver.ubuntu.com --recv-keys ${aKEY} >>/tmp/debget/apt-get-update-try2.log 2>&1
+   ;;
+   debian)
+    #seems that also has debian keys...
+    apt-key adv --keyserver keyserver.ubuntu.com --recv-keys ${aKEY} >>/tmp/debget/apt-get-update-try2.log 2>&1
+   ;;
+  esac
+ done
+ #do it again...
+# if [ $PUPRUN -eq 1 ];then
+  apt-get -y update >>/tmp/debget/apt-get-update-try3.log 2>&1
+# else
+#  apt-get -y Dir::Etc=./rootfs-complete/etc/apt update >>/tmp/debget/apt-get-update-try3.log 2>&1
+# fi
+fi
+
+if [ $PUPRUN -eq 0 ];then
+ cp -a -f /etc/apt/trusted.gpg rootfs-complete/etc/apt/
+ rm -rf /etc/apt
+ mv -f /etc/aptHIDE /etc/apt
+fi
+
+###end###

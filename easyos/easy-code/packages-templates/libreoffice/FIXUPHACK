@@ -1,0 +1,77 @@
+
+#get rid of some icons...
+[ -d usr/share/icons/gnome ] && rm -rf usr/share/icons/gnome
+[ -d usr/share/icons/locolor ] && rm -rf usr/share/icons/locolor
+
+if [ -d usr/share/icons/hicolor ];then
+ [ -d usr/share/icons/hicolor/16x16 ] && rm -rf usr/share/icons/hicolor/16x16
+ [ -d usr/share/icons/hicolor/32x32 ] && rm -rf usr/share/icons/hicolor/32x32
+ [ -d usr/share/icons/hicolor/128x128 ] && rm -rf usr/share/icons/hicolor/128x128
+ [ -d usr/share/icons/hicolor/256x256 ] && rm -rf usr/share/icons/hicolor/256x256
+ [ -d usr/share/icons/hicolor/512x512 ] && rm -rf usr/share/icons/hicolor/512x512
+ [ -d usr/share/icons/hicolor/16x16 ] && rm -rf usr/share/icons/hicolor/16x16
+ [ -d usr/share/icons/hicolor/scalable ] && rm -rf usr/share/icons/hicolor/scalable
+fi
+
+#170510
+mkdir -p ../libreoffice_NLS/usr/lib/libreoffice
+mv -f usr/lib/libreoffice/readmes ../libreoffice_NLS/usr/lib/libreoffice/
+mkdir usr/lib/libreoffice/readmes
+cp -a ../libreoffice_NLS/usr/lib/libreoffice/readmes/README_en-GB usr/lib/libreoffice/readmes/
+cp -a ../libreoffice_NLS/usr/lib/libreoffice/readmes/README_en-US usr/lib/libreoffice/readmes/
+cp -a ../libreoffice_NLS/usr/lib/libreoffice/readmes/README_en-ZA usr/lib/libreoffice/readmes/
+
+mkdir -p ../libreoffice_NLS/usr/lib/libreoffice/share
+mv -f usr/lib/libreoffice/share/autocorr ../libreoffice_NLS/usr/lib/libreoffice/share/
+mkdir usr/lib/libreoffice/share/autocorr
+cp -a ../libreoffice_NLS/usr/lib/libreoffice/share/autocorr/acor_en-AU.dat usr/lib/libreoffice/share/autocorr/
+cp -a ../libreoffice_NLS/usr/lib/libreoffice/share/autocorr/acor_en-GB.dat usr/lib/libreoffice/share/autocorr/
+cp -a ../libreoffice_NLS/usr/lib/libreoffice/share/autocorr/acor_en-US.dat usr/lib/libreoffice/share/autocorr/
+cp -a ../libreoffice_NLS/usr/lib/libreoffice/share/autocorr/acor_en-ZA.dat usr/lib/libreoffice/share/autocorr/
+
+mv -f usr/lib/libreoffice/share/autotext ../libreoffice_NLS/usr/lib/libreoffice/share/
+mkdir usr/lib/libreoffice/share/autotext
+cp -a ../libreoffice_NLS/usr/lib/libreoffice/share/autotext/en-GB usr/lib/libreoffice/share/autotext/
+cp -a ../libreoffice_NLS/usr/lib/libreoffice/share/autotext/en-US usr/lib/libreoffice/share/autotext/
+cp -a ../libreoffice_NLS/usr/lib/libreoffice/share/autotext/en-ZA usr/lib/libreoffice/share/autotext/
+
+#gadzillion fonts...
+mkdir -p usr/share/fonts/TTF
+cp -a -f usr/lib/libreoffice/share/fonts/truetype/opens___.ttf usr/share/fonts/TTF/
+rm -rf usr/lib/libreoffice/share/fonts/truetype
+ln -s ../../../../share/fonts/TTF usr/lib/libreoffice/share/fonts/truetype
+
+mkdir -p ../libreoffice_NLS/usr/lib/libreoffice/share/registry
+mv -f usr/lib/libreoffice/share/registry/res ../libreoffice_NLS/usr/lib/libreoffice/share/registry/
+mkdir usr/lib/libreoffice/share/registry/res
+cp -a ../libreoffice_NLS/usr/lib/libreoffice/share/registry/res/fcfg_langpack_en-GB.xcd usr/lib/libreoffice/share/registry/res/
+cp -a ../libreoffice_NLS/usr/lib/libreoffice/share/registry/res/fcfg_langpack_en-US.xcd usr/lib/libreoffice/share/registry/res/
+cp -a ../libreoffice_NLS/usr/lib/libreoffice/share/registry/res/fcfg_langpack_en-ZA.xcd usr/lib/libreoffice/share/registry/res/
+cp -a ../libreoffice_NLS/usr/lib/libreoffice/share/registry/res/registry_en-GB.xcd usr/lib/libreoffice/share/registry/res/
+cp -a ../libreoffice_NLS/usr/lib/libreoffice/share/registry/res/registry_en-ZA.xcd usr/lib/libreoffice/share/registry/res/
+
+for AFOLDER in cui dbaccess desktop filter formula fps sfx svt svx uui vcl xmlsec modules/BasicIDE modules/dbreport modules/sabpilot modules/sbibliography modules/scalc modules/scanner modules/schart modules/sdraw modules/simpress modules/smath modules/spropctlr modules/swriter
+do
+ [ ! -d usr/lib/libreoffice/share/config/soffice.cfg/${AFOLDER}/ui/res ] && continue
+ mkdir -p ../libreoffice_NLS/usr/lib/libreoffice/share/config/soffice.cfg/${AFOLDER}/ui
+ mv -f usr/lib/libreoffice/share/config/soffice.cfg/${AFOLDER}/ui/res ../libreoffice_NLS/usr/lib/libreoffice/share/config/soffice.cfg/${AFOLDER}/ui/
+ mkdir usr/lib/libreoffice/share/config/soffice.cfg/${AFOLDER}/ui/res
+ cp -a ../libreoffice_NLS/usr/lib/libreoffice/share/config/soffice.cfg/${AFOLDER}/ui/res/en-GB.zip usr/lib/libreoffice/share/config/soffice.cfg/${AFOLDER}/ui/res/
+ cp -a ../libreoffice_NLS/usr/lib/libreoffice/share/config/soffice.cfg/${AFOLDER}/ui/res/en-ZA.zip usr/lib/libreoffice/share/config/soffice.cfg/${AFOLDER}/ui/res/
+done
+
+# 170510 hack for broken theme in OE build...
+[ -f usr/lib/libreoffice/share/config/images_export.zip ] && rm -f usr/lib/libreoffice/share/config/images_export.zip
+[ -f "usr/lib/libreoffice/share/config/images_WITH_WEBDAV=neon.zip" ] && rm -f usr/lib/libreoffice/share/config/images_WITH_WEBDAV=neon.zip
+
+#170511 have our own .desktop files...
+rm -f usr/share/applications/libreoffice-*.desktop 2>/dev/null
+
+#190108 .mo files, will have this if compiled with 'libreoffice-translations' pkg...
+if [ -d usr/lib/libreoffice/program/resource ];then
+ mkdir -p ../libreoffice_NLS/usr/lib/libreoffice/program
+ mv -f usr/lib/libreoffice/program/resource ../libreoffice_NLS/usr/lib/libreoffice/program/
+ mkdir usr/lib/libreoffice/program/resource
+ cp -a ../libreoffice_NLS/usr/lib/libreoffice/program/resource/en_GB usr/lib/libreoffice/program/resource/
+ cp -a ../libreoffice_NLS/usr/lib/libreoffice/program/resource/en_ZA usr/lib/libreoffice/program/resource/
+fi

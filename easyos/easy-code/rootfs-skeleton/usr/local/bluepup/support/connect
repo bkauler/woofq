@@ -1,0 +1,114 @@
+#!/bin/sh
+
+export TEXTDOMAIN=bluepup
+export TEXTDOMAINDIR=/usr/share/locale
+export OUTPUT_CHARSET=UTF-8
+
+CR='
+'
+
+exit_func() {
+ echo -n 'limbo' > /tmp/bluepup/current-operation #20201105
+ exit $1
+}
+
+#only want to look at output of vte.log from now on...
+wc -l /tmp/bluepup/vte.log > /tmp/bluepup/cnt_full
+LINEMKR0="$(cut -f 1 -d " " /tmp/bluepup/cnt_full)"
+LINEMKR1="$(expr 1 + $LINEMKR0)"
+
+DEVICEID="$(cat /tmp/bluepup/chosen-reg-device)"
+
+grep -q 'Blocked: no' /tmp/bluepup/reg-info.${DEVICEID}
+if [ $? -ne 0 ];then
+ echo -e "\033[0;94m[bluetooth]\033[0m# bluetoothctl unblock ${DEVICEID}" >> /tmp/bluepup/btctl_in
+ bluetoothctl unblock ${DEVICEID} >> /tmp/bluepup/btctl_in
+ /usr/local/bluepup/support/wait-response "unblock ${DEVICEID}" "${?}"
+ [ $? -ne 0 ] && exit_func 1
+fi
+
+##now pair...
+grep -q 'Paired: yes' /tmp/bluepup/reg-info.${DEVICEID}
+if [ $? -ne 0 ];then
+ MSG1="$(gettext 'Attempting pair with:')"
+ echo "<b><span color='#e08000'>${MSG1}${CR}${DEVICEID}</span></b>" > /tmp/bluepup/frame-status.msg
+ 
+ echo -e "\033[0;94m[bluetooth]\033[0m# bluetoothctl pairable on" >> /tmp/bluepup/btctl_in
+ bluetoothctl pairable on >> /tmp/bluepup/btctl_in
+ /usr/local/bluepup/support/wait-response "pairable on" "${?}"
+ [ $? -ne 0 ] && exit_func 1
+ 
+ echo -e "\033[0;94m[bluetooth]\033[0m# bluetoothctl pair ${DEVICEID}" >> /tmp/bluepup/btctl_in
+ bluetoothctl pair ${DEVICEID} >> /tmp/bluepup/btctl_in
+ /usr/local/bluepup/support/wait-response "pair ${DEVICEID}" "${?}"
+ [ $? -ne 0 ] && exit_func 1
+fi
+
+#***also we can check***
+# bluetoothctl paired-devices
+
+#20201108
+sed -i -e "s%.*${DEVICEID}%mini-tick-orange|${DEVICEID}%" /tmp/bluepup/found-reg-devices
+
+grep -q 'Trusted: yes' /tmp/bluepup/reg-info.${DEVICEID}
+if [ $? -ne 0 ];then
+ echo -e "\033[0;94m[bluetooth]\033[0m# bluetoothctl trust ${DEVICEID}" >> /tmp/bluepup/btctl_in
+ bluetoothctl trust ${DEVICEID} >> /tmp/bluepup/btctl_in
+ /usr/local/bluepup/support/wait-response "trust ${DEVICEID}" "${?}"
+ [ $? -ne 0 ] && exit_func 1
+fi
+
+grep -q 'Connected: yes' /tmp/bluepup/reg-info.${DEVICEID}
+if [ $? -ne 0 ];then
+ MSG2="$(gettext 'Now connecting')"
+ echo "<b><span color='#8000ff'>${MSG2}</span></b>" > /tmp/bluepup/frame-status.msg
+ echo -e "\033[0;94m[bluetooth]\033[0m# bluetoothctl connect ${DEVICEID}" >> /tmp/bluepup/btctl_in
+ bluetoothctl connect ${DEVICEID} >> /tmp/bluepup/btctl_in
+ #20201101 try again...
+ if [ $? -ne 0 ];then
+  MSG2b="$(gettext 'Connect fail:')"
+  MSG2c="$(gettext 'Trying again...')"
+  echo "<b><span color='#a00000'>${MSG2b}${CR}${DEVICEID}</span>${CR}<big><span color='#ff0000'>${MSG2c}</span></big></b>" > /tmp/bluepup/frame-status.msg
+  sleep 1
+  bluetoothctl connect ${DEVICEID} >> /tmp/bluepup/btctl_in
+  /usr/local/bluepup/support/wait-response "connect ${DEVICEID}" "${?}"
+  [ $? -ne 0 ] && exit_func 1
+ fi
+fi
+
+MSG3="$(gettext 'Connection successful')"
+echo "<b><span color='#00a000'>${MSG3}</span></b>" > /tmp/bluepup/frame-status.msg #auto-updates
+
+sleep 2
+
+#LANG=C bluetoothctl info ${DEVICEID} > /tmp/bluepup/reg-info.${DEVICEID}
+#20201101 wrapper, coz bluetoothctl can hang...
+LANG=C /usr/local/bluepup/support/run-btinfo ${DEVICEID} > /tmp/bluepup/reg-info.${DEVICEID}
+/usr/local/bluepup/support/wait-response "bt-device -i ${DEVICEID}" "${?}"
+
+cp -a -f /tmp/bluepup/reg-info.${DEVICEID} /var/local/bluepup/
+
+#run-mscw will test if an audio device, and if so will launch Multiple Sound Card Wizard...
+/usr/local/bluepup/support/run-mscw ${DEVICEID} &
+
+#20201107 tell bluepup if this is a phone...
+PHflg="$(grep -o 'Icon: phone' /tmp/bluepup/reg-info.${DEVICEID})"
+if [ "$PHflg" ];then
+ echo -n 'true' > /tmp/bluepup/device-is-a-phone
+else
+ echo -n 'false' > /tmp/bluepup/device-is-a-phone
+fi
+
+#change the icon...
+sed -i -e "s%.*${DEVICEID}%mini-tick-green|${DEVICEID}%" /tmp/bluepup/found-reg-devices #will be updated by the timer, indirectly...
+#timer waits on change to 'found-new-devices' to update both New and Registered lists...
+#touch /tmp/bluepup/found-new-devices
+#...stupid timer, that doesn't work, have to write to it...
+cp -f /tmp/bluepup/found-new-devices /tmp/bluepup/found-new-devicesBAK
+cat /tmp/bluepup/found-new-devicesBAK > /tmp/bluepup/found-new-devices
+
+#finally, write to this file, a timer will auto-detect change...
+echo -n "$DEVICEID" > /tmp/bluepup/reg-dev-chosen-processed
+sleep 1.2
+exit_func 0
+###END###

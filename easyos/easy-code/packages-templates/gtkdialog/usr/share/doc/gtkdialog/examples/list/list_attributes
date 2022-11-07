@@ -1,0 +1,25 @@
+#!/bin/sh
+
+GTKDIALOG=gtkdialog
+
+MAIN_DIALOG='
+<window>
+	<vbox>
+		<list selected-row="1" shadow-type="0" vscrollbar-policy="0">
+			<variable>LIST</variable>
+			<input>printf "First item\nSecond item\nThird item"</input>
+			<action>echo "The chosen item is \"$LIST\""</action>
+		</list>
+		<hbox>
+			<button cancel></button>
+			<button ok></button>
+		</hbox>
+	</vbox>
+</window>
+'
+export MAIN_DIALOG
+
+case $1 in
+	-d | --dump) echo "$MAIN_DIALOG" ;;
+	*) $GTKDIALOG --program=MAIN_DIALOG ;;
+esac

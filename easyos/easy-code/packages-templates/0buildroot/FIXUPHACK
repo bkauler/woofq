@@ -1,0 +1,444 @@
+#if the pkg created in packages-woof has something wrong, this file is a last
+#resort to fix it. Current-dir is where this file FIXUPHACK is located, that is,
+# packages-${DISTRO_FILE_PREFIX}/0buildroot/ (ex: packages-erik/0buildroot/)
+#note: DISTRO_BINARY_COMPAT and DISTRO_FILE_PREFIX are visible here, exported in 2createpackages.
+#xARCHDIR, ARCHDIR and DISTRO_ARCHDIR_SYMLINKS exported in 2createpackages. 
+#note, 2createpackages may move /lib, /usr/lib, /usr/bin in template to ARCHDIR subdir.
+#150928
+
+
+###xdg###
+#take out all non-english stuff (as that is responsibility of lang_pack pet)...
+for ADESKTOP in `find usr/share/applications -maxdepth 1 -type f -name '*.desktop' | tr '\n' ' '`
+do
+ grep -v '\[' $ADESKTOP > /tmp/tmp0buildroot
+ cp -f /tmp/tmp0buildroot $ADESKTOP
+ #Exec line may have extraneous stuff appended, delete...
+ EXECLINE="$(grep '^Exec=' $ADESKTOP | cut -f 1 -d ' ')"
+ [ ! "$EXECLINE" ] && continue
+ grep -v '^Exec=' $ADESKTOP > /tmp/tmp0buildroot
+ echo "$EXECLINE" >> /tmp/tmp0buildroot
+ cp -f /tmp/tmp0buildroot $ADESKTOP
+done
+
+###alphabetical below here...###
+
+###busybox###
+touch etc/busybox.conf
+#3builddistro has code to find bb-applet conflicts with full utilities, put basic version here...
+#ex: 0buildroot has bin/grep (bb applet) and full usr/bin/grep
+for BBAPPLET in `./bin/busybox --list | busybox grep -v -F '[' | tr '\n' ' '`
+do
+ NAMEFND="$(find bin sbin usr/bin usr/sbin -maxdepth 1 -name $BBAPPLET | tr '\n' ' ')" #finds all occurences of that name
+ NUMFND=`echo -n "$NAMEFND" | wc -w`
+ if [ $NUMFND -gt 1 ];then
+  for AINSTANCE in $NAMEFND
+  do
+   if [ -h $AINSTANCE ];then
+    if [ "`readlink ${AINSTANCE} | grep 'busybox'`" != "" ];then
+     ADIR="$(dirname $AINSTANCE)"
+     ABASE="$(basename $AINSTANCE)"
+     mv -f ${AINSTANCE} ${ADIR}/${ABASE}-BB-NOTUSED
+    fi
+   fi
+  done
+ fi
+done
+#141123 some applets are overwriting scripts in rootfs-skeleton...
+#exs: sbin/reboot, sbin/poweroff,  bin/mount, bin/umount
+SKELS="$(find ../../rootfs-skeleton/bin ../../rootfs-skeleton/sbin ../../rootfs-skeleton/usr/bin ../../rootfs-skeleton/usr/sbin -maxdepth 1 -mindepth 1 -type f -o -type l | tr '\n' ' ')"
+for ASKEL in $SKELS
+do
+ SKELBASE="$(basename $ASKEL)" #ex: mount
+ #well, not just busybox, any other pkg may be to blame...
+ for ACLASH in `find bin sbin usr/bin usr/sbin -maxdepth 1 -name ${SKELBASE} | tr '\n' ' '`
+ do
+  CLASHDIR="$(dirname $ACLASH)"
+  CLASHNAME="$(basename $ACLASH)"
+  if [ -h $ACLASH ];then
+   if [ "`readlink ${ACLASH} | grep 'busybox'`" != "" ];then
+    mv -f $ACLASH ${CLASHDIR}/${CLASHNAME}-BB-NOTUSED
+   else
+    mv -f $ACLASH ${CLASHDIR}/${CLASHNAME}-NOTUSED
+   fi
+  else
+   mv -f $ACLASH ${CLASHDIR}/${CLASHNAME}-FULL
+  fi
+ done
+done
+
+###coreutils###
+if [ -f bin/df ];then
+ if [ ! -h bin/df ];then
+  if [ ! -f bin/df-FULL ];then
+   mv -f bin/df bin/df-FULL
+   ln -s busybox bin/df
+  fi
+ else
+  echo 'WARNING: full df from coreutils missing'
+ fi
+fi
+
+###dbus###
+if [ -e usr/bin/dbus-uuidgen ];then
+ #may 7, 2012, tried to run seamonkey on the mele a1000 arm box, reported dbus not installed properly.
+ #needs this...
+ mkdir -p var/lib/dbus
+ mkdir -p etc/init.d
+ #this creates a 32-character machine id...
+ echo 'dbus-uuidgen > /var/lib/dbus/machine-id' > etc/init.d/dbus-machine-id-gen
+ chmod 755 etc/init.d/dbus-machine-id-gen
+fi
+
+###fonts###
+#well, quirky rootfs-skeleton has all we want.
+rm -rf usr/share/fonts
+
+###gcc###
+#these cause an error msg when run 'ldconfig'...
+for ABADPYLIB in `find usr/lib -mindepth 1 -maxdepth 1 -iname 'libstdc*.py' | tr '\n' ' '`
+do
+ rm -f $ABADPYLIB
+done
+
+###glibc_locales###
+#i have put the template into buildroot/bare-skeleton-rootfs/usr/share/i18n, locale
+#however, 2createpackages removes it to 0buildroot_NLS, so get it back...
+mkdir -p usr/share/i18n
+mkdir -p usr/share/locale
+cp -a -f ../0buildroot_NLS/usr/share/i18n/* usr/share/i18n/
+cp -a ../0buildroot_NLS/usr/share/locale/locale.alias usr/share/locale/
+sync
+rm -rf ../0buildroot_NLS/usr/share/i18n
+rm -f ../0buildroot_NLS/usr/share/locale/locale.alias
+#glibc template has cutdown usr/lib/gconv ...there were some issues with doing this,
+#however the size reduction is considerable, about 6MB to 750KB
+#i recall, things do get stuffed up if try to regenerate the gconv cache file.
+if [ -d usr/lib/gconv ];then
+ mv usr/lib/gconv usr/lib/gconvFULL
+ mkdir usr/lib/gconv
+ for AGCONV in `ls -1 ../../packages-templates/glibc/usr/lib/gconv | tr '\n' ' '`
+ do
+  [ -f usr/lib/gconvFULL/${AGCONV} ] && cp -a -f usr/lib/gconvFULL/${AGCONV} usr/lib/gconv/
+ done
+ rm -rf usr/lib/gconvFULL
+fi
+
+###libtiff###
+#may need to create symlinks of older libs...
+LIBSUBVERS=""
+LIBPROBE="$(find . -type f -name 'libtiff.so*' | sort -V)"
+if [ "$LIBPROBE" ];then
+ for ALIBPROBE in $LIBPROBE
+ do
+  [ ! "$ALIBPROBE" ] && continue
+  ALIBPATH="$(dirname $ALIBPROBE)"
+  ALIBNAME="$(basename $ALIBPROBE)"                     #ex: libtiff.so.5.2.0
+  AMAINNAME="$(echo -n "$ALIBNAME" | cut -f 1 -d '.')"  #ex: libtiff
+  ALIBSUBVER=$(echo -n "$ALIBNAME" | cut -f 3 -d '.')   #ex: 5
+  [ ! $ALIBSUBVER ] && continue
+  for xLIBVER in 3 4 5 6
+  do
+   [ $ALIBSUBVER -lt $xLIBVER ] && break
+   LIBLINK="$(find . -name ${AMAINNAME}.so.${xLIBVER})"
+   [ ! "$LIBLINK" ] && ln -s $ALIBNAME ${ALIBPATH}/${AMAINNAME}.so.${xLIBVER}
+  done
+ done
+fi
+
+
+###midori###
+if [ -e usr/bin/midori ];then
+ mkdir -p usr/share/doc/midori
+ ln -s ../../doc usr/share/doc/midori/user
+ ln -s home.htm usr/share/doc/midori.html
+ if [ -f usr/share/applications/midori.desktop ];then
+  echo '[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Midori web bdrowser
+GenericName=Midori
+Comment=Midori web browser
+Categories=WebBrowser
+MimeType=text/html;text/xml;application/xhtml+xml;application/xml;
+Exec=midori
+Icon=/usr/share/icons/hicolor/16x16/apps/midori.png
+Terminal=false
+StartupNotify=true
+X-Osso-Type=application/x-executable
+X-Osso-Service=midori' > usr/share/applications/midori.desktop
+ fi
+ #append to pinstall.sh...
+ cat >> pinstall.sh <<EOF
+ echo '#!/bin/sh' > ./usr/local/bin/defaultbrowser
+ echo 'exec midori "$@"' >> ./usr/local/bin/defaultbrowser
+ chmod 755 ./usr/local/bin/defaultbrowser
+ echo "...ok, setup for Midori."
+ echo -n "midori" > /tmp/rightbrwsr.txt
+EOF
+fi
+
+###mplayer###
+if [ -f usr/bin/mplayer ];then
+ cp -a -f --remove-destination ../../packages-templates/mplayer_gui/usr/bin/gmplayer usr/bin/
+ cp -a -f --remove-destination ../../packages-templates/mplayer_gui/usr/bin/mplayershell usr/bin/
+ cp -a -f --remove-destination ../../packages-templates/mplayer_gui/usr/share/* usr/share/
+ if [ ! -f ./usr/bin/gnome-mplayer ];then
+  #um, think have got this syntax right, append to pinstall.sh...
+  cat >> pinstall.sh <<EOF
+echo '#!/bin/sh' > ./usr/local/bin/defaultmediaplayer
+echo 'exec mplayershell "$@"' >> ./usr/local/bin/defaultmediaplayer
+chmod 755 ./usr/local/bin/defaultmediaplayer
+echo '#!/bin/sh' > ./usr/local/bin/defaultvideoplayer
+echo 'exec mplayershell "$@"' >> ./usr/local/bin/defaultvideoplayer
+chmod 755 ./usr/local/bin/defaultvideoplayer
+EOF
+ fi
+fi
+
+###openssl###
+LIBSPEC="$(find . -type f -name 'libcrypto.so.1*' | head -n 1)"
+if [ "$LIBSPEC" ];then
+ LIBPATH="$(dirname $LIBSPEC)"
+ LIBNAME="$(basename $LIBSPEC)"
+ LIBLINK="$(find . -name libcrypto.so.1)"
+ [ ! "$LIBLINK" ] && ln -s $LIBNAME ${LIBPATH}/libcrypto.so.1
+ #141120 if old lib hasn't been found above, create symlinks to 1.0 lib...
+ #(assuming old 0. pkg isn't installed)
+ ln -s $LIBNAME ${LIBPATH}/libcrypto.so.0
+ ln -s $LIBNAME ${LIBPATH}/libcrypto.so.0.9.7
+ ln -s $LIBNAME ${LIBPATH}/libcrypto.so.0.9.8
+fi
+LIBSPEC="$(find . -type f -name 'libssl.so.1*' | head -n 1)"
+if [ "$LIBSPEC" ];then
+ LIBPATH="$(dirname $LIBSPEC)"
+ LIBNAME="$(basename $LIBSPEC)"
+ LIBLINK="$(find . -name libssl.so.1)"
+ [ ! "$LIBLINK" ] && ln -s $LIBNAME ${LIBPATH}/libssl.so.1
+ ln -s $LIBNAME ${LIBPATH}/libssl.so.0
+ ln -s $LIBNAME ${LIBPATH}/libssl.so.0.9.7
+ ln -s $LIBNAME ${LIBPATH}/libssl.so.0.9.8
+fi
+
+###pciutils###
+if [ -f usr/share/pci.ids.gz ];then
+ gunzip -c usr/share/pci.ids.gz > usr/share/pci.ids
+ sync
+ rm -f usr/share/pci.ids.gz
+fi
+
+###perl###
+#141124 want to create a cutdown perl...
+if [ -d usr/lib/perl5 ];then
+ PERL_TINY_FILELIST='CORE/libperl.so IO.pm Data/Dumper.pm File/GlobMapper.pm File/Glob.pm POSIX.pm Fcntl.pm IO/File.pm IO/Pipe.pm IO/Poll.pm IO/Handle.pm IO/Seekable.pm IO/Select.pm IO/Socket.pm IO/Dir.pm Socket.pm DynaLoader.pm Config.pm XSLoader.pm Cwd.pm Socket/Socket.so POSIX/atof.al POSIX/waitpid.al POSIX/setjmp.al POSIX/perror.al SigAction/handler.al SigAction/safe.al SigAction/flags.al SigAction/new.al SigAction/mask.al SigRt/new.al SigRt/_init.al SigRt/CLEAR.al SigRt/_check.al SigRt/_exist.al SigRt/DELETE.al SigRt/SCALAR.al SigRt/STORE.al SigRt/_croak.al SigRt/_getsig.al SigRt/EXISTS.al SigRt/FETCH.al POSIX/scanf.al POSIX/malloc.al POSIX/rewind.al POSIX/strcmp.al POSIX/rename.al POSIX/setvbuf.al POSIX/memset.al POSIX/fgets.al POSIX/getgid.al POSIX/autosplit.ix POSIX/fileno.al POSIX/getpwuid.al POSIX/link.al POSIX/fputc.al POSIX/opendir.al POSIX/strpbrk.al POSIX/sprintf.al POSIX/strcpy.al POSIX/fread.al POSIX/getuid.al POSIX/strncat.al POSIX/gets.al POSIX/cos.al POSIX/ldiv.al POSIX/memcpy.al POSIX/siglongjmp.al POSIX/abs.al POSIX/geteuid.al POSIX/memmove.al POSIX/unlink.al POSIX/putchar.al POSIX/clearerr.al POSIX/execle.al POSIX/fscanf.al POSIX/bsearch.al POSIX/chdir.al POSIX/calloc.al POSIX/getgrgid.al POSIX/vprintf.al POSIX/qsort.al POSIX/rewinddir.al POSIX/puts.al POSIX/creat.al POSIX/atan2.al POSIX/gmtime.al POSIX/fdopen.al POSIX/load_imports.al POSIX/memchr.al POSIX/time.al POSIX/printf.al POSIX/getlogin.al POSIX/getpid.al POSIX/ferror.al POSIX/getc.al POSIX/tmpfile.al POSIX/rand.al POSIX/system.al POSIX/utime.al POSIX/getenv.al POSIX/atexit.al POSIX/execl.al POSIX/longjmp.al POSIX/remove.al POSIX/tolower.al POSIX/strtok.al POSIX/fflush.al POSIX/strrchr.al POSIX/offsetof.al POSIX/vsprintf.al POSIX/alarm.al POSIX/div.al POSIX/errno.al POSIX/labs.al POSIX/raise.al POSIX/redef.al POSIX/fcntl.al POSIX/sin.al POSIX/getgrnam.al POSIX/execlp.al POSIX/putc.al POSIX/sigsetjmp.al POSIX/strspn.al POSIX/ungetc.al POSIX/strncmp.al POSIX/ftell.al POSIX/atoi.al POSIX/sleep.al POSIX/fputs.al POSIX/getppid.al POSIX/execv.al POSIX/assert.al POSIX/realloc.al POSIX/feof.al POSIX/getpwnam.al POSIX/strstr.al POSIX/kill.al POSIX/exit.al POSIX/atol.al POSIX/strcat.al POSIX/fork.al POSIX/fwrite.al POSIX/srand.al POSIX/fseek.al POSIX/readdir.al POSIX/POSIX.so POSIX/fclose.al POSIX/mkdir.al POSIX/pow.al POSIX/umask.al POSIX/log.al POSIX/exp.al POSIX/getgroups.al POSIX/unimpl.al POSIX/fgetpos.al POSIX/fabs.al POSIX/strcspn.al POSIX/fsetpos.al POSIX/sqrt.al POSIX/free.al POSIX/sscanf.al POSIX/localtime.al POSIX/fstat.al POSIX/chown.al POSIX/setbuf.al POSIX/strlen.al POSIX/getpgrp.al POSIX/closedir.al POSIX/strchr.al POSIX/rmdir.al POSIX/strerror.al POSIX/getegid.al POSIX/fgetc.al POSIX/getchar.al POSIX/fsync.al POSIX/fopen.al POSIX/strncpy.al POSIX/isatty.al POSIX/usage.al POSIX/stat.al POSIX/freopen.al POSIX/wait.al POSIX/chmod.al POSIX/toupper.al POSIX/fprintf.al POSIX/execvp.al POSIX/execve.al POSIX/vfprintf.al POSIX/memcmp.al Fcntl/Fcntl.so Dumper/Dumper.so Glob/Glob.so IO/IO.so DynaLoader/autosplit.ix DynaLoader/dl_find_symbol_anywhere.al DynaLoader/dl_findfile.al DynaLoader/dl_expandspec.al Cwd/Cwd.so AutoLoader.pm strict.pm CGI.pm Getopt/Std.pm Getopt/Long.pm getopt.pl Exporter.pm Symbol.pm warnings/register.pm overload.pm File/Basename.pm File/DosGlob.pm File/Path.pm File/Temp.pm File/Fetch.pm File/CheckTree.pm Spec/OS2.pm Spec/Win32.pm Spec/Cygwin.pm Spec/Functions.pm Spec/Mac.pm Spec/VMS.pm Spec/Unix.pm Spec/Epoc.pm File/Copy.pm File/Spec.pm File/Find.pm File/stat.pm File/Compare.pm SelectSaver.pm Carp.pm Exporter/Heavy.pm constant.pm bytes.pm CGI/Cookie.pm CGI/Apache.pm CGI/Push.pm CGI/Pretty.pm CGI/Carp.pm CGI/Switch.pm CGI/Util.pm vars.pm IO/Zlib.pm sigtrap.pm warnings.pm Benchmark.pm Config_heavy.pl English.pm NamedCapture.pm Errno.pm Hash.pm'
+ [ -d ../tempdir1 ] && rm -rf ../tempdir1
+ mkdir -p ../tempdir1
+ cp -a usr/lib/perl5/* ../tempdir1/
+ rm -rf usr/lib/perl5
+ mkdir usr/lib/perl5
+ for ONEPERL in $PERL_TINY_FILELIST
+ do
+  if [ "$(echo -n $ONEPERL | grep '/')" == "" ];then
+   SPECFND="$(find ../tempdir1 -type f -name $ONEPERL | sed -e 's%^../tempdir1/%%' | tr '\n' ' ')" #ex: 5.18.2/HTTP/Tiny.pm
+  else
+   SPEC2="$(basename $ONEPERL)"
+   SPECFND="$(find ../tempdir1 -type f -name $SPEC2 | grep "$ONEPERL" | sed -e 's%^../tempdir1/%%' | tr '\n' ' ')" #ex: 5.18.2/IO/Handle.pm
+  fi
+  for ASPECFND in $SPECFND
+  do
+   FNDPATH="$(dirname $ASPECFND)" #ex: 5.18.2/HTTP (so full path is usr/lib/perl5/5.18.2/HTTP
+   FNDNAME="$(basename $ASPECFND)" #ex: Tiny.pm
+   mkdir -p usr/lib/perl5/${FNDPATH}
+   cp -a -f ../tempdir1/${ASPECFND} usr/lib/perl5/${FNDPATH}/
+  done
+ done
+ #not good, buildroot creates identical files usr/bin/perl and usr/bin/perl5.18.2
+ for APERLEXE in `find usr/bin -maxdepth 1 -type f -name 'perl[0-9]*' | tr '\n' ' '`
+ do
+  EXEBASE="$(basename $APERLEXE)"
+  ln -snf $EXEBASE usr/bin/perl
+  break
+ done
+ sync
+ rm -rf ../tempdir1
+fi
+
+###shared-mime-info###
+#using my pet.
+#think don't want this...
+[ -f usr/share/mime/mime.cache ] && rm -f usr/share/mime/mime.cache
+
+###tzdata###
+#delete some things...
+#hmmm, structure different, everything is symlinked into 'posix' folder, so leave...
+#[ -d usr/share/zoneinfo/posix ] && rm -rf usr/share/zoneinfo/posix
+[ -d usr/share/zoneinfo/right ] && rm -rf usr/share/zoneinfo/right
+[ -d usr/share/zoneinfo/SystemV ] && rm -rf usr/share/zoneinfo/SystemV
+
+###usbutils###
+if [ -f usr/share/usb.ids.gz ];then
+ gunzip -c usr/share/usb.ids.gz > usr/share/usb.ids
+ sync
+ rm -f usr/share/usb.ids.gz
+fi
+
+###util-linux###
+#actually, mount and umount are scripts in rootfs-skeleton, see busybox above.
+if [ -f bin/mount ];then
+ if [ ! -h bin/mount ];then
+  if [ ! -f bin/mount-FULL ];then
+   mv -f bin/mount bin/mount-FULL
+   ln -s busybox bin/mount
+  fi
+ else
+  echo 'WARNING: full mount from util-linux missing'
+ fi
+ #note, bin/mount is a script in quirky rootfs-skeleton/bin
+fi
+if [ -f bin/umount ];then
+ if [ ! -h bin/umount ];then
+  if [ ! -f bin/umount-FULL ];then
+   mv -f bin/umount bin/umount-FULL
+   ln -s busybox bin/umount
+  fi
+ else
+  echo 'WARNING: full umount from util-linux missing'
+ fi
+fi
+if [ -f sbin/losetup ];then
+ if [ ! -h sbin/losetup ];then
+  if [ ! -f sbin/losetup-FULL ];then
+   mv -f sbin/losetup sbin/losetup-FULL
+   ln -s ../bin/busybox sbin/losetup
+  fi
+ else
+  echo 'WARNING: full losetup from util-linux missing'
+ fi
+fi
+
+
+###vlc###
+if [ usr/bin/vlc ];then
+ #vlc may be configured to not run as root (it is a pre-compile configure option to enable running as root).
+ #this hack will fix it...
+ #note, this code is also in /usr/local/petget/hacks-postinstall.sh.
+ if [ -f /usr/bin/bbe ];then #bbe is a sed-like utility for binary files.
+  bbe -e 's/geteuid/getppid/' usr/bin/vlc > /tmp/vlc-temp1
+  mv -f /tmp/vlc-temp1 usr/bin/vlc
+  chmod 755 usr/bin/vlc
+ fi
+ #we need to know if this is the cli-only, or the qt-gui vlc...
+ if [ "$(find usr/lib -maxdepth 1 -type f -name 'libQtCore.so*')" != "" ];then
+  #append to pinstall.sh ...
+  cat >> pinstall.sh <<EOF
+echo '#!/bin/sh' > ./usr/local/bin/defaultmediaplayer
+echo 'exec vlc "$@"' >> ./usr/local/bin/defaultmediaplayer
+chmod 755 ./usr/local/bin/defaultmediaplayer
+echo '#!/bin/sh' > ./usr/local/bin/defaultvideoplayer
+echo 'exec vlc "$@"' >> ./usr/local/bin/defaultvideoplayer
+chmod 755 ./usr/local/bin/defaultvideoplayer
+EOF
+ fi
+fi
+
+
+###xorg_base###
+if [ "$xARCHDIR" ];then #140117
+ [ -f usr/bin/${ARCHDIR}/X ] && mv usr/bin/${ARCHDIR}/X usr/bin/${ARCHDIR}/X-ORIG
+ ln -s Xorg usr/bin/${ARCHDIR}/X
+fi
+[ -f usr/bin/X ] && mv usr/bin/X usr/bin/X-ORIG
+ln -s Xorg usr/bin/X
+
+##120406 gxmessage pkg creates xmessage symlink to it (in pinstall.sh). get real xmessage out of the way...
+#if [ "$xARCHDIR" ];then #140117
+# if [ -f usr/bin/${ARCHDIR}/xmessage ];then
+#  if [ ! -h usr/bin/${ARCHDIR}/xmessage  ];then
+#   mkdir -p usr/X11R7/bin
+#   mv -f usr/bin/${ARCHDIR}/xmessage usr/X11R7/bin/
+#  fi
+# fi
+#fi
+#if [ -f usr/bin/xmessage ];then
+# if [ ! -h usr/bin/xmessage  ];then
+#  mkdir -p usr/X11R7/bin
+#  mv -f usr/bin/xmessage usr/X11R7/bin/
+# fi
+#fi
+
+if [ ! -h usr/share/X11/app-defaults ];then
+ if [ -d usr/share/X11/app-defaults ];then
+  cp -a -n usr/share/X11/app-defaults/* etc/X11/app-defaults/
+  rm -rf usr/share/X11/app-defaults
+  ln -s ../../../etc/X11/app-defaults usr/share/X11/app-defaults
+ fi
+fi
+if [ ! -h usr/share/X11/xkb ];then
+ if [ -d usr/share/X11/xkb ];then
+  rm -rf usr/share/X11/xkb
+  ln -s ../../../etc/X11/xkb usr/share/X11/xkb
+ fi
+fi
+
+
+###REMOVED###
+
+###libpng###
+###NO, bad idea to create symlinks. instead, use older pet pkgs###
+##need to create symlinks for older 12, 13, 14, 15 etc versions...
+#LIBSUBVERS=""
+#LIBPROBE="$(find . -type f -name 'libpng[0-9][0-9]*.so*' | sort -V)"
+#if [ "$LIBPROBE" ];then
+# for ALIBPROBE in $LIBPROBE
+# do
+#  [ ! "$ALIBPROBE" ] && continue
+#  ALIBPATH="$(dirname $ALIBPROBE)"
+#  ALIBNAME="$(basename $ALIBPROBE)"                     #ex: libpng12.so.0.22.0 ex: libpng14.so.14.12.0
+#  AMAINNAME="$(echo -n "$ALIBNAME" | cut -f 1 -d '.')"  #ex: libpng14
+#  ALIBSUBVER=$(echo -n "$ALIBNAME" | cut -f 3 -d '.')   #ex: 14
+#  [ ! $ALIBSUBVER ] && continue
+#  for xLIBVER in 12 13 14 15
+#  do
+#   [ $ALIBSUBVER -lt $xLIBVER ] && break
+#   LIBLINK="$(find . -name libpng${xLIBVER}.so.${xLIBVER})"
+#   [ ! "$LIBLINK" ] && ln -s $ALIBNAME ${ALIBPATH}/libpng${xLIBVER}.so.${xLIBVER} #ex: libpng13.so.13 symlink
+#   LIBLINK="$(find . -name libpng${xLIBVER}.so.0)"
+#   [ ! "$LIBLINK" ] && ln -s $ALIBNAME ${ALIBPATH}/libpng${xLIBVER}.so.0 #ex: libpng13.so.0 symlink
+#  done
+# done
+# #may also need this...
+# LIBLINK="$(find . -name libpng${ALIBSUBVER}.so)"
+# [ ! "$LIBLINK" ] && ln -s $ALIBNAME ${ALIBPATH}/libpng${ALIBSUBVER}.so #ex: libpng14.so symlink
+# LIBLINK="$(find . -name libpng.so)"
+# [ ! "$LIBLINK" ] && ln -s $ALIBNAME ${ALIBPATH}/libpng.so
+# LIBLINK="$(find . -name libpng.so.2)"
+# [ ! "$LIBLINK" ] && ln -s $ALIBNAME ${ALIBPATH}/libpng.so.2
+# LIBLINK="$(find . -name libpng.so.3)"
+# [ ! "$LIBLINK" ] && ln -s $ALIBNAME ${ALIBPATH}/libpng.so.3
+#fi
+
+###libjpeg###
+###NO, bad idea to create symlinks. instead, use older pet pkgs###
+##note, old libjpeg.so.62 not compatible with 7, 8 versions, need to install old pet 'libjpeg_old-6b' pkg.
+##need to create symlinks for older 7, 8, 9 etc versions...
+#LIBSUBVERS=""
+#LIBPROBE="$(find . -type f -name 'libjpeg.so*' | sort -V)"
+#if [ "$LIBPROBE" ];then
+# for ALIBPROBE in $LIBPROBE
+# do
+#  [ ! "$ALIBPROBE" ] && continue
+#  ALIBPATH="$(dirname $ALIBPROBE)"
+#  ALIBNAME="$(basename $ALIBPROBE)"                     #ex: libjpeg.so.9.1.0
+#  ALIBSUBVER=$(echo -n "$ALIBNAME" | cut -f 3 -d '.')   #ex: 9
+#  [ $ALIBSUBVER -eq 62 ] && continue
+#  [ ! $ALIBSUBVER ] && continue
+#  for xLIBVER in 7 8 9
+#  do
+#   [ $ALIBSUBVER -lt $xLIBVER ] && break
+#   LIBLINK="$(find . -name libjpeg.so.${xLIBVER})"
+#   [ ! "$LIBLINK" ] && ln -s $ALIBNAME ${ALIBPATH}/libjpeg.so.${xLIBVER}
+#  done
+# done
+#fi
+
+

@@ -1,0 +1,246 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+<meta content="text/html; charset=ISO-8859-1" http-equiv="content-type"><title>didiwiki</title></head><body>
+<h1>DidiWiki</h1>
+See below: <a href="#Rules">Rules for editing a wiki page</a><br>
+<pre>DidiWiki 0.5<br>==============<br><br>DidiWiki is a small and simple WikiWikiWeb implementation written in<br>C. Its intended for personal use for notes, Todo's etc. It includes its<br>own webserver and hopefully its as simple as just compiling, running<br>and pointing your browser at it. <br><br>Installation<br>============<br><br>To build do the usage ./configure and make. You can then make install or<br>run DidiWiki right from the src dir. On startup it'll tell you the address<br>to point your browser at. You should then be ready to go. <br><br>If upgrading from an earlier version its a good idea to delete<br>~/.didiwiki/DidiHelp before running so you get the latest version of<br>the help file.<br><br><br>Remote API<br>==========<br><br>As from 0.5 DidiWiki has a very simple 'REST' like http api. Hopefully<br>this will make it possible to write alternate front ends to didiwiki.<br><br>The api looks like this with parameter passable via GET or POST;<br><br>http://didiwiki/api/page/get?page=XXX<br><br> Get the raw wiki text for specified page. Returns http 500 code if<br> page does not exist.<br><br>http://didiwiki/api/page/set?page=XXX&amp;text=XXX<br><br> Set the wikitext of a page. Page is created if it doesn't exist. <br><br>http://didiwiki/api/page/exists?page=XXX<br><br> Returns 'success' if page exists, 500 error if not. <br><br>http://didiwiki/api/page/delete?page=XXX<br><br> Deletes a page. <br><br>http://didiwiki/api/pages<br><br> Returns a seperated list ( one entry per line containing page<br> title,TAB,modified date) of wiki pages with the most recently modified<br> first.<br><br>http://didiwiki/api/search?expr=XXX<br><br> Like the above but lists only pages which contain 'expr'<br><br><br>Notes &amp; Excuses<br>===============<br><br>- If you want to contribute, please check the TODO !<br><br>- Pages are stored in ~/.didiwiki ( you can override this by setting <br>  'DIDIWIKIHOME' env var to a valid path. ). You can add a styles.css <br>  to this directory to override the 'inbuilt' stylesheet.<br><br>- The webserver part is heavily based on cvstrac's internal server,<br>  following the same kind of process;<br><br>  - Its a pretty simple lightweight forking server. A child process is<br>    forked to handle each http request.<br><br>  - These forked children are assumed to not be around for very long (<br>    less than a second ), thus no real attempt is made to free up<br>    memory in these child processes.<br><br>  - Its probably not very secure at all. !!PLEASE DONT RUN AS ROOT!!<br><br>- The code uses asprintf in a couple of places. I dont know how portable<br>  this is to non Linux systems. If its a problem to you Feel free to send <br>  patches.<br><br>- You can debug segv's by running like 'didiwiki debug' which will not<br>  start the http server, it existing in a single process but expecting the<br>  http request on stdin. <br><br>- The formatting style is very similar to that of kwiki's - I just like <br>  kwiki :-)<br><br>- I wrote it in C as I've mostly forgotten Python, Perl etc <br>  ( and I wanted it to fit easily on a PDA ).<br><br></pre>
+<br>
+<hr style="width: 100%; height: 2px;">
+<h2><a name="Rules"></a>Rules for editing a wiki page</h2>
+<div class="wiki">
+<p>Extracted from the kwiki website.<br>
+This describes the wiki markup language used by this kwiki. 
+
+</p>
+<hr>
+<h2>Notes</h2>
+<ul><li>Some of these rules aren't <em>precisely</em> accurate at the current revision of Kwiki, so you may want to check out the <a href="http://www.kwiki.org/?SandBox">SandBox</a> for a (slightly) more accurate picture of <a href="http://www.kwiki.org/?KwikiText">KwikiText</a> as it stands now.</li><li>After modifying your character page hit the SAVE button without
+retyping the name of your page at the top or it will give you an error.</li></ul>
+<hr>
+<h1>Level 1 Heading (H1)</h1>
+<pre class="formatter_pre">= Level 1 Heading (H1)<br></pre>
+<p>
+.
+</p>
+<hr>
+<h2>Level 2 Heading (H2)</h2>
+<pre class="formatter_pre">== Level 2 Heading (H2)<br></pre>
+<p>
+.
+</p>
+<hr>
+<h3>Level 3 Heading (H3)</h3>
+<pre class="formatter_pre">=== Level 3 Heading (H3)<br></pre>
+<p>
+.
+</p>
+<hr>
+<h4>Level 4 Heading (H4)</h4>
+<pre class="formatter_pre">==== Level 4 Heading (H4)<br></pre>
+<p>
+.
+</p>
+<hr>
+<h5>Level 5 Heading (H5)</h5>
+<pre class="formatter_pre">===== Level 5 Heading (H5)<br></pre>
+<p>
+.
+</p>
+<hr>
+<h6>Level 6 Heading (H6)</h6>
+<pre class="formatter_pre">====== Level 6 Heading (H6)<br></pre>
+<p>
+.
+</p>
+<hr>
+<p>
+The horizontal lines in this page are made with 4 or more dashes:
+</p>
+<pre class="formatter_pre">----<br></pre>
+<p>
+.
+</p>
+<hr>
+<p>
+Paragraphs are separated by a blank line.
+
+</p>
+<p>
+Like this. Another paragraph.
+</p>
+<pre class="formatter_pre">Paragraphs are separated by a blank line.<br><br>Like this. Another paragraph.<br></pre>
+<p>
+.
+</p>
+<hr>
+<p>
+<strong>Bold text</strong>, <em>italic text</em>, and <u>underscore text</u>.
+</p>
+<pre class="formatter_pre">*Bold text*, /italic text/, and _underscore text_.<br></pre>
+<p>
+<em><strong>Combination of bold and italics</strong></em>
+</p>
+<pre class="formatter_pre">/*Combination of bold and italics*/<br></pre>
+<p>
+.
+Inline code like <tt>/etc/passwd</tt> or <tt>CGI::Kwiki</tt>
+</p>
+<pre class="formatter_pre">Inline code like [=/etc/passwd] or [=CGI::Kwiki]<br></pre>
+<p>
+.
+<del>Strikethrough</del>
+</p>
+<pre class="formatter_pre">-Strikethrough-<br></pre>
+<p>
+.
+</p>
+<hr>
+<p>
+<a href="http://www.kwiki.org/?WikiLinks">WikiLinks</a> are formed by two or more words in <em>camel-case</em>.
+</p>
+<pre class="formatter_pre">WikiLinks are formed by two or more words in /camel-case/.<br></pre>
+<p>
+External links begin with http://, like <a href="http://www.freepan.org/">http://www.freepan.org</a>
+</p>
+<pre class="formatter_pre">External links begin with http://, like http://www.freepan.org<br></pre>
+<p>
+On some cases links can appear as <span style="font-weight: bold; background-color: red;">&lt;spam://.&gt;</span> This means that you entered an address that is not whitelisted. Wait for an admin to whitelist it.
+
+</p>
+<p>
+Forced wiki <a href="http://www.kwiki.org/?links" class="empty">links</a> are a alphanumeric string surrounded by square brackets.
+</p>
+<pre class="formatter_pre">Forced wiki [links] are a alphanumeric string surrounded by square brackets.<br></pre>
+<p>
+Named http links have text with an http:<em></em> link inside, like <a href="http://www.freepan.org/">FreePAN Site</a>
+</p>
+<pre class="formatter_pre">Named http links have text with an http:// link inside, like [FreePAN http://www.freepan.org Site]<br></pre>
+<p>
+Sometimes WordsShouldNotMakeAWikiLink so put a '!' beforehand.
+</p>
+<pre class="formatter_pre">Sometimes !WordsShouldNotMakeAWikiLink so put a '!' beforehand.<br></pre>
+<p>
+Same thing with http://foobar.com
+</p>
+<pre class="formatter_pre">Same thing with !http://foobar.com<br></pre>
+<p>
+Mailto links are just email addresses like <a href="mailto:foo@bar.com">foo@bar.com</a>.
+</p>
+<pre class="formatter_pre">Mailto links are just email addresses like foo@bar.com.<br></pre>
+<p>
+.
+</p>
+<hr>
+<p>
+Links to images display the image:
+
+</p>
+<p>
+<br>
+
+</p>
+<pre class="formatter_pre">http://www.google.com/images/logo.gif<br></pre>
+<p>
+.
+</p>
+<hr>
+<p>
+Unordered lists begin with a '* '. The number of asterisks determines the level:
+</p>
+<ul><li>foo</li><li>bar</li><ul><li>boom</li><li>bam</li></ul><li>baz</li></ul>
+<pre class="formatter_pre">* foo<br>* bar<br>** boom<br>** bam<br>* baz<br></pre>
+<p>
+.
+</p>
+<hr>
+<p>
+Ordered lists begin with a '0 ' (zero):
+
+</p>
+<ol><li>foo</li><li>bar</li><ol><li>boom</li><li>bam</li></ol><li>baz</li></ol>
+<pre class="formatter_pre">0 foo<br>0 bar<br>00 boom<br>00 bam<br>0 baz<br></pre>
+<p>
+.
+</p>
+<hr>
+<p>
+You can mix lists too:
+</p>
+<ul><li>Today:</li><ol><li>Eat icecream</li><li>Buy a pony</li></ol></ul><ul><li>Tomorrow:</li><ol><li>Eat more icecream</li><li>Buy another pony</li></ol></ul>
+<pre class="formatter_pre">* Today:<br>00 Eat icecream<br>00 Buy a pony<br>* Tomorrow:<br>00 Eat more icecream<br>00 Buy another pony<br></pre>
+<p>
+.
+
+</p>
+<p>
+This feature no longer works correctly in Kwiki &gt;0.31. Notice that
+this produces two unordered lists at the top level, instead of one. &#8211;<a href="http://www.kwiki.org/?MattHoward">MattHoward</a>
+</p>
+<hr>
+<p>
+Any text that does not begin in the first column is rendered as preformatted text.
+</p>
+<pre class="formatter_pre">foo   bar<br> x     y<br> 1     2<br></pre>
+<p>
+.
+</p>
+<hr>
+<p>
+You can comment out wiki-text with '# ' at the beginning of a line. This will make the text an html comment:
+</p>
+# These lines have been 
+# commented out
+<pre class="formatter_pre"># These lines have been <br># commented out<br></pre>
+<p>
+.
+
+</p>
+<p>
+This feature no longer works correctly in Kwiki &gt;0.31.  Not much to say, it just doesn't work. &#8211;<a href="http://www.kwiki.org/?MattHoward">MattHoward</a>
+</p>
+<hr>
+<p>
+Simple Tables:
+</p>
+<table class="formatter_table">
+<tbody><tr>
+<td><br>
+</td>
+<td>Dick</td>
+<td>Jane</td>
+</tr>
+<tr>
+<td>height</td>
+<td>72"</td>
+<td>65"</td>
+</tr>
+<tr>
+<td>weight</td>
+<td>130lbs</td>
+<td>150lbs</td>
+</tr>
+</tbody></table>
+<pre class="formatter_pre">|        | Dick   | Jane |<br>| height | 72"    | 65"  |<br>| weight | 130lbs | 150lbs |<br></pre>
+<hr>
+<p>
+Inline HTML is escaped.
+</p>
+<pre class="formatter_pre">&lt;hr&gt; &lt;bold&gt;No?&lt;/bold&gt; &lt;i&gt;Yes?&lt;/i&gt; &lt;hr/&gt;<br></pre>
+<p>
+Renders as: &lt;hr&gt; &lt;bold&gt;No?&lt;/bold&gt; &lt;i&gt;Yes?&lt;<em>i&gt; &lt;hr</em>&gt;
+
+</p>
+<p>
+Notice the '<tt>/</tt>' character in the tags is being rendered as <em>italic</em> markers.
+
+</p>
+<hr>
+<p>
+To prevent IE6 from rendering pages that contain preformatted text
+wrong, add a dot after each preformatted text block like I have done in
+this page. This is a temporary work-around, until the bug reported by <a href="http://www.kwiki.org/?MichaelIvey">MichaelIvey</a> at <a href="http://www.kwiki.org/?BugReports">BugReports</a> is fixed. &#8211; <a href="http://www.kwiki.org/?DennieReniers">DennieReniers</a>
+</p>
+</div>
+<br>
+<br>
+</body></html>

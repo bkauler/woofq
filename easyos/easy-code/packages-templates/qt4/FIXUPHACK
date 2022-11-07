@@ -1,0 +1,51 @@
+#20211217 oe dunfell
+# i also created qt4 pets from the oe binary pkg qt4-x11-free
+
+if [ -d usr/bin/qt4 ];then
+ #has examples.
+ rm -rf usr/bin/qt4
+fi
+
+if [ -f usr/bin/qmake ];then
+ mkdir -p ../qt4_DEV/usr/bin
+ cp -a -f --remove-destination usr/bin/* ../qt4_DEV/usr/bin/
+ sync
+ rm -rf usr/bin
+ if [ -f ../qt4_DEV/usr/bin/qtconfig ];then
+  mkdir usr/bin
+  #qtconfig handy tool to adjust appearance of the ui
+  cp -a ../qt4_DEV/usr/bin/qtconfig usr/bin/
+  #this also looks useful:
+  cp -a ../qt4_DEV/usr/bin/qdbusviewer usr/bin/ 2>/dev/null
+ fi
+fi
+
+if [ -d usr/lib ];then
+ mkdir -p ../qt4_DEV/usr/lib
+ cp -a usr/lib/*.prl ../qt4_DEV/usr/lib/
+ rm -f usr/lib/*.prl
+ cp -a usr/lib/libQtDesigner* ../qt4_DEV/usr/lib/
+ rm -f usr/lib/libQtDesigner*
+
+ mkdir -p ../qt4_DEV/usr/lib/qt4/plugins
+ mv -f usr/lib/qt4/plugins/designer ../qt4_DEV/usr/lib/qt4/plugins/
+ mv -f usr/lib/qt4/plugins/qmltooling ../qt4_DEV/usr/lib/qt4/plugins/
+ 
+fi
+
+if [ -d usr/share/qt4 ];then
+ cp -a -f --remove-destination usr/share/qt4 ../qt4_DEV/usr/share/
+ sync
+ rm -rf usr/share/qt4
+ mkdir -p usr/share/qt4/phrasebooks
+ cp -a ../qt4_DEV/usr/share/qt4/phrasebooks/french.qph usr/share/qt4/phrasebooks/
+ cp -a ../qt4_DEV/usr/share/qt4/phrasebooks/german.qph usr/share/qt4/phrasebooks/
+ mkdir usr/share/qt4/translations
+ cp -a ../qt4_DEV/usr/share/qt4/translations/*_fr.qm usr/share/qt4/translations/
+ cp -a ../qt4_DEV/usr/share/qt4/translations/*_de.qm usr/share/qt4/translations/
+ rm -f usr/share/qt4/translations/designer*.qm
+fi
+
+if [ -d usr/tests ];then
+ mv -f usr/tests ../qt4_DEV/usr/tests
+fi

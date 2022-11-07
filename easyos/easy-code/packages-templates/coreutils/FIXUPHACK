@@ -1,0 +1,32 @@
+#current dir is inside packages-${DISTRO_FILE_PREFIX}/$GENERICNAME/ ...
+# that is: packages-woof/coreutils/
+#note: DISTRO_BINARY_COMPAT and DISTRO_FILE_PREFIX are visible here, exported in 2createpackages.
+#140117 xARCHDIR, ARCHDIR and DISTRO_ARCHDIR_SYMLINKS exported in 2createpackages. 
+#140117 note, 2createpackages may move /lib, /usr/lib, /usr/bin in template to ARCHDIR subdir.
+
+#slackware post-install script stuffs things up...
+#note, 2createpackages renames slackware doinst.sh to pinstall.sh and moves
+# it to woof-unleashed/sandbox2b directory.
+#2createpackages will read this and not run the post-install script...
+
+DISABLE_POST_INSTALL_SCRIPT=yes
+
+#170511 why do we want to do this?...
+##dunno why deb has to relocate 'head' in /usr/bin...
+#if [ -f usr/bin/head ];then
+# if [ ! -h usb/bin/head ];then #120516
+#  cp -a -f --remove-destination usr/bin/head bin/head
+#  rm -f usr/bin/head
+#  ln -s ../../bin/head usr/bin/head
+# fi
+#fi
+
+#170511 OE build, utilities names are appended with ".coreutils". 181008
+FNDCU="$(find bin usr/bin usr/sbin -mindepth 1 -maxdepth 1 -type f -name '*.coreutils*')"
+if [ "$FNDCU" ];then
+ for ANAME in $FNDCU
+ do
+  FIXEDNAME="$(echo -n "$ANAME" | sed -e 's%\.coreutils%%')"
+  mv -f ${ANAME} ${FIXEDNAME}
+ done
+fi

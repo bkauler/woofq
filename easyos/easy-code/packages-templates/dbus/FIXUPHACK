@@ -1,0 +1,25 @@
+
+##may 7, 2012, tried to run seamonkey on the mele a1000 arm box, reported dbus not installed properly.
+##needs this...
+#mkdir -p var/lib/dbus
+#mkdir -p etc/init.d
+##this creates a 32-character machine id...
+#echo 'dbus-uuidgen > /var/lib/dbus/machine-id' > etc/init.d/dbus-machine-id-gen
+#chmod 755 etc/init.d/dbus-machine-id-gen
+
+#20151026
+#have populated /etc, /var
+
+#20190806 easy buster, try run modem-manager-gui, get this error:
+#(modem-manager-gui:3026): Gdk-CRITICAL **: 13:13:41.176: gdk_window_thaw_toplevel_updates: assertion 'window->update_and_descendants_freeze_count > 0' failed
+#Error activating interface 'org.freedesktop.ModemManager1' for module 'mm07'. GDBus.Error:org.freedesktop.DBus.Error.Spawn.PermissionsInvalid: The permission of the setuid helper is not correct
+#found solution here: https://askubuntu.com/questions/826619/broken-network-settings-upon-boot
+if [ -f usr/lib/dbus-1.0/dbus-daemon-launch-helper ];then
+ #sets the suid permission...
+ chmod u+s usr/lib/dbus-1.0/dbus-daemon-launch-helper
+fi
+
+#200212 no...
+##20200211 now named /etc/init.d/95-messagebus
+##if pkg has old name, delete it...
+#[ -f etc/init.d/messagebus ] && rm -f etc/init.d/messagebus

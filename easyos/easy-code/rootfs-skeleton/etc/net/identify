@@ -1,0 +1,24 @@
+#!/bin/sh
+#assigns a persistent interface to a script.
+
+echo "+++ identify $1"
+IF="$1"
+
+IDflg=""; NET='lan'
+[ -d /sys/class/net/${IF}/wireless ] && NET='wifi'
+
+#test if id already assigned...
+[ -s /var/local/interfaces ] && IDflg="$(ifctl | grep "${IF}: ${NET}")"
+#if not, assign it...
+if [ ! "$IDflg" ];then
+ NUM="${IF/*[a-z]/}"
+ if [ ! -f /etc/net/mode-${NET}${NUM} ];then
+  cp -a /etc/net/mode-${NET} /etc/net/mode-${NET}${NUM}
+  sed -i -e "s%\+\+\+ mode-${NET} %+++ mode-${NET}${NUM} %" /etc/net/mode-${NET}${NUM}
+ fi
+ ifctl ${IF} mode ${NET}${NUM}
+fi
+
+ifctl $IF identify
+
+###end###

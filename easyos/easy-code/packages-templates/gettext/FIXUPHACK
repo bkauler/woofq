@@ -1,0 +1,15 @@
+#150726 have exported BUILD_CHOICE_MERGE_DEVX in 2createpackages.
+
+#now putting all of gettext pkg into main build, not devx.
+
+if [ "$BUILD_CHOICE_MERGE_DEVX" != "yes" ];then #150726
+ if [ -d usr/share/gettext ];then
+  mkdir -p ../gettext_DEV/usr/share/gettext
+  cp -a -f --remove-destination usr/share/gettext/* ../gettext_DEV/usr/share/gettext/
+  sync
+  rm -rf usr/share/gettext
+  mkdir usr/share/gettext
+ fi
+fi
+
+

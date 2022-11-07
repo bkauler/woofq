@@ -1,0 +1,55 @@
+#!/bin/ash
+#190713 added back button on first boot.
+
+export PATH='/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin'
+
+B_ok="OK"
+B_bak="Back" #190713
+M_2="Password: "
+if [ "$1" == "0" ];then #first boot
+ M_1="Please enter a password, any characters a-z, A-Z, 0-9, any length.
+The password will encrypt parts of the working-partition, and must be remembered, as it will have to be entered at every bootup.
+Or, just click the OK button for no password.
+
+Note, if a password is entered here, it will also be assigned to user <b>root</b>. If no password entered, root will remain at the default, <b>woofwoof</b>."
+ PW_XML="<entry><variable>PW</variable></entry>"
+ BAKBTN="<button><label>${B_bak}</label><input file>/usr/local/lib/X11/mini-icons/go-previous.png</input><action>EXIT:BAK</action></button>" #190713
+else
+ M_1="<b>Please enter password to decrypt the working-partition</b>"
+ PW_XML="<entry invisible_char=\"120\" visibility=\"false\"><variable>PW</variable></entry>"
+ BAKBTN="" #190713
+fi
+
+export ASKPW_DLG="<window window_position=\"1\" decorated=\"false\" resizable=\"false\">
+ <vbox>
+  <text use-markup=\"true\"><label>\"${M_1}\"</label></text>
+  <hbox>
+   <text><label>\"             \"</label></text>
+   <text><label>${M_2}</label></text>
+   ${PW_XML}
+  </hbox>
+  <hbox>
+    ${BAKBTN}
+    <button><label>${B_ok}</label><input file>/usr/local/lib/X11/mini-icons/mini-tick.xpm</input><action>EXIT:OK</action></button>
+  </hbox>
+ </vbox>
+</window>"
+
+#echo "$ASKPW_DLG" > zzz
+RETASK="$(gtkdialog --program=ASKPW_DLG)"
+echo "$RETASK" > /RETASKPW
+
+if ! grep '^EXIT="OK"' /RETASKPW >/dev/null; then
+ exit
+fi
+
+PW="$(grep '^PW=' /RETASKPW | cut -f 2 -d '"')"
+if [ "$PW" != "" ];then
+ xPW="$(echo -n "$PW" | sed -e 's%[^a-zA-Z0-9]%%g')"
+ if [ "$PW" != "$xPW" ];then
+  popup "process=wait terminate=ok background=#ff8080|Sorry, only a-z, A-Z, 0-9 characters allowed, try again"
+  exec /ask-pw-x
+ fi
+fi
+
+###end###

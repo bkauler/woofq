@@ -1,0 +1,25 @@
+
+#debian 10: pkg linssid has /usr/bin/linssid-pkexec which is a script that does this:
+# #!/bin/sh
+# pkexec "/usr/sbin/linssid" "$@"
+#pkexec is in policykit-1 deb, but doesn't work. replace with a script...
+
+[ -d usr/bin ] && rm -f usr/bin/*
+mkdir -p usr/bin
+
+echo '#!/bin/bash
+while [ "${1:0:2}" == "--" ];do
+ case "$1" in
+  --version) echo "pkexec version 0.105"; exit 0 ;;
+  --help) echo -e "pkexec --version|--help|--disable-internal-agent\n[--user username] PROGRAM [ARGUMENTS...]"; exit 0 ;;
+  --disable-internal-agent) exit 0 ;;
+  --user) shift ;;
+ esac
+ shift
+done
+EXE="$1"
+shift
+[ "$EXE" ] && exec ${EXE} "${@}"' > usr/bin/pkexec
+
+chmod 755 usr/bin/pkexec
+

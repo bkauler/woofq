@@ -1,0 +1,122 @@
+#!/bin/sh
+#(c) Copyright Barry Kauler, 31 January 2017. Licence: GPL v3 (/usr/share/doc/legal).
+#called from /init, passed params are $WKG_DRV, $WKG_DEV
+#180601 users may forget to put a trailing slash. a leading slash is not allowed.
+#190223 remove gettext.
+#190227 e2fsck is now in easy.sfs mounted on tnew. no longer support MAXSIZE.
+#190314 BOOT_SPECS no longer has *_DISKID, *_FS, *_PARTNUM, and has *_UUID
+#190314 fatal and non-fatal error exits.
+#190828 check for bad blocks. no, don't think any point doing this on modern drives.
+#200302 support discard for SSDs.
+#200303 display current date.
+#200307 fsck -p may fail, then use -y
+#200611 remove "-E discard", perhaps not desirable for nvme.
+#200726 temporary easy.sfs unmounted before call this script, using static e2fsck.
+#20210524 unmount save-file. check save-file.
+#20210611 paragon ntfs driver needs "-t ntfs3" mount option.
+#20220304 increase ext4 commit=30 to 1800 (30min). ref: https://bkhome.org/news/202203/ext4-with-or-without-journal-on-flash-stick.html
+#20220522 revert 20220304
+#20220622 no longer have BOOT_SPECS file. no BOOT_* variables. WKG_DIR=$3 WKG_FS=$4
+#20220801 move /.fsckme.flg to /mnt/${WKG_DEV}/${WKG_DIR}
+
+WKG_DRV=$1 #ex: sda
+WKG_DEV=$2 #ex: sda2
+WKG_DIR=$3 #20220622
+WKG_FS=$4  #20220622
+#180601 users may forget to put a trailing slash... a leading slash is not allowed...
+[ "$WKG_DIR" ] && [ "${WKG_DIR##*/}" ] && WKG_DIR="${WKG_DIR}/"
+[ "$WKG_DIR" ] && [ "${WKG_DIR:0:1}" == "/" ] && WKG_DIR="${WKG_DIR:1:99}"
+
+#190314 non-fatal error exit...
+err_exit() {
+ echo -e "\\033[1;31mERROR: ${1}\\033[0;39m" #red
+ rm -f /mnt/${WKG_DEV}/${WKG_DIR}.fsckme.flg #20220801
+ exit 0
+}
+
+CHECK="`cat /mnt/${WKG_DEV}/${WKG_DIR}.fsckme.flg | cut -f 3 -d ','`" #"MAXIMAL", see rc.shutdown, quicksetup. 20220801
+
+#20210524 unmount save-file...
+WKG_LOOP=''
+if [ "$WKG_DIR" ];then
+ WKG_LOOP="$(grep "/mnt/${WKG_DEV}/${WKG_DIR%/}" /proc/mounts | grep '^/dev/loop' | cut -f 1 -d ' ' | cut -f 3 -d '/')"
+ if [ "$WKG_LOOP" ];then
+  sync
+  umount /dev/${WKG_LOOP}
+  [ $? -ne 0 ] && err_exit "Could not check the filesystem of save-file, unable to unmount"
+ fi 
+fi
+
+#the f.s. is mounted. could do a f.s. check, but prefer to unmount it...
+sync
+umount /dev/$WKG_DEV
+[ $? -ne 0 ] && err_exit "Could not check the filesystem of working partition, unable to unmount"
+
+echo -e "\\033[1;35m" #purple. 34=blue, 33=yellow, 32=green, 31=red, 35=purple, 36=aquablue, 38=black.
+echo "Filesystem operations are to be performed upon the working partition."
+echo "Working partition: ${WKG_DEV}"
+echo -en "\\033[0;39m"
+
+case "$CHECK" in
+ MAXIMAL) echo "  Performing filesystem check, maximal mount count..." ;;
+ REQUEST) echo "  Performing filesystem check, on request..." ;;
+ *) echo "  Performing filesystem check, after improper shutdown..." ;;
+esac
+
+#200303
+echo -n "  Current date: "
+echo "$DATE"
+
+if [ "$WKG_FS" == "ext4" -o "$WKG_FS" == "ext3" ];then #20210524
+ #200726 removed chroot into tnew. (ref: prev script archived at input552/fscheck)
+ e2fsck -C 0 -p -f /dev/${WKG_DEV} 2>/fsck-err.log #200726
+ busybox sync
+ #200307 fsck may fail...
+ if [ -f /fsck-err.log ];then
+  if grep -q 'UNEXPECTED INCONSISTENCY' /fsck-err.log;then
+   #can force it like this...
+   echo -e "\\033[1;31m  Unexpected inconsistency fixing filesystem. Trying again...\\033[0;39m" #red
+   e2fsck -y -f /dev/${WKG_DEV} >/dev/null 2>&1
+   busybox sync
+  fi
+  rm -f /fsck-err.log
+ fi
+fi
+
+if [ "$WKG_LOOP" ];then #20210524
+ e2fsck -C 0 -p -f /mnt/${WKG_DEV}/${WKG_DIR}easysave.ext4 2>/fsck-err.log
+ busybox sync
+ #200307 fsck may fail...
+ if [ -f /fsck-err.log ];then
+  if grep -q 'UNEXPECTED INCONSISTENCY' /fsck-err.log;then
+   #can force it like this...
+   echo -e "\\033[1;31m  Unexpected inconsistency fixing filesystem. Trying again...\\033[0;39m" #red
+   e2fsck -y -f /mnt/${WKG_DEV}/${WKG_DIR}easysave.ext4 >/dev/null 2>&1
+   busybox sync
+  fi
+  rm -f /fsck-err.log
+ fi
+fi
+
+echo "  Filesystem check completed!"
+
+sync
+#190314 WKG_FS is exported from init, return error-code...
+if grep -q 'ntfs3' /proc/filesystems;then #20210611 has paragon ntfs3 driver.
+ mount -t ${WKG_FS/ntfs/ntfs3} /dev/${WKG_DEV} /mnt/${WKG_DEV}
+else
+ mount -t ${WKG_FS} /dev/${WKG_DEV} /mnt/${WKG_DEV}
+fi
+[ $? -ne 0 ] && exit 2
+
+#20210524 remount save-file...
+if [ "$WKG_LOOP" ];then
+ losetup /dev/${WKG_LOOP} /mnt/${WKG_DEV}/${WKG_DIR}easysave.ext4
+ #20220304 increase ext4 commit=30 to 1800 (30min)... 20220522 revert.
+ mount -t ext4 -o discard,commit=30,rw,relatime,data=ordered /dev/${WKG_LOOP} /mnt/${WKG_DEV}/${WKG_DIR%/}
+ [ $? -ne 0 ] && exit 3
+fi
+
+rm -f /mnt/${WKG_DEV}/${WKG_DIR}.fsckme.flg #20220801
+exit 0
+###end###

@@ -1,0 +1,9 @@
+#!/bin/sh
+#20220201 pitivi requires yelp to view user manual (see /usr/share/help)
+
+export TEXTDOMAIN=yelpmissing
+export OUTPUT_CHARSET=UTF-8
+
+MSG1="$(gettext 'Please install package <b>yelp</b> from the PKGget package manager to view document')"
+
+popup "background=#ff80ff level=top terminate=ok|<big>${MSG1}</big> "

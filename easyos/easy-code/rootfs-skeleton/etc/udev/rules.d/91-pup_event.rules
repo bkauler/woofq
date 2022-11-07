@@ -1,0 +1,16 @@
+#200107 pup_event bluetooth hardware detection.
+#see /usr/local/pup_event/bluetoothhw
+
+KERNEL=="hci[0-9]",SUBSYSTEM=="bluetooth",ACTION=="add",RUN+="/usr/local/pup_event/bluetoothhw"
+KERNEL=="hci[0-9]",SUBSYSTEM=="bluetooth",ACTION=="remove",RUN+="/usr/local/pup_event/bluetoothhw"
+
+#20201020
+#20201104 note, 'bluetooth-add' detects bluepup running and will not run mscw.
+#when use blueman to connect a bluetooth audio device, want to then popup
+#Multiple Sound Card Wizard (/usr/sbin/mscw).
+#don't know how to specifically detect a bt audio device using udev rules,
+#so just do this, and a script can figure it out...
+ACTION=="add", SUBSYSTEM=="bluetooth", RUN+="/usr/local/pup_event/bluetooth-add"
+
+#20201105 also want to know when removed...
+ACTION=="remove", SUBSYSTEM=="bluetooth", RUN+="/usr/local/pup_event/bluetooth-remove"

@@ -1,0 +1,766 @@
+#!/bin/ash
+#20220705 license gplv3 (usr/share/doc/legal)
+#original version created by BarryK, bkhome.org/news
+#intended to run on EasyOS, Puppy, Puppy-derivatives
+#20220710 version 0.1.2. 0.1.3
+#20220710 sometimes have duplicate words, ex: "Linux Linux Mint ..."
+#20220713 implement uefi esp installation. implement legacy-bios installation.
+#20220715 if only /EFI/BOOT, no other subdirs, then install to /EFI/BOOT
+#20220715 limine-deploy now support undeploy.
+#20220716 remove a "MBR Chainload" menu entry if it is same as where Limine to be installed...
+#20220717 for compatibility with all linuxes, replace "which" with "type -p"
+#20220717 check for uefi - bios bootup mismatch.
+#20220721 bug fixes. copy limine.cfg
+#20220722 bios pc: if uri is hdd, change to boot
+#20220722 bios pc: hdd:// is incorrect, fixed when written to limine.cfg, hack to fix for viewing...
+#20220724 fixes.
+#20220725 improve detect if has uefi-firmware.
+#20220726 reorganize code, efibootmgr works before call find-installations
+#20220810 test if 64-bit or 32-bit CPU and/or UEFI
+#20220929 bios release date not reliable to determine if bios or uefi.
+#20221003 fix dimensions of scanned results window.
+#20221023 may be running as zeus super-user. 20221031 think still need to bump to root.
+
+if [ -f /usr/sbin/askpass ];then #20220722 only the pups have gui frontend for sudo. ref: /etc/sudo.conf
+ WHOIAM="$(whoami)"
+ [ "${WHOIAM}" != "root" ] && exec sudo -A ${0} ${@} #20221023 20221031
+fi
+
+export TEXTDOMAIN=limine-installer
+export TEXTDOMAINDIR=/usr/share/locale
+export OUTPUT_CHARSET=UTF-8
+
+mkdir -p /tmp/limine-installer
+CR='
+'
+
+err_popup_func() {
+ #pass in a text string.
+ Merror="${@}"
+ if [ "$POPUP" == "popup" ];then
+  popup "background=#ffa0a0 level=top terminate=ok process=wait|<big>${Merror}</big>"
+ else
+  #xmessage -bg '#ffa0a0' -center "${Mnone}"
+  export LI_ERR_DLG="<window window_position=\"1\" decorated=\"false\" skip_taskbar_hint=\"true\">
+ <vbox>
+  <text use-markup=\"true\"><label>\"<big>${Merror}</big>\"</label></text>
+  <hbox>
+   <button ok></button>
+  </hbox>
+ </vbox>
+</window>"
+  gtkdialog --program=LI_ERR_DLG >/dev/null
+ fi
+}
+
+###first, some checks###
+/usr/local/limine-installer/depend-checks
+RETVAL=$?
+if [ $RETVAL -eq 2 ];then
+ xmessage -bg "#ffa0a0" -center "The gtkdialog utility, version 0.8.3 or greater, is required. Aborting."
+ exit 2
+fi
+if [ $RETVAL -eq 1 ];then
+ CHKS="$(cat /tmp/limine-installer/depend-checks.log)"
+ export LI_CHK_DLG="<window title=\"$(gettext 'LimineInstaller: check dependencies')\" image-name=\"/usr/share/pixmaps/limine-installer.png\" window_position=\"1\">
+ <vbox>
+  <text><label>\"$(gettext 'These dependency requirements have not been met:')
+
+${CHKS}
+\"</label></text>
+  <hbox>
+   <text><label>$(gettext 'Click OK button to exit:')</label></text>
+   <button ok></button>
+  </hbox>
+ </vbox>
+</window>"
+ echo "$LI_CHK_DLG" > /tmp/limine-installer/LI_CHK_DLG #debug
+ RETVARS="$(gtkdialog --program=LI_CHK_DLG)"
+ exit 1
+fi
+if type -p popup >/dev/null ;then
+ POPUP=popup
+else
+ POPUP=xmessage
+fi
+
+###setup###
+#######################################################
+###bios type###
+UEFIflg=0
+BU="$(dmidecode -t bios | grep -o 'UEFI is supported')"
+if [ "$BU" ];then
+ UEFIflg=1
+elif [ -e /sys/firmware/efi ];then #20220725 has booted up in efi mode.
+ UEFIflg=1
+#20220929 bios release date not reliable to determine if bios or uefi...
+#else
+# BRD="$(dmidecode -s bios-release-date)"
+# BRD=${BRD##*/}
+# [ $BRD -gt 2013 ] && UEFIflg=1 #20220721 changed from 2012
+fi
+
+#20220929 can do this...
+# ref: https://engineering.purdue.edu/ECN/Support/KB/Docs/DellModelYears
+SPN="$(dmidecode -s system-product-name)"
+case "${SPN/ */}" in
+ OptiPlex)
+  case "${SPN/* /}" in
+   990|790|980|780|960|760|755|745) UEFIflg=0 ;;
+   GX620|GX280|GX270|170L|GX260|GX240) UEFIflg=0 ;;
+  esac
+ ;;
+esac
+
+export UEFIflg #20220722 read in generate-menu-entry
+
+#20220810 ref: https://www.cyberciti.biz/faq/linux-how-to-find-if-processor-is-64-bit-or-not/
+grep -q -o -w lm /proc/cpuinfo
+CPU64bit=$?  #0 64-bit, else 32-bit CPU
+if which uname >/dev/null ; then
+ OSarch="$(uname -m)"
+elif which arch >/dev/null ; then
+ OSarch="$(arch)"
+else
+ exit #really stupid linux system if it comes here.
+fi
+if [ $CPU64bit -eq 0 ];then
+ if [ "${OSarch: -2:2}" != "64" ];then
+  MSG3="$(gettext 'You are running a 32-bit OS on a computer with 64-bit CPU. Please run a 64-bit Linux OS. Cannot continue.')"
+  err_popup_func "${MSG3}"
+  exit
+ fi
+fi
+
+###check bios uefi conflict### 20220717
+if [ ! -e /sys/firmware/efi ];then
+ if [ $UEFIflg -eq 1 ];then
+  #uefi computer, but seems have booted in legacy-bios mode.
+  MSG4="$(gettext 'It seems that you have a UEFI computer, but have booted up in legacy-BIOS mode. You must bootup in UEFI mode. Cannot continue.')"
+  err_popup_func "${MSG4}"
+  exit
+ fi
+fi
+
+EFIname='BOOTX64' #20220810
+if [ $UEFIflg -eq 1 ];then
+ efibootmgr >/dev/null 2>&1
+ if [ $? -ne 0 ];then
+  mount -v -t efivarfs efivarfs /sys/firmware/efi/efivars 2>/dev/null
+ fi
+ efibootmgr >/dev/null 2>/tmp/limine-installer/efibootmgr-error.log
+ if [ $? -ne 0 ];then
+  Merr="$(gettext 'The efibootmgr utility is not working, cannot complete installation.')
+$(gettext 'See file:') /tmp/limine-installer/efibootmgr-error.log"
+  err_popup_func "${Merr}"
+  exit
+ fi
+ #20220810 is UEFI 64-bit or 32-bit...
+ if [ -e /sys/firmware/efi/fw_platform_size ];then
+  UEFIsize="$(cat /sys/firmware/efi/fw_platform_size)" #32 or 64
+ else
+  UEFIsize='64' #not sure, might need this fallback for macbook.
+ fi
+ if [ "$UEFIsize" == "32" ];then
+  EFIname='BOOTIA32'
+ fi
+fi
+
+
+###scan for installed OSs###
+Mscan="$(gettext 'Please wait, scanning for installed operating systems...') "
+if [ "$POPUP" == "popup" ];then
+ popup "background=#ffa040 level=top|<big>${Mscan}</big>"
+else
+ #xmessage -bg '#ffa040' -buttons "" -center "${Mscan}" &
+ export LI_SCAN_DLG="<window window_position=\"1\" decorated=\"false\" skip_taskbar_hint=\"true\">
+ <vbox>
+  <text use-markup=\"true\"><label>\"<big>${Mscan}</big>\"</label></text>
+ </vbox>
+</window>"
+ gtkdialog --program=LI_SCAN_DLG >/dev/null &
+fi
+
+/usr/local/limine-installer/find-installations
+sync
+
+if [ "$POPUP" == "popup" ];then
+ killall popup
+else
+ #killall xmessage
+ killall gtkdialog
+fi
+
+###assemble scan results###
+ASR="$(ls -1 /tmp/limine-installer/i-* 2>/dev/null)"
+if [ "$ASR" == "" ];then
+ Mnone="$(gettext 'Nothing found. Aborting.')"
+ err_popup_func "$Mnone"
+ exit
+fi
+SCANXML=''; CNTscan=1
+for aSR in `ls -1 /tmp/limine-installer/i-* | rev | cut -f 1 -d '/' | rev | sort | tr '\n' ' '`
+do
+ iKNAME=''; iNAME=''; iVERSION=''; iPATH=''
+ . /tmp/limine-installer/${aSR}
+ if [ "$iPATH" ];then
+  LAB="${iKNAME} ${iNAME} ${iVERSION} ${iPATH}"
+ else
+  LAB="${iKNAME} ${iNAME} ${iVERSION}"
+ fi
+ #20220710 sometimes have duplicate words, ex: "Linux Linux Mint ..." ...
+ LAB="$(echo -n "${LAB}" | tr -s ' ' | tr ' ' '\n' | uniq | tr '\n' ' ')"
+ VAR="$(echo -n "$aSR" | tr '-' '_')"
+ CNTscan=$(($CNTscan+1)) #20221003
+ SCANXML="${SCANXML}
+ <checkbox><variable>${VAR}</variable><label>${LAB}</label></checkbox>"
+done
+
+#20221003
+HEIGHTscan=$(($CNTscan*30))
+if [ $HEIGHTscan -gt 600 ];then
+ HEIGHTscan=600
+fi
+if [ $CNTscan -eq 1 ];then
+ MSGnf="$(gettext 'nothing found')"
+ SCANXML="<text><label>${MSGnf}</label></text>"
+fi
+
+###choose scan results###
+export LI_CHOOSE_DLG="<window title=\"$(gettext 'LimineInstaller: scan results')\" image-name=\"/usr/share/pixmaps/limine-installer.png\" window_position=\"1\">
+ <vbox>
+  <text><label>$(gettext 'Here are the found OS installations:')</label></text>
+  <vbox scrollable=\"true\" width=\"480\" height=\"${HEIGHTscan}\">
+   ${SCANXML}
+  </vbox>
+  <text><label>$(gettext 'Tick those you want Limine menu entries for, then click GENERATE button:')</label></text>
+  <hbox>
+   <button>
+    <label>$(gettext 'GENERATE')</label>
+    <action>exit:generate</action>
+   </button>
+   <button cancel></button>
+  </hbox>
+ </vbox>
+</window>"
+echo "$LI_CHOOSE_DLG" > /tmp/limine-installer/LI_CHOOSE_DLG #debug
+VARS1="$(gtkdialog --program=LI_CHOOSE_DLG)"
+echo "$VARS1" > /tmp/limine-installer/VARS1
+
+if ! grep -q '"generate"' /tmp/limine-installer/VARS1 ;then
+ exit
+fi
+if ! grep -q '"true"' /tmp/limine-installer/VARS1 ;then
+ exit
+fi
+
+###generate entries###
+WINflg='no'
+echo '' > /tmp/limine-installer/generated-entries
+for aFND in $(grep '^i_.*"true"' /tmp/limine-installer/VARS1 | cut -f 1 -d '=' | tr '_' '-' | tr '\n' ' ')
+do
+ [ ! -f /tmp/limine-installer/${aFND} ] && continue
+ /usr/local/limine-installer/generate-menu-entry ${aFND}
+ [ $? -ne 0 ] && continue
+ [ ! -f /tmp/limine-installer/gen-menu-entry ] && continue
+ #20220715 flag if Windows...
+ if [ "${aFND%-*}" == "i-windows" ];then
+  WINflg='yes'
+ fi
+ cat /tmp/limine-installer/gen-menu-entry >> /tmp/limine-installer/generated-entries
+ echo '' >> /tmp/limine-installer/generated-entries
+done
+
+if [ "$WINflg" == "yes" ];then #20220715  20220724 fix.
+ WINxml="<frame $(gettext 'IMPORTANT')>
+ <text use-markup=\"true\"><label>\"$(gettext 'Windows is installed on this computer. If Windows 10 or 11, you must disable fast-startup. If this is not done, Windows may become corrupted in a dual-boot setup.')
+$(gettext 'Search online for <i>windows disable fast startup</i> to find out how to do it.')\"</label></text>
+</frame>"
+else
+ WINxml=''
+fi
+
+TE=''
+for TE in defaulttexteditor geany gedit kate medit leafpad jed nano gvim vim
+do
+ if type -p ${TE} >/dev/null ;then
+  #${TE} /tmp/limine-installer/generated-entries &
+  break
+ fi
+done
+[ ! "$TE" ] && exit #precaution
+
+
+###uefi install###
+if [ $UEFIflg -eq 1 ];then
+
+ ESPPARTS=''
+ for aESP in $(grep -l 'ESPFLAG="yes"' /tmp/limine-installer/lsblk-* | tr '\n' ' ')
+ do
+  grep -q '^FSTYPE="vfat"' ${aESP}
+  if [ $? -eq 0 ];then
+   ESPPARTS="${ESPPARTS} ${aESP##*-}"
+  fi
+ done
+ 
+ if [ "$ESPPARTS" == "" ];then
+  #put up a window that no esp partition, need to create one...
+  Mmissing="$(gettext 'Strange, this seems to be a computer with UEFI-firmware, but there is no ESP boot partition. Aborting.')
+$(gettext 'Note: in some grub2 installations, the ESP-flag of the boot partition is not set. If so, set it using Gparted, then try again.')"
+  err_popup_func "$Mmissing"
+  exit
+ fi
+ 
+ for aESP in ${ESPPARTS}
+ do
+  RADIOESPxml="${RADIOESPxml}
+<radiobutton>
+ <label>${aESP}</label>
+ <variable>DEV_${aESP}</variable>
+</radiobutton>"
+ done
+ 
+ export LI_ESP_DLG="<window title=\"$(gettext 'LimineInstaller: ESP install')\" image-name=\"/usr/share/pixmaps/limine-installer.png\" window_position=\"1\">
+ <vbox>
+  <frame>
+   <hbox>
+    <text><label>$(gettext 'Click button to see generated menu entries:')</label></text>
+    <button><label>$(gettext 'VIEW')</label><action>${TE} /tmp/limine-installer/generated-entries & </action></button>
+   </hbox>
+  </frame>
+  ${WINxml}
+  <text><label>\"  \"</label></text>
+  <text><label>\"$(gettext 'It seems that the computer has UEFI firmware. This requires that you install Limine into a ESP partition.')
+$(gettext '(An ESP partition has a vfat filesystem and the boot and esp flags are set)')
+
+$(gettext 'Here are the ESP partitions:')\"</label></text>
+  ${RADIOESPxml}
+  <text><label>\"$(gettext 'Choose which one you want to install Limine to.')
+
+$(gettext 'Then, click the INSTALL button:')
+$(gettext '(Note: there will be one more window, a final sanity check, before completing the installation)')\"</label></text>
+  <hbox>
+   <button><label>$(gettext 'INSTALL')</label><action>exit:install</action></button>
+   <button cancel></button>
+  </hbox>
+ </vbox>
+</window>"
+ echo "$LI_ESP_DLG" > /tmp/limine-installer/LI_ESP_DLG #debug
+ VARS2="$(gtkdialog --program=LI_ESP_DLG)"
+ [ $? -ne 0 ] && exit
+ echo "$VARS2" > /tmp/limine-installer/VARS2
+ 
+ grep -q '^EXIT="abort"' /tmp/limine-installer/VARS2
+ [ $? -eq 0 ] && exit
+
+ grep -q '^EXIT="Cancel"' /tmp/limine-installer/VARS2
+ [ $? -eq 0 ] && exit
+ 
+ grep -q '^EXIT="install"' /tmp/limine-installer/VARS2
+ if [ $? -eq 0 ];then
+  #install limine...
+  ESPdest="$(grep '^DEV_.*"true"' /tmp/limine-installer/VARS2 | cut -f 2 -d '_' | cut -f 1 -d '=')"
+  . /tmp/limine-installer/lsblk-${ESPdest}
+  #mount the partition...
+  if [ "$MOUNTPOINT" ];then
+   MNTflg=0
+  else
+   mkdir -p /mnt/${ESPdest}
+   mount -t ${FSTYPE} /dev/${ESPdest} /mnt/${ESPdest} 2>/dev/null
+   if [ $? -ne 0 ];then
+    Merr1="$(gettext 'Failed to mount /dev/')${ESPdest}"
+    err_popup_func "${Merr1}"
+    exit
+   fi
+   MOUNTPOINT="/mnt/${ESPdest}"
+   MNTflg=1
+  fi
+  
+  #20220715 if only /EFI/BOOT, no other subdirs, then install to /EFI/BOOT
+  mkdir -p ${MOUNTPOINT}/EFI
+  EFIsubdirs="$(find ${MOUNTPOINT}/EFI -mindepth 1 -maxdepth 1 -type d | rev | cut -f 1 -d '/' | rev | tr -d '\n' | tr '[A-Z]' '[a-z]')"
+  if [ "$EFIsubdirs" == "boot" -o "$EFIsubdirs" == "" ];then
+   #install to /EFI/BOOT
+   EFIpath='/EFI/BOOT'
+   #rm -rf ${MOUNTPOINT}/EFI
+   RUNefibootmgr='no'
+  else
+   #install to /EFI/limine, because need to share with other entries.
+   EFIpath='/EFI/limine'
+   RUNefibootmgr='yes'
+  fi
+  
+  #20220716 remove a "MBR Chainload" menu entry if it is same as where Limine to be installed...
+  DRVdest="$(echo -n "${ESPdest}" | sed -e 's%[0-9]*$%%' -e 's%p$%%')" #ex: sdb
+  grep -q "^:MBR Chainload .* ${DRVdest}" /tmp/limine-installer/generated-entries
+  if [ $? -eq 0 ];then
+   #remove paragraph... ref: https://unix.stackexchange.com/questions/192465/remove-paragraph-from-file
+   #PTN1='/^:MBR Chainload .* '"${iDRIVE}"'/,/^\s*$/{d}'
+   #um, this works, simpler...
+   PTN1='/^:MBR Chainload .* '"${DRVdest}"'/,/^$/d'
+   sed -i "$PTN1" /tmp/limine-installer/generated-entries
+  fi
+  
+  Mbak1=""
+  if [ "$EFIpath" == "/EFI/BOOT" ];then #20220724
+   if [ -f ${MOUNTPOINT}/EFI/BOOT/${EFIname}.EFI ];then
+    mv -f ${MOUNTPOINT}/EFI/BOOT/${EFIname}.EFI ${MOUNTPOINT}/EFI/BOOT/${EFIname}.BAK
+    if [ "$EFIsize" == "32" ];then #20220810
+     Mbak1="$(gettext 'There was a pre-existing BOOTIA32.EFI file, that has been renamed to BOOTIA32.BAK. You may revert the Limine installation simply by renaming it back to BOOTIA32.EFI')
+"
+    else
+     Mbak1="$(gettext 'There was a pre-existing BOOTX64.EFI file, that has been renamed to BOOTX64.BAK. You may revert the Limine installation simply by renaming it back to BOOTX64.EFI')
+"
+    fi
+   fi
+  fi
+  
+  mkdir -p ${MOUNTPOINT}${EFIpath}
+  cp -a -f /usr/share/limine/${EFIname}.EFI ${MOUNTPOINT}${EFIpath}/
+  echo "QUIET=no
+TIMEOUT=20
+GRAPHICS=no
+DEFAULT_ENTRY=1
+EDITOR_ENABLED=yes
+INTERFACE_BRANDING=EasyOS Limine Boot Manager
+" > ${MOUNTPOINT}/limine.cfg
+  cat /tmp/limine-installer/generated-entries >> ${MOUNTPOINT}/limine.cfg
+
+  if [ "$RUNefibootmgr" == "yes" ];then #20220715
+   #sanity check...
+   export LI_ESP_SANITY_DLG="<window title=\"$(gettext 'LimineInstaller: sanity check')\" image-name=\"/usr/share/pixmaps/limine-installer.png\" window_position=\"1\">
+ <vbox>
+  <text><label>\"$(gettext 'The Limine EFI file has been installed here:')
+${MOUNTPOINT}${EFIpath}/${EFIname}.EFI
+
+$(gettext 'The Limine configuration file has been installed here:')
+${MOUNTPOINT}/limine.cfg
+
+$(gettext 'Click INSTALL button to create an entry in the UEFI firmware nvram.')
+$(gettext 'This will make Limine the default at bootup. However, if for some reason you want to change back to how bootup was before Limine was installed, this is quite easy, as will be explained in the final window.')
+
+$(gettext 'NOTICE: The Limine Installer is provided in good faith; however, the authors accept no liability in case anything goes wrong. You continue with the understanding that you take full responsibility for the consequences.')
+\"</label></text>
+ <hbox>
+  <button><label>$(gettext 'INSTALL')</label><action>exit:sanityok</action></button>
+  <button cancel></button>
+ </hbox> 
+ </vbox>
+</window>"
+   echo "$LI_ESP_SANITY_DLG" > /tmp/limine-installer/LI_ESP_SANITY_DLG #debug
+   VARS3="$(gtkdialog --program=LI_ESP_SANITY_DLG)"
+   [ $? -ne 0 ] && exit
+   echo "$VARS3" > /tmp/limine-installer/VARS3
+  else #20220715 20220724
+   #sanity check...
+   export LI_ESP_SANITY_DLG="<window title=\"$(gettext 'LimineInstaller: sanity check')\" image-name=\"/usr/share/pixmaps/limine-installer.png\" window_position=\"1\">
+ <vbox>
+  <text><label>\"$(gettext 'The Limine EFI file has been installed here:')
+${MOUNTPOINT}${EFIpath}/${EFIname}.EFI
+
+$(gettext 'The Limine configuration file has been installed here:')
+${MOUNTPOINT}/limine.cfg
+
+$(gettext 'This is not really a sanity-check, as the installation has already taken place. It is information about what has just happened.')
+${Mbak1}
+$(gettext 'NOTICE: The Limine Installer is provided in good faith; however, the authors accept no liability in case anything goes wrong. You take full responsibility for the consequences.')
+\"</label></text>
+ <hbox>
+  <button ok></button>
+ </hbox> 
+ </vbox>
+</window>"
+   echo "$LI_ESP_SANITY_DLG" > /tmp/limine-installer/LI_ESP_SANITY_DLG #debug
+   VARS3="$(gtkdialog --program=LI_ESP_SANITY_DLG)"
+   echo 'EXIT="sanityok"' > /tmp/limine-installer/VARS3
+  fi
+  EFIret=0 #20220715
+  
+  if [ "$RUNefibootmgr" == "yes" ];then #20220715
+   efibootmgr >/dev/null 2>&1
+   if [ $? -ne 0 ];then
+    mount -v -t efivarfs efivarfs /sys/firmware/efi/efivars 2>/dev/null
+   fi
+   efibootmgr >/dev/null 2>/tmp/limine-installer/efibootmgr-error.log
+   if [ $? -ne 0 ];then
+    Merr="$(gettext 'The efibootmgr utility is not working, cannot complete installation.')
+$(gettext 'See file:') /tmp/limine-installer/efibootmgr-error.log"
+    err_popup_func "${Merr}"
+    exit
+   fi
+  fi
+  
+  grep -q '^EXIT="sanityok"' /tmp/limine-installer/VARS3
+  if [ $? -eq 0 ];then
+   
+   if [ "$RUNefibootmgr" == "yes" ];then #20220715
+    #if already a "limine" entry, delete it...
+    ENTRY="$(efibootmgr 2>/dev/null | grep ' limine$' | grep -o '000[0-9A-Z]')"
+    if [ "$ENTRY" ];then
+     efibootmgr -b ${ENTRY} -B 2>/dev/null
+    fi
+    DRVdest="$(echo -n "${ESPdest}" | sed -e 's%[0-9]*$%%' -e 's%p$%%')" #ex: sdb
+    echo "efibootmgr -c -d /dev/${DRVdest} -p ${ESPdest/*[a-z]/} -L limine -l '\EFI\limine\${EFIname}.EFI'" #debug
+    efibootmgr -c -d /dev/${DRVdest} -p ${ESPdest/*[a-z]/} -L limine -l "\EFI\limine\${EFIname}.EFI" 2>/tmp/limine-installer/efibootmgr-install-error.log
+    EFIret=$?
+    if [ $EFIret -ne 0 ];then
+     Mfail="$(gettext 'The efibootmgr utility has failed to enter Limine into the UEFI nvmram.')
+$(gettext 'See file:') /tmp/limine-installer/efibootmgr-install-error.log"
+     err_popup_func "${Mfail}"
+    fi
+   fi
+   
+   if [ $EFIret -eq 0 ];then
+    
+    if [ "$RUNefibootmgr" == "yes" ];then #20220715
+     MSG1="$(gettext 'Boot the computer, and you should get the Limine menu.')
+
+$(gettext 'If anything is wrong, or for any other reason, you may revert to the previous boot menu. Press the hot-key at power-on to start the UEFI-Setup, and change the boot order.')
+$(gettext 'Alternatively, delete or rename folder /EFI/limine in the ESP partition, and UEFI will fallback to previous bootup.')"
+    else
+     MSG1="
+$(gettext 'Limine has been installed to:') ${ESPdest}
+$(gettext 'Reboot the computer, hold down the hot-key to enter UEFI-Setup, and set the ESP partition in which Limine is installed as the default.')"
+    fi
+    
+    export LI_ESP_INSTALLED_DLG="<window title=\"$(gettext 'LimineInstaller: Limine installed')\" image-name=\"/usr/share/pixmaps/limine-installer.png\" window_position=\"1\">
+ <vbox>
+  <text use-markup=\"true\"><label>\"<b>$(gettext 'Success, Limine has been installed')</b>
+${MSG1}
+
+<b>$(gettext 'Important notes')</b>
+$(gettext 'In UEFI-Setup, secure-boot must be disabled.')
+\"</label></text>
+ 
+  <hbox>
+   <button ok></button>
+  </hbox>
+ </vbox>
+</window>"
+    echo "$LI_ESP_INSTALLED_DLG" > /tmp/limine-installer/LI_ESP_INSTALLED_DLG #debug
+    VARS4="$(gtkdialog --program=LI_ESP_INSTALLED_DLG)"
+   fi
+  fi
+  
+  #unmount the partition...
+  if [ $MNTflg -eq 1 ];then
+   umount /dev/${ESPdest}
+  fi
+ fi
+fi
+
+#############################################################
+###legacy-bios install###
+if [ $UEFIflg -eq 0 ];then
+
+ BOOTPARTS=''
+ for aBOOT in $(grep -l 'BOOTFLAG="yes"' /tmp/limine-installer/lsblk-* | tr '\n' ' ')
+ do
+  #grep -q -E '^FSTYPE="vfat"|^FSTYPE="ntfs"' ${aBOOT} #20220721 bug fix.
+  #if [ $? -eq 0 ];then
+   BOOTPARTS="${BOOTPARTS} ${aBOOT##*-}"
+  #fi
+ done
+ 
+ if [ "$BOOTPARTS" == "" ];then
+  Mmissing="$(gettext 'Strange, cannot find a boot partition. A partition with boot-flag set is required, for installing Limine. Aborting.')"
+  err_popup_func "$Mmissing"
+  exit
+ fi
+
+ echo -n '' > /tmp/limine-installer/bios-boot-drives
+ for aBOOT in ${BOOTPARTS}
+ do
+  aDRV="$(echo -n "$aBOOT" | sed -e 's%[0-9]*$%%' -e 's%p$%%')" #ex: sdb
+  grep -q -x "${aDRV}" /tmp/limine-installer/bios-boot-drives
+  if [ $? -ne 0 ];then
+   echo "$aDRV" >> /tmp/limine-installer/bios-boot-drives
+  fi
+ done
+ 
+ RADIOBOOTDRVxml=''
+ for aBOOTDRV in $(cat /tmp/limine-installer/bios-boot-drives | tr '\n' ' ')
+ do
+  . /tmp/limine-installer/drvtype-${aBOOTDRV} #has PTTYPE=gpt or dos
+  RADIOBOOTDRVxml="${RADIOBOOTDRVxml}
+<radiobutton>
+ <label>${aBOOTDRV}</label>
+ <variable>DRV_${PTTYPE}_${aBOOTDRV}</variable>
+</radiobutton>"
+ done
+ 
+ #20220722 hdd:// is incorrect, fixed when written to limine.cfg, hack to fix for viewing...
+ FIX2="s%hdd://[a-z0-9]*:%hdd://1:%"
+ sed -e "${FIX2}" /tmp/limine-installer/generated-entries > /tmp/limine-installer/generated-entries0
+ 
+ export LI_BOOTDRV_DLG="<window title=\"$(gettext 'LimineInstaller: pre-install')\" image-name=\"/usr/share/pixmaps/limine-installer.png\" window_position=\"1\">
+ <vbox>
+  <frame>
+   <hbox>
+    <text><label>$(gettext 'Click button to see generated menu entries:')</label></text>
+    <button><label>$(gettext 'VIEW')</label><action>${TE} /tmp/limine-installer/generated-entries0 & </action></button>
+   </hbox>
+  </frame>
+  ${WINxml}
+  <text><label>\"  \"</label></text>
+  <text><label>\"$(gettext 'It seems that the computer has legacy-BIOS firmware.')
+$(gettext 'These are drives that contain a partition with boot-flag set:')\"</label></text>
+  ${RADIOBOOTDRVxml}
+  <text><label>\"$(gettext 'Choose which one you want to install Limine to.')
+
+$(gettext 'Then, click the INSTALL button:')
+$(gettext '(Note: there will be one more window, a final sanity check, before completing the installation)')\"</label></text>
+  <hbox>
+   <button><label>$(gettext 'INSTALL')</label><action>exit:install</action></button>
+   <button cancel></button>
+  </hbox>
+ </vbox>
+</window>"
+ echo "$LI_BOOTDRV_DLG" > /tmp/limine-installer/LI_BOOTDRV_DLG #debug
+ VARS5="$(gtkdialog --program=LI_BOOTDRV_DLG)"
+ [ $? -ne 0 ] && exit
+ echo "$VARS5" > /tmp/limine-installer/VARS5
+
+ grep -q '^EXIT="abort"' /tmp/limine-installer/VARS5
+ [ $? -eq 0 ] && exit
+
+ grep -q '^EXIT="Cancel"' /tmp/limine-installer/VARS5
+ [ $? -eq 0 ] && exit
+ 
+ grep -q '^EXIT="install"' /tmp/limine-installer/VARS5
+ if [ $? -ne 0 ];then
+  exit
+ fi
+ 
+ SPECSdest="$(grep '^DRV_.*"true"' /tmp/limine-installer/VARS5 | cut -f 1 -d '=' | sed -e 's%^DRV_%%')"
+ DRVdest="${SPECSdest##*_}" #ex: sda
+ PTTYPEdest="${SPECSdest%%_*}" #exs: gpt or dos
+  
+ if [ "$PTTYPEdest" == "gpt" ];then
+  PTTYPEmsg="$(gettext 'Limine will be installed into the GUID Partition Table (GPT) of the drive. Note: Limine does have a mechanism to uninstall and restore the original GPT -- with some caveats.')"
+ else
+  PTTYPEmsg="$(gettext 'Limine will be installed into the Master Boot Record (MBR) of the drive. Note: Limine does have a mechanism to uninstall and restore the original MBR -- with some caveats.')"
+ fi
+  
+ echo "$BOOTPARTS" > /tmp/limine-installer/bootparts-dest
+ sed -i -e 's% %\n%' /tmp/limine-installer/bootparts-dest
+ DEVdest="$(grep "^${DRVdest}" /tmp/limine-installer/bootparts-dest)"
+  
+ . /tmp/limine-installer/lsblk-${DEVdest}
+ #mount the partition...
+ if [ "$MOUNTPOINT" ];then
+  MNTflg=0
+ else
+  mkdir -p /mnt/${DEVdest}
+  mount -t ${FSTYPE} /dev/${DEVdest} /mnt/${DEVdest} 2>/dev/null
+  if [ $? -ne 0 ];then
+   Merr1="$(gettext 'Failed to mount /dev/')${DEVdest}"
+   err_popup_func "${Merr1}"
+   exit
+  fi
+  MOUNTPOINT="/mnt/${DEVdest}"
+  MNTflg=1
+ fi
+  
+ cp -a -f /usr/share/limine/limine.sys /mnt/${DEVdest}/
+ 
+ #20220721 copy limine.cfg
+ echo "QUIET=no
+TIMEOUT=20
+GRAPHICS=no
+DEFAULT_ENTRY=1
+EDITOR_ENABLED=yes
+INTERFACE_BRANDING=EasyOS Limine Boot Manager
+" > /mnt/${DEVdest}/limine.cfg
+ cat /tmp/limine-installer/generated-entries >> /mnt/${DEVdest}/limine.cfg
+ 
+ #20220722 for uri "hdd://1:2/path-to-vmlinuz-or-initrd",
+ # 'generate-menu-entry' has created an incorrect uri, of format
+ # "hdd://${iDRIVE}:2/path-to-vmlinuz-or-initrd"
+ # if partition is on boot-drive, change to boot uri...
+ FIX1="s%hdd://${DRVdest}:%boot://%"
+ sed -i -e "${FIX1}" /mnt/${DEVdest}/limine.cfg
+ FIX2="s%hdd://[a-z0-9]*:%hdd://1:%"
+ sed -i -e "${FIX2}" /mnt/${DEVdest}/limine.cfg
+  
+ #sanity check...
+ export LI_BIOS_SANITY_DLG="<window title=\"$(gettext 'LimineInstaller: sanity check')\" image-name=\"/usr/share/pixmaps/limine-installer.png\" window_position=\"1\">
+ <vbox>
+  <text><label>\"$(gettext 'You have chosen to install Limine to this drive:') ${DRVdest}
+${PTTYPEmsg}
+
+$(gettext 'The first step of installation has been done, limine.sys and limine.cfg have been copied here:')
+/mnt/${DEVdest}/limine.sys
+/mnt/${DEVdest}/limine.cfg
+
+$(gettext 'NOTICE: The Limine Installer is provided in good faith; however, the authors accept no liability in case anything goes wrong. You continue with the understanding that you take full responsibility for the consequences.')
+
+$(gettext 'Click INSTALL button to install Limine:')\"</label></text>
+  
+  <hbox>
+   <button><label>$(gettext 'INSTALL')</label><action>exit:sanityok</action></button>
+   <button cancel></button>
+  </hbox>
+ </vbox>
+</window>"
+ echo "$LI_BIOS_SANITY_DLG" > /tmp/limine-installer/LI_BIOS_SANITY_DLG #debug
+ VARS6="$(gtkdialog --program=LI_BIOS_SANITY_DLG)"
+ [ $? -ne 0 ] && exit
+ echo "$VARS6" > /tmp/limine-installer/VARS6
+ EXITflg=0
+ grep -q '^EXIT="abort"' /tmp/limine-installer/VARS6
+ [ $? -eq 0 ] && EXITflg=1
+ grep -q '^EXIT="Cancel"' /tmp/limine-installer/VARS6
+ [ $? -eq 0 ] && EXITflg=1
+
+ #unmount the partition...
+ if [ $MNTflg -eq 1 ];then
+  sync
+  umount /dev/${DEVdest}
+ fi
+ [ $EXITflg -eq 1 ] && exit #20220722
+ 
+ #20220722 support undeploy...
+ if [ "$PTTYPEdest" == "gpt" ];then #20220716
+  limine-deploy /dev/${DRVdest} --undeploy-data-file=/root/limine-undeploy-data.bin 2>/tmp/limine-installer/limine-deploy-err.log
+ else
+  limine-deploy /dev/${DRVdest} --force-mbr --undeploy-data-file=/root/limine-undeploy-data.bin 2>/tmp/limine-installer/limine-deploy-err.log
+ fi
+ if [ $? -ne 0 ];then
+  Merr2="$(gettext 'The limine-deploy utility has failed to install Limine.')
+$(gettext 'Error log:') /tmp/limine-installer/limine-deploy-err.log"
+  err_popup_func "${Merr2}"
+  exit
+ fi
+ 
+ if [ "$PTTYPEdest" == "gpt" ];then #20220715 20220721
+  PTxml="$(gettext 'Limine has been installed into the GPT (GUID Partition Table) of the drive.')"
+ else
+  PTxml="$(gettext 'Limine has been installed into the MBR (Master Boot Record) of the drive.')"
+ fi
+  
+ export LI_BIOS_INSTALLED_DLG="<window title=\"$(gettext 'LimineInstaller: Limine installed')\" image-name=\"/usr/share/pixmaps/limine-installer.png\" window_position=\"1\">
+ <vbox>
+  <text use-markup=\"true\"><label>\"<b>$(gettext 'Success, Limine has been installed')</b>
+
+$(gettext 'Boot the computer, and you should get the Limine menu.')
+$(gettext 'If not, press the hot-key at power-on to start the BIOS-Setup, and change the boot order.')
+
+<b>$(gettext 'Important notes')</b>
+${PTxml}
+$(gettext 'Limine can be uninstalled, with some caveats.') $(gettext 'Limine has created this file, that can be used to uninstall:')
+ <i>/root/limine-undeploy-data.bin</i>
+$(gettext 'As root in a terminal, execute:')
+ <i># limine-deploy /dev/${DRVdest} --undeploy --undeploy-data-file=/root/limine-undeploy-data.bin</i>
+\"</label></text>
+  <hbox>
+   <button ok></button>
+  </hbox>
+ </vbox>
+</window>"
+ echo "$LI_BIOS_INSTALLED_DLG" > /tmp/limine-installer/LI_BIOS_INSTALLED_DLG #debug
+ VARS7="$(gtkdialog --program=LI_BIOS_INSTALLED_DLG)"
+ 
+fi
+
+###end###

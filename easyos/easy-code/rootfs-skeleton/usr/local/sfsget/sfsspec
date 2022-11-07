@@ -1,0 +1,605 @@
+#!/bin/sh
+#based upon /usr/bin/petspecs, except for sfs files.
+#called from 'dir2sfs'
+#181026 first release.
+#181029 remove DB_repo, do not want hard-coded url.
+#181031 new DB_description_long field.
+#181102 first release.
+#181103 update DB_pkgname, DB_fullfilename
+#181109 allow arch to be "src" or "all".
+#181122 q*.sfs renamed to easy*.sfs
+#181130 scsijon reported $DEFcategories was empty.
+#181225 change "q_" to "easy_"
+#20210117 add choice "armhf" to architecture
+#20210917 can now have DB_install='mainonly'
+#20220603 DB_* fields are now SFS_DB_*
+#20220914 SFS_DB_* overrides.
+#20220916 'specs' may have TEMPLATE_ACCESS_MOZBARE='yes' (ex: blender) ...um, not using it here, see setup-client
+
+if [ ! -s /tmp/sfsget/new-db-entry-fields0 ];then
+ echo 'ERROR: this script must be called from /usr/local/sfsget/dir2sfs'
+ exit 1
+fi
+export LANG=C
+. /etc/DISTRO_SPECS
+
+#read SFS_DB_pkgname, SFS_DB_nameonly, etc...
+. /tmp/sfsget/new-db-entry-fields0
+
+#20220914 SFS_DB_* overrides...
+#20220916 may have TEMPLATE_ACCESS_MOZBARE='yes' (ex: blender) ...um, not using it here, see setup-client
+if [ -f /usr/local/easy_containers/templates/${SFS_DB_nameonly}/specs ];then
+ sed -e 's%^TEMPLATE_%SFS_%' /usr/local/easy_containers/templates/${SFS_DB_nameonly}/specs > /tmp/sfsget/specs-sfs-overrides
+ . /tmp/sfsget/specs-sfs-overrides
+fi
+
+#20210917 edited...
+export HLP_NAME='<window title="Help: Package name" icon-name="gtk-index" window_position="1">
+  <vbox>
+    <text use-markup="true">
+     <label>"This is the name of the package. If choose to run in a container, it will also be the name of the container after installation.
+
+For the <b>individual</b> install mode, if run in a container, icons are created on the desktop with the labels as shown in the <b>Applications in container</b> field.
+
+For the <b>desk</b> and <b>terminal</b> install modes, which can only run in a container, the name of the package will also be the label of the icon on the desktop, and there will only be one icon.
+
+The SFS file will be automatically named according to this format:
+<b>name_version-revision_arch.sfs</b>
+
+For example:
+<b>devx_0.9.8-r0_amd64.sfs</b>
+
+Note that the <b>Revision</b> field is for when you may be creating an SFS file update with still the same version number. r0, r1, etc., is a convenient notation.
+If you wish, you may leave the Revision field empty, in which case the SFS will be named like devx_0.9.8_amd64.sfs"</label>
+      <variable>HLP_NAME</variable>
+    </text>
+    <hbox>
+    <button>
+      <label>Close</label>
+      <action type="closewindow">HLP_NAME</action>
+    </button>
+    </hbox>
+  </vbox>
+ </window>'
+
+export HLP_CAT='<window title="Help: Menu categories" icon-name="gtk-index" window_position="1">
+  <vbox>
+    <text use-markup="true">
+     <label>"These are comma-delimited menu categories assigned to each app. They are derived from the .desktop files in /usr/share/applications in the SFS file.
+
+The format is <b>&lt;top-category&gt;[;&lt;sub-category&gt;]</b>, corresponding to the top-level in the menu and the sub-level. The [  ] means that specifying the sub-category is optional.
+
+You may edit these, so that the apps appear wherever you want them to in the menu. If this field is empty, then choose the most appropriate from the drop-down list.
+
+Note, the <b>BuildingBlock</b> category does not appear in the menu. If this is shown, and you do want the app to have a menu-entry, replace it with something from the drop-down list.
+
+<b>Technical notes</b>
+Menu categories used in EasyOS are shown in file /etc/xdg/menus/hierarchy, that may be viewed in a text editor."</label>
+      <variable>HLP_CAT</variable>
+    </text>
+    <hbox>
+    <button>
+      <label>Close</label>
+      <action type="closewindow">HLP_CAT</action>
+    </button>
+    </hbox>
+  </vbox>
+ </window>'
+
+export HLP_DEPS='<window title="Help: SFS dependencies" icon-name="gtk-index" window_position="1">
+  <vbox>
+    <text use-markup="true">
+     <label>"the SFS file will run as a layered filesystem, usually with one or more SFS files below it.
+
+In EasyOS, the base SFS is named <b>easy.sfs</b>, and most SFS files will require this as a dependency. Please specify the dependencies in the order that they will be layered, comma-delimited, first on top. Here is an example:
+
+<b>rust_4.5.*,devx,easy</b>
+
+Version numbering is optional, and glob wildcards are allowed (the * character). In the above example, the rust SFS, version 4.5.*, is required. SFS files devx and easy do not have any version specified, so the current version of EasyOS will be used.
+
+You could leave the EasyOS SFS dependency as just <b>easy</b>. However, it is planned that EasyOS will undergo significant package upgrades with change of major version number. So specify <b>easy_3.*</b> for the entire major-version-3 releases.
+
+If you have an SFS file that is known to run only on a particular version of EasyOS, then specify an exact version for easy.sfs, for example <b>easy_0.9.8</b>
+
+...if the SFS is run in a container, this is OK regardless of the current version of EasyOS. The specified version of easy.sfs will be downloaded from the Internet, if it exists, and used in the container.
+
+<b>Further notes</b>
+Running apps in containers is not restricted to EasyOS SFS files. SFS files for other Linux distributions can be run, as long as there is a base-SFS dependency available for it."</label>
+      <variable>HLP_DEPS</variable>
+    </text>
+    <hbox>
+    <button>
+      <label>Close</label>
+      <action type="closewindow">HLP_DEPS</action>
+    </button>
+    </hbox>
+  </vbox>
+ </window>'
+
+export HLP_ARCH='<window title="help: Architecture" icon-name="gtk-index" window_position="1">
+  <vbox>
+    <text use-markup="true">
+     <label>"The SFS package has files that are compiled in a Linux distribution, not necessarily EasyOS. <b>oe</b> is an acronym for OpenEmbedded, the build-system used to compile binary packages for EasyOS.
+
+Another example is <b>slackware</b>. This would include the <b>Slacko</b> series of Puppy Linux, which is built from Slackware binary packages. In Puppy Linux jargon, this is sometimes referred to as the <b>compatible-distro</b>.
+
+It is also necessary to specify what release of the compatible-distro the SFS files were compiled in. This could be a release name, for example <b>dunfell</b> for EasyOS.
+
+In the case of Slackware, releases are numbers, for example <b>14.2</b>. For Ubuntu, a name is sufficient, such as <b>beaver</b>. The main thing is to have consistent release naming for all the SFS packages.
+
+The <b>Arch</b> field is whatever architecture the compatible-distro is. For example, amd64 (x86_64), i686 or aarch64."
+      </label>
+      <variable>HLP_ARCH</variable>
+    </text>
+    <hbox>
+    <button>
+      <label>Close</label>
+      <action type="closewindow">HLP_ARCH</action>
+    </button>
+    </hbox>
+  </vbox>
+ </window>'
+
+#<b>Repository</b> is the URL where the SFS file is located online. For example:
+#
+#<b>distro.ibiblio.org/easyos/amd64/packages/sfs/pyro</b>
+
+export HLP_FOLDER='<window title="help: Online repository" icon-name="gtk-index" window_position="1">
+  <vbox>
+    <text use-markup="true">
+     <label>"<b>Folder path</b> is the path within the online repository, where the SFS file is located. For example:
+
+<b>easyos/oe/dunfell</b>
+
+This is appended to the repository URL. It is highly recommended that the online Folder-path be in the format <b>distro/compatible-distro/compatible-release</b>, as SFS will be downloaded and stored in the same path -- this will keep them organized. Examples for Puppy Linux:
+ puppy/slackware/14.2 puppy/ubuntu/14.04
+
+<b>Further notes</b>
+The package manager will default to looking in the Folder-path for dependencies."
+      </label>
+      <variable>HLP_FOLDER</variable>
+    </text>
+    <hbox>
+    <button>
+      <label>Close</label>
+      <action type="closewindow">HLP_FOLDER</action>
+    </button>
+    </hbox>
+  </vbox>
+ </window>'
+
+
+export HLP_APPS='<window title="Help: Apps in container" icon-name="gtk-index" window_position="1">
+  <vbox>
+    <text use-markup="true">
+      <label>"The comma-delimited names shown here correspond to the names of .desktop files found in /usr/share/applications in the SFS file.
+
+If the <b>individual</b> installation mode is chosen, the SFS may be run on the main desktop if dependencies are OK, or run in a container. In the latter case, icons will be created on the desktop with these names.
+
+As these names correspond to .desktop files, do NOT change them. You may, however, delete one or more if you do not want it to appear on the desktop.
+
+For <b>desk</b> and <b>terminal</b> modes, the SFS can only be run in a container. A single icon will be created on the desktop, with the name as given in this field, that will launch either a complete desktop, or a terminal window."
+      </label>
+      <variable>HLP_APPS</variable>
+    </text>
+    <hbox>
+    <button>
+      <label>Close</label>
+      <action type="closewindow">HLP_APPS</action>
+    </button>
+    </hbox>
+  </vbox>
+ </window>'
+
+export HLP_ICONS='<window title="Help: Desktop icon images" icon-name="gtk-index" window_position="1">
+  <vbox>
+    <text use-markup="true">
+      <label>"These are comma-delimited names of images, corresponding to each app icon on the desktop when the SFS is run in a container.
+
+The images are located in /usr/share/pixmaps in the SFS file, and are all 48x48 PNG images.
+
+If this field is empty, it most likely means that there are no .desktop files in /usr/share/applications, hence no apps to launch. In that case, installation will be <b>desk</b> or <b>terminal</b> mode and there will be one icon on the desktop -- you will need to assign whatever image you want for the icon, and make sure it is in /usr/share/pixmaps.
+
+In other words, if this field is empty, please make sure it is not, otherwise a default image will be assigned to the desktop icon."
+      </label>
+      <variable>HLP_ICONS</variable>
+    </text>
+    <hbox>
+    <button>
+      <label>Close</label>
+      <action type="closewindow">HLP_ICONS</action>
+    </button>
+    </hbox>
+  </vbox>
+ </window>'
+
+
+
+export HLP_INSTALL='<window title="Help: Install mode" icon-name="gtk-index" window_position="1">
+  <vbox>
+    <text use-markup="true">
+      <label>"<b>mainonly</b>
+Not able to run in a container, must run on the main desktop.
+
+<b>individual</b>
+The SFS may run on the main desktop, if dependencies OK.
+Or run in a container, in which case:
+Each app in the SFS file will have its own icon on the desktop. This is only possible if there is at least one .desktop file in the SFS.
+To run in a container if there are no .desktop files, the install must be one of the following:
+
+<b>desk</b>
+SFS will run in a container only.
+There will be a single icon on the desktop. The container will run as a complete desktop, using the Xephyr X server. 
+
+<b>terminal</b>
+SFS will run in a container only.
+There will be a single icon on the desktop, that will open a terminal window in the container. 
+
+<b>Technical notes</b>
+.desktop files are in /usr/share/applications in the SFS file. For individual mode, even if there are more than one .desktop files, it will still be one container, even though there will be multiple launch icons on the desktop."
+      </label>
+      <variable>HLP_INSTALL</variable>
+    </text>
+    <hbox>
+    <button>
+      <label>Close</label>
+      <action type="closewindow">HLP_INSTALL</action>
+    </button>
+    </hbox>
+  </vbox>
+ </window>'
+
+while [ 1 ];do ###BIG LOOP###
+DEFpkgname="$SFS_DB_pkgname"
+DEFnameonly="$SFS_DB_nameonly"
+DEFversion="$SFS_DB_version"
+DEFrevision="$SFS_DB_revision"
+DEFarch="$SFS_DB_arch"
+DEFcategories="$SFS_DB_categories"
+DEFsize="$SFS_DB_size"
+DEFpath="$SFS_DB_path"
+DEFfullfilename="$SFS_DB_fullfilename"
+DEFdependencies="$SFS_DB_dependencies"
+DEFdescription="$SFS_DB_description"
+DEFdescription_long="$SFS_DB_description_long"
+DEFcompileddistro="$SFS_DB_compileddistro"
+DEFcompiledrelease="$SFS_DB_compiledrelease"
+#DEFrepo="$SFS_DB_repo"
+DEFapps="$SFS_DB_apps"
+DEFicons="$SFS_DB_icons"
+DEFinstall="$SFS_DB_install"
+DEFhash="$SFS_DB_hash"
+
+DB_size_val="${SFS_DB_size/K/}"
+DEFsize_val="$DB_size_val"
+[ "$DEFdescription" == "" ] && DEFdescription="short one-line description required"
+[ "$DEFdescription_long" == "" ] && DEFdescription_long="longer description, may have mulitple lines"
+
+
+###categories###
+#note, default icons for all categories and sub-cat are in /usr/local/lib/X11/mini-icons
+ITEMSCAT="" #"<item>${DEFcategory}</item>"
+for ONECAT in Desktop 'Desktop;appearance' 'Desktop;applet' 'Desktop;settings' 'Desktop;sleep' 'Desktop;windows' System 'System;memory' 'System;print' 'System;process' 'System;security' 'System;storage' Setup 'Setup;installation' 'Setup;puppy' 'Setup;wizard' Utility 'Utility;development' 'Utility;help' 'Utility;package' 'Utility;shell' Filesystem 'Filesystem;filemanager' 'Filesystem;find' 'Filesystem;storage' Graphic 'Graphic;camera' 'Graphic;draw' 'Graphic;flow' 'Graphic;paint' 'Graphic;print' 'Graphic;scanner' 'Graphic;utility' 'Graphic;viewer' Document 'Document;catalog' 'Document;layout' 'Document;edit' 'Document;viewer' 'Document;utility' Business 'Business;calc' 'Business;finance' 'Business;planner' 'Business;spreadsheet' Personal 'Personal;database' 'Personal;date' 'Personal;education' 'Personal;organizer' 'Personal;security' 'Personal;timing' Network 'Network;connect' 'Network;firewall' 'Network;phone' 'Network;transfer' 'Network;utility' Internet 'Internet;block' 'Internet;browser' 'Internet;chat' 'Internet;login' 'Internet;mailnews' 'Internet;transfer' 'Internet;utility' Multimedia 'Multimedia;mediaplayer' 'Multimedia;optical' 'Multimedia;sound' 'Multimedia;utility' 'Multimedia;video' Fun 'Fun;adventure' 'Fun;arcade' 'Fun;boardgame' 'Fun;cardgame' 'Fun;puzzle' 'Fun;shooter' Help BuildingBlock
+do
+ #[ "$ONECAT" = "$DEF_category" ] && continue
+ ITEMSCAT="${ITEMSCAT}<item>${ONECAT}</item>"
+done
+[ "$DEFcategories" == "" ] && DEFcategories="Utility" #181130 precaution.
+
+DEPENDENCIES=""
+if [ "$DEFdependencies" != "" ];then
+ DEPENDENCIES="<default>${DEFdependencies}</default>"
+fi
+
+###compileddistro###
+ITEMSCOMP="<item>${DEFcompileddistro}</item>"
+for ONECHOICE in 'DISTRO INDEPENDENT' arch buildroot debian devuan gentoo mageia oe puppy raspbian scientific slackware t2 ubuntu
+do
+ [ "$ONECHOICE" = "${DEFcompileddistro}" ] && continue
+ ITEMSCOMP="${ITEMSCOMP}<item>${ONECHOICE}</item>"
+done
+
+###arch###
+ITEMSARCH="<item>${DEFarch}</item>"
+for ONECHOICE in amd64 i486 i686 aarch64 armhf src #181109 20210117
+do
+ [ "$ONECHOICE" = "${DEFarch}" ] && continue
+ ITEMSARCH="${ITEMSARCH}<item>${ONECHOICE}</item>"
+done
+
+###apps###
+DEFAPPSITEM=""
+EDITAPPS="true"
+if [ "$DEFapps" ];then
+ DEFAPPSITEM="<default>${DEFapps}</default>"
+fi
+case "$SFS_DB_install" in
+ desk|terminal) EDITAPPS="false" ;;
+esac
+
+###icons###
+DEFICONSITEM=""
+EDITICONS="true"
+if [ "$DEFicons" ];then
+ DEFICONSITEM="<default>${DEFicons}</default>"
+fi
+case "$SFS_DB_install" in
+ desk|terminal) EDITICONS="false" ;;
+esac
+
+
+###install###
+#now have 'sfsspec-mode' which has already chosen install-mode.
+ITEMSINSTALL="<item>${DEFinstall}</item>"
+#for ONECHOICE in individual desk terminal
+#do
+# [ "$ONECHOICE" = "${DEFinstall}" ] && continue
+# [ "$SFS_DB_apps" == "" ] && [ "$ONECHOICE" = "individual" ] && continue #no .desktop files, cannot have 'individual' app icons.
+# ITEMSINSTALL="${ITEMSINSTALL}<item>${ONECHOICE}</item>"
+#done
+
+
+#  <hbox>
+#   <text><label>\"                  \"</label></text><text><label>Size of installed package:</label></text>
+#   <entry>
+#    <default>${DEFsize_val}</default><variable>DB_size_val</variable>
+#   </entry>
+#   <text><label>KB</label></text>
+#  </hbox>
+
+#  <hbox>
+#   <text><label>Repository:</label></text>
+#   <entry>
+#    <default>\"${DEFrepo}\"</default><variable>SFS_DB_repo</variable>
+#   </entry>
+#  </hbox>
+
+
+export SFSSPEC_MAINDLG="
+<window title=\"SFS package database-entry creator\" icon-name=\"gtk-index\">
+ <vbox>
+ 
+  <text use-markup=\"true\"><label>\"<b>This will be the database entry for the '${DEFnameonly}' SFS file. Please fill in <i>all</i> of the fields.</b>\"</label></text>
+  
+  <hbox>
+   <text><label>\"                  \"</label></text><text><label>Name-only:</label></text>
+   <entry>
+    <default>${DEFnameonly}</default><variable>SFS_DB_nameonly</variable>
+   </entry>
+   <button>
+      <input file>/usr/local/lib/X11/mini-icons/mini-question.xpm</input>
+      <action type=\"launch\">HLP_NAME</action>
+   </button>
+  </hbox>
+  
+  <hbox>
+    <text><label>\"                           \"</label></text><text>
+    <label>Version:</label></text>
+    <entry>
+      <default>${DEFversion}</default><variable>SFS_DB_version</variable>
+    </entry>
+  </hbox>
+
+  <hbox>
+    <text><label>\"                             \"</label></text>
+    <text><label>Revision:</label></text>
+    <entry>
+      <default>\"${DEFrevision}\"</default><variable>SFS_DB_revision</variable>
+    </entry>
+  </hbox>
+  
+  <hbox>
+   <text><label>Dependencies:</label></text>
+   <entry>
+    ${DEPENDENCIES}
+    <variable>SFS_DB_dependencies</variable>
+   </entry>
+   <button>
+      <input file>/usr/local/lib/X11/mini-icons/mini-question.xpm</input>
+      <action type=\"launch\">HLP_DEPS</action>
+   </button>
+  </hbox>
+
+<frame Descriptions>
+  <hbox>
+   <text><label>Short:</label></text>
+   <entry>
+    <default>\"${DEFdescription}\"</default>
+    <variable>SFS_DB_description</variable>
+   </entry>
+  </hbox>
+  <edit height-request=\"80\" wrap-mode=\"1\">
+   <default>\"${DEFdescription_long}\"</default>
+   <variable>SFS_DB_description_long</variable>
+  </edit>
+</frame>
+  
+<frame Architecture>
+  <hbox>
+    <text>
+      <label>Compiled in Linux distro:</label>
+    </text>
+	<combobox>
+      <variable>SFS_DB_compileddistro</variable>
+	  ${ITEMSCOMP}
+    </combobox>
+  </hbox>
+  
+  <hbox>
+   <text><label>\"           \"</label></text>
+   <text><label>Distro release:</label></text>
+   <entry>
+    <default>${DEFcompiledrelease}</default><variable>SFS_DB_compiledrelease</variable>
+   </entry>
+  </hbox>
+  
+  <hbox>
+    <text><label>Arch:</label></text>
+	<combobox>
+      <variable>SFS_DB_arch</variable>
+	  ${ITEMSARCH}
+    </combobox>
+    <button>
+      <input file>/usr/local/lib/X11/mini-icons/mini-question.xpm</input>
+      <action type=\"launch\">HLP_ARCH</action>
+    </button>
+  </hbox>
+</frame>
+
+<frame Repository>
+  <hbox>
+   <text><label>Folder path:</label></text>
+   <entry>
+    <default>\"${DEFpath}\"</default><variable>SFS_DB_path</variable>
+   </entry>
+   <button>
+      <input file>/usr/local/lib/X11/mini-icons/mini-question.xpm</input>
+      <action type=\"launch\">HLP_FOLDER</action>
+   </button>
+  </hbox>
+</frame>
+  
+<frame Container>
+  <hbox>
+    <text><label>Applications in container:</label></text>
+    <entry editable=\"${EDITAPPS}\">
+      ${DEFAPPSITEM}<variable>SFS_DB_apps</variable>
+    </entry>
+    <button>
+      <input file>/usr/local/lib/X11/mini-icons/mini-question.xpm</input>
+      <action type=\"launch\">HLP_APPS</action>
+    </button>
+  </hbox>
+  
+  <hbox>
+    <text><label>Desktop icon images:</label></text>
+    <entry editable=\"${EDITICONS}\">
+      ${DEFICONSITEM}<variable>SFS_DB_icons</variable>
+    </entry>
+    <button>
+      <input file>/usr/local/lib/X11/mini-icons/mini-question.xpm</input>
+      <action type=\"launch\">HLP_ICONS</action>
+    </button>
+  </hbox>
+</frame>
+
+<frame Install>
+  <hbox>
+    <text>
+      <label>Install mode:</label>
+    </text>
+	<combobox>
+      <variable>SFS_DB_install</variable>
+	  ${ITEMSINSTALL}
+    </combobox>
+    <button>
+      <input file>/usr/local/lib/X11/mini-icons/mini-question.xpm</input>
+      <action type=\"launch\">HLP_INSTALL</action>
+    </button>
+  </hbox>
+</frame>
+
+<frame Menu>
+  <hbox>
+    <text>
+      <label>Categories:</label>
+    </text>
+    <entry>
+      <default>${DEFcategories}</default><variable>SFS_DB_categories</variable>
+    </entry>
+  </hbox>
+  <hbox>
+    <combobox>
+      <variable>SFS_DB_category</variable>
+      ${ITEMSCAT}
+    </combobox>
+    <button>
+      <input file>/usr/local/lib/X11/mini-icons/mini-question.xpm</input>
+      <action type=\"launch\">HLP_CAT</action>
+    </button>
+  </hbox>
+</frame>
+  
+  <hbox>
+    <button>
+     <label>Generate package database entry</label>
+     <action type=\"exit\">GENERATE_DB</action>
+    </button>
+    <button cancel></button>
+  </hbox>
+ </vbox>
+</window>
+"
+
+echo "$SFSSPEC_MAINDLG}" > /tmp/sfsget/SFSSPEC_MAINDLG #test
+RETVALS="$(gtkdialog --program=SFSSPEC_MAINDLG --center)"
+[ $? -ne 0 ] && exit 2
+eval "$RETVALS"
+[ "$EXIT" != "GENERATE_DB" ] && exit 3
+
+#181103 update these:
+if [ "$SFS_DB_revision" == "" ];then
+ SFS_DB_pkgname="${SFS_DB_nameonly}_${SFS_DB_version}"
+else
+ SFS_DB_pkgname="${SFS_DB_nameonly}_${SFS_DB_version}-${SFS_DB_revision}"
+fi
+SFS_DB_fullfilename="${SFS_DB_pkgname}_${SFS_DB_arch}.sfs"
+
+###sanity check###
+SANITYflg="good"
+CNTapps=$(echo -n "$SFS_DB_apps" | sed -e 's%[^,]%%g' | wc -m)
+CNTicons=$(echo -n "$SFS_DB_icons" | sed -e 's%[^,]%%g' | wc -m)
+CNTcategories=$(echo -n "$SFS_DB_categories" | sed -e 's%[^,]%%g' | wc -m)
+case "$SFS_DB_install" in
+ individual|mainonly) #20210917
+  [ "$CNTapps" != "$CNTicons" ] && SANITYflg="bad"
+  [ "$CNTapps" != "$CNTcategories" ] && SANITYflg="bad"
+  if [ "$SANITYflg" == "bad" ];then
+   popup "level=top process=wait background=#ff8080 terminate=ok|<big>ERROR: The number of comma-delimited entries in the applications and images fields in the Container frame, and the categories field in the Menu frame, must match.</big>"
+  fi
+ ;;
+ *)
+  if [ "${CNTapps}${CNTicons}${CNTcategories}" != "000" ];then
+   popup "level=top process=wait background=#ff8080 terminate=ok|<big>ERROR: For desk and terminal install modes, there must be one, exactly one, entry in the applications and images fields of the Container frame, and in the categories field of the Menu frame.</big>"
+   SANITYflg="bad"
+  fi
+ ;;
+esac
+[ "$SANITYflg" == "bad" ] && continue
+for aFIELD in "${SFS_DB_pkgname}" "${SFS_DB_nameonly}" "${SFS_DB_version}" "${SFS_DB_arch}" "${SFS_DB_categories}" "${SFS_DB_path}" "${SFS_DB_description}" "${SFS_DB_compileddistro}" "${SFS_DB_compiledrelease}" "${SFS_DB_apps}" "${SFS_DB_icons}" "${SFS_DB_install}"
+do
+ [ "$aFIELD" == "" ] && SANITYflg="bad"
+done
+if [ "$SANITYflg" == "bad" ];then
+ popup "level=top process=wait background=#ff8080 terminate=ok|<big>ERROR: One of the fields is empty, that should not be.</big>"
+ continue
+fi
+
+break
+done ###BIG LOOP###
+
+#remove unwanted chars from SFS_DB_description_long:
+SFS_DB_description_long="$(echo -n "$SFS_DB_description_long" | tr "'" '*' | tr '"' '*')"
+
+echo "#generated by dir2sfs:
+SFS_DB_pkgname='$SFS_DB_pkgname'
+SFS_DB_nameonly='$SFS_DB_nameonly'
+SFS_DB_version='$SFS_DB_version'
+SFS_DB_revision='$SFS_DB_revision'
+SFS_DB_arch='$SFS_DB_arch'
+SFS_DB_categories='$SFS_DB_categories'
+SFS_DB_size='$SFS_DB_size'
+SFS_DB_fullfilename='$SFS_DB_fullfilename'
+SFS_DB_dependencies='$SFS_DB_dependencies'
+SFS_DB_description='$SFS_DB_description'
+SFS_DB_description_long='$SFS_DB_description_long'
+SFS_DB_compileddistro='$SFS_DB_compileddistro'
+SFS_DB_compiledrelease='$SFS_DB_compiledrelease'
+SFS_DB_path='$SFS_DB_path'
+SFS_DB_apps='$SFS_DB_apps'
+SFS_DB_icons='$SFS_DB_icons'
+SFS_DB_install='$SFS_DB_install'
+SFS_DB_hash='$SFS_DB_hash'" > /tmp/sfsget/new-db-entry-fields
+
+exit 0
+###end###

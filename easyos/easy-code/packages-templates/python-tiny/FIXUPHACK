@@ -1,0 +1,52 @@
+#delete what we don't want, to make this tiny...
+#note, similar to perl-tiny template.
+#180317 youtube-dl needs heaps of modules, so delete a lot less.
+
+mkdir -p ../tempdir1
+cp -a ./* ../tempdir1/
+
+#180317 remove...
+#PYTHON_TINY_FILELIST='copy_reg.py encodings/aliases.py encodings/__init__.py encodings/utf_8.py _sysconfigdata.py site.py traceback.py __future__.py codecs.py new.py json/encoder.py json/decoder.py json/scanner.py json/__init__.py string.py getopt.py ConfigParser.py os.py _abcoll.py _weakrefset.py platform.py types.py abc.py warnings.py sre_constants.py struct.py sre_compile.py sre_parse.py UserString.py lib-dynload/time.so lib-dynload/_struct.so lib-dynload/binascii.so sitecustomize.py sysconfig.py UserList.py linecache.py rlcompleter.py re.py UserDict.py genericpath.py copy.py stat.py ast.py posixpath.py'
+#PYTHON_ALL_FILELIST="$(find ./ -mindepth 1 -not -type d | sed -e 's%^\./%%')"
+rm -rf ./usr
+#for ONE_PYTHON_FILE in $PYTHON_TINY_FILELIST
+#do
+# opfPATTERN='/'"$ONE_PYTHON_FILE"'$'
+# for ONEFND in `echo "$PYTHON_ALL_FILELIST" | grep "$opfPATTERN" | tr '\n' ' '`
+# do
+#  [ ! -f ../tempdir1/$ONEFND ] && continue
+#  ONEFND_PATH="`dirname $ONEFND`"
+#  mkdir -p $ONEFND_PATH
+#  cp -a -f ../tempdir1/$ONEFND $ONEFND_PATH/
+# done
+#done
+#sync
+
+#executable...
+mkdir -p usr/bin
+cp -a ../tempdir1/usr/bin/python* usr/bin/
+PYEXE="$(find usr/bin -maxdepth 1 -type f | head -n 1 | rev | cut -f 1 -d '/' | rev)"
+[ ! -e usr/bin/python ] && ln -snf $PYEXE usr/bin/python
+[ ! -e usr/bin/python2 ] && ln -snf $PYEXE usr/bin/python2
+
+#libs...
+PYLIB="$(find ../tempdir1/usr/lib* -type f -name 'libpython2*' | head -n 1 | sed -e 's%^\.\./tempdir1/%%')"
+PYDIR="$(dirname $PYLIB)"
+mkdir -p $PYDIR
+cp -a -f ../tempdir1/$PYDIR/libpython2*.so* $PYDIR/
+sync
+
+#180317
+PYMOD="$(find ../tempdir1/usr/lib* -type f -name 'pydoc.py' | head -n 1 | sed -e 's%^\.\./tempdir1/%%')"
+PYDIR="$(dirname $PYMOD)" #ex: usr/lib/python2.7
+mkdir -p $PYDIR
+cp -a -f ../tempdir1/$PYDIR/* $PYDIR/
+sync
+for aDIR in config ensurepip test lib-tk compiler email/test bsddb/test sqlite3/test unittest/test ctypes/test idlelib lib2to3/tests distutils/tests json/tests 
+do
+ [ -d ${PYDIR}/${aDIR} ] && rm -rf ${PYDIR}/${aDIR}
+done
+[ -f ${PYDIR}/site-packages/libxml2mod.a ] && rm -f ${PYDIR}/site-packages/libxml2mod.a
+sync
+
+rm -rf ../tempdir1

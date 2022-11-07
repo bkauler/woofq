@@ -1,0 +1,39 @@
+#!/bin/sh
+
+export TEXTDOMAIN=bluepup
+export TEXTDOMAINDIR=/usr/share/locale
+export OUTPUT_CHARSET=UTF-8
+
+CR='
+'
+
+exit_func() {
+ echo -n 'limbo' > /tmp/bluepup/current-operation
+ exit $1
+}
+
+#only want to look at output of vte.log from now on...
+wc -l /tmp/bluepup/vte.log > /tmp/bluepup/cnt_full
+LINEMKR0="$(cut -f 1 -d " " /tmp/bluepup/cnt_full)"
+LINEMKR1="$(expr 1 + $LINEMKR0)"
+
+DEVICEID="$(cat /tmp/bluepup/chosen-reg-device)"
+
+pidof bt-obex >/dev/null
+if [ $? -ne 0 ];then
+ bt-obex -a ${DEVICEID} -y -s > /tmp/bluepup/bt-obex-out 2> /tmp/bluepup/bt-obex-out-err &
+fi
+
+M1="$(gettext 'BluePup: Receive files')"
+M2="$(gettext 'On your phone, share a file to bluetooth paired device, and it will be transferred to folder /root/.cache/obexd on this computer.')"
+M3="$(gettext 'Click the OK button to open the file manager at this path...')"
+pupmessage -bg '#ffe060' -title "${M1}" "${M2}${CR}${M3}"
+
+xwininfo -name "~/.cache/obexd" > dev/null 2>&1
+if [ $? -ne 0 ];then
+ rox -d ~/.cache/obexd -x ~/.cache/obexd #daemonizes.
+fi
+
+sleep 1.2
+exit_func 0
+###end###

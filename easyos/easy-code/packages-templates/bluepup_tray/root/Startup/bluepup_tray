@@ -1,0 +1,19 @@
+#!/bin/sh
+
+#160422 160920 remove...
+#[ ! -e /sys/class/bluetooth ] && exit
+#191128 do not display tray icon if no bluetooth hardware...
+[ ! -e /sys/class/bluetooth/hci0 ] && exit
+
+#191128 put this in here, commented-out, just in case sometime might need it...
+##ref: https://bugs.launchpad.net/ubuntu/+source/linux/+bug/249448
+#pidof bluetoothd >/dev/null
+#if [ $? -eq 0 ];then
+# rfkill unblock bluetooth
+# #/etc/init.d/bluetooth restart
+# hciconfig hci0 reset
+# #this turns on visibility...
+# hciconfig hci0 piscan
+#fi
+
+exec /usr/local/bluepup/bluepup_tray

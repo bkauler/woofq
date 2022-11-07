@@ -1,0 +1,109 @@
+#!/bin/sh
+#called from dir2sfs, bring up a gui to choose security settings.
+#code copied from /usr/local/easy_containers/easy-containers
+#passed param is name of container.
+#181028 rename 'repository' folder to 'releases'.
+#181122 q*.sfs renamed to easy*.sfs
+#190904 shared common code for security options, with /usr/local/easy_containers/easy-containers
+#20220922 EC_ENV_ZEUS changed to EC_ENV_SPOT
+#20221006 new EC_ACCESS_DRI enable 3D graphics.
+
+[ ! $1 ] && exit 1
+[ ! -f /tmp/sfsget/security-overrides ] && exit 2
+EC_CREATE="$1"
+export LANG=C
+mkdir -p /tmp/easy_containers
+
+###defaults for the security checkboxes###
+#if xorg started with "-nolisten local" then cannot use abstract socket...
+#well, could be running container on other systems, but set this according to current host...
+XORG_ABSTRACT_ALLOW='true'
+grep '^/usr/bin/xinit .*nolisten local' /usr/bin/xwin >/dev/null
+[ $? -eq 0 ] && XORG_ABSTRACT_ALLOW='false'
+
+M_close="$(gettext 'Close')"
+M_help1="$(gettext 'Easy Containers is a nice GUI for creating and managing the running of apps in containers. Some useful notes:')
+
+$(gettext 'A container is composed of a read-write folder layered on top of easy.sfs. The bottom layer is all of EasyOS, with all the builtin apps. Any one of these apps may be chosen to run in a container, however, currently only apps with a menu-entry are offered in the drop-down list.')
+
+$(gettext 'User-installed packages are a problem, as they will have to be copied into the read-write layer of the container. If, for example, you install Firefox, and choose to run it in a container, all of the installed files of the Firefox package will be copied to the newly-created container. This is done automatically.')
+
+$(gettext 'A caveat to the above, only applies to a package installed via the Package Manager, which maintains lists of installed files. A manually-installed package, such as one compiled from source, cannot automatically be containerized.')"
+export DLG_HELP1="<window resizable=\"false\" title=\"$(gettext 'Help: Easy Containers')\" icon-name=\"gtk-index\" window_position=\"1\"><vbox><text use-markup=\"true\"><label>\"${M_help1}\"</label><variable>DLG_HELP1</variable></text><hbox><button><label>${M_close}</label><action type=\"closewindow\">DLG_HELP1</action></button></hbox></vbox></window>"
+
+. /usr/local/easy_containers/EC_SEC_INSERT #190904 security-frame help dlgs
+# ...DLG_HELPcap, DLG_HELPns, DLG_HELPxorg, DLG_HELPenv, DLG_HELPseclevel, DLG_CHOOSER, REFRESH_EXPERT, EC_SEC_FRAME, set_defaults_func
+############
+set_defaults_func ${EC_CREATE}
+############
+
+
+export SFS_SEC_DLG="<window title=\"Container security\" icon-name=\"gtk-convert\">
+<vbox>
+
+  ${EC_SEC_FRAME}
+  
+  <hbox>
+    <button><label>OK</label><action>exit:ok</action></button>
+  </hbox>
+</vbox>
+</window>"
+
+RETSTRING1="$(gtkdialog --program=SFS_SEC_DLG --center)"
+[ $? -ne 0 ] && exit
+eval "$RETSTRING1"
+[ "$EXIT" != "ok" ] && exit 5
+
+###configuration file###
+  echo '#Information for setting up and running the container' > /tmp/sfsget/ec-configuration
+  
+  #write security options to configuration file...
+  echo "
+#Connect to X by abstract socket, pipe or unix domain socket (abstract|pipe|unix)..." >> /tmp/sfsget/ec-configuration
+  [ "$XSOCKET_ABSTRACT" == "true" ] && echo "EC_XSOCKET='abstract'" >> /tmp/sfsget/ec-configuration
+  [ "$XSOCKET_PIPE" == "true" ] && echo "EC_XSOCKET='pipe'" >> /tmp/sfsget/ec-configuration
+  [ "$XSOCKET_UNIX" == "true" ] && echo "EC_XSOCKET='unix'" >> /tmp/sfsget/ec-configuration
+  echo "#Use Xorg or Xephyr server (xorg|xephyr)..." >> /tmp/sfsget/ec-configuration
+  [ "$XSERVER_XEPHYR" == "true" ] && echo "EC_XSERVER='xephyr'" >> /tmp/sfsget/ec-configuration
+  [ "$XSERVER_XORG" == "true" ] && echo "EC_XSERVER='xorg'" >> /tmp/sfsget/ec-configuration
+  #namespaces...
+  echo '
+#For security, unshare these namespaces:' >> /tmp/sfsget/ec-configuration
+  echo "EC_NS_UNSHARE_MOUNT='${NS_MOUNT}'" >> /tmp/sfsget/ec-configuration
+  echo "EC_NS_UNSHARE_UTS='${NS_UTS}'" >> /tmp/sfsget/ec-configuration
+  echo "EC_NS_UNSHARE_IPC='${NS_IPC}'" >> /tmp/sfsget/ec-configuration
+  echo "EC_NS_UNSHARE_NETWORK='${NS_NETWORK}'" >> /tmp/sfsget/ec-configuration
+  echo "EC_NS_UNSHARE_PID='${NS_PID}'" >> /tmp/sfsget/ec-configuration
+  #echo "EC_NS_UNSHARE_USER='${NS_USER}'" >> /tmp/sfsget/ec-configuration
+  #environment...
+  echo '
+#Clear environment variables, except some such as TERM and DISPLAY:' >> /tmp/sfsget/ec-configuration
+  echo "EC_UNSHARE_ENV_VARS='${ENV_VARS}'" >> /tmp/sfsget/ec-configuration
+echo '#Tick to run as user spot in container:' >> /tmp/sfsget/ec-configuration
+  echo "EC_ENV_SPOT='${ENV_SPOT}'" >> /tmp/sfsget/ec-configuration
+  #access...
+  echo '
+#Specify what you are allowed to access outside the container:' >> /tmp/sfsget/ec-configuration
+  echo "EC_ACCESS_NET='${ACCESS_NET}'" >> /tmp/sfsget/ec-configuration
+  echo "EC_ACCESS_SND='${ACCESS_SND}'" >> /tmp/sfsget/ec-configuration
+  echo "EC_ACCESS_DRI='${ACCESS_DRI}'" >> /tmp/sfsget/ec-configuration
+  echo "EC_ACCESS_FOLDER='${ACCESS_FOLDER}'" >> /tmp/sfsget/ec-configuration
+  echo "EC_ACCESS_FOLDER_PATH='${ACCESS_FOLDER_PATH}'" >> /tmp/sfsget/ec-configuration
+  #capabilities...
+  echo '
+#Drop these Linux capabilities:' >> /tmp/sfsget/ec-configuration
+  echo "EC_CAP_system='${CAP_system}'" >> /tmp/sfsget/ec-configuration
+  echo "EC_CAP_file='${CAP_file}'" >> /tmp/sfsget/ec-configuration
+  echo "EC_CAP_network='${CAP_network}'" >> /tmp/sfsget/ec-configuration
+  echo "EC_CAP_module='${CAP_module}'" >> /tmp/sfsget/ec-configuration
+  echo "EC_CAP_resource='${CAP_resource}'" >> /tmp/sfsget/ec-configuration
+  echo "EC_CAP_mount='${CAP_mount}'" >> /tmp/sfsget/ec-configuration
+  echo "
+#if you want to load another .sfs file, resident in the releases folder of the
+#current version of Easy, for example: releases/easy-0.1.6/devx.sfs
+#then uncomment this. Glob wildcard accepted, in fact is recommended
+#for automatic version updating:
+#EASY_LAYER_RO1='devx*.sfs'" >> /tmp/sfsget/ec-configuration
+
+
+###end###

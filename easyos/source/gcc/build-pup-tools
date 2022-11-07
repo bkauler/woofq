@@ -1,0 +1,52 @@
+#!/bin/sh
+#20220807 added debdb2pupdb.c, find-cat.c
+
+gcc -o printcols printcols.c
+[ ! -f printcols ] && exit 1
+strip --strip-unneeded printcols
+
+gcc -o truncate truncate.c
+[ ! -f truncate ] && exit 1
+strip --strip-unneeded truncate
+
+gcc -o vercmp vercmp.c
+[ ! -f vercmp ] && exit 1
+strip --strip-unneeded vercmp
+
+#gcc -Wall -lX11 getcurpos.c -o getcurpos
+#...xerus64 compile failed, this fixed it...
+gcc -Wall getcurpos.c -o getcurpos -lX11
+[ ! -f getcurpos ] && exit 1
+strip --strip-unneeded getcurpos
+
+#180225 put this into /usr/sbin
+#ref: https://stackoverflow.com/questions/20800319/how-do-i-get-my-ip-address-in-c-on-linux
+gcc -o getlocalip getlocalip.c
+[ ! -f getlocalip ] && exit 1
+strip --strip-unneeded getlocalip
+
+#190405 rewritten bacon to C...
+gcc -o pup_event_frontend_d pup_event_frontend_d.c
+[ ! -f pup_event_frontend_d ] && exit 1
+strip --strip-unneeded pup_event_frontend_d
+
+#190828 used in /usr/sbin/easydd
+gcc -o bitflip bitflip.c
+[ ! -f bitflip ] && exit 1
+strip --strip-unneeded bitflip
+
+#20211013
+gcc -o getpixelcolor getpixelcolor.c -lX11
+[ ! -f getpixelcolor ] && exit 1
+strip --strip-unneeded getpixelcolor
+
+#20220807
+gcc debdb2pupdb.c -o debdb2pupdb
+[ ! -f debdb2pupdb ] && exit 1
+strip --strip-unneeded debdb2pupdb
+
+#20220807
+gcc find_cat.c -o find_cat
+[ ! -f find_cat ] && exit 1
+strip --strip-unneeded find_cat
+

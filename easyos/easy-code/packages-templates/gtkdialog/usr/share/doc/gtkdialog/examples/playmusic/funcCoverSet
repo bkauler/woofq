@@ -1,0 +1,35 @@
+#!/bin/sh
+
+## Includes.
+. functmpGet
+
+## Set the first file found in the track's folder named
+## cover.* as the cover otherwise use the default one.
+
+funcCoverSet() {
+	if [ -z "$BASH" ]; then local FUNCNAME=funcCoverSet; fi
+	if [ $DEBUG_TRANSITS -ne 0 ]; then echo "$FUNCNAME: IN"; fi
+
+	## Local variables.
+	local playlisttrack="`functmpGet playlisttrack`"
+	local cover trackdir
+
+	if [ -n "$playlisttrack" ]; then
+## 		trackdir="`dirname "$playlisttrack"`"	Redundant: builtin found.
+		trackdir="${playlisttrack%/*}"
+		## Make sure path is at least "/".
+		case "$trackdir" in
+			/*) true ;;
+			*) trackdir=/"$trackdir" ;;
+		esac
+		cover="`ls \"$trackdir\"/$COVER_SEARCH_PATTERN 2> /dev/null | sed -n 1p`"
+	fi
+	if [ -z "$cover" ]; then
+		cover=$PACKAGE_DATA_DIR/cover.png
+	fi
+	ln -sf "$cover" $TEMP_DIR/cover
+
+	if [ $DEBUG_CONTENT -ne 0 ]; then echo "$FUNCNAME: cover=$cover"; fi
+
+	if [ $DEBUG_TRANSITS -ne 0 ]; then echo "$FUNCNAME: OUT"; fi
+}

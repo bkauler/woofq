@@ -1,0 +1,57 @@
+#!/bin/sh
+#monitor output from bt-agent-run
+
+export TEXTDOMAIN=bluepup
+export TEXTDOMAINDIR=/usr/share/locale
+export OUTPUT_CHARSET=UTF-8
+
+CR='
+'
+
+while [ 1 ];do
+ FLGpin=1; FLGyn=1; FLGkey=1
+ inotifywait --event modify /tmp/bluepup/bt-agent-out
+ #20201113 bt-agent may write to bt-agent-out again, "rereading PIN's file", which can stuff up grep, so make a copy...
+ #also, seem to have a problem with the text in the file, so use strings...
+ strings /tmp/bluepup/bt-agent-out > /tmp/bluepup/bt-agent-outCPY
+ grep -q 'Confirm pin code:' /tmp/bluepup/bt-agent-outCPY
+ [ $? -eq 0 ] && FLGpin=0
+ grep -q 'yes/no' /tmp/bluepup/bt-agent-outCPY
+ [ $? -eq 0 ] && FLGyn=0
+ grep -q 'Enter passkey:' /tmp/bluepup/bt-agent-outCPY
+ [ $? -eq 0 ] && FLGkey=0
+
+ if [ $FLGpin -eq 0 ];then
+  #ex: Confirm pin code: 217767 (yes/no)?
+  PINCODE="$(grep -o 'Confirm pin code: .*' /tmp/bluepup/bt-agent-outCPY | tr -s ' ' | cut -f 2 -d ':' | cut -f 2 -d ' ')"
+  if [ "$PINCODE" ];then
+   MSG1="$(gettext 'Enter PIN code on')"
+   MSG2="$(gettext 'remote device:')"
+   #this will auto-update on gui...
+   echo "<b><span color='#ff7010'>${MSG1}${CR}${MSG2}</span>${CR}<span color='#ff2010'><big><big>${PINCODE}</big></big></span></b>" > /tmp/bluepup/scan-status
+  fi
+ fi
+ #bt-agent may have other msgs requiring a yes/no response...
+ if [ $FLGyn -eq 0 ];then
+  echo 'yes' >> /tmp/bluepup/bt-agent-in #ref: bt-agent-run
+ fi
+ if [ $FLGkey -eq 0 ];then
+  Mpin="$(gettext 'Enter PIN number:')"
+  Mok="$(gettext 'OK')"
+  export BTAGENT_MONITOR_IN="<window decorated=\"false\" skip_taskbar_hint=\"true\">
+  <vbox>
+   <text use-markup=\"true\"><label>\"<big><big><b>${Mpin}</b></big></big>\"</label></text>
+   <entry><variable>INPUTVAR</variable></entry>
+   <hbox>
+    <button><label>${Mok}</label><action>EXIT:okbutton</action></button>
+   </hbox>
+  </vbox>
+  </window>"
+  RETPARAMS="$(gtkdialog --program=BTAGENT_MONITOR_IN --center)"
+  PIN="$(echo "$RETPARAMS" | grep 'INPUTVAR' | cut -f 2 -d '"')"
+  echo "$PIN" >> /tmp/bluepup/bt-agent-in #ref: bt-agent-run
+ fi
+ echo -n '' > /tmp/bluepup/bt-agent-out
+done
+
+###end###

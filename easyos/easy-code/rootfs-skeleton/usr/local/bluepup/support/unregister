@@ -1,0 +1,70 @@
+#!/bin/sh
+#device address is in /tmp/bluepup/chosen-reg-device
+#20211113 pa, no longer using /root/.asoundrc
+#20221031 /root/Startup/pulseaudio changed to /etc/init.d/pulseaudio
+
+export TEXTDOMAIN=bluepup
+export TEXTDOMAINDIR=/usr/share/locale
+export OUTPUT_CHARSET=UTF-8
+
+exit_func() {
+ echo -n 'limbo' > /tmp/bluepup/current-operation
+ exit $1
+}
+
+CR='
+'
+DEVICEID="$(cat /tmp/bluepup/chosen-reg-device)"
+
+#NOTE:
+#most of the unregister code is still in bluepup script.
+
+
+
+AUDIOD=''
+if pidof bluealsa >/dev/null;then AUDIOD='bluealsa'; fi
+if pidof pulseaudio >/dev/null;then AUDIOD='pulseaudio'; fi
+
+#might want to change to internal audio card...
+BTflg=''
+if [ -e /etc/init.d/pulseaudio ];then #20211113 20221031
+ #no longer using .asoundrc
+ grep -q '^#defaults' /etc/asound.conf
+ if [ $? -eq 0 ];then
+  #internal card entries have been commented-out.
+  PA_DEVID="$(echo -n "$DEVICEID" | tr ':' '_')"
+  if [ "$AUDIOD" == "pipewire" ];then #see similar code in mscw.
+   BTflg="$(pactl list sinks | grep -o "Name: .*${PA_DEVID}.*" | grep -o "${PA_DEVID}")"
+  else #pulseaudio
+   BTflg="$(pacmd list-sinks | grep 'name:.*bluez_sink' | grep -o "${PA_DEVID}")"
+  fi
+  if [ "$BTflg" ];then
+   grep -q 'Icon:.*audio-.*' /var/local/bluepup/reg-info.${DEVICEID}
+   if [ $? -eq 0 ];then
+    mscw &
+   fi
+  fi
+ fi
+else
+ if [ -s /root/.asoundrc ];then #only run mscw if default o/p is $DEVICEID...
+  if [ "$AUDIOD" == "pulseaudio" ];then #20201102 see similar code in mscw.
+   PA_DEVID="$(echo -n "$DEVICEID" | tr ':' '_')"
+   BTflg="$(pacmd list-sinks | grep 'name:.*bluez_sink' | grep -o "${PA_DEVID}")"
+  else
+   grep -q "${DEVICEID}" /root/.asoundrc ####NOTE: pulseaudio has different content, ref /usr/sbin/mscw
+   [ $? -eq 0 ] && BTflg='yes'
+  fi
+  if [ "$BTflg" ];then
+   grep -q 'Icon:.*audio-card' /var/local/bluepup/reg-info.${DEVICEID}
+   if [ $? -eq 0 ];then
+    mscw &
+   fi
+  fi
+ fi
+fi
+
+rm -f /var/local/bluepup/reg-info.${DEVICEID}
+
+sleep 1.2
+exit_func 0
+###end###

@@ -1,0 +1,20 @@
+#!/bin/sh
+#search woof-installed-packages and devx-only-installed-packages, find pkgs
+#that are not required by any other pkg. ignore pets.
+
+[ ! -f woof-installed-packages ] && exit 1
+
+#PKGLIST="$(grep -v '\.pet|' woof-installed-packages devx-only-installed-packages | cut -f 2 -d '|' | sort -u)"
+PKGLIST="$(grep -v '\.pet|' woof-installed-packages | grep -v '\-dev_' | cut -f 2 -d '|' | sort -u)"
+
+for aPKG in $PKGLIST
+do
+ [ ! "$aPKG" ] && continue
+ zPKG="$(echo -n "$aPKG" | sed -e 's%\.%\\.%g' -e 's%\+%\\+%g')"
+ #grep "\+${zPKG}[,&|]" woof-installed-packages devx-only-installed-packages >/dev/null
+ grep "\+${zPKG}[,&|]" woof-installed-packages >/dev/null
+ RETVAL=$?
+ if [ $RETVAL -ne 0 ];then
+  echo "$aPKG"
+ fi
+done

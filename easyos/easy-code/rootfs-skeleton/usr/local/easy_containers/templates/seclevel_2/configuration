@@ -1,0 +1,39 @@
+#Information for setting up and running the container
+#Security level 2: Minimum security, without Internet.
+
+#Connect to X by abstract socket, pipe, or unix domain socket (abstract|pipe|unix)...
+EC_XSOCKET='abstract'
+#Use Xorg or Xephyr server (xorg|xephyr)...
+EC_XSERVER='xorg'
+
+#For security, unshare these namespaces:
+EC_NS_UNSHARE_MOUNT='false'
+EC_NS_UNSHARE_UTS='false'
+EC_NS_UNSHARE_IPC='false'
+EC_NS_UNSHARE_NETWORK='false'
+EC_NS_UNSHARE_PID='false'
+
+#Clear environment variables, except some such as TERM and DISPLAY:
+EC_UNSHARE_ENV_VARS='false'
+#Tick to run as user spot in container:
+EC_ENV_SPOT='false'
+
+#Specify what you are allowed to access outside the container:
+EC_ACCESS_NET='false'
+EC_ACCESS_SND='true'
+EC_ACCESS_FOLDER='true'
+EC_ACCESS_FOLDER_PATH='/files/shared'
+
+#Drop these Linux capabilities:
+EC_CAP_system='false'
+EC_CAP_file='false'
+EC_CAP_network='false'
+EC_CAP_module='false'
+EC_CAP_resource='false'
+
+#SFS files may be loaded in a container. For example, the "devx":
+#for that download the appropriate "devx-*.sfs" file to match the current
+#version of Easy. for example, put it into releases/easy-0.1.6
+#then create an entry here, like this, with name of the devx sfs file:
+#glob wildcard accepted, in fact, recommended for automatic version updating:
+#EASY_LAYER_RO1='devx*.sfs'

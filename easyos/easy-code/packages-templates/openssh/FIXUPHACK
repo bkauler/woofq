@@ -1,0 +1,8 @@
+
+#180208 ubuntu deb
+if [ -f etc/init.d/ssh ];then
+ mv -f etc/init.d/ssh etc/init.d/sshd
+fi
+
+#180119 default to disable daemon
+[ -f etc/init.d/sshd ] && chmod 644 etc/init.d/sshd

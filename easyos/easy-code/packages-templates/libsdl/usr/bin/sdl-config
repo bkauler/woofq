@@ -1,0 +1,64 @@
+#!/bin/sh
+#190224 OE build sdl-config is broken.
+
+prefix=/usr
+exec_prefix=${prefix}
+exec_prefix_set=no
+libdir=${prefix}/lib
+
+#usage="\
+#Usage: sdl-config [--prefix[=DIR]] [--exec-prefix[=DIR]] [--version] [--cflags] [--libs]"
+usage="\
+Usage: sdl-config [--prefix[=DIR]] [--exec-prefix[=DIR]] [--version] [--cflags] [--libs] [--static-libs]"
+
+if test $# -eq 0; then
+      echo "${usage}" 1>&2
+      exit 1
+fi
+
+while test $# -gt 0; do
+  case "$1" in
+  -*=*) optarg=`echo "$1" | LC_ALL="C" sed 's/[-_a-zA-Z0-9]*=//'` ;;
+  *) optarg= ;;
+  esac
+
+  case $1 in
+    --prefix=*)
+      prefix=$optarg
+      if test $exec_prefix_set = no ; then
+        exec_prefix=$optarg
+      fi
+      ;;
+    --prefix)
+      echo $prefix
+      ;;
+    --exec-prefix=*)
+      exec_prefix=$optarg
+      exec_prefix_set=yes
+      ;;
+    --exec-prefix)
+      echo $exec_prefix
+      ;;
+    --version)
+      #echo 1.2.15
+      pkg-config --modversion sdl
+      ;;
+    --cflags)
+      #echo -I${prefix}/include/SDL -D_GNU_SOURCE=1 -D_REENTRANT
+      pkg-config --cflags sdl
+      ;;
+    --libs)
+      #echo -L${prefix}/lib  -lSDL
+      pkg-config --libs sdl
+      ;;
+    --static-libs)
+      #echo -L${prefix}/lib  -lSDL  -lpthread  -lm -ldl  -lasound -lm -ldl -lpthread -lpulse-simple -lpulse  -lX11 -lXext -L/usr/lib -lcaca -lpthread
+      pkg-config --static sdl
+      ;;
+    *)
+      echo "${usage}" 1>&2
+      exit 1
+      ;;
+  esac
+  shift
+done

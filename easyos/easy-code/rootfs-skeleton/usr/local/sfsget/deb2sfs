@@ -1,0 +1,143 @@
+#!/bin/sh
+#(c) copyright Barry Kauler 2022-09-14. Licence GPLv3 (/usr/share/doc/legal).
+#on the commandline: <name of sfs> <folder with deb pkgs>
+#<name of sfs> must be of the format <name>_<version>[-revision][_<arch>]
+# ex: chrome_105.1234.56-1_amd64
+#/usr/local/easy_containers/templates/<name> has information reqd to build the sfs.
+#20220915 skeleton may have pre-install script (ex: zoom)
+
+. /etc/rc.d/PUPSTATE
+. /etc/DISTRO_SPECS
+mkdir -p /tmp/sfsget
+xPWD="`pwd`"
+LANGORIG="$LANG"
+export LANG=C
+
+err_exit_func() {
+ echo "${2}"
+ #popup "process=wait background=#ff8080 level=top terminate=ok|<b>${2}</b>"
+ exit ${1}
+}
+
+[ ! $DISPLAY ] && err_exit_func 1 "X required for this script. Aborting."
+
+DIRout="$1"
+if [ "$(echo -n "$DIRout" | grep '[a-zA-Z]_[0-9]')" == "" ];then
+ err_exit_func 1 "Error: folder must be of the format <name>_<version>[-revision][_<arch>]"
+fi
+if [ -e "$DIRout" ];then
+ err_exit_func 1 "Error: ${DIRout} already exists. Aborting."
+fi
+
+DIRdebs="$2"
+if [ ! -d "$DIRdebs" ];then
+ err_exit_func 2 "Error: folder ${DIRdebs} does not exist. Aborting."
+fi
+DEBS="$(ls -1 ${DIRdebs}/*.deb)"
+if [ $? -ne 0 ];then
+ err_exit_func 3 "Error: require one or more .deb files in ${DIRdebs}. Aborting."
+fi
+
+#install each .deb into $DIRout...
+echo -n '' > ${DIRout}.files
+mkdir $DIRout
+for aDEB in ${DEBS}
+do
+ [ "$aDEB" == "" ] && continue
+ PFILES="$(dpkg-deb --contents ${aDEB} | tr -s ' ' | cut -f 6 -d ' ')"
+ if [ $? -ne 0 ];then
+  err_exit_func 4 "Error opening ${aDEB}, maybe file is corrupted. Aborting."
+ fi
+ echo "$PFILES" >> ${DIRout}.files
+ 
+ echo "Extracting ${aDEB}..."
+ dpkg-deb -x ${aDEB} ${DIRout}/
+ if [ $? -ne 0 ];then
+  err_exit_func 4 "Error extracting from ${aDEB}, maybe file is corrupted. Aborting."
+ fi
+ 
+ #extract deb control files. may have a post-install script...
+ rm -rf ${DIRout}/DEBIAN 2>/dev/null
+ dpkg-deb -e ${aDEB} ${DIRout}/DEBIAN
+ if [ -e ${DIRout}/DEBIAN/postinst ];then
+  echo "Running ${aDEB} post-install script..."
+  cd ${DIRout}
+  sh DEBIAN/postinst configure
+  cd ..
+ fi
+ rm -rf ${DIRout}/DEBIAN 2>/dev/null
+done
+
+#fix library folder paths...
+CPUtype="$(uname -m)" #ex: x86_64
+for aLIB in lib/${CPUtype}-linux-gnu usr/lib/${CPUtype}-linux-gnu
+do
+ if [ -e ${DIRout}/${aLIB} ];then
+  if [ -e /${aLIB} ];then
+   if [ -h /${aLIB} ];then
+    aUP="${aLIB%/*}"
+    cp -a -f --remove-destination ${DIRout}/${aLIB}/* ${DIRout}/${aUP}/
+    rm -rf ${DIRout}/${aLIB}
+   fi
+  fi
+ fi
+done
+
+#may also have dunfell pkgs...
+XZS="$(ls -1 ${DIRdebs}/*.xz 2>/dev/null)"
+if [ "$XZS" ];then
+ for aXZ in ${XZS}
+ do
+  [ "$aXZ" == "" ] && continue
+  xz --test ${aXZ} > /dev/null 2>&1
+  if [ $? -ne 0 ];then
+   err_exit_func 5 "Error opening ${aXZ}, maybe file is corrupted. Aborting."
+  fi
+  PFILES="$(tar --list -J -f ${aXZ})"
+  if [ $? -ne 0 ];then
+   err_exit_func 5 "Error opening ${aXZ}, maybe file is corrupted. Aborting."
+  fi
+  echo "$PFILES" >> ${DIRout}.files
+  tar -J -x --directory=${DIRout}/ -f ${aXZ}
+ done
+fi
+
+sed -i -e 's%^\./%/%' ${DIRout}.files #remove leading "."
+sed -i '/^$/d' ${DIRout}.files #blank lines.
+sed -i '/\/$/d' ${DIRout}.files #ex: /usr/share/appdata/
+sed -i -e 's%^%/%' -e 's%^//%/%' ${DIRout}.files #must have / prefix.
+sort -u ${DIRout}.files > /tmp/sfsget/dirout-files-sorted
+mv -f /tmp/sfsget/dirout-files-sorted ${DIRout}.files
+sed -i '/^\/pkg.specs$/d' ${DIRout}.files
+
+#$DIRout now has extracted debs, apply optional skeleton...
+SFSnameonly="${DIRout/_*/}" #ex: chrome
+if [ -d /usr/local/easy_containers/templates/${SFSnameonly} ];then
+ if [ -d /usr/local/easy_containers/templates/${SFSnameonly}/skeleton ];then
+  echo "Applying /usr/local/easy_containers/templates/${SFSnameonly}/skeleton"
+  if [ -d /usr/local/easy_containers/templates/${SFSnameonly}/skeleton/usr/share/applications ];then
+   rm -rf ${DIRout}/usr/share/applications
+  fi
+  cp -a -f --remove-destination /usr/local/easy_containers/templates/${SFSnameonly}/skeleton/* ${DIRout}/
+ 
+  #20220915 skeleton may have pre-install script (ex: zoom)
+  if [ -e ${DIRout}/pre-install.sh ];then
+   cd ${DIRout}
+   sh ./pre-install.sh
+   cd ..
+   rm -f ./${DIRout}/pre-install.sh
+  fi
+ fi
+fi
+
+if [ -f ${DIRout}/pkg.specs ];then
+ rm -f ${DIRout}/pkg.specs
+fi
+
+#now run dir2sfs...
+sync
+echo "Running dir2sfs..."
+dir2sfs ${DIRout}
+
+
+###end###

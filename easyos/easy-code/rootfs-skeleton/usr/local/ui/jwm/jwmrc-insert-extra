@@ -1,0 +1,20 @@
+#!/bin/ash
+#20220214 insert icons so that they are in the right-side of tray.
+# called from /root/.xinitrc
+#20220331 bring back "Show desktop".
+
+export TEXTDOMAIN=ui-jwm
+export OUTPUT_CHARSET=UTF-8
+
+if [ ! -f /root/.jwm/tray-extra ];then
+ mLOCK="$(gettext 'Lock the screen')"
+ mSHOW="$(gettext 'Show desktop')"
+ echo "		<TrayButton popup=\"${mLOCK}\" icon=\"lock-screen48.png\">exec:/usr/local/apps/Xlock/AppRun</TrayButton>
+		<TrayButton popup=\"${mSHOW}\" icon=\"mini-desktop.xpm\">showdesktop</TrayButton>" > /root/.jwm/tray-extra
+fi
+
+#insert file between two patterns...
+sed -i -e '/STARTEXTRA/,/ENDEXTRA/{/STARTEXTRA/!{/ENDEXTRA/!d}}' -e '/STARTEXTRA/r /root/.jwm/tray-extra' /root/.jwmrc-tray
+
+#sync
+###end###

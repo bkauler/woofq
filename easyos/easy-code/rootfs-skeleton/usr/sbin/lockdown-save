@@ -1,0 +1,221 @@
+#!/bin/sh
+#two lockdown modes, will have "save" icon on the desktop (replacing "update" icon).
+#which will call this script. note, "save" icon created by init script in initrd.
+#session has been copied to zram0, but /etc/rc.d/PUPSTATE has origWKG_DEV, origWKG_FS, origWKG_UUID
+#in case of lock #2, disabled drives, if booted off usb-stick can replug it, then use $origWKG_UUID.
+#200809 first release, "Coming soon..." msg.
+#200820 first working version.
+#200822 save folder sanity check. use origWKG_DIR. 200824 fixes.
+#200826 init script has deleted some files, need to restore them.
+#200827 init created easy_*.sfs symlink under sfs folder, so only save real files.
+#200830 save /root/spot
+#20201211 i created a file in /root, but it did not save. users will expect it to be saved.
+#20210906 /root/spot moved to /clients/spot
+#20210913 app will now run as individual clients, not spot.
+#20210919 now /home/spot
+#20220601 change text "/mnt/wkg" to "mnt/zram0"
+
+#xmessage -bg '#fdd00c' -fg '#000000' "Coming soon..."
+
+export TEXTDOMAIN=lockdown-save
+export OUTPUT_CHARSET=UTF-8
+
+. /etc/DISTRO_SPECS
+. /etc/rc.d/PUPSTATE
+
+ERRflg=0
+[ "$WKG_DEV" != "zram0" ] && ERRflg=1
+[ "${origWKG_UUID}" == "" ] && ERRflg=1
+if [ $ERRflg -eq 1 ];then
+ ERRmsg="$(gettext 'Sorry, not running locked-down in RAM. Aborting.')"
+ xmessage -bg '#ff8080' -fg '#000000' "${ERRmsg}"
+ exit
+fi
+CR='
+'
+
+#200830 well, could check $BOOT_LOCK in PUPSTATE, instead of this...
+#try running mknod to see if in lockdown #2...
+LOCKDOWN=1
+busybox mknod /dev/sde15 b 8 79 2>/dev/null #hope doesn't already exist!
+[ $? -ne 0 ] && LOCKDOWN=2
+
+if [ $LOCKDOWN -eq 1 ];then
+ M1="$(gettext 'The drive that you booted off is missing. Please plug it in now.')"
+ M2="$(gettext 'Note, you are in lockdown mode #1, everything was copied to RAM at bootup and all drives unmounted. However, they are still available for use. As the drive is currently unavailable, you must have unplugged it after bootup.')"
+else
+ M1="$(gettext 'The drive that you have booted off is missing. You are in lockdown mode #2, all drives disabled, however, if you have booted off a USB drive, you can save to it by replugging it.')"
+ M2="$(gettext 'Note, with lockdown mode #2, everything was copied to RAM at bootup, then all drives disabled. This is a high-security feature, however, in the case of removable drives, physically replugging it will make it available, and you can save the session to it. If you booted off an internal permanent drive, you cannot save to it.')" 
+fi
+
+while [ 1 ];do
+ BLKIDS="$(busybox blkid)"
+ realWKG_DEV="$(echo "$BLKIDS" | grep "UUID=\"${origWKG_UUID}\"" | cut -f 1 -d ':' | cut -f 3 -d '/' | head -n 1)"
+ if [ "$realWKG_DEV" == "" ];then
+  export LOCK_SAVE_MISSING_DLG="<window title=\"$(gettext 'Lockdown Save: drive missing')\" icon-name=\"gtk-about\" window_position=\"1\">
+  <vbox>
+  <text use-markup=\"true\"><label>\"<b><span color='red'>${M1}</span></b>${CR}${M2}\"</label></text>
+  <hbox>
+   <text><label>$(gettext 'After plugging it in, click the OK button:')</label></text>
+   <button ok></button>
+  </hbox>
+  <hbox>
+   <text><label>$(gettext 'If unable to provide the drive, click the Cancel button:')</label></text>
+   <button cancel></button>
+  </hbox>
+  </vbox></window>"
+  RETVARS="$(gtkdialog --program=LOCK_SAVE_MISSING_DLG --center)"
+  [ $? -eq 0 ] && eval "$RETVARS"
+  [ "$EXIT" != "OK" ] && exit
+  sleep 0.5
+ else
+  break
+ fi
+ M1="<big>$(gettext 'STILL CANNOT FIND DRIVE THAT YOU BOOTED OFF!')</big>"
+done
+
+MNTflg=0
+grep -q "^/dev/${realWKG_DEV} " /proc/mounts
+if [ $? -ne 0 ];then
+ mkdir -p /mnt/${realWKG_DEV}
+ busybox mount -t ${origWKG_FS} /dev/${realWKG_DEV} /mnt/${realWKG_DEV}
+ if [ $? -ne 0 ];then
+  Emsg2="$(gettext 'Sorry, unable to mount this partition:')"
+  popup "background=#ff8080 level=top process=wait terminate=ok|<big>${Emsg2} ${realWKG_DEV}</big>"
+  exit
+ fi
+ MNTflg=1
+fi
+
+SAVEPATH="/mnt/${realWKG_DEV}/${origWKG_DIR}.session"
+M2="$(gettext 'This is the working-partition of the drive you booted from:')"
+M3="$(gettext 'If you click the OK button, the current session will be copied from RAM to this partition.')"
+M4="$(gettext 'Technical notes')"
+M5="$(gettext 'This is the location of the folder you will save to:')"
+M6="$(gettext 'This is the location of the current session in RAM:')"
+M6a="$(gettext 'These folders will also be saved:')"
+export LOCK_SAVE_SESSION_DLG="<window title=\"$(gettext 'Lockdown Save: save session')\" icon-name=\"gtk-about\" window_position=\"1\">
+  <vbox>
+  <text use-markup=\"true\"><label>\"<b>${M2} ${realWKG_DEV}</b>${CR}${M3}${CR}${CR}<b>${M4}</b>${CR}${M5}${CR} ${origWKG_DIR}.session (/dev/${realWKG_DEV})${CR}${M6}${CR} /mnt/zram0/.session${CR}${M6a}${CR}/mnt/zram0/files (/files) and /mnt/zram0/sfs${CR}\"</label></text>
+  <hbox>
+   <text><label>$(gettext 'Click the OK button to save the session:')</label></text>
+   <button ok></button>
+  </hbox>
+  <hbox>
+   <text><label>$(gettext 'Click the Cancel button to abort saving:')</label></text>
+   <button cancel></button>
+  </hbox>
+  </vbox></window>"
+RETVARS2="$(gtkdialog --program=LOCK_SAVE_SESSION_DLG --center)"
+[ $? -eq 0 ] && eval "$RETVARS2"
+[ "$EXIT" != "OK" ] && exit
+
+ERRflg=0
+if [ ! -d ${SAVEPATH} ];then #200822
+ M9="$(gettext 'ERROR, save folder does not exist:')"
+ popup "background=#ffa0a0 level=top process=wait terminate=ok|<big>${M9} ${SAVEPATH}</big>"
+ ERRflg=1
+else
+ M7="$(gettext 'Saving session, please wait...')"
+ popup "background=#ffd080 process=daemon level=top|<big>${M7}</big>"
+ #cp -a -f --remove-destination /mnt/wkg/.session/*  ${SAVEPATH}/
+ #200823 better to save more carefully...
+ for aDIR in audit bin home etc lib opt sbin usr
+ do
+  if [ -d /mnt/wkg/.session/${aDIR} ];then
+   mkdir -p ${SAVEPATH}/${aDIR}
+   cp -a -u --remove-destination /mnt/wkg/.session/${aDIR}/*  ${SAVEPATH}/${aDIR}/ #will ignore .*
+  fi
+ done
+ for aDOT in .config .local .mozilla .packages .pup_event .var .clients-status .asoundrc #200824 200830 spot  20210906 remove spot
+ do
+  [ ! -e /mnt/wkg/.session/root/${aDOT} ] && continue
+  if [ -d /mnt/wkg/.session/root/${aDOT} ];then
+   mkdir -p ${SAVEPATH}/root/${aDOT}
+   cp -a -u --remove-destination /mnt/wkg/.session/root/${aDOT}/* ${SAVEPATH}/root/${aDOT}/ 2>/dev/null
+  else
+   cp -a -u --remove-destination /mnt/wkg/.session/root/${aDOT} ${SAVEPATH}/root/
+  fi
+ done
+ for aCLIENT in spot #20210906
+ do
+  [ ! -e /mnt/wkg/.session/home/${aCLIENT} ] && continue
+  if [ -d /mnt/wkg/.session/home/${aCLIENT} ];then
+   mkdir -p ${SAVEPATH}/home/${aCLIENT}
+   cp -a -u --remove-destination /mnt/wkg/.session/home/${aCLIENT}/* ${SAVEPATH}/home/${aCLIENT}/ 2>/dev/null
+  else
+   cp -a -u --remove-destination /mnt/wkg/.session/home/${aCLIENT} ${SAVEPATH}/home/
+  fi
+ done
+ sync
+ #200820 do not save /etc/xdg/templates/_root_.jwmrc, restore line in /root/.jwmrc
+ #ref: /etc/rc.d/rc.sysinit
+ rm -f ${SAVEPATH}/etc/xdg/templates/_root_.jwmrc 2>/dev/null #200824
+# #sed -i -r 's%^<!-- (.*exec lockdown-ram.*) -->%\1%' ${SAVEPATH}/root/.jwmrc
+# rm -f ${SAVEPATH}/root/.jwmrc #200824 if menu has changed, will have to reconstruct .jwmrc
+# #200823 remove...
+# [ -e ${SAVEPATH}/root/.XLOADED ] && rm -f ${SAVEPATH}/root/.XLOADED
+ rm -f ${SAVEPATH}/root/.jwmrc 2>/dev/null #200824 it will have to be rebuilt at bootup. ref: rc.sysinit
+ 
+ #200826 init script has deleted some files, need to restore them...
+ for aWO in /mnt/wkg/.session/usr/share/applications/.wh.*
+ do
+  bWO="$(basename "$aWO")"
+  rm -f ${SAVEPATH}/usr/share/applications/${bWO}
+ done
+ for aWO in /mnt/wkg/.session/usr/sbin/.wh.*
+ do
+  bWO="$(basename "$aWO")"
+  rm -f ${SAVEPATH}/usr/sbin/${bWO}
+ done
+ for aWO in /mnt/wkg/.session/root/.pup_event/.wh.*
+ do
+  bWO="$(basename "$aWO")"
+  rm -f ${SAVEPATH}/root/.pup_event/${bWO}
+ done
+ 
+ #20201211 i created a file in /root, but it did not save. users will expect it to be saved...
+ ROOTfiles="$(find /mnt/wkg/.session/root -mindepth 1 -maxdepth 1 -type f -name '[a-zA-Z0-9]*' | tr '\n' ' ')"
+ for aROOTfile in $ROOTfiles
+ do
+  cp -a -f ${aROOTfile} ${SAVEPATH}/root/
+ done
+ 
+ #save files outside .session folder...
+ #SAVEHOME="/mnt/${realWKG_DEV}/${origWKG_DIR}files"
+ SAVEHOME="/mnt/${realWKG_DEV}/${origWKG_DIR}files"
+ cp -a -u /mnt/wkg/files/* ${SAVEHOME}/
+ SAVESFS="/mnt/${realWKG_DEV}/${origWKG_DIR}sfs"
+ #200827 this has a symlink, so only save real files...
+ #cp -a -u /mnt/wkg/sfs/* ${SAVESFS}/
+ realFILES="$(find /mnt/wkg/sfs/easyos/${DISTRO_BINARY_COMPAT}/${DISTRO_COMPAT_VERSION} -mindepth 1 -maxdepth 1 -type f | grep -v '^easy' | tr '\n' ' ')"
+ for aREAL in $realFILES
+ do
+  cp -a -u ${aREAL} ${SAVESFS}/easyos/${DISTRO_BINARY_COMPAT}/${DISTRO_COMPAT_VERSION}/
+ done
+ #'configuration' file may get written to when install a sfs...
+ SAVERELEASE="/mnt/${realWKG_DEV}/${origWKG_DIR}releases/easy-${DISTRO_VERSION}"
+ #hmmm, configuration at target has later date, use -f not -u ...
+ cp -a -f /mnt/wkg/releases/easy-${DISTRO_VERSION}/configuration ${SAVERELEASE}/
+ cp -a -f /mnt/wkg/releases/easy-${DISTRO_VERSION}/configuration-${DISTRO_VERSION} ${SAVERELEASE}/
+ #if had installed a sfs, a symlink would be here...
+ relSFS="$(find /mnt/wkg/releases/easy-${DISTRO_VERSION} -maxdepth 1 -type l -name '*.sfs' | tr '\n' ' ')"
+ for aSFS in $relSFS
+ do
+  aBASE="$(basename $aSFS)"
+  [ "$aBASE" == "easy.sfs" ] && continue
+  cp -a -u --remove-destination ${aSFS} ${SAVERELEASE}/
+ done
+ sync
+ killall popup
+fi
+
+if [ $MNTflg -eq 1 ];then
+ busybox umount /mnt/${realWKG_DEV}
+fi
+
+if [ $ERRflg -eq 0 ];then
+ M8="$(gettext 'The session has been saved!')"
+ popup "background=#a0ffa0 process=wait terminate=ok level=top|<big>${M8}</big>"
+fi
+###end###

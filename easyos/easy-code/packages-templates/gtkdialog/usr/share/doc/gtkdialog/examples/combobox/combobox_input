@@ -1,0 +1,32 @@
+#!/bin/sh
+
+# Thunor: This example is broken: input from a command has not been
+# implemented for this widget and it's now old and deprecated.
+
+GTKDIALOG=gtkdialog
+
+MAIN_DIALOG='
+<window>
+	<vbox>
+		<hbox>
+			<text>
+				<label>Combobox:</label>
+			</text>
+			<combobox>
+				<variable>COMBOBOX</variable>
+				<input>ls</input>
+			</combobox>
+		</hbox>
+		<hbox>
+			<button ok></button>
+			<button cancel></button>
+		</hbox>
+	</vbox>
+</window>
+'
+export MAIN_DIALOG
+
+case $1 in
+	-d | --dump) echo "$MAIN_DIALOG" ;;
+	*) $GTKDIALOG --program=MAIN_DIALOG ;;
+esac

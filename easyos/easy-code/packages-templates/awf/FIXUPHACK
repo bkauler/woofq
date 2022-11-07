@@ -1,0 +1,32 @@
+#20220423 oe
+
+for aDIR in 22x22 32x32 64x64 128x128
+do
+ rm -rf usr/share/icons/hicolor/${aDIR} 2>/dev/null
+done
+
+mkdir -p usr/share/pixmaps
+ln -s ../icons/hicolor/48x48/apps/awf.png usr/share/pixmaps/awf.png
+
+mkdir -p usr/share/applications
+rm -f usr/share/applications/awf.desktop 2>/dev/null
+
+echo '[Desktop Entry]
+Name=AWF gtk2 widget factory
+Comment=A widget factory - a theme preview application for gtk2
+Exec=awf-gtk2
+Icon=awf.png
+Terminal=false
+Type=Application
+Categories=X-Utility-development
+StartupNotify=true' > usr/share/applications/awf-gtk2.desktop
+
+echo '[Desktop Entry]
+Name=AWF gtk3 widget factory
+Comment=A widget factory - a theme preview application for gtk3
+Exec=awf-gtk3
+Icon=awf.png
+Terminal=false
+Type=Application
+Categories=X-Utility-development
+StartupNotify=true' > usr/share/applications/awf-gtk3.desktop

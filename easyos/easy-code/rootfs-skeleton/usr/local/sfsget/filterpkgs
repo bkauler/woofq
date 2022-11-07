@@ -1,0 +1,111 @@
+#!/bin/sh
+#param passed in is path to sfs files. ex: puppy/slackware/14.2
+#create an output file for display in <tree> in sfsget.
+#181106 filter-out other versions.
+#181107 handle no pkgs of correct version in path. hide install btn. 181108 fix.
+#181119 filter-out other kernel src versions. kernel_<ver>[-<rev>]_src
+#190106 change "q" to "easy"
+#190114 do not want to show any version of easy SFS. 
+#190911 allow easy*sfs if not current easyos series.
+#191220 sfsget tested if internet connection. offline, only show downloaded sfs's.
+#200331 connected to internet, but only list if in currently-chosen repository.
+#200826 filter out easy, devx and kernel sfs's if running in ram.
+#20220603 replace DB_* with SFS_DB_* in sfs .specs files.
+#20220607 improve filtering.
+
+. /etc/DISTRO_SPECS #181106
+. /etc/rc.d/PUPSTATE #200826
+KERNVER="$(uname -r)"
+
+#191220 FIP empty if no internet...
+FIP="$(cat /tmp/sfsget/internet-flag)"
+
+#echo "Executing: /usr/local/sfsget/filterpkgs ${1}"
+FULLPATH="/mnt/wkg/sfs/${1}"
+
+CNT=1
+touch /tmp/sfsget/fullfilename #181108
+echo -n "" > /tmp/sfsget/filterpkgs.results.tree
+for aICONSPEC in `ls -1 ${FULLPATH}/*.png`
+do
+ aNAME="$(basename $aICONSPEC .png)"
+ [ ! -f /usr/share/pixmaps/${aNAME}.png ] && cp ${aICONSPEC} /usr/share/pixmaps/
+ for aSPECS in `ls -1 ${FULLPATH}/${aNAME}_*.specs`
+ do
+  [ "$aSPECS" == "" ] && continue
+  grep -q '^SFS_DB_' ${aSPECS} #20220603 precaution, check if old format
+  if [ $? -ne 0 ];then
+   sed -i -e 's%^DB_%SFS_DB_%' ${aSPECS}
+  fi
+  . ${aSPECS}
+  if [ "$FIP" == "" ];then #191220 check that .sfs exists when offline...
+   [ ! -f ${FULLPATH}/${SFS_DB_fullfilename} ] && continue
+  fi
+  #200331 connected to internet, but only list if in currently-chosen repository...
+  if [ "$FIP" ];then
+   if [ ! -f ${FULLPATH}/${SFS_DB_fullfilename} ];then #not already downloaded.
+    if [ -s /tmp/sfsget/SFS_PROBE_currentrepo ];then #see sfsget
+     grep -q "/${SFS_DB_fullfilename}$" /tmp/sfsget/SFS_PROBE_currentrepo
+     [ $? -ne 0 ] && continue
+    else
+     continue
+    fi
+   fi
+  fi
+  
+  #181106 filter to avoid too much clutter in gui window...
+  if [ "$aNAME" == "easy" ];then
+#   #190911 filter out easy*sfs if current series, ex "buster", allow "pyro" thru.
+#   [ "$SFS_DB_compiledrelease" == "$DISTRO_COMPAT_VERSION" ] && continue #190114 do not want to show any version of easy SFS.
+   [ "$BOOT_LOCK" ] && continue #200826 running in ram. ref: /etc/rc.d/PUPSTATE
+  fi
+  #20220607 dunno about above, just do this...
+  [ "$aNAME" == "easy" ] && continue #screen out all easy_*.sfs
+  
+  #20220607 there may be language-specific sfs's...
+  case "$SFS_DB_revision" in
+   fr)
+    [ "${LANG:0:2}" != "fr" ] && continue
+   ;;
+   de)
+    [ "${LANG:0:2}" != "de" ] && continue
+   ;;
+  esac
+  
+  if [ "$aNAME" == "devx" ];then #181108 only filter-out these. 190106 change "q" to "easy". 190911
+   if [ "$SFS_DB_path" == "easyos/${DISTRO_BINARY_COMPAT}/${DISTRO_COMPAT_VERSION}" ];then #ex: easyos/oe/pyro
+    [ "$SFS_DB_version" != "$DISTRO_VERSION" ] && continue
+   else
+    #20220607 hmmm, for now, do not show devx sfs of other distros...
+    continue
+   fi
+   [ "$BOOT_LOCK" ] && continue #200826 running in ram. ref: /etc/rc.d/PUPSTATE
+  fi
+  if [ "$aNAME" == "kernel" ];then #181119
+   [ "$SFS_DB_version" != "$KERNVER" ] && continue
+   [ "$BOOT_LOCK" ] && continue #200826 running in ram. ref: /etc/rc.d/PUPSTATE
+  fi
+  #the second field is the icon...
+  echo "${SFS_DB_fullfilename}|${aNAME}|${SFS_DB_description}" >> /tmp/sfsget/filterpkgs.results.tree
+  [ $CNT -eq 1 ] && ln -snf /usr/share/pixmaps/${aNAME}.png /tmp/sfsget/name.png #echo -n "${aNAME}" > /tmp/sfsget/filterpkgs.results.onename
+  [ $CNT -eq 1 ] && echo -n "${SFS_DB_fullfilename}" > /tmp/sfsget/fullfilename
+  CNT=$(($CNT+1))
+ done
+done
+
+#181107
+#if [ ! -s /tmp/sfsget/filterpkgs.results.tree ];then
+# echo "nothing||" > /tmp/sfsget/filterpkgs.results.tree
+#fi
+if [ -s /tmp/sfsget/filterpkgs.results.tree ];then
+ echo -n 'true' > /tmp/sfsget/vis-data-flg
+else
+ echo -n 'false' > /tmp/sfsget/vis-data-flg
+fi
+aPKG="$(cat /tmp/sfsget/fullfilename)"
+if [ -f ${FULLPATH}/${aPKG} ];then
+ echo -n "false" > /tmp/sfsget/vis-install-flg
+else
+ echo -n "true" > /tmp/sfsget/vis-install-flg
+fi
+###end###

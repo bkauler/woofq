@@ -1,0 +1,905 @@
+
+#w469 fallbacks when looking for pet pkgs (space-separated list)...
+FALLBACKS_COMPAT_VERSIONS=''
+
+#PKGS_SPECS_TABLE table format:
+#will pkg be in puppy-build.
+#    Generic name for pkg. Note: PET packages, if exist, use this name.
+#            Comma-separated list of compatible-distro pkg(s). '-' prefix, exclude.
+#            Must be exact name-only of pkg, else '*' on end is wildcard to search full name.
+#            Empty field, then use PET pkg.
+#                                    How the package will get split up in woof (optional redirection '>' operator).
+#                                    Missing field, it goes into exe. Can also redirect >null, means dump it.
+#yes|abiword|iceword,iceword-plugins|exe,dev,doc,nls
+
+#example showing wildcard. finds all full pkg names with 'gcc-4.3*',
+#but, exclude any 'gcc-4.3-doc*' matches...
+# yes|gcc|gcc,gcc-4.3*,-gcc-4.3-doc*|exe,dev,doc,nls
+
+#110817 Comments preferred to be on end of line, ex:
+# yes|abiword|iceword,iceword-plugins|exe,dev,doc,nls| #this is a comment.
+
+#110829 enhancements:
+#                                                     Force pkg is from compat-distro repo, specifically 'salix' repo.
+# yes|abiword|iceword,iceword-plugins|exe,dev,doc,nls|compat:salix
+#Generic format:
+# yes|genericpkgname|[pkgnames]|[splitup]|[pet:[repo]]
+# yes|genericpkgname|[pkgnames]|[splitup]|[compat:[repo]]
+#for a fuller explanation of the entries in PKGS_SPECS_TABLE, please see:
+# http://bkhome.org/blog/?viewDetailed=02414
+
+PKGS_SPECS_TABLE='
+yes|acl|acl|exe,dev,doc,nls|compat:pyro| #20170510
+yes|acpid|acpid|exe,dev,doc,nls|compat:pyro
+yes|adbfs|adbfs|exe,dev,doc,nls|compat:pyro| #20180808 needs fuse and adb
+no|adwaita-icon-theme|adwaita-icon-theme|exe,dev,doc,nls|compat:pyro
+yes|align||exe|pet:noarch| #perl script.
+yes|alsa-lib|alsa-lib|exe,dev,doc,nls|compat:pyro
+no|alsa-plugins|alsa-plugins|exe,dev,doc,nls|compat:pyro
+no|alsa-state|alsa-state|exe,dev,doc,nls|compat:pyro
+yes|alsa-utils|alsa-utils|exe,dev,doc,nls|compat:pyro
+yes|android-tools|android-tools|exe,dev,doc,nls|compat:pyro| #20180808 has adb and fastboot.
+no|appstream-glib|appstream-glib|exe,dev,doc,nls|compat:pyro| #20180616 needed by flatpak
+yes|apr|apr|exe,dev,doc,nls|compat:pyro
+yes|apr-util|apr-util|exe,dev,doc,nls|compat:pyro
+yes|apt|apt|exe,dev,doc,nls|compat:pyro
+yes|apulse|apulse|exe,dev>exe,doc,nls|compat:pyro| #20181007 needed by chromium
+yes|arp-scan|arp-scan|exe,dev,doc,nls|compat:pyro| #20171030 needed by peasyscan-noarch
+no|aspell|aspell|exe,dev,doc,nls|compat:pyro
+yes|atk|atk|exe,dev,doc,nls|compat:pyro
+yes|atkmm|atkmm|exe,dev,doc,nls|compat:pyro
+yes|at-spi2-atk|at-spi2-atk|exe,dev,doc,nls|compat:pyro| #180401 needed by gtk+3
+yes|at-spi2-core|at-spi2-core|exe,dev,doc,nls|compat:pyro| #180401 needed by gtk+3
+yes|attr|attr|exe,dev,doc,nls|compat:pyro
+yes|audacious||exe,dev,doc,nls|pet:pyro| #20190125 music player gtk2-based
+yes|audacious-plugins||exe,dev,doc,nls|pet:pyro| #20190125 music player plugins gtk2-based
+yes|aufs-util|aufs-util|exe,dev,doc,nls|compat:pyro|
+yes|aumix|aumix|exe,dev,doc,nls|compat:pyro| #20180505 using with pnmixer_tray
+yes|autoconf|autoconf|exe>dev,dev,doc,nls|compat:pyro
+yes|autoconf2.13||exe>dev,dev,doc,nls|pet:noarch| #20170511 needed to compile firefox and seamonkey.
+yes|automake|automake|exe>dev,dev,doc,nls|compat:pyro
+yes|babl|babl|exe,dev,doc,nls|compat:pyro| #20170510
+yes|bacon|bacon|exe>dev,dev,doc,nls|compat:pyro| #all goes into devx. #20170608  20180505
+yes|bacon-hug|bacon-hug|exe,dev>exe,doc>dev,nls|compat:pyro| #components of bacon needed at runtime. #20170608  20180505
+yes|bacon-hug-imports|bacon-hug-imports|exe>dev,dev,doc,nls|compat:pyro| #all goes into devx. #20170608  20180505
+yes|bash|bash|exe,dev,doc,nls|compat:pyro
+no|bash-completion|bash-completion|exe,dev,doc,nls|compat:pyro
+yes|bbc_provided|bbc-provided|exe,dev,doc,nls|compat:pyro| #20170617
+yes|bbe|bbe|exe,dev,doc,nls|compat:pyro| #20171030
+yes|bc|bc|exe,dev,doc,nls|compat:pyro
+yes|bcrypt|bcrypt|exe,dev,doc,nls|compat:pyro| #20170617
+yes|bdftopcf|bdftopcf|exe,dev,doc,nls|compat:pyro| #20170510
+yes|bdwgc|bdwgc|exe,dev,doc,nls|compat:pyro| #20180313 needed by inkscape
+yes|binutils|binutils|exe>dev,dev,doc,nls|compat:pyro
+yes|bison|bison|exe>dev,dev,doc,nls|compat:pyro
+yes|bluepup||exe|pet:noarch
+no|bluepup_tray||exe|pet:pyro| #20180728
+yes|bluepup_tray|bluepup-tray|exe,dev,doc,nls|compat:pyro| #20180728
+yes|bluez5|bluez5|exe,dev,doc,nls|compat:pyro
+yes|bones||exe|pet:noarch
+yes|boost|boost|exe>dev,dev,doc,nls|compat:pyro
+yes|boost-runtime|boost|exe,dev>null,doc>null,nls>null|compat:pyro
+yes|busybox||exe,dev>null,doc,nls|pet:pyro| #has guess_fstype applet. compiled statically. KEEPPKG
+yes|bzip2|bzip2|exe,dev,doc,nls|compat:pyro
+yes|c99-wrapper||exe>dev,dev,doc,nls|pet:noarch
+yes|ca-certificates|ca-certificates|exe,dev,doc,nls|compat:pyro
+yes|cairo|cairo|exe,dev,doc,nls|compat:pyro
+yes|cairomm|cairomm|exe,dev,doc,nls|compat:pyro| #20170510
+no|cantarell-fonts|cantarell-fonts|exe,dev,doc,nls|compat:pyro
+no|ccache|ccache|exe>dev,dev,doc,nls|compat:pyro
+yes|cddetect|cddetect|exe,dev>null,doc,nls|compat:pyro| #20170617
+yes|cddetect_quick|cddetect-quick|exe,dev>null,doc,nls|compat:pyro| #20170617
+yes|cdrkit|cdrkit|exe,dev,doc,nls|compat:pyro
+yes|cgtkcalc|cgtkcalc|exe,dev>null,doc,nls|compat:pyro| #20170617
+yes|chrpath|chrpath|exe,dev,doc,nls|compat:pyro| #20170626
+no|cifs-utils||exe,dev,doc,nls|pet:pyro| #20171213 has mount.cifs
+yes|cifs-utils|cifs-utils|exe,dev,doc,nls|compat:pyro| #20180715 has mount.cifs
+yes|cmake|cmake|exe>dev,dev,doc,nls|compat:pyro| #20170513
+no|connman|connman|exe,dev,doc,nls|compat:pyro
+no|connman-gnome|connman-gnome|exe,dev,doc,nls|compat:pyro
+no|consolekit|consolekit|exe,dev,doc,nls|compat:pyro
+yes|coreutils|coreutils|exe,dev,doc,nls|compat:pyro| #180702 going back to this, cp works.
+no|coreutils||exe,dev,doc,nls|pet:pyro| #20180627 compiled statically. no, cp utility broken compiled with musl.
+yes|cpio|cpio|exe,dev>null,doc,nls|compat:pyro
+yes|cppunit|cppunit|exe,dev,doc,nls|compat:pyro| #20170510
+yes|cryptodev-linux|cryptodev-linux|exe,dev,doc,nls|compat:pyro
+yes|ctorrent|ctorrent|exe,dev,doc,nls|compat:pyro| #20170617
+yes|cups|cups|exe,dev,doc>exe,nls|compat:pyro| #important doc goes into exe
+yes|cups-filters|cups-filters|exe,dev,doc,nls|compat:pyro| #20170609
+yes|cups_pdf||exe|pet:noarch| #20171211
+yes|curl|curl|exe,dev,doc,nls|compat:pyro
+yes|curlftpfs|curlftpfs|exe,dev,doc,nls|compat:pyro| #20170617
+yes|db|db|exe,dev,doc,nls|compat:pyro| #180606 libreoffice needs this for open/save
+yes|dbus|dbus|exe,dev,doc,nls|compat:pyro
+yes|dbus-glib|dbus-glib|exe,dev,doc,nls|compat:pyro
+no|dbus-wait|dbus-wait|exe,dev,doc,nls|compat:pyro
+no|dcadec|dcadec|exe,dev,doc,nls|compat:pyro| #20170510. only used by kodi.
+no|debianutils|debianutils|exe,dev,doc,nls|compat:pyro
+yes|defaults-chooser||exe|pet:noarch
+yes|desk_background_deepblueband||exe|pet:noarch| #20190118
+yes|desk_background_easyblue||exe|pet:noarch| #20180504
+yes|desk_background_greenvapors||exe|pet:noarch
+no|desk_icon_theme_aluminium||exe|pet:noarch
+yes|desk_icon_theme_easyblue||exe|pet:noarch| #20180504
+yes|desk_icon_theme_lagabluenight2||exe|pet:noarch| #190118
+yes|desk_icon_theme_quirky72green||exe|pet:noarch
+no|desk_icon_theme_smooth_color||exe|pet:noarch
+no|desk_icon_theme_stark042||exe|pet:noarch
+yes|desktop-file-utils|desktop-file-utils|exe,dev,doc,nls|compat:pyro| #20170513
+yes|dhcpcd|dhcpcd|exe,dev>null,doc,nls|compat:pyro| #20180715 maybe issues, but dont have a pet yet.
+no|dhcpcd||exe,dev,doc,nls|pet:pyro| #20171022
+yes|dia|dia|exe,dev,doc,nls|compat:pyro
+yes|dialog|dialog|exe,dev>null,doc,nls|compat:pyro| #20180715
+no|dialog||exe,dev>null,doc,nls|pet:pyro| #20171022
+yes|dictd_client|dictd-client|exe,dev,doc,nls|compat:pyro| #20170617
+yes|didiwiki|didiwiki|exe,dev,doc,nls|compat:pyro
+no|dietlibc||exe>dev,dev,doc,nls|pet:pyro| #20170526
+yes|diffstat|diffstat|exe,dev,doc,nls|compat:pyro
+yes|diffutils|diffutils|exe,dev,doc,nls|compat:pyro
+yes|disktype|disktype|exe,dev,doc,nls|compat:pyro| #20170617
+yes|dmidecode|dmidecode|exe,dev>null,doc,nls|compat:pyro
+yes|dmxproto|dmxproto|exe>dev,dev,doc,nls|compat:pyro| #20170510
+no|dnsmasq||exe,dev,doc,nls|pet:pyro| #20180727
+no|dnsmasq|dnsmasq|exe,dev,doc,nls|compat:pyro| #20181112 networkmanager needs this. 20190205 removed.
+yes|docbook-xml-dtd4|docbook-xml-dtd4|exe>dev,dev,doc,nls|compat:pyro| #20170510
+yes|docbook-xsl-stylesheets|docbook-xsl-stylesheets|exe>dev,dev,doc,nls|compat:pyro| #20170510
+yes|dosfstools|dosfstools|exe,dev,doc,nls|compat:pyro
+no|dpkg|dpkg|exe,dev,doc,nls|compat:pyro
+yes|dpkg-deb|dpkg|exe,dev>null,doc,nls|compat:pyro| #20170617
+yes|dri3proto|dri3proto|exe>dev,dev,doc,nls|compat:pyro| #20170510
+no|dropbear|dropbear|exe,dev,doc,nls|compat:pyro
+yes|Dropbox_GUI||exe|pet:noarch| #20171216
+yes|dvdauthor|dvdauthor|exe,dev,doc,nls|compat:pyro| #20170617
+yes|dvd_close|dvd-close|exe,dev,doc,nls|compat:pyro| #20171031
+yes|dvd+rw-tools|dvd+rw-tools|exe,dev,doc,nls|compat:pyro
+yes|e2fsprogs|e2fsprogs|exe,dev,doc,nls|compat:pyro
+yes|EasyApps||exe,dev,doc,nls|pet:noarch| #20170927 by radky
+yes|ed|ed|exe,dev,doc,nls|compat:pyro
+yes|eee-acpi-scripts|eee-acpi-scripts|exe,dev,doc,nls|compat:pyro
+yes|elfutils|elfutils|exe,dev,doc,nls|compat:pyro| #20171230 needed by mesa.
+no|embutils_cut||exe,dev>null,doc,nls|pet:
+yes|empty|empty|exe,dev,doc,nls|compat:pyro| #20181017 needed for easy containers.
+no|enca|enca|exe,dev,doc,nls|compat:pyro| #20170510  20180829
+no|enchant|enchant|exe,dev,doc,nls|compat:pyro
+yes|encodings|encodings|exe,dev,doc,nls|compat:pyro
+yes|ethtool|ethtool|exe,dev>null,doc,nls|compat:pyro
+yes|eudev|eudev|exe,dev,doc,nls|compat:pyro
+yes|evince|evince|exe,dev,doc,nls|compat:pyro| #pdf viewer, better than epdfview. #20170610
+yes|exfat-utils|exfat-utils|exe,dev,doc,nls|compat:pyro
+yes|expat|expat|exe,dev,doc,nls|compat:pyro
+yes|f2fs-tools|f2fs-tools|exe,dev,doc,nls|compat:pyro
+yes|faac|faac|exe,dev,doc,nls|compat:pyro
+yes|faad2|faad2|exe,dev,doc,nls|compat:pyro
+yes|ffconvert||exe,dev,doc,nls|pet:noarch
+yes|ffmpeg|ffmpeg|exe,dev,doc,nls|compat:pyro
+yes|file|file|exe,dev,doc,nls|compat:pyro
+yes|findutils|findutils|exe,dev,doc,nls|compat:pyro
+no|firefox|firefox|exe,dev,doc,nls|compat:pyro| #20180715 coz dont have seamonkey yet.
+no|firmware_linux_base||exe|pet:noarch| #201712120 base firmware from in-tree kernel 4.13
+yes|firmware_linux_base_rpi3||exe|pet:pyro| #20180902
+no|firmware_linux_display|firmware_linux_display-4.14*|exe|pet:noarch| #20171123 20180831
+no|firmware_linux_network|firmware_linux_network-4.14*|exe|pet:noarch| #20171123 refer input476
+yes|firmware_linux_network_rpi3||exe|pet:pyro| #20180902
+yes|firmware_linux_network|firmware_linux_network-4.4-2019*|exe|pet:noarch| #20190201 rock64
+yes|flac|flac|exe,dev,doc,nls|compat:pyro
+no|flatpak|flatpak|exe,dev,doc,nls|compat:pyro| #20180616
+yes|flex|flex|exe>dev,dev,doc,nls|compat:pyro
+yes|floppy-format-noarch||exe|pet:noarch| #needs ufiformat.
+yes|flsynclient||exe,dev,doc,nls|pet:pyro| #20180727 fltk linked statically.
+yes|fltk|fltk|exe>dev,dev,doc,nls|compat:pyro| #20171024
+yes|fontconfig|fontconfig|exe,dev,doc,nls|compat:pyro
+yes|font_opensans_semibold_bold||exe|pet:noarch| #the semibold is the default, when want thick font.
+yes|font-util|font-util|exe,dev,doc,nls|compat:pyro
+no|foomatic-filters|foomatic-filters|exe,dev,doc,nls|compat:pyro| #WARNING, may clash with cups-filters.
+yes|formfactor|formfactor|exe,dev,doc,nls|compat:pyro
+yes|fpm2|fpm2|exe,dev,doc,nls|compat:pyro| #20170610
+yes|freememapplet_tray|freememapplet-tray|exe,dev,doc,nls|compat:pyro| #20170625
+yes|freetype|freetype|exe,dev,doc,nls|compat:pyro
+yes|fribidi|fribidi|exe,dev,doc,nls|compat:pyro
+yes|frisbee||exe,dev,doc,nls|pet:| #created by jemimah, puppified by rerwin.
+yes|fuse|fuse|exe,dev,doc,nls|compat:pyro
+yes|galculator|galculator|exe,dev,doc,nls|compat:pyro| #20170522
+yes|gawk|gawk|exe,dev,doc,nls|compat:pyro
+no|gcab|gcab|exe,dev,doc,nls|compat:pyro| #20180616 needed by flatpak
+yes|gcc|gcc,libgcc-initial|exe>dev,dev,doc,nls|compat:pyro
+yes|gccmakedep|gccmakedep|exe>dev,dev,doc,nls|compat:pyro| #20170610
+yes|gcc-runtime|gcc-runtime,libgcc|exe,dev,doc,nls|compat:pyro
+no|gcc-sanitizers|gcc-sanitizers|exe>dev,dev,doc,nls|compat:pyro| #20180829
+yes|gcolorsel|gcolorsel|exe,dev,doc,nls|compat:pyro| #20170610
+yes|gconf|gconf|exe,dev,doc,nls|compat:pyro
+yes|gdb|gdb|exe>dev,dev,doc,nls|compat:pyro
+yes|gdbm|gdbm|exe,dev,doc,nls|compat:pyro
+yes|gdk-pixbuf|gdk-pixbuf|exe,dev,doc,nls|compat:pyro
+yes|gdmap|gdmap|exe,dev>null,doc,nls|compat:pyro| #20170610
+yes|geany|geany|exe,dev>null,doc,nls|compat:pyro
+yes|gegl|gegl|exe,dev,doc,nls|compat:pyro| #20170510
+yes|getflash||exe,dev,doc,nls|pet:noarch
+yes|gettext|gettext|exe,dev>null,doc>null,nls>null|compat:pyro
+yes|gettext_devxonly|gettext|exe>dev,dev,doc,nls|compat:pyro
+yes|gfnrename|gfnrename|exe,dev>null,doc,nls|compat:pyro| #20170617
+yes|gfontsel|gfontsel|exe,dev>null,doc,nls|compat:pyro| #20170610
+yes|gftp|gftp|exe,dev>null,doc,nls|compat:pyro
+yes|ghasher|ghasher|exe,dev,doc,nls|compat:pyro| #20170610
+yes|ghostscript|ghostscript|exe,dev,doc,nls|compat:pyro
+yes|gif2lss|gif2lss|exe,dev,doc,nls|compat:pyro| #20170610
+yes|gifsicle|gifsicle|exe,dev,doc,nls|compat:pyro| #20170610
+yes|gimp|gimp|exe,dev,doc,nls|compat:pyro
+yes|git|git|exe>dev,dev,doc,nls|compat:pyro
+yes|glew|glew|exe,dev,doc,nls|compat:pyro| #20170510
+yes|glib|glib-2.0|exe,dev,doc,nls|compat:pyro
+yes|glibc|glibc|exe,dev,doc,nls|compat:pyro
+yes|glibc-initial|glibc-initial|exe>dev,dev,doc,nls|compat:pyro
+yes|glibc-locale|glibc-locale|exe,dev,doc,nls>exe|compat:pyro| #170515 oe, do not use glibc_locales template. new glibc-locale template.
+yes|glibmm|glibmm|exe,dev,doc,nls|compat:pyro
+yes|glib-networking|glib-networking|exe,dev,doc,nls|compat:pyro| #20180614
+yes|glipper-lite|glipper-lite|exe,dev>null,doc,nls|compat:pyro| #20170610
+yes|glm|glm|exe,dev,doc,nls|compat:pyro| #20170510
+yes|gmeasures|gmeasures|exe,dev>null,doc,nls|compat:pyro| #20170611
+yes|gmp|gmp|exe,dev,doc,nls|compat:pyro
+yes|gnet|gnet|exe,dev,doc,nls|compat:pyro| #needed by helpsurfer #20170612
+no|gnome-common|gnome-common|exe,dev,doc,nls|compat:pyro
+no|gnome-desktop-testing|gnome-desktop-testing|exe,dev,doc,nls|compat:pyro
+yes|gnome-doc-utils-stub|gnome-doc-utils-stub|exe,dev,doc,nls|compat:pyro| #20170510
+yes|gnome-icon-theme||exe>dev,dev,doc,nls|pet:| #in devx, may need to extract some into main f.s.
+yes|gnome-menus|gnome-menus|exe,dev,doc,nls|compat:pyro| #20170609 needed by xdg_puppy.
+no|gnome-mpv|gnome-mpv|exe,dev,doc,nls|compat:pyro| #20180505 media player, needs mpv, gtk+3. 20180709 removed.
+no|gnome-themes-standard|gnome-themes-standard|exe,dev,doc,nls|compat:pyro| #20170510. no, have our own gtk themes.
+yes|gnu-config|gnu-config|exe>dev,dev,doc,nls|compat:pyro
+no|gnumeric||exe,dev>null,doc,nls|pet:
+yes|gnupg|gnupg|exe,dev,doc,nls|compat:pyro| #20180614 deps are libassuan, npth, libksba, pinentry
+yes|gnutls|gnutls|exe,dev,doc,nls|compat:pyro
+yes|gobject-introspection|gobject-introspection|exe>dev,dev,doc,nls|compat:pyro| #20180523 move to devx
+no|goffice||exe,dev,doc,nls|pet:
+yes|gpart|gpart|exe,dev,doc,nls|compat:pyro| #utility used by gparted. #20170611
+yes|gparted|gparted|exe,dev,doc,nls|compat:pyro
+yes|gperf|gperf|exe>dev,dev,doc,nls|compat:pyro|
+yes|gpgme|gpgme|exe,dev,doc,nls|compat:pyro| #20180614 dep is libassuan
+yes|gphoto2|gphoto2|exe,dev,doc,nls|compat:pyro
+yes|gphotofs|gphotofs|exe,dev,doc,nls|compat:pyro| #20170611
+yes|gpicview|gpicview|exe,dev,doc,nls|compat:pyro| #instead of viewnior.
+yes|gpptp|gpptp|exe,dev,doc,nls|compat:pyro| #binary executables only. written by jafadmin. #20170611
+yes|gpptp-noarch||exe|pet:noarch| #created by jafadmin.
+yes|gptfdisk|gptfdisk|exe,dev,doc,nls|compat:pyro
+yes|graphite2|graphite2|exe,dev,doc,nls|compat:pyro| #20170510
+yes|grep|grep|exe,dev,doc,nls|compat:pyro
+yes|grisbi|grisbi|exe,dev,doc,nls|compat:pyro| #instead of homebank. #20170611
+yes|groff|groff|exe>dev,dev,doc,nls|compat:pyro
+no|grub|grub|exe,dev,doc,nls|compat:pyro| #20180829
+no|grub-efi|grub-efi|exe,dev,doc,nls|compat:pyro| #20180829
+yes|gsettings-desktop-schemas|gsettings-desktop-schemas|exe,dev,doc,nls|compat:pyro| #20170521
+yes|gsl|gsl|exe,dev,doc,nls|compat:pyro| #20180727 needed by inkscape
+yes|gtk+|gtk+|exe,dev,doc,nls|compat:pyro
+yes|gtk+3|gtk+3|exe,dev,doc,nls|compat:pyro| #180401 needs at-spi2-core, at-spi2-atk
+yes|gtk-chtheme|gtk-chtheme|exe,dev>null,doc,nls|compat:pyro| #20170611
+yes|gtkdialog|gtkdialog|exe,dev,doc>dev,nls|compat:pyro| #20170611
+yes|gtklp|gtklp|exe,dev,doc,nls|compat:pyro| #20170611
+yes|gtkmm|gtkmm|exe,dev,doc,nls|compat:pyro
+yes|gtksourceview2|gtksourceview2|exe,dev,doc,nls|compat:pyro
+yes|gtk_theme_citrus_cut||exe|pet:noarch
+yes|gtk_theme_easyblue||exe|pet:noarch| #20180504
+yes|gtk_theme_flatbluecontrast||exe|pet:noarch| #20190118
+yes|gtk_theme_gradient_grey||exe|pet:noarch
+yes|gtk_theme_quirky72green||exe|pet:noarch|
+yes|gutenprint|gutenprint|exe,dev,doc,nls|compat:pyro| #20170612
+yes|gview|gview|exe,dev,doc,nls|compat:pyro| #20170612
+yes|gwhere|gwhere|exe,dev,doc,nls|compat:pyro| #20180505
+yes|gxlat||exe,dev,doc,nls|pet:noarch| #20180728
+yes|gxmessage|gxmessage|exe,dev,doc,nls|compat:pyro| #20170612
+yes|gzip|gzip|exe,dev>null,doc,nls|compat:pyro
+yes|hardinfo|hardinfo|exe,dev,doc,nls|compat:pyro| #20171101 also using Pup-SysInfo
+yes|harfbuzz|harfbuzz|exe,dev,doc,nls|compat:pyro
+yes|hdparm|hdparm|exe,dev,doc,nls|compat:pyro
+yes|helpsurfer|helpsurfer|exe,dev,doc,nls|compat:pyro| #needs gnet, libsystem. #20170612
+yes|hiawatha|hiawatha|exe,dev,doc,nls|compat:pyro
+yes|hicolor-icon-theme|hicolor-icon-theme|exe,dev,doc,nls|compat:pyro
+yes|homebank|homebank|exe,dev,doc,nls|compat:pyro| #20170611 needs libofx
+no|hostap-utils|hostap-utils|exe,dev,doc,nls|compat:pyro| #20180829
+yes|hostname|hostname|exe,dev,doc,nls|compat:pyro| #20170617
+yes|hotplug2stdout|hotplug2stdout|exe,dev,doc,nls|compat:pyro| #20170612
+yes|hunspell|hunspell|exe,dev,doc,nls|compat:pyro
+yes|hunspell-en-au||exe|pet:noarch| #20190113
+yes|hunspell-en-gb||exe|pet:noarch| #20190113
+yes|hunspell-en-us||exe|pet:noarch
+yes|hyphen|hyphen|exe,dev,doc,nls|compat:pyro| #20170510
+yes|iceauth|iceauth|exe,dev,doc,nls|compat:pyro| #20170510
+yes|iconfinder||exe,dev,doc,nls|pet:noarch
+yes|icu|icu|exe,dev,doc,nls|compat:pyro
+yes|ifplugd|ifplugd|exe,dev,doc,nls|compat:pyro
+yes|ifplugd_old|ifplugd-old|exe,dev,doc,nls|compat:pyro| #20170613
+yes|ijs|ijs|exe,dev,doc,nls|compat:pyro| #20170609
+yes|imake|imake|exe>dev,dev,doc,nls|compat:pyro| #20170613
+no|init-ifupdown|init-ifupdown|exe,dev,doc,nls|compat:pyro
+no|initramfs-live-boot|initramfs-live-boot|exe,dev,doc,nls|compat:pyro
+no|initramfs-live-install|initramfs-live-install|exe,dev,doc,nls|compat:pyro
+no|initramfs-live-install-efi|initramfs-live-install-efi|exe,dev,doc,nls|compat:pyro
+no|initscripts|initscripts|exe,dev,doc,nls|compat:pyro
+yes|inkscape||exe,dev,doc,nls|pet:pyro| #needs gsl, bdwgc. 20180829
+no|inkscapelite||exe,dev,doc,nls|pet:pyro| #20171024. retire, as crashes at startup.
+no|inkscapelite|inkscapelite|exe,dev,doc,nls|compat:pyro| #20171102. retire, as crashes at startup.
+yes|inotify-tools|inotify-tools|exe,dev,doc,nls|compat:pyro
+yes|installwatch|installwatch|exe,dev,doc,nls|compat:pyro| #20170617
+yes|intltool|intltool|exe,dev,doc,nls|compat:pyro
+yes|iproute2|iproute2|exe,dev,doc,nls|compat:pyro| #20181001 only has ip utility
+yes|iptables|iptables|exe,dev,doc,nls|compat:pyro
+no|iso-codes|iso-codes|exe,dev,doc,nls|compat:pyro| #20181112 network-manager-applet needs this.
+yes|isomaster|isomaster|exe,dev,doc,nls|compat:pyro| #20170613
+yes|iw|iw|exe,dev,doc,nls|compat:pyro
+no|iwd|iwd|exe,dev,doc,nls|compat:pyro| #20181118 alternative to wpa_supplicant.
+no|jansson|jansson|exe,dev,doc,nls|compat:pyro| #20181112 networkmanager needs this. 20190205 removed.
+yes|jasper|jasper|exe,dev,doc,nls|compat:pyro
+no|json-c|json-c|exe,dev,doc,nls|compat:pyro
+yes|json-glib|json-glib|exe,dev,doc,nls|compat:pyro| #20170510
+no|jwm2|jwm2|exe,dev,doc,nls|compat:pyro| #171227 rollback to rev976
+yes|jwm|jwm|exe,dev,doc,nls|compat:pyro| #20180505 rev1679
+no|jwmconfig2||exe|pet:noarch| #now have PupControl.
+no|jwm_theme_quirky72green||exe|pet:noarch|
+no|jwm_theme_slate||exe|pet:noarch
+yes|jwm3_theme_deepbluebold||exe|pet:noarch| #20190118
+yes|jwm3_theme_easyblue||exe|pet:noarch| #20180504
+yes|jwm3_theme_quirky72green||exe|pet:noarch| #20180311
+yes|jwm3_theme_slate||exe|pet:noarch| #20180311
+no|kbd|kbd|exe,dev,doc,nls|compat:pyro
+no|keymaps|keymaps|exe,dev,doc,nls|compat:pyro
+yes|kmod|kmod|exe,dev,doc,nls|compat:pyro
+no|kodi|kodi|exe,dev,doc,nls|compat:pyro|
+no|krb5|krb5|exe,dev,doc,nls|compat:pyro| #20171021 needed for samba. not for my pet.
+yes|ktsuss|ktsuss|exe,dev,doc,nls|compat:pyro| #20170613
+yes|lame|lame|exe,dev,doc,nls|compat:pyro
+yes|lcms|lcms|exe,dev,doc,nls|compat:pyro
+yes|leafpad|leafpad|exe,dev,doc,nls|compat:pyro
+yes|less|less|exe,dev,doc,nls|compat:pyro
+yes|liba52|liba52|exe,dev,doc,nls|compat:pyro
+yes|libabw|libabw|exe,dev,doc,nls|compat:pyro| #20170510
+yes|libaio|libaio|exe,dev,doc,nls|compat:pyro| #20170510
+yes|libao|libao|exe,dev,doc,nls|compat:pyro| #20170619 needed by vorbis-tools
+yes|libarchive|libarchive|exe,dev,doc,nls|compat:pyro
+yes|libart-lgpl|libart-lgpl|exe,dev,doc,nls|compat:pyro| #needed by some april apps, ex dia.
+no|libass|libass|exe,dev,doc,nls|compat:pyro| #20170510 20180829
+yes|libassuan|libassuan|exe,dev,doc,nls|compat:pyro| #20180614
+yes|libatomic-ops|libatomic-ops|exe,dev,doc,nls|compat:pyro
+yes|libavc1394|libavc1394|exe,dev,doc,nls|compat:pyro
+yes|libbluray|libbluray|exe,dev,doc,nls|compat:pyro| #180506
+yes|libcap|libcap|exe,dev,doc,nls|compat:pyro
+yes|libcap-ng|libcap-ng|exe,dev,doc,nls|compat:pyro| #20180926 needed by pflask
+no|libcdaudio||exe,dev,doc,nls|pet:
+yes|libcddb|libcddb|exe,dev,doc,nls|compat:pyro| #20170513
+yes|libcdio|libcdio|exe,dev,doc,nls|compat:pyro
+yes|libcdio-paranoia|libcdio-paranoia|exe,dev,doc,nls|compat:pyro| #20170513
+yes|libcdr|libcdr|exe,dev,doc,nls|compat:pyro| #20170510
+no|libcec|libcec|exe,dev,doc,nls|compat:pyro| #20170510 20180829
+yes|libcgi-perl|libcgi-perl|exe,dev,doc,nls|compat:pyro| #20171123
+yes|libcheck|libcheck|exe,dev,doc,nls|compat:pyro
+yes|libcmis|libcmis|exe,dev,doc,nls|compat:pyro| #20170510
+yes|libcroco|libcroco|exe,dev,doc,nls|compat:pyro
+yes|libdaemon|libdaemon|exe,dev,doc,nls|compat:pyro
+yes|libdbd-mysql-perl|libdbd-mysql-perl|exe,dev,doc,nls|compat:pyro| #20170510
+yes|libdbi-perl|libdbi-perl|exe,dev,doc,nls|compat:pyro| #20170510
+yes|libdc1394|libdc1394|exe,dev,doc,nls|compat:pyro
+yes|libdigest-sha1-perl|libdigest-sha1-perl|exe,dev,doc,nls|compat:pyro| #20171123
+yes|libdmx|libdmx|exe,dev,doc,nls|compat:pyro| #20170510
+no|libdv||exe,dev,doc,nls|pet:
+yes|libdvdcss|libdvdcss|exe,dev,doc,nls|compat:pyro| #20170613
+yes|libdvdnav|libdvdnav|exe,dev,doc,nls|compat:pyro
+no|libdvdplay||exe,dev,doc,nls|pet:
+yes|libdvdread|libdvdread|exe,dev,doc,nls|compat:pyro
+no|libebml|libebml|exe,dev,doc,nls|compat:april| #needed by libmatroska
+yes|libe-book|libe-book|exe,dev,doc,nls|compat:pyro| #20170510
+no|libelf||exe,dev,doc,nls|pet:
+yes|libepoxy|libepoxy|exe,dev,doc,nls|compat:pyro| #20170510
+no|liberation-fonts|liberation-fonts|exe,dev,doc,nls|compat:pyro
+yes|libetonyek|libetonyek|exe,dev,doc,nls|compat:pyro| #20170510
+yes|libevdev|libevdev|exe,dev,doc,nls|compat:pyro
+yes|libevent|libevent|exe,dev,doc,nls|compat:pyro
+yes|libexif|libexif|exe,dev,doc,nls|compat:pyro
+yes|libexif-gtk|libexif-gtk|exe,dev,doc,nls|compat:pyro| #20170613
+yes|libexttextcat|libexttextcat|exe,dev,doc,nls|compat:pyro| #20170510
+yes|libexttextcat-data||exe,dev,doc,nls|pet:pyro| #oe should have installed this, it is in libexttextcat pkg. 20180904
+yes|libffi|libffi|exe,dev,doc,nls|compat:pyro
+yes|libfreehand|libfreehand|exe,dev,doc,nls|compat:pyro| #20170510
+yes|libgcrypt|libgcrypt|exe,dev,doc,nls|compat:pyro
+yes|libgd|libgd|exe,dev,doc,nls|compat:pyro| #needed by some libgphoto2 drivers. #20170614
+yes|libgee|libgee|exe,dev,doc,nls|compat:pyro| #data-type extension library for vala.
+yes|libgif|giflib|exe,dev,doc,nls|compat:pyro
+yes|libglade|libglade|exe,dev,doc,nls|compat:pyro| #20170522. needed by planner.
+yes|libgltf|libgltf|exe,dev,doc,nls|compat:pyro| #20170510
+yes|libglu|libglu|exe,dev,doc,nls|compat:pyro
+yes|libgnomecanvas|libgnomecanvas|exe,dev,doc,nls|compat:pyro| #20170614 needed by planner.
+no|libgnome-keyring|libgnome-keyring|exe,dev,doc,nls|compat:pyro| #20181112 network-manager-applet needs this.
+yes|libgpg-error|libgpg-error|exe,dev,doc,nls|compat:pyro
+yes|libgphoto2|libgphoto2|exe,dev,doc,nls|compat:pyro
+yes|libgtkhtml|libgtkhtml|exe,dev,doc,nls|compat:pyro| #20170612
+yes|libgudev|libgudev|exe,dev,doc,nls|compat:pyro
+yes|libhtml-parser-perl|libhtml-parser-perl|exe,dev,doc,nls|compat:pyro| #20171123
+yes|libical|libical|exe,dev,doc,nls|compat:pyro
+yes|libid3tag|libid3tag|exe,dev,doc,nls|compat:pyro
+yes|libidn|libidn|exe,dev,doc,nls|compat:pyro
+no|libieee1284||exe,dev,doc,nls|pet:
+no|libjpeg9|libjpeg|exe,dev>null,doc,nls|compat:april|
+yes|libjpeg-turbo|libjpeg-turbo|exe,dev,doc,nls|compat:pyro
+yes|libksba|libksba|exe,dev,doc,nls|compat:pyro| #20180614 dep of gnupg
+yes|liblangtag|liblangtag|exe,dev,doc,nls|compat:pyro| #20170510
+yes|libmaa|libmaa|exe,dev,doc,nls|compat:pyro| #20170617 needed by dictd
+yes|libmad|libmad|exe,dev,doc,nls|compat:pyro
+no|libmatroska||exe,dev,doc,nls|pet:
+no|libmbim|libmbim|exe,dev,doc,nls|compat:pyro| #20181118 needed by modemmanager. 20190205 removed.
+no|libmicrohttpd|libmicrohttpd|exe,dev,doc,nls|compat:pyro| #20170510. only used by kodi.
+yes|libmikmod|libmikmod|exe,dev,doc,nls|compat:pyro| #20170510
+no|libmms|libmms|exe,dev,doc,nls|compat:pyro| #20170510. only used by kodi.
+yes|libmng|libmng|exe,dev,doc,nls|compat:pyro
+yes|libmodplug|libmodplug|exe,dev,doc,nls|compat:pyro| #20170510. used by kodi, xine.
+yes|libmpc|libmpc|exe,dev,doc,nls|compat:pyro| #20170510
+no|libmpeg2||exe,dev,doc,nls|pet:
+yes|libmspub|libmspub|exe,dev,doc,nls|compat:pyro| #20170510
+yes|libmwaw|libmwaw|exe,dev,doc,nls|compat:pyro| #20170510
+no|libndp|libndp|exe,dev,doc,nls|compat:pyro| #20181112 networkmanager needs this. 20190205 removed.
+no|libnewt|libnewt|exe,dev,doc,nls|compat:pyro| #20181113 needed by networkmanager. 20190205 removed.
+yes|libnl|libnl|exe,dev,doc,nls|compat:pyro
+no|libnotify|libnotify|exe,dev,doc,nls|compat:pyro| #20181112 network-manager-applet needs this.
+yes|libodfgen|libodfgen|exe,dev,doc,nls|compat:pyro| #20170510
+yes|libofx|libofx|exe,dev,doc,nls|compat:pyro| #20170611 optional needed by grisbi, homebank.
+yes|libogg|libogg|exe,dev,doc,nls|compat:pyro
+yes|liboil|liboil|exe,dev,doc,nls|compat:pyro| #20170510
+yes|libpagemaker|libpagemaker|exe,dev,doc,nls|compat:pyro| #20170510
+yes|libpcap|libpcap|exe,dev,doc,nls|compat:pyro
+yes|libpciaccess|libpciaccess|exe,dev,doc,nls|compat:pyro
+yes|libpcre|libpcre|exe,dev,doc,nls|compat:pyro
+no|libplist|libplist|exe,dev,doc,nls|compat:pyro| #20170510. only used by kodi.
+yes|libpng|libpng|exe,dev,doc,nls|compat:pyro
+yes|libpng12|libpng12|exe,dev,doc,nls|compat:pyro| #20170614 does not conflict with later libpng.
+yes|libproxy|libproxy|exe,dev,doc,nls|compat:pyro
+yes|libpthread-stubs|libpthread-stubs|exe,dev,doc,nls|compat:pyro
+no|libqmi|libqmi|exe,dev,doc,nls|compat:pyro| #20181118 needed by modemmanager. 20190205 removed.
+yes|libraw1394|libraw1394|exe,dev,doc,nls|compat:pyro
+no|libreoffice|libreoffice|exe,dev,doc,nls|compat:pyro| #error msg when open save odt
+yes|libreoffice||exe,dev,doc,nls|pet:pyro| #20190126
+yes|librevenge|librevenge|exe,dev,doc,nls|compat:pyro| #20170510
+yes|librsvg|librsvg|exe,dev,doc,nls|compat:pyro
+yes|libsamplerate0|libsamplerate0|exe,dev,doc,nls|compat:pyro
+yes|libsdl|libsdl|exe,dev,doc,nls|compat:pyro| #20170510
+yes|libsdl-image|libsdl-image|exe,dev,doc,nls|compat:pyro| #20170510
+yes|libsdl-mixer|libsdl-mixer|exe,dev,doc,nls|compat:pyro| #20170510
+yes|libsdl-ttf|libsdl-ttf|exe,dev,doc,nls|compat:pyro| #20170513
+yes|libseccomp|libseccomp|exe,dev,doc,nls|compat:pyro| #20180616 needed by flatpak. 20180922 used by contained.c
+no|libsecret|libsecret|exe,dev,doc,nls|compat:pyro| #20181112 network-manager-applet needs this.
+yes|libsigc++-2.0|libsigc++-2.0|exe,dev,doc,nls|compat:pyro
+yes|libsndfile1|libsndfile1|exe,dev,doc,nls|compat:pyro
+yes|libsoup|libsoup-2.4|exe,dev,doc,nls|compat:pyro| #20180614
+no|libsquish|libsquish|exe,dev,doc,nls|compat:pyro| #20170510. only used by kodi.
+no|libssh|libssh|exe,dev,doc,nls|compat:pyro| #20170510  20180829
+yes|libsystem|libsystem|exe,dev,doc,nls|compat:pyro| #needed by helpsurfer. #20170612
+yes|libtasn1|libtasn1|exe,dev,doc,nls|compat:pyro| #20180821 maybe needed samba.
+yes|libtheora|libtheora|exe,dev,doc,nls|compat:pyro
+no|libtinyxml|libtinyxml|exe,dev,doc,nls|compat:pyro| #20170510. only used by kodi.
+yes|libtirpc|libtirpc|exe,dev,doc,nls|compat:pyro
+yes|libtommath|libtommath|exe>dev,dev,doc,nls|compat:pyro| #20171031 static lib, needed when compile libreoffice.
+yes|libtool|libtool|exe>dev,dev,doc,nls|compat:pyro
+yes|libtool_runtime|libtool|exe,dev,doc,nls|compat:pyro
+yes|libunistring|libunistring|exe,dev,doc,nls|compat:pyro
+no|liburcu|liburcu|exe,dev,doc,nls|compat:pyro| #20170510  20180829
+yes|liburi-perl|liburi-perl|exe,dev,doc,nls|compat:pyro| #20171123
+yes|libusb|libusb1|exe,dev,doc,nls|compat:pyro
+yes|libusb-compat|libusb-compat|exe,dev,doc,nls|compat:pyro
+no|libv4l||exe,dev,doc,nls|pet:
+yes|libva|libva|exe,dev,doc,nls|compat:pyro| #20170510
+yes|libvdpau|libvdpau|exe,dev,doc,nls|compat:pyro| #20170510
+yes|libvdpau-va-gl||exe,dev,doc,nls|pet:pyro| #20190125
+yes|libvisio|libvisio|exe,dev,doc,nls|compat:pyro| #20170510
+yes|libvorbis|libvorbis|exe,dev,doc,nls|compat:pyro
+yes|libvpx|libvpx|exe,dev,doc,nls|compat:pyro
+yes|libwebp|libwebp|exe,dev,doc,nls|compat:pyro| #20180506
+yes|libwpd|libwpd|exe,dev,doc,nls|compat:pyro| #20170510
+yes|libwpg|libwpg|exe,dev,doc,nls|compat:pyro| #20170510
+yes|libwps|libwps|exe,dev,doc,nls|compat:pyro| #20170510
+no|libx86||exe,dev,doc,nls|pet:| #v86d needs this. no, v86d i compiled does not. read-edid needs this. 170615 read-edid compiled oe not need this.
+yes|libxaw|libxaw|exe,dev,doc,nls|compat:pyro
+yes|libxfont|libxfont|exe,dev,doc,nls|compat:pyro| #20170510
+yes|libxkbcommon|libxkbcommon|exe,dev,doc,nls|compat:pyro| #20180717
+yes|libxml2|libxml2|exe,dev,doc,nls|compat:pyro
+yes|libxml-parser-perl|libxml-parser-perl|exe,dev,doc,nls|compat:pyro
+yes|libxml-simple-perl|libxml-simple-perl|exe,dev,doc,nls|compat:pyro| #20171123
+yes|libxpm|libxpm|exe,dev,doc,nls|compat:pyro
+yes|libxscrnsaver|libxscrnsaver|exe,dev,doc,nls|compat:pyro| #20170614
+yes|libxshmfence|libxshmfence|exe,dev,doc,nls|compat:pyro| #needed by xorg.
+yes|libxslt|libxslt|exe,dev,doc,nls|compat:pyro
+yes|libxv|libxv|exe,dev,doc,nls|compat:pyro
+no|libyaml|libyaml|exe,dev,doc,nls|compat:pyro| #20180616 needed by flatpak
+no|linux_firewall||exe|pet:noarch| #now have firewall_ng, builtin rootfs-skeleton.
+no|linux-firmware|linux-firmware|exe,dev,doc,nls|compat:pyro| #see firmware_linux_*
+yes|linux_headers|linux_headers-4.4.*|exe>dev,dev,doc,nls|pet:pyro| #20180902 kernel 4.14.67  20190131 rock64 4.4.154 kernel
+yes|linux-libc-headers|linux-libc-headers|exe>dev,dev,doc,nls|compat:pyro| #20170510
+no|linux-quirky|linux-quirky|exe|compat:pyro| #20170510 NEW20170518. note, do not split. 20171025 now have 4.13.9 pet.
+no|locator||exe|pet:noarch| #20180912 20180917
+no|lockdev|lockdev|exe,dev,doc,nls|compat:pyro| #20170510  20180829
+no|lrzsz|lrzsz|exe,dev,doc,nls|compat:pyro| #20180829
+no|lttng-ust|lttng-ust|exe,dev,doc,nls|compat:pyro| #20170510  20180829
+no|lxpanel|lxpanel|exe,dev,doc,nls|compat:pyro| #20180705
+yes|lz4|lz4|exe,dev,doc,nls|compat:pyro| #20170510
+yes|lzo|lzo|exe,dev,doc,nls|compat:pyro| #20170510
+yes|m4|m4|exe>dev,dev,doc,nls|compat:pyro
+yes|maag||exe,dev,doc,nls|pet:noarch| #20180515
+no|madplay||exe,dev,doc,nls|pet:
+yes|make|make|exe>dev,dev,doc,nls|compat:pyro
+yes|makedepend|makedepend|exe,dev,doc,nls|compat:pyro| #20170614
+yes|man|man|exe>dev,dev,doc,nls|compat:pyro
+yes|man_cut|man|exe,dev>null,doc>null,nls>null|compat:pyro
+no|mariadb|mariadb|exe,dev,doc,nls|compat:pyro| #20170510
+yes|mdds|mdds|exe,dev,doc,nls|compat:pyro| #20170510
+yes|mdds-1|mdds-1|exe,dev,doc,nls|compat:pyro| #20170510
+yes|mdview|mdview|exe,dev,doc,nls|compat:pyro| #20171031
+yes|memtester|memtester|exe,dev,doc,nls|compat:pyro| #20180727
+yes|mesa|mesa|exe,dev,doc,nls|compat:pyro| #20180623
+no|mesa-demos|mesa-demos|exe,dev,doc,nls|compat:pyro| #20180623
+yes|mesa-demos||exe,dev,doc,nls|pet:pyro| #20180727
+yes|meson|meson|exe>dev,dev,doc,nls|compat:pyro| #20180701 build system, deps re2c, ninja.
+yes|metamail|metamail|exe,dev,doc,nls|compat:pyro| #20170614
+yes|mhwaveedit|mhwaveedit|exe,dev,doc,nls|compat:pyro| #20170614
+yes|mingetty|mingetty|exe,dev,doc,nls|compat:pyro
+yes|minibase-net||exe,dev,doc,nls|pet:pyro| #20190219 used in UltraSNS.
+yes|minicom|minicom|exe,dev,doc,nls|compat:pyro
+yes|minixcal|minixcal|exe,dev,doc,nls|compat:pyro #20170614
+yes|mirdir|mirdir|exe,dev,doc,nls|compat:pyro| #20170614
+yes|mkfontdir|mkfontdir|exe,dev,doc,nls|compat:pyro
+yes|mkfontscale|mkfontscale|exe,dev,doc,nls|compat:pyro
+no|mmarchitect||exe,dev,doc,nls|pet:| #note, pet installs into /file, not good for easy.
+yes|mm-common|mm-common|exe,dev,doc,nls|compat:pyro| #20170510
+no|mobile-broadband-provider-info|mobile-broadband-provider-info|exe,dev,doc,nls|compat:pyro| #20190205 removed.
+no|modemmanager|modemmanager|exe,dev,doc,nls|compat:pyro| #20181118 needed by networkmanager. 20190205 removed.
+yes|modem-stats|modem-stats|exe,dev,doc,nls|compat:pyro| #20170617
+no|modutils-initscripts|modutils-initscripts|exe,dev,doc,nls|compat:pyro
+yes|mp|mped|exe,dev,doc,nls|compat:pyro| #20171102 bumped version 3.2.13 to 3.3.17 menu now works.
+no|mpeg2dec|mpeg2dec|exe,dev,doc,nls|compat:pyro| #20170510. only used by kodi.
+yes|mpfr|mpfr|exe,dev,doc,nls|compat:pyro
+yes|mpg123|mpg123|exe,dev,doc,nls|compat:pyro| #20180623
+no|mplayer_codecs_basic||exe|pet:pyro| #have x86_64 pet.
+yes|mpscan|mpscan|exe,dev,doc,nls|compat:pyro| #20170614
+no|mpv|mpv|exe,dev,doc,nls|compat:pyro| #20180505 cli media player, needed by gnome-mpv. 20180709 removed.
+yes|mscw||exe|pet:noarch
+yes|mtdev|mtdev|exe,dev,doc,nls|compat:pyro
+yes|mtools|mtools|exe,dev,doc,nls|compat:pyro
+yes|mtpaint|mtpaint|exe,dev,doc,nls|compat:pyro| #20170626
+yes|mtr|mtr|exe,dev,doc,nls|compat:pyro| #20171101
+yes|mythes|mythes|exe,dev,doc,nls|compat:pyro| #20170510
+no|nasm|nasm|exe>dev,dev,doc,nls|compat:pyro| #20180829
+yes|nbtscan|nbtscan|exe,dev,doc,nls|compat:pyro| #20170614
+yes|ncurses|ncurses|exe,dev,doc,nls|compat:pyro
+no|ndiswrapper-module|ndiswrapper|exe,dev,doc,nls|compat:pyro| #20170617 has kernel module
+no|ndiswrapper-exe|ndiswrapper-exe|exe,dev,doc,nls|compat:pyro| #20170617 has utilities.
+no|neard|neard|exe,dev,doc,nls|compat:pyro| #nfc daemon.  20190205 removed.
+yes|nenscript|nenscript|exe,dev,doc,nls|compat:pyro| #20170617
+yes|neon|neon|exe,dev,doc,nls|compat:pyro
+no|netbase|netbase|exe,dev,doc,nls|compat:pyro
+yes|netpbm|netpbm|exe,dev,doc,nls|compat:pyro| #20170616
+yes|nettle|nettle|exe,dev,doc,nls|compat:pyro
+no|networkmanager|networkmanager|exe,dev,doc,nls|compat:pyro| #20181112. 20190205 removed.
+no|network-manager-applet|network-manager-applet|exe,dev,doc,nls|compat:pyro| #20181112 network-manager-applet needs this.
+no|network_roxapp||exe|pet:noarch
+yes|network_tray|network-tray|exe,dev,doc,nls|compat:pyro| #20170625 20180623
+yes|ninja|ninja|exe>dev,dev,doc,nls|compat:pyro| #20180701 build system used with meson.
+yes|nmap||exe,dev,doc,nls|pet:pyro| #20180727
+yes|normalize|normalize|exe,dev,doc,nls|compat:pyro| #20170617
+yes|notecase|notecase|exe,dev,doc,nls|compat:pyro| #20171102
+yes|npth|npth|exe,dev,doc,nls|compat:pyro| #20180614 dep of gnupg
+yes|nspr|nspr|exe,dev,doc,nls|compat:pyro
+yes|nss|nss|exe,dev,doc,nls|compat:pyro
+yes|ntfs-3g-ntfsprogs|ntfs-3g-ntfsprogs|exe,dev,doc,nls|compat:pyro
+yes|ntpdate|ntp|exe,dev,doc,nls|compat:pyro| #20171029 used by qsync to sync local time and date from the internet.
+yes|numlockx|numlockx|exe,dev,doc,nls|compat:pyro| #needed by shinobars firstrun.
+no|ofono|ofono|exe,dev,doc,nls|compat:pyro| #20181118 needed by iwd, optionally by networkmanager. 20190205 removed.
+yes|opencore-amr|opencore-amr|exe,dev,doc,nls|compat:pyro
+yes|openjpeg|openjpeg|exe,dev,doc,nls|compat:pyro
+yes|openldap|openldap|exe,dev,doc,nls|compat:pyro| #20170510
+yes|opensp|opensp|exe,dev,doc,nls|compat:pyro| #20170611 needed by libofx. see also sgml-common.
+no|openssh_client|openssh|exe,dev,doc,nls|compat:pyro
+yes|openssh|openssh|exe,dev,doc,nls|compat:pyro| #20180119
+yes|openssl|openssl|exe,dev,doc,nls|compat:pyro
+no|opkg-utils|opkg-utils|exe,dev,doc,nls|compat:pyro
+yes|orc|orc|exe,dev,doc,nls|compat:pyro
+yes|osmo|osmo|exe,dev,doc,nls|compat:pyro| #20170618
+no|ostree|ostree|exe,dev,doc,nls|compat:pyro| #20180616 needed by flatpak
+no|p8platform|p8platform|exe,dev,doc,nls|compat:pyro| #20170510 20180829
+no|packagegroup-base|packagegroup-base|exe,dev,doc,nls|compat:pyro
+no|packagegroup-core-boot|packagegroup-core-boot|exe,dev,doc,nls|compat:pyro
+no|packagegroup-core-buildessential|packagegroup-core-buildessential|exe,dev,doc,nls|compat:pyro
+no|packagegroup-core-sdk|packagegroup-core-sdk|exe,dev,doc,nls|compat:pyro
+no|packagegroup-core-ssh-dropbear|packagegroup-core-ssh-dropbear|exe,dev,doc,nls|compat:pyro
+no|packagegroup-core-standalone-sdk-target|packagegroup-core-standalone-sdk-target|exe,dev,doc,nls|compat:pyro
+no|packagegroup-core-x11|packagegroup-core-x11|exe,dev,doc,nls|compat:pyro
+no|packagegroup-core-x11-base|packagegroup-core-x11-base|exe,dev,doc,nls|compat:pyro
+no|packagegroup-core-x11-sato|packagegroup-core-x11-sato|exe,dev,doc,nls|compat:pyro
+no|packagegroup-core-x11-xserver|packagegroup-core-x11-xserver|exe,dev,doc,nls|compat:pyro
+yes|pango|pango|exe,dev,doc,nls|compat:pyro
+yes|pangomm|pangomm|exe,dev,doc,nls|compat:pyro
+yes|parted|parted|exe,dev,doc,nls|compat:pyro
+yes|patch|patch|exe,dev,doc,nls|compat:pyro
+yes|patchutils|patchutils|exe>dev,dev,doc,nls|compat:pyro| #20170615
+yes|pbackup||exe|pet:noarch
+yes|pburn3||exe|pet:noarch| #v3.x as have cdrkit, not cdrtools.
+yes|pcd||exe|pet:noarch
+yes|pcdripper||exe|pet:noarch
+yes|pciutils|pciutils|exe,dev,doc,nls|compat:pyro
+yes|pclock||exe|pet:noarch| #190219 replaces ptimer, pstopwatch.
+no|pcmanfm|pcmanfm|exe,dev,doc,nls|compat:pyro
+yes|pctorrent||exe|pet:noarch| #needs ctorrent.
+no|pcurlftp_file_sharing||exe|pet:noarch| #needs pkgs curlftpfs, mpscan, curl, pure_ftpd
+yes|pdvdrsab||exe|pet:noarch
+yes|peasydisc||exe|pet:noarch
+yes|peasyglue||exe,dev,doc,nls|pet:noarch| #20180916
+yes|peasypdf||exe|pet:noarch
+yes|peasyport-noarch||exe,dev,doc,nls|pet:noarch| #rcrsn51, alternative to superscan. needs pnscan
+yes|peasyprint||exe|pet:noarch| #print graphics files png/jpg.
+yes|peasyscale-exec|peasyscale-exec|exe,dev,doc,nls|compat:pyro| #binary needed by peasyscale. #20170619
+yes|peasyscale-noarch||exe|pet:noarch| #rcrsn51, jpg image resizer.
+yes|peasyscan-exec|peasyscan-exec|exe,dev,doc,nls|compat:pyro| #rcrsn51, binary needed by peasyscan. #20170619
+yes|peasyscan-noarch||exe|pet:noarch| #rcrsn51, scanner gui
+no|pekwm|pekwm|exe,dev,doc,nls|compat:pyro| #20180705
+yes|perl|perl|exe>dev,dev,doc,nls|compat:pyro
+yes|perl-net-ident||exe|pet:noarch| #20180806 needed for ident-user-enum script
+yes|perl_tiny|perl|exe,dev>null,doc>null,nls>null|compat:pyro
+yes|pfilesearch||exe|pet:noarch
+yes|pfind||exe|pet:noarch
+yes|pflask|pflask|exe,dev,doc,nls|compat:pyro| #20180926 needs libcap-ng
+yes|phash||exe|pet:noarch
+yes|picpuz||exe,dev,doc,nls|pet:pyro| #20190125
+no|picscale|picscale|exe,dev,doc,nls|compat:pyro| #20170615 segmentation fault -- amd64 version works.
+yes|picscale||exe|pet:pyro| #20190203
+yes|pidgin|pidgin|exe,dev,doc,nls|compat:pyro|
+yes|pinentry|pinentry|exe,dev,doc,nls|compat:pyro| #20180614 dep of gnupg
+yes|pixman|pixman|exe,dev,doc,nls|compat:pyro
+yes|pkgconfig|pkgconfig|exe,dev,doc,nls|compat:pyro
+yes|planner|planner|exe,dev,doc,nls|compat:pyro| #20170615
+no|pmcputemp|pmcputemp|exe,dev,doc,nls|compat:pyro| #20171030 doesnt work properly cannot load images. 20190202 try again, fixed template.
+yes|pmcputemp||exe|pet:pyro| #20180829 KEEPPKG  20180904 does not work in rpi3, does in rock64. 20190203 fixed maybe.
+no|pmcputemp-rock64||exe|pet:pyro| #20190202 had to recompile in rock64. maybe a 4.4 kernel issue.
+yes|pmetatagger||exe|pet:noarch
+yes|pmirror||exe|pet:noarch
+yes|pmirrorget||exe|pet:noarch
+no|pmusic||exe|pet:noarch
+yes|pm-utils|pm-utils|exe,dev,doc,nls|compat:pyro
+yes|pnmixer_tray||exe,dev,doc,nls|pet:pyro| #20180727 use with aumix.
+yes|pnscan|pnscan|exe,dev,doc,nls|compat:pyro| #20171030
+no|pointercal|pointercal|exe,dev,doc,nls|compat:pyro| #20180708 needed by qtbase
+yes|pointercal-xinput|pointercal-xinput|exe,dev,doc,nls|compat:pyro| #20170510
+no|polkit|polkit105|exe,dev,doc,nls|compat:pyro| #20180616 needed by flatpak
+yes|poppler|poppler|exe,dev,doc,nls|compat:pyro
+no|poppler-data|poppler-data|exe,dev,doc,nls|compat:pyro| #20170510
+yes|popt|popt|exe,dev,doc,nls|compat:pyro
+yes|powerapplet_tray|powerapplet-tray|exe,dev,doc,nls|compat:pyro| #20170615
+yes|pplog||exe|pet:noarch
+yes|ppp|ppp|exe,dev,doc,nls|compat:pyro
+yes|pprocess||exe|pet:noarch
+yes|pptp|pptp-linux|exe,dev,doc,nls|compat:pyro
+yes|precord||exe|pet:noarch
+yes|prename||exe,dev,doc,nls|pet:noarch| #20180916
+yes|procps|procps|exe,dev,doc,nls|compat:pyro
+yes|programchooser||exe|pet:noarch
+yes|prun||exe|pet:noarch
+yes|pschedule||exe|pet:noarch
+yes|psmisc|psmisc|exe,dev,doc,nls|compat:pyro
+no|psync||exe|pet:noarch| #20180916 REMOVED. have qsync, builtin to woofq, which needs ntpdate.
+yes|ptooltips||exe|pet:noarch
+yes|PupControl||exe,dev,doc,nls|pet:noarch| #20171027 by radky. has JWMDesk builtin, replaces jwmconfig2.
+yes|puppyinputdetect|puppyinputdetect|exe,dev,doc,nls|compat:pyro| #20170615
+yes|puppy-podcast-grabber||exe|pet:noarch
+yes|puppyserialdetect|puppyserialdetect|exe,dev,doc,nls|compat:pyro| #20170615
+yes|pupradio||exe,dev,doc,nls|pet:noarch
+yes|Pup-SysInfo||exe,dev,doc,nls|pet:noarch| #instead of hardinfo.
+no|pup-tools|pup-tools|exe,dev,doc,nls|compat:pyro| #20180505 core utilities for puppy. works with hug.bac
+yes|pup-tools||exe|pet:pyro| #20180829 note welcome1stboot segfault in oe build. KEEPPKG
+yes|pupx||exe|pet:noarch
+yes|pure-ftpd|pure-ftpd|exe,dev,doc,nls|compat:pyro
+yes|pwsget||exe|pet:noarch
+yes|python|python|exe>dev,dev,doc,nls|compat:pyro| #python 2.7.13
+yes|python-tiny|python|exe,dev>null,doc,nls|compat:pyro| #python 2.7.13 #20170604
+yes|python3|python3|exe>dev,dev,doc,nls|compat:pyro
+yes|python3-dbus|python3-dbus|exe>dev,dev,doc,nls|compat:pyro
+no|python3-lxml|python3-lxml|exe>dev,dev,doc,nls|compat:pyro| #20181119
+yes|python3-pip|python3-pip|exe>dev,dev,doc,nls|compat:pyro| #20180701 python package installer.
+yes|python3-pycairo|python3-pycairo|exe>dev,dev,doc,nls|compat:pyro| #20170510
+yes|python3-pygobject|python3-pygobject|exe>dev,dev,doc,nls|compat:pyro| #20181119
+yes|python3-setuptools|python3-setuptools|exe>dev,dev,doc,nls|compat:pyro| #20181119
+no|qemuwrapper-cross|qemuwrapper-cross|exe,dev,doc,nls|compat:pyro
+yes|qpdf|qpdf|exe,dev,doc,nls|compat:pyro
+yes|quilt|quilt|exe>dev,dev,doc,nls|compat:pyro
+no|qt5||exe>dev,dev,doc,nls|pet:pyro| #20180521 the full qt5
+no|qt5-basic||exe,dev,doc,nls|pet:pyro| #20180521 just enough to run scribus, smplayer, symphytum, mpc-qt.
+no|qtstyleplugins||exe,dev,doc,nls|pet:pyro| #20180521 needed for gtk2 theme to qt5. 20180831
+yes|qtbase|qtbase|exe,dev,doc,nls|compat:pyro| #20180715
+yes|qtdeclarative|qtdeclarative|exe,dev,doc,nls|compat:pyro| #20180715
+yes|qtimageformats|qtimageformats|exe,dev,doc,nls|compat:pyro| #20180715
+yes|qtmultimedia|qtmultimedia|exe,dev,doc,nls|compat:pyro| #20180715
+yes|qtstyleplugins||exe,dev,doc,nls|pet:pyro| #20190125
+yes|qtsvg|qtsvg|exe,dev,doc,nls|compat:pyro| #20180715
+yes|qttools|qttools|exe>dev,dev,doc,nls|compat:pyro| #20180715
+yes|qtx11extras|qtx11extras|exe,dev,doc,nls|compat:pyro| #20180715
+yes|qtxmlpatterns|qtxmlpatterns|exe,dev,doc,nls|compat:pyro| #20180715
+yes|quota|quota|exe,dev,doc,nls|compat:pyro
+yes|raptor2|raptor2|exe,dev,doc,nls|compat:pyro| #20170510
+yes|rasqal|rasqal|exe,dev,doc,nls|compat:pyro| #20170510
+yes|re2c|re2c|exe>dev,dev,doc,nls|compat:pyro| #20180701 i think need this to compile qt5 and meson.
+yes|read-edid|read-edid|exe,dev,doc,nls|compat:pyro| #20170615 warning, i2c only, no vbe libx86 support.
+yes|readline|readline|exe,dev,doc,nls|compat:pyro
+yes|redland|redland|exe,dev,doc,nls|compat:pyro| #20170510
+no|refind||exe>dev,dev,doc,nls|pet:pyro| #20171028
+no|retrovol|retrovol|exe,dev,doc,nls|compat:pyro| #20170616. 20171230 removed, broken.
+yes|rgb|rgb|exe,dev,doc,nls|compat:pyro
+yes|rman|rman|exe>dev,dev,doc,nls|compat:pyro| #20170616
+no|rng-tools|rng-tools|exe,dev,doc,nls|compat:pyro| #20180614
+yes|rox-filer|rox-filer|exe,dev,doc,nls|compat:pyro| #20180608 works both quirky and easy.
+yes|rpcbind|rpcbind|exe,dev,doc,nls|compat:pyro
+yes|rp-pppoe|rp-pppoe|exe,dev,doc,nls|compat:pyro
+yes|rsync|rsync|exe,dev,doc,nls|compat:pyro| #20170616
+no|rubix||exe,dev,doc,nls|pet:pyro| #20171024
+no|run-postinsts|run-postinsts|exe,dev,doc,nls|compat:pyro
+yes|rxvt-unicode|rxvt-unicode|exe,dev>null,doc,nls|compat:pyro| #20180728
+no|rxvt-unicode||exe,dev,doc,nls|pet:pyro| #20171022
+yes|sakura|sakura|exe,dev,doc,nls|compat:pyro| #20171101 needs vte.
+yes|samba||exe,dev,doc,nls|pet:pyro| #20180829
+yes|sane-backends|sane-backends|exe,dev,doc,nls|compat:pyro| #20170513
+no|sato-screenshot|sato-screenshot|exe,dev,doc,nls|compat:pyro
+no|sbc|sbc|exe,dev,doc,nls|compat:pyro
+yes|scale2x|scale2x|exe,dev,doc,nls|compat:pyro| #20170616
+yes|schroedinger|schroedinger|exe,dev,doc,nls|compat:pyro
+yes|scons||exe>dev,dev,doc,nls|pet:| #needed by serf, to compile.
+yes|scribus||exe,dev,doc,nls|pet:pyro| #needs qt5-base. 20180829
+no|screeny||exe,dev,doc,nls|pet:noarch| #alternate screenshot app, created by 01micko. 20180103 builtin to rootfs-skeleton.
+no|scrollkeeper||exe>dev,dev,doc>dev,nls>dev|pet:|
+yes|seamonkey||exe,dev,doc>null,nls>null|pet:pyro| #20171122 20180715 using firefox until have sm pet. 20180829
+yes|sed|sed|exe,dev,doc,nls|compat:pyro
+yes|serf|serf|exe,dev,doc,nls|compat:pyro
+yes|setserial|setserial|exe,dev>null,doc,nls|compat:pyro
+yes|setvol|setvol|exe,dev,doc,nls|compat:pyro| #20170616
+yes|setxkbmap|setxkbmap|exe,dev,doc,nls|compat:pyro| #20170510
+yes|sgml-common|sgml-common|exe,dev,doc,nls|compat:pyro| #20170611 needed by opensp, which needed by libofx.
+no|shadow|shadow|exe,dev,doc,nls|compat:pyro| #20180709 removed.
+no|shadow-securetty|shadow-securetty|exe,dev,doc,nls|compat:pyro| #not needed.
+no|shadow-sysroot|shadow-sysroot|exe,dev,doc,nls|compat:pyro| #20170510 20180709 removed.
+yes|shared-mime-info|shared-mime-info|exe,dev,doc,nls|compat:pyro| #20171101 rolled back to 0.90.
+no|shutdown-desktop|shutdown-desktop|exe,dev,doc,nls|compat:pyro
+no|slang|slang|exe,dev,doc,nls|compat:pyro| #20181113 needed by networkmanager. 20190205 removed.
+no|smbclient3||exe,dev,doc,nls|pet:pyro| #20180731 smbclient utility, from samba. 20180831
+yes|smbnetfs||exe|pet:pyro| #20190125 needs samba. note, there is a oe recipe.
+yes|socat|socat|exe,dev,doc,nls|compat:pyro| #20180701
+yes|speex|speex|exe,dev,doc,nls|compat:pyro
+yes|speexdsp|speexdsp|exe,dev,doc,nls|compat:pyro
+yes|sqlite3|sqlite3|exe,dev,doc,nls|compat:pyro
+yes|squashfs-tools|squashfs-tools|exe,dev>null,doc,nls|compat:pyro
+no|sshfs||exe,dev,doc,nls|pet:pyro| #20180119 needs fuse, openssh
+yes|sshfs|sshfs-fuse|exe,dev,doc,nls|compat:pyro| #20180715 needs fuse, openssh
+yes|ssh-gui|ssh-gui|exe,dev,doc,nls|compat:pyro| #20170618
+yes|sshpass|sshpass|exe,dev,doc,nls|compat:pyro| #20170618
+yes|startup-notification|startup-notification|exe,dev,doc,nls|compat:pyro| #20170510
+yes|stat|stat|exe,dev,doc,nls|compat:pyro
+yes|strace|strace|exe>dev,dev,doc,nls|compat:pyro
+yes|streamripper|streamripper|exe,dev,doc,nls|compat:pyro
+yes|subversion|subversion|exe>dev,dev,doc,nls|compat:pyro
+yes|sudo|sudo|exe,dev,doc,nls|compat:pyro
+no|swig|swig|exe,dev,doc,nls|compat:pyro| #20170510. only used by kodi.
+yes|symphytum||exe,dev,doc,nls|pet:pyro| #20190125 needs qt5-basic
+yes|sysfsutils|sysfsutils|exe,dev,doc,nls|compat:pyro
+no|syslinux|syslinux|exe,dev,doc,nls|compat:pyro
+no|syslinux6_modules_efi||exe,dev,doc,nls|pet:pyro
+no|sysvinit|sysvinit|exe,dev,doc,nls|compat:pyro
+no|sysvinit-inittab|sysvinit-inittab|exe,dev,doc,nls|compat:pyro
+yes|sysvinit-utils-cut|sysvinit|exe,dev>null,doc>null,nls>null|compat:pyro| #20170618
+yes|taglib|taglib|exe,dev,doc,nls|compat:pyro
+no|talloc||exe,dev,doc,nls|pet:pyro| #20171213 needed by cifs-utils, smbnetfs
+yes|talloc|libtalloc|exe,dev,doc,nls|compat:pyro| #20180715 needed by cifs-utils, smbnetfs
+yes|tar|tar|exe,dev>null,doc,nls|compat:pyro
+no|tcl|tcl|exe,dev,doc,nls|compat:pyro
+yes|tcp-wrappers|tcp-wrappers|exe,dev,doc,nls|compat:pyro
+yes|texinfo|texinfo|exe>dev,dev,doc,nls|compat:pyro
+yes|tiff|tiff|exe,dev,doc,nls|compat:pyro| #also known as libtiff
+no|tslib|tslib|exe,dev,doc,nls|compat:pyro| #20180708 needed by qtbase
+yes|tzdata|tzdata|exe,dev,doc,nls|compat:pyro
+no|udev-extraconf|udev-extraconf|exe,dev,doc,nls|compat:pyro
+yes|udftools|udftools|exe,dev,doc,nls|compat:pyro| #20170618
+yes|ufiformat|ufiformat|exe,dev,doc,nls|compat:pyro| #20171031
+yes|uget|uget|exe,dev,doc,nls|compat:pyro| #20170618
+yes|unclutter|unclutter|exe,dev>null,doc,nls|compat:pyro| #20170618
+yes|unrar|unrar|exe,dev,doc,nls|compat:pyro
+yes|unzip|unzip|exe,dev,doc,nls|compat:pyro
+no|update-rc.d|update-rc.d|exe,dev,doc,nls|compat:pyro
+yes|UrxvtControl||exe,dev,doc,nls|pet:noarch| #20180103
+no|urxvtset||exe|pet:noarch| #needs urxvt, yad. 20180103 use UrxvtControl instead.
+yes|usb-modeswitch|usb-modeswitch|exe,dev,doc,nls|compat:pyro
+yes|usb-modeswitch-data|usb-modeswitch-data|exe|compat:pyro
+yes|usbutils|usbutils|exe,dev,doc,nls|compat:pyro
+yes|util-linux|util-linux|exe,dev,doc,nls|compat:pyro
+yes|util-macros|util-macros|exe,dev,doc,nls|compat:pyro
+yes|v4l-utils|v4l-utils|exe,dev,doc,nls|compat:pyro| #20180506
+yes|vala|vala|exe>dev,dev,doc>dev,nls|compat:pyro
+yes|vamps|vamps|exe,dev,doc,nls|compat:pyro| #20170618
+yes|vcdimager|vcdimager|exe,dev,doc,nls|compat:pyro| #20170618
+no|viewnior||exe,dev,doc,nls|pet:| #using gpicview instead.
+yes|vigra|vigra|exe,dev,doc,nls|compat:pyro| #20170510
+yes|vobcopy|vobcopy|exe,dev,doc,nls|compat:pyro| #20170618
+yes|vorbis-tools|vorbis-tools|exe,dev,doc,nls|compat:pyro| #20170619
+yes|vte|vte|exe,dev,doc,nls|compat:pyro| #20171101 needed by sakura.
+yes|wag_profiles||exe|pet:noarch| #taken out of net_setup pet, see forum t=82092&start=300
+yes|wavpack|wavpack|exe,dev,doc,nls|compat:pyro| #20170510
+yes|wavplay|wavplay|exe,dev,doc,nls|compat:pyro| #20170619
+no|wayland-protocols|wayland-protocols|exe,dev,doc,nls|compat:pyro
+yes|wcpufreq||exe|pet:noarch
+yes|wget|wget|exe,dev>null,doc,nls|compat:pyro
+yes|whois|whois|exe,dev,doc,nls|compat:pyro| #20170614
+yes|wireless-regdb||exe|pet:noarch| #20190723
+yes|wireless-tools|wireless-tools|exe,dev,doc,nls|compat:pyro
+yes|wpa-supplicant|wpa-supplicant|exe,dev,doc,nls|compat:pyro
+yes|wvdial|wvdial|exe,dev,doc,nls|compat:pyro| #20180505 needs wvstreams
+yes|wvstreams|wvstreams|exe,dev,doc,nls|compat:pyro| #20180505
+no|x11-common|x11-common|exe,dev,doc,nls|compat:pyro
+yes|x11proto|bigreqsproto,compositeproto,damageproto,dri2proto,fixesproto,fontsproto,glproto,inputproto,kbproto,presentproto,randrproto,recordproto,renderproto,resourceproto,scrnsaverproto,videoproto,xcb-proto,xextproto,xf86dgaproto,xf86driproto,xf86miscproto,xf86vidmodeproto,xineramaproto,xproto|exe>dev,dev,doc,nls|compat:pyro| #missing: dri3proto,xf86bigfontproto,xcmiscproto
+yes|x264|x264|exe,dev,doc,nls|compat:pyro
+no|x265|x265|exe,dev,doc,nls|compat:april
+yes|xarchive|xarchive|exe,dev>null,doc,nls|compat:pyro| #20170619
+yes|xauth|xauth|exe,dev,doc,nls|compat:pyro
+yes|xbitmaps|xbitmaps|exe,dev,doc,nls|compat:pyro| #20170510
+yes|xcalc|xcalc|exe,dev,doc,nls|compat:pyro| #20170615
+yes|xcb-util|xcb-util|exe,dev,doc,nls|compat:pyro
+yes|xcb-util-image|xcb-util-image|exe,dev,doc,nls|compat:pyro| #20180623 needed by xephyr x server.
+yes|xcb-util-keysyms|xcb-util-keysyms|exe,dev,doc,nls|compat:pyro| #20180623 needed by xephyr x server.
+yes|xcb-util-renderutil|xcb-util-renderutil|exe,dev,doc,nls|compat:pyro| #20180623 needed by xephyr x server.
+yes|xcb-util-wm|xcb-util-wm|exe,dev,doc,nls|compat:pyro| #20180623 needed by xephyr x server.
+yes|xclip|xclip|exe,dev,doc,nls|compat:pyro
+yes|xclipboard|xclipboard|exe,dev,doc,nls|compat:pyro| #20170615
+yes|xcmiscproto|xcmiscproto|exe>dev,dev,doc,nls|compat:pyro| #20170510
+yes|xcur2png|xcur2png|exe,dev,doc,nls|compat:pyro| #20170619
+yes|xcursorgen|xcursorgen|exe,dev,doc,nls|compat:pyro| #20170510
+no|xcursor-transparent-theme|xcursor-transparent-theme|exe,dev,doc,nls|compat:pyro
+yes|xdelta3|xdelta3|exe,dev,doc,nls|compat:pyro
+yes|xdg-puppy|xdg-puppy|exe,dev,doc,nls|compat:pyro| #20170609
+no|xdialog||exe,dev,doc,nls|pet:| #see forum t=64795
+yes|xdialog|xdialog|exe,dev,doc,nls|compat:pyro| #20170512
+yes|xdotool|xdotool|exe,dev,doc,nls|compat:pyro| #20180518
+yes|xdpyinfo|xdpyinfo|exe,dev,doc,nls|compat:pyro
+yes|xev|xev|exe,dev,doc,nls|compat:pyro| #20170510
+yes|xf86-video-fbdev|xf86-video-fbdev|exe,dev,doc,nls|compat:pyro|
+yes|xfdiff-cut|xfdiff-cut|exe,dev,doc,nls|compat:pyro| #20170620
+yes|xfontsel|xfontsel|exe,dev,doc,nls|compat:pyro| #20170510
+yes|xgamma|xgamma|exe,dev,doc,nls|compat:pyro| #20170510
+yes|xhost|xhost|exe,dev,doc,nls|compat:pyro
+yes|xine-lib|xine-lib|exe,dev,doc,nls|compat:pyro| #20170627
+yes|xine-ui|xine-ui|exe,dev,doc,nls|compat:pyro| #20171102
+yes|xinit|xinit|exe,dev,doc,nls|compat:pyro
+yes|xinput|xinput|exe,dev,doc,nls|compat:pyro
+yes|xinput-calibrator|xinput-calibrator|exe,dev,doc,nls|compat:pyro
+yes|xkbcomp|xkbcomp|exe,dev,doc,nls|compat:pyro
+yes|xkeyboard-config|xkeyboard-config|exe,dev,doc,nls|compat:pyro
+yes|xload|xload|exe,dev,doc,nls|compat:pyro| #20170620
+yes|xlockmore|xlockmore|exe,dev,doc,nls|compat:pyro| #20170620
+yes|xmessage|xmessage|exe,dev,doc,nls|compat:pyro
+yes|xmlto|xmlto|exe>dev,dev,doc,nls|compat:pyro
+yes|xmodmap|xmodmap|exe,dev,doc,nls|compat:pyro
+yes|xorg_base|rgb,libdrm,libfontenc,libice,libsm,libx11,libxau,libxcb,libxcomposite,libxcursor,libxdamage,libxdmcp,libxext,libxfixes,libxfont2,libxft,libxi,libxinerama,libxkbfile,libxmu,libxrandr,libxrender,libxt,libxtst,libxvmc,libxxf86dga,libxxf86misc,libxxf86vm|exe,dev,doc,nls|compat:pyro
+yes|xorriso|xorriso|exe,dev,doc,nls|compat:pyro
+yes|xprop|xprop|exe,dev,doc,nls|compat:pyro
+yes|xrandr|xrandr|exe,dev,doc,nls|compat:pyro
+no|xresprobe|xresprobe|exe,dev,doc,nls|compat:pyro| #20170522 has ddcprobe utility. 20180829
+yes|xrdb|xrdb|exe,dev,doc,nls|compat:pyro| #20170510
+yes|xsane||exe,dev>null,doc,nls|pet:pyro| #20180729
+no|xserver-nodm-init|xserver-nodm-init|exe,dev,doc,nls|compat:pyro
+yes|xserver-xf86-config|xserver-xf86-config|exe,dev,doc,nls|compat:pyro
+yes|xserver_xorg|xserver-xorg,xf86-input-evdev,xf86-input-keyboard,xf86-input-mouse,xf86-input-synaptics,xf86-video-fbdev|exe,dev,doc,nls|compat:pyro| #20180311 -intel now a pet.
+yes|xset|xset|exe,dev,doc,nls|compat:pyro
+yes|xsetmode|xsetmode|exe,dev,doc,nls|compat:pyro
+yes|xsetroot|xsetroot|exe,dev,doc,nls|compat:pyro| #20170510
+yes|xsoldier|xsoldier|exe,dev,doc,nls|compat:pyro| #20170620
+yes|xtrans|xtrans|exe>dev,dev,doc,nls|compat:pyro
+yes|xvidcore|xvidcore|exe,dev,doc,nls|compat:pyro| #20180623
+yes|xvidtune|xvidtune|exe,dev,doc,nls|compat:pyro| #20170615
+yes|xvkbd|xvkbd|exe,dev,doc,nls|compat:pyro| #20170619
+yes|xwd|xwd|exe,dev,doc,nls|compat:pyro| #needed by 01mickos screeny.
+yes|xwininfo|xwininfo|exe,dev,doc,nls|compat:pyro
+yes|xz|xz|exe,dev,doc,nls|compat:pyro
+yes|yad|yad|exe,dev,doc,nls|compat:pyro| #20170619 20180103 20180912
+yes|yajl|yajl|exe,dev,doc,nls|compat:pyro| #20170510
+no|yasm|yasm|exe>dev,dev,doc,nls|compat:pyro| #20180829
+yes|ycalc||exe,dev,doc,nls|pet:pyro|  #failed to compile in oe, retire it. 20180727 i like it
+yes|youtube-dl||exe|pet:noarch| #20171123
+yes|youtubedl-gui||exe|pet:noarch| #20171123
+yes|z2_geany_bacon_hack||exe|pet:noarch| #temp hack for geany. will probably have to remove soon. #20170527
+yes|zarfy||exe,dev,doc,nls|pet:pyro| #20190125
+yes|zip|zip|exe,dev>null,doc,nls|compat:pyro|
+yes|zlib|zlib|exe,dev,doc,nls|compat:pyro
+yes|zstd|zstd|exe,dev,doc,nls|compat:pyro| #20180715
+'

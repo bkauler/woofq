@@ -1,0 +1,25 @@
+#3builddistro will read these variables, so won't have to ask questions every build.
+
+#space-separated list of xorg drivers to be moved to /usr/lib/x/drivers-alternate,
+#or "none" if none to be moved (in drivers-alternate, xorg won't use them).
+#or "<empty>" then ask.
+BUILD_CHOICE_XORG_DRIVERS_ALTERNATE='none'
+
+#the vast majority of PCs do not have true-SCSI drives. However, in the
+#1980s, 1990s it was popular in network server computers.
+#values: 'delete', 'keep', '<empty>' (latter will ask).
+BUILD_CHOICE_TRUE_SCSI_KERNEL_DRIVERS='delete'
+
+#The kernel is configured with the vesafb and console drivers builtin, which
+#is enough if it is ever required to boot in framebuffer video mode. The
+#other framebuffer modules take up over 1MB and are not normally required.
+#values: 'delete', 'keep', '<empty>' (latter will ask).
+BUILD_CHOICE_FB_KERNEL_DRIVERS='delete'
+
+#cutdown of some 'exotic' kernel modules that are unlikely to be needed.
+#values: 'delete', 'keep', '<empty>' (latter will ask).
+BUILD_CHOICE_EXOTIC_KERNEL_DRIVERS='keep'
+
+#a very radical cutdown, to a minimal set of kernel drivers.
+#values: 'delete', 'keep', '<empty>' (latter will ask).
+BUILD_CHOICE_RADICAL_KERNEL_DRIVERS='keep'

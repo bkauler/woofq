@@ -1,0 +1,270 @@
+#!/bin/ash
+#ask locale and keyboard layout.
+#190712 reduce locale choices to default lang (ex: fr_*) or en_*
+#20210530 console keyboard layout uk changed to gb. see also /usr/sbin/quicksetup.
+
+export PATH='/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin'
+
+###locale###
+#code from /usr/sbin/quicksetup...
+ INSTLANGPACK="`grep '^langpack_' /root/.packages/woof-installed-packages | cut -f 2 -d '|'`"
+ [ ! "$INSTLANGPACK" ] && [ -f /root/.packages/user-installed-packages ] && INSTLANGPACK="`grep '^langpack_' /root/.packages/user-installed-packages | cut -f 2 -d '|'`"
+ [ ! "$INSTLANGPACK" ] && INSTLANGPACK="none"
+ 
+ LOCALEXML=""
+
+  CURRLANG="`grep '^LANG=' /etc/profile | tr -d "'" | tr -d '"' | cut -f 2 -d '='`"
+  [ ! "$CURRLANG" ] && CURRLANG="en_US.UTF-8" #precaution
+  UTF8='.UTF-8'
+  BASELANG="`basename $CURRLANG .utf8`"
+  BASELANG="`basename $BASELANG .UTF-8`"
+  DEFAULTLANG1="${BASELANG%_*}" #190712 ex: fr
+  UTF_FLAG="yes"
+  grep -q "^${BASELANG}[_. ].*ISO-8859-" /usr/share/i18n/SUPPORTED
+  [ $? -ne 0 ] && UTF_FLAG="yes" #actually, alternate code below to determine this.
+ 
+  [ ! -d /usr/lib/locale/en_US.utf8 ] && localedef -f UTF-8 -i en_US --no-archive en_US.utf8 >/dev/null #110409 111022
+
+  #build language table...
+  LANGUAGEDESCR='aa:Afar ab:Abkhazian af:Africaans am:Amharic an:Aragonese ar:Arabic az:Azeri be:Belarusian bn:Bengali bs:Bosnian bg:Bulgarian br:Breton ca:Catalan cs:Czech cy:Welsh da:Danish de:German dv:Divehi dz:Dzongkha el:Greek en:English eo:Esperanto es:Spanish et:Estonian eu:Basque fa:Persian fo:Faeroese fi:Finnish fr:French ga:Irish gd:Scots_Gaelic gl:Galician gv:Manx_Gaelic gu:Gujarati he:Hebrew hi:Hindi hr:Croatian hu:Hungarian hy:Armenian is:Icelandic id:Indonesian iw:Hebrew it:Italian ja:Japanese ka:Georgian kl:Greenlandic kn:Kannada kk:Kazakh km:Khmer kok:Konkani ko:Korean ku:Kurdish kw:Cornish ky:Kyrgyz lg:Luganda lo:Lao lt:Lithuanian lv:Latvian mg:Malagasy ms:Malay ml:Malayalam mt:Maltese mi:Maori mk:Macedonian mn:Mongolian mr:Marathi ne:Nepali nl:Dutch nb:Norgwegian nn:Norwegian_Nynorsk no:Norwegian_Bokm oc:Occitan om:Oromo or:Oriya pa:Pashto pl:Polish pt:Portuguese pa:Punjabi quz:Quechua ro:Romania rs:Serbian ru:Russian rw:Kinyarwanda smn:Sami smj:Sami se:Sami sa:Sanskrit sma:Sami sms:Sami sq:Albanian sr:Srpski sl:Slovenian sw:Swahili sv:Swedish syr:Syriac ta:Tamil th:Thai tl:Tagalog tt:Tatar te:Telugu tr:Turkish uk:Ukrainian ur:Urdu uz:Uzbek vi:Vietnamese wa:Walloon xh:Xhosa yi:Yiddish zh:Chinese zu:Zulu'
+  REGIONDESCR='AA:ArabicCountries AE:UAE AL:Yugoslavia AR:Argentina AT:Austria AU:Australia BE:Belgium BG:Bularia BH:Bahrain BN:Brunei BO:Bolvia BR:Brazil BZ:Belize CA:Canada CH:Switzerland CL:Chile CN:PeoplesRepublicChina CO:Columbia CR:CostaRica CY:Cyprus CZ:CzechRepublic DE:Germany DK:Denmark DO:DominicanRepublic EC:Ecuador EE:Estonia ES:Spain DO:Dominican DZ:Algeria EC:Ecuador EG:Egypt FI:Finland FR:France GB:GreatBritain GR:Greece GT:Guatemalia HK:HongKong HN:Honduras HR:Croatia HU:Hungary ID:Indonesia IE:Ireland IL:Israel IN:India IQ:Iraq IS:Iceland IT:Italy JM:Jamaica JO:Jordan JP:Japan KR:Korea KW:Kuwait KZ:Kazakhstan LB:Lebanon LI:Liechtenstein LU:Luxembourg LY:Libya MA:Morocco MC:Monaco MK:Macedonia MO:Macau MY:Malaysia MX:Mexico NI:Nicaragua NL:Netherlands NO:Norway NZ:NewZealand OM:Oman PA:Panama PE:Peru PH:Philippines PL:Poland PR:PuertoRico PT:Portugal PY:Paraguay QA:Qatar RO:Romania RU:Russia SA:SaudiArabia SE:Sweden SG:Singapore SK:Slovakia SY:Syria TH:Thailand TN:Tunisia TR:Turkey TW:Taiwan ZA:SouthAfrica TT:Trinidad US:USA PE:Peru SV:ElSalvador MX:Mexico NI:Nicaragua UY:Uruguay VE:Venezuela YE:Yemen YU:Yugoslavia ZA:SouthAfrica'
+  #need sanity check, as format of these files has changed...
+  SANITYFLAG='pass'
+  [ ! -f /usr/share/i18n/dialog_table_x ] && SANITYFLAG='fail' #precaution.
+  [ -s /usr/share/i18n/dialog_table_cli ] && [ `cat /usr/share/i18n/dialog_table_cli | wc -l` -le 1 ] && SANITYFLAG='fail'
+  [ -s /usr/share/i18n/dialog_table_x ] && [ `cat /usr/share/i18n/dialog_table_x | wc -l` -le 1 ] && SANITYFLAG='fail'
+  if [ "$PARAM1" = "composeonly" -o "$SANITYFLAG" = "fail" ];then
+   CHOICES_CLI=""; ON=""; OFF=""; CHOICES_X="" #120717 remove XPID=""; 
+   for ONELOCALE in `ls -1 /usr/share/i18n/locales | grep -v -E 'i18n|iso|translit|POSIX'`
+   do
+    STATUS="off"
+    [ "$ONELOCALE" = "$BASELANG" ] && STATUS="on"
+    LANGUAGE="`echo -n "$ONELOCALE" | cut -f 1 -d '_'`"
+    REGION="`echo -n "$ONELOCALE" | cut -f 2 -d '_' | cut -f 1 -d '.' | cut -f 1 -d '@'`"
+    lPATTERN="^${LANGUAGE}:"
+    LANGUAGE="`echo "$LANGUAGEDESCR" | tr ' ' '\n' | grep "$lPATTERN" | head -n 1 | cut -f 2 -d ':'`"
+    rPATTERN="^${REGION}:"
+    REGION="`echo "$REGIONDESCR" | tr ' ' '\n' | grep "$rPATTERN" | head -n 1 | cut -f 2 -d ':'`"
+    [ "$LANGUAGE" != "" ] && [ "$REGION" != "" ] && LANGUAGE="${LANGUAGE}, "
+    DESCR="${LANGUAGE}${REGION}"
+    if [ "$STATUS" = "on" ];then
+     if [ "$CHOICES_X" = "" ];then #111113
+      CHOICES_X="$ONELOCALE \"${DESCR}\" on"
+     else
+      CHOICES_X="$CHOICES_X
+$ONELOCALE \"${DESCR}\" on"
+     fi
+     FIRSTLINE_CLI="$ONELOCALE \"${DESCR}\" "
+    else
+     if [ "$CHOICES_X" = "" ];then #111113
+      CHOICES_X="$ONELOCALE \"${DESCR}\" off"
+     else
+      CHOICES_X="$CHOICES_X
+$ONELOCALE \"${DESCR}\" off"
+     fi
+     if [ "$CHOICES_CLI" = "" ];then
+      CHOICES_CLI="$ONELOCALE \"${DESCR}\" "
+     else
+      CHOICES_CLI="$CHOICES_CLI
+$ONELOCALE \"${DESCR}\" "
+     fi
+    fi
+   done
+   echo "$CHOICES_X" > /usr/share/i18n/dialog_table_x
+   CHOICES_CLI="${FIRSTLINE_CLI}
+${CHOICES_CLI}"
+   echo "$CHOICES_CLI" > /usr/share/i18n/dialog_table_cli
+   [ "$PARAM1" = "composeonly" ] && exit
+  fi
+
+  #tables already exist, but may need to reselect 'on' item...
+  onPTN="s%^${BASELANG} \"(.*)\" off$%${BASELANG} \"\1\" on%"
+  sed -i -e 's% on$% off%' -r -e "$onPTN" /usr/share/i18n/dialog_table_x
+  
+  DEFAULTXML=""
+  DEFAULT="`grep ' on$' /usr/share/i18n/dialog_table_x | sed -e 's% on$%%' -e 's%"%%g' -e "s% %  ${TABCHAR}%"`" #'geany
+  [ "$DEFAULT" ] && DEFAULTXML="<item>${DEFAULT}</item>" #combobox does not support default tag.
+  
+  #190712 only offer the default language and en...
+  grep -E "^en_|^${DEFAULTLANG1}_" /usr/share/i18n/dialog_table_x > dialog_table_x
+  ITEMS="`sed -e 's% on$%%' -e 's% off$%%' -e 's%"%%g' -e "s% %  ${TABCHAR}%" -e 's%^%<item>%' -e 's%$%</item>%' dialog_table_x`" #'geany  190712
+  
+#  #change the default locale item if LANGUAGE set (occurs on reentry after click a flag)
+#  if [ "$LANGUAGE" ];then
+#   if [ "$xLANGUAGE" != "en" ];then
+#    xLCAPS="$(echo -n "$xLANGUAGE" | tr '[a-z]' '[A-Z]')"
+#    case $xLANGUAGE in
+#     el) xDEFAULT='el_GR' ;;
+#     nn) xDEFAULT='nn_NO' ;;
+#     *)
+#      xDEFAULT="$(grep -o "^${xLANGUAGE}_${xLCAPS}" /usr/share/i18n/dialog_table_x | head -n 1)"
+#      [ ! "$xDEFAULT" ] && xDEFAULT="$(grep -o "^${xLANGUAGE}_[A-Z][A-Z]" /usr/share/i18n/dialog_table_x | head -n 1)"
+#     ;;
+#    esac
+#    if [ "$xDEFAULT" ];then
+#     DEFAULT="$(grep "^${xDEFAULT}" /usr/share/i18n/dialog_table_x | head -n 1 | sed -e 's% on$%%' -e 's% off$%%' -e 's%"%%g' -e "s% %  ${TABCHAR}%")"
+#     DEFAULTXML="<item>${DEFAULT}</item>"
+#    fi
+#   fi
+#  fi
+  
+  DEFAULT_UTF8='true'
+ 
+  TT_locale="Choose main language"
+  TT_mainlanguage="Main Language"
+  LOCALEXML="
+  <hbox>
+   <text><label>Locale has the format language_country, for example en_US is English as spoken in the USA</label></text>
+   <pixmap tooltip-text=\"${TT_mainlanguage}\" icon_size=\"3\" ><input file>/usr/local/lib/X11/mini-icons/mini-font.xpm</input></pixmap>
+   <combobox tooltip-text=\"${TT_locale}\" width-request=\"202\">
+    ${DEFAULTXML}
+    ${ITEMS}
+    <variable>COMBO_LOCALE</variable>
+   </combobox>
+  </hbox>"
+
+
+
+###keyboard###
+#code from /usr/sbin/quicksetup...
+ KEYBOARDXML=""
+  KMAPPATH='/lib/keymaps'
+  [ -d /usr/share/kbd/keymaps/i386 ] && KMAPPATH='/usr/share/kbd/keymaps/i386'
+  [ -d /usr/share/keymaps/i386 ] && KMAPPATH='/usr/share/keymaps/i386' #debian, gentoo. note, debian files have extension .kmap.gz, gentoo have .map.gz
+  KEXT=''
+  [ -f ${KMAPPATH}/qwerty/us.map ] && KEXT='.map'
+  [ -f ${KMAPPATH}/qwerty/us.map.gz ] && KEXT='.map'
+  [ -f ${KMAPPATH}/qwerty/us.kmap ] && KEXT='.kmap'
+  [ -f ${KMAPPATH}/qwerty/us.kmap.gz ] && KEXT='.kmap'
+
+  DEF_KMAP="us"
+  [ -f /etc/keymap ] && DEF_KMAP="`cat /etc/keymap | sed -e 's/\..*//'`"
+  [ ! "$DEF_KMAP" ] && DEF_KMAP="us" #precaution.
+  if [ ! -f /var/local/quickset-keyboard-list ];then
+   echo -n "" > /var/local/quickset-keyboard-list
+   case $KMAPPATH in
+    /lib/keymaps) KMAPFILES="`find /lib/keymaps -mindepth 1 -maxdepth 1 -name '*.gz' | sort`" ;; #ex: us.gz
+    *) KMAPFILES="`find ${KMAPPATH}/[^i]* -name '*.map' -o -name '*.kmap' -o -name '*.map.gz' -o -name '*.kmap.gz' -not -name 'defkeymap*' | sort`" ;;
+   esac
+   for AFILE in $KMAPFILES
+   do
+    AKMAP="`basename $AFILE .gz`" #us, fr, br, etc.
+    AKMAP="`basename $AKMAP .kmap`"
+    AKMAP="`basename $AKMAP .map`"
+    case $AKMAP in
+     us*) ACNTRY="(USA)";;
+     fr*) ACNTRY="(France)";;
+     it*) ACNTRY="(Italy)";;
+     ba*) ACNTRY="(Bashkir)";;
+     be*) ACNTRY="(Belgium)";;
+     bg*) ACNTRY="(Bulgaria)";;
+     br*) ACNTRY="(Brazil)";;
+     by*) ACNTRY="(Byelorussian)";;
+     cf*) ACNTRY="(French-Canadian)";;
+     croat*) ACNTRY="(Croatia)";;
+     cz*) ACNTRY="(Czech)";;
+     de) ACNTRY="(Germany)";;
+     de_*) ACNTRY="(Germany)";;
+     de-*) ACNTRY="(Germany)";;
+     dk*) ACNTRY="(Denmark)";;
+     es*) ACNTRY="(Spain)";;
+     fi*) ACNTRY="(Finland)";;
+     hu*) ACNTRY="(Hungary)";;
+     ka*) ACNTRY="(Kazakhstan)";;
+     ky*) ACNTRY="(Kyrgyzstan)";;
+     et*) ACNTRY="(Estonia)";;
+     lt*) ACNTRY="(Lithuania)";;
+     mk*) ACNTRY="(Macedonia)";;
+     sr*) ACNTRY="(Serbia)";;
+     tr*) ACNTRY="(Turkey)";;
+     tt*) ACNTRY="(Tatar)";;
+     sg*) ACNTRY="(Swiss-German)";;
+     ua*) ACNTRY="(Ukraine)";;
+     gr*) ACNTRY="(Greece)";;
+     il*) ACNTRY="(Israel)";;
+     is*) ACNTRY="(Iceland)";;
+     jp*) ACNTRY="(Japan)";;
+     pc*) ACNTRY="(Japanese/English)";;
+     la*) ACNTRY="(Latin_America)";;
+     nl*) ACNTRY="(Netherlands)";;
+     no*) ACNTRY="(Norway)";;
+     pl*) ACNTRY="(Poland)";;
+     pt*) ACNTRY="(Portugal)";;
+     ro*) ACNTRY="(Romania)";;
+     ru*) ACNTRY="(Russia)";;
+     se*) ACNTRY="(Sweden)";;
+     sv*) ACNTRY="(Sweden)";;
+     sk*) ACNTRY="(Slovakia)";;
+     sl*) ACNTRY="(Slovenia)";;
+     gb*) ACNTRY="(UK)";; #20210530 changed from uk. see also /usr/sbin/quicksetup.
+     wangbe*) ACNTRY="(Belgium)";;
+     azerty) ACNTRY="(Tandon)";;
+     dvorak-r) ACNTRY="(Right_single-handed)";;
+     dvorak-l) ACNTRY="(Left_single-handed)";;
+     *)  ACNTRY="-";;
+    esac
+    if [ "$DEF_KMAP" = "$AKMAP" ];then
+     echo "$AKMAP \"${ACNTRY}\" on" >> /var/local/quickset-keyboard-list
+    else
+     echo "$AKMAP \"${ACNTRY}\" off" >> /var/local/quickset-keyboard-list
+    fi
+   done
+  fi
+  
+  #table already exist, but may need to reselect 'on' item...
+  onPTN="s%^${DEF_KMAP} \"(.*)\" off$%${DEF_KMAP} \"\1\" on%"
+  sed -i -e 's% on$% off%' -r -e "$onPTN" /var/local/quickset-keyboard-list
+
+  DEFAULTXML=""
+  DEFAULT="`grep ' on$' /var/local/quickset-keyboard-list | sed -e 's% on$%%' -e 's%"%%g' -e "s% %    ${TABCHAR}%"`" #'geany
+  [ "$DEFAULT" ] && DEFAULTXML="<item>${DEFAULT}</item>" #combobox does not support default tag.
+  ITEMS="`sed -e 's% on$%%' -e 's% off$%%' -e 's%"%%g' -e "s% %    ${TABCHAR}%" -e 's%^%<item>%' -e 's%$%</item>%' /var/local/quickset-keyboard-list`" #'geany
+
+  TT_kb1="Choose keyboard layout"
+  TT_kb2="Keyboard Layout"
+  KEYBOARDXML="
+  <hbox>
+   <text><label>Make the best choice possible here, there will be an opportunity to fine-tune the keyboard layout after the desktop has loaded</label></text>
+   <pixmap tooltip-text=\"${TT_kb2}\" icon_size=\"3\" ><input file>/usr/local/lib/X11/mini-icons/mini-keyboard.xpm</input></pixmap>
+   <combobox tooltip-text=\"${TT_kb1}\" width-request=\"202\">
+    ${DEFAULTXML}
+    ${ITEMS}
+    <variable>COMBO_KEYBOARD</variable>
+   </combobox>
+  </hbox>"
+
+COUNTRYXML="<frame>
+   ${LOCALEXML}
+   ${KEYBOARDXML}
+</frame>"
+
+B_ok="OK"
+
+export ASKCOUNTRY_DLG="<window window_position=\"1\" decorated=\"false\" resizable=\"false\">
+ <vbox>
+  <text use-markup=\"true\"><label>\"<b>Please choose your locale and keyboard layout</b>\"</label></text>
+  ${COUNTRYXML}
+  <hbox>
+    <button><label>${B_ok}</label><input file>/usr/local/lib/X11/mini-icons/mini-tick.xpm</input><action>EXIT:OK</action></button>
+  </hbox>
+ </vbox>
+</window>"
+
+RETASK="$(gtkdialog --program=ASKCOUNTRY_DLG)"
+echo "$RETASK" > /RETASKCOUNTRY
+
+if ! grep '^EXIT="OK"' tnew/RETASKCOUNTRY >/dev/null; then
+ exit 1
+fi
+
+BASELANG="$(grep '^COMBO_LOCALE.*' tnew/RETASKCOUNTRY | cut -f 2 -d '"' | cut -f 1 -d ' ')" #ex: de_DE
+if [ ! -d /usr/lib/locale/${BASELANG}.utf8 ];then
+ localedef -f UTF-8 -i ${BASELANG} --no-archive ${BASELANG}.utf8 > /dev/null
+ #cd /usr/lib/locale
+ #dir2tgz /usr/lib/locale/${BASELANG}.utf8
+ #mv -f /usr/lib/locale/${BASELANG}.utf8.tar.gz /
+ #cp -a /usr/lib/locale/${BASELANG}.utf8 /
+fi
+
+
+###end###

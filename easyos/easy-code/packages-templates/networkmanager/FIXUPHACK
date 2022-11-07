@@ -1,0 +1,33 @@
+
+#181120 leave out ofono plugin for now...
+#190815 set options for buster network-manager deb...
+echo '[main]
+plugins=keyfile
+auth-polkit=false
+dhcp=internal
+rc-manager=file
+systemd-resolved=false
+
+[device]
+#wifi.backend=iwd
+wifi.backend=wpa_supplicant' > etc/NetworkManager/NetworkManager.conf
+
+#have got the nmtui gui...
+#190922 added "NoDisplay=false", edited by rc.sysinit
+mkdir -p usr/share/applications
+echo '[Desktop Entry]
+Encoding=UTF-8
+Name=Nmtui NetworkManager configuration
+Icon=/usr/share/pixmaps/puppy/network.svg
+Comment=NetworkManager configuration
+Exec=urxvt -e nmtui
+Terminal=false
+NoDisplay=false
+Type=Application
+Categories=X-Network-connect
+GenericName=Nmtui' > usr/share/applications/nmtui.desktop
+
+#190815 buster, we have our own...
+if [ -f etc/init.d/network-manager ];then
+ rm -f etc/init.d/network-manager
+fi

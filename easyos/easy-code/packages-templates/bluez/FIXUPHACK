@@ -1,0 +1,18 @@
+#160329 BK
+
+#160405 /etc/init.d/rc.services runs this only if executable...
+#190814 leave as executable...
+#[ -x etc/init.d/bluetooth ] && chmod 644 etc/init.d/bluetooth
+
+#20201007 dunfell oe...
+BTEXE="$(find . -type f -name bluetoothd | head -n 1)"
+if [ "$BTEXE" ];then
+ mkdir -p usr/sbin
+ if [ ! -e usr/sbin/bluetoothd ];then
+  ln -s -r ${BTEXE} usr/sbin/bluetoothd
+ fi
+ if [ ! -e usr/sbin/obexd ];then #20201023 ref: /usr/share/dbus-1/services/org.bluex.obex.service
+  BTDIR="$(dirname $BTEXE)"
+  ln -s -r ${BTDIR}/obexd usr/sbin/obexd
+ fi
+fi

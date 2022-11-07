@@ -1,0 +1,36 @@
+timeout 10
+textonly on
+textmode 0
+showtools shutdown,reboot,firmware
+#scan_all_linux_kernels off
+#scanfor manual,internal
+scanfor manual
+menuentry "EasyOS normal bootup" {
+ loader /vmlinuz
+ initrd /initrd
+ ostype linux
+ options rw
+}
+menuentry " Filesystem check" {
+ loader /vmlinuz
+ initrd /initrd
+ ostype linux
+ options "rw qfix=fsck"
+}
+menuentry " Commandline only, do not start X" {
+ loader /vmlinuz
+ initrd /initrd
+ ostype linux
+ options "rw qfix=nox"
+}
+menuentry " Rollback to last saved session" {
+ loader /vmlinuz
+ initrd /initrd
+ ostype linux
+ options "rw qfix=bak"
+}
+menuentry "Windows 10" {
+ volume SYSTEM
+ loader \EFI\Microsoft\Boot\bootmgfw.efi
+ disabled
+}

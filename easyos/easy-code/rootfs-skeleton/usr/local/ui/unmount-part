@@ -1,0 +1,71 @@
+#!/bin/ash
+#20220207
+#20220217 popup jwm drives menu if successful unmount.
+
+. /etc/rc.d/PUPSTATE
+. /etc/uimanager #20220217 UI_DESK_MANAGER='jwm' #or rox
+
+MNTPT="$1"
+[ "$MNTPT" == "" ] && exit
+
+#copied from /usr/local/bin/drive_all...
+unmount_func() {
+ rox -D $MNTPT
+ sync
+ while [ 1 ];do
+  umount $MNTPT ; umVAL=$?
+  #fix zombie process prevents partition unmount, invisible to fuser...
+  if [ $umVAL -ne 0 ];then
+   #120129 karl godt: fix ZOMBIES, see http://murga-linux.com/puppy/viewtopic.php?t=71767&start=420 ...
+   #ZOMBIES="`ps -H -A | grep '<defunct>' | sed -e 's/  /|/g' | grep -v '|||' | cut -f 1 -d ' ' | tr '\n' ' '`"
+   ZOMBIES="`ps -H -A | grep '<defunct>' | sed 's/^[[:blank:]]*//;s/  /|/g' | grep -v '|||' | cut -f 1 -d ' ' | tr '\n' ' '`"
+   for ONEZOMBIE in $ZOMBIES
+   do
+    echo "Killing parentless zombie process $ONEZOMBIE"
+    kill $ONEZOMBIE
+   done
+   umount $MNTPT ; umVAL=$?
+  fi
+  #rare ocassion, partition got unmounted before umount runs above...
+  umPATTERN="${MNTPT} "
+  [ "`busybox mount | grep "$umPATTERN"`" = "" ] && umVAL=0
+  if [ $umVAL -ne 0 ];then
+   EXTRAMSG0="`fuser -v -m $MNTPT`"  
+   if [ "$EXTRAMSG0" = "" ];then
+    pupmessage -bg "#ff8080" -title "$(gettext 'EasyOS drive manager: ERROR')" -center "$(gettext 'FAILURE! In the case of removable media, the most
+common reason is the media is not currently inserted.
+If so, please remedy.')"
+   else
+    xmessage -bg "#ff99ff" -title "$(gettext 'EasyOS drive manager: FAIL')" -center -buttons "$(gettext 'KILL')":10,"$(gettext 'EXIT')":20 "$(gettext 'FAILURE!')
+$(gettext 'One or more processes (programs) are currently
+using the partition. Here they are:')
+${EXTRAMSG0}
+
+$(gettext "If you press the 'KILL' button, EasyOS will attempt to
+kill the offending programs for you. Only do this as a
+last resort.")
+$(gettext "Firstly you should try to close the programs
+manually, so do not press 'KILL'.")
+$(gettext "PLEASE PRESS THE 'EXIT' BUTTON!")"
+
+    if [ $? -eq 10 ];then
+     fuser -k -m $MNTPT
+     continue
+    fi
+   fi
+  else
+   [ "$DRV_CATEGORY" = "optical" ]  && eject_cd /dev/$ONEDRVNAME
+  fi
+  break
+ done
+}
+
+unmount_func
+
+if [ $umVAL -eq 0 ];then #20220217
+ if [ "$UI_DESK_MANAGER" == "jwm" ];then
+  #/bin/umount has reloaded the drives menu, so can pop it up...
+  /usr/local/ui/jwm/popup-drives-menu
+ fi
+fi
+###end###

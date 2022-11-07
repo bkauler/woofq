@@ -1,0 +1,55 @@
+#!/bin/sh
+#by BarryK 2006 for Puppy Linux v2.13+
+#passed param is file to be converted.
+#converts a .pet file to .tar.gz.
+#131122 support xz compressed pets (see dir2pet, installpkg.sh)
+#161129 new script, based on rewrite by mavrothal, ref: https://github.com/puppylinux-woof-CE/ppm_auto/blob/master/usr/bin/pet2tgz
+
+exit_error() {
+	echo "${PFILE} ERROR: $@"
+	exit 1
+}
+
+[ ! $1 ] && exit_error "no file specified"
+PFILE="$1"
+[ ! -f "$PFILE" ] && exit_error "no such file"
+case "$PFILE" in
+  *.pet) ok=1 ;;
+  *) exit_error "only .pet files" ;;
+esac
+
+FOOTERSIZE="32"
+export LC_ALL=C
+
+#determine the compression, extend test to 'XZ'
+FINFO="$(file -b "$PFILE")"
+case "$FINFO" in
+  gz*|GZ*) EXT=gz ;;
+  xz*|XZ*) EXT=xz ;;
+  *) exit_error "wrong compression or corrupted/empty file" ;;
+esac
+
+MD5SUM="$(tail -c $FOOTERSIZE "$PFILE")"
+NAMEONLY="$(basename "$PFILE" .pet)"
+PATHONLY="$(dirname "$PFILE")"
+NEWNAME="${PATHONLY}/${NAMEONLY}.tar.${EXT}"
+
+head -c -${FOOTERSIZE} "${PFILE}" > ${NEWNAME}
+
+NEWMD5SUM="`md5sum "${NEWNAME}" | cut -f 1 -d ' '`"
+
+#petget is not yet supporting .tar.xz ...
+if [ "$EXT" == "xz" ];then
+ unxz --stdout ${NEWNAME} | gzip - > ${PATHONLY}/${NAMEONLY}.tar.gz
+ sync
+ rm -f ${PATHONLY}/${NAMEONLY}.tar.xz
+fi
+
+sync
+if [ "$MD5SUM" != "$NEWMD5SUM" ] ; then
+	exit_error "MD5 SUMS DON'T MATCH"
+fi
+
+exit 0
+
+###END###

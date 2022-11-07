@@ -1,0 +1,28 @@
+#!/bin/sh
+#called from bluepup, when gui starts up.
+
+exit_func() {
+ echo -n 'limbo' > /tmp/bluepup/current-operation
+ exit $1
+}
+
+LANG=C bluetoothctl show > /tmp/bluepup/controller-info
+
+grep -q 'Powered: yes' /tmp/bluepup/controller-info
+if [ $? -ne 0 ];then
+ echo -e "\033[0;94m[bluetooth]\033[0m# bluetoothctl power on" >> /tmp/bluepup/btctl_in
+ bluetoothctl power on >> /tmp/bluepup/btctl_in
+ /usr/local/bluepup/support/wait-response 'power on' "${?}"
+ [ $? -ne 0 ] && exit_func 1
+fi
+
+grep -q 'Discoverable: yes' /tmp/bluepup/controller-info
+if [ $? -ne 0 ];then
+ echo -e "\033[0;94m[bluetooth]\033[0m# bluetoothctl discoverable on" >> /tmp/bluepup/btctl_in
+ bluetoothctl discoverable on >> /tmp/bluepup/btctl_in
+ /usr/local/bluepup/support/wait-response 'discoverable on' "${?}"
+ [ $? -ne 0 ] && exit_func 1
+fi
+
+exit_func 0
+###end###

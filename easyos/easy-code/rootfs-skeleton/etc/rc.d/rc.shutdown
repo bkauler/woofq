@@ -1,0 +1,337 @@
+#!/bin/sh
+#(c) Copyright bkauler 2006,2007 www.puppylinux.com
+#2007 Lesser GPL licence v2 (http://www.fsf.org/licensing/licenses/lgpl.html)
+#131210 rewritten, based on rc.shutdown 130217.
+#140106 /fsckme.flg renamed to /.fsckme.flg. see also rc.sysinit, /sbin/init.
+#140122 change date format to recognised by busybox 'date' applet.
+#140129 ridiculous fix. refer /usr/bin/seamonkey. 
+#141123 remove all use of 'initrd', as that is old puppy thing. rename file.
+#150108 removed 140129
+#161005 resize partition at next bootup, ref: /usr/sbin/quicksetup
+#170131 easy linux, do not unmount primary overlay. (see also /usr/local/bin/drive_all, /etc/rc.d/functions4puppy4)
+#170207 easy linux, now using aufs. again do not unmount primary layered fs.
+#170212 easy linux, kill containers.
+#180128 X must be running to stop containers, 170212 moved to wmreboot, wmpoweroff, wmexit, restartwm
+#180601 note that busybox 'date' is broken. DATESAVE broken for 2014-01-22T18:47-08:00 fixed.
+#180812 android phone on usb, may be running adbfs (ref: easyshare). also fix sshfs.
+#181122 q*.sfs renamed to easy*.sfs, also q_ro to easy_ro
+#190811 if dropped cap_sys_mount or cap_sys_admin in intrd, then cannot unmount anything.
+#190922 have precreated rx_bytes_month and tx_bytes_month in rootfs-skeleton, with "0". see also networkdisconnect.
+#200726 shutdown menu now has "Reboot, with filesystem check". see also /usr/bin/wmreboot, /etc/xdg/templates/_root_.jmwrc, /etc/rc.d/rc.shutdown, init in initrd
+#200804 fix /.fsckme.flg
+#200820 unmount securityfs.
+#20210525 easysave.ext4 is not a stray-mounted.
+#20220522 new zram top-layer. merge to .session
+#20220524 rename mnt/easy_ro to mnt/.easy_ro, ditto easy_rw ref: easy-remaster, easy-containers, init
+#20220524 attempt kill anything using /files
+#20220526 ask if save zram1 to .session, see /usr/sbin/ask-save-zram1
+#20220527 if an earlier save to .session-transit via "save" icon, dump it.
+#20220529 remove .session-transit/root/.XLOADED
+#20220531 "save" saves into sub-folder .session-transit/mainrw
+#20220531 fix automatic save at shutdown.
+#20220801 move /.fsckme.flg to /mnt/${WKG_DEV}/${WKG_DIR}
+#20221023 ignore /etc/init.d/rcS if exists. this is a special busybox thing.
+#20221102 save /var/cache/fontconfig
+
+#110923
+. /usr/bin/gettext.sh # enables use of eval_gettext (several named variables) and ngettext (plurals)
+export TEXTDOMAIN=rc.shutdown
+export OUTPUT_CHARSET=UTF-8
+
+clear
+exec 1> /dev/null 2>&1
+
+which rfkill &>/dev/null && rfkill unblock all #110919 jemimah has this in fluppy. if don't do this, may be locked at next boot.
+
+#w482 use xorriso if it is installed (see also functions4puppy)...
+CDRECORD='cdrecord'
+MKISOFS='mkisofs'
+if [ "`which xorriso`" != "" ];then
+ CDRECORD='xorrecord'
+ MKISOFS='xorrisofs' #growisofs reads this variable.
+fi
+export CDRECORD MKISOFS
+
+. /etc/rc.d/PUPSTATE #variables created at bootup
+. /etc/DISTRO_SPECS
+
+echo "${DISTRO_NAME} $(gettext 'is now shutting down...')" > /dev/console #120130
+
+#100315 improper shutdown check. see /etc/rc.d/rc.sysinit, /init in initramfs, and /sbin/init...
+if [ -f /mnt/${WKG_DEV}/${WKG_DIR}.fsckme.flg ];then #20220801
+ grep -q 'REQUEST' /mnt/${WKG_DEV}/${WKG_DIR}.fsckme.flg #200726 shutdown menu now has "Reboot, with filesystem check". see also wmreboot
+ if [ $? -ne 0 ];then
+  if [ -f /tmp/dmesg_fsck_warnings1 ];then #120717 rc.sysinit creates this file for full installation. 141123 renamed.
+   if [ "`grep -G "(${WKG_DEV})" /tmp/dmesg_fsck_warnings1`" = "" ];then #200804 fix.
+    rm -f /mnt/${WKG_DEV}/${WKG_DIR}.fsckme.flg
+   else
+    echo -n 'MAXIMAL' >> /mnt/${WKG_DEV}/${WKG_DIR}.fsckme.flg #read by /init in initrd.
+   fi
+  else
+   rm -f /mnt/${WKG_DEV}/${WKG_DIR}.fsckme.flg
+  fi
+ fi
+fi
+
+#echo $(gettext "Executing /etc/rc.d/rc.shutdown...") 
+echo "Executing /etc/rc.d/rc.shutdown..."
+
+PATH=/bin:/sbin:/usr/bin:/usr/sbin
+
+killzombies() {
+ #ZOMBIES="`ps -H -A | grep '<defunct>' | sed -e 's/  /|/g' | grep -v '|||' | cut -f 1 -d ' ' | tr '\n' ' '`"
+ #ZOMBIES="`ps -H -A | grep '<defunct>' | sed 's/^[[:blank:]]*//g' | grep -v '|||' | cut -f 1 -d ' ' | tr '\n' ' '`" #120103 karl godt: because i was getting a bunch of "killall no such process must be either pid or name" on the screen by the killzombies function.
+ ZOMBIES="`ps -H -A | grep '<defunct>' | sed 's/^[[:blank:]]*//g' | cut -f 1 -d ' ' | sort -gr | tr '\n' ' '`" #120129 karl godt: improved, see http://www.murga-linux.com/puppy/viewtopic.php?t=73122
+ for ONEZOMBIE in $ZOMBIES
+ do
+  #echo "`eval_gettext \"Killing parentless zombie process \\\${ONEZOMBIE}\"`"
+  echo "Killing parentless zombie process $ONEZOMBIE"
+  kill $ONEZOMBIE
+ done
+}
+
+cd /
+sync
+#just a precaution...
+#echo $(gettext "Killing X and all X apps...")
+echo "Killing X and all X apps..."
+killall -9 X > /dev/null 2>&1
+sleep 1
+killall -3 X > /dev/null 2>&1
+sync
+
+#MU warns may need to do this for dillo...
+killall file.dpi 2>/dev/null
+killall bookmarks.dpi 2>/dev/null
+killall dpid 2>/dev/null
+
+#100902 log the cumulative bytes transmitted on dialup...
+modemdisconnect #(if connected)
+
+#100814 log the cumulative bytes transmitted on network...
+# (see also /etc/rc.d/rc.sysinit and network_tray)
+#190922 have precreated rx_bytes_month and tx_bytes_month in rootfs-skeleton, with "0".
+ACTIVE_INTERFACE=""
+[ -f /tmp/sns_interface_success ] && ACTIVE_INTERFACE="`cat /tmp/sns_interface_success`" #SNS
+[ ! "$ACTIVE_INTERFACE" ] && ACTIVE_INTERFACE="`ifconfig | grep '^[a-z]' | grep -v '^lo' | grep 'Link encap:Ethernet' | cut -f 1 -d ' ' | head -n 1`"
+if [ "$ACTIVE_INTERFACE" ];then
+ if [ -d /sys/class/net/${ACTIVE_INTERFACE}/statistics ];then
+  RX_BYTES="`cat /sys/class/net/${ACTIVE_INTERFACE}/statistics/rx_bytes`"
+  TX_BYTES="`cat /sys/class/net/${ACTIVE_INTERFACE}/statistics/tx_bytes`"
+  echo -n "$RX_BYTES" > /var/local/sns/rx_bytes_session
+  echo -n "$TX_BYTES" > /var/local/sns/tx_bytes_session
+  RX_BYTES_MONTH=`cat /var/local/sns/rx_bytes_month`
+  RX_BYTES_MONTH=`expr $RX_BYTES_MONTH + $RX_BYTES`
+  echo -n "$RX_BYTES_MONTH" > /var/local/sns/rx_bytes_month
+  TX_BYTES_MONTH=`cat /var/local/sns/tx_bytes_month`
+  TX_BYTES_MONTH=`expr $TX_BYTES_MONTH + $TX_BYTES`
+  echo -n "$TX_BYTES_MONTH" > /var/local/sns/tx_bytes_month
+ fi
+fi
+
+#v2.16 some packages have a service script that requires stopping...
+for service_script in /etc/init.d/*
+do
+  if [ "$service_script" == "/etc/init.d/rcS" ];then #20221023
+   continue
+  fi
+  [ -x $service_script ] && $service_script stop
+done
+#note, /etc/rc.d/rc.services does same, with 'start' parameter.
+
+#130217 01micko: moved this below stopping service-scripts...
+#121125 umount is a script, this line also unmounts ntfs partition (if mounted) -- which is a bug in script -- use umount-FULL...
+#180812 android phone on usb, may be running adbfs (ref: easyshare). also fix sshfs...
+umount-FULL -a -t cifs,smbfs,nfs #180812 ,sshfs,adbfs #120220 121125
+for aMNTPT in `grep 'fuse\.[as][ds][bh]fs' /proc/mounts | cut -f 2 -d ' ' | tr '\n' ' '`
+do
+ umount-FULL $aMNTPT
+done
+
+#100301 brought down below call to 'stop' service scripts, needed for lamesmbxplorer.
+#bring down network interfaces (prevents shutdown sometimes)...
+[ "`pidof wpa_supplicant`" != "" ] && wpa_cli terminate #100309 kills any running wpa_supplicant.
+if [ "`grep 'net-setup.sh' /usr/local/bin/defaultconnect`" = "" ];then #see connectwizard and connectwizard_2nd.
+ for ONENETIF in `ifconfig | grep -E '^wifi[0-9]|^wlan[0-9]|^eth[0-9]' | cut -f 1 -d ' ' | tr '\n' ' '`
+ do
+  ifconfig $ONENETIF down 2> /dev/null
+  [ "`iwconfig | grep "^${ONENETIF}" | grep "ESSID"`" != "" ] && iwconfig $ONENETIF essid off #100309
+  dhcpcd --release $ONENETIF 2>/dev/null #100309
+ done
+else
+ /etc/rc.d/rc.network stop
+fi
+
+#100604 reported by shel: http://murga-linux.com/puppy/viewtopic.php?t=56238
+# Unload the Ethernet drivers on shutdown to prevent battery drain.
+for i in `lsmod | cut -d' ' -f1 | tr '\n' ' '`
+do
+ if grep -q "^$i " /etc/networkmodules; then
+  modprobe -r "$i"
+ fi
+done
+
+#v3.97 deprecated, for pcmcia-cs package...
+if [ -f /sbin/cardmgr ];then #pcmcia-cs package installed.
+ if [ "`lsmod | grep -E '^i82092|^tcic|^i82365|^yenta_socket'`" != "" ];then
+  #got this out of rc.pcmcia, modified...
+  #echo -n $(gettext "Shutting down PCMCIA services: ")
+  echo -n "Shutting down PCMCIA services: "
+  if [ -s /var/run/cardmgr.pid ] ; then
+   PID=`cat /var/run/cardmgr.pid`
+   kill $PID
+   for N in 1 2 3 4 ; do
+    kill -0 $PID 2>/dev/null || break #-0 is test only.
+    sleep 1
+   done
+  fi
+  if [ -s /var/lib/pcmcia/cardmgr.pid ] ; then
+   PID=`cat /var/lib/pcmcia/cardmgr.pid`
+   kill $PID
+   for N in 1 2 3 4 ; do
+    kill -0 $PID 2>/dev/null || break #-0 is test only.
+    sleep 1
+   done
+  fi
+  killall -3 "CardBus Watcher" #BK bug, changed -q to -3.
+  /sbin/rmmod tcic 2>/dev/null || /sbin/rmmod i82365 2>/dev/null || /sbin/rmmod yenta_socket 2>/dev/null || /sbin/rmmod i82092 2>/dev/null
+  echo "done."
+  rm -f /var/lock/subsys/pcmcia
+ fi
+fi
+
+killall udevd > /dev/null 2>&1 #100615
+
+clear >/dev/console
+
+#121104 move some code up...
+cp -f /etc/profile /var/local/etc_profile_at_shutdown #110217 bad hack, see /etc/rc.d/rc.update.
+#120629 raspberry pi does not have a hw clock. save here, read at bootup (see rc.country)...
+#DATESAVE="`date -R | cut -f 2-5 -d ' ' | cut -f 1 -d '.' | tr '[a-z]' '[A-Z]'`" #ex: 29 JUN 2012 08:39:07
+#DATESAVE="`date -Iminutes | cut -f 1 -d '+' | tr 'T' ' '`" #140122 ex: 2014-01-22T18:47+08:00, returns 2014-01-22 18:47 --compatible with busybox 'date -s $DATESAVE'
+#180601 ...note that busybox 'date' is broken. above broken for 2014-01-22T18:47-08:00 fix...
+DATESAVE="$(date -Iminutes | cut -c 1-16 | tr 'T' ' ')"
+echo -n "$DATESAVE" > /var/local/shutdown_date_saved
+
+#20221102 save /var/cache/fontconfig, see also rc.sysinit
+cp -a -f /var/cache/fonfconfig/* /root/.var/cache/fontconfig/
+
+
+[ -d /root/.config/geany ] && rm -f /root/.config/geany/geany_socket* 2>/dev/null
+
+sync
+
+#120129 karl godt: need to rearrange order, refer http://murga-linux.com/puppy/viewtopic.php?t=71767&start=405 ...
+MNTDPARTS="`mount`"
+MNTDPARTS="`echo $MNTDPARTS |rev|sed 's# )#\n)#g' |rev`" #reverses order of lines.
+
+#echo
+#echo $(gettext "Unmounting stray filesystems:")
+echo "Unmounting stray filesystems:"
+
+#091117 110928 if partition mounted, when choose shutdown, pc rebooted. found that param given to fuser must be mount-point, not /dev/*...
+#111106 do not execute fuser if network share mount (may hang, see http://murga-linux.com/puppy/viewtopic.php?t=73122)...
+
+#180128 X must be running to stop containers, 170212 moved to wmreboot, wmpoweroff, wmexit, restartwm
+##170212 easy linux, kill containers...
+#for aCONT in `ls -1 /mnt/${WKG_DEV}/${WKG_DIR}containers | tr '\n' ' '`
+#do
+#  [ "$(mount | grep "/containers/${aCONT}/container")" == "" ] && continue
+#  /usr/local/easy_containers/stop-container ${aCONT}
+#done
+
+#170131 easy linux need to do this differently... 20210525 leave out mntd easysave.ext4 (on /mnt/${WKG_DEV}/${WKG_DIR%/})
+if [ "$(echo "$MNTDPARTS" | grep '^aufs on / ')" != "" ];then #170207
+ #see also /usr/local/bin/drive_all, /etc/rc.d/functions4puppy4
+ STRAYPARTL="$(echo "$MNTDPARTS" | grep ' /mnt/' | grep -v -E "^aufs on / |/mnt/\.easy_ro|/mnt/\.easy_rw|/mnt/${WKG_DEV} |/mnt/${WKG_DEV}/${WKG_DIR%/} ")" #20220524
+else
+ if [ "$(echo "$MNTDPARTS" | grep '^overlay on / ')" != "" ];then
+  #see also /usr/local/bin/drive_all, /etc/rc.d/functions4puppy4
+  STRAYPARTL="$(echo "$MNTDPARTS" | grep ' /mnt/' | grep -v -E "^overlay on / |/mnt/\.easy_ro|/mnt/\.easy_rw|/mnt/${WKG_DEV} |/mnt/${WKG_DEV}/${WKG_DIR%/} ")" #20220524
+ else
+  STRAYPARTL="`echo "$MNTDPARTS" | grep ' /mnt/' |grep -v -E '/dev/pts|/proc|/sys|tmpfs|rootfs|on / |/dev/root|usbfs|unionfs|aufs'`" #141123
+ fi
+fi
+STRAYPARTandMNT="`echo "$STRAYPARTL" | cut -f 1,3 -d ' ' | tr ' ' '|' | tr '\n' ' '`"
+for ONESTRAY in $STRAYPARTandMNT
+do
+ FLAGCIFS="`echo -n ${ONESTRAY} | grep '^//'`"
+ ONESTRAYMNT="`echo -n ${ONESTRAY} | cut -f 2 -d '|'`"
+ #170131 easy linux, need an extra filter here, find working-partition...
+ [ "$(echo "$MNTDPARTS" | grep "${ONESTRAYMNT}/" | grep '^overlay on / ')" != "" ] && continue
+ echo "Unmounting $ONESTRAYMNT..."
+ if [ "$FLAGCIFS" = "" ];then
+  xFUSER="`fuser -m $ONESTRAYMNT 2>/dev/null`"
+  [ "$xFUSER" != "" ] && fuser -k -m $ONESTRAYMNT 2>/dev/null
+ fi
+ killzombies #v3.99
+ sync
+ umount -r $ONESTRAYMNT #120103 karl godt.
+done
+
+umount /sys/kernel/security #200820 securityfs was mounted in initrd.
+
+swapoff -a #works only if swaps are in mtab or ftab 
+#v2.13 menno suggests this improvement...
+STRAYPARTD="`cat /proc/swaps | grep "/dev/" | cut -f 1 -d " " | tr "\n" " "`"
+for ONESTRAY in $STRAYPARTD
+do
+ #echo "`eval_gettext \"Swapoff \\\${ONESTRAY}\"`"
+ echo "Swapoff $ONESTRAY"
+ swapoff $ONESTRAY
+done
+sync
+
+#v2.16 try one more thing for ntfs... lazy unmount, suggested by GuestToo...
+MNTFUSE="`busybox mount | grep 'fuse' | head -n 1 | cut -f 3 -d ' '`"
+if [ "$MNTFUSE" != "" ];then
+ #v2.17 hairywill found the -u is required with -z...
+ fusermount -z -u $MNTFUSE
+fi
+
+#20220522
+if [ "$EOS_TOP_LEVEL_ZRAM" == "1" ];then
+ #20220716 copy-up these files before removing .session layer...
+ touch /var/local/zram1-save-shutdown-auto
+ touch /tmp/ask-save-zram1-answer
+ sync
+ /usr/sbin/kill-pids '/files' #20220524 probably not needed.
+ #attempt to remove .session layer...
+ busybox mount -o remount,del:/mnt/${WKG_DEV}/${WKG_DIR}.session / 2>/dev/console
+ busybox umount /files 2>/dev/console
+ #20220531 "save" saves into sub-folder mainrw...
+ if [ -f /mnt/${WKG_DEV}/${WKG_DIR}.session-transit/mainrw/root/.XLOADED ];then #20220529
+  #.XLOADED will cause an error msg at next bootup. it is intended when crash.
+  rm -f /mnt/${WKG_DEV}/${WKG_DIR}.session-transit/mainrw/root/.XLOADED
+ fi
+ #...even if these failed, merge rw layer to .session ...
+ #20220526 see /usr/sbin/ask-save-zram1, called from wmpoweroff, wmreboot...
+ SAVEflg=0
+ if [ "$(cat /var/local/zram1-save-shutdown-auto 2>/dev/null)" == "true" ];then #20220527
+  SAVEflg=1
+ elif [ "$(cat /tmp/ask-save-zram1-answer 2>/dev/null)" == "yes" ];then
+  SAVEflg=1
+ fi
+ if [ $SAVEflg -eq 1 ];then
+  echo "Saving session..." >/dev/console
+  #20220527 if an earlier save to .session-transit via "save" icon, dump it...
+  if [ -d /mnt/${WKG_DEV}/${WKG_DIR}.session-transit ];then
+   rm -rf /mnt/${WKG_DEV}/${WKG_DIR}.session-transit
+  fi
+  if [ "$EOS_SUPPORT_CONTAINERS" != "0" ];then #20220529
+   STcont="$(find /mnt/${WKG_DEV}/${WKG_DIR}containers -mindepth 2 -maxdepth 2 -type d -name '.session-transit' | tr '\n' ' ')"
+   for aST in $STcont
+   do
+    aDIR="${aST%/*}"
+    rm -rf ${aDIR}/.session-transit #precaution delete.
+   done
+  fi
+  /etc/rc.d/rw-merge 2>/dev/console
+ fi
+ #attempt unmount, so f.s. without journal marked clean...
+ busybox umount /mnt/${WKG_DEV} 2>/dev/console
+fi
+
+busybox umount -ar > /dev/null 2>&1
+
+#the end#

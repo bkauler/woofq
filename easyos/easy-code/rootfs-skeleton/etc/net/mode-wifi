@@ -1,0 +1,54 @@
+#!/bin/sh
+
+IF="$1"
+SNAME="$(basename "${0}")"
+echo "+++ ${SNAME} ${IF}"
+
+echo "${SNAME}: ifconfig ${IF} up" #TEST
+ifconfig ${IF} up
+
+#190218 problem, IF=wlan0, wlan1 is on usb, and not yet existing...
+#have we already selected a device, and does it still exist...
+FND=0
+if [ -s /var/local/usns-wifi-id-selected ];then
+ ID="$(cat /var/local/usns-wifi-id-selected)"
+ echo "${SNAME}: ID='${ID}'" #TEST
+# for aW in `ls -1 /sys/class/net`
+# do
+#  [ ! -d /sys/class/net/${aW}/wireless ] && continue
+#  echo "${SNAME}: ifctl ${aW} id" #TEST
+#  aID="$(ifctl ${aW} id)"
+#  if [ "$aID" == "$ID" ];then
+   FND=1
+#   break
+#  fi
+# done
+fi
+
+tID="$(ifctl ${IF} id)"
+echo "${SNAME}: ifctl ${IF} id  tID='${tID}'" #TEST
+if [ $FND -eq 1 ];then
+ #is this i/f the preferred id?
+ [ "$tID" != "$ID" ] && exit #no.
+fi
+
+echo "${SNAME}: wifi device ${IF}" #TEST
+wifi device ${IF}
+echo -n "${tID}" > /var/local/usns-wifi-id-selected
+
+#if /usr/local/UltraSNS/usns gui has established a connection...
+if [ -s /var/local/usns-wifi-ssid-connected ];then
+ SSID="$(cat /var/local/usns-wifi-ssid-connected)"
+ sleep 2
+ CNT=2
+ while [ $CNT -lt 18 ];do #total 90 sec.
+  echo "${SNAME}: wifi connect ${SSID}  CNT=${CNT}" #TEST
+  wifi connect ${SSID}
+  [ $? -eq 0 ] && break
+  CNT=$(($CNT+2))
+  sleep ${CNT}
+ done
+fi
+
+echo "${SNAME}: end" #TEST
+###end###

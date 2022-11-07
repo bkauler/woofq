@@ -1,0 +1,58 @@
+# 20150925 BK
+
+if [ -d usr/lib/perl5 ];then
+ mkdir -p ../samba_DEV/usr/lib/perl5
+ cp -a -f usr/lib/perl5/* ../samba_DEV/usr/lib/perl5/
+ rm -rf usr/lib/perl5
+ mkdir usr/lib/perl5
+fi
+
+#20151025
+if [ -d usr/share/perl5 ];then
+ mkdir -p ../samba_DEV/usr/share/perl5
+ cp -a -f usr/share/perl5/* ../samba_DEV/usr/share/perl5/
+ rm -rf usr/share/perl5
+ mkdir usr/share/perl5
+fi
+
+if [ -d usr/lib/python-2.7 ];then
+ mkdir -p ../samba_DEV/usr/lib/python-2.7
+ cp -a -f usr/lib/python-2.7/* ../samba_DEV/usr/lib/python-2.7/
+ rm -rf usr/lib/python-2.7
+ mkdir usr/lib/python-2.7
+fi
+
+if [ -d usr/lib/python3.8 ];then #20220628 easy dunfell
+ mkdir -p ../samba_DEV/usr/lib/python3.8
+ cp -a -f usr/lib/python3.8/* ../samba_DEV/usr/lib/python3.8/
+ rm -rf usr/lib/python3.8
+ mkdir usr/lib/python3.8
+fi
+
+#170930 171214 20220628
+echo '[global]
+	workgroup = WORKGROUP
+	server string = Puppy Samba Server
+	security = user
+	map to guest = Bad Password
+	printing = cups
+	printcap name = cups
+	load printers = yes
+	pid directory = /var/run
+
+[puppyshare]
+	path = /files
+	writable = yes
+
+[printers]
+	comment = All Printers
+	path = /var/spool/samba
+	browseable = no
+	guest ok = yes
+	writable = no
+	printable = yes' > etc/samba/smb.conf
+
+
+if [ -e etc/init.d/samba ];then #20220628 easy dunfell.
+ rm -f etc/init.d/samba
+fi

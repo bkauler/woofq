@@ -1,0 +1,43 @@
+#!/bin/ash
+#20220214 insert icons into the tray.
+# called from /root/.xinitrc when X starts.
+#20220413 sfsget now has icon sfs48.png
+#20220530 EOS_TOP_LEVEL_ZRAM==1 then have "save" icon.
+
+export TEXTDOMAIN=ui-jwm
+export OUTPUT_CHARSET=UTF-8
+
+. /etc/rc.d/PUPSTATE #20220530 has EOS_TOP_LEVEL_ZRAM
+
+if [ ! -f /root/.jwm/tray-icons ];then
+ LABEL='popup'
+ mFILES="$(gettext 'files')"
+ mWWW="$(gettext 'www')"
+ mAPPS="$(gettext 'apps')"
+ mSETUP="$(gettext 'setup')"
+ mEDIT="$(gettext 'edit')"
+ mCONSOLE="$(gettext 'console')"
+ mCONNECT="$(gettext 'connect')"
+ mSHARE="$(gettext 'share')"
+ mUPDATE="$(gettext 'update')"
+ echo "		<TrayButton ${LABEL}=\"${mFILES}\" icon=\"folders48.png\">exec:/usr/local/bin/rox --dir=/files</TrayButton>
+		<TrayButton ${LABEL}=\"${mWWW}\" icon=\"www48.png\">exec:defaultbrowser</TrayButton>
+		<TrayButton ${LABEL}=\"${mAPPS}\" icon=\"apps48.png\">exec:pupapps</TrayButton>
+		<TrayButton ${LABEL}=\"pkgget\" icon=\"pet48.png\">exec:dotpup</TrayButton>
+		<TrayButton ${LABEL}=\"sfsget\" icon=\"sfs48.png\">exec:sfsget</TrayButton>
+		<TrayButton ${LABEL}=\"${mSETUP}\" icon=\"configuration48.png\">exec:wizardwizard</TrayButton>
+		<TrayButton ${LABEL}=\"${mEDIT}\" icon=\"edit48.png\">exec:defaulttexteditor</TrayButton>
+		<TrayButton ${LABEL}=\"${mCONSOLE}\" icon=\"console48.png\">exec:defaultterminal</TrayButton>
+		<TrayButton ${LABEL}=\"${mSHARE}\" icon=\"network48.png\">exec:/usr/local/EasyShare/easyshare</TrayButton>
+		<TrayButton ${LABEL}=\"${mUPDATE}\" icon=\"update48.png\">exec:easy-update</TrayButton>" > /root/.jwm/tray-icons
+ if [ "$EOS_TOP_LEVEL_ZRAM" == "1" ];then #20220530
+  mSAVE="$(gettext 'save')"
+  echo "<TrayButton ${LABEL}=\"${mSAVE}\" icon=\"save48.png\">exec:ask-save-zram1</TrayButton>" >> /root/.jwm/tray-icons
+ fi
+fi
+
+#insert file between two patterns in /root/.jwmrc-tray...
+sed -i -e '/STARTICONS/,/ENDICONS/{/STARTICONS/!{/ENDICONS/!d}}' -e '/STARTICONS/r /root/.jwm/tray-icons' /root/.jwmrc-tray
+
+#sync
+###end###

@@ -1,0 +1,23 @@
+#note: DISTRO_BINARY_COMPAT and DISTRO_FILE_PREFIX are visible here, exported in 2createpackages.
+#140117 xARCHDIR, ARCHDIR and DISTRO_ARCHDIR_SYMLINKS exported in 2createpackages. 
+#140117 note, 2createpackages may move /lib, /usr/lib, /usr/bin in template to ARCHDIR subdir.
+#200325 create python2 link.
+
+#120605 precise puppy: executable is 'python2.7', but 'python' missing...
+if [ "$xARCHDIR" ];then #140117
+ if [ ! -e usr/bin/${ARCHDIR}/python ];then
+  PYTHONEXE="`find usr/bin/${ARCHDIR} -mindepth 1 -maxdepth 1 -type f -name 'python2.[3-9]' | head -n 1`"
+  if [ "$PYTHONEXE" ];then
+   BASEPYTHONEXE="`basename $PYTHONEXE`"
+   ln -s $BASEPYTHONEXE usr/bin/${ARCHDIR}/python
+  fi
+ fi
+fi
+if [ ! -e usr/bin/python ];then
+ PYTHONEXE="`find usr/bin -mindepth 1 -maxdepth 1 -type f -name 'python2.[3-9]' | head -n 1`"
+ if [ "$PYTHONEXE" ];then
+  BASEPYTHONEXE="`basename $PYTHONEXE`"
+  ln -s $BASEPYTHONEXE usr/bin/python
+  ln -s $BASEPYTHONEXE usr/bin/python2 #200325
+ fi
+fi

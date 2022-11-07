@@ -1,0 +1,188 @@
+#!/bin/ash
+#(c) Copyright Barry Kauler, 31 January 2017. License: GPL V3 (/usr/share/doc/legal)
+#Easy Linux script for Easy Containers, to stop a running container.
+#passed in parameter is name of executable.
+#170523 replaced 'EC_LAYER' with 'EASY_LAYER'
+#170523 sfs may have a glob wildcard. 170527 fix.
+#170804 moved umount container/dev/* here from ec-chroot
+#180627 If file 'EASYPAK' in container, then ro layer is 'debs-installed-here' not easy.sfs
+#180627 may need delay before umount container.
+#180928 optional 'pflask' utility. ref: http://bkhome.org/news/201809/pflask-chroot-on-steroids.html
+#181001 if "dhcpcd <interface-name>" running in container, kill before unmount .ro0 
+#181028 rename 'repository' folder to 'releases'.
+#181101 new 'load-list' ref /usr/local/sfsget/sfsget
+#181107 if running xephyr, kill it.
+#181108 rename 'load-list' to 'base-load-list'.  fix kill xephyr.
+#181117 kill container, kills dhcpcd that serviced the container, which empties /etc/rsolv.conf
+#181122 q*.sfs renamed to easy*.sfs
+#181123 fix unmounting extra sfss.
+#190220 minibase network utilities.
+
+[ ! $1 ] && exit 1
+EXE="$1"
+
+. /etc/DISTRO_SPECS #170527
+. /etc/rc.d/PUPSTATE #has BOOT_DEV, BOOT_FS, BOOT_DIR, WKG_DEV, WKG_FS, WKG_DIR, QSFS_PATH
+
+[ ! -d /mnt/${WKG_DEV}/${WKG_DIR}containers/${EXE} ] && exit 1
+
+#At first it tries nicely with SIGTERM
+#After a timeout, it uses SIGKILL
+#ref: http://askubuntu.com/questions/162319/how-do-i-stop-all-processes-in-a-chroot
+kill_pid_func() {
+ PROC_TO_KILL=$1
+ #Make sure we have an arg to work with
+ if [[ "$PROC_TO_KILL" == "" ]]
+ then
+  echo "KILL_PID: \$1 cannot be empty"
+  return 1
+ fi
+ #Try to kill it nicely
+ kill -0 $PROC_TO_KILL &>/dev/null && kill -15 $PROC_TO_KILL
+ #Check every second for 5 seconds to see if $PROC_TO_KILL is dead
+ WAIT_TIME=5
+ #Do a quick check to see if it's still running
+ #It usually takes a second, so this often doesn't help
+ kill -0 $PROC_TO_KILL &>/dev/null &&
+ for SEC in $(seq 1 $WAIT_TIME)
+ do
+  sleep 1
+  if [[ "$SEC" != $WAIT_TIME ]]
+  then
+   #If it's dead, exit
+   kill -0 $PROC_TO_KILL &>/dev/null || break
+  else
+   #If time's up, kill it
+   kill -0 $PROC_TO_KILL &>/dev/null && kill -9 $PROC_TO_KILL
+  fi
+ done
+}
+
+. /usr/local/easy_containers/config #180928 has EC_GLOBAL_CHROOT
+cd /mnt/${WKG_DEV}/${WKG_DIR}containers/${EXE}
+. ./configuration
+
+#kill all processes, and everything mounted, in the container.
+#ref: http://askubuntu.com/questions/162319/how-do-i-stop-all-processes-in-a-chroot
+CONTAINER="/mnt/${WKG_DEV}/${WKG_DIR}containers/${EXE}/container"
+#Find processes who's root folder is actually the chroot...
+for ROOT in $(find /proc/*/root)
+do
+ #Check where the symlink is pointing to
+ LINK=$(readlink -f $ROOT)
+ #If it's pointing to the $CONTAINER, kill the process
+ if echo $LINK | grep -q ${CONTAINER%/}
+ then
+  PID=$(basename $(dirname "$ROOT"))
+  kill_pid_func $PID
+ fi
+done
+#Get a list of PIDs that are using $CONTAINER for anything
+#original code requires full 'lsof', hopefully get it to work with busybox lsof...
+#PID_LIST=$(lsof +D $CONTAINER 2>/dev/null | tail -n+2 | tr -s ' ' | cut -d ' ' -f 2 | sort -nu)
+PID_LIST="$(busybox lsof | grep "$CONTAINER" | tail -n+2 | cut -d ' ' -f 1 | sort -nu | tr '\n' ' ')"
+#Kill all PIDs holding up unmounting $CONTAINER
+for PID in $PID_LIST
+do
+ kill_pid_func $PID
+done
+
+#180929 pflask mounts more stuff, like /proc/sys, /dev/console, /dev/urandom
+#better to list everything then unmount each, in reverse order...
+##170804 need this... 180427...
+##if [ "$EC_NS_UNSHARE_MOUNT" == "false" ];then
+#MOUNTS="$(busybox mount | grep "${CONTAINER}" | cut -f 3 -d ' ')"
+#[ "$(echo "$MOUNTS" | grep '/dev/shm')" != "" ] && busybox umount ${CONTAINER}/dev/shm
+#[ "$(echo "$MOUNTS" | grep '/dev/pts')" != "" ] && busybox umount ${CONTAINER}/dev/pts
+#[ "$(echo "$MOUNTS" | grep '/tmp')" != "" ] && busybox umount ${CONTAINER}/tmp
+#[ "$(echo "$MOUNTS" | grep '/dev')" != "" ] && busybox umount ${CONTAINER}/dev
+#[ "$(echo "$MOUNTS" | grep '/sys')" != "" ] && busybox umount ${CONTAINER}/sys
+#[ "$(echo "$MOUNTS" | grep '/proc')" != "" ] && busybox umount ${CONTAINER}/proc
+##fi
+MOUNTS="$(busybox mount | grep "${CONTAINER}" | cut -f 3 -d ' ' | tac | tr '\n' ' ')"
+for aMNT in $MOUNTS
+do
+ aBASE="$(basename $aMNT)"
+ case "$aBASE" in
+  container|.*) continue ;; #do not unmount container, .ro0 and extra sfs's.
+ esac
+ echo "Unmounting: ${aMNT}"
+ busybox umount $aMNT #2>/dev/null
+done
+
+sync
+#190220 minibase daemon
+pidof ifmon >/dev/null
+MNflg=$?
+#181001
+IFcont="$(echo -n "$EXE" | sed -e 's%[^a-zA-Z0-9]%%g' | tr '[A-Z]' '[a-z]')1" #ex: seamonkey1
+PS="$(busybox ps)"
+if [ $MNflg -eq 0 ];then #190220 minibase
+ MN_RUNflg1="$(ip netns exec ${IFcont}ns ifconfig ${IFcont} | grep -o "^${IFcont}")"
+ MN_RUNflg2="$(ip netns exec ${IFcont}ns ifconfig ${IFcont} | grep -o " inet addr:")"
+ if [ "$MN_RUNflg2" ];then
+  ip netns exec ${IFcont}ns dhcp ${IFcont} release
+ fi
+ if [ "$MN_RUNflg1" ];then
+  ip netns exec ${IFcont}ns ifconfig ${IFcont} down
+ fi
+else
+ RUNflg="$(echo "$PS" | grep "dhcpcd -C resolv\.conf -C wpa_supplicant -b ${IFcont}$")"
+ if [ "$RUNflg" ];then
+  #this prevents .ro0 from unmounting, have to kill it...
+  ip netns exec ${IFcont}ns ifconfig ${IFcont} down
+  ip netns exec ${IFcont}ns dhcpcd --release ${IFcont}
+ fi
+fi
+
+sync
+sleep 0.25 #180627
+echo "Unmounting: /mnt/${WKG_DEV}/${WKG_DIR}containers/${EXE}/container" #180929
+busybox umount /mnt/${WKG_DEV}/${WKG_DIR}containers/${EXE}/container #unmount overlay.
+if [ $? -ne 0 ];then #180627
+ sleep 1 #try again...
+ busybox umount /mnt/${WKG_DEV}/${WKG_DIR}containers/${EXE}/container #unmount overlay.
+fi
+
+if [ ! -f ./EASYPAK ];then #180627
+ if [ ! -f base-load-list ];then #181101 see /usr/local/sfsget/sfsget  181108
+  echo "Unmounting: /mnt/${WKG_DEV}/${WKG_DIR}containers/${EXE}/.ro0" #180929
+  busybox umount /mnt/${WKG_DEV}/${WKG_DIR}containers/${EXE}/.ro0 #unmount ro layer.
+ else
+  for aSFS in `cat base-load-list`
+  do
+   [ "$aSFS" == "" ] && continue
+   [ ! -f $aSFS ] && continue
+   ANAME="$(basename $aSFS .sfs)" #ex: easy
+   echo "Unmounting: ${aSFS}"
+   busybox umount .${ANAME}
+  done 
+ fi
+ #unmount any extra sfs files...
+ for NUM in 4 3 2 1
+ do
+  eval "ROsfs=\$EASY_LAYER_RO${NUM}" #implements indirection. EASY_LAYER_RO1='devx.sfs' in configuration file, will assign 'devx.sfs' to ROsfs
+  if [ "$ROsfs" ];then
+   #181123 sfs name is now a symlink, ex: devx.sfs
+   if [ -f "$ROsfs" ];then
+    echo "Unmounting: ${ROsfs}"
+    ANAME="${ROsfs/.sfs/}"
+    busybox umount .${ANAME}
+   fi
+  fi
+ done
+fi
+
+#181107 if running xephyr, kill it...
+if [ -s /tmp/easy_containers/xephyr-windows ];then
+ DISPNUM="$(grep " ${EXE}$" /tmp/easy_containers/xephyr-windows | tail -n 1 | cut -f 1 -d ' ')"
+ if [ "$DISPNUM" ];then
+  sed -i "/ ${EXE}$/d" /tmp/easy_containers/xephyr-windows
+  xPS="$(busybox ps)"
+  xPID="$(echo "$xPS" | grep "\-name Xephyr${DISPNUM} " | sed -e 's%^[ ]*%%' | cut -f 1 -d ' ')" #181108
+  [ "$xPID" ] && kill $xPID
+ fi
+fi
+
+echo "Container ${EXE} stopped"
+exit 0

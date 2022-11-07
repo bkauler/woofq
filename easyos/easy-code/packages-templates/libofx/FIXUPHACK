@@ -1,0 +1,12 @@
+
+#141026 utopic unicorn, libs in usr/lib/i386-linux-gnu...
+#my homebank pet needs this, in quirky unicorn...
+OFX4="$(find usr -name 'libofx.so.4')"
+if [ "$OFX4" == "" ];then
+ OFXLIB="$(find usr -type f -name 'libofx.so.*' | head -n 1)"
+ if [ "$OFXLIB" != "" ];then
+  OFXDIR="$(dirname $OFXLIB)"   #ex: usr/lib/i386-linux-gnu
+  OFXBASE="$(basename $OFXLIB)" #ex: libofx.so.6.0.0
+  ln -s $OFXBASE ${OFXDIR}/libofx.so.4
+ fi
+fi

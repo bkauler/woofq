@@ -1,0 +1,23 @@
+#!/bin/sh
+#20220131
+
+if [ -d /mnt/build/lost+found ];then
+ echo "ERROR already mounted."
+ exit
+fi
+if [ -d /mnt/sdb1/lost+found ];then
+ echo 'ERROR sdb1 must not be mounted.'
+ exit
+fi
+#SUBS="$(ls /mnt/build | head -n 1)"
+#if [ "$SUBS" ];then
+# echo "ERROR: /mnt/build must be empty."
+# exit
+#fi
+
+mount -t ext4 /dev/sdb1 /mnt/build
+if [ $? -eq 0 ];then
+ echo "OK done"
+else
+ echo "ERROR failed to mount."
+fi

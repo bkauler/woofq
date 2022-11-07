@@ -1,0 +1,408 @@
+#!/bin/bash
+#20220705 license gplv3 (usr/share/doc/legal)
+#original version created by BarryK, bkhome.org/news
+#20220707 rewrite using lsblk
+#20220708 improve chainload. 20220710
+#20220711 for now, ignore /EFI/BOOT/
+#20220712 ignore path starting with "." Alfons reported Puppy stretch has .Trash-0/...
+#20220713 find boot,esp flags.
+#20220717 for compatibility with all linuxes, replace "which" with "type -p"
+#20220717 quirky linux intrd is named "easyinit"
+#20220722 find fatdog savefile.
+#20220725 improve chainload. 20220726 chainload active entries in uefi.
+#20221003 fix variable names. thanks Caramel
+
+export LANG=C
+
+###easyos###
+#a frugal installation of EasyOS is recognized by existence of these two files,
+# together: vmlinuz initrd 
+# and in the same location, folders: containers releases data files sfs .session
+# can be any depth in a partition, but let's search only 4-deep, ex: /a/b/c/vmlinuz
+# the version number is inside initrd, but should also be found
+# in this file: .session/etc/DISTRO_SPECS
+
+###puppy###
+# a frugal installation of Puppy is recognized by existence of these two files,
+# together: vmlinuz initrd.gz
+# and one or more SFS files, including: puppy_*.sfs
+# and a save-file or save-folder:
+
+###fatdog###
+#look for a large initrd (has sfs inside).
+
+###linux###
+# any Linux full-installation
+# look for: /boot/vmlinuz* /boot/initr* /etc /usr ...etc
+# look for: /etc/os-release
+
+###Windows###
+# windows 10, look for: /EFI/Microsoft/Boot/bootmgfw.efi
+# in a vfat partition.
+
+###Legacy Windows###
+# windows xp, 7, look for: /ntldr, /bootmgr
+
+####################################################
+###functions###
+
+write_vars_func() {
+ #pass in distro-category and count
+ #distro-category names: windows easyos puppy dog fatdog linux mbrchain efichain
+ cat /tmp/limine-installer/lsblk-${aDEV} >> /tmp/limine-installer/i-${1}-${2}
+ cat /tmp/limine-installer/drvtype-${aDRV} >> /tmp/limine-installer/i-${1}-${2}
+ echo "DRIVE='${aDRV}'" >> /tmp/limine-installer/i-${1}-${2}
+ echo "PATH='${bPATH}'" >> /tmp/limine-installer/i-${1}-${2}
+ sed -i -e 's%^%i%' /tmp/limine-installer/i-${1}-${2}
+}
+
+####################################################
+###search###
+
+mkdir -p /tmp/limine-installer
+rm -f /tmp/limine-installer/i-* 2>/dev/null
+rm -f /tmp/limine-installer/lsblk-* 2>/dev/null
+rm -f /tmp/limine-installer/drvtype-* 2>/dev/null
+rm -f /tmp/limine-installer/find-installations-error.log 2>/dev/null
+
+if type -p busybox >/dev/null ;then
+ BB='busybox'
+else
+ BB=''
+fi
+
+ALLPARTS="$(grep -o -E 'sd[a-z][1-9]+$|mmcblk[0-9]p[0-9]+$|nvme[0-9]n[0-9]p[1-9]+$' /proc/partitions)"
+
+eCNT=1; pCNT=1; lCNT=1; wCNT=1; dCNT=1; mcCNT=1; ecCNT=1; fdCNT=1
+for aDEV in $ALLPARTS
+do
+ [ "$aDEV" == "" ] && continue
+ 
+ #ignore usb drives...
+ aDRV="$(echo -n "$aDEV" | sed -e 's%[0-9]*$%%' -e 's%p$%%')" #ex: sdb
+ [ ! -e /sys/block/${aDRV} ] && continue #precaution.
+ USBflg="$(readlink /sys/block/${aDRV} | grep -o '/usb')"
+ [ "$USBflg" ] && continue
+
+ #get f.s., label, uuid, partuuid...
+ #20220713 PARTFLAGS from lsblk useless, leave out (using parted see below)...
+ KNAME=''; FSTYPE=''; LABEL=''; UUID=''; TYPE=''; PARTUUID=''; LABEL=''; MOUNTPOINT=''
+ lsblk --pairs -o KNAME,FSTYPE,TYPE,UUID,PARTUUID,LABEL,MOUNTPOINT /dev/${aDEV} > /tmp/limine-installer/lsblk-${aDEV}
+ #ex: KNAME="sda8" FSTYPE="ext4" TYPE="part" UUID="aad57b63-14e1-4fd5-ac01-14d15ef81e3e" PARTUUID="1911d005-c4cb-4f06-8975-208d32755084" LABEL="hdd96gb1" MOUNTPOINT="/mnt/sda8"
+ #20220713 find boot, esp flags... note, ${aDEV/*[a-z]/} extracts the partition number...
+ BOOTflg="$(parted /dev/${aDRV} print | sed -e 's%^ %%' | grep "^${aDEV/*[a-z]/} " | grep -o boot)"
+ if [ "$BOOTflg" ];then
+  echo 'BOOTFLAG="yes"' >> /tmp/limine-installer/lsblk-${aDEV}
+ else
+  echo 'BOOTFLAG="no"' >> /tmp/limine-installer/lsblk-${aDEV}
+ fi
+ ESPflg="$(parted /dev/${aDRV} print | sed -e 's%^ %%' | grep "^${aDEV/*[a-z]/} " | grep -o esp)"
+ if [ "$ESPflg" ];then
+  echo 'ESPFLAG="yes"' >> /tmp/limine-installer/lsblk-${aDEV}
+ else
+  echo 'ESPFLAG="no"' >> /tmp/limine-installer/lsblk-${aDEV}
+ fi
+ sed -i -e 's%" %"\n%g' /tmp/limine-installer/lsblk-${aDEV}
+ . /tmp/limine-installer/lsblk-${aDEV}
+ 
+ case "$FSTYPE" in
+  ext2|ext3|ext4|f2fs|ntfs|vfat) true ;;
+  *)
+   rm -f /tmp/limine-installer/lsblk-${aDEV} 2>/dev/null
+   continue
+  ;;
+ esac
+ 
+ PTYPE=''; HOTPLUG=''; ROTA=''
+ if [ ! -f /tmp/limine-installer/drvtype-${aDRV} ];then
+  lsblk --pairs -o PTTYPE,HOTPLUG,ROTA,PTUUID --nodeps /dev/${aDRV} > /tmp/limine-installer/drvtype-${aDRV}
+  sed -i -e 's%" %"\n%g' /tmp/limine-installer/drvtype-${aDRV}
+ fi
+ . /tmp/limine-installer/drvtype-${aDRV}
+ #...PTTYPE="dos" or "gpt", HOTPLUG="1" removable, ROTA="1" hdd
+
+ #mount the partition...
+ if [ "$MOUNTPOINT" ];then
+  MNTflg=0
+ else
+  mkdir -p /mnt/$aDEV
+  mount -t $FSTYPE -r /dev/$aDEV /mnt/$aDEV 2>/dev/null
+  if [ $? -ne 0 ];then
+   rm -f /tmp/limine-installer/lsblk-${aDEV} 2>/dev/null
+   continue
+  fi
+  MOUNTPOINT="/mnt/${aDEV}"
+  MNTflg=1
+ fi
+ 
+ ###find frugal installs###
+ case "$FSTYPE" in
+  ext2|ext3|ext4|f2fs|ntfs|vfat)
+   LINUZS="$(find ${MOUNTPOINT} -mindepth 2 -maxdepth 4 -type f -name vmlinuz | sed -e "s%^${MOUNTPOINT}%%")"
+   for bLINUZ in $LINUZS
+   do
+    [ "$bLINUZ" == "" ] && continue
+    [ "${bLINUZ:0:2}" == "/." ] && continue #20220712 ignore path starting with "."
+    bPATH="${bLINUZ%/*}"
+    
+    ###find easyos###
+    if [ -f ${MOUNTPOINT}${bPATH}/initrd -a -d ${MOUNTPOINT}${bPATH}/.session ];then
+     #this is EasyOS. note, .session will only exist in a Linux partition.
+     DISTRO_NAME=''; DISTRO_VERSION=''
+     if [ -f ${MOUNTPOINT}${bPATH}/easy.sfs ];then
+      #a new installation (after 1st run, easy.sfs gets moved into sfs folder).
+      #will have to open it up to find DISTRO_SPECS
+      mkdir -p /tmp/limine-installer/mntpt
+      ${BB} mount -t squashfs -r ${MOUNTPOINT}${bPATH}/easy.sfs /tmp/limine-installer/mntpt
+      if [ $? -eq 0 ];then
+       . /tmp/limine-installer/mntpt/etc/DISTRO_SPECS
+       ${BB} umount /tmp/limine-installer/mntpt
+      fi
+     fi
+     if [ -f ${MOUNTPOINT}${bPATH}/.session/etc/DISTRO_SPECS ];then
+      . ${MOUNTPOINT}${bPATH}/.session/etc/DISTRO_SPECS
+     fi
+     if [ "$DISTRO_NAME" ];then
+      echo "Found ${DISTRO_NAME} ${DISTRO_VERSION}"
+      echo "NAME='${DISTRO_NAME}'
+VERSION='${DISTRO_VERSION}'
+VMLINUZ='${bPATH}/vmlinuz'
+INITRD='${bPATH}/initrd'" > /tmp/limine-installer/i-easyos-${eCNT}
+      write_vars_func easyos ${eCNT}
+      eCNT=$(($eCNT+1))
+     fi
+    fi
+    
+    ###find puppy###
+    if [ -f ${MOUNTPOINT}${bPATH}/initrd.gz ];then
+     bPUPPY="$(ls -1 ${MOUNTPOINT}${bPATH}/puppy*.sfs 2>/dev/null | tail -n 1)"
+     if [ "$bPUPPY" ];then
+      #puppy found.
+      bPUPPY="${bPUPPY##*/}"
+      bPUPPY="${bPUPPY/.sfs/}"
+      if [ "$bPUPPY" == "puppy" ];then
+       #easypup only had 'puppy.sfs'
+       bNAME='EasyPup'
+       bVER=''
+      else
+       bPUPPY="${bPUPPY/puppy_/}"
+       bVER="${bPUPPY#*_}"
+       bNAME="${bPUPPY%_*}"
+      fi
+      echo "Found Puppy ${bNAME} ${bVER}"
+      echo "NAME='Puppy Linux ${bNAME}'
+VERSION='${bVER}'
+VMLINUZ='${bPATH}/vmlinuz'
+INITRD='${bPATH}/initrd.gz'" > /tmp/limine-installer/i-puppy-${pCNT}
+      write_vars_func puppy ${pCNT}
+      pCNT=$(($pCNT+1))
+     fi
+    fi
+   done
+   
+   ###find dog###
+   INITRDS="$(find ${MOUNTPOINT} -mindepth 2 -maxdepth 4 -type f -name initrd1.xz | sed -e "s%^${MOUNTPOINT}%%")"
+   for bINITRD in $INITRDS
+   do
+    [ "$bINITRD" == "" ] && continue
+    bPATH="${bINITRD%/*}"
+    bVMLINUZ="$(find ${MOUNTPOINT}${bPATH} -mindepth 1 -maxdepth 1 -type f -name 'vmlinuz*' | tail -n 1 | sed -e "s%^${MOUNTPOINT}%%")"
+    [ "$bVMLINUZ" == "" ] && continue
+    echo "Found Dog"
+    echo "NAME='Dog'
+VERSION=''
+VMLINUZ='${bPATH}/${bVMLINUZ##*/}'
+INITRD='${bPATH}/${bINITRD##*/}'" > /tmp/limine-installer/i-dog-${dCNT}
+    write_vars_func dog ${dCNT}
+    dCNT=$(($dCNT+1))
+   done
+   
+   ###find fatdog###
+   INITRDS="$(find ${MOUNTPOINT} -mindepth 2 -maxdepth 4 -type f -name initrd | sed -e "s%^${MOUNTPOINT}%%")"
+   for bINITRD in $INITRDS
+   do
+    [ "$bINITRD" == "" ] && continue
+    bPATH="${bINITRD%/*}"
+    [ -d ${MOUNTPOINT}${bPATH}/.session ] && continue #easyos
+    [ -f ${MOUNTPOINT}${bPATH}/easy.sfs ] && continue #easyos
+    [ ! -f ${MOUNTPOINT}${bPATH}/vmlinuz ] && continue
+    #fatdog has a big initrd, with sfs inside...
+    bSIZE=$(stat -c %s ${MOUNTPOINT}${bPATH}/initrd) #size in bytes.
+    [ $bSIZE -lt 145125632 ] && continue #ex size: 445125632 (fatdog 811)
+    #20220722 find savefile...
+    SAVEFILE="$(ls -1 ${MOUNTPOINT}${bPATH}/fd64save* 2>/dev/null | head -n 1 | sed -e "s%^${MOUNTPOINT}%%")"
+    echo "Found Fatdog"
+    echo "NAME='Fatdog'
+VERSION=''
+VMLINUZ='${bPATH}/vmlinuz'
+INITRD='${bPATH}/initrd'
+SAVEFILE='${SAVEFILE}'" > /tmp/limine-installer/i-fatdog-${fdCNT}
+    write_vars_func fatdog ${fdCNT}
+    fdCNT=$(($fdCNT+1))
+   done
+    
+  ;;
+ esac
+ 
+ case "$FSTYPE" in
+  ext2|ext3|ext4|f2fs)
+   ###find linux###
+   #WARNING: this code could be wrong, as /boot may be a different parition from
+   # the full install, only mounted on /boot in install-partition after bootup.
+   bPATH=''
+   bVMLINUZ="$(find ${MOUNTPOINT}/boot -mindepth 1 -maxdepth 1 -type f -name 'vmlinuz*' 2>/dev/null | sort -V | tail -n 1)"
+   bINITRD="$(find ${MOUNTPOINT}/boot -mindepth 1 -maxdepth 1 -type f -name 'initr*img*' -o -name 'easyinit' 2>/dev/null | sort -V | tail -n 1)"
+   #debian ex: vmlinuz-5.9.1-rt20avl1 initrd.img-5.9.1-rt20avl1
+   #manjaro ex: vmlinuz-5.18-rt-x86_64 initramfs-5.18-rt-x86_64.img 
+   #endeavourOS: vmlinuz-linux initramfs-linux.img
+   #opensuse: vmlinuz-5.14.21-150400.22-default initrd-5.14.21-150400.22-default
+   #quirky linux: vmlinuz easyinit
+   if [ "$bVMLINUZ" ];then
+    if [ -d ${MOUNTPOINT}/etc -a -d ${MOUNTPOINT}/dev -a -d ${MOUNTPOINT}/usr ];then
+     #a full install of Linux
+     #it could be a full install of puppy, fatdog or quirky...
+     NAME=''; VERSION=''; VERSION_ID=''; BUILD_ID=''
+     if [ -f ${MOUNTPOINT}/etc/DISTRO_SPECS ];then
+      . ${MOUNTPOINT}/etc/DISTRO_SPECS
+      VERSION=${DISTRO_VERSION}
+      NAME="${DISTRO_NAME}"
+     fi
+     if [ -e ${MOUNTPOINT}/etc/os-release ];then
+      . ${MOUNTPOINT}/etc/os-release #has NAME, VERSION_ID
+      if [ "$VERSION_ID" ];then
+       VERSION="${VERSION_ID}"
+      elif [ "$BUILD_ID" ];then
+       VERSION="${BUILD_ID}"
+      fi
+     fi
+     echo "Found Linux ${NAME} ${VERSION}"
+     echo "NAME='${NAME}'
+VERSION='${VERSION}'
+VMLINUZ='/boot/${bVMLINUZ##*/}'" > /tmp/limine-installer/i-linux-${lCNT}
+     if [ "$bINITRD" ];then
+      echo "INITRD='/boot/${bINITRD##*/}'" >> /tmp/limine-installer/i-linux-${lCNT}
+     else
+      #looks like will boot without an initrd.
+      echo "INITRD=''" >> /tmp/limine-installer/i-linux-${lCNT}
+     fi
+     write_vars_func linux ${lCNT}
+     lCNT=$(($lCNT+1))
+    fi
+   fi
+  ;;
+ esac
+ 
+ case "$FSTYPE" in
+  vfat)
+   ###find windows###
+   if [ -f ${MOUNTPOINT}/EFI/Microsoft/Boot/bootmgfw.efi ];then
+    echo "Found Windows"
+    echo "NAME='Windows'
+VERSION='10'
+EFIPATH='/EFI/Microsoft/Boot/bootmgfw.efi'" > /tmp/limine-installer/i-windows-${wCNT}
+    write_vars_func windows ${wCNT}
+    wCNT=$(($wCNT+1))
+   elif [ -f ${MOUNTPOINT}/bootmgr ];then #20220716
+    #windows 7 or later, on a pc with bios-firmware
+    echo "Found Windows"
+    echo "NAME='Windows'
+VERSION='7'
+WINLOADER='/bootmgr'" > /tmp/limine-installer/i-windows-${wCNT}
+    write_vars_func windows ${wCNT}
+    wCNT=$(($wCNT+1))
+   elif [ -f ${MOUNTPOINT}/ntldr ];then #20220716
+    #windows xp or earlier, on a pc with bios-firmware
+    echo "Found Windows"
+    echo "NAME='Windows'
+VERSION='XP'
+WINLOADER='/ntldr'" > /tmp/limine-installer/i-windows-${wCNT}
+    write_vars_func windows ${wCNT}
+    wCNT=$(($wCNT+1))
+   fi
+   
+   ###chainload###
+   bFND=0
+   if [ "$BOOTFLAG" == "yes" -a "$ESPFLAG" == "no" ];then #20221003
+    #20220713 to be sure, check there are no .efi files in partition...
+    EFIflg="$(find ${MOUNTPOINT} -mindepth 1 -maxdepth 4 -type f -iname '*.efi' | tail -n 1)"
+    if [ "$EFIflg" == "" ];then
+     bFND=1
+     #this looks like a legacy bios boot partition.
+     echo "Found mbr boot partition"
+     echo "NAME='MBR Chainload'" > /tmp/limine-installer/i-mbrchain-${mcCNT}
+     write_vars_func mbrchain ${mcCNT}
+     mcCNT=$(($mcCNT+1))
+    fi
+   fi
+   if [ $bFND -eq 0 ];then
+    #20220713 annoying, apparently grub2 no longer requires esp flag to be set
+    # see endeavouros and arch linux forum complaints. so just test for boot flag...
+    if [ "$BOOTFLAG" == "yes" ];then #20221003
+     find ${MOUNTPOINT}/EFI -mindepth 2 -maxdepth 2 -type f -iname 'bootx64.efi' -o -iname 'grubx64.efi' > /tmp/limine-installer/found-efi
+     SUBDIRS="$(grep -o '/EFI/.*' /tmp/limine-installer/found-efi | cut -f 3 -d '/' | sort -u | tr '\n' ' ')"
+     for aSUBDIR in $SUBDIRS
+     do
+      #20220711 for now, ignore /EFI/BOOT/...
+      if [ "$(echo -n "${aSUBDIR}" | tr '[A-Z]' '[a-z]')" == "boot" ];then
+       continue
+      fi
+      #20220716 ignore limine already installed...
+      if [ "${aSUBDIR}" == "limine" ];then
+       continue
+      fi
+      #give bootx64.efi preference over grubx64.efi...
+      if [ -f ${MOUNTPOINT}/EFI/${aSUBDIR}/BOOTX64.EFI ];then
+       echo "Found efi boot partition"
+       echo "NAME='EFI Chainload ${aSUBDIR}'
+EFIPATH='/EFI/${aSUBDIR}/BOOTX64.EFI'" > /tmp/limine-installer/i-efichain-${ecCNT}
+       write_vars_func efichain ${ecCNT}
+       ecCNT=$(($ecCNT+1))
+       continue
+      fi
+      if [ -f ${MOUNTPOINT}/EFI/${aSUBDIR}/grubx64.efi ];then
+       echo "Found efi boot partition"
+       echo "NAME='EFI GRUB Chainload ${aSUBDIR}'
+EFIPATH='/EFI/${aSUBDIR}/grubx64.efi'" > /tmp/limine-installer/i-efichain-${ecCNT}
+       write_vars_func efichain ${ecCNT}
+       ecCNT=$(($ecCNT+1))
+      fi
+     done
+    fi
+   fi
+  ;;
+ esac
+ 
+ #unmount the partition...
+ if [ $MNTflg -eq 1 ];then
+  umount /dev/$aDEV
+ fi
+done
+
+###chainload active entries in uefi###
+if [ $UEFIflg -eq 1 ];then #20220726
+ UEFIactive="$(efibootmgr -v 2>/dev/null | grep '^Boot[0-9][0-9][0-9a-zA-Z][0-9a-zA-Z]\* ' | grep -o '/File.*' | grep -oi '\\EFI\\.*\.EFI' | grep -v ' ' | tr '\' '/' | cut -f 3- -d '/' | tr '\n' ' ')"
+ #...ex: limine/BOOTX64.EFI ubuntu/shimx64.efi
+ for aUEFI in ${UEFIactive}
+ do
+  aNAME="${aUEFI##*/}"
+  aSUBDIR="${aUEFI%/*}"
+  [ "$aSUBDIR" == "limine" ] && continue
+  grep -q "/EFI/${aSUBDIR}/" /tmp/limine-installer/i-efichain-* 2>/dev/null
+  [ $? -eq 0 ] && continue #already found.
+  PARTUUID="$(efibootmgr -v 2>/dev/null | grep -P "^Boot[0-9][0-9][0-9a-zA-Z][0-9a-zA-Z]\* ${aSUBDIR}\t" | cut -f 3 -d ',')"
+  [ "$PARTUUID" == "" ] && continue
+  #sanity check it is a valid partuuid...
+  lsblk -o PARTUUID,KNAME > /tmp/limine-installer/all-partuuids
+  grep -q -w "$PARTUUID" /tmp/limine-installer/all-partuuids
+  [ $? -ne 0 ] && continue
+  KNAME="$(grep -w "$PARTUUID" /tmp/limine-installer/all-partuuids | rev | cut -f 1 -d ' ' | rev)"
+  echo "Found efi boot partition"
+  echo "iNAME='EFI Chainload ${aSUBDIR}'
+iEFIPATH='/EFI/${aSUBDIR}/${aNAME}'" > /tmp/limine-installer/i-efichain-${ecCNT}
+  echo "iPARTUUID='${PARTUUID}'
+iKNAME='${KNAME}'" >> /tmp/limine-installer/i-efichain-${ecCNT}
+  ecCNT=$(($ecCNT+1))
+ done
+fi
+
+###end###

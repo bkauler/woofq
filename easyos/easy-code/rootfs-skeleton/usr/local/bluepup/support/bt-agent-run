@@ -1,0 +1,24 @@
+#!/bin/sh
+#called from a terminal in bluepup
+
+export LANG=C
+
+#/usr/bin/bt-agent -c DisplayOnly
+#/usr/bin/bt-agent -c NoInputNoOutput
+
+#cd /usr/local/bluepup/simple-agent
+#./simple-agent -c NoInputNoOutput 2>/tmp/bluepup/simple-agent.err.log
+##./simple-agent -c NoInputNoOutput 2>>/tmp/bluepup/simple-agent.log | tee -ai /tmp/bluepup/simple-agent.log
+
+#for both of these, bt-agent displays warning "pin code is world-readable!"
+#note, pin-code could have this, to set same pin code all devices...
+#* 1234
+#or this...
+#RemoteDeviceName     *
+
+tail -f /tmp/bluepup/bt-agent-in | /usr/bin/bt-agent -c NoInputNoOutput -p /usr/local/bluepup/support/pin-code >/tmp/bluepup/bt-agent-out 2>/tmp/bluepup/bt-agent-out-err
+
+##20201110 note, DisplayYesNo is the default...
+#tail -f /tmp/bluepup/bt-agent-in | /usr/bin/bt-agent -c DisplayYesNo -p /usr/local/bluepup/support/pin-code >/tmp/bluepup/bt-agent-out 2>/tmp/bluepup/bt-agent-out-err
+
+###end###

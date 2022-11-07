@@ -1,0 +1,8 @@
+
+#181119 scsijon recommended replace unzstd symlink with this...
+if [ -h usr/bin/unzstd ];then
+ rm -f usr/bin/unzstd
+ echo '#!/bin/sh
+exec zstd -dv "$@"' > usr/bin/unzstd
+ chmod 755 usr/bin/unzstd
+fi

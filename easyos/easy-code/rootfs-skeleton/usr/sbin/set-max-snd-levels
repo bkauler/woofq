@@ -1,0 +1,84 @@
+#!/bin/sh
+#20211113 code used to be in /etc/init.d/10alsa
+#20211229 insert "-D pulse'
+#20211229 optional $1 $2 ... card numbers.
+#20211231 due to my limited understanding, do it twice.
+
+#for pulseaudio system, the daemon has to be running.
+
+Dpulse=''; Dflg=''
+if pidof pulseaudio >/dev/null; then
+ Dpulse="-D pulse"
+ Dflg='yes'
+fi
+
+CARDS="$@"
+if [ "$CARDS" == "" ];then
+ CARDS=default
+fi
+
+for aCARD in $CARDS
+do
+ if [ "$aCARD" == "default" ];then
+  Ccard=''
+ else
+  Ccard="-c ${aCARD}"
+ fi
+
+ #set all sinks to max...
+ amixer ${Ccard} -s -q <<EOF
+sset Master 100% unmute
+sset 'Master Mono' 100% unmute
+sset 'Master Front' 100% unmute
+sset Front,0 100% unmute
+sset PCM 100% unmute
+sset Synth 100% unmute
+sset CD 100% unmute
+sset Mic 0% mute
+sset PCM,1 100% unmute
+sset Wave 100% unmute
+sset Music 100% unmute
+sset AC97 100% unmute
+sset 'Master Digital' 100% unmute
+sset DAC 100% unmute
+sset DAC,0 100% unmute
+sset DAC,1 100% unmute
+sset Headphone 100% unmute
+sset Playback 100% unmute
+sset "SB Live Analog/Digital Output Jack" off
+sset "Audigy Analog/Digital Output Jack" off
+sset Speaker 100% unmute
+EOF
+
+ if [ "$Dflg" ];then
+  #set all sinks to max...
+  amixer ${Ccard} -D pulse -s -q <<EOF
+sset Master 100% unmute
+sset 'Master Mono' 100% unmute
+sset 'Master Front' 100% unmute
+sset Front,0 100% unmute
+sset PCM 100% unmute
+sset Synth 100% unmute
+sset CD 100% unmute
+sset Mic 0% mute
+sset PCM,1 100% unmute
+sset Wave 100% unmute
+sset Music 100% unmute
+sset AC97 100% unmute
+sset 'Master Digital' 100% unmute
+sset DAC 100% unmute
+sset DAC,0 100% unmute
+sset DAC,1 100% unmute
+sset Headphone 100% unmute
+sset Playback 100% unmute
+sset "SB Live Analog/Digital Output Jack" off
+sset "Audigy Analog/Digital Output Jack" off
+sset Speaker 100% unmute
+EOF
+
+ fi
+ RETVAL=$?
+done
+
+exit $RETVAL
+###end###

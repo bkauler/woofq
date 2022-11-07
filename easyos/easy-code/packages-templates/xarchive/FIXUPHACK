@@ -1,0 +1,8 @@
+
+XWRAPLIB="$(find usr -type d -name wrappers)"
+if [ "$XWRAPLIB" ];then
+ cp -a -f defaults/xarchive/wrappers/* ${XWRAPLIB}/
+fi
+
+sync
+rm -rf defaults

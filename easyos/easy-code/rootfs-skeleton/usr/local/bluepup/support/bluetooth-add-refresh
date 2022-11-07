@@ -1,0 +1,92 @@
+#!/bin/sh
+#called from /usr/local/pup_event/bluetooth-add, which in turn is from a udev
+# rule /etc/udev/rules.d/91-pup_event.rules (detects bluetooth device added).
+#comes here if bluepup gui is running. detect if need to refresh gui.
+
+#i think code will be the same as bluetooth-remove-refresh...
+#not quite, see "echo -n 'add' > /tmp/bluepup/current-operation" below.
+
+export TEXTDOMAIN=bluepup
+export TEXTDOMAINDIR=/usr/share/locale
+export OUTPUT_CHARSET=UTF-8
+
+CR='
+'
+
+#20201106 only do this if bluepup not in middle of an operation...
+grep -q 'limbo' /tmp/bluepup/current-operation
+[ $? -ne 0 ] && exit 0
+
+sleep 2 #20201108 
+SCANDEVS="$(LANG=C bluetoothctl devices)" #ex: Device 20:15:10:15:1C:AF Bluetooth Mouse
+echo "$SCANDEVS" |
+while read aSCANDEV
+do
+ [ "$aSCANDEV" == "" ] && continue
+ aSCANADDR="$(echo -n "$aSCANDEV" | tr -s ' ' | cut -f 2 -d ' ')"
+ [ ! -e /tmp/bluepup/reg-info.${aSCANADDR} ] && continue
+ [ ! -e /var/local/bluepup/reg-info.${aSCANADDR} ] && continue #20201113
+ LANG=C bluetoothctl info ${aSCANADDR} > /tmp/bluepup/reg-info.${aSCANADDR}FRESH
+  
+ #want to know if anything has changed...
+ diff -q /tmp/bluepup/reg-info.${aSCANADDR} /tmp/bluepup/reg-info.${aSCANADDR}FRESH >/dev/null
+ [ $? -eq 0 ] && continue
+  
+ # has connect state changed?...
+ CONNold="$(grep -o 'Connected: .*' /tmp/bluepup/reg-info.${aSCANADDR} | tr -s ' ' | cut -f 2 -d ' ')"
+ CONNnew="$(grep -o 'Connected: .*' /tmp/bluepup/reg-info.${aSCANADDR}FRESH | tr -s ' ' | cut -f 2 -d ' ')"
+ #20201108 paired?...
+ PAIRold="$(grep -o 'Paired: .*' /tmp/bluepup/reg-info.${aSCANADDR} | tr -s ' ' | cut -f 2 -d ' ')"
+ PAIRnew="$(grep -o 'Paired: .*' /tmp/bluepup/reg-info.${aSCANADDR}FRESH | tr -s ' ' | cut -f 2 -d ' ')"
+ 
+ cp -a -f /tmp/bluepup/reg-info.${aSCANADDR}FRESH /tmp/bluepup/reg-info.${aSCANADDR}
+ cp -a -f /tmp/bluepup/reg-info.${aSCANADDR} /var/local/bluepup/
+  
+ [ "$CONNold" == "$CONNnew" -a "$PAIRold" == "$PAIRnew" ] && continue
+  
+ #now have to prompt gui to update...
+ #note, /tmp/bluepup/found-reg-devices is created by bluepup
+ echo -n 'add' > /tmp/bluepup/current-operation #20201105 also written to in bluepup.
+ if [ "$CONNnew" == "yes" ];then
+  sed -i -e "s%.*${aSCANADDR}%mini-tick-green|${aSCANADDR}%" /tmp/bluepup/found-reg-devices #will be updated by the timer, indirectly...
+  echo -n 'true' > /tmp/bluepup/reg-success-flg
+ elif [ "$PAIRnew" == "yes" ];then #20201108
+  sed -i -e "s%.*${aSCANADDR}%mini-tick-orange|${aSCANADDR}%" /tmp/bluepup/found-reg-devices #will be updated by the timer, indirectly...
+  echo -n 'true' > /tmp/bluepup/reg-success-flg
+ else
+  sed -i -e "s%.*${aSCANADDR}%mini-cross|${aSCANADDR}%" /tmp/bluepup/found-reg-devices #will be updated by the timer, indirectly...
+  echo -n 'false' > /tmp/bluepup/reg-success-flg
+ fi
+ echo -n "$aSCANADDR" > /tmp/bluepup/chosen-reg-device
+ 
+ #20201107 tell bluepup if this is a phone...
+ PHflg="$(grep -o 'Icon: phone' /tmp/bluepup/reg-info.${aSCANADDR})"
+ if [ "$PHflg" ];then
+  echo -n 'true' > /tmp/bluepup/device-is-a-phone
+ else
+  echo -n 'false' > /tmp/bluepup/device-is-a-phone
+ fi
+
+ #write to this file, will update New and Registered devices lists...
+ cp -a -f /tmp/bluepup/found-new-devices /tmp/bluepup/fnd-tmp0
+ cat /tmp/bluepup/fnd-tmp0 > /tmp/bluepup/found-new-devices #weird way to trigger timer.
+ #write to this file, a timer will auto-detect change, will update status frame...
+ echo -n "$aSCANADDR" > /tmp/bluepup/reg-dev-chosen-processed
+ 
+ #send a message to status frame (will auto-update)...
+ if [ "$CONNnew" == "yes" ];then
+  CONNmsg1="$(gettext 'Connected:')"
+  echo "<b><span color='#00a000'>${CONNmsg1}${CR}${aSCANADDR}</span></b>" > /tmp/bluepup/frame-status.msg
+ elif [ "$PAIRnew" == "yes" ];then #20201108
+  CONNmsg1="$(gettext 'Paired:')"
+  echo "<b><span color='#ffa010'>${CONNmsg1}${CR}${aSCANADDR}</span></b>" > /tmp/bluepup/frame-status.msg
+ else
+  CONNmsg1="$(gettext 'Disconnected:')"
+  echo "<b><span color='#a00000'>${CONNmsg1}${CR}${aSCANADDR}</span></b>" > /tmp/bluepup/frame-status.msg
+ fi
+ 
+ sleep 1.2 #timer interval is 1 sec, so slow down this loop.
+ echo -n 'limbo' > /tmp/bluepup/current-operation #20201105
+done
+
+###end###

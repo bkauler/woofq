@@ -1,0 +1,117 @@
+#!/bin/sh
+#called from /root/.xinitrc when X starts.
+#checks desktop icons for containerized apps.
+#note, the pre-created 'www' and 'console' desktop containers: png files are created in 3buildeasydistro.
+#181006 if erase .session folder, may need to recreate start-scripts.
+#190903 fixes. icon was not recreated. erase may invalidate a container.
+#190911 "easy" label changed to "pyro" or "buster".
+#20220423 jwmdesk /usr/local/desksetup/func allows change y-gap of top row of icons.
+#20220425 jwmdesk can also set no labels below icons.
+#20220607 replaced DB_* with SFS_DB_* in sfs .specs files.
+
+. /etc/DISTRO_SPECS #190911
+
+#180506 this does not exist at first bootup...
+#190903 erase .session folder will also erase this...
+if [ ! -f /root/.config/rox.sourceforge.net/ROX-Filer/globicons ];then
+ #in case of .session erase, need to delete all containers except inbuilt...
+ #well, don't have to, but as globicons not exit, cannot perform the fixes below.
+ for aCONT in `ls -1 /mnt/wkg/containers`
+ do
+  [ "$aCONT" == "" ] && continue
+  [ "$aCONT" == "console" ] && continue
+  [ "$aCONT" == "easy" ] && continue
+  [ "$aCONT" == "${DISTRO_COMPAT_VERSION}" ] && continue #190911 pyro or buster
+  [ "$aCONT" == "ssh0" ] && continue
+  [ "$aCONT" == "www" ] && continue
+  rm -rf /mnt/wkg/containers/${aCONT}
+ done
+ exit
+fi
+
+#20220423 ref: jwmdesk /usr/local/desksetup/func
+Y_EDGE_GAP=32; Y_SPACING=96
+Y1=128; Y2=224; Y3=320; Y4=416
+ICON_LABEL="On" #20220425
+if [ -d /root/.desksetup ];then
+ #define gap between desk icons and screen top
+ Y_EDGE_GAP=$(cat /root/.desksetup/edge-gap 2>/dev/null)
+ [ ! "$Y_EDGE_GAP" ] && Y_EDGE_GAP=32
+ #spacing along y-axis changes if no labels...
+ ICON_LABEL="$(cat /root/.desksetup/icon-label 2>/dev/null)"
+ [ "$ICON_LABEL" == "Off" ] && Y_SPACING=76
+ Y1=$((${Y_EDGE_GAP}+${Y_SPACING}))
+ Y2=$((${Y1}+${Y_SPACING}))
+ Y3=$((${Y2}+${Y_SPACING}))
+ Y4=$((${Y3}+${Y_SPACING}))
+fi
+
+#code from easy-containers... 20220423 replace y-coords with variable Y1 etc...
+find_free_coords_func() {
+ for aY in $Y1 $Y2 $Y3 $Y4 #128 224 320 416
+ do
+  for aX in 672 736
+  do
+   aPTN="x=\"${aX:0:2}[0-9]\" y=\"${aY:0:2}[0-9]\""
+   grep "$aPTN" /root/Choices/ROX-Filer/PuppyPin > /dev/null
+   [ $? -ne 0 ] && break 2
+  done
+ done
+ #...aX and aY are free coordinates.
+}
+
+add_puppypin_func() {
+ find_free_coords_func
+ if [ "$ICON_LABEL" == "Off" ];then #20220425
+  sed -i -e "s%^</pinboard>%  <icon x=\"${aX}\" y=\"${aY}\" label=\"\">${EC_PATH}</icon>\n</pinboard>%" /root/Choices/ROX-Filer/PuppyPin
+ else
+  sed -i -e "s%^</pinboard>%  <icon x=\"${aX}\" y=\"${aY}\" label=\"${EC_LABEL}\">${EC_PATH}</icon>\n</pinboard>%" /root/Choices/ROX-Filer/PuppyPin
+ fi
+}
+
+add_globicon_func() {
+ sed -i '/^<\/special-files>/d' /root/.config/rox.sourceforge.net/ROX-Filer/globicons
+ echo "  <rule match=\"${EC_PATH}\">
+    <icon>${EC_ICON}</icon>
+  </rule>
+</special-files>" >> /root/.config/rox.sourceforge.net/ROX-Filer/globicons
+}
+
+for aDESK in `ls -1 /mnt/wkg/containers/*/desktop 2>/dev/null`
+do
+ [ ! "$aDESK" ] && continue
+ . ${aDESK}
+ [ ! "$EC_PATH" ] && continue
+ grep "$EC_PATH" /root/Choices/ROX-Filer/PuppyPin >/dev/null
+ [ $? -ne 0 ] && add_puppypin_func
+ grep "$EC_PATH" /root/.config/rox.sourceforge.net/ROX-Filer/globicons >/dev/null
+ [ $? -ne 0 ] && add_globicon_func
+ #181006 if erase .session folder, this file will need to be recreated:
+ if [ ! -f /usr/sbin/ec-chroot-${EC_LABEL} ];then
+  #190911 ***will need to edit this for future series of easyos***
+  case "$EC_LABEL" in
+   pyro|buster)
+    echo "#!/bin/sh
+empty -f ec-chroot ${EC_LABEL} easy" > /usr/sbin/ec-chroot-${EC_LABEL}
+   ;;
+   *)
+    echo "#!/bin/sh
+empty -f ec-chroot ${EC_LABEL}" > /usr/sbin/ec-chroot-${EC_LABEL} #190903
+   ;;
+  esac
+  chmod 755 /usr/sbin/ec-chroot-${EC_LABEL}
+ fi
+ if [ ! -f "$EC_ICON" ];then #ref: easy-containers
+  #cp -f /mnt/wkg/containers/${EC_LABEL}/ec-${EC_LABEL}48.png "${EC_ICON}"
+  #190903 need to find it...
+  aPATH="$(dirname ${aDESK})"
+. ${aPATH}/specs
+  for aICON in $SFS_DB_icons #SFS_DB_icons is in specs file. 20220607
+  do
+   fndICON="$(find /mnt/wkg/sfs -type f -name "${aICON}.png" | head -n 1)"
+   [ "$fndICON" ] && cp -f ${fndICON} /usr/share/pixmaps/ec-${aICON}48.png
+  done
+ fi
+done
+
+###END###

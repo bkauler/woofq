@@ -1,0 +1,25 @@
+#20200726 easyos debian buster
+#20210414 may have 48x48 png.
+
+mkdir -p usr/share/applications
+echo '[Desktop Entry]
+Name=ModemManager modem management
+GenericName=ModemManager
+Comment=Broadband modem management tool
+Exec=modem-manager-gui
+Icon=modem-manager-gui.png
+Terminal=false
+Type=Application
+StartupNotify=true
+Categories=X-Network-connect
+Keywords=modem;manager;sms;ussd;
+X-GNOME-UsesNotifications=true' > usr/share/applications/modem-manager-gui.desktop
+
+mkdir -p usr/share/pixmaps
+if [ -f usr/share/icons/hicolor/48x48/apps/modem-manager-gui.png ];then
+ ln -snf ../icons/hicolor/48x48/apps/modem-manager-gui.png usr/share/pixmaps/modem-manager-gui.png
+else
+ if [ -f usr/share/icons/hicolor/128x128/apps/modem-manager-gui.png ];then
+  ln -snf ../icons/hicolor/128x128/apps/modem-manager-gui.png usr/share/pixmaps/modem-manager-gui.png
+ fi
+fi

@@ -1,0 +1,11 @@
+
+#20210824 slackware 15.0. note debian bullseye does not have etc folder.
+ETCFILES="$(find etc -mindepth 1 -maxdepth 1 -type f 2>/dev/null)"
+if [ "$ETCFILES" ];then
+ for aF in $ETCFILES
+ do
+  [ "$aF" == "" ] && continue
+  rm -f ./${aF}
+ done
+fi
+

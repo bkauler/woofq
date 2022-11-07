@@ -1,0 +1,104 @@
+#!/bin/sh
+#called from dir2sfs
+#200405 esmourguit: internationalized.
+#20210915 apply gettext to "OK" button.
+#20210917 new DB_install='mainonly' run on main desktop only. 20210920 fix.
+
+DEFnameonly="${1}"
+DEFinstall="individual"
+#export LANG=C
+export TEXTDOMAIN=sfsget
+export OUTPUT_CHARSET=UTF-8
+
+if [ -f /usr/local/easy_containers/templates/${DEFnameonly}/specs ];then #20210917 DB_* overrides
+ . /usr/local/easy_containers/templates/${DEFnameonly}/specs #may have TEMPLATE_DB_install='mainonly'
+ if [ "$TEMPLATE_DB_install" ];then
+  DEFinstall="$TEMPLATE_DB_install"
+ fi
+fi
+
+export HLP_INSTALL="<window title=\"$(gettext 'Help: Install mode')\" icon-name=\"gtk-index\" window_position=\"1\">
+  <vbox>
+    <text use-markup=\"true\">
+      <label>\"<b>mainonly</b>
+$(gettext 'Not able to run in a container, must run on the main desktop.')
+
+<b>individual</b>
+$(gettext 'The SFS may run on the main desktop, if dependencies OK.')
+$(gettext 'Or run in a container, in which case:')
+$(gettext 'Each app in the SFS file will have its own icon on the desktop. This is only possible if there is at least one .desktop file in the SFS.
+To run in a container if there are no .desktop files, the install must be one of the following:')
+
+<b>desk</b>
+$(gettext 'SFS will run in a container only.')
+$(gettext 'There will be a single icon on the desktop. The container will run as a complete desktop, using the Xephyr X server.') 
+
+<b>terminal</b>
+$(gettext 'SFS will run in a container only.')
+$(gettext 'There will be a single icon on the desktop, that will open a terminal window in the container.') 
+
+<b>$(gettext 'Technical notes')</b>
+$(gettext '.desktop files are in /usr/share/applications in the SFS file. For individual mode, even if there are more than one .desktop files, it will still be one container, even though there will be multiple launch icons on the desktop.')\"
+      </label>
+      <variable>HLP_INSTALL</variable>
+    </text>
+    <hbox>
+    <button>
+      <label>$(gettext 'Close')</label>
+      <action type=\"closewindow\">HLP_INSTALL</action>
+    </button>
+    </hbox>
+  </vbox>
+ </window>"
+
+###install###
+ITEMSINSTALL="<item>${DEFinstall}</item>"
+if [ "$DEFinstall" != "mainonly" ];then #20210917
+ for ONECHOICE in individual desk terminal mainonly #20210917
+ do
+  [ "$ONECHOICE" = "${DEFinstall}" ] && continue
+  ITEMSINSTALL="${ITEMSINSTALL}<item>${ONECHOICE}</item>"
+ done
+fi
+
+export SFSSPEC_MODEDLG="
+<window title=\"$(gettext 'SFS database-entry install-mode')\" icon-name=\"gtk-index\">
+ <vbox>
+ 
+  <text use-markup=\"true\"><label>\"$(gettext 'Before choosing all of the database settings for') <b>${DEFnameonly}</b> $(gettext 'SFS file, it is necessary to choose the installation mode')\"</label></text>
+
+<frame $(gettext 'Install mode')>
+  <hbox>
+    <text>
+      <label>$(gettext 'Choose an install mode:')</label>
+    </text>
+	<combobox>
+      <variable>DB_install</variable>
+	  ${ITEMSINSTALL}
+    </combobox>
+    <button>
+      <input file>/usr/local/lib/X11/mini-icons/mini-question.xpm</input>
+      <action type=\"launch\">HLP_INSTALL</action>
+    </button>
+  </hbox>
+</frame>
+
+  <hbox>
+    <button>
+     <label>$(gettext 'OK')</label>
+     <action type=\"exit\">ok</action>
+    </button>
+    <button cancel></button>
+  </hbox>
+ </vbox>
+</window>"
+
+echo "$SFSSPEC_MAINDLG}" > /tmp/sfsget/SFSSPEC_MODEDLG #test
+RETVALS="$(gtkdialog --program=SFSSPEC_MODEDLG --center)"
+[ $? -ne 0 ] && exit 2
+eval "$RETVALS"
+[ "$EXIT" != "ok" ] && exit 3
+
+echo -n "$DB_install" > /tmp/sfsget/sfsspec-install-mode
+exit 0
+###end###

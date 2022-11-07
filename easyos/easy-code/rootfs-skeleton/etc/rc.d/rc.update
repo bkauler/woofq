@@ -1,0 +1,43 @@
+#!/bin/ash
+#131217 called from rc.sysinit, as background process.
+#150303 append space in echo text.
+#170920 init script in initrd, creates /.sfschg.flg if sfs layers changed (and has prev version if a version upgrade)
+#200528 moved profile update out of /usr/bin/seamonkeyQNEW, dumb place to have it.
+#200609 if an sfs has been removed, ex firefox, it may have left behind a .desktop file.
+#200729 sanity checks when updating seamonkey profile.
+#200820 moved 200609 up, to be sure fixmenus run before jwm has started.
+#200827 200609: removing old .desktop files code moved to rc.sysinit
+#20211207 check that /root/.mozilla/seamonkey exists.
+
+#131217 only do this on very first boot... 170920...
+if [ -f /.sfschg.flg -o ! -f /etc/networkmodules ];then
+ echo -n " network-drivers-list " >/dev/console
+ /usr/sbin/updatenetmoduleslist.sh
+fi
+
+#200528 moved this out of /usr/bin/seamonkeyQNEW, dumb place to have it...
+#200516 sm 2.53.2 new profile... 200729 sanity checks...
+if [ -d /root/.mozilla/seamonkey ];then #20211207
+ HOMEDIR="/root/.mozilla/seamonkey"
+ OLDPROFILE=''; NEWPROFILE=''
+ SMPROFILES="$(find ${HOMEDIR} -mindepth 1 -maxdepth 1 -type d -name '*.default' | tr '\n' ' ')"
+ for aSMPROFILE in ${SMPROFILES}
+ do
+  if [ -f ${aSMPROFILE}/places.sqlite ];then
+   [ "$OLDPROFILE" ] && mv -f ${OLDPROFILE} ${OLDPROFILE}OLD #200729 in case more than one.
+   OLDPROFILE="${aSMPROFILE}"
+  fi
+  [ ! -f ${aSMPROFILE}/places.sqlite ] && NEWPROFILE="${aSMPROFILE}"
+ done
+ if [ "$OLDPROFILE" -a "$NEWPROFILE" ];then
+  cp -a -f ${OLDPROFILE}/cookies.sqlite ${NEWPROFILE}/ 2>/dev/null
+  cp -a -f ${OLDPROFILE}/favicons.sqlite ${NEWPROFILE}/ 2>/dev/null
+  cp -a -f ${OLDPROFILE}/formhistory.sqlite ${NEWPROFILE}/ 2>/dev/null
+  cp -a -f ${OLDPROFILE}/permissions.sqlite ${NEWPROFILE}/ 2>/dev/null
+  cp -a -f ${OLDPROFILE}/places.sqlite ${NEWPROFILE}/ 2>/dev/null
+  mv -f ${OLDPROFILE} ${OLDPROFILE}OLD
+  sed -i -e "s%^Path=.*%Path=${NEWPROFILE##*/}%" ${HOMEDIR}/profiles.ini #200729 sanity check.
+ fi
+fi
+
+###end###

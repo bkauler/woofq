@@ -1,0 +1,269 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html><head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<title>pup_event service management</title>
+	<style type="text/css">
+	codebody
+	{
+		font-family: Monospace, monospace;
+		font-size: 12pt;
+	}
+	.style_2
+	{
+		color: #d00000;
+		background-color: #ffffff;
+	}
+	.style_3
+	{
+		color: #007f00;
+		background-color: #ffffff;
+	}
+	.style_5
+	{
+		color: #ff8000;
+		background-color: #ffffff;
+	}
+	.style_6
+	{
+		color: #ff8000;
+		background-color: #ffffff;
+	}
+	.style_7
+	{
+		color: #301010;
+		background-color: #ffffff;
+	}
+	.style_8
+	{
+		color: #000000;
+		background-color: #ffffff;
+	}
+
+	</style>
+</head>
+<body>
+
+<table align="center" width="600" border="0" cellspacing="2" cellpadding="2">
+  <tbody>
+    <tr>
+      <td valign="top">
+        <h1>pup_event service management</h1>
+<font color="#663333">Page updated February 28, 2018, partially updated October 25, 2019, and January 7, 2020</font><br>
+In this context, "services" are processes that start and stop in the background. For example the 'cupsd' daemon for printing.<br>
+        <br>
+In Puppy and derivatives such as Quirky and Easy, most of these services
+ are scripts found at folder /etc/init.d. Puppy runs 
+/etc/rc.d/rc.sysinit at startup (refer to /etc/inittab which is read by 
+Busybox 'init'), which in turn calls /etc/rc.d/rc.services.<br>
+        <br>
+rc.services executes the scripts in /etc/init.d, in alphabetical order 
+(mostly -- in Quirky and Easy, there is a bit of juggling in rc.services
+ to modify that order). Note that the simple Busybox init does not have runlevels.<br>
+        <br>
+The single big problem with this fixed order of execution is 
+dependencies, or lack thereof. For example, it may only be appropriate 
+to start /etc/init.d/rc.samba if the network is "up". Or to run the 
+'ntpd' daemon that accesses online Network Time Protocol servers (to 
+sync the local time from the Internet).<br>
+        <br>
+There needs to be mechanism to start services, as dependencies are met, 
+and stopped when not. Puppy and derivatives achieve this in a very 
+haphazard manner, or not at all.<br>
+        <br>
+So, I researched "service managers", and reported to my blog:<br>
+        <br>
+        <a href="http://bkhome.org/news/201802/busybox-1251-runit-applets.html">http://bkhome.org/news/201802/busybox-1251-runit-applets.html</a><br>
+        <br>
+        <a href="http://bkhome.org/news/201802/thinking-about-service-managers.html">http://bkhome.org/news/201802/thinking-about-service-managers.html</a><br>
+        <br>
+        <a href="http://bkhome.org/news/201802/ninit-minit-on-steroids.html">http://bkhome.org/news/201802/ninit-minit-on-steroids.html</a><br>
+        <br>
+        <a href="http://bkhome.org/news/201802/experimenting-with-busybox-runit.html">http://bkhome.org/news/201802/experimenting-with-busybox-runit.html</a><br>
+        <br>
+...in summary, I was not satisfied with what is on offer.<br>
+        <br>
+As I have done many times in the past, if not satisfied with what is 
+available, do it myself. To understand my implementation, firstly an 
+introduction to 'pup_event'...<br>
+        <h2>pup_event</h2>
+The pup_event scripts are to be found in /usr/local/pup_event. The main 
+guy is 'pup_event_frontend_d', written in C (note: it was originally written in BaCon), that 
+detects hotplug events and maintains the desktop drive icons.<br>
+        <br>
+Well, that is the main purpose, it also performs some housekeeping at 
+regular intervals (see /usr/local/pup_event/frontend_timeout, that 
+pup_event_frontend_d calls every second.<br>
+        <br>
+Or rather, that is how it works in Puppy. In Quirky and Easy, I have 
+evolved pup_event_frontend_d to be more efficient, and now a server for 
+the service-manager.<br>
+        <br>
+Before getting onto the service-manager though, I need to introduce the concept of pup_event IPC...<br>
+        <h2>pup_event IPC</h2>
+This is a peer-to-peer serverless technique for message-passing and 
+synchronization between programs. Or, it can also be a server-client 
+arrangement.<br>
+<br>
+Interesting, I went through a similar process of evaluation, ending in 
+disappointment, of unix domain sockets and named pipes. After some input
+ from technosaurus, invented my own IPC, based on inotify. See this old 
+blog post, mid-2013:<br>
+<br>
+<a href="http://bkhome.org/archive/blog2/201306/unix-domain-sockets.html">http://bkhome.org/archive/blog2/201306/unix-domain-sockets.html</a><br>
+        <br>
+pup_event_frontend_d is a IPC server, exporting information such as 
+drive hotplug events, network up/down (and which interface), 1-, 4- and 
+60-second timeouts, X up/down, and in future, probably up/down for audio.<br>
+        <br>
+Any client program can receive this information. How this is achieved is described in this document:<br>
+        <br>
+        <a href="pup_event_ipc.htm">pup_event_ipc.htm</a><br>
+        <br>
+...have a gander at that, then getting onto the actual service-manager...<br>
+        <h2>pup_event service-manager</h2>
+As already mentioned, /etc/rc.d/rc.services runs the services in folder /etc/init.d<br>
+        <br>
+This script is now enhanced, evolved into the service-manager. There is a new variable in /etc/eventmanager:<br>
+        <pre><span class="style_2">#180222&nbsp;simple&nbsp;ipc-based&nbsp;service&nbsp;manager</span>
+<span class="style_2">#ref:&nbsp;/etc/rc.d/rc.services,&nbsp;rc.services_ipc</span>
+<span class="style_2">#names&nbsp;of&nbsp;services&nbsp;in&nbsp;/etc/init.d&nbsp;that&nbsp;must&nbsp;only&nbsp;start&nbsp;when&nbsp;a&nbsp;condition&nbsp;is&nbsp;met...</span>
+<span class="style_2">#format&nbsp;of&nbsp;each&nbsp;space-delimited&nbsp;parameter: dep1[:dep2[...]]%service1[:service2[...]]</span>
+<span class="style_8"><font color="#000066">#180228 optional append "ONESHOT" to service name if no "stop)" option in script.</font><br>PE_SERVICE_MANAGER</span><span class="style_7">=</span><span class="style_6">'network%sshd:rc.samba'</span>
+</pre>
+<b>2018-02-28 Enhancement</b><br>
+In PE_SERVICE_MANAGER, append "ONESHOT" to a service name, for example 
+"cups-net-fixONESHOT". This is for service scripts that just run once at
+ computer startup, and do not have a daemon or anything that needs to be
+ stopped. "ONESHOT" is optional, improves efficiency.<br>
+<font color="#000066">This enhancement is shown in the code on this page as dark-blue text.</font>&nbsp; <br>
+<br>
+Keeping it simple for now, the variable PE_SERVICE_MANAGER specifies 
+that sshd and rc.samba require the network to be up, before they start. Now look in 
+rc.services, extracting just the relevant parts:<br>
+        <pre><span class="style_2">#180222&nbsp;simple&nbsp;ipc-based&nbsp;service&nbsp;manager</span>
+<span class="style_2">#these&nbsp;must&nbsp;run&nbsp;before&nbsp;pup_event_frontend_d&nbsp;starts&nbsp;(launched&nbsp;from&nbsp;/root/.xinitrc)</span>
+<span class="style_8">echo&nbsp;-n&nbsp;</span><span class="style_6">''&nbsp;</span><span class="style_7">&gt;&nbsp;/</span><span class="style_8">tmp</span><span class="style_7">/</span><span class="style_8">pup_event_backend</span><span class="style_7">/</span><span class="style_8">service-manager-services</span>
+<span class="style_4">if&nbsp;</span><span class="style_7">[&nbsp;</span><span class="style_5">"$PE_SERVICE_MANAGER"&nbsp;</span><span class="style_7">];</span><span class="style_4">then&nbsp;</span><span class="style_2">#see&nbsp;/etc/eventmanager</span>
+&nbsp;<span class="style_4">for&nbsp;</span><span class="style_8">aPESM&nbsp;</span><span class="style_4">in&nbsp;</span><span class="style_9">$PE_SERVICE_MANAGER</span>
+&nbsp;<span class="style_4">do</span>
+&nbsp;&nbsp; <span class="style_8">SM_PARAMS</span><span class="style_7">=</span><span class="style_5">"${aPESM/%/&nbsp;}"&nbsp;</span><span class="style_2">#ex:&nbsp;'network%sshd:rc.samba'&nbsp;to&nbsp;'network&nbsp;sshd:rc.samba'</span>
+&nbsp;&nbsp; <span class="style_8">SM_SERVICES</span><span class="style_7">=</span><span class="style_5">"${SM_PARAMS/*&nbsp;/}"</span>
+&nbsp;&nbsp; <span class="style_8">echo&nbsp;-e&nbsp;</span><span class="style_5">"${SM_SERVICES//:/\\n}"&nbsp;</span><span class="style_7">&gt;&gt;&nbsp;/</span><span class="style_8">tmp</span><span class="style_7">/</span><span class="style_8">pup_event_backend</span><span class="style_7">/</span><span class="style_8">service-manager-services<br>  &nbsp;</span><span class="style_2">#...one&nbsp;service&nbsp;per&nbsp;line</span>
+&nbsp;&nbsp; <span class="style_7">/</span><span class="style_8">etc</span><span class="style_7">/</span><span class="style_8">rc.d</span><span class="style_7">/</span><span class="style_8"><b>rc.services_ipc</b>&nbsp;</span><span class="style_10">${SM_PARAMS}&nbsp;</span><span class="style_7">&amp;</span>
+&nbsp;<span class="style_4">done</span>
+<span class="style_4">fi<br><font color="#000066">sed -i -e 's%ONESHOT$%%' /tmp/pup_event_backend/service-manager-services #180228</font><br></span>
+<span class="style_4">for&nbsp;</span><span class="style_8">service_script&nbsp;</span><span class="style_4">in&nbsp;</span><span class="style_7">/</span><span class="style_8">etc</span><span class="style_7">/</span><span class="style_8">init.d</span><span class="style_7">/*&nbsp;/</span><span class="style_8">etc</span><span class="style_7">/</span><span class="style_8">init.d</span><span class="style_7">/.[</span><span class="style_8">a-z</span><span class="style_7">]*</span>
+<span class="style_4">do</span>
+&nbsp;<span class="style_4">if&nbsp;</span><span class="style_7">[&nbsp;</span><span class="style_4">-x&nbsp;</span><span class="style_9">$service_script&nbsp;</span><span class="style_7">];</span><span class="style_4">then</span>&nbsp; <br>
+&nbsp;&nbsp;<span class="style_2">#180222&nbsp;exclude&nbsp;those&nbsp;already&nbsp;run&nbsp;above...</span>
+&nbsp; <span class="style_4">if&nbsp;</span><span class="style_7">[&nbsp;</span><span class="style_4">-s&nbsp;</span><span class="style_7">/</span><span class="style_8">tmp</span><span class="style_7">/</span><span class="style_8">pup_event_backend</span><span class="style_7">/</span><span class="style_8">service-manager-services&nbsp;</span><span class="style_7">];</span><span class="style_4">then</span>
+&nbsp;&nbsp; <span class="style_8">baseSC</span><span class="style_7">=</span><span class="style_5">"$(basename&nbsp;$service_script)"</span>
+&nbsp;&nbsp; <span class="style_8">echo&nbsp;</span><span class="style_5">"$baseSC"&nbsp;</span><span class="style_7">|&nbsp;</span><span class="style_8">grep&nbsp;</span><span class="style_7">-</span><span class="style_8">q&nbsp;-x&nbsp;-f&nbsp;</span><span class="style_7">/</span><span class="style_8">tmp</span><span class="style_7">/</span><span class="style_8">pup_event_backend</span><span class="style_7">/</span><span class="style_8">service-manager-services</span>
+&nbsp;&nbsp; <span class="style_7">[&nbsp;</span><span class="style_9">$?&nbsp;</span><span class="style_7">-</span><span class="style_8">eq&nbsp;</span><span class="style_3">0&nbsp;</span><span class="style_7">]&nbsp;&amp;&amp;&nbsp;</span><span class="style_4">continue</span>
+&nbsp; <span class="style_4">fi</span>&nbsp; 
+
+&nbsp; <span class="style_8">echo&nbsp;</span><span class="style_9">$service_script</span>
+&nbsp; <span class="style_9">$service_script&nbsp;</span><span class="style_8">start</span>
+&nbsp;<span class="style_4">fi</span>
+<span class="style_4">done</span><br></pre>
+...in a nutshell, /etc/rc.d/rc.services_ipc is called, 
+with names of services and their dependencies passed to it. For our example,
+ that will be "network sshd:rc.samba". So, look at /etc/rc.d/rc.services_ipc...<br>
+        <pre><span class="style_8">DEPs</span><span class="style_7">=</span><span class="style_5">"${1//:/&nbsp;}"&nbsp;</span><span class="style_2">#replace&nbsp;all&nbsp;:&nbsp;with&nbsp;spaces</span>
+<span class="style_8">SERVICEs</span><span class="style_7">=</span><span class="style_5">"${2//:/&nbsp;}"</span><br><br><font color="#000066">#180228 find any one-shot services. ref: /etc/eventmanager<br>oSERVICEs=''; mSERVICEs=''<br>for aSERVICE in $SERVICEs<br>do<br> case "$aSERVICE" in<br>  *ONESHOT) oSERVICEs="${oSERVICEs}${aSERVICE/ONESHOT/} " ;;<br>  *)        mSERVICEs="${mSERVICEs}${aSERVICE} " ;;<br> esac<br>done</font><br>
+<span class="style_2">###big&nbsp;loop###</span>
+<span class="style_4">while&nbsp;</span><span class="style_7">[&nbsp;</span><span class="style_8">true&nbsp;</span><span class="style_7">];&nbsp;</span><span class="style_4">do</span><br>
+&nbsp;<span class="style_4">for&nbsp;</span><span class="style_8">aDEP </span><span class="style_4">in&nbsp;</span><span class="style_9">$DEPs</span>
+&nbsp;<span class="style_4">do</span>
+&nbsp; <span class="style_8">MSG1</span><span class="style_7">=</span><span class="style_5">"$(/usr/local/pup_event/<b>pup_event_ipc</b>&nbsp;"${aDEP}:${$}")"</span>
+&nbsp; <span class="style_2">#...ex:&nbsp;network:12345&nbsp;MSG=eth0&nbsp;or&nbsp;MSG=''&nbsp;(empty,&nbsp;meaning&nbsp;i/f&nbsp;gone&nbsp;down)</span>
+&nbsp; <span class="style_7">[&nbsp;!&nbsp;</span><span class="style_5">"$MSG1"&nbsp;</span><span class="style_7">]&nbsp;&amp;&amp;&nbsp;</span><span class="style_4">continue&nbsp;</span><span class="style_3">2</span>
+&nbsp;<span class="style_4">done</span><br>
+&nbsp;<span class="style_2">#start&nbsp;the&nbsp;services...</span>
+&nbsp;<span class="style_4">for&nbsp;</span><span class="style_8">aSERVICE&nbsp;</span><span class="style_4">in </span><font color="#000066"><span class="style_9">$mSERVICEs $oSERVICEs</span></font>
+&nbsp;<span class="style_4">do</span>
+&nbsp; <span class="style_4">if&nbsp;</span><span class="style_7">[&nbsp;</span><span class="style_4">-x&nbsp;</span><span class="style_7">/</span><span class="style_8">etc</span><span class="style_7">/</span><span class="style_8">init.d</span><span class="style_7">/</span><span class="style_10">${aSERVICE}&nbsp;</span><span class="style_7">];</span><span class="style_4">then</span>
+&nbsp;&nbsp; <span class="style_8">echo&nbsp;</span><span class="style_5">"Starting&nbsp;/etc/init.d/${aSERVICE}"</span>
+&nbsp;&nbsp; <span class="style_7">/</span><span class="style_8">etc</span><span class="style_7">/</span><span class="style_8">init.d</span><span class="style_7">/</span><span class="style_10">${aSERVICE}&nbsp;</span><span class="style_8">start</span>
+&nbsp; <span class="style_4">fi</span>
+&nbsp;<span class="style_4">done</span> <br><font color="#000066"> oSERVICEs=''<br> [ "$mSERVICEs" == "" ] &amp;&amp; break</font><br>
+&nbsp;<span class="style_4">for&nbsp;</span><span class="style_8">aDEP </span><span class="style_4">in&nbsp;</span><span class="style_9">$DEPs</span>
+&nbsp;<span class="style_4">do</span>
+&nbsp; <span class="style_8">MSG1</span><span class="style_7">=</span><span class="style_5">"$(/usr/local/pup_event/pup_event_ipc&nbsp;"${aDEP}:${$}")"</span>
+&nbsp; <span class="style_4">if&nbsp;</span><span class="style_7">[&nbsp;!&nbsp;</span><span class="style_5">"$MSG1"&nbsp;</span><span class="style_7">];</span><span class="style_4">then</span>&nbsp;&nbsp; <br>
+&nbsp;&nbsp;&nbsp;<span class="style_2">#stop&nbsp;the&nbsp;services...</span>
+&nbsp;&nbsp; <span class="style_4">for&nbsp;</span><span class="style_8">aSERVICE&nbsp;</span><span class="style_4">in&nbsp;</span><font color="#000066"><span class="style_9">$mSERVICEs</span></font>
+&nbsp;&nbsp; <span class="style_4">do</span>
+&nbsp;&nbsp;&nbsp; <span class="style_4">if&nbsp;</span><span class="style_7">[&nbsp;</span><span class="style_4">-x&nbsp;</span><span class="style_7">/</span><span class="style_8">etc</span><span class="style_7">/</span><span class="style_8">init.d</span><span class="style_7">/</span><span class="style_10">${aSERVICE}&nbsp;</span><span class="style_7">];</span><span class="style_4">then</span>
+&nbsp;&nbsp;&nbsp;&nbsp; <span class="style_8">echo&nbsp;</span><span class="style_5">"Stopping&nbsp;/etc/init.d/${aSERVICE}"</span>
+&nbsp;&nbsp;&nbsp;&nbsp; <span class="style_7">/</span><span class="style_8">etc</span><span class="style_7">/</span><span class="style_8">init.d</span><span class="style_7">/</span><span class="style_10">${aSERVICE}&nbsp;</span><span class="style_8">stop</span>
+&nbsp;&nbsp;&nbsp; <span class="style_4">fi</span>
+&nbsp;&nbsp; <span class="style_4">done</span>&nbsp;&nbsp; <br>
+&nbsp;&nbsp;&nbsp;<span class="style_4">continue&nbsp;</span><span class="style_3">2</span>
+&nbsp; <span class="style_4">fi</span>
+&nbsp;<span class="style_4">done</span><br>
+<span class="style_4">done&nbsp;</span><span class="style_2">###big&nbsp;loop###</span><br></pre>...this
+ script is very simple. It will start 'sshd' and 'rc.samba' when the 
+network goes up, and stop them when the network goes down.<br>
+        <br>
+That's the essence of it, a very simple service-manager. Importantly, it
+ is extremely efficient as it does not use polling. 'pup_event_ipc' is a
+ binary executable (written in BaCon) that uses inotify to wait on a
+ file-change. That is much more efficient than polling.<br>
+<h2>pup-tools</h2>
+A note for developers. The binary 'pup_event_frontend_d' is written in C and 
+'pup_event_ipc' is written in BaCon, which is a BASIC-to-C translator. 
+BaCon can be installed in any distro, but it must be version 3.0.2 or 
+3.7.2+.<br>
+<br>
+The source code for these executables is found in 'pup-tools-*.tar.gz', here:<br>
+<br>
+<a href="http://distro.ibiblio.org/easyos/source/alphabetical/p/">http://distro.ibiblio.org/easyos/source/alphabetical/p/</a><br>
+<br>
+...you must have 'pup-tools-20190828.tar.gz' or later if available.<br>
+<h2>Advantages and disadvantages</h2>
+Compared with other service managers<br>
+<br>
+<table border="0" cellspacing="2" cellpadding="2">
+  <tbody>
+    <tr>
+      <td valign="top"><b>Advantages</b><br>
+      </td>
+      <td valign="top">
+        <ol>
+          <li>Tiny: rc.services (3.4KB), rc.services_ipc (1.6KB), pup_event_frontend_d (27KB), pup_event_ipc (23KB)</li>
+          <li>Efficient, hardly any resources, event-driven.</li>
+          <li>Scripts in /etc/init.d unmodified.</li>
+          <li>Does one thing and does it well: brings services up and down according to dependencies.<br>
+          </li>
+        </ol>
+      </td>
+    </tr>
+    <tr>
+      <td valign="top"><b>Disadvantages</b><br>
+      </td>
+      <td valign="top">
+        <ol>
+          <li>rc.services_ipc must launch clients before pup_event_frontend_d (not really a disadvantage, just a requirement).</li>
+          <li>Does not have monitoring and resource management of some other service managers (that is, not bloated).</li>
+          <li>Probably only suitable for Puppy Linux and derivatives 
+(though, not impossible, would be an interesting project to export to 
+other distros -- note, definitely systemd-unfriendly).<br>
+          </li>
+        </ol>
+      </td>
+    </tr>
+  </tbody>
+</table>
+<br>
+        Have fun!<br>
+        <br>
+Regards,<br>
+Barry Kauler<br>
+January 7, 2020<br>
+      </td>
+    </tr>
+  </tbody>
+</table>
+<br>
+</body></html>

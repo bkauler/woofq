@@ -1,0 +1,155 @@
+#!/bin/bash
+#appinventor2 requires ai2-setup, jdk, ant.
+#ant is required for compiling ai2, ai2-setup to connect a phone via usb.
+#(c) Barry Kauler aug 2015. License: GPL3 (usr/share/doc/legal)
+#this script extracts from compiled source of ai2 and creates a PET (Puppy Linux pkg).
+#150809 first release.
+#150811 if used the emulator, it is still running afterward.
+#150813 want 'MIT AI2 Companion.apk' in pet, as aistarter pet uses it (to install into emulator).
+#150813 call external script to setup emulator.
+#150816 kill more stuff at exit.
+
+[ ! -d appinventor-sources/appinventor ] && exit
+[ ! -f appinventor.png ] && exit
+
+AIVER="$(stat --format=%y appinventor-sources | cut -f 1 -d ' ' | tr -d '-')" #ex: 20150725
+rm -rf appinventor-${AIVER} 2>/dev/null
+mkdir -p appinventor-${AIVER}/opt/appinventor
+
+cp -a appinventor-sources/appinventor/appengine/build/war appinventor-${AIVER}/opt/appinventor/AIServer
+sync
+
+AE_JAVA_SDK="$(find appinventor-sources/appinventor/lib/appengine -mindepth 1 -maxdepth 1 -type d -name 'appengine-java-sdk*' | head -n 1)"
+cp -a $AE_JAVA_SDK appinventor-${AIVER}/opt/appinventor/AppEngine
+#note, may need 'config' folder from appengine-java-sdk pkg.
+sync
+
+mkdir -p appinventor-${AIVER}/opt/appinventor/BuildServer/lib
+cp -a appinventor-sources/appinventor/buildserver/build/run/lib/* appinventor-${AIVER}/opt/appinventor/BuildServer/lib/
+sync
+
+#don't put this in the pet... 150813 need it...
+cp -a -f "appinventor-sources/appinventor/build/buildserver/MIT AI2 Companion.apk" appinventor-${AIVER}/opt/appinventor/  #150813
+sync
+
+mkdir -p appinventor-${AIVER}/usr/share/pixmaps
+cp -a appinventor.png appinventor-${AIVER}/usr/share/pixmaps/ #want 48x48 pixel logo.
+
+mkdir -p appinventor-${AIVER}/usr/share/applications
+echo '[Desktop Entry]
+Type=Application
+Name=MIT Android App Inventor
+GenericName=App Inventor
+Comment=MIT Android App Inventor
+Exec=appinventor.sh
+Icon=appinventor.png
+Terminal=false
+Categories=X-Utility-development
+StartupNotify=true' > appinventor-${AIVER}/usr/share/applications/appinventor.desktop
+
+#note, single quotes 'SRC1' prevents any substitutions in the text-block...
+cat > appinventor-${AIVER}/pinstall.sh <<'SRC1'
+#!/bin/sh
+if [ "`pwd`" != "/" ];then
+ echo 'Post install script for App Inventor...'
+ #create icon on desktop to launch ai2...
+ #see 7build-live-cd in woofQ, 'save' icon does not conflict with this one.
+ sed -i -e 's%^</pinboard>$%  <icon x="768" y="224" label="AI2">/usr/sbin/appinventor.sh</icon>\n</pinboard>%' root/Choices/ROX-Filer/PuppyPin
+ #also, put icon...
+ sed -i -e 's%^</special-files>$%  <rule match="/usr/sbin/appinventor.sh">\n    <icon>/usr/share/pixmaps/appinventor.png</icon>\n  </rule>\n</special-files>%' root/Choices/ROX-Filer/globicons
+else
+ pupdialog --background '#80FF80' --backtitle 'App Inventor2 installed' --msgbox 'AI2 requires jdk and aistarter PETs to be installed. You must reboot before using. To run apps on your phone, plug it in via USB cable. You will find AI2 in the Utility category of the menu.'
+fi
+SRC1
+chmod 755 appinventor-${AIVER}/pinstall.sh
+
+#the run-script...
+mkdir -p appinventor-${AIVER}/usr/sbin
+cat > appinventor-${AIVER}/usr/sbin/appinventor.sh <<'SRC2'
+#!/bin/bash
+#appinventor2 requires 'aistarter', 'jdk' pkgs.
+#'ant' is required for compiling ai2 src, 'aistarter' to connect a phone via usb.
+#(c) Copyright Barry Kauler aug 2015. License: GPL3 (usr/share/doc/legal)
+ALLPS="`ps`"
+
+#150813 setup emulator...
+if [ ! -d /root/.android/avd/aiavd.avd ];then
+ #do this in another script...
+ /usr/local/android_build/ai-emulator-setup
+fi
+
+#need this for phone connected via usb. see my 'aistarter' (from ai2-setup) PET...
+RUNAIS=1
+[ "$(echo "$ALLPS" | grep '/aiStarter')" == "" ] && RUNAIS=0
+[ "$(echo "$ALLPS" | grep 'Terminated.*/aiStarter')" != "" ] && RUNAIS=0
+if [ $RUNAIS -eq 0 ];then
+ echo 'Starting usb device server...'
+ /usr/google/appinventor/commands-for-Appinventor/aiStarter &
+ #sleep 2
+fi
+SRC2
+
+cat >> appinventor-${AIVER}/usr/sbin/appinventor.sh <<'SRC3'
+
+if [ "$(echo "$ALLPS" | grep 'DevAppServerMain')" == "" ];then
+ #start ai2 server for browser (on port 8888)...
+ echo 'Starting AI browser server...'
+ cd /opt/appinventor
+ SDK_BIN=/opt/appinventor/AppEngine
+ SDK_LIB="$SDK_BIN/lib"
+ JAR_FILE="$SDK_LIB/appengine-tools-api.jar"
+ WEB_APP="--port=8888 --address=0.0.0.0 AIServer"
+ java -ea -cp "$JAR_FILE" com.google.appengine.tools.KickStart \
+  com.google.appengine.tools.development.DevAppServerMain "$@" $WEB_APP &
+ popup 'name=ai2server timecount=dn terminate=10 background=#FF8000|<big>Please wait, starting AI2...</big>'
+ sleep 10
+fi
+SRC3
+
+SERVER_JARS="$(find appinventor-${AIVER}/opt/appinventor/BuildServer/lib -mindepth 1 -maxdepth 1 -type f -name '*.jar' | rev | cut -f 1 -d '/' | rev | tr '\n' ':' | sed -e 's%:$%%')"
+echo "
+SERVER_JARS='${SERVER_JARS}'" >> appinventor-${AIVER}/usr/sbin/appinventor.sh
+
+cat >> appinventor-${AIVER}/usr/sbin/appinventor.sh <<'SRC4'
+
+if [ "$(echo "$ALLPS" | grep 'BuildServer')" == "" ];then
+ #start build-server (for creating apks)...
+ echo 'Starting AI apk build server...'
+ cd /opt/appinventor/BuildServer/lib
+ #java -Xmx1828m -cp ${SERVER_JARS} -Dfile.encoding=UTF-8 com.google.appinventor.buildserver.BuildServer &
+ #java -Xmx2048m -Xms2048m -XX:MaxPermSize=1024m -cp ${SERVER_JARS} -Dfile.encoding=UTF-8 com.google.appinventor.buildserver.BuildServer --childProcessRamMb 1470 &
+ #this works on my laptop...
+ java -cp ${SERVER_JARS} -Dfile.encoding=UTF-8 com.google.appinventor.buildserver.BuildServer --childProcessRamMb 1024 & #150810 512 is too low.
+fi
+SRC4
+
+echo '
+defaultbrowser http://localhost:8888/' >> appinventor-${AIVER}/usr/sbin/appinventor.sh
+
+#150811 if used the emulator, it is still running afterward...
+cat >> appinventor-${AIVER}/usr/sbin/appinventor.sh <<'SRC5'
+
+#if used the emulator, it is still running afterward (unless did 'Reset Connection' in ai2)...
+sleep 2
+kill 99999999 `pidof emulator emulator64-arm emulator64-mips emulator64-x86 emulator-arm emulator-mips emulator-x86` 2>/dev/null
+#150816 emulator does not work properly if start ai2 2nd time, have to kill these...
+killall aiStarter
+killall java
+SRC5
+
+
+sync
+chmod 755 appinventor-${AIVER}/usr/sbin/appinventor.sh
+
+SIZEK="$(du -k -s appinventor-${AIVER} | cut -f 1)"
+#ex: appinventor-20150721-3|appinventor|20150721-3||Utility;development|164136K||appinventor-20150721-3.pet|+jdk,+ant,+aistarter,+appengine-java-sdk|MIT Android App Inventor, compiled from source from git||||
+echo "appinventor-${AIVER}|appinventor|${AIVER}||Utility;development|${SIZEK}K||appinventor-${AIVER}.pet|+jdk,+aistarter|MIT Android App Inventor, compiled from source from git||||" > appinventor-${AIVER}/pet.specs
+
+[ -f appinventor-${AIVER}.pet ] && rm -f appinventor-${AIVER}.pet
+sync
+echo "Converting folder appinventor-${AIVER} to a PET pkg..."
+dir2tgz appinventor-${AIVER}
+tgz2pet appinventor-${AIVER}.tar.gz
+sync
+echo "...done, appinventor-${AIVER}.pet created."
+###END###

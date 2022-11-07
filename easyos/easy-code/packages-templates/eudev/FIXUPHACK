@@ -1,0 +1,22 @@
+
+#quirky has his own rules, delete these:
+
+if [ -d lib/udev/rules.d ];then
+ rm -f lib/udev/rules.d/*.rules
+fi
+if [ -d usr/lib/udev/rules.d ];then
+ rm -f usr/lib/udev/rules.d/*.rules
+fi
+
+
+#170527 oe pyro
+#we run udevd in rc.sysinit, so delete:
+[ -d etc/init.d ] && rm -rf etc/init.d
+[ -d etc/default ] && rm -rf etc/default
+
+#20220125 arch-linux remove symlink...
+if [ "$DISTRO_BINARY_COMPAT" == "arch" ];then
+ if [ -h sbin/udevadm ];then
+  rm -f sbin/udevadm
+ fi
+fi

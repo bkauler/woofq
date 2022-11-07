@@ -1,0 +1,33 @@
+#!/bin/sh
+#called when click on a registered device
+
+export TEXTDOMAIN=bluepup
+export TEXTDOMAINDIR=/usr/share/locale
+export OUTPUT_CHARSET=UTF-8
+
+BTREGDEVICE="$1"
+
+echo -e "\033[0;94m[bluetooth]\033[0m# bluetoothctl info ${BTREGDEVICE}" >> /tmp/bluepup/btctl_in
+bluetoothctl info ${BTREGDEVICE} >> /tmp/bluepup/btctl_in
+echo -n "${BTREGDEVICE}" > /tmp/bluepup/chosen-reg-device
+LANG=C bluetoothctl info ${BTREGDEVICE} > /tmp/bluepup/reg-info.${BTREGDEVICE}
+cp -f /tmp/bluepup/reg-info.${BTREGDEVICE} /tmp/bluepup/reg-info.chosen
+echo -e "\x3Cb\x3E\x3Cspan color='#00a000'\x3E$(gettext 'See status report')\x0D$(gettext 'in Output log')\x3C/span\x3E\x3C/b\x3E" > /tmp/bluepup/frame-status.msg
+
+#20201107 tell bluepup if this is a phone...
+PHflg="$(grep -o 'Icon: phone' /tmp/bluepup/reg-info.${BTREGDEVICE})"
+if [ "$PHflg" ];then
+ echo -n 'true' > /tmp/bluepup/device-is-a-phone
+else
+ echo -n 'false' > /tmp/bluepup/device-is-a-phone
+fi
+
+#record last clicked-on device, whether new or registered...
+cp -f /tmp/bluepup/chosen-reg-device /tmp/bluepup/chosen-device-last
+
+#finally, write to this file, a timer will auto-detect change...
+echo -n "$BTREGDEVICE" > /tmp/bluepup/reg-dev-chosen-processed
+
+sleep 1.2
+echo -n 'limbo' > /tmp/bluepup/current-operation #20201110
+###end###

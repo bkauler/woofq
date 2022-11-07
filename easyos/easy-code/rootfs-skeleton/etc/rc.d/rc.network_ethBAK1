@@ -1,0 +1,84 @@
+#!/bin/sh
+#(c) Copyright Dec. 2016, Barry Kauler, www.barryk.org
+#license: gpl v3 (ref: /usr/share/doc/legal)
+#want to test if an active ethernet cable plugged in at first bootup.
+#previously, /etc/rc.d/rc.sysinit called /etc/rc.d/rc.network to
+#do this, ehich is gross overkill. now rc.sysinit calls this script.
+#161215 first release.
+#170718 test if have the old version of ifplugstatus.
+#171017 ethernet interface takes awhile to appear, need sleep. 171205 fix, bring back test rexolv.conf
+#171226 instead of "sleep 6", use lspci to detect ethernet hardware.
+#180108 rerwin: detect nvidia ethernet bridge. ref: http://murga-linux.com/puppy/viewtopic.php?p=979480#979480
+#180108 rerwin: remove query of /etc/frisbee/frisbee.conf
+#180108 use inotifywait to query resolv.conf  180110 no, just a sleep.
+#180117 rerwin: test wait count before sleep and incrementing, to log correct time waiting for module loading.
+#180831 BK: rock64 board, lspci reutrns nothing, use /sys/class/net instead.
+#181011 BK: think need bigger sleeps.
+
+export LANG='C'
+
+#170718 test if have the old version (as well as 'ifplugstatus')...
+IFPLUGSTATUS018='ifplugstatus-0.18'
+if ! which ifplugstatus-0.18 >/dev/null ; then IFPLUGSTATUS018='ifplugstatus' ; fi
+
+#171017 171205 171226 180108 improved wait for eth...
+ifCNT=0; loopCNT=0
+#ethCNT=$(lspci -n | grep ' 0200: ' | wc -l)
+#[ $ethCNT -eq 0 ] && ethCNT=$(lspci -nn | grep ' \[0680\]: .* Ethernet ' | wc -l)
+while [ 1 ];do #180831
+ [ -e /sys/class/net/eth0 ] && break
+ sleep 1
+ loopCNT=$(($loopCNT+1))
+ [ $loopCNT -ge 20 ] && break 
+done
+[ $loopCNT -gt 0 ] && echo "rc.network_eth: waited for ethernet interfaces: seconds = ${loopCNT}" #>&2
+
+#code adapted from /usr/local/simple_network_setup/rc.network...
+sleep 1 #181011
+INTERFACES="`ifconfig -a | grep -F 'Link encap:Ethernet' | cut -f1 -d' ' | tr '\n' ' '`"
+for INTERFACE in $INTERFACES #exs: wlan0 eth0
+do
+ [ -d /sys/class/net/${INTERFACE}/wireless ] && continue #only want wired.
+
+ ifconfig $INTERFACE up
+ [ $? -ne 0 ] && continue
+ 
+ if ! ${IFPLUGSTATUS018} "$INTERFACE" | grep -F -q 'link beat detected' ;then
+  sleep 1
+  if ! ifplugstatus "$INTERFACE" | grep -F -q 'link beat detected' ;then
+   sleep 1
+   if ! ${IFPLUGSTATUS018} "$INTERFACE" | grep -F -q 'link beat detected' ;then
+    sleep 2 #181011
+    if ! ifplugstatus "$INTERFACE" | grep -F -q 'link beat detected' ;then
+     sleep 4 #181011
+     if ! ethtool "$INTERFACE" | grep -Fq 'Link detected: yes' ; then
+      ifconfig $INTERFACE down
+      continue #no network.
+     fi
+    fi
+   fi
+  fi
+ fi
+
+ DHCPCDFIX="-I ''"
+ 
+ #180108 use inotifywait to query resolv.conf... 180110 remove, just sleep...
+ #inotifywait -t 30 -q -e modify /etc/resolv.conf & #weird, -d (daemonize) does not work
+ #inPID="$!" #inPID="$(pidof inotifywait)"
+ #######
+ dhcpcd $DHCPCDFIX $INTERFACE
+ #######
+ #wait $inPID
+ sleep 0.1 #180110
+ 
+ if grep '^nameserver' /etc/resolv.conf >/dev/null; then #180108
+  echo "$INTERFACE" > /tmp/sns_interface_success
+  exit #success.
+ else
+  ifconfig $INTERFACE down
+  dhcpcd --release $INTERFACE 2>/dev/null
+  ip route flush dev $INTERFACE
+ fi
+ 
+done
+

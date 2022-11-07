@@ -1,0 +1,16 @@
+
+mkdir -p usr/share/applications
+echo '[Desktop Entry]
+Encoding=UTF-8
+Name=VYM mind mapper
+Comment=VYM mind mapper
+Type=Application
+Exec=vym
+Icon=vym.png
+Terminal=false
+Categories=X-Personal-organizer' > usr/share/applications/vym.desktop
+
+mkdir -p usr/share/pixmaps
+if [ ! -e usr/share/pixmaps/vym.png ];then
+ ln -s ../../vym/icons/vym.png usr/share/pixmaps/vym.png
+fi

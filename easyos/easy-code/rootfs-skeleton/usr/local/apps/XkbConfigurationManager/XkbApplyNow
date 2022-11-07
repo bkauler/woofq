@@ -1,0 +1,45 @@
+#!/bin/sh
+# A script to apply the changes made to xorg.conf
+# Part of the Puppy XkbConfigurator
+#170105 BK: support xorg.conf.d and evdev.
+#171015 BK: apply npierce patch from 20120202: $COMMAND clears options before adding options.
+
+##--------variables---------->>
+#must have "XkbLayout"...
+INFILE=''
+INTEST="$(grep '"XkbLayout"' /etc/X11/xorg.conf | grep -v '#.*"XkbLayout"')"
+[ "$INTEST" ] && INFILE='/etc/X11/xorg.conf'
+if [ "$INFILE" == "" ];then
+ if [ -f /etc/X11/xorg.conf.d/10-evdev-puppy.conf ];then
+  INTEST="$(grep '"XkbLayout"' /etc/X11/xorg.conf.d/10-evdev-puppy.conf | grep -v '#.*"XkbLayout"')"
+  [ "$INTEST" ] && INFILE='/etc/X11/xorg.conf.d/10-evdev-puppy.conf'
+ fi
+fi
+if [ "$INFILE" == "" ];then
+ Xdialog --title "$(gettext 'ERROR')" --msgbox "$(gettext 'Your Xorg config files do not contain any XkbLayout options!')" 0 0
+ exit
+fi
+
+#get all parameters
+MODEL=`fgrep '"XkbModel"' $INFILE | grep -v '^#' | cut -d'"' -f4`
+LAYOUT=`fgrep '"XkbLayout"' $INFILE | grep -v '^#' | cut -d'"' -f4`
+VARIANT=`fgrep '"XkbVariant"' $INFILE | grep -v '^#' | cut -d'"' -f4`
+OPTIONS=`fgrep '"XkbOptions"' $INFILE | grep -v '^#' | cut -d'"' -f4`
+
+#debug option
+#echo "model is |$MODEL| ; layout is |$LAYOUT| ; variant is |$VARIANT| ; options are |$OPTIONS|"
+
+# create the command to execute
+COMMAND="setxkbmap -rules xorg -model $MODEL -layout \"$LAYOUT\" -variant \"$VARIANT\" -option \"\" -option \"$OPTIONS\" " #20120202
+
+#execute command
+eval "$COMMAND"
+if [ $? -eq 0 ];then
+	case "$LAYOUT" in *,*) 
+	  pidof fbxkb >/dev/null || ( which fbxkb >/dev/null && fbxkb & ) ;;
+	esac
+	eval $SUCCESS
+else
+	eval $ERRMSG
+fi
+exit

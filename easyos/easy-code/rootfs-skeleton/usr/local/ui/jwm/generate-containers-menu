@@ -1,0 +1,27 @@
+#!/bin/ash
+#20220207 called from ec-create-desktop-icons-menu to build "Containers" menu in systray.
+#20220218 generate-containers-menu writes to /root/.jwmrc-containers internally.
+
+echo '<JWM>
+<RootMenu label="Containers" labeled="false" height="24" onroot="4">' > /root/.jwmrc-containers
+
+for aC in `find /mnt/wkg/containers -mindepth 2 -maxdepth 2 -type f -name desktop | sort`
+do
+ [ "$aC" == "" ] && continue
+ [ ! -s "$aC" ] && continue
+. ${aC}
+ #ex:
+ #EC_LABEL=www
+ #EC_PATH=/usr/sbin/ec-chroot-www
+ #EC_ICON=/usr/local/lib/X11/pixmaps/ec-www48.png
+ 
+ #menu entry...
+ echo " <Program label=\"${EC_LABEL}\" icon=\"${EC_ICON}\">${EC_PATH}</Program>" >> /root/.jwmrc-containers
+
+done
+
+echo '</RootMenu>
+</JWM>' >> /root/.jwmrc-containers
+fsync /root/.jwmrc-containers
+###end###
+

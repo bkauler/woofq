@@ -1,0 +1,82 @@
+
+mkdir -p root/Startup
+
+#200107 201011
+echo '#!/bin/sh
+
+[ ! -x /etc/init.d/bluetooth ] && exit
+
+for CNT in 1 2 3 4 5 6 7 8 9 10 11 12 13 14
+do
+ [ $CNT -eq 14 ] && exit
+ echo "/root/Startup/blueman_tray: wait seconds: ${CNT}"
+ pidof bluetoothd >/dev/null
+ [ $? -eq 0 ] && break
+ sleep 1
+done
+
+if [ -x /root/Startup/pulseaudio ];then
+ #do it here, not in pulseaudio, coz want load daemon before blueman-applet...
+ which pulseaudio >/dev/null
+ if [ $? -eq 0 ];then
+  echo "/root/Startup/blueman_tray: executing start-pulseaudio-x11"
+  start-pulseaudio-x11
+ fi
+fi
+
+if [ -x /etc/init.d/bluealsa ];then #20202023
+ #possible already launched from /etc/init.d/bluealsa...
+ if pidof blueman-applet >/dev/null;then exit; fi
+fi
+
+#these normally get removed when blueman exits, but not always...
+if [ -e /root/.cache/blueman-applet-0 ];then
+ rm -f /root/.cache/blueman-applet-0
+fi
+if [ -e /root/.cache/blueman-tray-0 ];then
+ rm -f /root/.cache/blueman-tray-0
+fi
+
+#20201023 phone was unable to see PC, so do this...
+bluetoothctl discoverable on
+
+echo "/root/Startup/blueman_tray: executing blueman-applet"
+exec blueman-applet' > root/Startup/blueman_tray
+
+chmod 755 root/Startup/blueman_tray
+
+#190819 buster
+mkdir -p usr/share/pixmaps
+ln -s ../icons/hicolor/48x48/apps/blueman.png usr/share/pixmaps/blueman.png
+ln -s ../icons/hicolor/16x16/devices/blueman-device.png usr/share/pixmaps/blueman-device.png
+
+if [ -f usr/share/applications/blueman-manager.desktop ];then
+ echo '[Desktop Entry]
+Name=Blueman Bluetooth Manager
+Comment=Blueman Bluetooth Manager
+Icon=blueman.png
+Exec=blueman-manager
+Terminal=false
+Type=Application
+StartupNotify=true
+Categories=HardwareSettings' > usr/share/applications/blueman-manager.desktop
+fi
+
+if [ -f usr/share/applications/blueman-adapters.desktop ];then
+ echo '[Desktop Entry]
+Name=Blueman Bluetooth Adapters
+Comment=Set Bluetooth Adapter Properties
+Exec=blueman-adapters
+Icon=blueman-device.png
+Terminal=false
+Type=Application
+Categories=HardwareSettings
+StartupNotify=true
+OnlyShowIn=XFCE;MATE;
+NoDisplay=false
+X-XfceSettingsName=Bluetooth
+X-XfcePluggable=false' > usr/share/applications/blueman-adapters.desktop
+fi
+
+#200325 remove autostartup
+[ -d etc/xdg ] && rm -rf etc/xdg

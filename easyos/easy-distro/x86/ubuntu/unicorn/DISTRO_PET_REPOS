@@ -1,0 +1,21 @@
+#PKG_DOCS_PET_REPOS
+#where to download the pet pkgs databases from.
+#first field is for testing the url.
+#second field is full URI of the database file.
+#third field is name of db file when local and after being processed into standard format
+# (in the case of PET databases, the names are the same and no processing is required)
+PKG_DOCS_PET_REPOS="ibiblio.org|http://distro.ibiblio.org/quirky/quirky6/x86/packages/Packages-pet-unicorn-official|Packages-pet-unicorn-official ibiblio.org|http://distro.ibiblio.org/quirky/quirky6/x86/packages/Packages-pet-tahr-official|Packages-pet-tahr-official ibiblio.org|http://distro.ibiblio.org/quirky/quirky6/x86/packages/Packages-pet-quirky6-official|Packages-pet-quirky6-official ibiblio.org|http://distro.ibiblio.org/quirky/quirky6/x86/packages/Packages-pet-common-official|Packages-pet-common-official ibiblio.org|http://distro.ibiblio.org/quirky/quirky6/noarch/packages/Packages-pet-noarch-official|Packages-pet-noarch-official"
+
+#PET_REPOS
+#hardcode the pet repos in here...
+#first field is for testing the url.
+#second field is full URI of the repo
+#third field is the name of db-file(s) associated with that repo. it may have glob wildcards.
+# ex: Packages-pet-4-official (note, url paths are in the database)
+#141023 quirky problem is that noarch pets in a different path, so cant use wildcard...
+PET_REPOS='ibiblio.org|http://distro.ibiblio.org/quirky/quirky6/x86/packages|Packages-pet-unicorn-official ibiblio.org|http://distro.ibiblio.org/quirky/quirky6/x86/packages|Packages-pet-tahr-official ibiblio.org|http://distro.ibiblio.org/quirky/quirky6/x86/packages|Packages-pet-quirky6-official ibiblio.org|http://distro.ibiblio.org/quirky/quirky6/x86/packages|Packages-pet-common-official ibiblio.org|http://distro.ibiblio.org/quirky/quirky6/noarch/packages|Packages-pet-noarch-official ftp.nluug.nl|http://ftp.nluug.nl/ftp/pub/os/Linux/distr/quirky/quirky6/x86/packages|Packages-pet-unicorn-official ftp.nluug.nl|http://ftp.nluug.nl/ftp/pub/os/Linux/distr/quirky/quirky6/x86/packages|Packages-pet-tahr-official ftp.nluug.nl|http://ftp.nluug.nl/ftp/pub/os/Linux/distr/quirky/quirky6/x86/packages|Packages-pet-quirky6-official ftp.nluug.nl|http://ftp.nluug.nl/ftp/pub/os/Linux/distr/quirky/quirky6/x86/packages|Packages-pet-common-official ftp.nluug.nl|http://ftp.nluug.nl/ftp/pub/os/Linux/distr/quirky/quirky6/noarch/packages|Packages-pet-noarch-official uoc.gr|http://ftp.cc.uoc.gr/mirrors/linux/quirky/quirky6/x86/packages|Packages-pet-unicorn-official uoc.gr|http://ftp.cc.uoc.gr/mirrors/linux/quirky/quirky6/x86/packages|Packages-pet-tahr-official uoc.gr|http://ftp.cc.uoc.gr/mirrors/linux/quirky/quirky6/x86/packages|Packages-pet-quirky6-official uoc.gr|http://ftp.cc.uoc.gr/mirrors/linux/quirky/quirky6/x86/packages|Packages-pet-common-official uoc.gr|http://ftp.cc.uoc.gr/mirrors/linux/quirky/quirky6/noarch/packages|Packages-pet-noarch-official mirror.aarnet.edu.au|ftp://mirror.aarnet.edu.au/pub/quirky/quirky6/x86/packages|Packages-pet-unicorn-official mirror.aarnet.edu.au|ftp://mirror.aarnet.edu.au/pub/quirky/quirky6/x86/packages|Packages-pet-tahr-official mirror.aarnet.edu.au|ftp://mirror.aarnet.edu.au/pub/quirky/quirky6/x86/packages|Packages-pet-quirky6-official mirror.aarnet.edu.au|ftp://mirror.aarnet.edu.au/pub/quirky/quirky6/x86/packages|Packages-pet-common-official mirror.aarnet.edu.au|ftp://mirror.aarnet.edu.au/pub/quirky/quirky6/x86/packages|Packages-pet-noarch-official ibiblio.org|http://distro.ibiblio.org/quirky|Packages-pet-precise-official ibiblio.org|http://distro.ibiblio.org/quirky|Packages-pet-wary5-official ibiblio.org|http://distro.ibiblio.org/puppylinux|Packages-pet-4-official'
+
+#PACKAGELISTS_PET_ORDER
+#this defines where Woof (and PPM) looks first and second (and third, etc.) for pet pkgs
+PACKAGELISTS_PET_ORDER="Packages-pet-${DISTRO_DB_SUBNAME}-official Packages-pet-tahr-official Packages-pet-quirky6-official Packages-pet-noarch-official Packages-pet-common-official Packages-pet-precise-official Packages-pet-wary5-official"
+

@@ -1,0 +1,17 @@
+#!/bin/sh
+#intended for EasyOS
+#login to a remote ssh server, served by EasyShare
+
+remIP="$1" #pass in ip-address of ssh server
+remPW="$2"
+
+mkdir -p /root/.ssh
+
+#this fixes an error msg at first login...
+#ref: https://stackoverflow.com/questions/3663895/ssh-the-authenticity-of-host-hostname-cant-be-established
+if [ -z `ssh-keygen -F ${remIP}` ]; then
+  ssh-keyscan -H -p 22 ${remIP} >> /root/.ssh/known_hosts
+fi
+
+sshpass -p ${remPW} ssh -p 22 rover@${remIP}
+

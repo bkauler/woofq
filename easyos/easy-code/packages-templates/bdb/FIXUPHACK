@@ -1,0 +1,44 @@
+#note: DISTRO_BINARY_COMPAT and DISTRO_FILE_PREFIX are visible here, exported in 2createpackages.
+#140117 xARCHDIR, ARCHDIR and DISTRO_ARCHDIR_SYMLINKS exported in 2createpackages.
+
+#note, ubuntu doesn't seem to have the db tools pkg for 4.7.
+
+if [ "$xARCHDIR" ];then #140117
+ [ -e usr/lib/${ARCHDIR}/libdb-4.so ] && ln -s libdb-4.so usr/lib/${ARCHDIR}/libdb.so.2
+fi
+[ -e usr/lib/libdb-4.so ] && ln -s libdb-4.so usr/lib/libdb.so.2
+
+#141027 2createpackages now exports SPLITRULE (ex: = exe,dev,doc,nls)
+#131212 hack, problem with files in bdb when they should be in bdb_DEV...
+DBEXEONLY=""
+if [ "$(echo -n "$SPLITRULE" | grep 'exe>dev')" != "" ];then
+ DBEXEONLY="true"
+ cd ..
+ mkdir -p bdb_DEV
+ cp -a -f --remove-destination bdb/* bdb_DEV/
+ sync
+ rm -r -f bdb/*
+ cd bdb
+fi
+
+#141027 utilities may be named db5.3_verify rather than just db_verify...
+DBUTIL="$(find usr -type f -name 'db*_verify' | head -n 1)"
+[ "$DBUTIL" == "" ] && DBUTIL="$(find ../bdb_DEV/usr -type f -name 'db*_verify' | head -n 1)"
+if [ "$DBUTIL" ];then
+ DBDIR="$(dirname "$DBUTIL")"
+ DBNAME1="$(basename "$DBUTIL")"
+ DBPREFIX="$(echo -n "$DBNAME1" | cut -f 1 -d '_')"
+ [ ! -e ${DBDIR}/db_verify ] && [ -f ${DBDIR}/${DBPREFIX}_verify ] && ln -s ${DBPREFIX}_verify ${DBDIR}/db_verify
+ [ ! -e ${DBDIR}/db_archive ] && [ -f ${DBDIR}/${DBPREFIX}_archive ] && ln -s ${DBPREFIX}_archive ${DBDIR}/db_archive
+ [ ! -e ${DBDIR}/db_checkpoint ] && [ -f ${DBDIR}/${DBPREFIX}_checkpoint ] && ln -s ${DBPREFIX}_checkpoint ${DBDIR}/db_checkpoint
+ [ ! -e ${DBDIR}/db_deadlock ] && [ -f ${DBDIR}/${DBPREFIX}_deadlock ] && ln -s ${DBPREFIX}_deadlock ${DBDIR}/db_deadlock
+ [ ! -e ${DBDIR}/db_dump ] && [ -f ${DBDIR}/${DBPREFIX}_dump ] && ln -s ${DBPREFIX}_dump ${DBDIR}/db_dump
+ [ ! -e ${DBDIR}/db_hotbackup ] && [ -f ${DBDIR}/${DBPREFIX}_hotbackup ] && ln -s ${DBPREFIX}_hotbackup ${DBDIR}/db_hotbackup
+ [ ! -e ${DBDIR}/db_load ] && [ -f ${DBDIR}/${DBPREFIX}_load ] && ln -s ${DBPREFIX}_load ${DBDIR}/db_load
+ [ ! -e ${DBDIR}/db_log_verify ] && [ -f ${DBDIR}/${DBPREFIX}_log_verify ] && ln -s ${DBPREFIX}_log_verify ${DBDIR}/db_log_verify
+ [ ! -e ${DBDIR}/db_printlog ] && [ -f ${DBDIR}/${DBPREFIX}_printlog ] && ln -s ${DBPREFIX}_printlog ${DBDIR}/db_printlog
+ [ ! -e ${DBDIR}/db_recover ] && [ -f ${DBDIR}/${DBPREFIX}_recover ] && ln -s ${DBPREFIX}_recover ${DBDIR}/db_recover
+ [ ! -e ${DBDIR}/db_replicate ] && [ -f ${DBDIR}/${DBPREFIX}_replicate ] && ln -s ${DBPREFIX}_replicate ${DBDIR}/db_replicate
+ [ ! -e ${DBDIR}/db_stat ] && [ -f ${DBDIR}/${DBPREFIX}_stat ] && ln -s ${DBPREFIX}_stat ${DBDIR}/db_stat
+ [ ! -e ${DBDIR}/db_upgrade ] && [ -f ${DBDIR}/${DBPREFIX}_upgrade ] && ln -s ${DBPREFIX}_upgrade ${DBDIR}/db_upgrade
+fi

@@ -1,0 +1,20 @@
+#note: DISTRO_BINARY_COMPAT and DISTRO_FILE_PREFIX are visible here, exported in 2createpackages.
+#140117 xARCHDIR, ARCHDIR and DISTRO_ARCHDIR_SYMLINKS exported in 2createpackages. 
+#140117 note, 2createpackages may move /lib, /usr/lib, /usr/bin in template to ARCHDIR subdir.
+#180513 want libhunspell-1.3.so.0
+
+#140118 ubuntu trusty tahr needs this for older pkgs... 190728
+HUNLIB="`find usr -type f -name 'libhunspell-1*so.*' | head -n 1`" #150726
+if [ "$HUNLIB" ];then
+ HUNPATH="`dirname $HUNLIB`"
+ HUNBASE="`basename $HUNLIB`"
+ if [ ! -e ${HUNPATH}/libhunspell-1.2.so.0 ];then
+  ln -s $HUNBASE ${HUNPATH}/libhunspell-1.2.so.0
+ fi
+ if [ ! -e ${HUNPATH}/libhunspell-1.3.so.0 ];then
+  ln -s $HUNBASE ${HUNPATH}/libhunspell-1.3.so.0
+ fi
+ if [ ! -e ${HUNPATH}/libhunspell-1.6.so.0 ];then
+  ln -s $HUNBASE ${HUNPATH}/libhunspell-1.6.so.0
+ fi
+fi

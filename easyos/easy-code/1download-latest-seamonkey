@@ -1,0 +1,33 @@
+#!/bin/sh
+
+[ ! -f ./DISTRO_SPECS ] && exit
+. ./DISTRO_SPECS
+case "$DISTRO_TARGETARCH" in
+ amd64) DLARCH="x86_64" ;;
+ x86)   DLARCH="i686" ;;
+esac
+[ ! "$DLARCH" ] && exit
+
+rm -rf archive.mozilla.org 2>/dev/null
+rm -f seamonkey-en.tar.bz2 2>/dev/null
+rm -f seamonkey-de.tar.bz2 2>/dev/null
+rm -f seamonkey-fr.tar.bz2 2>/dev/null
+
+#wget -4 --spider -r --level=1 --no-parent --include-directories='*/2.5*' https://archive.mozilla.org/pub/seamonkey/releases/  >/dev/null 2>&1
+#wget -4 --spider -r --level=1 --no-parent --exclude-directories='/1.*,2.0*,2.1*,2.2*,2.3*,2.4*' https://archive.mozilla.org/pub/seamonkey/releases/  >/dev/null 2>&1
+
+echo 'Please wait...'
+wget -4 --spider -r --level=1 --no-parent https://archive.mozilla.org/pub/seamonkey/releases/ >/dev/null 2>&1
+
+DLVER="$(ls -v -d archive.mozilla.org/pub/seamonkey/releases/* | grep -vE '[0-9]a|[0-9]b' | tail -n1)"
+DLVER="${DLVER##*/}"
+
+echo "Latest version: ${DLVER}"
+echo "SM_DL_VER='${DLVER}'" > seamonkey-latest-version
+
+for DLLANG in en-US de fr
+do
+ echo "Downloading seamonkey-${DLLANG/-*/}.tar.bz2"
+ wget https://archive.mozilla.org/pub/seamonkey/releases/${DLVER}/linux-${DLARCH}/${DLLANG}/seamonkey-${DLVER}.${DLLANG}.linux-${DLARCH}.tar.bz2 -O seamonkey-${DLLANG/-*/}.tar.bz2
+ sync 
+done

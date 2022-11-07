@@ -1,0 +1,22 @@
+
+#20211212 oe dunfell
+ln -s claws-mail usr/bin/claws
+mkdir -p usr/share/pixmaps
+cp -a -f usr/share/icons/hicolor/48x48/apps/claws-mail.png usr/share/pixmaps/claws.png
+
+rm -f usr/share/applications/claws-mail.desktop
+
+echo '[Desktop Entry]
+Version=1.0
+Name=Claws Mail e-mail client
+GenericName=Claws Mail
+Exec=claws
+Icon=claws.png
+Categories=Email
+Comment=Claws Mail e-mail client
+Terminal=false
+Type=Application
+StartupNotify=true
+MimeType=x-scheme-handler/mailto;
+X-Info=Claws Mail' > usr/share/applications/claws.desktop
+

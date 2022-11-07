@@ -1,0 +1,61 @@
+#!/bin/sh
+#160830 no longer have CUSTOMIZE file.
+#20210409 no longer using pngoverlay, now have pngoverlay-cairo (in its own src pkg).
+#20220807 debdb2pupdb.bac, find-cat.bac now written in C.
+#20220807 popup converted to C, separate source package. ditto pup-event-ipc
+#20220816 restored bacon apps.
+
+mkdir temp1
+
+#this links with /usr/lib/hug.so.
+#the -x option will create welcome1stboot.pot
+bacon -x -d temp1 welcome1stboot.bac
+[ ! -f temp1/welcome1stboot ] && exit 1
+mv temp1/welcome1stboot ./
+strip --strip-unneeded welcome1stboot
+
+bacon -d temp1 debdb2pupdb.bac
+[ ! -f temp1/debdb2pupdb ] && exit 2
+mv temp1/debdb2pupdb ./
+strip --strip-unneeded debdb2pupdb
+
+bacon -d temp1 find_cat.bac
+[ ! -f temp1/find_cat ] && exit 3
+mv temp1/find_cat ./
+strip --strip-unneeded find_cat
+
+#20210409
+#bacon -d temp1 pngoverlay.bac
+#[ ! -f temp1/pngoverlay ] && exit 4
+#mv temp1/pngoverlay ./
+#strip --strip-unneeded pngoverlay
+
+bacon -d temp1 popup.bac
+[ ! -f temp1/popup ] && exit 5
+mv temp1/popup ./
+strip --strip-unneeded popup
+
+#170705 removed
+##this has a .pot file:
+#bacon -x -d temp1 proxy-setup.bac
+#[ ! -f temp1/proxy-setup ] && exit 6
+#mv temp1/proxy-setup ./
+#strip --strip-unneeded proxy-setup
+
+#190405 rewritten in C...
+#bacon -d temp1 pup_event_frontend_d.bac
+#[ ! -f temp1/pup_event_frontend_d ] && exit 7
+#mv temp1/pup_event_frontend_d ./
+#strip --strip-unneeded pup_event_frontend_d
+
+#bacon -d temp1 -i sys/inotify.h pup_event_ipc.bac
+#...no longer needed.
+bacon -d temp1 pup_event_ipc.bac
+[ ! -f temp1/pup_event_ipc ] && exit 8
+mv temp1/pup_event_ipc ./
+strip --strip-unneeded pup_event_ipc
+
+
+#install
+#will do this in T2 pup-tools.conf
+

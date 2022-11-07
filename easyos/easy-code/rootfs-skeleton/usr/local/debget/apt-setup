@@ -1,0 +1,118 @@
+#!/bin/bash
+#called from ppm script /usr/local/petget/pkg_chooser.sh
+#20220906 get gpg keys.
+#20220907 execute from woof-chroot or running easyos.
+
+export TEXTDOMAIN=debget
+export OUTPUT_CHARSET=UTF-8
+
+if [ -e /run ];then #20220907
+ PUPRUN=1 #running in easyos.
+else
+ PUPRUN=0 #chrooted to rootfs-complete in woofq.
+fi
+
+. /etc/DISTRO_SPECS #new: FOREIGN_BINARY_COMPAT, FOREIGN_COMPAT_VERSION ex: debian, bullseye
+mkdir -p /tmp/debget
+mkdir -p /var/local/pkgget
+
+if [ "$FOREIGN_BINARY_COMPAT" -a "$FOREIGN_COMPAT_VERSION" ];then
+ DEBDISTRO="$FOREIGN_BINARY_COMPAT"
+ DEBVERSION="$FOREIGN_COMPAT_VERSION"
+elif [ "$DISTRO_BINARY_COMPAT" == "debian" ];then
+ DEBDISTRO='debian'
+ DEBVERSION="${DISTRO_COMPAT_VERSION}"
+else
+ #ppm will not support a dpkg|apt repo.
+ rm -f /var/local/pkgget/deb_compat_specs 2>/dev/null
+ exit
+fi
+
+#run this script once only...
+if [ -s /var/local/pkgget/deb_compat_specs ];then
+ exit
+fi
+
+check_internet
+if [ $? -ne 0 ];then
+ exit
+fi
+
+if [ $PUPRUN -eq 1 ];then #20220907
+ APTmsg1="$(gettext 'Please wait, downloading Debian packages database...')"
+ popup "background=#ffd020 level=top name=aptsetup|<big>${APTmsg1}</big>"
+fi
+
+#create /etc/apt/sources.list ...
+echo "deb http://deb.debian.org/debian ${DEBVERSION} main contrib non-free
+deb http://deb.debian.org/debian-security/ ${DEBVERSION}-security main contrib non-free
+deb http://deb.debian.org/debian ${DEBVERSION}-updates main contrib non-free" > /etc/apt/sources.list
+
+#this will d/l the databases, to /var/lib/apt/lists/ ...
+if [ $PUPRUN -eq 1 ];then #20220907
+ LANG=C apt-get update >/tmp/debget/apt-get-update.log 2>&1
+else
+ LANG=C apt-get --allow-insecure-repositories update >/tmp/debget/apt-get-update.log 2>&1
+fi
+
+#20220906 first-time, need gpg keys...
+if [ $PUPRUN -eq 1 ];then #20220907
+ rm -f /tmp/debget/apt-get-update-try2.log 2>/dev/null
+ grep -o 'NO_PUBKEY .*' /tmp/debget/apt-get-update.log > /tmp/debget/apt-get-update-no-pubkey.log
+ if [ $? -eq 0 ];then
+  KEYS="$(sed -e 's%NO_PUBKEY %%g' /tmp/debget/apt-get-update-no-pubkey.log | tr '\n' ' ')"
+  for aKEY in ${KEYS}
+  do
+   case "$DEBDISTRO" in
+    ubuntu)
+     apt-key adv --keyserver keyserver.ubuntu.com --recv-keys ${aKEY} >>/tmp/debget/apt-get-update-try2.log 2>&1
+    ;;
+    debian)
+     #seems that also has debian keys...
+     apt-key adv --keyserver keyserver.ubuntu.com --recv-keys ${aKEY} >>/tmp/debget/apt-get-update-try2.log 2>&1
+    ;;
+   esac
+  done
+  #do it again...
+  LANG=C apt-get update >>/tmp/debget/apt-get-update-try2.log 2>&1
+ fi
+fi
+sync
+
+echo "DEBDISTRO='${DEBDISTRO}'
+DEBVERSION='${DEBVERSION}'
+DEBARCH='${DISTRO_TARGETARCH}'" > /var/local/pkgget/deb_compat_specs
+
+if [ $PUPRUN -eq 1 ];then #20220907
+ APTmsg3="$(gettext 'done')"
+ popadd "name=aptsetup writemode=append|<big> ${APTmsg3}</big>"
+ sleep 0.1
+ APTmsg2="$(gettext 'Installing: please be patient, this may take several minutes...')"
+ popadd "name=aptsetup writemode=append-newline|<big><b>${APTmsg2}</b></big>"
+fi
+
+#converts entries in woof-installed-packages to dpkg (see /var/lib/dpkg)...
+/usr/local/debget/sync-woof2dpkg
+sync
+
+#convert dpkg to /root/.packages/Packages-debian-* pup-format...
+/usr/local/debget/sync-dpkg2pupdb
+sync
+
+#20220907 packages listed in /var/lib/dpkg may have deps that are not listed as installed by dpkg...
+/usr/local/debget/missing-deps2dpkg
+
+#add new repos to ppm...
+. /root/.packages/PKGS_MANAGEMENT
+echo -n "$PKG_REPOS_ENABLED" | grep " Packages-${DEBDISTRO}-"
+if [ $? -ne 0 ];then
+ if [ -f /root/.packages/Packages-${DEBDISTRO}-${DEBVERSION}-main ];then
+  #enable one of them in the ppm gui...
+  PKG_REPOS_ENABLED="${PKG_REPOS_ENABLED}Packages-${DEBDISTRO}-${DEBVERSION}-main "
+  sed -i '/^PKG_REPOS_ENABLED/d' /root/.packages/PKGS_MANAGEMENT
+  echo "PKG_REPOS_ENABLED=\"${PKG_REPOS_ENABLED}\"" >> /root/.packages/PKGS_MANAGEMENT
+ fi
+fi
+
+killall popup
+###end###

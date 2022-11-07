@@ -1,0 +1,58 @@
+#!/bin/sh
+
+GTKDIALOG=gtkdialog
+
+TMPDIR=/tmp/gtkdialog/examples/"`basename $0`"
+mkdir -p "$TMPDIR"
+
+cat <<EOF > "$TMPDIR"/inputfile
+gtk-cdrom    | CD_ROM Drive  | /cdrom/    | ak.tex
+gtk-floppy   | Floppy Disk   | /floppy/   | ak.dvi
+gtk-harddisk | Hard Disk     | /harddisk/ | ak.ps
+gtk-network  | Network Drive | /network/  | ak.pdf
+gtk-delete   | Trash         | /trash/    | 
+EOF
+
+MAIN_DIALOG='
+<window>
+	<vbox>
+		<frame With Rules, Without Headers>
+			<tree rules-hint="true" headers-visible="false">
+				<variable>TREE1</variable>
+				<height>260</height>
+				<width>400</width>
+				<label>Device                           | Directory | File</label>
+				<item stock-id="gtk-floppy">Floppy Disk | /floppy/  | ak.tex</item>
+				<item stock-id="gtk-floppy">Floppy Disk | /floppy/  | ak.dvi</item>
+				<item stock-id="gtk-floppy">Floppy Disk | /floppy/  | ak.ps</item>
+				<item stock-id="gtk-floppy">Floppy Disk | /floppy/  | ak.pdf</item>
+				<item stock-id="gtk-cdrom">CD_ROM Drive | /cdrom/   | </item>
+				<input file stock-column="0">'"$TMPDIR"'/inputfile</input>
+			</tree>
+		</frame>
+		<frame Hover Mode>
+			<tree hover-expand="true" hover-selection="true">
+				<variable>TREE2</variable>
+				<height>260</height>
+				<width>400</width>
+				<label>Device                           | Directory | File</label>
+				<item stock-id="gtk-floppy">Floppy Disk | /floppy/  | ak.tex</item>
+				<item stock-id="gtk-floppy">Floppy Disk | /floppy/  | ak.dvi</item>
+				<item stock-id="gtk-floppy">Floppy Disk | /floppy/  | ak.ps</item>
+				<item stock-id="gtk-floppy">Floppy Disk | /floppy/  | ak.pdf</item>
+				<item stock-id="gtk-cdrom">CD_ROM Drive | /cdrom/   | </item>
+				<input file stock-column="0">'"$TMPDIR"'/inputfile</input>
+			</tree>
+		</frame>
+		<hbox homogeneous="true">
+			<button ok></button>
+		</hbox>
+	</vbox>
+</window>
+'
+export MAIN_DIALOG
+
+case $1 in
+	-d | --dump) echo "$MAIN_DIALOG" ;;
+	*) $GTKDIALOG --program=MAIN_DIALOG ;;
+esac

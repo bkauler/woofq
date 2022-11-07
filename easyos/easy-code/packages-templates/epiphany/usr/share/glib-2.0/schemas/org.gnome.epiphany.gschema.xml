@@ -1,0 +1,438 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist gettext-domain="epiphany">
+	<schema path="/org/gnome/epiphany/" id="org.gnome.Epiphany">
+		<child schema="org.gnome.Epiphany.ui" name="ui"/>
+		<child schema="org.gnome.Epiphany.web" name="web"/>
+		<child schema="org.gnome.Epiphany.state" name="state"/>
+		<child schema="org.gnome.Epiphany.lockdown" name="lockdown"/>
+		<child schema="org.gnome.Epiphany.permissions" name="permissions"/>
+		<child schema="org.gnome.Epiphany.sync" name="sync"/>
+		<child schema="org.gnome.Epiphany.reader" name="reader"/>
+		<key type="b" name="enable-caret-browsing">
+			<default>false</default>
+			<summary>Browse with caret</summary>
+		</key>
+		<key type="s" name="homepage-url">
+			<default>'file:///usr/share/doc/home.htm'</default>
+			<summary>Home page</summary>
+			<description>Address of the user’s home page.</description>
+		</key>
+		<key type="s" name="default-search-engine">
+			<default>'DuckDuckGo'</default>
+			<summary>Default search engine.</summary>
+			<description>Name of the search engine selected by default.</description>
+		</key>
+		<key type="a(sss)" name="search-engines">
+			<default l10n="messages">
+                                 <!-- TRANSLATORS: These are the prepopulated search engines. You should
+                                      add country-specific URL query parameters if appropriate. -->
+                                 [('DuckDuckGo', 'https://duckduckgo.com/?q=%s&amp;t=epiphany', '!ddg'),
+				  ('Google', 'https://www.google.com/search?q=%s', '!g'),
+				  ('Bing', 'https://www.bing.com/search?q=%s', '!b')]
+			</default>
+			<summary>Default search engines.</summary>
+			<description>List of the default search engines. It is an array in which each search engine is described by a name, an address, and a bang (shortcut).</description>
+		</key>
+		<key type="b" name="new-windows-in-tabs">
+			<default>true</default>
+			<summary>Force new windows to be opened in tabs</summary>
+			<description>Force new window requests to be opened in tabs instead of using a new window.</description>
+		</key>
+		<key type="b" name="warn-on-close-unsubmitted-data">
+			<default>true</default>
+		</key>
+		<key type="b" name="internal-view-source">
+			<default>true</default>
+			<summary>Don’t use an external application to view page	source.</summary>
+		</key>
+                <key name="restore-session-policy" enum="org.gnome.Epiphany.EphyPrefsRestoreSessionPolicy">
+                        <default>'never'</default>
+                        <summary>Whether to automatically restore the last session</summary>
+                        <description>Defines how the session will be restored during startup. Allowed values are “always” (the previous state of the application is always restored), “crashed” (the session is only restored if the application crashes) and “never” (the homepage is always shown).</description>
+                </key>
+                <key type="b" name="restore-session-delaying-loads">
+                        <default>true</default>
+                        <summary>Whether to delay loading of tabs that are not immediately visible on session restore</summary>
+                        <description>When this option is set to true, tabs will not start loading until the user switches to them, upon session restore.</description>
+                </key>
+                <key type="as" name="content-filters">
+                        <default>['https://easylist-downloads.adblockplus.org/easylist_min_content_blocker.json']</default>
+                        <summary>List of adblock filters</summary>
+                        <description>List of URLs with content filtering rules in JSON format to be used by the ad blocker.</description>
+                </key>
+                <key type="b" name="ask-for-default">
+                        <default>false</default>
+                        <summary>Whether to ask for setting browser as default</summary>
+                        <description>When this option is set to true, browser will ask for being default if it is not already set.</description>
+                </key>
+		<key type="b" name="start-in-incognito-mode">
+			<default>false</default>
+			<summary>Start in incognito mode</summary>
+			<description>When this option is set to true, browser will always start in incognito mode</description>
+		</key>
+	</schema>
+	<schema path="/org/gnome/epiphany/ui/" id="org.gnome.Epiphany.ui">
+		<key type="b" name="expand-tabs-bar">
+			<default>true</default>
+			<summary>Expand tabs size to fill the available space on the tabs bar.</summary>
+			<description>If enabled the tabs will expand to use the entire available space in the tabs bar.</description>
+		</key>
+		<key name="tabs-bar-position" enum="org.gnome.Epiphany.EphyPrefsUITabsBarPosition">
+			<default>'top'</default>
+			<summary>The position of the tabs bar.</summary>
+			<description>Controls where the tabs bar is shown. Possible values are “top” (the default), “bottom”, “left” (vertical tabs with bar on the left) and “right” (vertical tabs with bar on the right).</description>
+		</key>
+		<key name="tabs-bar-visibility-policy" enum="org.gnome.Epiphany.EphyPrefsUITabsBarVisibilityPolicy">
+			<default>'more-than-one'</default>
+			<summary>The visibility policy for the tabs  bar.</summary>
+			<description>Controls when the tabs bar is shown. Possible values are “always” (the tabs bar is always shown), “more-than-one” (the tabs bar is only shown if there’s two or more tabs) and “never” (the tabs bar is never shown).</description>
+		</key>
+		<key type="b" name="keep-window-open">
+			<default>true</default>
+			<summary>Keep window open when closing last tab</summary>
+			<description>If enabled application window is kept open when closing the last tab.</description>
+		</key>
+	</schema>
+	<schema path="/org/gnome/epiphany/reader/" id="org.gnome.Epiphany.reader">
+		<key name="font-style" enum="org.gnome.Epiphany.EphyPrefsReaderFontStyle">
+			<default>'sans'</default>
+			<summary>Reader mode article font style.</summary>
+			<description>Chooses the style of the main body text for articles in reader mode. Possible values are “sans” and “serif”.</description>
+		</key>
+		<key name="color-scheme" enum="org.gnome.Epiphany.EphyPrefsReaderColorScheme">
+			<default>'light'</default>
+			<summary>Reader mode color scheme.</summary>
+			<description>Selects the style of colors for articles displayed in reader mode. Possible values are “light” (dark text on light background) and “dark” (light text on dark background).</description>
+		</key>
+	</schema>
+	<schema id="org.gnome.Epiphany.web">
+		<key type="i" name="min-font-size">
+			<default>0</default>
+			<summary>Minimum font size</summary>
+		</key>
+		<key type="b" name="use-gnome-fonts">
+			<default>true</default>
+			<summary>Use GNOME fonts</summary>
+			<description>Use GNOME font settings.</description>
+		</key>
+		<key type="s" name="sans-serif-font">
+			<default>'Sans 10'</default>
+			<summary>Custom sans-serif font</summary>
+			<description>A value to be used to override sans-serif desktop font when use-gnome-fonts is set.</description>
+		</key>
+		<key type="s" name="serif-font">
+			<default>'Serif 10'</default>
+			<summary>Custom serif font</summary>
+			<description>A value to be used to override serif desktop font when use-gnome-fonts is set.</description>
+		</key>
+		<key type="s" name="monospace-font">
+			<default>'Monospace 10'</default>
+			<summary>Custom monospace font</summary>
+			<description>A value to be used to override monospace desktop font when use-gnome-fonts is set.</description>
+		</key>
+		<key type="b" name="enable-user-css">
+			<default>false</default>
+			<summary>Use a custom CSS</summary>
+			<description>Use a custom CSS file to modify websites own CSS.</description>
+		</key>
+		<key type="b" name="enable-spell-checking">
+			<default>true</default>
+			<summary>Enable spell checking</summary>
+			<description>Spell check any text typed in editable areas.</description>
+		</key>
+		<key type="s" name="default-encoding">
+			<default>'iso-8859-1'</default>
+			<summary>Default encoding</summary>
+			<description>Default encoding. Accepted values are the ones WebKitGTK can understand.</description>
+		</key>
+		<key type="as" name="language">
+			<default>['system']</default>
+			<summary>Languages</summary>
+			<description>Preferred languages. Array of locale codes or “system” to use current locale.</description>
+		</key>
+		<key name="cookies-policy" enum="org.gnome.Epiphany.EphyPrefsWebCookiesPolicy">
+			<default>'no-third-party'</default>
+			<summary>Cookie accept</summary>
+			<description>Where to accept cookies from. Possible values are “always”, “no-third-party” and “never”.</description>
+		</key>
+		<key type="b" name="enable-popups">
+			<default>true</default>
+			<summary>Allow popups</summary>
+			<description>Allow sites to open new windows using JavaScript (if JavaScript is enabled).</description>
+		</key>
+		<key type="b" name="enable-plugins">
+			<default>false</default>
+			<summary>Enable Plugins</summary>
+		</key>
+		<key type="b" name="enable-webgl">
+			<default>true</default>
+			<summary>Enable WebGL</summary>
+			<description>Whether to enable support for WebGL contexts.</description>
+		</key>
+		<key type="b" name="enable-webaudio">
+			<default>true</default>
+			<summary>Enable WebAudio</summary>
+			<description>Whether to enable support for WebAudio.</description>
+		</key>
+		<key type="b" name="enable-smooth-scrolling">
+			<default>true</default>
+			<summary>Enable smooth scrolling</summary>
+                        <description>Whether to enable smooth scrolling.</description>
+		</key>
+		<key type="s" name="user-agent">
+			<default>''</default>
+			<summary>User agent</summary>
+			<description>String that will be used as user agent, to identify the browser to the web servers.</description>
+		</key>
+		<key type="b" name="mobile-user-agent">
+			<default>false</default>
+			<summary>Mobile user agent</summary>
+			<description>Whether to present a mobile user agent. If the user agent is overridden, this will have no effect.</description>
+		</key>
+		<key type="b" name="do-not-track">
+			<default>true</default>
+			<summary>Do Not Track</summary>
+			<description>Enables tracking query parameter removal.</description>
+		</key>
+		<key type="b" name="enable-adblock">
+			<default>true</default>
+			<summary>Enable adblock</summary>
+			<description>Whether to block the embedded advertisements that web pages might want to show.</description>
+		</key>
+		<key type="b" name="remember-passwords">
+			<default>false</default>
+			<summary>Remember passwords</summary>
+			<description>Whether to store and prefill passwords in websites.</description>
+		</key>
+		<key type="b" name="enable-site-specific-quirks">
+			<default>true</default>
+			<summary>Enable site-specific quirks</summary>
+			<description>Enable quirks to make specific websites work better. You might want to disable this setting if debugging a specific issue.</description>
+		</key>
+		<key type="b" name="enable-safe-browsing">
+			<default>true</default>
+			<summary>Enable safe browsing</summary>
+			<description>Whether to enable safe browsing. Safe browsing operates via Google Safe Browsing API v4.</description>
+		</key>
+		<key type="s" name="gsb-api-key">
+			<default>'AIzaSyAtuURrRblYXvwCyDC5ZFq0mEw1x4VN6KA'</default>
+			<summary>Google Safe Browsing API key</summary>
+			<description>The API key used to access the Google Safe Browsing API v4.</description>
+		</key>
+		<key type="d" name="default-zoom-level">
+			<default>1.0</default>
+			<summary>Default zoom level for new pages</summary>
+		</key>
+		<key type="b" name="enable-autosearch">
+			<default>true</default>
+			<summary>Enable autosearch</summary>
+			<description>Whether to automatically search the web when something that does not look like a URL is entered in the address bar. If this setting is disabled, everything will be loaded as a URL unless a search engine is explicitly selected from the dropdown menu.</description>
+		</key>
+		<key type="b" name="enable-mouse-gestures">
+			<default>false</default>
+			<summary>Enable mouse gestures</summary>
+			<description>Whether to enable mouse gestures. Mouse gestures are based on Opera’s behaviour and are activated using the middle mouse button + gesture.</description>
+		</key>
+		<key type="s" name="last-upload-directory">
+			<default>''</default>
+			<summary>Last upload directory</summary>
+			<description>Keep track of last upload directory</description>
+		</key>
+		<key type="s" name="last-download-directory">
+			<default>''</default>
+			<summary>Last download directory</summary>
+			<description>Keep track of last download directory</description>
+		</key>
+		<key name="hardware-acceleration-policy" enum="org.gnome.Epiphany.EphyPrefsWebHardwareAccelerationPolicy">
+			<default>'on-demand'</default>
+			<summary>Hardware acceleration policy</summary>
+			<description>Whether to enable hardware acceleration. Possible values are “on-demand”, “always”, and “never”. Hardware acceleration may be required to achieve acceptable performance on embedded devices, but increases memory usage requirements and could expose severe hardware-specific graphics driver bugs. When the policy is “on-demand”, hardware acceleration will be used only when required to display 3D transforms.</description>
+		</key>
+		<key type="b" name="ask-on-download">
+			<default>true</default>
+			<summary>Always ask for download directory</summary>
+			<description>Whether to present a directory chooser dialog for every download.</description>
+		</key>
+	</schema>
+        <schema id="org.gnome.Epiphany.webapp">
+                <key type="as" name="additional-urls">
+                      <default>[]</default>
+                      <summary>Web application additional URLs</summary>
+                      <description>The list of URLs that should be opened by the web application</description>
+                </key>
+        </schema>
+	<schema id="org.gnome.Epiphany.state">
+		<key type="s" name="download-dir">
+			<default>'downloads'</default>
+			<summary>The downloads folder</summary>
+			<description>The path of the folder where to download files to; or “Downloads” to use the default downloads folder, or “Desktop” to use the desktop folder.</description>
+		</key>
+		<key type="as" name="recent-encodings">
+			<default>['' ]</default>
+		</key>
+                <key type="(ii)" name="window-position">
+                        <default>(-1, -1)</default>
+                        <summary>Window position</summary>
+                        <description>The position to use for a new window that is not restored from a previous session.</description>
+                </key>
+		<key type="(ii)" name="window-size">
+			<default>(-1, -1)</default>
+			<summary>Window size</summary>
+			<description>The size to use for a new window that is not restored from a previous session.</description>
+		</key>
+		<key type="b" name="is-maximized">
+			<default>false</default>
+			<summary>Is maximized</summary>
+			<description>Whether a new window that is not restored from a previous session should be initially maximized.</description>
+		</key>
+	</schema>
+	<schema path="/org/gnome/epiphany/lockdown/" id="org.gnome.Epiphany.lockdown">
+		<key type="b" name="disable-fullscreen">
+			<default>false</default>
+		</key>
+		<key type="b" name="disable-arbitrary-url">
+			<default>false</default>
+		</key>
+		<key type="b" name="disable-bookmark-editing">
+			<default>false</default>
+		</key>
+		<key type="b" name="disable-history">
+			<default>false</default>
+			<summary>Disable forward and back buttons</summary>
+			<description>If set to “true”, forward and back buttons are disabled, preventing users from accessing immediate browser history</description>
+		</key>
+		<key type="b" name="disable-save-to-disk">
+			<default>false</default>
+		</key>
+		<key type="b" name="disable-printing">
+			<default>false</default>
+		</key>
+		<key type="b" name="disable-quit">
+			<default>false</default>
+		</key>
+	</schema>
+	<schema path="/org/gnome/epiphany/sync/" id="org.gnome.Epiphany.sync">
+		<key type="s" name="sync-user">
+			<default>''</default>
+			<summary>Currently signed in sync user</summary>
+			<description>The email linked to the Firefox Account used to sync data with Mozilla’s servers.</description>
+		</key>
+		<key type="x" name="sync-time">
+			<default>0</default>
+			<summary>Last sync timestamp</summary>
+			<description>The UNIX time at which last sync was made in seconds.</description>
+		</key>
+		<key type="s" name="sync-device-id">
+			<default>''</default>
+			<summary>Sync device ID</summary>
+			<description>The sync device ID of the current device.</description>
+		</key>
+		<key type="s" name="sync-device-name">
+			<default>''</default>
+			<summary>Sync device name</summary>
+			<description>The sync device name of the current device.</description>
+		</key>
+		<key type="u" name="sync-frequency">
+			<default>30</default>
+			<summary>The sync frequency in minutes</summary>
+			<description>The number of minutes between two consecutive syncs.</description>
+		</key>
+		<key type="b" name="sync-with-firefox">
+			<default>true</default>
+			<summary>Sync data with Firefox</summary>
+			<description>TRUE if Ephy collections should be synced with Firefox collections, FALSE otherwise.</description>
+		</key>
+		<key type="b" name="sync-bookmarks-enabled">
+			<default>false</default>
+			<summary>Enable bookmarks sync</summary>
+			<description>TRUE if bookmarks collection should be synced, FALSE otherwise.</description>
+		</key>
+		<key type="x" name="sync-bookmarks-time">
+			<default>0</default>
+			<summary>Bookmarks sync timestamp</summary>
+			<description>The timestamp at which last bookmarks sync was made.</description>
+		</key>
+		<key type="b" name="sync-bookmarks-initial">
+			<default>true</default>
+			<summary>Initial sync or normal sync</summary>
+			<description>TRUE if bookmarks collection needs to be synced for the first time, FALSE otherwise.</description>
+		</key>
+		<key type="b" name="sync-passwords-enabled">
+			<default>false</default>
+			<summary>Enable passwords sync</summary>
+			<description>TRUE if passwords collection should be synced, FALSE otherwise.</description>
+		</key>
+		<key type="x" name="sync-passwords-time">
+			<default>0</default>
+			<summary>Passwords sync timestamp</summary>
+			<description>The timestamp at which last passwords sync was made.</description>
+		</key>
+		<key type="b" name="sync-passwords-initial">
+			<default>true</default>
+			<summary>Initial sync or normal sync</summary>
+			<description>TRUE if passwords collection needs to be synced for the first time, FALSE otherwise.</description>
+		</key>
+		<key type="b" name="sync-history-enabled">
+			<default>false</default>
+			<summary>Enable history sync</summary>
+			<description>TRUE if history collection should be synced, FALSE otherwise.</description>
+		</key>
+		<key type="x" name="sync-history-time">
+			<default>0</default>
+			<summary>History sync timestamp</summary>
+			<description>The timestamp at which last history sync was made.</description>
+		</key>
+		<key type="b" name="sync-history-initial">
+			<default>true</default>
+			<summary>Initial sync or normal sync</summary>
+			<description>TRUE if history collection needs to be synced for the first time, FALSE otherwise.</description>
+		</key>
+		<key type="b" name="sync-open-tabs-enabled">
+			<default>false</default>
+			<summary>Enable open tabs sync</summary>
+			<description>TRUE if open tabs collection should be synced, FALSE otherwise.</description>
+		</key>
+		<key type="x" name="sync-open-tabs-time">
+			<default>0</default>
+			<summary>Open tabs sync timestamp</summary>
+			<description>The timestamp at which last open tabs sync was made.</description>
+		</key>
+	</schema>
+	<enum id="org.gnome.Epiphany.Permission">
+		<value nick="undecided" value="-1"/>
+		<value nick="deny" value="0"/>
+		<value nick="allow" value="1"/>
+	</enum>
+	<schema id="org.gnome.Epiphany.permissions">
+		<key name="audio-device-permission" enum="org.gnome.Epiphany.Permission">
+			<default>'undecided'</default>
+			<summary>Decision to apply when microphone permission is requested for this host</summary>
+			<description>This option is used to save whether a given host has been given permission to access the user’s microphone. The “undecided” default means the browser needs to ask the user for permission, while “allow” and “deny” tell it to automatically make the decision upon request.</description>
+		</key>
+		<key name="geolocation-permission" enum="org.gnome.Epiphany.Permission">
+			<default>'undecided'</default>
+			<summary>Decision to apply when geolocation permission is requested for this host</summary>
+			<description>This option is used to save whether a given host has been given permission to access the user’s location. The “undecided” default means the browser needs to ask the user for permission, while “allow” and “deny” tell it to automatically make the decision upon request.</description>
+		</key>
+		<key name="notifications-permission" enum="org.gnome.Epiphany.Permission">
+			<default>'undecided'</default>
+			<summary>Decision to apply when notification permission is requested for this host</summary>
+			<description>This option is used to save whether a given host has been given permission to show notifications. The “undecided” default means the browser needs to ask the user for permission, while “allow” and “deny” tell it to automatically make the decision upon request.</description>
+		</key>
+		<key name="save-password-permission" enum="org.gnome.Epiphany.Permission">
+			<default>'undecided'</default>
+			<summary>Decision to apply when save password permission is requested for this host</summary>
+			<description>This option is used to save whether a given host has been given permission to save passwords. The “undecided” default means the browser needs to ask the user for permission, while “allow” and “deny” tell it to automatically make the decision upon request.</description>
+		</key>
+		<key name="video-device-permission" enum="org.gnome.Epiphany.Permission">
+			<default>'undecided'</default>
+			<summary>Decision to apply when webcam permission is requested for this host</summary>
+			<description>This option is used to save whether a given host has been given permission to access the user’s webcam. The “undecided” default means the browser needs to ask the user for permission, while “allow” and “deny” tell it to automatically make the decision upon request.</description>
+		</key>
+		<key name="advertisement-permission" enum="org.gnome.Epiphany.Permission">
+			<default>'undecided'</default>
+			<summary>Decision to apply when advertisement permission is requested for this host</summary>
+			<description>This option is used to save whether a given host has been given permission to allow advertisements. The “undecided” default means the browser global setting is used, while “allow” and “deny” tell it to automatically make the decision upon request.</description>
+		</key>
+	</schema>
+</schemalist>

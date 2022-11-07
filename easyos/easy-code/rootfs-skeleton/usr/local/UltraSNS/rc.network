@@ -1,0 +1,27 @@
+#!/bin/sh
+
+case "$1" in
+ start)
+  mkdir -p /run/ctrl
+  mkdir -p /tmp/UltraSNS
+  #note, the full start-stop-daemon from dpkg is required (not busybox applet)...
+  #-S start, -b background, -C do not close fd, -x execute
+  start-stop-daemon -S -b -C -x /sbin/ifmon >> /var/log/ifmon.log 2>&1
+  start-stop-daemon -S -b -C -x /sbin/wsupp >> /var/log/wsupp.log 2>&1
+ ;;
+ restart)
+  wifi release #190219
+  wifi detach  #190219
+  start-stop-daemon -K -x /sbin/wsupp
+  start-stop-daemon -K -x /sbin/ifmon
+  start-stop-daemon -S -b -C -x /sbin/ifmon >> /var/log/ifmon.log 2>&1
+  start-stop-daemon -S -b -C -x /sbin/wsupp >> /var/log/wsupp.log 2>&1
+ ;;
+ stop)
+  wifi release #190219
+  wifi detach  #190219
+  #-K kill
+  start-stop-daemon -K -x /sbin/wsupp
+  start-stop-daemon -K -x /sbin/ifmon
+ ;;
+esac

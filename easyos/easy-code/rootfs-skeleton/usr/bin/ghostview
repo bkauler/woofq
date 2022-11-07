@@ -1,0 +1,8 @@
+#!/bin/sh
+#150412 created.
+
+TMPFILE="$(basename "$@")"
+ps2pdf "$@" /tmp/gshostview-${TMPFILE}.pdf
+defaultpdfviewer /tmp/gshostview-${TMPFILE}.pdf
+sync
+rm -f /tmp/gshostview-${TMPFILE}.pdf

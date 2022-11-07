@@ -1,0 +1,354 @@
+#!/bin/sh
+#call from 3builddistro, current dir is inside 'sandbox3'.
+#also want to call from LoginManager (/usr/sbin/loginmanager) from running puppy
+# (3buildistro will copy this script to sandbox3/rootfs-complete/usr/sbin).
+#pass in space-delimited names of apps to run as spot, each with false or true.
+#ex: 'seamonkey=true' 'sylpheed=false'
+#...=true means turn on spot, =false turn off. no parameter then do nothing.
+#130601 first version, seamonkey only.
+#130604 use code from /usr/sbin/run-as-spot, created by jamesbond (James Budiono).
+#130604 passed-in params to have actual names of executables.
+#130720 add support for QtWeb. 130721 fix. 130722 fix.
+#130723 add opera option to run as spot. see also 3builddistro, loginmanager.
+#140215 add chromium.
+#150108 script launched by /usr/bin/seamonkey.bin cannot relink /usr/bin/seamonkey.bin, do it here.
+#161231 slackware 14.2 seamonkey pkg is in /usr/lib64
+#170921 fix seamonkey path when in /usr/lib.
+#20210906 /root/spot moved to /clients/spot. fix library path.
+#20210912 need to allow write inside encrypted fs. see also rc.sysinit, run-as-spot, support/setup-client
+#20210914 ${APPpath} fix for appended ${PREFIXDIR}
+#20210919 /clients now /home
+
+SPOTAPPS="$@"
+RUNNINGPUP=0
+[ "`echo "$0" | grep 'support/'`" = "" ] && RUNNINGPUP=1 #running in woof.
+PREFIXDIR=''
+[ $RUNNINGPUP -eq 0 ] && PREFIXDIR='rootfs-complete'
+
+touch ${PREFIXDIR}/root/.spot-status
+
+#161231
+if [ -f ../DISTRO_SPECS ];then
+. ../DISTRO_SPECS #running in woofQ
+else
+. /etc/DISTRO_SPECS
+fi
+xARCHDIR=""
+if [ "$DISTRO_ARCHDIR_SYMLINKS" = "no" ];then
+ if [ "$DISTRO_ARCHDIR" == "lib64" ];then
+  xARCHDIR="64"
+ else
+  xARCHDIR="/${DISTRO_ARCHDIR}"
+ fi
+ if [ "$DISTRO_BINARY_COMPAT" == "oe" ];then #20210906
+  xARCHDIR=""
+ fi
+fi
+
+#130604 jamesbond, mods by BK...
+RUNASSPOT='#script to run $APP as spot...
+ARGS=""
+#[ $1 ] && while [ "$1" ]; do ARGS="$ARGS \"$1\""; shift; done
+if [ $1 ];then
+ while [ "$1" ]
+ do
+  #do not put quotes around if a single word. example is "-edit" for seamonkey, the quotes stuff it up entirely...
+  if [ "${1/ /}" == "${1}" ];then
+   ARGS="${ARGS} ${1}"
+  else
+   ARGS="${ARGS} \"${1}\""
+  fi
+  shift
+ done
+fi
+
+if [ $(id -u) -ne 0 ]; then
+ exec "$APP" $ARGS
+fi
+
+[ $XAUTHORITY ] && cp $XAUTHORITY -f /home/spot/.Xauthority 2>/dev/null
+touch /home/spot/.Xauthority
+#following line is mostly there to catch any root:root files that may have got copied in...
+chown -R spot:spot /home/spot &
+sleep 0.1
+export XAUTHORITY=/home/spot/.Xauthority  
+export XDG_CONFIG_HOME=/home/spot/.config
+export XDG_CACHE_HOME=/home/spot/.cache
+export XDG_DATA_HOME=/home/spot/.local/share
+ 
+#this is a method to authorize x server to run by user spot. works when server running.
+#note: this setting does not seem to be stored in a file. it affects the currently running
+#      x server and will be lost when x quits.
+ALLOWflg="$(xhost | grep -o ":spot$")"
+if [ ! "$ALLOWflg" ];then
+ xhost +SI:localuser:spot
+fi
+
+#20210912 need to allow write inside encrypted fs...
+which keyctl >/dev/null
+if [ $? -eq 0 ];then
+ IDflg="$(grep -o " logon " /proc/keys)"
+else
+ IDflg=""
+fi
+if [ "$IDflg" ];then
+ exec su -l spot -s /bin/sh -c "DISPLAY=${DISPLAY} /usr/local/clients/run-client-indirect \"$APP\" $ARGS"
+else
+ exec su -l spot -s /bin/sh -c "DISPLAY=${DISPLAY} \"$APP\" $ARGS"
+fi
+'
+
+seamonkey_true() {
+ #function to run seamonkey as spot.
+ [ ! -e ${PREFIXDIR}${APPpath}/${ONEAPPname}.bin ] && cp -a -f ${PREFIXDIR}${APPpath}/${ONEAPPname} ${PREFIXDIR}${APPpath}/${ONEAPPname}.bin
+ rm -f ${PREFIXDIR}${APPpath}/${ONEAPPname} #in case it is a symlink.
+ echo "#!/bin/sh
+ APP='${APPpath}/${ONEAPPname}.bin'
+ DISPLAY=${DISPLAY}" > ${PREFIXDIR}${APPpath}/${ONEAPPname}
+ 
+ #150108 script launched by /usr/bin/seamonkey.bin cannot relink /usr/bin/seamonkey.bin, do it here:
+ # refer: woof rootfs-complete/usr/bin/seamonkeyQNEW
+ #170921 fix path...
+ if [ -f /usr/lib${xARCHDIR}/seamonkey/seamonkey ];then
+  echo "[ -f /home/spot/.mozilla/seamonkey/a2bvafqx.default/places.sqlite ] && ln -snf /usr/lib${xARCHDIR}/seamonkey/seamonkey /usr/bin/seamonkey.bin" >> ${PREFIXDIR}${APPpath}/${ONEAPPname}
+ else
+  echo "[ -f /home/spot/.mozilla/seamonkey/a2bvafqx.default/places.sqlite ] && ln -snf /usr/lib/seamonkey/seamonkey /usr/bin/seamonkey.bin" >> ${PREFIXDIR}${APPpath}/${ONEAPPname}
+ fi
+ 
+ echo "$RUNASSPOT" >> ${PREFIXDIR}${APPpath}/${ONEAPPname}
+ chmod 755 ${PREFIXDIR}${APPpath}/${ONEAPPname}
+
+ if [ -e ${PREFIXDIR}/root/.mozilla ];then
+  if [ ! -e ${PREFIXDIR}/home/spot/.mozilla/seamonkey/a2bvafqx.default ];then #check not already setup.
+   if [ "$PREFIXDIR" ];then #woof. my SM PETs have skeleton .mozilla.
+    cp -a ${PREFIXDIR}/root/.mozilla ${PREFIXDIR}/home/spot/
+    DEFAULTDIR="`find ${PREFIXDIR}/home/spot/.mozilla/seamonkey -mindepth 1 -maxdepth 1 -name '*.default'`"
+   else #running puppy...
+    xDEFAULTDIR="`find /root/.mozilla/seamonkey -mindepth 1 -maxdepth 1 -name '*.default' | head -n 1`"
+    if [ "$xDEFAULTDIR" ];then
+     BASENAME="`basename $xDEFAULTDIR`" #ex: 3o1ptd5r.default
+     mkdir -p /home/spot/.mozilla/seamonkey/${BASENAME}
+     rm -rf /home/spot/.mozilla/seamonkey/${BASENAME}/* 2>/dev/null #precaution.
+     echo "[General]
+StartWithLastProfile=1
+
+[Profile0]
+Name=default
+IsRelative=1
+Path=${BASENAME}" > /home/spot/.mozilla/seamonkey/profiles.ini
+     cp -a -f /root/.mozilla/seamonkey/${BASENAME}/chrome /home/spot/.mozilla/seamonkey/${BASENAME}/
+     cp -a -f /root/.mozilla/seamonkey/${BASENAME}/localstore.rdf /home/spot/.mozilla/seamonkey/${BASENAME}/
+     cp -a -f /root/.mozilla/seamonkey/${BASENAME}/mimeTypes.rdf /home/spot/.mozilla/seamonkey/${BASENAME}/
+     cp -a -f /root/.mozilla/seamonkey/${BASENAME}/prefs.js /home/spot/.mozilla/seamonkey/${BASENAME}/
+     DEFAULTDIR="/home/spot/.mozilla/seamonkey/${BASENAME}"
+    fi
+   fi
+   if [ "$DEFAULTDIR" ];then #precaution.
+    DIRNAME="`dirname $DEFAULTDIR`"
+    #needs to have a different name for .default dir from main one...
+    mv -f $DEFAULTDIR $DIRNAME/a2bvafqx.default
+    sed -i -e 's%^Path=.*defaul.*%Path=a2bvafqx.default%' $DIRNAME/profiles.ini
+    #setup Downloads dir... 130722 no need for this anymore, already exists...
+    mkdir -p ${PREFIXDIR}/home/spot/Downloads
+    sed -i -e 's%/root/my-documents%/home/spot/Downloads%' $DIRNAME/a2bvafqx.default/prefs.js
+    sed -i -e 's%"/usr/share/doc"%"/home/spot/Downloads"%' $DIRNAME/a2bvafqx.default/prefs.js
+   fi
+  fi
+ fi
+ return 0
+}
+
+seamonkey_false() {
+ #function to run seamonkey as root.
+ if [ -e ${PREFIXDIR}${APPpath}/${ONEAPPname}.bin ];then
+  cp -a -f --remove-destination ${PREFIXDIR}${APPpath}/${ONEAPPname}.bin ${PREFIXDIR}${APPpath}/${ONEAPPname} #restore original.
+  rm -f ${PREFIXDIR}${APPpath}/${ONEAPPname}.bin
+ else #precaution. error.
+  ln -snf /usr/lib${xARCHDIR}/seamonkey/seamonkey ${PREFIXDIR}/usr/bin/seamonkey
+ fi
+ #a paranoid precaution...
+ xDEFAULTDIR="`find ${PREFIXDIR}/root/.mozilla/seamonkey -mindepth 1 -maxdepth 1 -name '*.default' | head -n 1`"
+ if [ "$xDEFAULTDIR" ];then
+  BASENAME="`basename $xDEFAULTDIR`" #ex: 3o1ptd5r.default
+  rm -rf ${PREFIXDIR}/home/spot/.mozilla/seamonkey/${BASENAME} 2>/dev/null
+ fi
+ return 0
+}
+
+generic_func() {
+ #setup the app to run as spot or root...
+ case $ONEAPPvalue in
+  true)
+   [ ! -e ${PREFIXDIR}${APPpath}/${ONEAPPname}.bin ] && cp -a -f ${PREFIXDIR}${APPpath}/${ONEAPPname} ${PREFIXDIR}${APPpath}/${ONEAPPname}.bin
+   rm -f ${PREFIXDIR}${APPpath}/${ONEAPPname} #in case it is a symlink.
+   echo "#!/bin/sh
+   APP='${APPpath}/${ONEAPPname}.bin'
+   DISPLAY=${DISPLAY}" > ${PREFIXDIR}${APPpath}/${ONEAPPname}
+   echo "$RUNASSPOT" >> ${PREFIXDIR}${APPpath}/${ONEAPPname}
+   chmod 755 ${PREFIXDIR}${APPpath}/${ONEAPPname}
+  ;;
+  false)
+   if [ -e ${PREFIXDIR}${APPpath}/${ONEAPPname}.bin ];then
+    cp -a -f --remove-destination ${PREFIXDIR}${APPpath}/${ONEAPPname}.bin ${PREFIXDIR}${APPpath}/${ONEAPPname} #restore original.
+    rm -f ${PREFIXDIR}${APPpath}/${ONEAPPname}.bin
+   fi
+  ;;
+ esac
+ return 0
+}
+
+#130720
+QtWeb_true() {
+ #function to run QtWeb as spot.
+ [ ! -e ${PREFIXDIR}${APPpath}/${ONEAPPname}.bin ] && cp -a -f ${PREFIXDIR}${APPpath}/${ONEAPPname} ${PREFIXDIR}${APPpath}/${ONEAPPname}.bin
+ rm -f ${PREFIXDIR}${APPpath}/${ONEAPPname} #in case it is a symlink.
+ echo "#!/bin/sh
+ APP='${APPpath}/${ONEAPPname}.bin'
+ DISPLAY=${DISPLAY}" > ${PREFIXDIR}${APPpath}/${ONEAPPname}
+ #QtWeb saves config settings in /tmp when running as spot...
+ #jamesbond: fixed: http://bkhome.org/blog2/?viewDetailed=00319
+# echo 'rm -rf /tmp/QtWeb.NET' >> ${PREFIXDIR}${APPpath}/${ONEAPPname}
+# echo 'cp -a -f /home/spot/QtWeb.NET /tmp/' >> ${PREFIXDIR}${APPpath}/${ONEAPPname}
+ echo "$RUNASSPOT" >> ${PREFIXDIR}${APPpath}/${ONEAPPname}
+# echo 'rm -rf /home/spot/QtWeb.NET' >> ${PREFIXDIR}${APPpath}/${ONEAPPname}
+# echo 'cp -a -f /tmp/QtWeb.NET /home/spot/' >> ${PREFIXDIR}${APPpath}/${ONEAPPname}
+# #take out "exec" as want to return to the script...
+# sed -i -e 's% exec % %' ${PREFIXDIR}${APPpath}/${ONEAPPname}
+ chmod 755 ${PREFIXDIR}${APPpath}/${ONEAPPname}
+ 
+ if [ -d ${PREFIXDIR}/root/.config/QtWeb.NET ];then #this is in the PET or created when run QtWeb as root.
+  if [ ! -d ${PREFIXDIR}/home/spot/.config/QtWeb.NET ];then
+   mkdir -p ${PREFIXDIR}/home/spot/.config/QtWeb.NET
+   cp -a -f ${PREFIXDIR}/root/.config/QtWeb.NET/"QtWeb Internet Browser.conf" ${PREFIXDIR}/home/spot/.config/QtWeb.NET/
+   sed -i -e 's%/root/Downloads%/home/spot/Downloads%' ${PREFIXDIR}/home/spot/.config/QtWeb.NET/"QtWeb Internet Browser.conf"
+  fi
+ else
+  mkdir -p ${PREFIXDIR}/home/spot/.config/QtWeb.NET
+ fi
+ chown -R spot:spot ${PREFIXDIR}/home/spot/.config
+ chmod 775 ${PREFIXDIR}/home/spot/Downloads #should already be.
+ return 0
+}
+
+#130720
+QtWeb_false() {
+ if [ -e ${PREFIXDIR}${APPpath}/${ONEAPPname}.bin ];then
+  cp -a -f --remove-destination ${PREFIXDIR}${APPpath}/${ONEAPPname}.bin ${PREFIXDIR}${APPpath}/${ONEAPPname} #restore original.
+  rm -f ${PREFIXDIR}${APPpath}/${ONEAPPname}.bin
+ fi
+ return 0
+}
+
+#130723 opera...
+opera_true() {
+ #function to run Opera as spot.
+ [ ! -e ${PREFIXDIR}${APPpath}/${ONEAPPname}.bin ] && cp -a -f ${PREFIXDIR}${APPpath}/${ONEAPPname} ${PREFIXDIR}${APPpath}/${ONEAPPname}.bin
+ rm -f ${PREFIXDIR}${APPpath}/${ONEAPPname} #in case it is a symlink.
+ echo "#!/bin/sh
+ APP='${APPpath}/${ONEAPPname}.bin'
+ DISPLAY=${DISPLAY}" > ${PREFIXDIR}${APPpath}/${ONEAPPname}
+ echo "$RUNASSPOT" >> ${PREFIXDIR}${APPpath}/${ONEAPPname}
+ chmod 755 ${PREFIXDIR}${APPpath}/${ONEAPPname}
+ 
+  if [ ! -d ${PREFIXDIR}/home/spot/.opera ];then
+   if [ -d ${PREFIXDIR}/root/.opera ];then #this is in the PET or created when run Opera as root.
+    cp -a -f ${PREFIXDIR}/root/.opera ${PREFIXDIR}/home/spot/
+   else
+    mkdir -p ${PREFIXDIR}/home/spot/.opera
+    echo '
+[State]
+Accept License=0
+
+[User Prefs]
+Home URL=file://localhost/usr/share/doc/home.htm
+Startup Type=2
+Download Directory={Home}Downloads
+
+[Fonts]
+Normal=14,4,0,0,0,0,DejaVu Sans
+PRE=14,4,0,0,0,0,Nimbus Mono L
+
+' > ${PREFIXDIR}/home/spot/.opera/operaprefs.ini
+  fi
+ fi
+ chown -R spot:spot ${PREFIXDIR}/home/spot/.opera
+ chmod 775 ${PREFIXDIR}/home/spot/Downloads #should already be.
+ return 0
+}
+opera_false() {
+ if [ -e ${PREFIXDIR}${APPpath}/${ONEAPPname}.bin ];then
+  cp -a -f --remove-destination ${PREFIXDIR}${APPpath}/${ONEAPPname}.bin ${PREFIXDIR}${APPpath}/${ONEAPPname} #restore original.
+  rm -f ${PREFIXDIR}${APPpath}/${ONEAPPname}.bin
+ fi
+ return 0
+}
+
+#140215
+chromium_true() {
+   [ ! -e ${PREFIXDIR}${APPpath}/${ONEAPPname}.bin ] && cp -a -f ${PREFIXDIR}${APPpath}/${ONEAPPname} ${PREFIXDIR}${APPpath}/${ONEAPPname}.bin
+   rm -f ${PREFIXDIR}${APPpath}/${ONEAPPname} #in case it is a symlink.
+   echo "#!/bin/sh
+   APP='${APPpath}/${ONEAPPname}.bin'
+   DISPLAY=${DISPLAY}" > ${PREFIXDIR}${APPpath}/${ONEAPPname}
+   echo "$RUNASSPOT" >> ${PREFIXDIR}${APPpath}/${ONEAPPname}
+   chmod 755 ${PREFIXDIR}${APPpath}/${ONEAPPname}
+ #change path to profile...
+ mkdir -p /home/spot/chromium/profile
+ chown -R spot:spot /home/spot/chromium
+ ctPTN='s%/file/portable/chromium/profile%/home/spot/chromium/profile%'
+ sed -i -e "$ctPTN" ${PREFIXDIR}${APPpath}/${ONEAPPname}.bin
+ sed -i -e "$ctPTN" /usr/local/bin/defaultbrowser
+ sed -i -e "$ctPTN" /usr/local/bin/defaulthtmlviewer
+ return 0
+}
+chromium_false() {
+   if [ -e ${PREFIXDIR}${APPpath}/${ONEAPPname}.bin ];then
+    cp -a -f --remove-destination ${PREFIXDIR}${APPpath}/${ONEAPPname}.bin ${PREFIXDIR}${APPpath}/${ONEAPPname} #restore original.
+    rm -f ${PREFIXDIR}${APPpath}/${ONEAPPname}.bin
+   fi
+ #change path to profile...
+ ctPTN='s%/home/spot/chromium/profile%/file/portable/chromium/profile%'
+ sed -i -e "$ctPTN" ${PREFIXDIR}${APPpath}/${ONEAPPname}
+ sed -i -e "$ctPTN" /usr/local/bin/defaultbrowser
+ sed -i -e "$ctPTN" /usr/local/bin/defaulthtmlviewer
+ return 0
+}
+
+for ONEAPP in $SPOTAPPS
+do
+ ONEAPPname="`echo -n "$ONEAPP" | cut -f 1 -d '='`"  #ex: seamonkey
+ ONEAPPvalue="`echo -n "$ONEAPP" | cut -f 2 -d '='`" #ex: true
+ ONEAPPspec="`find ${PREFIXDIR}/bin ${PREFIXDIR}/sbin ${PREFIXDIR}/usr/bin ${PREFIXDIR}/usr/sbin ${PREFIXDIR}/usr/local/bin -mindepth 1 -maxdepth 1 -name ${ONEAPPname} | head -n 1`"
+ if [ ! "$ONEAPPspec" ];then
+  #executable does not exist, so remove from list, if there...
+  sed -i -e "/^${ONEAPPname}=/d" ${PREFIXDIR}/root/.spot-status
+  continue
+ fi
+ #APPpath="$(dirname "$ONEAPPspec")"
+ APPpath="$(dirname "$ONEAPPspec" | sed -e "s%^${PREFIXDIR}/%/%")"
+ 
+ case $ONEAPPname in
+  seamonkey) ${ONEAPPname}_${ONEAPPvalue} ;;
+  QtWeb)     ${ONEAPPname}_${ONEAPPvalue} ;; #130720
+  opera)     ${ONEAPPname}_${ONEAPPvalue} ;; #130723
+  chromium)  ${ONEAPPname}_${ONEAPPvalue} ;; #140215
+  *)         generic_func  ;;
+ esac
+ if [ $? -ne 0 ];then
+  sed -i -e "/^${ONEAPPname}=/d" ${PREFIXDIR}/root/.spot-status #remove.
+  continue
+ fi
+
+ #record choice, for future runs of Login&Security Manager...
+ if [ "$(grep "^${ONEAPPname}=" ${PREFIXDIR}/root/.spot-status)" != "" ];then
+  rsPTN="s%^${ONEAPPname}=.*%${ONEAPPname}=${ONEAPPvalue}%"
+  sed -i -e "$rsPTN" ${PREFIXDIR}/root/.spot-status
+ else
+  echo "${ONEAPPname}=${ONEAPPvalue}" >> ${PREFIXDIR}/root/.spot-status
+ fi
+ 
+done
+
+chown -R spot:spot ${PREFIXDIR}/home/spot
+
+###END###

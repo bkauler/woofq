@@ -1,0 +1,17 @@
+#!/bin/sh
+#when want to do a quick reconstruction of the iso from the 'build' dir.
+#note: efiboot.img has another 'initrd' inside it, for efi booting.
+
+[ ! -f build/efiboot.img ] && exit 1
+. ../DISTRO_SPECS
+
+ISONAME="easy-${DISTRO_VERSION}-test.iso" #190706
+[ -f ${ISONAME} ] && mv -f ${ISONAME} ${ISONAME}BAK
+
+#assign label "EASYOSOPTICAL" to iso (see init script in initrd)...
+ xorriso -as mkisofs -volid "EASYOSOPTICAL" -o ${ISONAME} -isohybrid-mbr isohdpfx.bin \
+   -c boot.cat -b isolinux.bin -no-emul-boot -boot-load-size 4 -boot-info-table \
+   -eltorito-alt-boot -e efiboot.img -no-emul-boot -isohybrid-gpt-basdat ./build/
+sync
+echo
+echo "${ISONAME} has been created."

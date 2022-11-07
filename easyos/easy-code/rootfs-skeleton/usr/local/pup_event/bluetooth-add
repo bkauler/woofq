@@ -1,0 +1,29 @@
+#!/bin/bash
+#called from udev rule /etc/udev/rules.d/91-pup_event.rules
+#20201208 setsid not working when call from udev rule. "&" or "disown" do NOT detach the process.
+# ref: https://unix.stackexchange.com/questions/56243/how-to-run-long-time-process-on-udev-event
+# busybox cttyhack does detach process.
+#20201215 called from udev rule, LANG will not be set.
+
+pidof bluetooth-add-run >/dev/null
+[ $? -eq 0 ] && exit
+
+#20201215 if called from udev rule, LANG will not be set...
+eval $(grep '^LANG=.*' /etc/profile)
+export LANG
+
+#20201101 if currently running bluepup, it is responsible for bringing up mscw...
+if pidof btcgui.sh >/dev/null;then
+ #exit
+ #20201104 we might need to update the bluepup gui...
+ #setsid --fork /usr/local/bluepup/support/bluetooth-add-refresh
+ cttyhack sh /usr/local/bluepup/support/bluetooth-add-refresh &
+ exit
+fi
+
+#apparently, script may be holding up udev, so get out quick...
+#ref: https://bkhome.org/news/202009/detach-child-process-from-parent.html
+#setsid --fork /usr/local/pup_event/bluetooth-add-run
+cttyhack sh /usr/local/pup_event/bluetooth-add-run &
+
+###end###

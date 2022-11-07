@@ -1,0 +1,11 @@
+
+#buster 10.5
+SNDLIB="$(find usr/lib -type f -name 'libsndio.so.*' | head -n 1)"
+if [ "$SNDLIB" ];then
+ SNDpath="$(dirname "$SNDLIB")"
+ SNDname="$(basename "$SNDLIB")"
+ if [ "$SNDname" != "libsndio.so.6.1" ];then
+  ln -s ${SNDname} ${SNDpath}/libsndio.so.6.1
+ fi
+fi
+

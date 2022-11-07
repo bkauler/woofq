@@ -1,0 +1,122 @@
+#!/bin/sh
+#called from menu "Shutdown -> Reboot, lockdown in RAM"
+#ref: /etc/xdg/templates/_root_.jmwrc and init in initrd.
+#200803 first release.
+#200806 .lockdown.flg cannot be in .session folder, requires pw to unencrypt.
+# nor can it be in wkg-partition as it is zram0 after bootup. put it in boot-part.
+#200820 msg 4gb ram required. check if gtkdialog abort exit.
+#200823 msg to access refind sub-menu.
+#20201227 tweaked $HELP_SECURITY_MSG
+#20220621 .lockdown.flg moved to wkg-partition.
+
+#kernel boot parameters "qfix=lock1", "qfix=lock2" correspond to boot manager
+#menu items:
+#"Copy session to RAM, unmount all partitions"
+#"Copy session to RAM, disable drives"
+#want radiobuttons in this script, also a checkbox whether to make it permanent.
+# if so, then init script will not delete /mnt/$WKG_DEV/${WKG_DIR}.lockdown.flg
+#/.lockdown.flg will have "lock[1|2]:[0|1]" -- :0 once-only, :1 permanent
+
+export TEXTDOMAIN=lockdown-ram
+export OUTPUT_CHARSET=UTF-8
+
+. /etc/rc.d/PUPSTATE
+
+if [ ! $DISPLAY ];then #check X still running
+ echo "$(gettext 'This script can only be run from the desktop. Quiting.')"
+ echo "$(gettext 'Note: you can manually create:') /mnt/${WKG_DEV}/${WKG_DIR}.lockdown.flg"
+ echo "      $(gettext 'with this content:') lock<n>:<m>"
+ echo "$(gettext 'where <n> and <m> are numbers:')"
+ echo "$(gettext 'n=1 Copy session to RAM & unmount all partitions')"
+ echo "$(gettext 'n=2 Copy session to RAM & disable drives')"
+ echo "$(gettext 'm=0 Do this once-only')"
+ echo "$(gettext 'm=1 Permanent, for every future bootup.')"
+ exit
+fi
+
+WKGflg=0
+grep -q "^/dev/${WKG_DEV} " /proc/mounts
+if [ $? -ne 0 ];then
+ mkdir -p /mnt/${WKG_DEV}
+ busybox mount -t ${WKG_FS} /dev/${WKG_DEV} /mnt/${WKG_DEV}
+ if [ $? -ne 0 ];then
+  E1="$(gettext 'ERROR, unable to mount boot-partition:')"
+  popup "background=#ff8080 process=wait terminate=ok|${E1} /dev/${WKG_DEV}"
+  exit
+ fi
+ WKGflg=1
+fi
+
+#if /mnt/${WKG_DEV}/${WKG_DIR}.lockdown.flg already exists, read it...
+LOCKkeep='0'
+LOCKDOWN=''
+if [ -s /mnt/${WKG_DEV}/${WKG_DIR}.lockdown.flg ];then
+ grep -q '^lock[0-9]:[0-9]' /mnt/${WKG_DEV}/${WKG_DIR}.lockdown.flg
+ if [ $? -eq 0 ];then
+  LOCKspecs="$(cat /mnt/${WKG_DEV}/${WKG_DIR}.lockdown.flg)"
+  LOCKkeep="${LOCKspecs:6:1}"
+  LOCKDOWN="${LOCKspecs:4:1}"
+ fi
+fi
+LOCKflg='false'
+[ "$LOCKkeep" == "1" ] && LOCKflg='true'
+RAD1flg='true'
+RAD2flg='false'
+if [ "$LOCKDOWN" == "2" ];then
+ RAD1flg='false'
+ RAD2flg='true'
+fi
+
+CR='
+'
+HELP_LOCK_MSG="$(gettext 'If you tick the <b>Permanent</b> checkbox, future bootups will always copy the session and SFSs into RAM. To restore normal bootup, you have to choose <b>Normal bootup (remove lockdown)</b> from the rEFInd or Syslinux boot manager menus.')${CR}${CR}$(gettext 'Note: for rEFInd, that menu entry may be in a sub-menu, requiring pressing TAB or F2 keys to access.')${CR}${CR}<b>$(gettext 'Save caveat')</b>${CR}$(gettext 'There will be a save icon on the desktop, however, for the second lockdown mode, where the drives are disabled, it will only be possible to save if have booted off a removable drive -- by physically replugging it.')${CR}${CR}<b>$(gettext 'System requirements')</b>${CR}$(gettext 'As the session, easy.sfs, etc., get copied to RAM, at least 8GB RAM is required.')${CR}${CR}<b>$(gettext 'Technical notes')</b>${CR}$(gettext 'Lockdown is achieved by file .lockdown.flg in the boot-partition, that is read by the init script in the initrd at bootup. It contains <b>lockN:M</b> where N=1 or 2, and M=0 or 1. The N value corresponds to the two radiobuttons, and M=1 when the <b>Permanent</b> checkbox is ticked.')${CR}$(gettext 'File .lockdown.flg can also be manually created and deleted.')${CR}$(gettext 'In the case of having booted up with disabled drives, you do not normally have access to the drives, so cannot access .lockdown.flg.')${CR}$(gettext 'However, if you have booted from a USB stick, you can access it by physically unplugging and replugging it.')"
+Cm="$(gettext 'Close')"
+export DLG_HELP_LOCK="<window resizable=\"false\" title=\"Easy Lockdown: help\" icon-name=\"gtk-index\" window_position=\"1\"><vbox><text use-markup=\"true\"><label>\"${HELP_LOCK_MSG}\"</label><variable>DLG_HELP_LOCK</variable></text><hbox><button><label>${Cm}</label><action type=\"closewindow\">DLG_HELP_LOCK</action></button></hbox></vbox></window>"
+
+HELP_SECURITY_MSG="$(gettext 'Running totally in RAM is intended to be a security strategy, an alternative to containers.')${CR}${CR}$(gettext 'Note: the word <i>session</i> is your accumulated work so far (except for anything saved in /files). The session will also include installed packages.')${CR}${CR}<b>$(gettext 'Copy session to RAM and unmount partitions')</b>${CR}$(gettext 'This is the least secure. It is not really a security strategy, just a convenience in case the user would like to be able to bootup without any partitions mounted, perhaps for filesystem checking, or whatever.')${CR}${CR}<b>$(gettext 'Copy session to RAM and disable drives')</b>${CR}$(gettext 'The user is still root, however it is crippled-root, and cannot mount any partitions, in fact the drives are completely invisible.')  $(gettext 'Except, the physical act of replugging a removable drive will make it accessible.')${CR}$(gettext 'Also, some other administrator rights have been removed.')${CR}${CR}<b>$(gettext 'Non-root user')</b>${CR}$(gettext 'Containers are not supported in lockdown mode, however, you can run any application as a non-root user. Note that the web-browser is already configured to run non-root. See the menu <b>System -> Security -> Login and Security Manager</b>')"
+export DLG_HELP_SECURITY="<window resizable=\"false\" title=\"Easy Lockdown: help: security\" icon-name=\"gtk-index\" window_position=\"1\"><vbox><text use-markup=\"true\"><label>\"${HELP_SECURITY_MSG}\"</label><variable>DLG_HELP_SECURITY</variable></text><hbox><button><label>${Cm}</label><action type=\"closewindow\">DLG_HELP_SECURITY</action></button></hbox></vbox></window>"
+
+export LOCK_INITRD_DLG="<window title=\"$(gettext 'Easy Lockdown: copy session to RAM')\" icon-name=\"gtk-about\" window_position=\"1\">
+ <vbox>
+  <text use-markup=\"true\"><label>\"<b>$(gettext 'Lockdown in RAM is an alternative security strategy to containers.')</b>${CR}${CR}$(gettext 'At bootup, the session-folder and SFS files will be copied from the working-partition, and then all partitions unmounted. This is a security measure, so at shutdown no trace will be left.')${CR}$(gettext 'The second radiobutton is even more secure. The drives are disabled, so you cannot mount them. However, you can plugin a USB drive if you have to save something.')${CR}${CR}$(gettext 'Although running totally in RAM, a <b>save</b> icon on the desktop will allow optional saving to the working partition, with some caveats.')${CR}${CR}<b><span color='red'>$(gettext 'As everything has to be copied to RAM, a computer with at least 8GB RAM is recommended.')</span></b>${CR}${CR}$(gettext 'Click one of the radiobuttons, and choose whether you want it once-only or permanent, then click the Reboot button. Note, permanent means that the selection will apply to all future bootups, until you chose <b>Normal bootup (remove lockdown)</b> in the boot manager menu.')\"</label></text>
+  
+  <frame>
+    <radiobutton><label>$(gettext 'Copy session to RAM & unmount all partitions')</label><default>${RAD1flg}</default><variable>LOCK_1</variable></radiobutton>
+    <radiobutton><label>$(gettext 'Copy session to RAM & disable drives')</label><default>${RAD2flg}</default><variable>LOCK_2</variable></radiobutton>
+    <checkbox><label>$(gettext 'Permanent')</label><default>${LOCKflg}</default><variable>CHK_LOCK</variable></checkbox>
+    <hbox>
+      <button><label>$(gettext 'Reboot')</label><action>EXIT:reboot</action></button>
+      <button><input file>/usr/local/lib/X11/mini-icons/mini-question.xpm</input><action type=\"launch\">DLG_HELP_LOCK</action></button>
+      <button><input file>/usr/local/lib/X11/mini-icons/mini-question.xpm</input><action type=\"launch\">DLG_HELP_SECURITY</action></button>
+    </hbox>
+   </frame>
+
+   <hbox>
+     <text><label>$(gettext 'If you just want normal bootup, click the Cancel button:')</label></text>
+     <button cancel></button>
+   </hbox>
+ </vbox></window>"
+RETVARS="$(gtkdialog --program=LOCK_INITRD_DLG --center)"
+[ $? -eq 0 ] && eval "$RETVARS" #200820
+ 
+[ -f /mnt/${WKG_DEV}/${WKG_DIR}.lockdown.flg ] && rm -f /mnt/${WKG_DEV}/${WKG_DIR}.lockdown.flg
+if [ "$EXIT" == "reboot" ];then
+ PERMflg='0'
+ [ "$CHK_LOCK" == "true" ] && PERMflg='1'
+ [ "$LOCK_1" == "true" ] && echo -n "lock1:${PERMflg}" > /mnt/${WKG_DEV}/${WKG_DIR}.lockdown.flg
+ [ "$LOCK_2" == "true" ] && echo -n "lock2:${PERMflg}" > /mnt/${WKG_DEV}/${WKG_DIR}.lockdown.flg
+ if [ $WKGflg -eq 1 ];then
+  sync
+  busybox umount /mnt/${WKG_DEV}
+ fi
+ exec wmreboot
+fi
+ 
+if [ $WKGflg -eq 1 ];then
+ sync
+ busybox umount /mnt/${WKG_DEV}
+fi
+###end###
+
+
+

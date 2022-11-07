@@ -1,0 +1,64 @@
+#!/bin/sh
+#20220203
+
+if [ ! -s status/OE_SUPPORT ];then
+ echo "status/OE_SUPPORT does not exist, aborting"
+ exit
+fi
+
+. ./status/OE_SUPPORT
+#ex: OEPATH='/mnt/build/oe-builds/oe-quirky' OEPROFILE='build-amd64'
+
+case "$OEPROFILE" in
+ build-amd64)
+  SUBDIR="nocona-64-poky-linux"
+ ;;
+ *)
+  echo "script needs fix"
+  exit
+ ;;
+esac
+
+OEPRE="${OEPATH}/${OEPROFILE}/tmp/work/${SUBDIR}"
+
+if [ ! -d $OEPRE ];then
+ echo 'script needs fix'
+ exit
+fi
+
+if [ -d status/mnt-build ];then
+ rm -rf status/mnt-build
+fi
+mkdir status/mnt-build
+
+echo "Creating OE folder hierarchy status/mnt-build..."
+#this will search all packages, looking for a text string in files...
+for aPKG in `find ${OEPRE} -mindepth 3 -maxdepth 3 -type d -name image | grep -vE '\-native/|\-cross/'`
+do
+ [ "$aPKG" == "" ] && continue
+ OES="$(grep -rhoa '/mnt/build/oe-builds/oe-quirky/[a-zA-Z0-9/._-]*/recipe\-sysroot' ${aPKG})"
+ #ex: /mnt/build/oe-builds/oe-quirky/build-amd64/tmp/work/nocona-64-poky-linux/gobject-introspection/1.62.0-r7/recipe-sysroot
+ for aOES in ${OES}
+ do
+  [ "$aOES" == "" ] && continue
+  [ "${aOES/*recipe-sysroot/}" != "" ] && continue
+  [ "${aOES:0:10}" != "/mnt/build" ] && continue
+  upOES="$(dirname ${aOES})"
+  if [ ! -d status/mnt-build${upOES} ];then
+   echo " ${upOES}"
+   mkdir -p status/mnt-build${upOES}
+   ln -sr status/mnt-build/ status/mnt-build${upOES}/recipe-sysroot
+  fi
+ done
+ sync
+done
+
+cd status
+dir2tgz mnt-build
+rm -f ../mnt-build.tar.gz
+sync
+mv -f mnt-build.tar.gz ../
+cd ..
+
+
+

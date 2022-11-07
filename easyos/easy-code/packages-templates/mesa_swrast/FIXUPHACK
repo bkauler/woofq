@@ -1,0 +1,29 @@
+#note: DISTRO_BINARY_COMPAT and DISTRO_FILE_PREFIX are visible here, exported in 2createpackages.
+#140117 xARCHDIR, ARCHDIR and DISTRO_ARCHDIR_SYMLINKS exported in 2createpackages. 
+#140117 note, 2createpackages may move /lib, /usr/lib, /usr/bin in template to ARCHDIR subdir.
+#140127 ubuntu trusty tahr: find libGL.so.1
+
+#only want swrast_dri.so...
+SWRAST="`find ./usr -type f -name swrast_dri.so | head -n 1 | sed -e 's%^\./usr%%'`"
+if [ "$SWRAST" ];then
+ DIRSWRAST="`dirname $SWRAST`"
+ mv -f ./usr${SWRAST} /tmp/
+ rm -f ./usr${DIRSWRAST}/*.so
+ mv -f /tmp/swrast_dri.so ./usr${DIRSWRAST}/
+fi
+
+#140127 Ubuntu: have libGL* in xorg_base, however, in case use this template...
+#100416 ubuntu lucid has moved libGL.so* to /usr/lib/mesa...
+#note, but not libGLU.so*
+if [ "$xARCHDIR" ];then #140127
+ if [ -e usr/lib/${ARCHDIR}/mesa/libGL.so.1 ];then
+  ln -s mesa/libGL.so.1 usr/lib/${ARCHDIR}/libGL.so.1
+  ln -s mesa/libGL.so usr/lib/${ARCHDIR}/libGL.so
+  ln -s mesa/libGL.so.1.2 usr/lib/${ARCHDIR}/libGL.so.1.2
+ fi
+fi
+if [ -e usr/lib/mesa/libGL.so.1 ];then
+ ln -s mesa/libGL.so.1 usr/lib/libGL.so.1
+ ln -s mesa/libGL.so usr/lib/libGL.so
+ ln -s mesa/libGL.so.1.2 usr/lib/libGL.so.1.2
+fi

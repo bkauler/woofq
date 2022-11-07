@@ -1,0 +1,414 @@
+#!/bin/sh
+#(c) Copyright Barry Kauler, March 3, 2017. www.barryk.org
+#License: GPL v3 (/usr/share/doc/legal)
+#based on 'remasterpup2', thanks especially to 01micko for many contributions.
+#(almost) completely rewritten for Easy Linux.
+#simple script to create a new 'easy.sfs' and build a new bootable image file.
+#170927 fix er-etc, er-root, er-var in easy.sfs. fix /audit
+#180904 $KERNELNAME (vmlinuz or kernel8.img). see also 3buildeasydistro, easy-version-control, initrd (init, rollback).
+#181028 rename 'repository' folder to 'releases'.
+#181122 q*.sfs renamed to easy*.sfs
+#181130 'initrd.q' renamed to 'initrd'
+#200717 test if old dc, busybox <= 1.28.4
+#20201215 tweaked a string for translation.
+#20220524 rename mnt/easy_ro to mnt/.easy_ro, ditto easy_rw
+#20221023 may be running as zeus super-user. 20221031 think still need to bump to root.
+
+WHOIAM="$(whoami)"
+[ "${WHOIAM}" != "root" ] && exec sudo -A ${0} ${@} #20221023 20221031
+
+export TEXTDOMAIN=easy-remaster
+export OUTPUT_CHARSET=UTF-8
+. gettext.sh
+
+dc -e '' >/dev/null 2>&1 #200717 test if old dc, busybox <= 1.28.4
+DCflg=$? #0=new bb.
+
+Yes_lbl="$(gettext 'Yes')"
+No_lbl="$(gettext 'No')"
+m_01="$(gettext 'Easy Remaster')" #window title.
+m_02="$(gettext 'ERROR')"
+m_07="$(gettext 'currently mounted')"
+m_08="$(gettext 'not mounted')"
+m_09="$(gettext 'Filesystem')"
+m_10="$(gettext 'Size')"
+m_11="$(gettext 'Free')"
+
+mkdir -p /tmp/easy-remaster-tmp #170927
+KERNELVER="`uname -r`"
+
+#mksquashfs compression
+ARCH="`uname -m`"
+case "$ARCH" in
+ x86*) COPTIONS='-comp xz -Xbcj x86' ;;
+ *)    COPTIONS='-comp xz' ;;
+esac
+
+. /etc/rc.d/PUPSTATE
+. /etc/DISTRO_SPECS
+
+#180904
+KERNELNAME=vmlinuz
+[ -f /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${DISTRO_VERSION}/kernel8.img ] && KERNELNAME="kernel8.img" #rpi3
+
+m_05="$(gettext 'Welcome! This little program takes a snapshot of your current system and allows you to create your own custom Easy Linux.')
+
+$(gettext 'The deployed Easy Linux image file has 3 main files:') ${KERNELNAME}, initrd, easy.sfs.
+
+$(gettext "It is easy.sfs that mainly interests us here: it has the entire Easy filesystem, everything from '/' down. What this script does is rebuild this file easy.sfs, with everything currently under '/' -- that is, all user-installed packages, all mounted .sfs extension files, everything, gets combined into one new file, named easy.sfs.")
+$(gettext 'Easy Linux is deployed as an image file, named')  'easy-${DISTRO_VERSION}-${DISTRO_TARGETARCH}.img.gz'.
+$(gettext 'You will need this, in which to place your newly-created easy.sfs.')
+
+$(gettext 'Click OK button to continue (or close window to quit)...')"
+#pupdialog --title "$m_01" --msgbox "$m_05" 0 0
+Xdialog --wrap --left --title "$m_01" --msgbox "$m_05" 0 80
+
+[ $? -ne 0 ] && exit
+
+#calc size needed...
+m_06="$(gettext 'Calculating needed working space.')
+$(gettext 'Please wait, this may take awhile...')"
+Xdialog --wrap --left  --title "$m_01" --no-buttons --ignore-eof  --infobox "$m_06" 0 0 0 &
+XPID=$!
+SIZEOPT=0
+SIZEBIN=`du -sk /bin | cut -f 1`
+SIZESBIN=`du -sk /sbin | cut -f 1`
+SIZELIB=`du -sk /lib | cut -f 1`
+SIZEUSR=`du -sk /usr | cut -f 1`
+SIZEOPT=0
+[ -d /opt ] && SIZEOPT=`du -sk /opt | cut -f 1`
+sync
+if [ $DCflg -eq 0 ];then #200717
+ SIZETOTALK=$(LANG=C dc -e "${SIZEBIN} ${SIZESBIN} + ${SIZELIB} + ${SIZEUSR} + ${SIZEOPT} + p")
+ SIZETOTALM=$(LANG=C dc -e "1 k ${SIZETOTALK} 1024 / p"| cut -d'.' -f1)
+else
+ SIZETOTALK=`LANG=C dc $SIZEBIN $SIZESBIN + $SIZELIB + $SIZEUSR + $SIZEOPT + p`
+ SIZETOTALM=`LANG=C dc $SIZETOTALK 1024 \/ p| cut -d'.' -f1`
+fi
+[ "$SIZETOTALM" ] || SIZETOTALM=1
+#estimate a compressed size...
+SIZENEEDEDM=`expr $SIZETOTALM \/ 3`
+SIZESLACKM=`expr $SIZENEEDEDM \/ 3` #guess
+SIZENEEDEDM=`expr $SIZENEEDEDM + $SIZESLACKM`
+SIZENEEDEDM=`expr $SIZENEEDEDM + 25`
+kill $XPID
+
+#check if enough space...
+FREEM=`df -m | grep "/dev/${WKG_DEV} " | tr -s ' ' | cut -f 4 -d ' '`
+if [ $SIZENEEDEDM -ge $FREEM ];then
+ pupdialog --background '#FF8080' --backtitle "$(gettext 'Easy Remaster: fail')" --msgbox "The working partition has insufficient space." 0 0
+ exit 1
+fi
+
+REPOPATH="/mnt/${WKG_DEV}/releases/easy-${DISTRO_VERSION}"
+origQSFSmntpt="/mnt/.easy_ro/easy_sfs" #20220524
+WKGMNTPT="/mnt/${WKG_DEV}"
+[ -d ${WKGMNTPT}/easyremasterfolder ] && rm -rf ${WKGMNTPT}/easyremasterfolder
+mkdir ${WKGMNTPT}/easyremasterfolder
+
+m_18="$(eval_gettext 'Creating the easy.sfs file in ${WKGMNTPT}/easyremasterfolder/.')
+$(gettext 'This can take quite a long time, so please wait.... and wait...')
+$(gettext 'This window will disappear when easy.sfs is finally created.')
+$(gettext 'Please wait...')"
+Xdialog --wrap --left  --title "$m_01" --no-buttons --ignore-eof   --infobox "$m_18" 0 0 0 &
+XPID=$!
+
+#create new easy.sfs file...
+squash_func() {
+	echo $0 $@
+	rxvt -bg orange -fg black -title "$m_01" -geometry 80x6 -e mksquashfs $@ 2> /dev/null
+}
+
+#mark some folders to ignore...
+DIRHOME=""
+[ -d /files ] && DIRHOME="/files"
+[ -d /sys ] && DIRSYS="/sys"
+[ -d /lost+found ] && DIRLOST="/lost+found"
+[ -d /audit ] && DIRAUDIT="/audit" #170927
+sync
+#ANOTHER_REMOVE="/lib/modules/*/modules.*"
+#[ -f /usr/share/icons/hicolor/icon-theme.cache ] && ICONCACHE=/usr/share/icons/hicolor/icon-theme.cache
+
+#####create new easy.sfs#####
+# display terminal only for the first stage because it takes the most of time. 'squash_func' is a function, see above.
+squash_func / $WKGMNTPT/easyremasterfolder/easy.sfs ${COPTIONS} -e /run /dev /etc /proc /var /tmp /mnt /root $DIRHOME $DIRSYS $DIRLOST $DIRAUDIT #$ANOTHER_REMOVE $ICONCACHE
+sync
+
+#add pristine folders (out of current easy.sfs)...
+mksquashfs ${origQSFSmntpt}/proc $WKGMNTPT/easyremasterfolder/easy.sfs -keep-as-directory
+sync
+mksquashfs ${origQSFSmntpt}/tmp $WKGMNTPT/easyremasterfolder/easy.sfs -keep-as-directory
+sync
+mksquashfs ${origQSFSmntpt}/mnt $WKGMNTPT/easyremasterfolder/easy.sfs -keep-as-directory
+sync
+mksquashfs ${origQSFSmntpt}/dev $WKGMNTPT/easyremasterfolder/easy.sfs -keep-as-directory
+sync
+if [ -d ${origQSFSmntpt}/audit ];then #170927
+ mksquashfs ${origQSFSmntpt}/audit $WKGMNTPT/easyremasterfolder/easy.sfs -keep-as-directory
+ sync
+fi
+
+kill $XPID
+
+#######START WORKING ON /root#######
+rm -rf /tmp/er-root 2> /dev/null
+#do some work on /root before add it to the squashfs...
+cp -a ${origQSFSmntpt}/root /tmp/er-root #pristine /root
+#window manager config files...
+cp -af /root/.jwmrc /tmp/er-root/ 2>/dev/null
+cp -af /root/.jwmrc-tray /tmp/er-root/  2>/dev/null
+cp -af /root/.fvwm95rc /tmp/er-root/ 2>/dev/null
+cp -af /root/.icewm/menu /tmp/er-root/.icewm/ 2>/dev/null
+#rox desktop settings...
+cp -af /root/Choices/ROX-Filer/PuppyPin /tmp/er-root/Choices/ROX-Filer/
+cp -af /root/Choices/ROX-Filer/globicons /tmp/er-root/Choices/ROX-Filer/
+#user changes get saved here, which overrides original...
+if [ -f /root/.config/rox.sourceforge.net/ROX-Filer/globicons ];then
+ mkdir -p /tmp/er-root/.config/rox.sourceforge.net/ROX-Filer/
+ cp -af /root/.config/rox.sourceforge.net/ROX-Filer/globicons /tmp/er-root/.config/rox.sourceforge.net/ROX-Filer/
+fi
+#i think also save user settings...
+if [ -f /root/.config/rox.sourceforge.net/ROX-Filer/Options ];then
+ mkdir -p /tmp/er-root/.config/rox.sourceforge.net/ROX-Filer/
+ cp -af /root/.config/rox.sourceforge.net/ROX-Filer/Options /tmp/er-root/.config/rox.sourceforge.net/ROX-Filer/
+fi
+#tidy up, remove desktop drive icons...
+grep -v '/root/.pup_event/drive_' /tmp/er-root/Choices/ROX-Filer/PuppyPin > /tmp/remaster-PuppyPin
+mv -f /tmp/remaster-PuppyPin /tmp/er-root/Choices/ROX-Filer/PuppyPin
+#this may have been modified for a different w.m...
+cp -af /root/.xinitrc /tmp/er-root/
+#also this...
+[ -f /root/.xset.sh ] && cp -af /root/.xset.sh /tmp/er-root/
+#gtk theme may have been changed...
+cp -af /root/.gtkrc-2.0 /tmp/er-root/
+#jwm theme may have changed...
+cp -af /root/.jwm/jwm_colors /tmp/er-root/.jwm/ 2>/dev/null
+cp -af /root/.jwm/jwmrc-personal /tmp/er-root/.jwm/ 2>/dev/null
+cp -af /root/.jwm/jwmrc-personal2 /tmp/er-root/.jwm/ 2>/dev/null
+cp -af /root/.jwm/jwmrc-theme /tmp/er-root/.jwm/ 2>/dev/null
+#pmount preferences...
+cp -af /root/.pmountauto /tmp/er-root/ 2>/dev/null
+cp -af /root/.pmountengine /tmp/er-root/ 2>/dev/null
+cp -af /root/.pmountquit /tmp/er-root/ 2>/dev/null
+cp -af /root/.pmountsingle /tmp/er-root/ 2>/dev/null
+#.packages/*.files, copy any files installed to /root...
+echo -n "" > /tmp/allpkgs.files
+for ONEPKG in `ls -1 /root/.packages/*.files 2>/dev/null | tr "\n" " "`
+do
+ for ONEFILE in `cat $ONEPKG | grep '^/root/' | tr "\n" " "`
+ do
+  if [ -d $ONEFILE ];then
+   mkdir -p /tmp$ONEFILE
+  fi
+  if [ -f $ONEFILE ];then
+   DIRNAME="`dirname $ONEFILE`"
+   mkdir -p /tmp$DIRNAME
+   cp -a -f $ONEFILE /tmp$DIRNAME/
+  fi
+ done
+done
+#modify /root/.packages/ files, as all installed packages are now part of the new easy.sfs...
+cp -a -f /root/.packages /tmp/er-root/
+touch /root/.packages/user-installed-packages
+cat /root/.packages/user-installed-packages >> /tmp/er-root/.packages/woof-installed-packages
+sort -u --key=1 --field-separator="|" /tmp/er-root/.packages/woof-installed-packages > /tmp/er-woof-installed-packages
+mv -f /tmp/er-woof-installed-packages /tmp/er-root/.packages/woof-installed-packages
+echo -n "" > /tmp/er-root/.packages/user-installed-packages
+sync
+#need to update /root/.packages/builtin_files folder...
+if [ -s /root/.packages/user-installed-packages ];then
+ echo -n "" > /tmp/er-root/.packages/builtin_files/${PKGnameonly}
+ for aPKG in `cat /root/.packages/user-installed-packages | cut -f 1,2 -d '|' | tr '\n' ' '`
+ do
+  PKGnameonly="$(echo -n "$aPKG" | cut -f 2 -d '|')"
+  PKGnamever="$(echo -n "$aPKG" | cut -f 1 -d '|')"
+  #one problem is the .files format is different from inside builtin_files folder...
+  PATH1=''
+  while read aLINE
+  do
+   if [ -d "$aLINE" ];then
+    PATH1="$aLINE"
+    echo "$aLINE" >> /tmp/er-root/.packages/builtin_files/${PKGnameonly}
+    continue
+   fi
+   [ ! -e "$aLINE" ] && continue #precaution
+   PATH2="$(dirname "$aLINE")"
+   BASEfile="$(basename "$aLINE")"
+   if [ "$PATH1" == "$PATH2" ];then
+    echo " ${BASEfile}" >> /tmp/er-root/.packages/builtin_files/${PKGnameonly}
+   else
+    echo "${PATH2}" >> /tmp/er-root/.packages/builtin_files/${PKGnameonly}
+    echo " ${BASEfile}" >> /tmp/er-root/.packages/builtin_files/${PKGnameonly}
+    PATH1="$PATH2"
+   fi
+  done<<_EOF1
+$(cat /root/.packages/${PKGnamever}.files | sed -e 's%/$%%')
+_EOF1
+ done
+fi
+rm -f /tmp/er-root/.packages/*.files
+rm -f /tmp/er-root/.packages/*.remove
+#this gets removed by rc.shutdown at a normal shutdown...
+[ -f /tmp/er-root/.XLOADED ] && rm -f /tmp/er-root/.XLOADED
+
+m_19="$(gettext 'This program has created folder /tmp/er-root, which has everything that is now going to be added as /root in the new easy.sfs file.')
+$(gettext "This is mostly 'pristine', as obviously you do not want all your cache files, temp files, email files, and other working/temporary files to be in the deployable image file. However, if you are familiar with the workings of Easy, you might like to take a look at /tmp/er-root right now, and possibly add anything that you want from /root (or remove something!)")
+
+$(gettext "After examining /tmp/er-root, click 'Ok' to add /root in the new easy.sfs file...")"
+Xdialog --wrap --left --title "$m_01" --msgbox "$m_19" 0 80
+rm -rf /tmp/easy-remaster-tmp/root 2>/dev/null #170927
+mv -f /tmp/er-root /tmp/easy-remaster-tmp/root #170927
+sync
+mksquashfs /tmp/easy-remaster-tmp/root $WKGMNTPT/easyremasterfolder/easy.sfs -keep-as-directory #170927
+sync
+rm -rf /tmp/easy-remaster-tmp/root
+#######END WORKING ON /root#######
+
+#######START WORKING ON /etc#######
+rm -rf /tmp/er-etc 2> /dev/null
+#do some work on /etc before add it to the .sfs...
+cp -a ${origQSFSmntpt}/etc /tmp/er-etc #pristine /etc.
+#maybe this has been modified...
+cp -af /etc/ld.so.conf /tmp/er-etc/
+cp -af /etc/ld.so.cache /tmp/er-etc/
+#.packages/*.files, copy any files installed to /etc...
+echo -n "" > /tmp/allpkgs.files
+for ONEPKG in `ls -1 /root/.packages/*.files 2>/dev/null | tr "\n" " "`
+do
+ for ONEFILE in `cat $ONEPKG | grep '^/etc/' | tr "\n" " "`
+ do
+  if [ -d $ONEFILE ];then
+   mkdir -p /tmp$ONEFILE
+  fi
+  if [ -f $ONEFILE ];then
+   DIRNAME="`dirname $ONEFILE`"
+   mkdir -p /tmp$DIRNAME
+   cp -a -f $ONEFILE /tmp$DIRNAME/
+  fi
+ done
+done
+sync
+cp -af /etc/eventmanager /tmp/er-etc/
+#what about settings for a particular pc?...
+m_20="$(gettext 'Hardware customisation was not chosen.')"
+MSG1="$m_20"
+m_21="$(eval_gettext 'Have created the /etc directory for the new easy.sfs file.')
+$(gettext "It is in a 'pristine' state, but you can choose to customise it.")
+$(gettext "Do you want to add customisations for your hardware? Examples are mouse, keyboard, video. But, if you answer 'Yes' here, easy.sfs will be preconfigured for your PC only. Therefore, it is best to answer 'No' if you want to boot your customized Easy Linux on different PCs.")
+
+$(gettext "Click 'Yes' button to customise /etc...")
+$(gettext "Click 'No' button not to customise (recommended)...")"
+Xdialog --wrap --left --title "$m_01" --default-no --ok-label "$Yes_lbl" --cancel-label "$No_lbl" --yesno "$m_21" 0 80
+if [ $? -eq 0 ];then
+ cp -af /etc/codepage /tmp/er-etc/ 2>/dev/null
+ cp -af /etc/fontmap /tmp/er-etc/ 2>/dev/null
+ cp -af /etc/keyboardtype /tmp/er-etc/ 2>/dev/null
+ cp -af /etc/keymap /tmp/er-etc/ 2>/dev/null
+ cp -af /etc/mousebuttons /tmp/er-etc/ 2>/dev/null
+ cp -af /etc/mousedevice /tmp/er-etc/ 2>/dev/null
+ cp -af /etc/videomode /tmp/er-etc/ 2>/dev/null
+ cp -af /etc/eth0mode /tmp/er-etc/ 2>/dev/null
+ cp -af /etc/eth1mode /tmp/er-etc/ 2>/dev/null
+ cp -af /etc/resolv.conf /tmp/er-etc/ 2>/dev/null
+ rm -f /tmp/er-etc/localtime  2>/dev/null #a symlink
+ cp -af /etc/localtime /tmp/er-etc/ 2>/dev/null
+ cp -af /etc/TZ /tmp/er-etc/ 2>/dev/null
+ cp -af /etc/cdburnerdevice /tmp/er-etc/ 2>/dev/null
+ cp -af /etc/dvddevice /tmp/er-etc/ 2>/dev/null
+ cp -af /etc/modemdevice /tmp/er-etc/ 2>/dev/null
+ cp -af /etc/securetelnetrc /tmp/er-etc/ 2>/dev/null
+ cp -af /etc/modules.conf /tmp/er-etc/ 2>/dev/null
+ cp -af /etc/modprobe.d /tmp/er-etc/ 2>/dev/null
+ cp -af /etc/rdesktoprc /tmp/er-etc/ 2>/dev/null
+ cp -af /etc/windowmanager /tmp/er-etc/ 2>/dev/null
+ cp -af /etc/xextraoptions /tmp/er-etc/ 2>/dev/null
+ cp -af /etc/X11/xorg.conf /tmp/er-etc/X11 2>/dev/null
+ mkdir -p /tmp/er-etc/X11/xorg.conf.d  2>/dev/null
+ cp -af /etc/X11/xorg.conf.d/10-evdev-puppy.conf /tmp/er-etc/X11/xorg.conf.d/  2>/dev/null
+ cp -af /etc/network-wizard /tmp/er-etc/ 2>/dev/null
+ cp -af /etc/simple_network_setup/* /tmp/er-etc/simple_network_setup/ 2>/dev/null
+m_22="$(gettext 'These files were customised in /etc:')
+codepage fontmap keyboardtype keymap mousebuttons mousedevice videomode eth0mode eth1mode resolv.conf localtime TZ cdburnerdevice dvddevice modemdevice securetelnetrc modprobe.d/* rdesktoprc windowmanager xextraoptions X11/xorg.conf X11/xorg.conf.d/10-evdev-puppy.conf
+$(gettext 'Also these directories:')
+network-wizard."
+ MSG1="$m_22"
+fi
+#some files to always copy...
+cp -af /etc/Puppybackgroundpicture /tmp/er-etc/ 2>/dev/null
+#TODO: other gtk and jwm customisations.
+m_23="${MSG1}
+
+$(gettext 'If you know what you are doing, you can now modify any files in /tmp/er-etc folder. This is just about to be added to /etc in the new easy.sfs file.')
+$(gettext "Do anything you want before clicking 'Ok'.")
+
+$(gettext "Click 'Ok' to add /etc in easy.sfs file...")"
+Xdialog --wrap --left --title "$m_01" --msgbox "$m_23" 0 80
+rm -rf /tmp/easy-remaster-tmp/etc 2>/dev/null #170927
+mv -f /tmp/er-etc /tmp/easy-remaster-tmp/etc #170927
+sync
+mksquashfs /tmp/easy-remaster-tmp/etc $WKGMNTPT/easyremasterfolder/easy.sfs -keep-as-directory #170927
+sync
+rm -rf /tmp/easy-remaster-tmp/etc #170927
+#######END WORKING ON /etc#######
+
+#######START WORKING ON /var#######
+rm -rf /tmp/er-var 2> /dev/null
+cp -a ${origQSFSmntpt}/var /tmp/er-var #pristine var
+#.packages/ .files, copy any files installed to /var...
+echo -n "" > /tmp/allpkgs.files
+for ONEPKG in `ls -1 /root/.packages/*.files 2>/dev/null | tr "\n" " "`
+do
+ for ONEFILE in `cat $ONEPKG | grep '^/var/' | tr "\n" " "`
+ do
+  if [ -d $ONEFILE ];then
+   mkdir -p /tmp$ONEFILE
+  fi
+  if [ -f $ONEFILE ];then
+   DIRNAME="`dirname $ONEFILE`"
+   mkdir -p /tmp$DIRNAME
+   cp -a -f $ONEFILE /tmp$DIRNAME/
+  fi
+ done
+done
+rm -rf /tmp/easy-remaster-tmp/var 2>/dev/null #170927
+mv -f /tmp/er-var /tmp/easy-remaster-tmp/var #170927
+sync
+mksquashfs /tmp/easy-remaster-tmp/var $WKGMNTPT/easyremasterfolder/easy.sfs -keep-as-directory #170927
+sync
+rm -rf /tmp/easy-remaster-tmp/var #170927
+#######END WORKING ON /var#######
+
+chmod a+r $WKGMNTPT/easyremasterfolder/* &>/dev/null
+chmod a-x $WKGMNTPT/easyremasterfolder/easy.sfs &>/dev/null
+
+###finished###
+fin_msg1="$(gettext 'Easy Remaster: finished')"
+fin_msg2="$(gettext 'Done! The new easy.sfs has been created. What you now have to do, is insert it into the deployable image file, which you do manually.')"
+fin_msg3="$(gettext 'Location of easy.sfs:') ${WKGMNTPT}/easyremasterfolder/easy.sfs"
+fin_msg4="$(gettext 'Deployable image file:') easy-${DISTRO_VERSION}-${DISTRO_TARGETARCH}.img.gz"
+fin_msg5="$(gettext 'The deployable image file is what you have already downloaded. If lost, download it again. Then, click on it to uncomress it.')"
+fin_msg6="$(gettext 'Uncompressed image:') easy-${DISTRO_VERSION}-${DISTRO_TARGETARCH}.img"
+fin_msg7="$(gettext 'Click on it again, and it will open up, and you will see easy.sfs. Copy your new easy.sfs to replace it.')"
+fin_msg8="$(gettext 'Click on the uncompressed image file again, to close it up.')"
+fin_msg9="$(gettext 'You custom remaster is completed! If you want to upload it to the Internet for others to use, you will probably want to recompress it. To do this, open a terminal where the image file is, and execute this:')"
+fin_msg10="# gzip easy-${DISTRO_VERSION}-${DISTRO_TARGETARCH}.img"
+fin_msg11="$(gettext "One final piece of housekeeping. You might want to delete the 'easyremasterfolder' folder:")"
+fin_msg12="${WKGMNTPT}/easyremasterfolder"
+fin_msg="${fin_msg2}
+${fin_msg3}
+${fin_msg4}
+
+${fin_msg5}
+${fin_msg6}
+
+${fin_msg7}
+${fin_msg8}
+
+${fin_msg9}
+${fin_msg10}
+
+${fin_msg11}
+${fin_msg12}"
+Xdialog --wrap --left --title "$fin_msg1" --msgbox "$fin_msg" 0 80
+
+####THE END######

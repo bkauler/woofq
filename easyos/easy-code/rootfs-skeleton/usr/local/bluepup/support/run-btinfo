@@ -1,0 +1,43 @@
+#!/bin/sh
+#a wrapper for either "bluetoothctl info <dev>" or "bt-device -i <dev>"
+#call this script like this: /usr/local/bluepup/support/run-btinfo <dev>
+#passed param is <dev.
+#only works for english, LANG=C
+
+export TEXTDOMAIN=bluepup
+export TEXTDOMAINDIR=/usr/share/locale
+export OUTPUT_CHARSET=UTF-8
+
+#bluetoothctl hangs if bluetoothd daemon has crashed, bt-device does not hang.
+#their output is slightly different, so this wrapper will modify bt-device -i
+#output to be more like that of bluetoothctl info
+
+DEVICEID="$1"
+
+#if [ ! -e /tmp/bluepup/run-btinfo-sed-patterns ];then
+# cat << 'EOF1' >> /tmp/bluepup/run-btinfo-sed-patterns
+#'s%Paired: 1%Paired: yes%'
+#'s%%%'
+#'s%%%'
+#'s%%%'
+#'s%%%'
+#'s%%%'
+#EOF1
+#fi
+
+#bt-device -i ${DEVICEID} | sed -f /tmp/bluepup/run-btinfo-sed-patterns
+
+YES="$(gettext 'yes')"
+NO="$(gettext 'no')"
+PTN1="s% 1 *% ${YES} %"
+PTN2="s% 0 *% ${NO} %"
+bt-device -i ${DEVICEID} 2>&1 | sed -e "$PTN1" -e "$PTN2"
+
+if [ $? -ne 0 ];then #will have failed if bluetoothd has crashed.
+ #using 'restarter' in /etc/init.d/bluetooth to automatically restart the daemon.
+ #so try again...
+ sleep 1
+ bt-device -i ${DEVICEID} 2>&1 | sed -e "$PTN1" -e "$PTN2"
+fi
+
+###end###

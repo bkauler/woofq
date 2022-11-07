@@ -1,0 +1,124 @@
+#!/bin/sh
+#create desktop icon(s) and update jwm menu.
+#script easy-containers does this, when new container created, but want to do it from elsewhere.
+#called from /usr/local/sfsget/sfsget, passed-in params ${DB_path} ${FULLPKGNAME}
+# ex: puppy/t2/racy racy_5.5_i686
+#190911 if creating "easy" container, another series of easyos, change desktop label.
+#200601 .desktop is normal, .ec-desktop for running in container. see also /sbin/fixlayers in intrd, dir2sfs, sfsget
+#20220208 set flag if rox is managing desktop icons. 20220210 read /etc/uimanager
+#20220210 popup containers menu.
+#20220218 generate-containers-menu writes to /root/.jwmrc-containers internally.
+#20220218 no longer using ROXDESKflg.
+#20220603 replace DB_* with SFS_DB_* in sfs .specs files.
+
+export TEXTDOMAIN=easy-containers
+export OUTPUT_CHARSET=UTF-8
+
+. /etc/rc.d/PUPSTATE #has BOOT_DEV, BOOT_FS, BOOT_DIR, WKG_DEV, WKG_FS, WKG_DIR, QSFS_PATH
+
+#20220208  20220210 20220218
+. /etc/uimanager #has UI_DESK_MANAGER='jwm' #or rox
+
+#load the database variables...
+grep -q '^SFS_DB_' /mnt/wkg/sfs/${1}/${2}.specs #20220603 check for old format.
+if [ $? -ne 0 ];then
+ sed -i -e 's%^DB_%SFS_DB_%' /mnt/wkg/sfs/${1}/${2}.specs
+fi
+#if [ $? -eq 0 ];then
+. /mnt/wkg/sfs/${1}/${2}.specs
+#else
+# sed -e 's%^DB_%SFS_DB_%' /mnt/wkg/sfs/${1}/${2}.specs > /tmp/zzzzyyyyxxxx.specs
+#. /tmp/zzzzyyyyxxxx.specs
+# rm -f /tmp/zzzzyyyyxxxx.specs
+#fi
+EC_CREATE="${SFS_DB_nameonly}"
+
+#190911 
+xDISTRO_COMPAT_VERSION="$(basename ${1})" #ex: easyos/oe/pyro, extract pyro
+if [ "$EC_CREATE" == "easy" ];then
+ xLABEL="$xDISTRO_COMPAT_VERSION"
+else
+ xLABEL="$EC_CREATE"
+fi
+
+#the SFS file is mounted...
+DEBS_PATH="/mnt/wkg/sfs/${1}/mntpt"
+
+#copy out the .desktop files...
+for aAPP in `echo -n "$SFS_DB_apps" | tr ',' ' '`
+do
+ if [ -f /mnt/wkg/sfs/${1}/mntpt/usr/share/applications/${aAPP}.ec-desktop ];then #200601
+  cp -f /mnt/wkg/sfs/${1}/mntpt/usr/share/applications/${aAPP}.ec-desktop /usr/share/applications/ec-${aAPP}.desktop
+ else
+  cp -f /mnt/wkg/sfs/${1}/mntpt/usr/share/applications/${aAPP}.desktop /usr/share/applications/ec-${aAPP}.desktop
+ fi
+ #and the run-script...
+ cp -a -f /mnt/wkg/sfs/${1}/mntpt/usr/sbin/ec-chroot-${aAPP} /usr/sbin/
+done
+
+#copy out the icons...
+for aICON in `echo -n "$SFS_DB_icons" | tr ',' ' '`
+do
+ cp -f /mnt/wkg/sfs/${1}/mntpt/usr/share/pixmaps/ec-${aICON}48.png /usr/share/pixmaps/
+done
+
+#find a free space on desktop...
+#  note, there is free_coord() in /usr/local/easy_containers/frontend_funcs, but just do it roughly here...
+for aY in 128 224 320
+do
+ for aX in 672 736
+ do
+  aPTN="x=\"${aX:0:2}[0-9]\" y=\"${aY:0:2}[0-9]\""
+  grep "$aPTN" /root/Choices/ROX-Filer/PuppyPin > /dev/null
+  [ $? -ne 0 ] && break 2
+ done
+done
+#...aX and aY are free coordinates.
+
+if [ "$UI_DESK_MANAGER" == "rox" ];then #20220208 20220218
+ #rox-filer, icon on desktop...
+ #globicons, note, got code from /etc/rc.d/functions4puppy4...
+ echo "<?xml version=\"1.0\"?>
+<env:Envelope xmlns:env=\"http://www.w3.org/2001/12/soap-envelope\">
+ <env:Body xmlns=\"http://rox.sourceforge.net/SOAP/ROX-Filer\">
+  <SetIcon>
+   <Path>/usr/sbin/ec-chroot-${EC_CREATE}</Path>
+   <Icon>/usr/share/pixmaps/ec-${EC_CREATE}48.png</Icon>
+  </SetIcon>
+ </env:Body>
+</env:Envelope>"  | rox -R
+ #now create an icon on desktop...
+ #  note, frontend_funcs has add_pinboard_func(), use code from it... 190911...
+ echo "<?xml version=\"1.0\"?>
+<env:Envelope xmlns:env=\"http://www.w3.org/2001/12/soap-envelope\">
+ <env:Body xmlns=\"http://rox.sourceforge.net/SOAP/ROX-Filer\">
+  <PinboardAdd>
+   <Path>/usr/sbin/ec-chroot-${EC_CREATE}</Path>
+   <X>${aX}</X>
+   <Y>${aY}</Y>
+   <Label>${xLABEL}</Label>
+   <Args></Args>
+  </PinboardAdd>
+ </env:Body>
+</env:Envelope>"  | rox -R
+else
+ /usr/local/ui/jwm/generate-containers-menu #> /root/.jwmrc-containers
+fi
+  
+#log, read by ec-fix-desktop... 190911...
+echo "EC_LABEL=${xLABEL}
+EC_PATH=/usr/sbin/ec-chroot-${EC_CREATE}
+EC_ICON=/usr/share/pixmaps/ec-${EC_CREATE}48.png" > /mnt/wkg/containers/${EC_CREATE}/desktop
+  
+#now update the jwm menu...
+cd /
+fixmenus
+jwm -reload
+
+if [ "$UI_DESK_MANAGER" == "jwm" ];then #20220210
+ /usr/local/ui/jwm/popup-containers-menu
+fi
+pupdialog --timeout 5 --background '#80FF80' --backtitle "$(gettext 'Creation completed:') ${EC_CREATE}" --msgbox "$(gettext 'Container created, menu entry created, and icon on the desktop')" 0 0
+
+sync
+###end###

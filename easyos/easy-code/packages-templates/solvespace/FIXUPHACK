@@ -1,0 +1,41 @@
+
+mkdir -p usr/share/applications
+
+echo '[Desktop Entry]
+Version=1.0
+Name=SolveSpace parametric 3D CAD
+Comment=A parametric 2d/3d CAD
+Exec=solvespace
+MimeType=application/x-solvespace
+Icon=solvespace.png
+Type=Application
+Categories=X-Graphic-draw
+Keywords=parametric;cad;2d;3d;' > usr/share/applications/solvespace.desktop
+
+#20210422 dunfell oe has this. it is ok, but using my own...
+if [ -f usr/share/mime/packages/solvespace-slvs.xml ];then
+ rm -f usr/share/mime/packages/solvespace-slvs.xml
+fi
+
+#191228 this file is wrong in buster deb...
+mkdir -p usr/share/mime/packages
+echo '<?xml version="1.0" encoding="UTF-8"?>
+<mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">
+
+  <mime-type type="application/x-solvespace">
+    <comment>SolveSpace file</comment>
+    <glob pattern="*.slvs"/>
+  </mime-type>
+  
+</mime-info>' > usr/share/mime/packages/solvespace.xml
+
+#20210422 have compiled in dunfell oe
+if [ -f usr/bin/solvespace-cli ];then
+ rm -f usr/bin/solvespace-cli
+fi
+
+#20210422 have compiled in dunfell oe
+if [ ! -e usr/share/pixmaps/solvespace.png ];then
+ ln -s ../icons/hicolor/16x16/apps/solvespace.png solvespace.png
+fi
+

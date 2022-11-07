@@ -1,0 +1,72 @@
+#!/bin/sh
+
+GTKDIALOG=gtkdialog
+
+TMPDIR=/tmp/gtkdialog/examples/"`basename $0`"
+mkdir -p "$TMPDIR"
+
+funcfiletreCreate() {
+	local f=0
+
+	echo -n > "$TMPDIR"/$1
+	while [ $f -lt $2 ]; do
+		echo "#$f This is selection mode \"$3\"" >> "$TMPDIR"/$1
+		f=$((f + 1))
+	done
+}
+
+functreCreate() {
+	echo '<tree selection-mode="'$2'" stock-id="'$3'">
+			<variable>'$1'</variable>
+			<label>Items</label>
+			<height>200</height>
+			<width>300</width>
+			<input>cat '"$TMPDIR"'/file'$1'</input>
+		</tree>
+		<hbox homogeneous="true">
+			<button use-stock="true" label="gtk-delete">
+				<action>echo "Deleting $'$1'"</action>
+				<action function="removeselected">'$1'</action>
+			</button>
+			<button use-stock="true" label="gtk-refresh">
+				<action>echo Reloading file'$1'</action>
+				<action function="refresh">'$1'</action>
+			</button>
+		</hbox>'
+}
+
+funcfiletreCreate filetreNone 3 none
+funcfiletreCreate filetreSingle 3 single
+funcfiletreCreate filetreBrowse 3 browse
+funcfiletreCreate filetreMultiple 16 multiple
+
+MAIN_DIALOG='
+<window title="Tree Selection Mode" resizable="false">
+	<vbox>
+		<frame tree widget selection modes>
+			<hbox>
+				<vbox>
+					'"`functreCreate treNone 0`"'
+					<hseparator></hseparator>
+					'"`functreCreate treSingle 1 gtk-file`"'
+				</vbox>
+				<vseparator></vseparator>
+				<vbox>
+					'"`functreCreate treBrowse 2 gtk-justify-center`"'
+					<hseparator></hseparator>
+					'"`functreCreate treMultiple 3 gtk-copy`"'
+				</vbox>
+			</hbox>
+		</frame>
+		<hbox homogeneous="true">
+			<button ok></button>
+		</hbox>
+	</vbox>
+</window>
+'
+export MAIN_DIALOG
+
+case $1 in
+	-d | --dump) echo "$MAIN_DIALOG" ;;
+	*) $GTKDIALOG --program=MAIN_DIALOG ;;
+esac

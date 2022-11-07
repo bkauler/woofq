@@ -1,0 +1,30 @@
+
+#160428 for debian/ubuntu
+if [ -d /include/x86_64-linux-gnu ];then
+ [ "$C_INCLUDE_PATH" ] && C_INCLUDE_PATH="${C_INCLUDE_PATH}:"
+ C_INCLUDE_PATH="${C_INCLUDE_PATH}/include/x86_64-linux-gnu"
+ [ "$CPLUS_INCLUDE_PATH" ] && CPLUS_INCLUDE_PATH="${CPLUS_INCLUDE_PATH}:"
+ CPLUS_INCLUDE_PATH="${CPLUS_INCLUDE_PATH}/include/x86_64-linux-gnu"
+fi
+if [ -d /usr/include/x86_64-linux-gnu ];then
+ [ "$C_INCLUDE_PATH" ] && C_INCLUDE_PATH="${C_INCLUDE_PATH}:"
+ C_INCLUDE_PATH="${C_INCLUDE_PATH}/usr/include/x86_64-linux-gnu"
+ [ "$CPLUS_INCLUDE_PATH" ] && CPLUS_INCLUDE_PATH="${CPLUS_INCLUDE_PATH}:"
+ CPLUS_INCLUDE_PATH="${CPLUS_INCLUDE_PATH}/usr/include/x86_64-linux-gnu"
+fi
+
+#161203 for quirky 8.1.3.1 on raspberry pi2
+if [ -d /include/arm-linux-gnueabihf ];then
+ [ "$C_INCLUDE_PATH" ] && C_INCLUDE_PATH="${C_INCLUDE_PATH}:"
+ C_INCLUDE_PATH="${C_INCLUDE_PATH}/include/arm-linux-gnueabihf"
+ [ "$CPLUS_INCLUDE_PATH" ] && CPLUS_INCLUDE_PATH="${CPLUS_INCLUDE_PATH}:"
+ CPLUS_INCLUDE_PATH="${CPLUS_INCLUDE_PATH}/include/arm-linux-gnueabihf"
+fi
+if [ -d /usr/include/arm-linux-gnueabihf ];then
+ [ "$C_INCLUDE_PATH" ] && C_INCLUDE_PATH="${C_INCLUDE_PATH}:"
+ C_INCLUDE_PATH="${C_INCLUDE_PATH}/usr/include/arm-linux-gnueabihf"
+ [ "$CPLUS_INCLUDE_PATH" ] && CPLUS_INCLUDE_PATH="${CPLUS_INCLUDE_PATH}:"
+ CPLUS_INCLUDE_PATH="${CPLUS_INCLUDE_PATH}/usr/include/arm-linux-gnueabihf"
+fi
+
+export C_INCLUDE_PATH CPLUS_INCLUDE_PATH

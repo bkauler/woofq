@@ -1,0 +1,63 @@
+#!/bin/bash
+#bt-av_remote based on script mpvgui from user 'sfs', PuppyRus linux Team
+#version 04.06.18
+#modified by mistfire
+
+if [ "$1" = '' ]; then 
+	echo "Usage: bt-av_remote hci0 11:22:33:44:55:66"
+	exit
+fi
+
+HCI_DEV=$1
+BDA=$2
+DBUS_DEV="dev_$(echo $BDA | tr ':' '_')"
+
+# получим доступные параметры
+CONNECTED=$(dbus-send --system --print-reply --type=method_call --dest=org.bluez /org/bluez/$HCI_DEV/$DBUS_DEV org.freedesktop.DBus.Properties.Get string:org.bluez.MediaControl1 string:Connected | grep -E -o 'true|false')
+
+if [ "$CONNECTED" = 'false' ] || [ "$CONNECTED" = '' ]; then
+	/usr/lib/gtkdialog/box_ok "BT-AV REMOTE" error "Remote control not connected to device" "Connect device with bluetooth management apps" "Example: blueman, puppybt, pbluetooth, bluetoothctl, etc."
+   exit 1
+fi
+
+#путь к плееру 
+#PLAYER_DBUS=$(dbus-send --system --print-reply --type=method_call --dest=org.bluez /org/bluez/$HCI_DEV/$DBUS_DEV org.freedesktop.DBus.Properties.Get string:org.bluez.MediaControl1 string:Player)
+
+###############3mpvtray
+export POPUP_TEXT="\
+Bluetooth remote control"
+export TRAY_FIFO=$(mktemp -u /tmp/menutray.XXXXXXXX) ; mkfifo $TRAY_FIFO
+export TRAY_ICON=bt-av_remote
+
+
+CLOSE_QUIT(){
+# надо ли отключать от телефона?
+sudo kill $(pgrep -f 'yad --text=Bluetooth')
+} ; export -f CLOSE_QUIT
+
+#Загрузить playlist .m3u! bash -c "MPV; LLIST &" !gtk-index
+GET_MENU='Volume UP! bash -c "dbus-send --system --type=method_call --print-reply --dest=org.bluez /org/bluez/'$HCI_DEV'/'$DBUS_DEV' org.bluez.MediaControl1.VolumeUp" !gtk-go-up
+Volume Down! bash -c "dbus-send --system --type=method_call --print-reply --dest=org.bluez /org/bluez/'$HCI_DEV'/'$DBUS_DEV' org.bluez.MediaControl1.VolumeDown" !gtk-go-down@
+gtk-media-next! bash -c "dbus-send --system --type=method_call --print-reply --dest=org.bluez /org/bluez/'$HCI_DEV'/'$DBUS_DEV' org.bluez.MediaControl1.Next"
+gtk-media-forward! bash -c "dbus-send --system --type=method_call --print-reply --dest=org.bluez /org/bluez/'$HCI_DEV'/'$DBUS_DEV' org.bluez.MediaControl1.FastForvard"
+gtk-media-stop! bash -c "dbus-send --system --type=method_call --print-reply --dest=org.bluez /org/bluez/'$HCI_DEV'/'$DBUS_DEV' org.bluez.MediaControl1.Stop"
+gtk-media-pause! bash -c "dbus-send --system --type=method_call --print-reply --dest=org.bluez /org/bluez/'$HCI_DEV'/'$DBUS_DEV' org.bluez.MediaControl1.Pause"
+gtk-media-play! bash -c "dbus-send --system --type=method_call --print-reply --dest=org.bluez /org/bluez/'$HCI_DEV'/'$DBUS_DEV' org.bluez.MediaControl1.Play"
+gtk-media-rewind! bash -c "dbus-send --system --type=method_call --print-reply --dest=org.bluez /org/bluez/'$HCI_DEV'/'$DBUS_DEV' org.bluez.MediaControl1.Rewind"
+gtk-media-previous! bash -c "dbus-send --system --type=method_call --print-reply --dest=org.bluez /org/bluez/'$HCI_DEV'/'$DBUS_DEV' org.bluez.MediaControl1.Previous"'
+
+#MENU_ITEMS="` echo "$GET_MENU" | tr '\n' '@' | sed '$s/.$//' `"
+MENU_ITEMS="$( echo "$GET_MENU" | tr '\n' '@' )"
+
+TRAY(){
+   export TRAY_FIFO ; exec 3<> $TRAY_FIFO
+GUI=$(yad --text="$POPUP_TEXT" \
+--notification --kill-parent --listen \
+--no-middle \
+--image="$TRAY_ICON" \
+--separator=@ \
+--command="bash -c 'echo'" <&3 ) & 
+echo "menu:gtk-quit!bash -c CLOSE_QUIT@@$MENU_ITEMS" >&3
+}
+
+TRAY

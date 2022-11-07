@@ -1,0 +1,27 @@
+timeout 10
+textonly on
+textmode 0
+showtools shutdown,reboot,firmware
+#scan_all_linux_kernels off
+#scanfor manual,internal
+scanfor manual
+menuentry "Easy OS" {
+ loader /vmlinuz
+ initrd /initrd
+ ostype linux
+ options rw
+ submenuentry "Filesystem check" {
+  add_options "qfix=fsck"
+ }
+ submenuentry "Commandline only, do not start X" {
+  add_options "qfix=nox"
+ }
+ submenuentry "Rollback to pristine first-boot" {
+  add_options "qfix=bak"
+ }
+}
+menuentry "Windows 10" {
+ volume SYSTEM
+ loader \EFI\Microsoft\Boot\bootmgfw.efi
+ disabled
+}

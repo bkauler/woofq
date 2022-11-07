@@ -1,0 +1,34 @@
+LogLevel info
+SystemGroup lpadmin
+# Only listen for connections from the local machine.
+Listen localhost:631
+Listen /var/run/cups/cups.sock
+# Disable printer sharing.
+Browsing Off
+BrowseOrder allow,deny
+BrowseAllow all
+DefaultAuthType Basic
+<Location /admin/conf>
+  AuthType None
+  # Restrict access to the configuration files...
+  Order allow,deny
+</Location>
+<Policy default>
+  <Limit All>
+    Order deny,allow
+  </Limit>
+</Policy>
+<Location />
+  # Restrict access to the server...
+  Order allow,deny
+</Location>
+<Location /admin>
+  # Restrict access to the admin pages...
+  Order allow,deny
+</Location>
+<Location /admin/log>
+  AuthType Default
+  Require user @SYSTEM
+  # Restrict access to the log files...
+  Order allow,deny
+</Location>

@@ -1,0 +1,4 @@
+#!/bin/sh
+
+nim c --mm:orc -d:useMalloc --passC:-flto --passL:-flto -d:release --opt:size debdb2pupdb.nim
+strip --strip-unneeded debdb2pupdb

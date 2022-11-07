@@ -1,0 +1,807 @@
+#!/bin/bash
+#20210906 based on support/setup-spot
+#called from dir2sfs, 3buildeasydistro
+# intention is the following:
+# call from 3builddistro, current dir is inside 'sandbox3'.
+# also want to call from LoginManager (/usr/sbin/loginmanager) from running puppy.
+# pass in space-delimited name of app to run as a client, with false or true.
+# ex: 'seamonkey=true'
+# ...=true means turn on running in client, =false turn off. no parameter then do nothing.
+#20210913 need to allow write inside encrypted fs. see also rc.sysinit, run-as-spot, setup-spot
+#20210914 ${APPpath} fix for appended ${PREFIXDIR1}
+#20210915 rename ${PREFIXDIR1}/clients/${APPname} to .${APPname}, if change back to run as root.
+#20210915 add $ROOTARG for any commandline arg that requires app to run as root.
+#20210915 optional $2=$PREFIXDIR2, when call from dir2sfs.
+#20210915 when an sfs created by dir2sfs, some operations need to be delayed.
+#20210915 add app to fscryptgrp.
+#20210916 do not preset $DISPLAY. not using .Xauthority. modify chown.
+#20210916 detect if running in container.
+#20210916 "#CLIENTMARKER ${APPname}" read by /usr/local/easy_containers/ec-chroot
+#20210916 crippled-root in container, some operations have to be done in ec-chroot.
+#20210917 do not create client folders when called from dir2sfs. it will be done at runtime.
+#20210918 revert 20210917. another delay.
+#20210919 /clients now /home
+#20210927 gtk3 scrollbar fixes.
+#20211003 removed chromium "--test-type"
+#20211004 kill old processes. sometimes happens with seamonkey and chromium.
+#20211005 improve the generated app script.
+#20211007 commandline fix for chromium no audio at youtube.
+#20211007 also odd, have to add the extra option for audio crippled-root in container.
+#20211022 chromium_true|false now handles chrome.
+#20211022 chrome|chromium: fix if path has "/root/"
+#20211103 support pulseaudio. ref: comments in /root/Startup/pulseaudio
+#  see also /usr/local/clients/create-client-environment
+#20211104 firefox playing videos, need belong 'video' group.
+#20211107 add installer function for firefox. modify prefs.js in sandbox.
+#20211108 permissions so that ff can auto-update.
+#20211110 revert 20211108, as have disabled updating. now update when build in woofq.
+#20211110 alternative way to disable sandbox in container. 20211111 fix.
+#20211201 change msg 1st time run firefox.
+#20211205 /home/*/Downloads is now symlink to /files/downloads. 20211206 no.
+#20211206 new group 'filesgrp'. copy /root/.config/user-dirs.dirs
+#20211213 my latest chromium pet already has a properly setup Preferences file.
+#20220107 set MOZILLA_FIVE_HOME for firefox and seamonkey.
+#20220914 bring back "--test-type" for chrome. new $ALWAYSOPTS
+#20220916 /usr/local/easy_containers/templates/$APPname/specs may have TEMPLATE_ACCESS_MOZBARE='yes' (ex: blender)
+#20220916 blender.
+#20220923 setup for spot in container.
+
+APPname="${1/=*/}"  #ex: seamonkey
+APPflag="${1/*=/}" #ex: true
+[ ! "$APPname" ] && exit 1
+[ "$APPflag" != "true" -a "$APPflag" != "false" ] && exit 2
+
+#20210915
+PREFIXDIR1=''     #note: loginmanager will not pass a $2
+PREFIXDIR2="${2}" #dir2sfs will pass this, when creating an sfs.
+if [ -d ./rootfs-complete ];then
+ PREFIXDIR1='rootfs-complete' #running in woofQ.
+fi
+if [ "$PREFIXDIR2" ];then
+ PREFIXDIR1="${PREFIXDIR2}"
+fi
+
+if [ ! "$PREFIXDIR2" ];then #do not do this if building an sfs in dir2sfs...
+ touch ${PREFIXDIR1}/root/.clients-status
+fi
+
+if [ "$APPflag" == "true" ];then #20210915
+ #bring back previously hidden folder...
+ if [ ! -d ${PREFIXDIR1}/home/${APPname} ];then
+  if [ -d ${PREFIXDIR1}/home/.${APPname} ];then
+   mv -f ${PREFIXDIR1}/home/.${APPname} ${PREFIXDIR1}/home/${APPname}
+  fi
+ fi
+fi
+
+#note, same code is in /usr/local/clients/create-client-environment
+#create folders in /clients...
+CHGflg=0 #20210916  20210918 revert 20210917...
+#if [ ! "$PREFIXDIR2" ];then #20210917 dir2sfs is creating an sfs, this code has to be delayed, see create-client-environment below.
+ if [ "$APPflag" == "true" ];then #20210915
+  if [ ! -d ${PREFIXDIR1}/home/${APPname} ];then
+   CHGflg=1 #20210916
+   mkdir -p ${PREFIXDIR1}/home/${APPname}
+   for aSUB in .cache .config .history .local/share ${APPname}
+   do
+    mkdir -p ${PREFIXDIR1}/home/${APPname}/${aSUB}
+   done
+   #ln -s /files/downloads ${PREFIXDIR1}/home/${APPname}/Downloads #20211205 20211206
+   #icon for rox-filer...
+   IMG="${PREFIXDIR1}/usr/share/pixmaps/${APPname}.png"
+   if [ ! -e ${IMG} ];then
+    IMG="$(find ${PREFIXDIR1}/usr/share/icons/hicolor/48x48/apps/${APPname}.* -maxdepth 1 2>/dev/null | head -n 1)"
+    if [ ! "$IMG" ];then
+     if [ -f ${PREFIXDIR1}/usr/share/applications/${APPname}.desktop ];then
+      xIMG="$(grep '^Icon=' ${PREFIXDIR1}/usr/share/applications/${APPname}.desktop | cut -f 2 -d '=' | cut -f 1 -d ' ')"
+      IMG="$(find  ${PREFIXDIR1}/usr/share/icons/hicolor/48x48 ${PREFIXDIR1}/usr/share/pixmaps ${PREFIXDIR1}/usr/local/lib/X11/mini-icons -name ${xIMG} -o -name ${xIMG}.png -o -name ${xIMG}.svg -o ${xIMG}.xpm 2>/dev/null | head -n 1)"
+     fi
+    fi
+    if [ ! "$IMG" ];then
+     IMG="${PREFIXDIR1}/usr/share/pixmaps/puppy/execute.svg"
+    fi
+   fi
+   ln -s -r ${IMG} ${PREFIXDIR1}/home/${APPname}/.DirIcon
+   ln -s -r ${IMG} ${PREFIXDIR1}/home/${APPname}/${APPname}/.DirIcon
+   #click on this folder will run the app...
+   echo -e "#!/bin/sh\nexec ${APPname}" > ${PREFIXDIR1}/home/${APPname}/${APPname}/AppRun
+   chmod 755 ${PREFIXDIR1}/home/${APPname}/${APPname}/AppRun
+  fi
+  if [ ! -d ${PREFIXDIR1}/home/${APPname}/.config/gtk-3.0 ];then #20210927
+   CHGflg=1 #20211103
+   mkdir -p ${PREFIXDIR1}/home/${APPname}/.config/gtk-3.0
+   cp -f /root/.config/gtk-3.0/settings.ini ${PREFIXDIR1}/home/${APPname}/.config/gtk-3.0/
+   cp -f /root/.config/gtk-3.0/gtk.css ${PREFIXDIR1}/home/${APPname}/.config/gtk-3.0/
+  fi
+  
+  if [ ! -e ${PREFIXDIR1}/home/${APPname}/.config/pulse/client.conf ];then #20211103
+   #20211103 pulseaudio work in client... ref: http://billauer.co.il/blog/2014/01/pa-multiple-users/
+   # no, why should i do this? not needed...
+   #if [ -f /etc/pulse/default.pa ];then
+   # mkdir -p ${PREFIXDIR1}/.config/pulse
+   # echo '.include /etc/pulse/default.pa' > ${PREFIXDIR1}/.config/pulse/default.pa
+   #fi
+   #this is how it has to be done...
+   CHGflg=1
+   mkdir -p ${PREFIXDIR1}/home/${APPname}/.config/pulse
+   echo 'default-server = unix:/tmp/pulse-socket' > ${PREFIXDIR1}/home/${APPname}/.config/pulse/client.conf
+   #$PULSE_RUNTIME_PATH=/run/pulse and this is where apps expect the socket, and named "native"
+   # .../etc/pulse/default.pa creates two sockets.
+  fi
+  
+  if [ ! -e ${PREFIXDIR1}/home/${APPname}/.config/user-dirs.dirs ];then #20211206
+   cp -f /root/.config/user-dirs.dirs ${PREFIXDIR1}/home/${APPname}/.config/
+   CHGflg=1
+  fi
+  
+  #20220916 may have TEMPLATE_ACCESS_MOZBARE. ref: /usr/local/bin/xdg-open
+  if [ -f ${PREFIXDIR1}/usr/local/easy_containers/templates/${APPname}/specs ];then
+   . ${PREFIXDIR1}/usr/local/easy_containers/templates/${APPname}/specs
+   if [ "$TEMPLATE_ACCESS_MOZBARE" == "yes" ];then
+    cp -a ${PREFIXDIR1}/root/.mozbare ${PREFIXDIR1}/home/${APPname}/
+   fi
+  fi
+  
+ fi
+#fi
+
+if [ ! "$PREFIXDIR2" ];then #20210915 dir2sfs is creating an sfs, this code has to be delayed, see create-client-environment below.
+ #create user, no login...
+ #when running from woofQ, host needs to be easyos, so that /etc/passwd and /etc/group are compatible...
+ grep -q "^${APPname}:" ${PREFIXDIR1}/etc/group
+ if [ $? -ne 0 ];then
+  busybox addgroup ${APPname} 2>/dev/null
+  if [ "$PREFIXDIR1" ];then
+   sed -i "/^${APPname}:/d" ${PREFIXDIR1}/etc/group
+   grep "^${APPname}:" /etc/group >> ${PREFIXDIR1}/etc/group
+   sed -i "/^${APPname}:/d" ${PREFIXDIR1}/etc/gshadow
+   grep "^${APPname}:" /etc/gshadow >> ${PREFIXDIR1}/etc/gshadow
+  fi
+ fi
+ grep -q "^${APPname}:" ${PREFIXDIR1}/etc/passwd
+ if [ $? -ne 0 ];then
+  # -S create a system user.  -D don't assign a password.  -H don't create a home directory.
+  busybox adduser -h /home/${APPname} -G ${APPname} -D -H ${APPname} 2>/dev/null
+  if [ "$PREFIXDIR1" ];then
+   grep "^${APPname}:" /etc/passwd >> ${PREFIXDIR1}/etc/passwd
+   grep "^${APPname}:" /etc/shadow >> ${PREFIXDIR1}/etc/shadow
+  fi
+  #20211206 note, initrd expects these gids fscryptgrp=118, filesgrp=122...
+  busybox addgroup ${APPname} fscryptgrp 2>/dev/null #20210915
+  busybox addgroup ${APPname} filesgrp 2>/dev/null #20211206
+  busybox addgroup ${APPname} disk 2>/dev/null
+  busybox addgroup ${APPname} audio 2>/dev/null
+  busybox addgroup ${APPname} lp 2>/dev/null
+  busybox addgroup ${APPname} bluetooth 2>/dev/null
+  busybox addgroup ${APPname} scanner 2>/dev/null
+  busybox addgroup ${APPname} cdrom 2>/dev/null
+  busybox addgroup ${APPname} pulse 2>/dev/null #20211103 support pulseaudio.
+  busybox addgroup ${APPname} video 2>/dev/null #20211104 think need this.
+  # ...user added to 'pulse' group now not required, see /etc/pulse/default.pa
+  #    users must belong to group 'audio' for pulseaudio to work.
+  if [ "$PREFIXDIR1" ];then
+   for aENTRY in disk audio lp bluetooth scanner cdrom fscryptgrp pulse video filesgrp #20210915 20211103 20211104 20211206
+   do
+    sed -i "/^${aENTRY}:/d" ${PREFIXDIR1}/etc/group
+    grep "^${aENTRY}:" /etc/group >> ${PREFIXDIR1}/etc/group
+    sed -i "/^${aENTRY}:/d" ${PREFIXDIR1}/etc/gshadow
+    grep "^${aENTRY}:" /etc/gshadow >> ${PREFIXDIR1}/etc/gshadow
+   done
+  fi
+ fi
+
+ #if [ ! -d ${PREFIXDIR1}/files/downloads/${APPname} ];then #20211206
+ # mkdir -p ${PREFIXDIR1}/files/downloads/${APPname}
+ # chown ${APPname}:${APPname} ${PREFIXDIR1}/files/downloads/${APPname}
+ #fi
+ 
+ if [ $CHGflg -eq 1 ];then #20210916 20211103
+  chown -h -R ${APPname}:${APPname} ${PREFIXDIR1}/home/${APPname} #20211205 added -h
+ fi
+fi
+
+#161231
+if [ -f ../DISTRO_SPECS ];then
+. ../DISTRO_SPECS #running in woofQ
+else
+. /etc/DISTRO_SPECS
+fi
+xARCHDIR=""
+if [ "$DISTRO_ARCHDIR_SYMLINKS" = "no" ];then
+ if [ "$DISTRO_ARCHDIR" == "lib64" ];then
+  xARCHDIR="64"
+ else
+  xARCHDIR="/${DISTRO_ARCHDIR}"
+ fi
+ if [ "$DISTRO_BINARY_COMPAT" == "oe" ];then
+  xARCHDIR=""
+ fi
+fi
+
+#bulk of runtime script, usually at /usr/bin/$APPname...
+RUNASCLIENT="#CLIENTMARKER ${APPname}"'
+#script to run $APPbin as a client...
+#required varables:
+# APPname: name of this script. ex: "seamonkey"
+#   note: set without path, so expected to be in $PATH. i think some code expects it to be at /usr/bin
+# APPbin: original executable renamed, with ".bin" appended. ex: "seamonkey.bin", at /usr/bin
+#   note: this variable may optionally have been set with full path, ex: APPbin="/usr/bin/seamonkey.bin"
+#optional variables:
+# ROOTFORCE: if set, then run app as root.
+# ROOTARG: existence of this in the commandline, then force app to run as root.
+#   ex: " -edit " seamonkey runs Composer, that I want to be able to edit files anywhere.
+# ALWAYSOPTS: options to always apply.
+# ROOTOPTS: if an app is run as root, then it must have these args.
+#   ex: "--test-type --no-sandbox" chromium must disable sandbox if run as root.
+# CONTAINEROPTS: extra args if running app in container.
+#   ex: "--test-type --no-sandbox" for chromium & chrome
+#       the sandbox does not work inside a container, conflict as the container is already a sandbox.
+# CONTAINERCODE: extra code to run if app running in container.
+#   firefox, have to set sandbox to level 1, in file prefs.js
+# DESKTOPCODE: extra code to run if not in container (and running as a client).
+
+#20210917 normally these are prepended to this script, but just in case...
+if [ ! "$APPname" ];then
+ APPname="${0##*/}"
+fi
+if [ ! "$APPbin" ];then
+ APPbin="${0##*/}.bin"
+fi
+
+ARGS=""
+#[ $1 ] && while [ "$1" ]; do ARGS="$ARGS \"$1\""; shift; done
+if [ $1 ];then
+ while [ "$1" ]
+ do
+  #do not put quotes around if a single word. example is "-edit" for seamonkey, the quotes stuff it up entirely...
+  if [ "${1/ /}" == "${1}" ];then
+   ARGS="${ARGS} ${1}"
+  else
+   ARGS="${ARGS} \"${1}\""
+  fi
+  shift
+ done
+fi
+
+#20211005 everything below rewritten...
+
+#expect will run $APPname non-root on main desktop, crippled-root in container,
+#but this script should also handle run $APPname root on main desktop and non-root
+#in container ...which complicates things. this script will always run as root on
+#main desktop, but could be, one day, running as non-root in a container.
+#$Iflg is the intention, =1 to run $APPname as non-root.
+Cflg=0; Iflg=1
+ls -1 /INSIDE_* >/dev/null 2>&1 #file(s) exists if in container.
+if [ $? -eq 0 ];then Cflg=1; fi
+Rflg="$(id -u)" #0 for this script running as root.
+touch /root/.clients-status
+#hmmm, if the file got erased somehow, assume default to run app non-root...
+grep -q "^${APPname}=" /root/.clients-status
+if [ $? -ne 0  ];then
+ echo "${APPname}=true" >> /root/.clients-status
+fi
+grep -q "^${APPname}=true" /root/.clients-status #has flag if intention to run app non-root.
+if [ $? -ne 0  ];then Iflg=0; fi
+#some possible overrides to the intention:
+#an arg that must run as root...
+if [ "$ROOTARG" ];then
+ grep -q "${ROOTARG}" <<<${ARGS} >/dev/null #needs bash
+ if [ $? -eq 0 ];then Iflg=0; fi #=0 intention run as root.
+fi
+if [ "$ROOTFORCE" ];then Iflg=0; fi #app must run as root.
+
+if [ $Cflg -eq 0 ];then #running on main desktop.
+ #whoami will always be root. if Rflg<>0 that is an error...
+ if [ $Rflg -ne 0 ];then exit; fi
+ 
+ ##20211103 hack for pulseaudio...
+ #if [ -e /tmp/pulse-socket ];then
+ # if [ ! -e /run/pulse/native ];then
+ #  ln -s /tmp/pulse-socket /run/pulse/native
+ # fi
+ #fi
+ 
+ if [ $Iflg -eq 1 ];then
+  #intention is to run app non-root.
+  #kill any left-over processes from previous run of app...
+  killall --user ${APPname} ${APPname} > /dev/null 2>&1 #requires full killall from psmisc pkg.
+  #when dir2sfs has created an sfs, have to run this here, to setup /etc/passwd and /etc/group...
+  /usr/local/clients/create-client-environment ${APPname}
+  #this is a method to authorize x server to run by user... 
+  #works when server running. note: this setting does not seem to be stored in a
+  #file. it affects the currently running x server and will be lost when x quits.
+  ALLOWflg="$(xhost | grep -o ":${APPname}$")"
+  if [ ! "$ALLOWflg" ];then
+   xhost +SI:localuser:${APPname}
+  fi
+  #following line is mostly there to catch any root:root files that may have got
+  #copied in... restrict to just the Downloads folder...
+  #chown -R ${APPname}:${APPname} /home/${APPname}/Downloads #&
+  #20211205 Downloads is now a symlink to /files/downloads... 20211206 no
+  #chown -R -L root:122 /home/${APPname}/Downloads #122 is filesgrp
+  #set some variables...
+  export XDG_CONFIG_HOME=/home/${APPname}/.config
+  export XDG_CACHE_HOME=/home/${APPname}/.cache
+  export XDG_DATA_HOME=/home/${APPname}/.local/share
+  
+  #20211108 
+  if [ "${DESKTOPCODE}" ];then
+   eval "${DESKTOPCODE}"
+  fi
+  
+  #if booted with a password, there will be fscrypt encrypted folders, in which
+  #case /proc/keys will have a line with " logon " in it, in which case
+  #have to assign the fscrypt key to the non-root user, which is done in
+  #run-client-indirect. complicated, but need to do this
+  #to allow write inside encrypted fs...
+  IDflg=""
+  which keyctl >/dev/null #precaution. easyos 3.0+ will have this!
+  if [ $? -eq 0 ];then
+   IDflg="$(grep -o " logon " /proc/keys)"
+  fi
+  #go for it...
+  if [ "$IDflg" ];then
+   exec su -l ${APPname} -s /bin/sh -c "DISPLAY=${DISPLAY} /usr/local/clients/run-client-indirect \"${APPbin}\" ${ALWAYSOPTS} ${NONROOTMAINOPTS} ${ARGS}"
+  else
+   #filesystem not encrypted, so no need for the indirection script...
+   exec su -l ${APPname} -s /bin/sh -c "DISPLAY=${DISPLAY} \"$APPbin\" ${ALWAYSOPTS} ${NONROOTMAINOPTS} ${ARGS}"
+  fi
+ else
+  #intention is to run app as root.
+  #kill any left-over processes from previous run of app...
+  #warning, if app is running in a container, that will also be killed.
+  echo -n "new${APPname}" > /proc/${$}/comm #change name of current process.
+  killall ${APPname}
+  #run it...
+  exec "${APPbin}" ${ALWAYSOPTS} ${ROOTOPTS} ${ARGS}
+ fi
+else #running in container
+ #maybe one day support running a container non-root, but for now only have 
+ #crippled-root. only run apps as crippled-root, which is already a sandbox.
+ #20220923 now support running as spot.
+ #kill any left-over processes from previous run of app...
+ #warning, if app is running in a container, that will also be killed.
+ echo -n "new${APPname}" > /proc/${$}/comm #change name of current process.
+ killall ${APPname}
+ if [ "${CONTAINERCODE}" ];then #20211107
+  eval "${CONTAINERCODE}"
+ fi
+ WHOIAM="$(whoami)"
+ if [ "$WHOIAM" == "spot" ];then #20220923
+  export XAUTHORITY=/home/spot/.Xauthority  
+  export XDG_CONFIG_HOME=/home/spot/.config
+  export XDG_CACHE_HOME=/home/spot/.cache
+  export XDG_DATA_HOME=/home/spot/.local/share
+  #code from run-client-indirect...
+  which keyctl >/dev/null
+  if [ $? -eq 0 ];then
+   ID="$(grep " logon " /proc/keys | head -n 1 | cut -f 1 -d " ")"
+   if [ "$ID" ];then
+    #we can read files, but need to do this to be able to write...
+    KEYfnd="$(keyctl list @us | grep -o "logon:")"
+    if [ "$KEYfnd" == "" ];then
+     keyctl link 0x${ID} @us #link fscrypt key to user-session.
+     sleep 0.1
+    fi
+    KEYfnd="$(keyctl list @us | grep -o "logon:")"
+    if [ "$KEYfnd" == "" ];then
+     sleep 0.2
+    fi
+   fi
+  fi
+  #run it...
+  exec ${CONTAINERVARS} "${APPbin}" ${ALWAYSOPTS} ${ARGS}
+ else
+  #run it...
+  exec ${CONTAINERVARS} "${APPbin}" ${ALWAYSOPTS} ${ROOTOPTS} ${ARGS}
+ fi 
+fi
+'
+
+seamonkey_true() {
+ #function to run seamonkey as a client.
+ [ ! -e ${PREFIXDIR1}${APPpath}/${APPname}.bin ] && cp -a -f ${PREFIXDIR1}${APPpath}/${APPname} ${PREFIXDIR1}${APPpath}/${APPname}.bin
+ rm -f ${PREFIXDIR1}${APPpath}/${APPname} #in case it is a symlink.
+ echo "#!/bin/bash
+APPbin='${APPpath}/${APPname}.bin'
+APPname='${APPname}'
+ROOTARG=' \-edit '" > ${PREFIXDIR1}${APPpath}/${APPname} #20210915 note, the leading "-" has to be escaped.
+ 
+ #150108 script launched by /usr/bin/seamonkey.bin cannot relink /usr/bin/seamonkey.bin, do it here:
+ # refer: woof rootfs-complete/usr/bin/seamonkeyQNEW
+ #170921 fix path... 20220107
+ if [ -f ${PREFIXDIR1}/usr/lib${xARCHDIR}/seamonkey/seamonkey ];then
+  echo "[ -f /home/${APPname}/.mozilla/seamonkey/a2bvafqx.default/places.sqlite ] && ln -snf /usr/lib${xARCHDIR}/seamonkey/seamonkey /usr/bin/seamonkey.bin" >> ${PREFIXDIR1}${APPpath}/${APPname}
+  echo "export MOZILLA_FIVE_HOME=/usr/lib${xARCHDIR}/seamonkey" >> ${PREFIXDIR1}${APPpath}/${APPname} #20220107
+ else
+  echo "[ -f /home/${APPname}/.mozilla/seamonkey/a2bvafqx.default/places.sqlite ] && ln -snf /usr/lib/seamonkey/seamonkey /usr/bin/seamonkey.bin" >> ${PREFIXDIR1}${APPpath}/${APPname}
+  echo "export MOZILLA_FIVE_HOME=/usr/lib/seamonkey" >> ${PREFIXDIR1}${APPpath}/${APPname} #20220107
+ fi
+ 
+ echo "$RUNASCLIENT" >> ${PREFIXDIR1}${APPpath}/${APPname}
+ chmod 755 ${PREFIXDIR1}${APPpath}/${APPname}
+
+ if [ -e ${PREFIXDIR1}/root/.mozilla/seamonkey ];then #20211107
+  if [ ! -e ${PREFIXDIR1}/home/${APPname}/.mozilla/seamonkey/a2bvafqx.default ];then #check not already setup.
+   if [ "$PREFIXDIR1" ];then #woof. my SM PETs have skeleton .mozilla.
+    mkdir -p ${PREFIXDIR1}/home/${APPname}/.mozilla #20210007
+    cp -a ${PREFIXDIR1}/root/.mozilla/seamonkey ${PREFIXDIR1}/home/${APPname}/.mozilla/ #20211107
+    DEFAULTDIR="$(find ${PREFIXDIR1}/home/${APPname}/.mozilla/seamonkey -mindepth 1 -maxdepth 1 -name '*.default')"
+    # ...ex: rootfs-complete/home/chromium/.mozilla/seamonkey/2p53p9.default
+   else #running puppy...
+    zDEFAULTDIR="$(grep '^Path=.*default' /root/.mozilla/seamonkey/profiles.ini | head -n 1 | cut -f 2- -d '=' | cut -f 1 -d '.')"
+    # ...ex: 2p53p9
+    if [ "$zDEFAULTDIR" ];then
+     BASENAME="${zDEFAULTDIR}.default" #ex: 2p53p9.default
+     mkdir -p /home/${APPname}/.mozilla/seamonkey/${BASENAME}
+     rm -rf /home/${APPname}/.mozilla/seamonkey/${BASENAME}/* 2>/dev/null #precaution.
+     echo "[General]
+StartWithLastProfile=1
+
+[Profile0]
+Name=default
+IsRelative=1
+Path=${BASENAME}" > /home/${APPname}/.mozilla/seamonkey/profiles.ini
+     cp -a -f /root/.mozilla/seamonkey/${BASENAME}/chrome /home/${APPname}/.mozilla/seamonkey/${BASENAME}/
+     cp -a -f /root/.mozilla/seamonkey/${BASENAME}/localstore.rdf /home/${APPname}/.mozilla/seamonkey/${BASENAME}/
+     cp -a -f /root/.mozilla/seamonkey/${BASENAME}/mimeTypes.rdf /home/${APPname}/.mozilla/seamonkey/${BASENAME}/
+     cp -a -f /root/.mozilla/seamonkey/${BASENAME}/prefs.js /home/${APPname}/.mozilla/seamonkey/${BASENAME}/
+     DEFAULTDIR="/home/${APPname}/.mozilla/seamonkey/${BASENAME}"
+    fi
+   fi
+   if [ "$DEFAULTDIR" ];then #precaution.
+    DIRNAME="`dirname $DEFAULTDIR`"
+    #needs to have a different name for .default dir from main one...
+    mv -f $DEFAULTDIR $DIRNAME/a2bvafqx.default
+    sed -i -e 's%^Path=.*defaul.*%Path=a2bvafqx.default%' $DIRNAME/profiles.ini
+    #20211206 no...
+    #mkdir -p ${PREFIXDIR1}/home/${APPname}/Downloads
+    #sed -i -e "s%/mnt/wkg/files/Downloads%/home/${APPname}/Downloads%" $DIRNAME/a2bvafqx.default/prefs.js
+    #sed -i -e "s%/mnt/wkg/files/downloads%/home/${APPname}/Downloads%" $DIRNAME/a2bvafqx.default/prefs.js
+    #sed -i -e "s%/root/my-documents%/home/${APPname}/Downloads%" $DIRNAME/a2bvafqx.default/prefs.js
+    #sed -i -e "s%\"/usr/share/doc\"%\"/home/${APPname}/Downloads\"%" $DIRNAME/a2bvafqx.default/prefs.js
+    #sed -i -e "s%\"/files/Downloads\"%\"/home/${APPname}/Downloads\"%" $DIRNAME/a2bvafqx.default/prefs.js
+    #sed -i -e "s%\"/files/downloads\"%\"/home/${APPname}/Downloads\"%" $DIRNAME/a2bvafqx.default/prefs.js
+   fi
+  fi
+ fi
+ return 0
+}
+
+seamonkey_false() {
+ #function to run seamonkey as root.
+ if [ -e ${PREFIXDIR1}${APPpath}/${APPname}.bin ];then
+  cp -a -f --remove-destination ${PREFIXDIR1}${APPpath}/${APPname}.bin ${PREFIXDIR1}${APPpath}/${APPname} #restore original.
+  rm -f ${PREFIXDIR1}${APPpath}/${APPname}.bin
+ else #precaution. error.
+  ln -snf /usr/lib${xARCHDIR}/seamonkey/seamonkey ${PREFIXDIR1}/usr/bin/seamonkey
+ fi
+ #20210915 hide, so can bring back in future...
+ if [ -d ${PREFIXDIR1}/home/.${APPname} ];then #precaution.
+  rm -rf ${PREFIXDIR1}/home/.${APPname}
+ fi
+ mv -f ${PREFIXDIR1}/home/${APPname} ${PREFIXDIR1}/home/.${APPname} 2>/dev/null
+ return 0
+}
+
+generic_func() {
+ #setup the app to run as spot or root...
+ case $APPflag in
+  true)
+   [ ! -e ${PREFIXDIR1}${APPpath}/${APPname}.bin ] && cp -a -f ${PREFIXDIR1}${APPpath}/${APPname} ${PREFIXDIR1}${APPpath}/${APPname}.bin
+   rm -f ${PREFIXDIR1}${APPpath}/${APPname} #in case it is a symlink.
+   echo "#!/bin/bash
+APPbin='${APPpath}/${APPname}.bin'
+APPname='${APPname}'" > ${PREFIXDIR1}${APPpath}/${APPname}
+   echo "$RUNASCLIENT" >> ${PREFIXDIR1}${APPpath}/${APPname}
+   chmod 755 ${PREFIXDIR1}${APPpath}/${APPname}
+  ;;
+  false)
+   if [ -e ${PREFIXDIR1}${APPpath}/${APPname}.bin ];then
+    cp -a -f --remove-destination ${PREFIXDIR1}${APPpath}/${APPname}.bin ${PREFIXDIR1}${APPpath}/${APPname} #restore original.
+    rm -f ${PREFIXDIR1}${APPpath}/${APPname}.bin
+   fi
+   #20210915 hide, so can bring back in future...
+   if [ -d ${PREFIXDIR1}/home/.${APPname} ];then #precaution.
+    rm -rf ${PREFIXDIR1}/home/.${APPname}
+   fi
+   mv -f ${PREFIXDIR1}/home/${APPname} ${PREFIXDIR1}/home/.${APPname} 2>/dev/null
+  ;;
+ esac
+ return 0
+}
+
+#20220916 set default open/save path to /files/Blender
+blender_func() {
+ #setup the app to run as spot or root...
+ case $APPflag in
+  true)
+   [ ! -e ${PREFIXDIR1}${APPpath}/${APPname}.bin ] && cp -a -f ${PREFIXDIR1}${APPpath}/${APPname} ${PREFIXDIR1}${APPpath}/${APPname}.bin
+   rm -f ${PREFIXDIR1}${APPpath}/${APPname} #in case it is a symlink.
+   echo "#!/bin/bash
+APPbin='${APPpath}/${APPname}.bin'
+APPname='${APPname}'
+DESKTOPCODE='mkdir -p /files/Blender
+if [ ! -e /home/blender/.config/blender/3.3/config/recent-files.txt ];then
+ mkdir -p /home/blender/.config/blender/3.3/config
+ echo /files/Blender/new1.blend > /home/blender/.config/blender/3.3/config/recent-files.txt
+ chown -R blender:blender /home/blender/.config/blender
+fi
+'" > ${PREFIXDIR1}${APPpath}/${APPname}
+   echo "$RUNASCLIENT" >> ${PREFIXDIR1}${APPpath}/${APPname}
+   chmod 755 ${PREFIXDIR1}${APPpath}/${APPname}
+  ;;
+  false)
+   if [ -e ${PREFIXDIR1}${APPpath}/${APPname}.bin ];then
+    cp -a -f --remove-destination ${PREFIXDIR1}${APPpath}/${APPname}.bin ${PREFIXDIR1}${APPpath}/${APPname} #restore original.
+    rm -f ${PREFIXDIR1}${APPpath}/${APPname}.bin
+   fi
+   #20210915 hide, so can bring back in future...
+   if [ -d ${PREFIXDIR1}/home/.${APPname} ];then #precaution.
+    rm -rf ${PREFIXDIR1}/home/.${APPname}
+   fi
+   mv -f ${PREFIXDIR1}/home/${APPname} ${PREFIXDIR1}/home/.${APPname} 2>/dev/null
+  ;;
+ esac
+ return 0
+}
+
+
+#20211107
+firefox_true() {
+ [ ! -e ${PREFIXDIR1}${APPpath}/${APPname}.bin ] && cp -a -f ${PREFIXDIR1}${APPpath}/${APPname} ${PREFIXDIR1}${APPpath}/${APPname}.bin
+ rm -f ${PREFIXDIR1}${APPpath}/${APPname} #in case it is a symlink.
+ echo "#!/bin/bash
+APPbin='${APPpath}/${APPname}.bin'
+APPname='${APPname}'" > ${PREFIXDIR1}${APPpath}/${APPname}
+ 
+# #20211107 set sandbox to lowest level...
+# cat <<'EOF' >> ${PREFIXDIR1}${APPpath}/${APPname}
+# CONTAINERCODE='PREFSJS="$(find /root/.mozilla/firefox -type f -name #prefs.js | tr "\n" " ")"
+# for aPREF in $PREFSJS
+# do
+#  sed -i "/security\.sandbox\.content\.level/d" ${aPREF}
+#  echo "user_pref(\"security.sandbox.content.level\", 1);" >> ${aPREF}
+# done'
+#EOF
+
+ #20211110 instead of 20211107, try this to disable sandbox... 20211111 needs "env"
+ echo 'CONTAINERVARS="env MOZ_DISABLE_CONTENT_SANDBOX=1 env MOZ_DISABLE_GMP_SANDBOX=1"' >> ${PREFIXDIR1}${APPpath}/${APPname}
+ 
+ #20211110 have disabled updating, so don't need to do this...
+# #20211108
+# cat <<'EOF' >> ${PREFIXDIR1}${APPpath}/${APPname}
+# DESKTOPCODE='FFUSER="$(stat -c %U /usr/lib/firefox)"
+# if [ "$FFUSER" != "firefox" ];then
+#  chown -R firefox:firefox /usr/lib/firefox
+# fi'
+#EOF
+
+ #20211110 put up a msg...  20211201
+ cat <<'EOF' >> ${PREFIXDIR1}${APPpath}/${APPname}
+ DESKTOPCODE='FFUSER="$(stat -c %U /usr/lib/firefox)"
+ if [ "$FFUSER" != "firefox" ];then
+  chown firefox:firefox /usr/lib/firefox #without recursion.
+  CR="
+"
+  case "${LANG/_*/}" in
+   de)
+    FFmsg1="NOTIZ:"
+    FFmsg2="Die Hardwarebeschleunigung wurde aus Stabilitätsgründen deaktiviert. Bearbeiten Sie zum Aktivieren /usr/lib/firefox/distribution/policies.js, starten Sie dann Firefox und aktivieren Sie es in den Einstellungen."
+   ;;
+   fr)
+    FFmsg1="AVIS:"
+    FFmsg2="Accélération matérielle a été désactivée pour plus de stabilité. Pour activer, modifiez /usr/lib/firefox/distribution/policies.js, puis démarrez Firefox et activez-le dans Paramètres."
+   ;;
+   *)
+    FFmsg1="NOTICE:"
+    FFmsg2="Hardware acceleration has been disabled for stability. To enable, edit /usr/lib/firefox/distribution/policies.js, then start Firefox and enable in Settings."
+   ;;
+  esac
+  popup "background=#F0C0F0 level=top terminate=15 timecount=dn name=ffmsg1|<big><b>${FFmsg1}</b>${CR}${FFmsg2}</big>"
+ fi'
+EOF
+ 
+ if [ -f ${PREFIXDIR1}/usr/lib${xARCHDIR}/firefox/firefox ];then #20220107
+  echo "export MOZILLA_FIVE_HOME=/usr/lib${xARCHDIR}/firefox" >> ${PREFIXDIR1}${APPpath}/${APPname}
+ else
+  echo "export MOZILLA_FIVE_HOME=/usr/lib/firefox" >> ${PREFIXDIR1}${APPpath}/${APPname}
+ fi
+
+ echo "$RUNASCLIENT" >> ${PREFIXDIR1}${APPpath}/${APPname}
+ chmod 755 ${PREFIXDIR1}${APPpath}/${APPname}
+
+ if [ -e ${PREFIXDIR1}/root/.mozilla/firefox ];then
+  if [ ! -e ${PREFIXDIR1}/home/${APPname}/.mozilla/firefox/profiles.ini ];then #check not already setup.
+   if [ "$PREFIXDIR1" ];then #woof. my SM PETs have skeleton .mozilla.
+    mkdir -p ${PREFIXDIR1}/home/${APPname}/.mozilla
+    cp -a ${PREFIXDIR1}/root/.mozilla/firefox ${PREFIXDIR1}/home/${APPname}/.mozilla/
+   fi
+  fi
+ fi
+ 
+ #20211108 no, must do in running easyos, see above.
+ ##20211108 permissions so that ff can auto-update...
+ #if [ -d ${PREFIXDIR1}/usr/lib/firefox ];then #precaution.
+ # grep -q '^firefox:' /etc/passwd #precaution.
+ # if [ $? -eq 0 ];then
+ #  chown -R firefox:firefox ${PREFIXDIR1}/usr/lib/firefox
+ #  sync
+ # fi
+ #fi
+}
+
+firefox_false() {
+ if [ -e ${PREFIXDIR1}${APPpath}/${APPname}.bin ];then
+  cp -a -f --remove-destination ${PREFIXDIR1}${APPpath}/${APPname}.bin ${PREFIXDIR1}${APPpath}/${APPname} #restore original.
+  rm -f ${PREFIXDIR1}${APPpath}/${APPname}.bin
+ fi
+ #hide, so can bring back in future...
+ if [ -d ${PREFIXDIR1}/home/.${APPname} ];then #precaution.
+  rm -rf ${PREFIXDIR1}/home/.${APPname}
+ fi
+ mv -f ${PREFIXDIR1}/home/${APPname} ${PREFIXDIR1}/home/.${APPname} 2>/dev/null
+}
+
+#130723 opera...
+opera_true() {
+ #function to run Opera as spot.
+ [ ! -e ${PREFIXDIR1}${APPpath}/${APPname}.bin ] && cp -a -f ${PREFIXDIR1}${APPpath}/${APPname} ${PREFIXDIR1}${APPpath}/${APPname}.bin
+ rm -f ${PREFIXDIR1}${APPpath}/${APPname} #in case it is a symlink.
+ echo "#!/bin/bash
+APPbin='${APPpath}/${APPname}.bin'
+APPname='${APPname}'" > ${PREFIXDIR1}${APPpath}/${APPname}
+ echo "$RUNASCLIENT" >> ${PREFIXDIR1}${APPpath}/${APPname}
+ chmod 755 ${PREFIXDIR1}${APPpath}/${APPname}
+ 
+  if [ ! -d ${PREFIXDIR1}/home/${APPname}/.opera ];then
+   if [ -d ${PREFIXDIR1}/root/.opera ];then #this is in the PET or created when run Opera as root.
+    cp -a -f ${PREFIXDIR1}/root/.opera ${PREFIXDIR1}/home/${APPname}/
+   else
+    mkdir -p ${PREFIXDIR1}/home/${APPname}/.opera
+    echo '
+[State]
+Accept License=0
+
+[User Prefs]
+Home URL=file://localhost/usr/share/doc/home.htm
+Startup Type=2
+Download Directory={Home}Downloads
+
+[Fonts]
+Normal=14,4,0,0,0,0,DejaVu Sans
+PRE=14,4,0,0,0,0,Nimbus Mono L
+
+' > ${PREFIXDIR1}/home/${APPname}/.opera/operaprefs.ini
+  fi
+ fi
+ chown -R ${APPname}:${APPname} ${PREFIXDIR1}/home/${APPname}/.opera
+ chmod 775 ${PREFIXDIR1}/home/${APPname}/Downloads #should already be.
+ return 0
+}
+opera_false() {
+ if [ -e ${PREFIXDIR1}${APPpath}/${APPname}.bin ];then
+  cp -a -f --remove-destination ${PREFIXDIR1}${APPpath}/${APPname}.bin ${PREFIXDIR1}${APPpath}/${APPname} #restore original.
+  rm -f ${PREFIXDIR1}${APPpath}/${APPname}.bin
+ fi
+ #20210915 hide, so can bring back in future...
+ if [ -d ${PREFIXDIR1}/home/.${APPname} ];then #precaution.
+  rm -rf ${PREFIXDIR1}/home/.${APPname}
+ fi
+ mv -f ${PREFIXDIR1}/home/${APPname} ${PREFIXDIR1}/home/.${APPname} 2>/dev/null
+ return 0
+}
+
+#140215
+chromium_true() {
+ 
+ #20211022 fix if path has "/root/" and remove quotes around $@...
+ if [ ! -e ${PREFIXDIR1}${APPpath}/${APPname}.bin ];then
+  cp -a -f ${PREFIXDIR1}${APPpath}/${APPname} ${PREFIXDIR1}${APPpath}/${APPname}.bin
+  if [ ! -h ${PREFIXDIR1}${APPpath}/${APPname}.bin ];then
+   sed -i -e 's%/root/%/$(whoami)/%' ${PREFIXDIR1}${APPpath}/${APPname}.bin
+   sed -i -e 's%"$@"%$@%' ${PREFIXDIR1}${APPpath}/${APPname}.bin
+  fi
+  if [ -e ${PREFIXDIR1}${APPpath}/google-${APPname} ];then
+   if [ ! -h ${PREFIXDIR1}${APPpath}/google-${APPname} ];then
+    sed -i -e 's%/root/%/$(whoami)/%' ${PREFIXDIR1}${APPpath}/google-${APPname}
+    sed -i -e 's%"$@"%$@%' ${PREFIXDIR1}${APPpath}/google-${APPname}
+    #and get rid of the symlink...
+    cp -a -f --remove-destination ${PREFIXDIR1}${APPpath}/google-${APPname} ${PREFIXDIR1}${APPpath}/${APPname}.bin
+   fi
+  fi
+ fi
+ 
+ rm -f ${PREFIXDIR1}${APPpath}/${APPname} #in case it is a symlink.
+ echo "#!/bin/bash
+APPbin='${APPpath}/${APPname}.bin'
+APPname='${APPname}'
+ALWAYSOPTS='--no-default-browser-check --no-first-run --use-gl=desktop'
+ROOTOPTS='--no-sandbox --test-type'
+#note, currently not using these two...
+CONTAINEROPTS='--no-sandbox --disable-features=AudioServiceSandbox' #20211007
+NONROOTMAINOPTS='--disable-features=AudioServiceSandbox' #20211007
+" > ${PREFIXDIR1}${APPpath}/${APPname}
+ 
+ echo 'export CHROME_WRAPPER=$(readlink -f "$0")' >> ${PREFIXDIR1}${APPpath}/${APPname}
+ echo "export CHROME_DESKTOP=${APPname}.desktop" >> ${PREFIXDIR1}${APPpath}/${APPname} #20211022
+
+ echo "$RUNASCLIENT" >> ${PREFIXDIR1}${APPpath}/${APPname}
+ chmod 755 ${PREFIXDIR1}${APPpath}/${APPname}
+   
+ #setup default file open & download paths... 20211022... 20211213
+ mkdir -p ${PREFIXDIR1}/root/.config/${APPname}/Default
+ mkdir -p ${PREFIXDIR1}/home/${APPname}/.config/${APPname}/Default
+ if [ -f ${PREFIXDIR1}/root/.config/${APPname}/Default/Preferences ];then
+  cp -f ${PREFIXDIR1}/root/.config/${APPname}/Default/Preferences ${PREFIXDIR1}/home/${APPname}/.config/${APPname}/Default/
+ fi
+ if [ ! -f ${PREFIXDIR1}/home/${APPname}/.config/${APPname}/Default/Preferences ];then
+  echo "{\"download\":{\"default_directory\":\"/files\",\"directory_upgrade\":true,\"prompt_for_download\":true},\"savefile\":{\"default_directory\":\"/files\"}}" > ${PREFIXDIR1}/home/${APPname}/.config/${APPname}/Default/Preferences
+ fi
+ #in case want to go back to root...
+ if [ ! -f ${PREFIXDIR1}/root/.config/${APPname}/Default/Preferences ];then
+  cp -f ${PREFIXDIR1}/home/${APPname}/.config/${APPname}/Default/Preferences ${PREFIXDIR1}/root/.config/${APPname}/Default/
+ fi
+ return 0
+}
+chromium_false() {
+   if [ -e ${PREFIXDIR1}${APPpath}/${APPname}.bin ];then
+    cp -a -f --remove-destination ${PREFIXDIR1}${APPpath}/${APPname}.bin ${PREFIXDIR1}${APPpath}/${APPname} #restore original.
+    rm -f ${PREFIXDIR1}${APPpath}/${APPname}.bin
+   fi
+ #change path to profile...
+ ctPTN='s%/home/${APPname}/chromium/profile%/file/portable/chromium/profile%'
+ sed -i -e "$ctPTN" ${PREFIXDIR1}${APPpath}/${APPname} #huh?
+ #20210915 hide, so can bring back in future...
+ if [ -d ${PREFIXDIR1}/home/.${APPname} ];then #precaution.
+  rm -rf ${PREFIXDIR1}/home/.${APPname}
+ fi
+ mv -f ${PREFIXDIR1}/home/${APPname} ${PREFIXDIR1}/home/.${APPname} 2>/dev/null
+ return 0
+}
+
+###
+APPspec="$(find ${PREFIXDIR1}/bin ${PREFIXDIR1}/sbin ${PREFIXDIR1}/usr/bin ${PREFIXDIR1}/usr/sbin ${PREFIXDIR1}/usr/local/bin -mindepth 1 -maxdepth 1 -name ${APPname} 2>/dev/null | head -n 1)"
+if [ ! "$APPspec" ];then
+ if [ ! "$PREFIXDIR2" ];then #20210915
+  #executable does not exist, so remove from list, if there...
+  sed -i -e "/^${APPname}=/d" ${PREFIXDIR1}/root/.clients-status
+ fi
+ exit 1
+fi
+APPpath="$(dirname "$APPspec" | sed -e "s%^${PREFIXDIR1}/%/%")"
+ 
+case $APPname in
+ seamonkey) ${APPname}_${APPflag} ;;
+ opera)     ${APPname}_${APPflag} ;; #130723
+ chromium)  ${APPname}_${APPflag} ;; #140215
+ chrome)    chromium_${APPflag}   ;; #20211022
+ firefox)   firefox_${APPflag}    ;; #20211107
+ blender)   blender_func  ;; #20220916
+ *)         generic_func  ;;
+esac
+if [ $? -ne 0 ];then
+ if [ ! "$PREFIXDIR2" ];then #20210915
+  sed -i -e "/^${APPname}=/d" ${PREFIXDIR1}/root/.clients-status #remove.
+ fi
+ exit 1
+fi
+
+#record choice, for future runs of Login&Security Manager...
+if [ ! "$PREFIXDIR2" ];then #20210915 if an sfs, need to delay this...
+ if [ "$(grep "^${APPname}=" ${PREFIXDIR1}/root/.clients-status)" != "" ];then
+  rsPTN="s%^${APPname}=.*%${APPname}=${APPflag}%"
+  sed -i -e "$rsPTN" ${PREFIXDIR1}/root/.clients-status
+ else
+  echo "${APPname}=${APPflag}" >> ${PREFIXDIR1}/root/.clients-status
+ fi
+fi
+ 
+if [ ! "$PREFIXDIR2" ];then #20210918 if an sfs, need to delay this...
+ if [ "$APPflag" == "true" ];then
+  if [ -d ${PREFIXDIR1}/home/${APPname} ];then #20210918 precaution
+   chown -h -R ${APPname}:${APPname} ${PREFIXDIR1}/home/${APPname} #20211205 added -h
+  fi
+ fi
+fi
+###END###

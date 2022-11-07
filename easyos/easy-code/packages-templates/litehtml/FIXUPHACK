@@ -1,0 +1,16 @@
+
+# 20211209 oe build of litehtml has gumbo builtin...
+if [ -e usr/lib/libgumbo.so.0 ];then
+ mkdir -p ../litehtml_DEV/usr/lib/pkgconfig
+ echo 'prefix=/usr
+exec_prefix=${prefix}
+libdir=${prefix}/lib
+includedir=${prefix}/include
+
+Name: Gumbo
+Description: A fully-compliant HTML5 parser.
+Version: 0.10.1
+Libs: -L${libdir} -lgumbo
+Libs.private: 
+Cflags: -I${includedir} -I${includedir}/gumbo' > ../litehtml_DEV/usr/lib/pkgconfig/gumbo.pc
+fi

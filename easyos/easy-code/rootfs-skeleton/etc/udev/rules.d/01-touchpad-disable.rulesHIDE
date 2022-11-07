@@ -1,0 +1,5 @@
+# 20170720 BK
+# ref: https://wiki.archlinux.org/index.php/Touchpad_Synaptics
+# disable touchpad if mouse detected...
+SUBSYSTEM=="input", KERNEL=="mouse[0-9]*", ATTRS{name}!="*TouchPad", ATTRS{name}!="*Stick", ACTION=="add", ENV{DISPLAY}=":0", ENV{XAUTHORITY}="/files/username/.Xauthority", RUN+="/usr/bin/synclient TouchpadOff=1"
+SUBSYSTEM=="input", KERNEL=="mouse[0-9]*", ATTRS{name}!="*TouchPad", ATTRS{name}!="*Stick", ACTION=="remove", ENV{DISPLAY}=":0", ENV{XAUTHORITY}="/files/username/.Xauthority", RUN+="/usr/bin/synclient TouchpadOff=0"
