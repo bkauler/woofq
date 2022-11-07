@@ -6,6 +6,7 @@
 #20220807 have removed all bacon apps.
 #20220816 restored bacon apps.
 #20220827 nim/debdb2pupdb.nim, first nim utility. note, has find_cat builtin.
+#20221107 create tarball higher, out of git repo.
 
 [ ! -d bacon ] && exit
 
@@ -17,19 +18,20 @@ ROOTFSSKEL=''
 
 TODAY="`date +%Y%m%d`"
 
-echo "Creating ../../pup-tools-${TODAY}.tar.gz ..."
+echo "Creating ../../../pup-tools-${TODAY}.tar.gz ..."
 
-[ -d ../../pup-tools-${TODAY} ] && rm -rf ../../pup-tools-${TODAY}
-mkdir ../../pup-tools-${TODAY}
-[ -f ../../pup-tools-${TODAY}.tar.gz ] && rm -f ../../pup-tools-${TODAY}.tar.gz
+[ -d ../../../pup-tools-${TODAY} ] && rm -rf ../../../pup-tools-${TODAY}
+mkdir ../../../pup-tools-${TODAY}
+[ -f ../../../pup-tools-${TODAY}.tar.gz ] && rm -f ../../../pup-tools-${TODAY}.tar.gz
 
-cp -a bacon ../../pup-tools-${TODAY}/
-cp -a gcc ../../pup-tools-${TODAY}/
-cp -a nim ../../pup-tools-${TODAY}/
+cp -a bacon ../../../pup-tools-${TODAY}/
+cp -a gcc ../../../pup-tools-${TODAY}/
+cp -a nim ../../../pup-tools-${TODAY}/
 
-cp -a readme.txt ../../pup-tools-${TODAY}/
+cp -a readme.txt ../../../pup-tools-${TODAY}/
 
 sync
+cd ..
 cd ..
 cd ..
 dir2tgz pup-tools-${TODAY}
@@ -37,4 +39,4 @@ sync
 rm -rf pup-tools-${TODAY}
 
 echo
-echo "Done: ../../pup-tools-${TODAY}.tar.gz created."
+echo "Done: ../../../pup-tools-${TODAY}.tar.gz created."

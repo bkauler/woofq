@@ -23,6 +23,7 @@ https://github.com/bkauler/oe-qky-dunfell
 The website for EasyOS:
 
 https://easyos.org/
+
 Prior to November 7, 2022, woofQ was only available as tarballs, not in a git repository:
 
 https://distro.ibiblio.org/easyos/project/woofq/
