@@ -1,0 +1,90 @@
+#!/bin/sh
+#called from 7build-puppy-cd
+#attempt to create an efi img without via a physical usb-stick.
+#passed param: en, de, fr, etc.
+#20201126 first release. 20201127 gummiboot .efi file in host system.
+#20201127 note: created similar script in 'live-cd' folder for EasyOS.
+
+[ ! -d ../sandbox4 ] && exit 1
+[  -f efiboot.img ] && rm -f efiboot.img
+[  -f tempdrv.img ] && rm -f tempdrv.img
+
+DEFAULTLANG1="$1"
+[ ! "$DEFAULTLANG1" ] && DEFAULTLANG1="en"
+[ ! -e build-${DEFAULTLANG1} ] && exit 2
+
+dd if=/dev/zero of=tempdrv.img bs=1M count=14
+sync
+LOOPFREE="$(losetup -f)"
+LOOPDEV="${LOOPFREE##*/}"
+
+losetup /dev/${LOOPDEV} tempdrv.img
+[ $? -ne 0 ] && exit 3
+
+echo "  writing new gpt"
+busybox echo -e 'o\nY\nw\nY\n' | gdisk /dev/${LOOPDEV}
+sync
+echo 'Writing gptmbr.bin to drive...'
+dd bs=440 conv=notrunc count=1 if=gptmbr.bin of=/dev/${LOOPDEV}
+sync
+#echo "Creating FAT-32 8MB ESP first partition on ${OLDFLASHDRV}..."
+echo "Creating FAT-12 12MB ESP first partition on ${LOOPDEV}, at offset 1M..."
+busybox echo -e 'n\n1\n1M\n+12M\nef00\nw\nY\n' | gdisk /dev/${LOOPDEV}
+sync
+echo 'Setting legacy boot flag on partition...'
+busybox echo -e 'x\na\n2\n\nw\nY' | gdisk /dev/${LOOPDEV}
+sync
+echo "Creating fat12 filesystem..."
+
+LOOPFREE="$(losetup -f)"
+LOOPPART1="${LOOPFREE##*/}"
+losetup -o 1048576 /dev/${LOOPPART1} tempdrv.img #1024x1024 bytes
+[ $? -ne 0 ] && exit 4
+
+#mkdosfs -F 32 -n quirky1 /dev/${OLDFLASHDRV}1 #FAT32.
+mkdosfs -F 12 -n easy1 /dev/${LOOPPART1} #FAT12.
+sync
+echo 'Populating partition...'
+mkdir -p /mnt/${LOOPPART1}
+busybox mount -t vfat /dev/${LOOPPART1} /mnt/${LOOPPART1}
+[ $? -ne 0 ] && exit 5
+mkdir -p /mnt/${LOOPPART1}/EFI/BOOT
+cp -a build-${DEFAULTLANG1}/boot.msg /mnt/${LOOPPART1}/EFI/BOOT/
+cp -a build-${DEFAULTLANG1}/help.msg /mnt/${LOOPPART1}/EFI/BOOT/
+cp -a build-${DEFAULTLANG1}/initrd.gz /mnt/${LOOPPART1}/EFI/BOOT/
+cp -a build-${DEFAULTLANG1}/isolinux.cfg /mnt/${LOOPPART1}/EFI/BOOT/syslinux.cfg
+cp -a build-${DEFAULTLANG1}/logo.16 /mnt/${LOOPPART1}/EFI/BOOT/
+cp -a build-${DEFAULTLANG1}/vmlinuz /mnt/${LOOPPART1}/EFI/BOOT/
+cp ldlinux.e64 /mnt/${LOOPPART1}/EFI/BOOT/
+#20201126 don't copy this, gummiboot overwrites it...
+#cp syslinux.efi /mnt/${LOOPPART1}/EFI/BOOT/BOOTX64.EFI
+sync
+#160419 syslinux not working, booting uefi iso. use gummiboot...
+
+#20201126 this doesn't work to a loop device...
+#gummiboot install --path=/mnt/${LOOPPART1} --no-variables
+#do this instead... 20201127...
+mkdir -p /mnt/${LOOPPART1}/EFI/gummiboot
+mkdir -p /mnt/${LOOPPART1}/loader/entries
+cp -a -f /usr/lib/gummiboot/gummibootx64.efi /mnt/${LOOPPART1}/EFI/gummiboot/
+cp -a -f /usr/lib/gummiboot/gummibootx64.efi /mnt/${LOOPPART1}/EFI/BOOT/BOOTX64.EFI
+#wait zero seconds!...
+echo 'timeout 0
+default easy' > /mnt/${LOOPPART1}/loader/loader.conf
+ echo 'title EasyOS
+linux /EFI/BOOT/vmlinuz
+initrd /EFI/BOOT/initrd.gz
+options rootwait rw' > /mnt/${LOOPPART1}/loader/entries/easy.conf
+ 
+sync
+busybox umount /mnt/${LOOPPART1}
+syslinux --install /dev/${LOOPPART1} #strange, but this is still needed. absolutely essential!
+sync
+echo "Copying esp fat partition to efiboot.img..."
+dd if=tempdrv.img of=efiboot.img bs=1M count=12 skip=1048576 iflag=skip_bytes
+sync
+
+losetup -d /dev/${LOOPPART1} 2>/dev/null
+losetup -d /dev/${LOOPDEV}
+#rm -f tempdrv.img
+###end###
