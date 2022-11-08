@@ -183,6 +183,10 @@ if [ "$EXIT" == "save" ];then
  fi
  #i think always save these extra...
  [ -f /var/local/version-history-depth ] && cp -a /var/local/version-history-depth /mnt/wkg/sfs/settings/erase-exceptions/var/local/
+ #20221108 smartgit created this file, has git username and email, keep it...
+ if [ -f /root/.gitconfig ];then
+  cp -a -f /root/.gitconfig /mnt/wkg/sfs/settings/erase-exceptions/root/
+ fi
  killall popup #20220612
  exit 0
 fi
