@@ -2,7 +2,7 @@
 #20221027 complete rewrite.
 # avoid mount & umount from util-linux.
 # ref: https://bkhome.org/news/202210/problem-with-mount-utility-when-non-root.html
-# 
+# 20221109 fix ntfs mounting.
 
 [ ! $1 ] && exec busybox mount
 
@@ -13,42 +13,41 @@ MYPID=${$}
 . /etc/rc.d/functions4puppy4
 . /etc/uimanager #has UI_DESK_MANAGER='jwm' #or rox
 
-ARGS=""
-if [ $1 ];then
- while [ "$1" ]
- do
-  #do not put quotes around if a single word. example is "-edit" for seamonkey,
-  # the quotes stuff it up entirely...
-  if [ "${1/ /}" == "${1}" ];then
-   ARGS="${ARGS} ${1}"
-  else
-   ARGS="${ARGS} \"${1}\""
-  fi
-  shift
- done
-fi
-
-NTFSflg="$(echo "$ARGS" | grep -o 'ntfs')"
+NTFSflg="$(echo "${*}" | grep -o 'ntfs')"
 
 if [ "$NTFSflg" == "" ];then
+ ARGS=""
+ if [ $1 ];then
+  while [ "$1" ]
+  do
+   #do not put quotes around if a single word. example is "-edit" for seamonkey,
+   # the quotes stuff it up entirely...
+   if [ "${1/ /}" == "${1}" ];then
+    ARGS="${ARGS} ${1}"
+   else
+    ARGS="${ARGS} \"${1}\""
+   fi
+   shift
+  done
+ fi
  busybox mount ${ARGS}
  RETVAL=$?
 else
  #screen out all the options...
- CMDPRMS="`echo -n "$*" | tr '\t' ' ' | tr -s ' ' | tr ' ' '\n' | grep '^/' | tr '\n' ' '`"
+ CMDPRMS="$(echo -n "$*" | tr '\t' ' ' | tr -s ' ' | tr ' ' '\n' | grep '^/' | tr '\n' ' ')"
  #kirk advised these options so Rox will not complain about file
  #permissions when copy a file to a ntfs partition...
  [ -f /tmp/ntfsmnterr${MYPID}.txt ] && rm -f /tmp/ntfsmnterr${MYPID}.txt
- ntfs-3g $CMDPRMS -o umask=0,no_def_opts,silent 2>/tmp/ntfsmnterr${MYPID}.txt shinobar: need silent
+ ntfs-3g $CMDPRMS -o umask=0,no_def_opts,silent 2>/tmp/ntfsmnterr${MYPID}.txt #shinobar: need silent
  RETVAL=$?
- #ntfs-3g v1.2412 does not have 4,10, has 15 for dirty f.s., 14 hiberneted...
+ #ntfs-3g v1.2412 does not have 4,10, has 15 for dirty f.s., 14 hibernated...
  if [ $RETVAL -eq 4 -o $RETVAL -eq 10 -o $RETVAL -eq 15 -o $RETVAL -eq 14 ];then  #try to force it...
   if [ $RETVAL -eq 14 ];then
    #ntfs-3g $CMDPRMS -o umask=0,no_def_opts,remove_hiberfile 2>/tmp/ntfsmnterr${MYPID}.txt
    #RETVAL=$?
    echo > /dev/null
   else
-   ntfs-3g $CMDPRMS -o force,umask=0,no_def_opts,silent 2>/tmp/ntfsmnterr${MYPID}.txt #120103 shinobar: need silent.
+   ntfs-3g $CMDPRMS -o force,umask=0,no_def_opts,silent 2>/tmp/ntfsmnterr${MYPID}.txt #shinobar: need silent.
    RETVAL=$?
    ERRMSG1="`cat /tmp/ntfsmnterr${MYPID}.txt`"
    echo "$ERRMSG1"
