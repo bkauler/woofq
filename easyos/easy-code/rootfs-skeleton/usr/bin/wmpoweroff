@@ -11,6 +11,7 @@
 #180128 easy linux, kill containers, moved from rc.shutdown. see also wmreboot, wmexit, restartwm
 #200203 for 180128 add 2>/dev/null
 #20220526 EOS_SUPPORT_CONTAINERS==0 no, EOS_TOP_LEVEL_ZRAM==1 yes. 20220527
+#20221110 kill rox before shutdown ask-save dlg.
 
 . /etc/rc.d/PUPSTATE #20220526 has EOS_SUPPORT_CONTAINERS, EOS_TOP_LEVEL_ZRAM
 
@@ -39,6 +40,7 @@ if [ $DISPLAY ];then #paranoid precaution, check X still running
  #20220526 if top-level zram1, ask if save...
  if [ "$EOS_TOP_LEVEL_ZRAM" == "1" ];then
   if [ "$(cat /var/local/zram1-ask-save-shutdown 2>/dev/null)" != "false" ];then #20220527
+   killall ROX-Filer #20221110 clear most of desktop.
    ask-save-zram1 shutdown #in /usr/sbin 20220527
   fi 
  fi
