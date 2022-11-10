@@ -32,6 +32,7 @@
 #20220801 move /.fsckme.flg to /mnt/${WKG_DEV}/${WKG_DIR}
 #20221023 ignore /etc/init.d/rcS if exists. this is a special busybox thing.
 #20221102 save /var/cache/fontconfig
+#20221110 kill anything prevent remove .session from aufs layers.
 
 #110923
 . /usr/bin/gettext.sh # enables use of eval_gettext (several named variables) and ngettext (plurals)
@@ -296,6 +297,9 @@ if [ "$EOS_TOP_LEVEL_ZRAM" == "1" ];then
  touch /tmp/ask-save-zram1-answer
  sync
  /usr/sbin/kill-pids '/files' #20220524 probably not needed.
+ #20221110 attempt to kill anything preventing remount of .session folder...
+ fuser -mk /mnt/${WKG_DEV}/${WKG_DIR}.session
+ sleep 0.1
  #attempt to remove .session layer...
  busybox mount -o remount,del:/mnt/${WKG_DEV}/${WKG_DIR}.session / 2>/dev/console
  busybox umount /files 2>/dev/console
@@ -329,7 +333,11 @@ if [ "$EOS_TOP_LEVEL_ZRAM" == "1" ];then
   /etc/rc.d/rw-merge 2>/dev/console
  fi
  #attempt unmount, so f.s. without journal marked clean...
- busybox umount /mnt/${WKG_DEV} 2>/dev/console
+ #20221110 this fails, but try remount ro...
+ busybox umount /mnt/${WKG_DEV} 2>/dev/null
+ if [ $? -ne 0 ];then
+  busybox umount -r /mnt/${WKG_DEV} 2>/dev/null
+ fi
 fi
 
 busybox umount -ar > /dev/null 2>&1
