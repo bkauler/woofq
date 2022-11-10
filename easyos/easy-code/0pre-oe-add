@@ -16,6 +16,7 @@
 #181121 quirky/woof-distro now easyos/easy-distro
 #200927 fix for oe dunfell. 201007 fix stripping. 20201014 fix stripping. /tmp/0pre-oe-add
 #20221016 not all deps are found. 20221029 fix.
+#20221110 PKGSPATH has been separated from PROJECTPATH
 
 export LANG=C #faster.
 . ./DISTRO_SPECS
@@ -45,7 +46,7 @@ if [ ! -s PROJECTPATH ];then
  echo "ERROR: file PROJECTPATH is created by merge2out. not there"
  exit
 fi
-. ./PROJECTPATH
+. ./PROJECTPATH #now also have PKGSPATH variable.
 if [ -d ${PROJECTPATH}/easy-code ];then
  WOOFNAME='easy'
 else

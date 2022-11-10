@@ -37,7 +37,7 @@
 #20210818 DISTRO_SPECS may now have ALT1_DISTRO_* variables.
 #20220119 arch linux fix.
 #20220120 want to use oe dunfell pkgs in arch linux builds.
-#20220131 new build path.
+#20220131 new build path. separate PKGSPATH from PROJECTPATH
 
 [ ! -d ./easy-arch ] && exit
 [ ! -d ./easy-code ] && exit
@@ -50,6 +50,8 @@ BUILDSPATH='/mnt/build/woof-builds' ###SET THIS### 20220131
 
 CURDIR="`pwd`"
 PROJECTPATH="$CURDIR" #200921
+
+PKGSPATH="/mnt/sda1/bk/projects/woof/woof-pkgs" #20221110 ###SET THIS###
 
 echo
 echo "This script merges easy-arch, easy-code and easy-distro, to:
@@ -310,8 +312,8 @@ sync
 
 cd $PROJECTPATH
 #common dir to download pet pkgs to... 20220131 fix...
-mkdir -p ${PROJECTPATH}/../local-repositories/${TARGETARCH}/packages-pet
-ln -snfr ${PROJECTPATH}/../local-repositories/${TARGETARCH}/packages-pet ${BUILDSPATH}/easy-out_${HOSTARCH}_${TARGETARCH}_${COMPATDISTRO}_${COMPATVERSION}/packages-pet
+mkdir -p ${PKGSPATH}/local-repositories/${TARGETARCH}/packages-pet
+ln -snfr ${PKGSPATH}/local-repositories/${TARGETARCH}/packages-pet ${BUILDSPATH}/easy-out_${HOSTARCH}_${TARGETARCH}_${COMPATDISTRO}_${COMPATVERSION}/packages-pet
 
 #more links to common download...
 if [ -f ${BUILDSPATH}/easy-out_${HOSTARCH}_${TARGETARCH}_${COMPATDISTRO}_${COMPATVERSION}/DISTRO_SPECS ];then
@@ -336,16 +338,16 @@ if [ -f ${BUILDSPATH}/easy-out_${HOSTARCH}_${TARGETARCH}_${COMPATDISTRO}_${COMPA
 
  BINARIES="${BINARIES}-${DISTRO_COMPAT_VERSION}" #ex: download to packages-buildroot-aug2014
 
- mkdir -p ${PROJECTPATH}/../local-repositories/${TARGETARCH}/packages-${BINARIES}
- ln -snfr ${PROJECTPATH}/../local-repositories/${TARGETARCH}/packages-${BINARIES} ${BUILDSPATH}/easy-out_${HOSTARCH}_${TARGETARCH}_${COMPATDISTRO}_${COMPATVERSION}/packages-${BINARIES}
+ mkdir -p ${PKGSPATH}/local-repositories/${TARGETARCH}/packages-${BINARIES}
+ ln -snfr ${PKGSPATH}/local-repositories/${TARGETARCH}/packages-${BINARIES} ${BUILDSPATH}/easy-out_${HOSTARCH}_${TARGETARCH}_${COMPATDISTRO}_${COMPATVERSION}/packages-${BINARIES}
 fi
 
 #20210818 DISTRO_SPECS may now have ALT1_DISTRO_* variables...
 if [ "$ALT1_DISTRO_COMPAT_VERSION" ];then
  ALT1_BINARIES="${ALT1_DISTRO_BINARY_COMPAT}-${ALT1_DISTRO_COMPAT_VERSION}"
  if [ ! -e ${BUILDSPATH}/easy-out_${HOSTARCH}_${TARGETARCH}_${COMPATDISTRO}_${COMPATVERSION}/packages-${ALT1_BINARIES} ];then #ex: packages-oe-dunfell symlink
-  mkdir -p ${PROJECTPATH}/../local-repositories/${TARGETARCH}/packages-${ALT1_BINARIES}
-  ln -snfr ${PROJECTPATH}/../local-repositories/${TARGETARCH}/packages-${ALT1_BINARIES} ${BUILDSPATH}/easy-out_${HOSTARCH}_${TARGETARCH}_${COMPATDISTRO}_${COMPATVERSION}/packages-${ALT1_BINARIES}
+  mkdir -p ${PKGSPATH}/local-repositories/${TARGETARCH}/packages-${ALT1_BINARIES}
+  ln -snfr ${PKGSPATH}/local-repositories/${TARGETARCH}/packages-${ALT1_BINARIES} ${BUILDSPATH}/easy-out_${HOSTARCH}_${TARGETARCH}_${COMPATDISTRO}_${COMPATVERSION}/packages-${ALT1_BINARIES}
  fi
 fi
 
@@ -358,16 +360,16 @@ cp -af easy-arch/${TARGETARCH}/build/support/printcols ${BUILDSPATH}/easy-out_${
 cp -af easy-arch/${TARGETARCH}/target/boot/vercmp ${BUILDSPATH}/easy-out_${HOSTARCH}_${TARGETARCH}_${COMPATDISTRO}_${COMPATVERSION}/rootfs-skeleton/bin/
 
 #151103 want to use t2 pkgs in ubuntu builds...
-mkdir -p ${PROJECTPATH}/../local-repositories/${TARGETARCH}/packages-bz2-april #160425
+mkdir -p ${PKGSPATH}/local-repositories/${TARGETARCH}/packages-bz2-april #160425
 [ -f easy-distro/${TARGETARCH}/t2/april/Packages-t2-april-official ] && cp -af easy-distro/${TARGETARCH}/t2/april/Packages-t2-april-official ${BUILDSPATH}/easy-out_${HOSTARCH}_${TARGETARCH}_${COMPATDISTRO}_${COMPATVERSION}/
 [ -f easy-distro/${TARGETARCH}/t2/Packages-t2-april-official ] && cp -af easy-distro/${TARGETARCH}/t2/Packages-t2-april-official ${BUILDSPATH}/easy-out_${HOSTARCH}_${TARGETARCH}_${COMPATDISTRO}_${COMPATVERSION}/
-[ ! -e ${BUILDSPATH}/easy-out_${HOSTARCH}_${TARGETARCH}_${COMPATDISTRO}_${COMPATVERSION}/packages-bz2-april ] && ln -sr ${PROJECTPATH}/../local-repositories/${TARGETARCH}/packages-bz2-april ${BUILDSPATH}/easy-out_${HOSTARCH}_${TARGETARCH}_${COMPATDISTRO}_${COMPATVERSION}/packages-bz2-april
+[ ! -e ${BUILDSPATH}/easy-out_${HOSTARCH}_${TARGETARCH}_${COMPATDISTRO}_${COMPATVERSION}/packages-bz2-april ] && ln -sr ${PKGSPATH}/local-repositories/${TARGETARCH}/packages-bz2-april ${BUILDSPATH}/easy-out_${HOSTARCH}_${TARGETARCH}_${COMPATDISTRO}_${COMPATVERSION}/packages-bz2-april
 
 #20220120 want to use oe dunfell pkgs in arch linux builds...
-mkdir -p ${PROJECTPATH}/../local-repositories/${TARGETARCH}/packages-oe-dunfell
+mkdir -p ${PKGSPATH}/local-repositories/${TARGETARCH}/packages-oe-dunfell
 [ -f easy-distro/${TARGETARCH}/oe/dunfell/Packages-oe-dunfell-official ] && cp -af easy-distro/${TARGETARCH}/oe/dunfell/Packages-oe-dunfell-official ${BUILDSPATH}/easy-out_${HOSTARCH}_${TARGETARCH}_${COMPATDISTRO}_${COMPATVERSION}/
 [ -f easy-distro/${TARGETARCH}/oe/Packages-oe-dunfell-official ] && cp -af easy-distro/${TARGETARCH}/oe/Packages-oe-dunfell-official ${BUILDSPATH}/easy-out_${HOSTARCH}_${TARGETARCH}_${COMPATDISTRO}_${COMPATVERSION}/
-[ ! -e ${BUILDSPATH}/easy-out_${HOSTARCH}_${TARGETARCH}_${COMPATDISTRO}_${COMPATVERSION}/packages-oe-dunfell ] && ln -sr ${PROJECTPATH}/../local-repositories/${TARGETARCH}/packages-oe-dunfell ${BUILDSPATH}/easy-out_${HOSTARCH}_${TARGETARCH}_${COMPATDISTRO}_${COMPATVERSION}/packages-oe-dunfell
+[ ! -e ${BUILDSPATH}/easy-out_${HOSTARCH}_${TARGETARCH}_${COMPATDISTRO}_${COMPATVERSION}/packages-oe-dunfell ] && ln -sr ${PKGSPATH}/local-repositories/${TARGETARCH}/packages-oe-dunfell ${BUILDSPATH}/easy-out_${HOSTARCH}_${TARGETARCH}_${COMPATDISTRO}_${COMPATVERSION}/packages-oe-dunfell
 
 #151104
 mkdir -p ${BUILDSPATH}/easy-out_${HOSTARCH}_${TARGETARCH}_${COMPATDISTRO}_${COMPATVERSION}/puppy
@@ -377,7 +379,8 @@ cp -a -f ../puppy/* ${BUILDSPATH}/easy-out_${HOSTARCH}_${TARGETARCH}_${COMPATDIS
 sync
 
 #200921
-echo "PROJECTPATH='${PROJECTPATH}'" > ${BUILDSPATH}/easy-out_${HOSTARCH}_${TARGETARCH}_${COMPATDISTRO}_${COMPATVERSION}/PROJECTPATH
+echo "PROJECTPATH='${PROJECTPATH}'
+PKGSPATH='${PKGSPATH}'" > ${BUILDSPATH}/easy-out_${HOSTARCH}_${TARGETARCH}_${COMPATDISTRO}_${COMPATVERSION}/PROJECTPATH
 
 echo
 echo "Directory '${BUILDSPATH}/easy-out_${HOSTARCH}_${TARGETARCH}_${COMPATDISTRO}_${COMPATVERSION}'
