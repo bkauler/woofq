@@ -9,7 +9,9 @@
 #180807 BK: add CONFIG_IDENT for control of port 113, for identd and busybox fakeidentd, needed for easyshare.
 #200714 BK: 5.8-rc4 kernel, busybox ip is broken. use full ip.
 #20220612 BK: do not call warning_func()
-#20221023 may be running as zeus super-user. 20221031 hmmm, maybe still need bump to root.
+#20221023 BK: may be running as zeus super-user. 20221031 hmmm, maybe still need bump to root.
+#20221111 BK: iptables is being replaced by nftables.
+# ref: https://unix.stackexchange.com/questions/621397/iptables-stopped-working-with-couldnt-load-match-stateno-such-file-or-direc
 
 WHOIAM="$(whoami)"
 [ "${WHOIAM}" != "root" ] && exec sudo -A ${0} ${@} #20221023 20221031
@@ -54,7 +56,7 @@ fi
 
 # firewall test
 wall_state() {
-	if [ `iptables -L -n |wc -l` -gt 10 ];then
+	if [ `iptables-legacy -L -n |wc -l` -gt 10 ];then #20221111
 		return 1
 	else
 		return 0
@@ -514,10 +516,10 @@ SYSCTL="/sbin/sysctl -w"
 
 EOF_FWSTART
 
-#BK 161016
-echo "IPT=`which iptables`" >> $TMPFW
-echo "IPTS=`which iptables-save`" >> $TMPFW
-echo "IPTR=`which iptables-restore`" >> $TMPFW
+#BK 161016 20221111
+echo "IPT=`which iptables-legacy`" >> $TMPFW
+echo "IPTS=`which iptables-legacy-save`" >> $TMPFW
+echo "IPTR=`which iptables-legacy-restore`" >> $TMPFW
 
 # generic or interface
 case $GENERIC in
@@ -1017,14 +1019,14 @@ if [ "$CONFIG_SAMBA" == "true" ];then
 \$IPT -A udp_inbound -p UDP -s $SUBNET --destination-port 138 -j ACCEPT
 EOF_SAMBA_UDP
 fi
-if [ "$CONFIG_SAMBA_CLIENT" == "true" ];then
+if [ "$CONFIG_SAMBA_CLIENT" == "true" ];then #20221111 "-m state" no longer works...
 	cat >> $TMPFW << EOF_SAMBA_UDP_CL
 	
 # allow netbios name resolution for Samba client
-\$IPT -A udp_inbound -p UDP -s $SUBNET --source-port 137 -m state --state NEW,ESTABLISHED -j ACCEPT
-\$IPT -A udp_inbound -p UDP -s $SUBNET --source-port 138 -m state --state NEW,ESTABLISHED -j ACCEPT
-\$IPT -A tcp_inbound -p TCP -s $SUBNET --source-port 139 -m state --state NEW,ESTABLISHED -j ACCEPT
-\$IPT -A tcp_inbound -p TCP -s $SUBNET --source-port 445 -m state --state NEW,ESTABLISHED -j ACCEPT
+\$IPT -A udp_inbound -p UDP -s $SUBNET --source-port 137 -m conntrack --ctstate NEW,ESTABLISHED -j ACCEPT
+\$IPT -A udp_inbound -p UDP -s $SUBNET --source-port 138 -m conntrack --ctstate NEW,ESTABLISHED -j ACCEPT
+\$IPT -A tcp_inbound -p TCP -s $SUBNET --source-port 139 -m conntrack --ctstate NEW,ESTABLISHED -j ACCEPT
+\$IPT -A tcp_inbound -p TCP -s $SUBNET --source-port 445 -m conntrack --ctstate NEW,ESTABLISHED -j ACCEPT
 EOF_SAMBA_UDP_CL
 fi
 if [ "$CONFIG_CUPS" == "true" ];then
