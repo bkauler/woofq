@@ -21,6 +21,7 @@
 #20220505 added "Screen sharing", initially for mobile devices. 20220506
 #20220822 typo in a help window.
 #20221023 now support zeus administrator.
+#20221111 moved DLG_HELP_* variables, prevents crash.
 
 export TEXTDOMAIN=easyshare
 export OUTPUT_CHARSET=UTF-8
@@ -111,7 +112,7 @@ if which firewall_ng >/dev/null;then
  [ "$(grep '180807 BK' ${FWNG})" == "" ] && BADmsg="${BADmsg}${CR}The 'firewall_ng' utility exists, but it needs to be the special version created by 01micko, with mods by BK."
 fi
 WHOIAM="$(whoami)"
-[ "$WHOIAM" != "root" -a "$WHOIAM" != "zeus" ];then #20221023
+if [ "$WHOIAM" != "root" -a "$WHOIAM" != "zeus" ];then #20221023
  BADmsg="${BADmsg}${CR}You must run EasyShare as the 'root' or 'zeus' user (administrator)."
 fi
 [ ! -f /etc/init.d/cups ] && BADmsg="${BADmsg}${CR}Script '/etc/init.d/cups' does not exist. Does it have a different name?"
@@ -1264,14 +1265,14 @@ if [ "$VIS_SETUP" == "true" ];then
  fi
  H_setup2="$(gettext 'This is the setup section of EasyShare, for choosing whether you want to share printers or files, and whether to serve local printers or files, or access network printers or files, or both.')${CR}${CR}<big>$(gettext 'Printer sharing')</big>${CR}$(gettext '<b>Disable printing:</b> completely disable local and network printing.')${CR}$(gettext '<b>Private local:</b> do not share local printers over network.')${CR}$(gettext '<b>Shared local:</b> share local printers over network.')${CR}$(gettext '<b>Network printer:</b> use printers on other computers.')${CR}$(gettext 'Note: current restriction, cannot have local printers if select network printers.')${CR}${CR}<big>$(gettext 'File sharing')</big>${CR}$(gettext '<b>none:</b> do not share any local folders over the network.')${CR}$(gettext '<b>Samba:</b> use Samba server to share local folders over network.')${CR}$(gettext '<b>SSHFS:</b> use the SSH server to share local folders over the network.')${CR}$(gettext '<b>Network shares:</b> access shared folders on other computers on the network.')${CR}$(gettext '<b>Android USB:</b> share files with an Android device connected via USB cable.')${CR}${CR}${H_setup2b}"
  export DLG_HELP_SETUP="<window resizable=\"false\" title=\"${H_setup1}\" icon-name=\"${HELPICON}\" window_position=\"1\"><vbox><text use-markup=\"true\"><label>\"${H_setup2}\"</label><variable>DLG_HELP_SETUP</variable></text><hbox><button><label>${M_close}</label><action type=\"closewindow\">DLG_HELP_SETUP</action></button></hbox></vbox></window>"
- 
- H_screen1="$(gettext 'Help: Screen sharing')"
- H_screen2="$(gettext 'This is the setup section of EasyShare, for choosing whether you want to share a screen with another device.')${CR}${CR}<b>$(gettext 'Mobile device')</b>${CR}$(gettext 'Display and control the screen of an Android device on the EasyOS desktop. This supports mouse and keyboard control, clipboard copy/paste, drag-and-drop files into the device, and drag-and-drop app install.')${CR}${CR}<i>$(gettext 'more screen sharing options planned for the future')</i>${CR}${CR}<b>$(gettext 'Technical notes')</b>${CR}$(gettext 'Mobile device screen sharing is achieved with the <b>scrcpy</b> utility.') $(gettext 'Currently via USB cable only.')"
- export DLG_HELP_SCREEN="<window resizable=\"false\" title=\"${H_screen1}\" icon-name=\"${HELPICON}\" window_position=\"1\"><vbox><text use-markup=\"true\"><label>\"${H_screen2}\"</label><variable>DLG_HELP_SCREEN</variable></text><hbox><button><label>${M_close}</label><action type=\"closewindow\">DLG_HELP_SCREEN</action></button></hbox></vbox></window>"
 
  #display a message informing user of current choices
  setup_info_func #writes to /tmp/easyshare/setup-info
 fi
+#20221111 moved... 
+H_screen1="$(gettext 'Help: Screen sharing')"
+H_screen2="$(gettext 'This is the setup section of EasyShare, for choosing whether you want to share a screen with another device.')${CR}${CR}<b>$(gettext 'Mobile device')</b>${CR}$(gettext 'Display and control the screen of an Android device on the EasyOS desktop. This supports mouse and keyboard control, clipboard copy/paste, drag-and-drop files into the device, and drag-and-drop app install.')${CR}${CR}<i>$(gettext 'more screen sharing options planned for the future')</i>${CR}${CR}<b>$(gettext 'Technical notes')</b>${CR}$(gettext 'Mobile device screen sharing is achieved with the <b>scrcpy</b> utility.') $(gettext 'Currently via USB cable only.')"
+export DLG_HELP_SCREEN="<window resizable=\"false\" title=\"${H_screen1}\" icon-name=\"${HELPICON}\" window_position=\"1\"><vbox><text use-markup=\"true\"><label>\"${H_screen2}\"</label><variable>DLG_HELP_SCREEN</variable></text><hbox><button><label>${M_close}</label><action type=\"closewindow\">DLG_HELP_SCREEN</action></button></hbox></vbox></window>"
 
 ###android usb section### 180812
 mobile_device_stop_func() { #20220505
@@ -1397,11 +1398,11 @@ if [ "$VIS_LOCAL" == "true" ];then
   local_folders_func #180126
   #...sets everything up, so the local folders xml can be refreshed.
  fi
- M_l1="$(gettext 'Other computers will detect this hostname on the local network, and will request username and password to connect. The username is <b>root</b>. and the password default is <b>woofwoof</b> unless you changed it in the <b>Samba/SSHFS Setup</b>.')"
- H_local1="$(gettext "If one or more folder buttons are displayed, the Samba or SSH daemon has made it/them available for other computers on the network to access.")${CR}${CR}$(gettext 'The hostname assigned to this computer is:')${CR}<b>${LOCALHOSTNAME}</b>${CR}${CR}${M_l1}${CR}$(gettext 'In the latter case, you will need to remember the password, as it is encrypted and not retreivable.')${CR}${CR}<b>$(gettext 'Local printers')</b>${CR}$(gettext 'Local printers may be shared over the network. Click the <b>Share local printer</b> radiobutton. To setup and modify a local printer, point the web browser to the CUPS web interface, <b>http://localhost:631</b>, or via the menu <b>Setup -> CUPS Printer Wizard</b>.')${CR}${CR}<b>$(gettext 'Technical notes')</b>${CR}$(gettext 'For Windows to print to a printer on a Linux PC, it must be in <b>raw</b> mode -- see the online help, via the <b>Help</b> button at bottom of EasyShare window.')"
- export DLG_HELP_LOCAL="<window resizable=\"false\" title=\"$(gettext 'Help: Local shares')\" icon-name=\"${HELPICON}\" window_position=\"1\"><vbox><text use-markup=\"true\"><label>\"${H_local1}\"</label><variable>DLG_HELP_LOCAL</variable></text><hbox><button><label>${M_close}</label><action type=\"closewindow\">DLG_HELP_LOCAL</action></button></hbox></vbox></window>"
 fi
-
+#20221111 moved so always available...
+M_l1="$(gettext 'Other computers will detect this hostname on the local network, and will request username and password to connect. The username is <b>root</b>. and the password default is <b>woofwoof</b> unless you changed it in the <b>Samba/SSHFS Setup</b>.')"
+H_local1="$(gettext "If one or more folder buttons are displayed, the Samba or SSH daemon has made it/them available for other computers on the network to access.")${CR}${CR}$(gettext 'The hostname assigned to this computer is:')${CR}<b>${LOCALHOSTNAME}</b>${CR}${CR}${M_l1}${CR}$(gettext 'In the latter case, you will need to remember the password, as it is encrypted and not retreivable.')${CR}${CR}<b>$(gettext 'Local printers')</b>${CR}$(gettext 'Local printers may be shared over the network. Click the <b>Share local printer</b> radiobutton. To setup and modify a local printer, point the web browser to the CUPS web interface, <b>http://localhost:631</b>, or via the menu <b>Setup -> CUPS Printer Wizard</b>.')${CR}${CR}<b>$(gettext 'Technical notes')</b>${CR}$(gettext 'For Windows to print to a printer on a Linux PC, it must be in <b>raw</b> mode -- see the online help, via the <b>Help</b> button at bottom of EasyShare window.')"
+export DLG_HELP_LOCAL="<window resizable=\"false\" title=\"$(gettext 'Help: Local shares')\" icon-name=\"${HELPICON}\" window_position=\"1\"><vbox><text use-markup=\"true\"><label>\"${H_local1}\"</label><variable>DLG_HELP_LOCAL</variable></text><hbox><button><label>${M_close}</label><action type=\"closewindow\">DLG_HELP_LOCAL</action></button></hbox></vbox></window>"
 
 ###remote section###
 REMOTEFILESxml="<text><label>remote files</label></text>"
@@ -1416,9 +1417,6 @@ if [ "$VIS_REMOTE" == "true" ];then
   #...creates $REMOTEFILESxml
  fi
  
- H_remote1="$(gettext 'Other computers on the network may share folders and printers with this computer.')${CR}$(gettext 'This feature is enabled by ticking the <b>Network shares</b> checkbox.')${CR}${CR}$(gettext 'Network shared folders may be mounted by clicking the <b>Mount</b> button, and unmounted by clicking the <b>Unmount</b> button. When mounted, files on the other computer may be read on this computer.')${CR}${CR}$(gettext 'Network shared printers are available locally just like any normal local printer.')${CR}${CR}<b>$(gettext 'Technical notes')</b>${CR}$(gettext 'Samba is set to mount folders read-only. This is due to issues that Samba has with Linux file permissions and ownership.')${CR}$(gettext 'SSHFS mounts folders read-write, and is the best choice for Linux-to-Linux sharing.')"
- export DLG_HELP_REMOTE="<window resizable=\"false\" title=\"$(gettext 'Help: Network shares')\" icon-name=\"${HELPICON}\" window_position=\"1\"><vbox><text use-markup=\"true\"><label>\"${H_remote1}\"</label><variable>DLG_HELP_REMOTE</variable></text><hbox><button><label>${M_close}</label><action type=\"closewindow\">DLG_HELP_REMOTE</action></button></hbox></vbox></window>"
-
  if [ "$VIS_REMOTE_FILES" == "false" ];then
   VIS_REMOTE_SCAN_FILES="false" #scan button
  else
@@ -1430,6 +1428,9 @@ if [ "$VIS_REMOTE" == "true" ];then
   VIS_REMOTE_SCAN_CUPS="true"
  fi
 fi
+#20221111 moved so always available...
+H_remote1="$(gettext 'Other computers on the network may share folders and printers with this computer.')${CR}$(gettext 'This feature is enabled by ticking the <b>Network shares</b> checkbox.')${CR}${CR}$(gettext 'Network shared folders may be mounted by clicking the <b>Mount</b> button, and unmounted by clicking the <b>Unmount</b> button. When mounted, files on the other computer may be read on this computer.')${CR}${CR}$(gettext 'Network shared printers are available locally just like any normal local printer.')${CR}${CR}<b>$(gettext 'Technical notes')</b>${CR}$(gettext 'Samba is set to mount folders read-only. This is due to issues that Samba has with Linux file permissions and ownership.')${CR}$(gettext 'SSHFS mounts folders read-write, and is the best choice for Linux-to-Linux sharing.')"
+export DLG_HELP_REMOTE="<window resizable=\"false\" title=\"$(gettext 'Help: Network shares')\" icon-name=\"${HELPICON}\" window_position=\"1\"><vbox><text use-markup=\"true\"><label>\"${H_remote1}\"</label><variable>DLG_HELP_REMOTE</variable></text><hbox><button><label>${M_close}</label><action type=\"closewindow\">DLG_HELP_REMOTE</action></button></hbox></vbox></window>"
 
 while [ 1 ];do #180813 so can reenter the main dlg.
 export ES_MAIN_DLG="
