@@ -12,6 +12,7 @@
 #20220525 optional without containers.
 #20220526 current css for text over image not work in helpsurfer, just use image. see: 3buildeasydistro
 #         note: <!-- BLOB1 --> comment disabled as cannot nest comments.
+#20221111 improve explanation boot and working drives.
 
 export TEXTDOMAIN=easyhelp
 export OUTPUT_CHARSET=UTF-8
@@ -58,8 +59,8 @@ MSGd8b="$(gettext 'Drive sda is an internal drive, and sda2 is mounted, and can 
 MSGd8c="$(gettext 'Try for yourself: click any partition, and it will mount and the file manager will open.')"
 MSGd9="$(gettext 'Using Easy is easy, however, to discover the hidden power, it is necessary to have some appreciation of what is going on underneath...')"
 MSGw1="$(gettext 'How Easy works')"
-MSGw2="$(gettext 'It has already been stated that sdb1 is the boot partition in the above pictures. That contains the Linux kernel, and does what the name suggests. After bootup, if you open the file manager, and look at "/", the top-level of the directories, this is what you see:')"
-MSGw3="$(gettext 'Looks as you would expect, yes?')"
+MSGw2="$(gettext 'It has already been stated that sdb1 is the boot-partition in the above pictures. That contains the Limine boot loader, which is the very first menu you see at power-on. The boot loader is responsible for loading the Linux kernel and the first stage of the Linux operating system. The kernel is named "vmlinuz", the first-stage file is "initrd" and the rest of EasyOS is file "easy.sfs". These files reside in sdb2, the working-partition.')"
+MSGw3="$(gettext 'After bootup, if you open the file manager, and look at "/", the top-level of the directories, this is what you see: looks as you would expect, yes?')"
 MSGw4a="$(gettext 'However, if you look in sdb2, the working-partition, this is what you see:')"
 MSGw4c="$(gettext 'What are those folders for, and whereabouts is "/"?')"
 MSGw5="$(gettext 'Some hints as to what those folders do:')"
@@ -200,7 +201,7 @@ cat >> ${NEWFILE} <<_EOF
      <table cellspacing="2" cellpadding="2" border="0" width="100%">
       <tbody>
        <tr>
-        <td valign="top"><img src="images/top-of-layers.png" alt="top-of-layers" width="640" height="343"><br>
+        <td valign="top"><img src="images/top-of-layers.png" alt="top-of-layers" width="546" height="305"><br>
         </td>
        </tr>
       </tbody>
