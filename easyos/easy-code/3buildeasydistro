@@ -266,6 +266,7 @@
 #20221102 remove support EOS_LOGIN_ZEUS
 #20221102 fix /var/cache symlink.
 #20221106 install latest pci.ids and usb.ids
+#20221114 fix /etc/lsb-release
 
 #for easy linux, want to build a drive image, with just one 639MB fat32 partition.
 #for PCs, bootable with syslinux. partition contains vmlinuz, initrd and easy.sfs
@@ -4313,11 +4314,12 @@ if [ "$DEFAULTLANG1" != "en" ];then
  fi
 fi
 
+#20221114 change DISTRIB_ID from Quirky to EasyOS
 #140215 chromium looks for executable 'lsb_release' but this is a python3 script,
 #so have created my own script, see rootfs-skeleton/usr/bin
 #also create this, maybe debian/ubuntu apps want it...
 echo "LSB_VERSION=n/a
-DISTRIB_ID=Quirky
+DISTRIB_ID=EasyOS
 DISTRIB_RELEASE=${DISTRO_VERSION}
 DISTRIB_CODENAME=${DISTRO_FILE_PREFIX}
 DISTRIB_DESCRIPTION=\"${DISTRO_NAME}\"" > rootfs-complete/etc/lsb-release
