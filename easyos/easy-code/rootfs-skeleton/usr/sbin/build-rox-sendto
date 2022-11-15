@@ -14,6 +14,7 @@
 #20220126 add application_zstd to petget and xarchive.
 #20220613 mount-img is now handler for application_easy-disk-image, not filemnt. 20220622 fix.
 #20220629 add application/xhtml+xml
+#20221115 add pfind inode_directory
 
 #may call this in woofQ, when current dir is sandbox3/rootfs-complete, so test...
 CWD="`pwd`"
@@ -178,7 +179,7 @@ do
 #  peasyscale) MIMEDIR='' ;;
 #  peasyscan) MIMEDIR='' ;;
   petget)         MIMEDIR='application_pet application_vnd.debian.binary-package application_x-deb application_x-bzip-compressed-tar application_x-xz-compressed-tar application_x-rpm application_zstd' ;;
-#  pfind) MIMEDIR='' ;;
+  pfind) MIMEDIR='inode_directory'; aNAME='pFind' ;;
 #  picpuz-wrapper) MIMEDIR='' ;;
 #  pidginshell) MIMEDIR='' ;;
 #  pkg_chooser.sh) MIMEDIR='' ;;
