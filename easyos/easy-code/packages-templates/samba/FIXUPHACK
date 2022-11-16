@@ -1,4 +1,5 @@
 # 20150925 BK
+# 20221116 /var/run is a symlink, nmbd won't start, change to /var/run/samba
 
 if [ -d usr/lib/perl5 ];then
  mkdir -p ../samba_DEV/usr/lib/perl5
@@ -29,7 +30,7 @@ if [ -d usr/lib/python3.8 ];then #20220628 easy dunfell
  mkdir usr/lib/python3.8
 fi
 
-#170930 171214 20220628
+#170930 171214 20220628 20221116
 echo '[global]
 	workgroup = WORKGROUP
 	server string = Puppy Samba Server
@@ -38,7 +39,7 @@ echo '[global]
 	printing = cups
 	printcap name = cups
 	load printers = yes
-	pid directory = /var/run
+	pid directory = /var/run/samba
 
 [puppyshare]
 	path = /files
