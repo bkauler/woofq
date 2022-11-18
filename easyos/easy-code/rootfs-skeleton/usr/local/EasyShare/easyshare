@@ -22,6 +22,11 @@
 #20220822 typo in a help window.
 #20221023 now support zeus administrator.
 #20221111 moved DLG_HELP_* variables, prevents crash.
+#20221116 for sshfs, always use fakeidentd, so not require nmbd (samba).
+#20221117 make sure correct ident server is running. fix probe remote ident server.
+#20221117 have taken out support for dnsmasq ident-server, but bits of code still there.
+#20221118 detect if more than one local network.
+#20221118 fix refresh not working. fix paths.
 
 export TEXTDOMAIN=easyshare
 export OUTPUT_CHARSET=UTF-8
@@ -42,6 +47,8 @@ else
  MYPATH="/root" #/file  180816
  MYPATHremote="/root" #"/file" #180813 180816
 fi
+echo -n "${MYPATH}" > /tmp/easyshare/MYPATH
+echo -n "${MYPATHremote}" > /tmp/easyshare/MYPATHremote
 
 mkdir -p /mnt/phone #180822
 mkdir -p /root/.cups
@@ -62,21 +69,7 @@ echo "popup 'level=top background=#a0a0ff terminate=ok|<b><big>${M_t1}</big></b>
 HAVESAMBA='yes'
 if ! which smbd >/dev/null ;then HAVESAMBA='no'; fi
 if ! which nmbd >/dev/null ;then HAVESAMBA='no'; fi
-
-#to probe for remote shares, use smbd or dnsmasq/nmap. 180807 fakeidentd
-#this actually means, how remote pcs can query this pc...
-if [ "$HAVESAMBA" == "yes" ];then
- REMOTE_PROBE_METHOD='smbd'
-else
- #REMOTE_PROBE_METHOD='dnsmasq'
- REMOTE_PROBE_METHOD='fakeidentd'
-fi
-echo -n "$REMOTE_PROBE_METHOD" > /tmp/easyshare/remote_probe_method
-case "$REMOTE_PROBE_METHOD" in
- dnsmasq)    INITSCRIPT=dnsmasq ;;
- smbd)       INITSCRIPT=rc.samba ;;
- fakeidentd) INITSCRIPT=es-ident ;;
-esac
+echo -n "${HAVESAMBA}" > /tmp/easyshare/havesamba #20221117
 
 #180125 check utilities
 BADmsg=''
@@ -106,6 +99,7 @@ if ! which arp-scan >/dev/null ;then BADmsg="${BADmsg}${CR}The 'arp-scan' utilit
 if ! which mpscan >/dev/null ;then BADmsg="${BADmsg}${CR}The 'mpscan' utility is missing. Install the 'mpscan' package."; fi
 if ! which lpstat >/dev/null ;then BADmsg="${BADmsg}${CR}The 'lpstat' utility is missing. Install the 'cups' package."; fi
 if ! which ident-user-enum.pl >/dev/null ;then BADmsg="${BADmsg}${CR}The 'ident-user-enum.pl' perl script is missing."; fi
+if ! which fakeidentd >/dev/null ;then BADmsg="${BADmsg}${CR}The 'fakeidentd' busybox applet is missing."; fi
 if ! which firewall_ng >/dev/null ;then BADmsg="${BADmsg}${CR}The 'firewall_ng' utility is missing. Install 01mickos 'firewall_ng' pet package."; fi
 if which firewall_ng >/dev/null;then
  FWNG="$(which firewall_ng)"
@@ -116,7 +110,7 @@ if [ "$WHOIAM" != "root" -a "$WHOIAM" != "zeus" ];then #20221023
  BADmsg="${BADmsg}${CR}You must run EasyShare as the 'root' or 'zeus' user (administrator)."
 fi
 [ ! -f /etc/init.d/cups ] && BADmsg="${BADmsg}${CR}Script '/etc/init.d/cups' does not exist. Does it have a different name?"
-[ ! -f /etc/init.d/${INITSCRIPT} ] && BADmsg="${BADmsg}${CR}Script '/etc/init.d/${INITSCRIPT}' does not exist. Does it have a different name?"
+[ ! -f /etc/init.d/es-ident ] && BADmsg="${BADmsg}${CR}Script '/etc/init.d/es-ident' does not exist. Does it have a different name?"
 [ ! -f /etc/init.d/sshd ] && BADmsg="${BADmsg}${CR}Script '/etc/init.d/sshd' does not exist. Does it have a different name?"
 BADflg="$(echo -n "$BADmsg" | wc -l)"
 if [ "$BADflg" != "0" ];then
@@ -135,6 +129,33 @@ rox_delayed_func() { #180813
 ###network connection###
 LOCALIPADDRESS=''
 IFUPflg="$(ifconfig | grep '^[a-z].* Link encap:Ethernet')"
+
+#20221118 detect if more than one local network. ex:
+## ifconfig | grep '^[a-z].* Link encap:Ethernet'
+#eth0      Link encap:Ethernet  HWaddr A4:AE:11:16:23:48  
+#wlan0     Link encap:Ethernet  HWaddr 28:7F:CF:EB:43:56
+IFUPcnt=$(echo "$IFUPflg" | wc -l)
+if [ $IFUPcnt -ge 2 ];then
+ M0_2="$(gettext 'This computer is connected to more than one local network:')"
+ M0_3="$(gettext 'This will confuse EasyShare and the firewall. You must reduce the network interfaces to just one. Unable to continue until this is done.')"
+ export ES_TWONET_DLG="
+ <window title=\"EasyShare\" icon-name=\"gtk-network\" resizable=\"false\">
+ <vbox>
+  <text use-markup=\"true\"><label>\"<b>${M0_2}</b>\"</label></text>
+  <text><label>\"   \"</label></text>
+  <text><label>\"${IFUPflg}\"</label></text>
+  <text><label>\"   \"</label></text>
+  <text use-markup=\"true\"><label>\"<b><span fgcolor='DarkRed'>${M0_3}</span></b>\"</label></text>
+  <hbox>
+   <button><label>$(gettext 'Exit')</label><action function=\"exit\">quit</action></button>
+  </hbox>
+ </vbox>
+ </window>"
+ echo "$ES_TWONET_DLG" > /tmp/easyshare/ES_TWONET_DLG #test
+ RETVALS="$(gtkdialog --program=ES_TWONET_DLG --center)"
+ exit
+fi
+
 if [ ! "$IFUPflg" ];then
  M0_1="$(gettext 'Share files and printers over a local network')"
  M0_a='<b><span fgcolor="DarkRed">'"$(gettext 'This computer is not connected to a local network.')"'</span></b>'
@@ -176,6 +197,11 @@ fi
 ##########################################
 #continue only if have network connection#
 
+#20221118
+if [ -e /tmp/easyshare/fw-rebuild-flg ];then
+ rm -f /tmp/easyshare/fw-rebuild-flg
+fi
+
 if [ "$LOCALIPexe" == "getlocalip" ];then #180730
  LOCALIPADDRESS="$(getlocalip | grep -v '^lo' | tail -n 1 | cut -f 2 -d ' ')"
 else
@@ -193,6 +219,113 @@ TICK_NS="$(cat /var/local/easyshare/network-shares-flag)" #whether to probe for 
 [ ! -f /var/local/easyshare/android-usb-flag ] && echo -n 'false' > /var/local/easyshare/android-usb-flag
 TICK_AU="$(cat /var/local/easyshare/android-usb-flag)" #180812 whether probe for android phone connected via usb.
 
+#20221116 20221117
+choose_ident_server_func() {
+ #pass in $DEF_FILE_MODE
+ HAVESAMBA="$(cat /tmp/easyshare/havesamba)"
+ case "$1" in
+  0) #local files not shared.
+   IDENT_SERVER_METHOD=''
+  ;;
+  1) #local files shared with samba.
+   if [ "$HAVESAMBA" == "yes" ];then
+    IDENT_SERVER_METHOD='nmbd'
+   else
+    IDENT_SERVER_METHOD=''
+    DEF_FILE_MODE='0'
+    echo -n "0" > /var/local/easyshare/file-mode
+   fi
+  ;;
+  2) #local files shared with sshfs
+   IDENT_SERVER_METHOD='fakeidentd'
+  ;;
+ esac
+ echo -n "$IDENT_SERVER_METHOD" > /tmp/easyshare/ident_server_method
+}
+export -f choose_ident_server_func
+choose_ident_server_func "$DEF_FILE_MODE"
+
+#20221117
+start_ident_server_func() {
+ #pass in $IDENT_SERVER_METHOD
+ case "$1" in
+  nmbd) #want nmbd to be running.
+   if [ -x /etc/init.d/es-ident ];then
+    /etc/init.d/es-ident stop
+    chmod 644 /etc/init.d/es-ident
+    sleep 0.1
+   fi
+   if [ ! -x /etc/init.d/rc.samba ];then
+    chmod 755 /etc/init.d/rc.samba
+    /etc/init.d/rc.samba start #starts both nmbd and smbd.
+    sleep 0.1
+   fi
+   #precautions...
+   pidof fakeidentd >/dev/null
+   if [ $? -eq 0 ];then
+    #killall fakeidentd
+    /bin/sh /etc/init.d/es-ident stop
+   fi
+   pidof nmbd >/dev/null
+   if [ $? -ne 0 ];then
+    #/usr/sbin/nmbd -D
+    /etc/init.d/rc.samba restart
+   fi
+  ;;
+  fakeidentd)
+   #might need to think more about this, in case want smbd for windows printing...
+   if [ -x /etc/init.d/rc.samba ];then
+    /etc/init.d/rc.samba stop #stops both nmbd and smbd
+    chmod 644 /etc/init.d/rc.samba
+    sleep 0.1
+   fi
+   if [ ! -x /etc/init.d/es-ident ];then
+    chmod 755 /etc/init.d/es-ident
+    /etc/init.d/es-ident start
+    sleep 0.1
+   fi
+   #precautions...
+   pidof nmbd smbd >/dev/null
+   if [ $? -eq 0 ];then
+    #killall nmbd
+    /bin/sh /etc/init.d/rc.samba stop
+   fi
+   pidof fakeidentd >/dev/null
+   if [ $? -ne 0 ];then
+    /etc/init.d/es-ident start
+   fi
+  ;;
+  *)
+   #might need to think more about this, in case want smbd for windows printing...
+   #pidof nmbd >/dev/null
+   #if [ $? -eq 0 ];then
+   # killall nmbd
+   #fi
+   if [ -x /etc/init.d/rc.samba ];then
+    /etc/init.d/rc.samba stop #stops both nmbd and smbd
+    chmod 644 /etc/init.d/rc.samba
+    sleep 0.1
+   fi
+   if [ -x /etc/init.d/es-ident ];then
+    /etc/init.d/es-ident stop
+    chmod 644 /etc/init.d/es-ident
+    sleep 0.1
+   fi
+   #precautions...
+   pidof nmbd smbd >/dev/null
+   if [ $? -eq 0 ];then
+    /bin/sh /etc/init.d/rc.samba stop
+   fi
+   pidof fakeidentd >/dev/null
+   if [ $? -eq 0 ];then
+    /bin/sh /etc/init.d/es-ident stop
+   fi
+  ;;
+ esac
+}
+export -f start_ident_server_func
+start_ident_server_func "$IDENT_SERVER_METHOD"
+
 #20220505 screen sharing from mobile device...
 [ ! -f /var/local/easyshare/mobile-device-flag ] && echo -n 'false' > /var/local/easyshare/mobile-device-flag
 TICK_MD="$(cat /var/local/easyshare/mobile-device-flag)"
@@ -209,38 +342,6 @@ fi
 #setup the dnsmasq server. ref: /usr/local/EasyShare/dnsmasq-notes
 LIP24="${LOCALIPADDRESS%.*}" #ex: 192.168.0.3 becomes 192.168.0
 export LIP24 #so will be visible in funcs called from gtkdialog gui.
-case "$DEF_FILE_MODE" in
- 0)
-  #this pc not sharing any files. 180807
-  if pidof sshd >/dev/null;then
-   /bin/sh /etc/init.d/sshd stop >/dev/null 2>&1
-  fi
-  chmod 644 /etc/init.d/sshd
-  if pidof ${REMOTE_PROBE_METHOD} >/dev/null ; then #fakeidentd, smbd, or dnsmasq
-   /etc/init.d/${INITSCRIPT} stop #es-ident, rc.samba, or dnsmasq
-   chmod 644 /etc/init.d/${INITSCRIPT}
-  fi
- ;;
- *) #1=samba or 2=sshfs
-  if [ "$REMOTE_PROBE_METHOD" == "dnsmasq" ];then
-   #remote pcs can query this pc and obtain hostname.
-   echo "${LIP24}.254 ${LOCALHOSTNAME}" > /etc/easyshare-hosts
-   echo -n '' > /etc/easyshare-dnsmasq.conf
-   #180730 we have /etc/init.d/dnsmasq, it needs to start at bootup, after network is up...
-   #ref: /etc/eventmanager
-  fi
-  if [ "$DEF_FILE_MODE" == "2" ];then #180807
-   if ! pidof sshd >/dev/null;then
-    chmod 755 /etc/init.d/sshd
-    /bin/sh /etc/init.d/sshd start >/dev/null 2>&1
-   fi
-  fi
-  chmod 755 /etc/init.d/${INITSCRIPT} #es-ident, rc.samba, or dnsmasq
-  if ! pidof ${REMOTE_PROBE_METHOD} >/dev/null ; then #fakeidentd, smbd, or dnsmasq
-   /etc/init.d/${INITSCRIPT} start
-  fi
- ;;
-esac
 
 #preliminary samba
 touch /var/local/easyshare/samba-shares-auth
@@ -366,7 +467,7 @@ cupsmode2_func() { #shared local printer.
   echo -n "$M_slp1" > /tmp/easyshare/title-local-printers
  #fi
  if ! pidof smbd > /dev/null ;then
-  . /root/.config/firewall/fw.conf
+  . /root/.config/firewall/fw.conf #has CONFIG_SAMBA, CONFIG_SAMBA_CLIENT
   if [ "$CONFIG_SAMBA" == "true" -a "$CONFIG_SAMBA_CLIENT" == "true" ];then
    M_slp2="$(gettext 'The CUPS daemon is running, which is sufficient for Linux-to-Linux printing. However, to print to or from Windows PCs, the Samba daemon must also be running -- <b>Samba Setup</b> will now be run.')"
    popup "process=wait backgrount=#ffa0a0 terminate=ok level=top|<big>${M_slp2}</big>"
@@ -431,7 +532,7 @@ cupsmode3_func() { #network printer.
   killall popup
  #fi
  if ! pidof smbd > /dev/null ;then
-  . /root/.config/firewall/fw.conf
+  . /root/.config/firewall/fw.conf #has CONFIG_SAMBA, CONFIG_SAMBA_CLIENT
   if [ "$CONFIG_SAMBA" == "true" -a "$CONFIG_SAMBA_CLIENT" == "true" ];then
    M_slp2="$(gettext 'The CUPS daemon is running, which is sufficient for Linux-to-Linux printing. However, to print to or from Windows PCs, the Samba daemon must also be running -- <b>Samba Setup</b> will now be run.')"
    popup "process=wait backgrount=#ffa0a0 terminate=ok level=top|<big>${M_slp2}</big>"
@@ -448,8 +549,8 @@ export -f cupsmode3_func
 export -f scan_cups_servers_func
 
 ###scan remote servers###
-#note, $REMOTE_PROBE_METHOD is for this pc, how other pcs can query and obtain hostname.
-#to probe other pcs, need to check for dnsmasq (unique to easy/quirky), or smb/samba servers running.
+#note, $IDENT_SERVER_METHOD is for this pc, how other pcs can query and obtain hostname.
+#to probe other pcs, need to check for fakeidentd or samba nmbd servers running.
 scan_file_servers_func() {
  M_fs1="$(gettext 'Please wait, probing for network shares...')"
  popup "background=#FFE080|<b><big>${M_fs1} </big></b>"
@@ -468,51 +569,39 @@ scan_file_servers_func() {
    do
     [ "$remIP" == "$aNSIP" ] && continue 2
    done
-   REMfnd="$(timeout 1 mpscan -p 445 ${remIP} | grep -o 'OK')" #20201205 remove "-t"
+   #20221117 give preference to remote fakeidentd...
+   REMfnd="$(timeout 1 mpscan -p 113 ${remIP} | grep -o 'OK')" #20201205 remove "-t"
    if [ "$REMfnd" == "OK" ];then
-    #query remote samba/smb server...
-    #note, remote smb/samba server uses port 445.
-    #note, quirky xerus64 ubuntu nbtscan has different output from pyro.
-    SFO="$(nbtscan --help 2>&1 | tr '\t' ' ' | tr -s ' ' | grep -o '^ \-s ')" #test for script friendly output
-    if [ "$SFO" ];then
-     IP_WG_HN="$(nbtscan -s '|' ${remIP} 2>/dev/null | tr -d ' ' | cut -f 1,2 -d '|')" 
-     #...ex: 192.168.0.4|DESKTOP-U4IHIEA|<server>|<unknown>|00:ce:39:cd:3e:cc
-     #       becomes 192.168.0.4|DESKTOP-U4IHIEA
-    else #pyro64
-     IP_WG_HN0="$(nbtscan ${remIP} 2>/dev/null | tr '\' ' ' | tr -s ' ' | tr ' ' '|')"
-     #...ex: 192.168.0.3|WORKGROUP|EASYPC25889|SHARING
-     IP_WG_HN="$(echo -n "$IP_WG_HN0" | cut -f 1,3 -d '|')"
-     #...ex: 192.168.0.3|EASYPC25889
-    fi
-    if [ "$IP_WG_HN" ];then
-     if [ "$(grep "^SMB:${IP_WG_HN}$" /var/local/easyshare/remote-ip-hn)" == "" ];then
-      echo "SMB:${IP_WG_HN}" >> /var/local/easyshare/remote-ip-hn
-     fi
+    #query remote fakeidentd server... ref: /usr/sbin/ident-user-enum.pl
+    REMident="$(ident-user-enum.pl ${remIP} 113 | grep "^${remIP}:" | tr '\t' ' ' | tr -s ' ' | cut -f 2 -d ' ')"
+    if [ "$REMident" ];then
+     remHN="${REMident/ES/}" #fakeidentd prefixed the hostname with "ES"
+     echo "IDENT:${remIP}|${remHN}" >> /var/local/easyshare/remote-ip-hn
     fi
    else
-    #180807 try for fakeidentd server next...
-    REMfnd="$(timeout 1 mpscan -p 113 ${remIP} | grep -o 'OK')" #20201205 remove "-t"
+    #now try for samba, remote nmbd should be running...
+    REMfnd="$(timeout 1 mpscan -p 445 ${remIP} | grep -o 'OK')"
     if [ "$REMfnd" == "OK" ];then
-     #query remote fakeidentd server... ref: /usr/sbin/ident-user-enum.pl
-     REMident="$(ident-user-enum.pl ${remIP} 113 | grep "^${remIP}:" | tr '\t' ' ' | tr -s ' ' | cut -f 2 -d ' ')"
-     if [ "$REMident" ];then
-      remHN="${REMident/ES/}" #fakeidentd prefixed the hostname with "ES"
-      echo "IDENT:${remIP}|${remHN}" >> /var/local/easyshare/remote-ip-hn
+     #query remote samba/smb server...
+     #note, remote smb/samba smbd server uses port 445.
+     #note, quirky xerus64 ubuntu nbtscan has different output from pyro.
+     #test for script friendly output, "-s" option...
+     SFO="$(nbtscan --help 2>&1 | tr '\t' ' ' | tr -s ' ' | grep -o '^ \-s ')"
+     if [ "$SFO" ];then
+      IP_WG_HN="$(nbtscan -s '|' ${remIP} 2>/dev/null | tr -d ' ' | cut -f 1,2 -d '|')" 
+      #...ex: 192.168.0.4|DESKTOP-U4IHIEA|<server>|<unknown>|00:ce:39:cd:3e:cc
+      #       becomes 192.168.0.4|DESKTOP-U4IHIEA
+     else #pyro64
+      IP_WG_HN0="$(nbtscan ${remIP} 2>/dev/null | tr '\' ' ' | tr -s ' ' | tr ' ' '|')"
+      #...ex: 192.168.0.3|WORKGROUP|EASYPC25889|SHARING
+      IP_WG_HN="$(echo -n "$IP_WG_HN0" | cut -f 1,3 -d '|')"
+      #...ex: 192.168.0.3|EASYPC25889
      fi
-    else
-     #180807 deprecated...
-     true
-     #REMfnd="$(timeout 1 mpscan -p 53 ${remIP} | grep -o 'OK')"
-     #if [ "$REMfnd" == "OK" ];then
-     # #query remote easy/quirky dnsmasq server...
-     # #note, remote dnsmasq server uses port 53.
-     # #use nmap... ref: /usr/local/EasyShare/dnsmasq-notes
-     # revDNS="$(nmap --dns-servers ${remIP} -R -sL ${LIP24}.254 2>/dev/null)"
-     # if [ "$revDNS" ];then
-     #  remHN="$(echo "$revDNS" | grep "^Nmap scan report .*(${LIP24}\.254)" | tr -s ' ' | cut -f 5 -d ' ')"
-     #  [ "$remHN" ] && echo "DNSMASQ:${remIP}|${remHN}" >> /var/local/easyshare/remote-ip-hn
-     # fi
-     #fi
+     if [ "$IP_WG_HN" ];then
+      #if [ "$(grep "^SMB:${IP_WG_HN}$" /var/local/easyshare/remote-ip-hn)" == "" ];then
+       echo "SMB:${IP_WG_HN}" >> /var/local/easyshare/remote-ip-hn
+      #fi
+     fi
     fi
    fi
   done
@@ -526,6 +615,7 @@ scan_file_servers_func() {
  fi
  killall popup
 }
+export -f scan_file_servers_func
 
 #180125
 remote_folders_func() {
@@ -587,7 +677,7 @@ remote_folders_func() {
 setup_info_func() {
  ln -snf ../../usr/share/pixmaps/puppy/execute.svg /tmp/easyshare/setup-icon.svg
  DEF_FILE_MODE="$(cat /var/local/easyshare/file-mode)"
- REMOTE_PROBE_METHOD="$(cat /tmp/easyshare/remote_probe_method)"
+ IDENT_SERVER_METHOD="$(cat /tmp/easyshare/ident_server_method)"
  case $DEF_FILE_MODE in
   1) #samba
    if pidof smbd >/dev/null; then
@@ -599,7 +689,7 @@ setup_info_func() {
   ;;
   2) #sshfs
    if pidof sshd >/dev/null; then
-    if [ "$REMOTE_PROBE_METHOD" == "smbd" ];then
+    if [ "$IDENT_SERVER_METHOD" == "nmbd" ];then
      case "${CONFIG_SAMBA}${CONFIG_SAMBA_CLIENT}" in
       truetrue) M_si1='<span fgcolor="DarkGreen">'"$(gettext 'The SSH daemon is running, so OK. Click <b>SSHFS Setup</b> button if you want to review the settings, or to disable the daemon.')"'</span>' ;;
       *)        M_si1='<span fgcolor="DarkGreen">'"$(gettext 'The SSH daemon is running, so OK to share a local folder.')"'</span><span fgcolor="DarkRed">'" $(gettext 'However, the Samba daemon is required to discover remote shares.')"'</span>' ;;
@@ -618,6 +708,7 @@ setup_info_func() {
  esac
  echo "$M_si1" > /tmp/easyshare/setup-info
 }
+export -f setup_info_func
 
 #setup for local folders xml...
 local_folders_func() {
@@ -626,6 +717,7 @@ local_folders_func() {
  echo -n 'false' > /tmp/easyshare/local-view1-flg
  echo -n 'false' > /tmp/easyshare/local-view2-flg
  echo -n 'false' > /tmp/easyshare/local-view3-flg
+ MYPATH="$(cat /tmp/easyshare/MYPATH)"
 
  DEF_FILE_MODE="$(cat /var/local/easyshare/file-mode)"
  case "$DEF_FILE_MODE" in
@@ -692,114 +784,54 @@ local_folders_func() {
  esac
  echo "$M_slf" > /tmp/easyshare/M_slf
 }
+export -f local_folders_func
 
 ###file sharing funcs###
-filemode0_func() { #disable file sharing from this pc
+filemode0_func() { #disable file sharing from this pc. 20221117
  FMnum='0'
- DEF_FILE_MODE="$(cat /var/local/easyshare/file-mode)"
- #if [ "$DEF_FILE_MODE" != "$FMnum" ];then
-  DEF_FILE_MODE='0'
-  echo -n "0" > /var/local/easyshare/file-mode
-  if pidof sshd >/dev/null;then
-   /bin/sh /etc/init.d/sshd stop >/dev/null 2>&1
-  fi
-  chmod 644 /etc/init.d/sshd
-  if pidof dnsmasq >/dev/null ;then /etc/init.d/dnsmasq stop >/dev/null 2>&1 ; fi
-  chmod 644 /etc/init.d/dnsmasq
-  if pidof smbd >/dev/null ;then
-   /etc/init.d/rc.samba stop >/dev/null 2>&1
-   chmod 644 /etc/init.d/rc.samba
-  fi
-  if pidof fakeidentd >/dev/null ;then #180807
-   /etc/init.d/es-ident stop >/dev/null 2>&1
-   chmod 644 /etc/init.d/es-ident
-  fi
-  setup_info_func
- #fi
+ DEF_FILE_MODE='0'
+ echo -n "0" > /var/local/easyshare/file-mode
+ choose_ident_server_func "0"
+ IDENT_SERVER_METHOD="$(cat /tmp/easyshare/ident_server_method)"
+ #$IDENT_SERVER_METHOD will be nothing, "nmbd" or "fakeidentd"
+ # in this case nothing, will stop all ident servers...
+ start_ident_server_func "$IDENT_SERVER_METHOD"
+ setup_info_func
  VIS_LOCAL_FILES='false'
  TICK_FM0='true'; TICK_FM1='false'; TICK_FM2='false'
 }
-filemode1_func() { #other pcs access share served by samba on this pc.
+export -f filemode0_func
+
+filemode1_func() { #other pcs access share served by samba on this pc. 20221117
  FMnum='1'
- DEF_FILE_MODE="$(cat /var/local/easyshare/file-mode)"
- REMOTE_PROBE_METHOD="$(cat /tmp/easyshare/remote_probe_method)"
- #if [ "$DEF_FILE_MODE" != "$FMnum" ];then
-  DEF_FILE_MODE='1'
-  echo -n "1" > /var/local/easyshare/file-mode
-  if pidof sshd >/dev/null;then
-   /bin/sh /etc/init.d/sshd stop >/dev/null 2>&1
-  fi
-  chmod 644 /etc/init.d/sshd
-  ln -snf ../../usr/share/pixmaps/easyshare/samba-setup100x25.png /tmp/easyshare/share-setup.png
-  ln -snf ../../usr/local/EasyShare/samba-setup /tmp/easyshare/setup
-  
-  #$INITSCRIPT will be either "dnsmasq" or "rc.samba", services by which other pcs probe this pc.
-  #$REMOTE_PROBE_METHOD will be "dnsmasq" or "smbd", the actual daemons, ditto.
-  case "$REMOTE_PROBE_METHOD" in
-   dnsmasq)
-    if ! pidof dnsmasq >/dev/null ; then
-     chmod 755 /etc/init.d/dnsmasq
-     /etc/init.d/dnsmasq start
-    fi
-   ;;
-   fakeidentd) #180807
-    if ! pidof fakeidentd >/dev/null ; then
-     chmod 755 /etc/init.d/es-ident
-     /etc/init.d/es-ident start
-    fi
-   ;;
-   *)
-    true
-   ;;
-  esac
-  
-  setup_info_func
- #fi
+ DEF_FILE_MODE='1'
+ echo -n "1" > /var/local/easyshare/file-mode
+ choose_ident_server_func "1"
+ IDENT_SERVER_METHOD="$(cat /tmp/easyshare/ident_server_method)" #will be "nmbd"
+ start_ident_server_func "$IDENT_SERVER_METHOD"
+ ln -snf ../../usr/share/pixmaps/easyshare/samba-setup100x25.png /tmp/easyshare/share-setup.png
+ ln -snf ../../usr/local/EasyShare/samba-setup /tmp/easyshare/setup
+ setup_info_func
  VIS_LOCAL_FILES='true'
  TICK_FM0='false'; TICK_FM1='true'; TICK_FM2='false'
 }
-filemode2_func() { #sshfs
+export -f filemode1_func
+
+filemode2_func() { #sshfs  20221117
  #clicked the "SSHFS" radiobutton.
  FMnum='2'
- DEF_FILE_MODE="$(cat /var/local/easyshare/file-mode)"
- REMOTE_PROBE_METHOD="$(cat /tmp/easyshare/remote_probe_method)"
- #if [ "$DEF_FILE_MODE" != "$FMnum" ];then
-  DEF_FILE_MODE='2'
-  echo -n "2" > /var/local/easyshare/file-mode
-  ln -snf ../../usr/share/pixmaps/easyshare/sshfs-setup100x25.png /tmp/easyshare/share-setup.png
-  ln -snf ../../usr/local/EasyShare/ssh-setup /tmp/easyshare/setup
-  
-  #$INITSCRIPT will be either "dnsmasq" or "rc.samba", services by which other pcs probe this pc.
-  #$REMOTE_PROBE_METHOD will be "dnsmasq" or "smbd", the actual daemons, ditto.
-  case "$REMOTE_PROBE_METHOD" in
-   dnsmasq)
-    if ! pidof dnsmasq >/dev/null ; then
-     chmod 755 /etc/init.d/dnsmasq
-     /etc/init.d/dnsmasq start
-    fi
-   ;;
-   fakeidentd) #180807
-    if ! pidof fakeidentd >/dev/null ; then
-     chmod 755 /etc/init.d/es-ident
-     /etc/init.d/es-ident start
-    fi
-   ;;
-   *)
-    true
-   ;;
-  esac
-  
-  setup_info_func
- #fi
+ DEF_FILE_MODE='2'
+ echo -n "2" > /var/local/easyshare/file-mode
+ choose_ident_server_func "2"
+ IDENT_SERVER_METHOD="$(cat /tmp/easyshare/ident_server_method)" #will be "fakeidentd"
+ start_ident_server_func "$IDENT_SERVER_METHOD"
+ ln -snf ../../usr/share/pixmaps/easyshare/sshfs-setup100x25.png /tmp/easyshare/share-setup.png
+ ln -snf ../../usr/local/EasyShare/ssh-setup /tmp/easyshare/setup
+ setup_info_func
  VIS_LOCAL_FILES='true'
  TICK_FM0='false'; TICK_FM1='false'; TICK_FM2='true'
 }
-export -f filemode0_func
-export -f filemode1_func
 export -f filemode2_func
-export -f setup_info_func
-export -f scan_file_servers_func
-export -f local_folders_func
 
 #180131 unmount when a file-mode radiobutton toggles to unselected
 unmount1_func() { #samba
@@ -851,7 +883,7 @@ else
 fi
 #variables to consider:
 #HAVESAMBA=yes|no                  yes if have smbd and nmbd daemons.
-#REMOTE_PROBE_METHOD=smbd|dnsmasq|fakeidentd  local server used by other pcs to probe this pc. (to acquire hostname)
+#IDENT_SERVER_METHOD=nmbd|fakeidentd  local server used by other pcs to probe this pc. (to acquire hostname)
 #DEF_FILE_MODE=0|1|2               0=disabled, 1=samba, 2=sshfs how files are to be shared from this pc
 #DEF_CUPS_MODE=0|1|2|3             0=disabled, 1=private local printer, 2=shared local printer, 3=network printer
 #TICK_NS=true|false                whether to probe for shares on others pcs.
@@ -862,7 +894,7 @@ auto_firewall_func() {
  #optional param=CM[0-3] or FM[0-2] or NS[true|false]
  PFF="${1}"
  FWflg="$(cat /var/local/easyshare/auto-firewall-flag)"
- REMOTE_PROBE_METHOD="$(cat /tmp/easyshare/remote_probe_method)"
+ IDENT_SERVER_METHOD="$(cat /tmp/easyshare/ident_server_method)"
  if [ "${FWflg}" == "false" ];then
   [ -x /etc/init.d/rc.firewall ] && /etc/init.d/rc.firewall stop
   chmod 644 /etc/init.d/rc.firewall
@@ -909,9 +941,9 @@ auto_firewall_func() {
   23) CONFIG_SSH=true ;;
  esac
  if [ "$NETEXPORTflg" == "yes" ];then
-  case "$REMOTE_PROBE_METHOD" in
+  case "$IDENT_SERVER_METHOD" in
    dnsmasq)    CONFIG_DNS=true ;;
-   smbd)       CONFIG_SAMBA=true; CONFIG_SAMBA_CLIENT=true ;;
+   nmbd)       CONFIG_SAMBA=true; CONFIG_SAMBA_CLIENT=true ;;
    fakeidentd) CONFIG_IDENT=true ;;
   esac
  fi
@@ -1159,13 +1191,13 @@ if [ "$VIS_SETUP" == "true" ];then
    <action signal=\"button-release-event\" type=\"refresh\">BTN_SETUP_RUN</action>
    <action signal=\"button-release-event\">local_folders_func</action>
    <action signal=\"button-release-event\" condition=\"command_is_true( cat /tmp/easyshare/local-view1-flg )\">show:LOCAL_VIEW1</action>
-   <action signal=\"button-release-event\" condition=\"command_is_true( cat /tmp/easyshare/local-view1-flg )\">refresh:LOCAL_VIEW1</action>
+   <action signal=\"button-release-event\" condition=\"command_is_true( cat /tmp/easyshare/local-view1-flg )\">refresh:LOCAL_VIEW1x</action>
    <action signal=\"button-release-event\" condition=\"command_is_false( cat /tmp/easyshare/local-view1-flg )\">hide:LOCAL_VIEW1</action>
    <action signal=\"button-release-event\" condition=\"command_is_true( cat /tmp/easyshare/local-view2-flg )\">show:LOCAL_VIEW2</action>
-   <action signal=\"button-release-event\" condition=\"command_is_true( cat /tmp/easyshare/local-view2-flg )\">refresh:LOCAL_VIEW2</action>
+   <action signal=\"button-release-event\" condition=\"command_is_true( cat /tmp/easyshare/local-view2-flg )\">refresh:LOCAL_VIEW2x</action>
    <action signal=\"button-release-event\" condition=\"command_is_false( cat /tmp/easyshare/local-view2-flg )\">hide:LOCAL_VIEW2</action>
    <action signal=\"button-release-event\" condition=\"command_is_true( cat /tmp/easyshare/local-view3-flg )\">show:LOCAL_VIEW3</action>
-   <action signal=\"button-release-event\" condition=\"command_is_true( cat /tmp/easyshare/local-view3-flg )\">refresh:LOCAL_VIEW3</action>
+   <action signal=\"button-release-event\" condition=\"command_is_true( cat /tmp/easyshare/local-view3-flg )\">refresh:LOCAL_VIEW3x</action>
    <action signal=\"button-release-event\" condition=\"command_is_false( cat /tmp/easyshare/local-view3-flg )\">hide:LOCAL_VIEW3</action>
    <action signal=\"button-release-event\" condition=\"command_is_false(pidof smbd > /dev/null || echo false)\">hide:BOX_LOCAL_FILES</action>
   </radiobutton>
@@ -1186,13 +1218,13 @@ if [ "$VIS_SETUP" == "true" ];then
    <action signal=\"button-release-event\" type=\"refresh\">BTN_SETUP_RUN</action>
    <action signal=\"button-release-event\">local_folders_func</action>
    <action signal=\"button-release-event\" condition=\"command_is_true( cat /tmp/easyshare/local-view1-flg )\">show:LOCAL_VIEW1</action>
-   <action signal=\"button-release-event\" condition=\"command_is_true( cat /tmp/easyshare/local-view1-flg )\">refresh:LOCAL_VIEW1</action>
+   <action signal=\"button-release-event\" condition=\"command_is_true( cat /tmp/easyshare/local-view1-flg )\">refresh:LOCAL_VIEW1x</action>
    <action signal=\"button-release-event\" condition=\"command_is_false( cat /tmp/easyshare/local-view1-flg )\">hide:LOCAL_VIEW1</action>
    <action signal=\"button-release-event\" condition=\"command_is_true( cat /tmp/easyshare/local-view2-flg )\">show:LOCAL_VIEW2</action>
-   <action signal=\"button-release-event\" condition=\"command_is_true( cat /tmp/easyshare/local-view2-flg )\">refresh:LOCAL_VIEW2</action>
+   <action signal=\"button-release-event\" condition=\"command_is_true( cat /tmp/easyshare/local-view2-flg )\">refresh:LOCAL_VIEW2x</action>
    <action signal=\"button-release-event\" condition=\"command_is_false( cat /tmp/easyshare/local-view2-flg )\">hide:LOCAL_VIEW2</action>
    <action signal=\"button-release-event\" condition=\"command_is_true( cat /tmp/easyshare/local-view3-flg )\">show:LOCAL_VIEW3</action>
-   <action signal=\"button-release-event\" condition=\"command_is_true( cat /tmp/easyshare/local-view3-flg )\">refresh:LOCAL_VIEW3</action>
+   <action signal=\"button-release-event\" condition=\"command_is_true( cat /tmp/easyshare/local-view3-flg )\">refresh:LOCAL_VIEW3x</action>
    <action signal=\"button-release-event\" condition=\"command_is_false( cat /tmp/easyshare/local-view3-flg )\">hide:LOCAL_VIEW3</action>
    <action signal=\"button-release-event\" condition=\"command_is_false(pidof sshd > /dev/null || echo false)\">hide:BOX_LOCAL_FILES</action>
   </radiobutton>
@@ -1483,17 +1515,23 @@ $(gettext 'Local IP-address:')
      
      <hbox>
       <vbox visible=\"${VIS_LOCAL_VIEW1}\">
-       <text use-markup=\"true\"><label>\"<b>folder1</b>\"</label><input file>/tmp/easyshare/local-folder1</input></text>
+       <text use-markup=\"true\"><label>\"<b>folder1</b>\"</label><input file>/tmp/easyshare/local-folder1</input>
+        <variable>LOCAL_VIEW1x</variable>
+       </text>
        <hbox><button><input file>/usr/local/lib/X11/pixmaps/folder48.png</input><action>/tmp/easyshare/rox-local-folder1 & </action></button></hbox>
        <variable>LOCAL_VIEW1</variable>
       </vbox>
       <vbox visible=\"${VIS_LOCAL_VIEW2}\">
-       <text use-markup=\"true\"><label>\"<b>folder2</b>\"</label><input file>/tmp/easyshare/local-folder2</input></text>
+       <text use-markup=\"true\"><label>\"<b>folder2</b>\"</label><input file>/tmp/easyshare/local-folder2</input>
+        <variable>LOCAL_VIEW2x</variable>
+       </text>
        <hbox><button><input file>/usr/local/lib/X11/pixmaps/folder48.png</input><action>/tmp/easyshare/rox-local-folder2 & </action></button></hbox>
        <variable>LOCAL_VIEW2</variable>
       </vbox>
       <vbox visible=\"${VIS_LOCAL_VIEW3}\">
-       <text use-markup=\"true\"><label>\"<b>folder3</b>\"</label><input file>/tmp/easyshare/local-folder3</input></text>
+       <text use-markup=\"true\"><label>\"<b>folder3</b>\"</label><input file>/tmp/easyshare/local-folder3</input>
+        <variable>LOCAL_VIEW3x</variable>
+       </text>
        <hbox><button><input file>/usr/local/lib/X11/pixmaps/folder48.png</input><action>/tmp/easyshare/rox-local-folder3 & </action></button></hbox>
        <variable>LOCAL_VIEW3</variable>
       </vbox>
@@ -1675,7 +1713,8 @@ if [[ $EXIT == mount_* ]];then
     mount -t cifs -o vers=2.0,username="${aUSERNAME}",password="${aPASSWORD}",cifsacl,ro //${remIP}/${aSN} ${aMNTPT}
     if [ $? -eq 0 ];then
      rox -x ${aMNTPT}
-     rox -d ${aMNTPT}
+     #rox -d ${aMNTPT}
+     rox_delayed_func ${aMNTPT} & #20221117
     else
      export ES_FAIL_MNT_DLG="<window title=\"$(gettext 'EasyShare: Failed mount remote share')\" icon-name=\"gtk-network\">
      <vbox>
@@ -1690,6 +1729,9 @@ if [[ $EXIT == mount_* ]];then
      RETVALS="$(gtkdialog --program=ES_FAIL_MNT_DLG --center)"
     fi
    done
+   #20221117 do not exit, rerun gui...
+   remote_folders_func #...creates $REMOTEFILESxml
+   continue #rerun gui.
   ;;
   *) #sshfs
    MNTPT="/mnt/${remHN}"
@@ -1728,6 +1770,9 @@ if [[ $EXIT == mount_* ]];then
     </vbox>
     </window>"
     RETVALS="$(gtkdialog --program=ES_FAIL_MNT_DLG --center)"
+    #20221117 do not exit...
+    remote_folders_func #...creates $REMOTEFILESxml
+    continue #rerun gui.
    fi
   ;;
  esac
@@ -1747,7 +1792,8 @@ if [[ $EXIT == unmount_* ]];then #ex: unmount_SMB_DESKTOP-4IHIEA_1
   rmdir /mnt/${MNTfolder}
   M3_c="$(gettext 'The network share has been unmounted')"
   pupdialog --background "#80FF80" --backtitle "EasyShare" --msgbox "${M3_c}" 0 0
-  exit
+  #exit
+  exec easyshare restart #20221117
  else
   M3_c="$(gettext 'Failed to unmount network share')"
   pupdialog --background "#FF8080" --backtitle "EasyShare" --msgbox "${M3_c}" 0 0
@@ -1806,15 +1852,4 @@ fi
  break
 done #180813 main dlg
 
-###finish###
-#HAVESAMBA=yes|no                  yes if have smbd and nmbd daemons.
-#REMOTE_PROBE_METHOD=smbd|dnsmasq|fakeidentd  local server used by other pcs to probe this pc. (to acquire hostname)
-#DEF_FILE_MODE=0|1|2               0=disabled, 1=samba, 2=sshfs how files are to be shared from this pc
-#DEF_CUPS_MODE=0|1|2|3             0=disabled, 1=private local printer, 2=shared local printer, 3=network printer
-case "${DEF_FILE_MODE}" in
- 0)
-  /etc/init.d/${INITSCRIPT} stop 2>/dev/null #INITSCRIPT is 'rc.samba' or 'dnsmasq'
-  chmod 644 /etc/init.d/${INITSCRIPT}
- ;;
-esac
-###END###
+###end###

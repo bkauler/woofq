@@ -4,6 +4,7 @@
 #180811 no longer using user 'rover', nor 'ssh0' container. see also: /usr/local/EasySahre/easyshare, /etc/ssh/sshd_config
 #180811 easyos: /etc/rc.d/PUPSTATE has $BOOT_PW_FLG =X or empty.
 #180816 only guaranteed path on remote pc is /root
+#20221117 minor fix.
 
 export TEXTDOMAIN=easyshare
 export OUTPUT_CHARSET=UTF-8
@@ -153,10 +154,10 @@ if [ "$EXIT" == "OK" ];then
  pupmessage -bg '#A0FFA0' -title "SSH Setup" "${M_s1} ${LOCALPASSWORD1}"
 fi
 
-#180201
-REMOTE_PROBE_METHOD="$(cat /tmp/easyshare/remote_probe_method)"
-if [ "$REMOTE_PROBE_METHOD" == "smbd" ];then
- if ! pidof smbd > /dev/null ;then
+#180201 20221117
+IDENT_SERVER_METHOD="$(cat /tmp/easyshare/ident_server_method)"
+if [ "$IDENT_SERVER_METHOD" == "nmbd" ];then
+ if ! pidof nmbd > /dev/null ;then
   . /root/.config/firewall/fw.conf
   if [ "$CONFIG_SAMBA" == "true" -a "$CONFIG_SAMBA_CLIENT" == "true" ];then
    M_s1="$(gettext 'EasyShare is configured to use Samba for network probing. Samba is also needed for printing from Windows to a Linux PC. <b>Samba Setup</b> will now be run, and you must enable the Samba daemon.')"
