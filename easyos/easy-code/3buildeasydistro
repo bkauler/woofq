@@ -267,6 +267,7 @@
 #20221102 fix /var/cache symlink.
 #20221106 install latest pci.ids and usb.ids
 #20221114 fix /etc/lsb-release
+#20221118 keep scsi module mpt3sas (deps: scsi_transport_sas, raid_class)
 
 #for easy linux, want to build a drive image, with just one 639MB fat32 partition.
 #for PCs, bootable with syslinux. partition contains vmlinuz, initrd and easy.sfs
@@ -1813,7 +1814,8 @@ if [ "$DISTRO_KERNEL_PET" != "" ];then #160824 #############
   rm -rf /tmp/scsi-keep
   mkdir /tmp/scsi-keep
   #20220403 add: rts_bpp.ko BusLogic.ko
-  for ONEKEEP in imm.ko ppa.ko raid_class.ko sg.ko scsi_wait_scan.ko rts_bpp.ko BusLogic.ko
+  #20221118 add: mpt3sas (deps: scsi_transport_sas, raid_class)
+  for ONEKEEP in imm.ko mpt3sas.ko ppa.ko raid_class.ko scsi_transport_sas.ko scsi_wait_scan.ko sg.ko rts_bpp.ko BusLogic.ko
   do
    ONEFND="`find rootfs-complete/lib/modules/$KERNELVER/kernel/drivers/scsi -type f -name $ONEKEEP`"
    [ "$ONEFND" ] && cp -a $ONEFND /tmp/scsi-keep/
