@@ -58,9 +58,18 @@
 #20221026 fix broken /run folder. hack fix non-root clients.
 #20221102 remove support EOS_LOGIN_ZEUS
 #20221102 fix /run and /var/run symlinks. fix /var/cache symlink.
+#20221123 top-level /.config and /.local were getting created at startup.
 
 #unset TZ #100319 busybox hwclock gives priority to this (rather than /etc/localtime) and 'init' has set it wrong.
 #...comment-out for now. note, TZ now set in rc.country.
+#20221123 variables set in initrd are here. ex:
+#  EOS_SUPPORT_CONTAINERS='1' HOME='/' LANG='C' TZ='XXX-23' USER='root'
+#  WKG_FS='ext4' wkg_dir='easyos' wkg_uuid='aad57b63-14e1-4fd5-ac01-14d15ef81e3e'
+#we have a problem, top-level /.config and /.local getting created, try this fix:
+export HOME='/root'
+#and reckon do this:
+unset TZ
+
 ORIGLANG="`grep '^LANG=' /etc/profile | cut -f 2 -d '=' | cut -f 1 -d ' '`" #120217
 ORIGLANG1="${ORIGLANG%_*}" #ex: en
 export LANG=C
