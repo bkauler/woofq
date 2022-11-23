@@ -14,7 +14,7 @@
 #20220126 add application_zstd to petget and xarchive.
 #20220613 mount-img is now handler for application_easy-disk-image, not filemnt. 20220622 fix.
 #20220629 add application/xhtml+xml
-#20221115 add pfind inode_directory
+#20221115 add pfind inode_directory. 20221123 need pass "-d" cmd when run pfind.
 
 #may call this in woofQ, when current dir is sandbox3/rootfs-complete, so test...
 CWD="`pwd`"
@@ -58,6 +58,7 @@ do
  MIMEDIR=''
  aBAD='' #MimeType= in .desktop may have inappropriate entries, screen out.
  #ref: grep '^Exec=' *.desktop | cut -f 2 -d '=' | cut -f 1 -d ' ' | rev | cut -f 1 -d '/' | rev | sort -u | sed -e 's%^%  %' -e "s%$%) MIMEDIR='' ;;%"
+ aCMD='' #20221123
  case $aEXE in
 #  AppRun) MIMEDIR='' ;;
   audacious) MIMEDIR='audio' ;;
@@ -179,7 +180,7 @@ do
 #  peasyscale) MIMEDIR='' ;;
 #  peasyscan) MIMEDIR='' ;;
   petget)         MIMEDIR='application_pet application_vnd.debian.binary-package application_x-deb application_x-bzip-compressed-tar application_x-xz-compressed-tar application_x-rpm application_zstd' ;;
-  pfind) MIMEDIR='inode_directory'; aNAME='pFind' ;;
+  pfind) MIMEDIR='inode_directory'; aNAME='pFind' aCMD='pfind -d $1' ;;
 #  picpuz-wrapper) MIMEDIR='' ;;
 #  pidginshell) MIMEDIR='' ;;
 #  pkg_chooser.sh) MIMEDIR='' ;;
@@ -284,7 +285,12 @@ do
    rm -f etc/xdg/rox.sourceforge.net/SendTo/.${aMD}/${aNAME} 2>/dev/null
   else
    [ ! -d etc/xdg/rox.sourceforge.net/SendTo/.${aMD} ] && mkdir etc/xdg/rox.sourceforge.net/SendTo/.${aMD}
-   ln -snf /${aDT} etc/xdg/rox.sourceforge.net/SendTo/.${aMD}/${aNAME}
+   if [ "$aCMD" ];then #20221123
+    echo -e "#!/bin/ash\nexec ${aCMD}" > etc/xdg/rox.sourceforge.net/SendTo/.${aMD}/${aNAME}
+    chmod 755 etc/xdg/rox.sourceforge.net/SendTo/.${aMD}/${aNAME}
+   else
+    ln -snf /${aDT} etc/xdg/rox.sourceforge.net/SendTo/.${aMD}/${aNAME}
+   fi
    #190117 not always get app at top right-click (ex: audacious)...
    case "$aMD" in
     audio)
