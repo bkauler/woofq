@@ -18,6 +18,7 @@
 #20210913 app will now run as individual clients, not spot.
 #20210919 now /home/spot
 #20221023 now supporting zeus administrator ***TODO***
+#20221124 modify message, non-root app also able to open|save under /files
 
 export TEXTDOMAIN=loginmanager
 export TEXTDOMAINDIR=/usr/share/locale
@@ -211,7 +212,7 @@ $(gettext 'Note also, the restrictions apply to components of the SeaMonkey suit
       esac
       M_sm1="$(eval_gettext "The next time that you start \${ANAME}, it will run as user '${ANAME}'.")
 
-$(eval_gettext 'Note, this restricts where you can download and save files to, and where they can be edited. You are restricted to /home/${ANAME}, and the default folder is /home/${ANAME}/downloads.')
+$(eval_gettext 'Note, this restricts where you can download and save files to, and where they can be edited. You are restricted to /home/${ANAME} and anywhere under /files.')
 
 $(eval_gettext 'Note also, if you move or copy any files into /home/${ANAME} while ${ANAME} is running, you may be able to open but not edit them, as they may not have permissions/ownership rights for user ${ANAME} -- exiting and restarting ${ANAME} will automatically fix this.')
 ${extramsg}"
