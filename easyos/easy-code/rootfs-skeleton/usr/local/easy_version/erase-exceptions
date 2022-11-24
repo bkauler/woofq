@@ -11,6 +11,7 @@
 #20220117 PIM data -- osmo, pplog, didiwiki. 20220118 didiwiki retired.
 #20220612 put up please wait msg.
 #20220907 do not have /var symlink. do not have /root/.var or /root/.var0 see also: rc.sysinit, init, fixlayers
+#20221124 /root/.clients-status has flags for what apps are running non-root.
 
 export TEXTDOMAIN=erase-exceptions
 export OUTPUT_CHARSET=UTF-8
@@ -187,6 +188,16 @@ if [ "$EXIT" == "save" ];then
  if [ -f /root/.gitconfig ];then
   cp -a -f /root/.gitconfig /mnt/wkg/sfs/settings/erase-exceptions/root/
  fi
+ #20221124 preserve flags what apps running non-root...
+ cp -a -f /mnt/.easy_ro/easy_sfs/root/.clients-status /mnt/wkg/sfs/settings/erase-exceptions/root/
+ HOMEDIRS="$(find /mnt/wkg/sfs/settings/erase-exceptions/home -mindepth 1 -maxdepth 1 -type d 2>/dev/null | tr '\n' ' ')"
+ for aHD in $HOMEDIRS
+ do
+  grep -q "^{aHD##*/}=" /mnt/wkg/sfs/settings/erase-exceptions/root/.clients-status
+  if [ $? -ne 0 ];then
+   grep "^{aHD##*/}=" /root/.clients-status >> /mnt/wkg/sfs/settings/erase-exceptions/root/.clients-status
+  fi
+ done
  killall popup #20220612
  exit 0
 fi
