@@ -1,6 +1,7 @@
 #!/bin/sh
 #called from /usr/bin/wmreboot, from menu Shutdown --> Reboot, with rollback"
 #200815 erase session, offer to keep some settings.
+#20221124 "wmreboot rollback" --> here --> "wmreboot nosave"
 
 export TEXTDOMAIN=easy-rollback
 export OUTPUT_CHARSET=UTF-8
@@ -44,6 +45,7 @@ if [ $DISPLAY ];then #check X still running
    /usr/local/easy_version/erase-exceptions
    [ $? -ne 0 ] && exit
    echo -n ",erase" > /.rollback.flg
+   exec wmreboot nosave #20221124 do not ask to save session.
   fi
   exec wmreboot #default to reboot now.
  fi

@@ -18,6 +18,7 @@
 #20220801 move /.fsckme.flg to /mnt/${WKG_DEV}/${WKG_DIR}
 #20221101 from menu "Shutdown->Rectify->Reboot, flip zeus or root login"
 #20221110 kill rox before shutdown ask-save dlg.
+#20221124 easy-rollback call here with $1=nosave when rollback to pristine bootup.
 
 . /etc/rc.d/PUPSTATE #20220526 has EOS_SUPPORT_CONTAINERS, EOS_TOP_LEVEL_ZRAM
 
@@ -65,9 +66,11 @@ if [ $DISPLAY ];then #paranoid precaution, check X still running
  
  #20220526 if top-level zram1, ask if save...
  if [ "$EOS_TOP_LEVEL_ZRAM" == "1" ];then
-  if [ "$(cat /var/local/zram1-ask-save-shutdown 2>/dev/null)" != "false" ];then #20220527
-   killall ROX-Filer #20221110 clear most of desktop.
-   ask-save-zram1 shutdown #in /usr/sbin 20220527
+  if [ "${1}" != "nosave" ];then #20221124
+   if [ "$(cat /var/local/zram1-ask-save-shutdown 2>/dev/null)" != "false" ];then #20220527
+    killall ROX-Filer #20221110 clear most of desktop.
+    ask-save-zram1 shutdown #in /usr/sbin 20220527
+   fi
   fi
  fi
 fi
