@@ -32,7 +32,8 @@
 #20220603 replace DB_* with SFS_DB_* in sfs .specs files.
 #20220607 resolve problems with easy*sfs deps.
 #20220607 problem when remove online sfs files, but user already has downloaded .specs and .png files.
-#20220608 fixes.
+#20220608 fixes. 
+#20221125 fix finding paths to sfs files. ref: https://forum.puppylinux.com/viewtopic.php?p=73599#p73599
 
 export TEXTDOMAIN=sfsget
 export OUTPUT_CHARSET=UTF-8
@@ -384,8 +385,8 @@ else
  PATHS="$(echo -n "${SFS_PROBE}" | cut -f 1,2,3 -d '/' | sort -u)"
 
  if [ "$EOS_SUPPORT_CONTAINERS" != "0" ];then #20220525
-  #20210504 add local path if not online... "-not -empty" to ignore folders with nothing in them...
-  LOCALSFSPATHS="$(find /mnt/wkg/sfs -mindepth 3 -type d -not -empty | sort -u | grep -v '^settings'| sed -e 's%^/mnt/wkg/sfs/%%')"
+  #20210504 add local path if not online... "-not -empty" to ignore folders with nothing in them... 20221125 fix
+  LOCALSFSPATHS="$(find /mnt/wkg/sfs -mindepth 3 -type d -not -empty | sort -u | grep -v 'settings'| sed -e 's%^/mnt/wkg/sfs/%%')"
   if [ "$LOCALSFSPATHS" ];then
    xPATHS="${PATHS}
 $LOCALSFSPATHS"
