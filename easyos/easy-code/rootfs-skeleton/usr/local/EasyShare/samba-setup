@@ -14,7 +14,7 @@
 #180125 BK improve samba security, restrict to local network. 180130 revert.
 #180129 BK fix ip-address.
 #20211116 BK set pid address to /var/run, nmbd doesn't work if last folder is symlink.
-#20211205 BK MYPATH=/files
+#20211205 BK MYPATH=/files  20221129 fix pid address path, now /var/run/samba
 
 export TEXTDOMAIN=sambasetup
 export OUTPUT_CHARSET=UTF-8
@@ -110,7 +110,7 @@ swapvalues_func(){
 
  #180129 earlier LOCALIPADDRESS not visible here, do again...
  LOCALIPADDRESS="$(hostname -I 2>/dev/null | cut -f 1 -d ' ')"
- #20211116 insert pid address...
+ #20211116 insert pid address... 20221129 fix
  echo "#this is a very simple smb.conf to get you started
 #coutesy rcrsn51 and gcmartin
 [global]
@@ -123,7 +123,7 @@ swapvalues_func(){
 	printcap name = cups
 	load printers = yes
 	unix extensions = yes
-	pid directory = /var/run
+	pid directory = /var/run/samba
 
 [${SHARENAME}]
 	path = ${MYPATH}
