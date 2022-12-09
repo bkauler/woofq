@@ -20,6 +20,7 @@
 #20220208 set flag if rox is managing desktop icons. 20220210 read /etc/uimanager
 #20220218 generate-drives-menu writes to /root/.jwmrc-drives internally.
 #20220218 no longer using ROXDESKflg.
+#20221209 fix parse full blkid.
 
 #130614 the uevents can be complicated. this is what comes in here when I plugin my optus 3g usb stick:
 #add:sdb add:sr1 cha:sdb cha:sr1
@@ -141,7 +142,7 @@ do
   if [ $ALL_CNT -eq 1 ];then #no partitions...
    if [ "$ACTION" = "add" ];then
     #FSTYPE="`guess_fstype /dev/$DEVICE 2>/dev/null`" #note, audio-cd returns "unknown", as no f.s.
-    FSTYPE="$(blkid /dev/$DEVICE 2>/dev/null | grep -o 'TYPE=.*' | cut -f 2 -d '"')" #200717
+    FSTYPE="$(blkid /dev/$DEVICE 2>/dev/null | tr ' ' '\n' | grep '^TYPE=' | cut -f 2 -d '"')" #200717
     [ "$FSTYPE" = "unknown" ] && FSTYPE="none"
     SIZE=`cat /sys/block/${DEVICE}/size`
     SIZE=$(($SIZE/2)) #get KB.
@@ -151,7 +152,7 @@ do
    [ "$DEVICE" = "$DRV_NAME" ] && continue #ignore drive, ex: sdc, only want partitions.
    if [ "$ACTION" = "add" ];then
     #FSTYPE="`guess_fstype /dev/$DEVICE 2>/dev/null`" #130128 note, audio-cd returns "unknown", as no f.s.
-    FSTYPE="$(blkid /dev/$DEVICE 2>/dev/null | grep -o 'TYPE=.*' | cut -f 2 -d '"')" #150324 guess_fstype fails sometimes.
+    FSTYPE="$(blkid /dev/$DEVICE 2>/dev/null | tr ' ' '\n' | grep '^TYPE=' | cut -f 2 -d '"')" #150324 guess_fstype fails sometimes.
     [ "$FSTYPE" = "unknown" ] && FSTYPE="none"
     SIZE=`cat /sys/block/${DRV_NAME}/${DEVICE}/size`
     SIZE=$(($SIZE/2)) #get KB.

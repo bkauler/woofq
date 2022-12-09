@@ -32,6 +32,7 @@
 #180408 support nvme drives.
 #200717 no longer have guess_fstype in busybox.
 #20210710 sdk<n> partitions were screened out. fixed.
+#20221209 fix parse full blkid
 
 #150320 detect if running inside a self-extracted archive:
 PWD="`pwd`"
@@ -123,7 +124,7 @@ do
   fi
  fi
  #FSTYPE="`${PRE}busybox guess_fstype /dev/$DEVICE 2>/dev/null`" #130128 note, audio-cd returns "unknown", as no f.s.
- FSTYPE="$(${PRE}busybox blkid /dev/${DEVICE} 2>/dev/null | ${PRE}busybox grep -o 'TYPE=.*' | ${PRE}busybox cut -f 2 -d '"')" #200717
+ FSTYPE="$(${PRE}busybox blkid /dev/${DEVICE} 2>/dev/null | ${PRE}busybox tr ' ' '\n' | ${PRE}busybox grep '^TYPE=' | ${PRE}busybox cut -f 2 -d '"')" #200717 20221209
 
  if [ "$FSTYPE" = "unknown" -a "$MEDIATYPE" = "optical" ];then #130128 probe optical a bit more.
   ${PRE}cddetect -q -d/dev/${DEVICE} > /dev/null 2>&1
@@ -150,7 +151,7 @@ do
 #    #130526 Karl Godt: example o/p from blkid that breaks above:
 #    # /dev/sdb1: UUID="5a126d47-065d-4eb6-baf9-dd7701bfe71a" TYPE="ext4" LABEL="boot"
 #    # ref: http://www.murga-linux.com/puppy/viewtopic.php?t=85965
-#    FSTYPE=$(${PRE}busybox blkid -c /dev/null /dev/${DEVICE} | ${PRE}busybox grep -w "${DEVICE}" | ${PRE}busybox grep -o ' TYPE=".*"' | ${PRE}busybox cut -f2 -d'"')
+#    FSTYPE=$(${PRE}busybox blkid -c /dev/null /dev/${DEVICE} | ${PRE}busybox grep -w "${DEVICE}" | ${PRE}busybox tr ' ' '\n' | ${PRE}busybox grep '^TYPE=' | ${PRE}busybox cut -f2 -d'"')
 #    [ "$FSTYPE" = "" ] && FSTYPE="unknown"
 #   ;;
   esac
