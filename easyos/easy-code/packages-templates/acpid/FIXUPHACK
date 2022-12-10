@@ -36,3 +36,42 @@ chmod 755 etc/acpi/power.sh
 ##want acpid to start before...
 #[ -f etc/init.d/acpid ] && mv -f etc/init.d/acpid etc/init.d/90-acpid
 
+#20221210
+#one person reported acpid not exiting at shutdown, another said took 4 minutes.
+if [ -f etc/init.d/acpid ]; then
+ echo '#! /bin/sh -e
+
+test -x /usr/sbin/acpid || exit 0
+test -d /proc/acpi || exit 0
+mkdir -p /etc/acpi/events
+
+case "$1" in
+  start)
+    echo -n "Starting Advanced Configuration and Power Interface daemon: "
+    if [ ! -d /etc/acpi/events ]; then
+        echo "There is not any rule configuration file."
+    else
+        start-stop-daemon -o -S -x /usr/sbin/acpid -- -c /etc/acpi/events
+        echo "acpid."
+    fi
+    ;;
+  stop)
+    echo -n "Stopping Advanced Configuration and Power Interface daemon: "
+    #start-stop-daemon -o -K -x /usr/sbin/acpid
+    # "-R 1" causes schedule TERM/1/KILL/1 
+    start-stop-daemon -o -K -x /usr/sbin/acpid -R 1
+    echo "acpid."
+    ;;
+  restart|force-reload) 
+    $0 stop
+    $0 start
+    ;;
+  *)
+    echo "Usage: /etc/init.d/acpid {start|stop|restart|force-reload}"
+    exit 1
+esac
+
+exit 0
+' > etc/init.d/acpid
+ chmod 755 etc/init.d/acpid
+fi
