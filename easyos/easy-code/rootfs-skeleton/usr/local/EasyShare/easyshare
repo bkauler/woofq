@@ -28,6 +28,7 @@
 #20221118 detect if more than one local network.
 #20221118 fix refresh not working. fix paths.
 #20221122 note: alternative to "arp-scan --localnet": nmap -PR -sn 192.168.1.1/24
+#20221212 fix detect more than one network.
 
 export TEXTDOMAIN=easyshare
 export OUTPUT_CHARSET=UTF-8
@@ -132,11 +133,14 @@ rox_delayed_func() { #180813
 LOCALIPADDRESS=''
 IFUPflg="$(ifconfig | grep '^[a-z].* Link encap:Ethernet')"
 
+#20221212 fix...
 #20221118 detect if more than one local network. ex:
-## ifconfig | grep '^[a-z].* Link encap:Ethernet'
-#eth0      Link encap:Ethernet  HWaddr A4:AE:11:16:23:48  
-#wlan0     Link encap:Ethernet  HWaddr 28:7F:CF:EB:43:56
-IFUPcnt=$(echo "$IFUPflg" | wc -l)
+### ifconfig | grep '^[a-z].* Link encap:Ethernet'
+##eth0      Link encap:Ethernet  HWaddr A4:AE:11:16:23:48  
+##wlan0     Link encap:Ethernet  HWaddr 28:7F:CF:EB:43:56
+#IFUPcnt=$(echo "$IFUPflg" | wc -l)
+IFUPcnt=$(getlocalip | grep -E '^eth|^wlan' | wc -l)
+
 if [ $IFUPcnt -ge 2 ];then
  M0_2="$(gettext 'This computer is connected to more than one local network:')"
  M0_3="$(gettext 'This will confuse EasyShare and the firewall. You must reduce the network interfaces to just one. Unable to continue until this is done.')"
