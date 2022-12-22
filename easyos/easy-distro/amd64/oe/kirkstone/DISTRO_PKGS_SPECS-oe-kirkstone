@@ -1,0 +1,847 @@
+#w469 fallbacks when looking for pet pkgs (space-separated list)...
+FALLBACKS_COMPAT_VERSIONS=''
+
+#PKGS_SPECS_TABLE table format:
+#will pkg be in puppy-build.
+#   Generic name for pkg. Note: PET packages, if exist, use this name.
+#   Comma-separated list of compatible-distro pkg(s). '-' prefix, exclude.
+#   Must be exact name-only of pkg, else '*' on end is wildcard to search full name.
+#   Empty field, then use PET pkg.
+#   How the package will get split up in woof (optional redirection '>' operator).
+#   Missing field, it goes into exe. Can also redirect >null, means dump it.
+#yes|abiword|iceword,iceword-plugins|exe,dev,doc,nls
+#example showing wildcard. finds all full pkg names with 'gcc-4.3*',
+#but, exclude any 'gcc-4.3-doc*' matches...
+#yes|gcc|gcc,gcc-4.3*,-gcc-4.3-doc*|exe,dev,doc,nls
+#110817 Comments preferred to be on end of line, ex:
+#yes|abiword|iceword,iceword-plugins|exe,dev,doc,nls| #this is a comment.
+#110829 enhancements:
+#Force pkg is from compat-distro repo, specifically 'salix' repo...
+#yes|abiword|iceword,iceword-plugins|exe,dev,doc,nls|compat:salix
+#Generic format:
+#yes|genericpkgname|[pkgnames]|[splitup]|[pet:[repo]]
+#yes|genericpkgname|[pkgnames]|[splitup]|[compat:[repo]]
+
+PKGS_SPECS_TABLE='
+yes|915resolution||exe,dev,doc,nls|pet:kirkstone|
+yes|acl|acl|exe,dev,doc,nls|compat:kirkstone|
+yes|acpid|acpid|exe,dev,doc,nls|compat:kirkstone
+yes|adbfs|adbfs|exe,dev,doc,nls|compat:kirkstone| #needs fuse and adb
+yes|align||exe|pet:noarch| #perl script.
+yes|alsa-lib|alsa-lib|exe,dev,doc,nls|compat:kirkstone
+yes|alsa-utils|alsa-utils|exe,dev,doc,nls|compat:kirkstone
+yes|alsa-plugins|alsa-plugins|exe,dev,doc,nls|compat:kirkstone|
+yes|android-tools|android-tools|exe,dev,doc,nls|compat:kirkstone| #has adb and fastboot.
+yes|appstream-glib|appstream-glib|exe,dev,doc,nls|compat:kirkstone| #needed by celluloid.
+yes|apr|apr|exe,dev,doc,nls|compat:kirkstone
+yes|apr-util|apr-util|exe,dev,doc,nls|compat:kirkstone
+yes|arp-scan|arp-scan|exe,dev,doc,nls|compat:kirkstone| #needed by peasyscan-noarch
+yes|aspell|aspell|exe,dev,doc,nls|compat:kirkstone| #needed by epiphany, enchant, webkitgtk, inkscape
+yes|atk|atk|exe,dev,doc,nls|compat:kirkstone
+yes|atkmm|atkmm|exe,dev,doc,nls|compat:kirkstone
+yes|at-spi2-atk|at-spi2-atk|exe,dev,doc,nls|compat:kirkstone| #needed by gtk+3
+yes|at-spi2-core|at-spi2-core|exe,dev,doc,nls|compat:kirkstone| #needed by gtk+3
+yes|attr|attr|exe,dev,doc,nls|compat:kirkstone
+yes|audacious|audacious|exe,dev,doc,nls|compat:kirkstone|
+yes|audacious-plugins|audacious-plugins|exe,dev,doc,nls|compat:kirkstone|
+yes|aufs-util|aufs-util|exe,dev,doc,nls|compat:kirkstone|
+yes|autoconf|autoconf|exe>dev,dev,doc,nls|compat:kirkstone
+yes|autoconf2.13||exe>dev,dev,doc,nls|pet:noarch| #needed to compile firefox and seamonkey.
+yes|automake|automake|exe>dev,dev,doc,nls|compat:kirkstone
+yes|awf|awf|exe,dev,doc,nls|compat:kirkstone|
+yes|babl|babl|exe,dev,doc,nls|compat:kirkstone| #needed by gegl and gimp.
+yes|bacon|bacon|exe>dev,dev,doc,nls|compat:kirkstone| #all goes into devx.
+yes|bacon-hug|bacon-hug|exe,dev>exe,doc>dev,nls|compat:kirkstone| #components of bacon needed at runtime.
+yes|bacon-hug-imports|bacon-hug-imports|exe>dev,dev,doc,nls|compat:kirkstone| #all goes into devx.
+yes|bash|bash|exe,dev,doc,nls|compat:kirkstone| #recompiled -r1 fixed bug.
+yes|bbc_provided|bbc-provided|exe,dev,doc,nls|compat:kirkstone|
+yes|bbe|bbe|exe,dev,doc,nls|compat:kirkstone|
+yes|bc|bc|exe,dev,doc,nls|compat:kirkstone
+yes|bdftopcf|bdftopcf|exe,dev,doc,nls|compat:kirkstone|
+yes|bdwgc|bdwgc|exe,dev,doc,nls|compat:kirkstone| #needed by inkscape
+yes|binutils|binutils|exe>dev,dev,doc,nls|compat:kirkstone
+yes|bison|bison|exe>dev,dev,doc,nls|compat:kirkstone
+yes|bluepup_tray|bluepup-tray|exe,dev,doc,nls|compat:kirkstone|
+yes|bluez|bluez5|exe,dev,doc,nls|compat:kirkstone|  #has bluetoothctl internationalized.
+yes|bluez-tools|bluez-tools|exe,dev,doc,nls|compat:kirkstone|
+yes|bones||exe|pet:noarch
+yes|boost|boost|exe>dev,dev,doc,nls|compat:kirkstone
+yes|boost-runtime|boost|exe,dev>null,doc>null,nls>null|compat:kirkstone
+yes|bridge-utils|bridge-utils|exe,dev,doc,nls|compat:kirkstone| #maybe used by qemu.
+yes|brlaser|brlaser|exe,dev,doc,nls|compat:kirkstone|
+yes|busybox||exe,dev>null,doc,nls|pet:kirkstone| #has guess_fstype applet. compiled statically. KEEPPKG
+yes|bzip2|bzip2|exe,dev,doc,nls|compat:kirkstone
+yes|c99-wrapper||exe>dev,dev,doc,nls|pet:noarch
+yes|ca-certificates|ca-certificates|exe,dev,doc,nls|compat:kirkstone
+yes|cairo|cairo|exe,dev,doc,nls|compat:kirkstone
+yes|cairomm|cairomm|exe,dev,doc,nls|compat:kirkstone|
+yes|ccrypt|ccrypt|exe,dev,doc,nls|compat:kirkstone|
+yes|cddetect|cddetect|exe,dev>null,doc,nls|compat:kirkstone|
+yes|cddetect_quick|cddetect-quick|exe,dev>null,doc,nls|compat:kirkstone|
+yes|cdrkit|cdrkit|exe,dev,doc,nls|compat:kirkstone|
+yes|celluloid|celluloid|exe,dev,doc,nls|compat:kirkstone|
+yes|cgtkcalc|cgtkcalc|exe,dev>null,doc,nls|compat:kirkstone|
+yes|chrpath|chrpath|exe,dev,doc,nls|compat:kirkstone|
+yes|cifs-utils||exe,dev,doc,nls|pet:kirkstone| #recompiled in oe but still does not work. use pet.
+yes|cmake|cmake|exe>dev,dev,doc,nls|compat:kirkstone|
+yes|coreutils|coreutils|exe,dev,doc,nls|compat:kirkstone|
+yes|cpio|cpio|exe,dev>null,doc,nls|compat:kirkstone
+yes|cppunit|cppunit|exe,dev,doc,nls|compat:kirkstone|
+yes|cryptodev-linux|cryptodev-linux|exe,dev,doc,nls|compat:kirkstone
+yes|ctorrent|ctorrent|exe,dev,doc,nls|compat:kirkstone|
+yes|cups|cups|exe,dev,doc>exe,nls|compat:kirkstone| #important doc goes into exe
+yes|cups-filters|cups-filters|exe,dev,doc,nls|compat:dunfell| #check if printing works, else use pet.
+no|cups-filters||exe,dev,doc,nls|pet:kirkstone| #dunfell, printing was broken, now works.
+yes|cups_pdf||exe|pet:noarch| #why do we still have this as can print to file anyway.
+yes|curl|curl|exe,dev,doc,nls|compat:kirkstone
+yes|curlftpfs|curlftpfs|exe,dev,doc,nls|compat:kirkstone|
+yes|db|db|exe,dev,doc,nls|compat:kirkstone| #libreoffice needs this for open/save
+yes|dbus|dbus|exe,dev,doc,nls|compat:kirkstone
+yes|dbus-glib|dbus-glib|exe,dev,doc,nls|compat:kirkstone
+yes|defaults-chooser||exe|pet:noarch
+yes|desk_background_easyblue2||exe|pet:noarch|
+yes|desk_icon_theme_easyblue||exe|pet:noarch|
+yes|desk_icon_theme_multicolor_marble2||exe|pet:noarch|
+yes|desktop-file-utils|desktop-file-utils|exe,dev,doc,nls|compat:kirkstone|
+yes|dhcpcd|dhcpcd|exe,dev,doc,nls|compat:kirkstone|
+yes|dialog|dialog|exe,dev>null,doc,nls|compat:kirkstone|
+yes|dictd_client|dictd-client|exe,dev,doc,nls|compat:kirkstone
+yes|diffstat|diffstat|exe,dev,doc,nls|compat:kirkstone
+yes|diffutils|diffutils|exe,dev,doc,nls|compat:kirkstone
+yes|disktype|disktype|exe,dev,doc,nls|compat:kirkstone|
+yes|dmidecode|dmidecode|exe,dev>null,doc,nls|compat:kirkstone
+yes|dnsmasq|dnsmasq|exe,dev,doc,nls|compat:kirkstone| #networkmanager needs this.
+yes|docbook-xml-dtd4|docbook-xml-dtd4|exe>dev,dev,doc,nls|compat:kirkstone|
+yes|docbook-xsl-stylesheets|docbook-xsl-stylesheets|exe>dev,dev,doc,nls|compat:kirkstone|
+yes|dosfstools|dosfstools|exe,dev,doc,nls|compat:kirkstone
+yes|double-conversion|double-conversion|exe,dev,doc,nls|compat:kirkstone| #needed by inkscape.
+yes|dpkg-deb|dpkg|exe,dev,doc,nls|compat:kirkstone| #go back to just dpkg-deb
+yes|droidcam|droidcam|exe,dev,doc,nls|compat:kirkstone| #phone webcam.
+yes|Dropbox_GUI||exe|pet:noarch|
+yes|dtc|dtc|exe,dev,doc,nls|compat:kirkstone| #device tree compiler.
+yes|dvdauthor|dvdauthor|exe,dev,doc,nls|compat:kirkstone|
+yes|dvd_close|dvd-close|exe,dev,doc,nls|compat:kirkstone|
+yes|dvd+rw-tools|dvd+rw-tools|exe,dev,doc,nls|compat:kirkstone
+yes|e2fsprogs|e2fsprogs|exe,dev,doc,nls|compat:kirkstone
+yes|EasyApps||exe,dev,doc,nls|pet:noarch| #by radky
+yes|easycast||exe,dev,doc,nls|pet:noarch|
+yes|ed|ed|exe,dev,doc,nls|compat:kirkstone
+yes|efibootmgr|efibootmgr|exe,dev,doc,nls|compat:kirkstone| #need for grub2config
+yes|efivar|efivar|exe,dev,doc,nls|compat:kirkstone| #need for grub2config
+yes|elfutils|elfutils|exe,dev,doc,nls|compat:kirkstone| #needed by mesa.
+yes|ell|ell|exe,dev,doc,nls|compat:kirkstone| #new. needed by ofono
+yes|empty|empty|exe,dev,doc,nls|compat:kirkstone| #needed for easy containers.
+yes|enca|enca|exe,dev,doc,nls|compat:kirkstone|
+yes|enchant2|enchant2|exe,dev,doc,nls|compat:kirkstone| #new. needed by evince.
+yes|encodings|encodings|exe,dev,doc,nls|compat:kirkstone| #needed by font-util.
+yes|ethtool|ethtool|exe,dev>null,doc,nls|compat:kirkstone
+yes|eudev|eudev|exe,dev,doc,nls|compat:kirkstone
+yes|evince|evince|exe,dev,doc,nls|compat:kirkstone| #pdf viewer. this is the gtk3 version, needs gstreamer.
+yes|exfat-utils|exfat-utils|exe,dev,doc,nls|compat:kirkstone
+yes|exiv2|exiv2|exe,dev,doc,nls|compat:kirkstone| #new. needed by gimp.
+yes|expat|expat|exe,dev,doc,nls|compat:kirkstone
+yes|f2fs-tools|f2fs-tools|exe,dev,doc,nls|compat:kirkstone
+yes|faac|faac|exe,dev,doc,nls|compat:kirkstone
+yes|faad2|faad2|exe,dev,doc,nls|compat:kirkstone
+yes|ffconvert||exe,dev,doc,nls|pet:noarch
+yes|ffmpeg|ffmpeg|exe,dev,doc,nls|compat:kirkstone
+yes|fftag||exe|pet:noarch| #replaces pmetatagger.
+yes|file|file|exe,dev,doc,nls|compat:kirkstone
+yes|findutils|findutils|exe,dev,doc,nls|compat:kirkstone
+yes|firefox-skeleton||exe|pet:noarch| #trying ungoogled chromium.
+no|firefox-skel-ask||exe|pet:noarch|
+yes|firmware_asus_e200ha||exe|pet:noarch| #needed for my asus e200ha notebook.
+yes|firmware_linux_acer_aspire1||exe|pet:noarch| #for my acer aspire1 laptop. note has regulatory.db useful all wifi.
+yes|firmware_linux_all_k5p15||exe|pet:noarch|
+yes|firmware_linux_b43_extra||exe|pet:noarch|
+yes|firmware_linux_base||exe|pet:noarch|
+yes|firmware_linux_mele_pcg35||exe|pet:noarch|
+yes|firmware_linux_rtlwifi||exe|pet:noarch|
+yes|flac|flac|exe,dev,doc,nls|compat:kirkstone
+yes|flex|flex|exe>dev,dev,doc,nls|compat:kirkstone
+yes|floppy-format-noarch||exe|pet:noarch| #needs ufiformat.
+yes|flsynclient|flsynclient|exe,dev,doc,nls|compat:kirkstone| #instead of psynclient.
+yes|fltk|fltk|exe,dev,doc,nls|compat:kirkstone| #needed by flsynclient.
+yes|fontconfig|fontconfig|exe,dev,doc,nls|compat:kirkstone
+yes|font_opensans_semibold_bold||exe|pet:noarch| #the semibold is the default, when want thick font.
+yes|font-util|font-util|exe,dev,doc,nls|compat:kirkstone
+yes|foomatic-db-compressed-ppds||exe|pet:noarch|
+yes|formfactor|formfactor|exe,dev,doc,nls|compat:kirkstone
+yes|fpm2|fpm2|exe,dev,doc,nls|compat:kirkstone|
+yes|freememapplet_tray|freememapplet-tray|exe,dev,doc,nls|compat:kirkstone|
+yes|freetype|freetype|exe,dev,doc,nls|compat:kirkstone
+yes|fribidi|fribidi|exe,dev,doc,nls|compat:kirkstone
+yes|fuse|fuse|exe,dev,doc,nls|compat:kirkstone
+yes|fuse3|fuse3|exe,dev,doc,nls|compat:kirkstone| #maybe a compile option for qemu.
+yes|galculator|galculator|exe,dev,doc,nls|compat:kirkstone|
+yes|gawk|gawk|exe,dev,doc,nls|compat:kirkstone
+yes|gcab|gcab|exe,dev,doc,nls|compat:kirkstone| #needed by appstream-glib which is needed by celluloid.
+yes|gcc||exe>dev,dev,doc,nls|pet:kirkstone| #recompiled for nocona target.
+yes|gccmakedep|gccmakedep|exe>dev,dev,doc,nls|compat:kirkstone|
+yes|gcc-runtime|gcc-runtime,libgcc|exe,dev,doc,nls|compat:kirkstone
+yes|gcc-sanitizers|gcc-sanitizers|exe>dev,dev,doc,nls|compat:kirkstone
+yes|gcolorsel|gcolorsel|exe,dev,doc,nls|compat:kirkstone|
+yes|gconf|gconf|exe,dev,doc,nls|compat:kirkstone
+yes|gcr|gcr|exe,dev,doc,nls|compat:kirkstone| #network-manager-applet needs this.
+yes|gdb|gdb|exe>dev,dev,doc,nls|compat:kirkstone
+yes|gdbm|gdbm|exe,dev,doc,nls|compat:kirkstone
+yes|gdk-pixbuf|gdk-pixbuf|exe,dev,doc,nls|compat:kirkstone
+yes|gdl|gdl|exe,dev,doc,nls|compat:kirkstone| #needed by inkscape.
+yes|gdmap|gdmap|exe,dev>null,doc,nls|compat:kirkstone|
+yes|geany|geany|exe,dev>null,doc,nls|compat:kirkstone
+yes|geany-plugins|geany-plugins|exe,dev>null,doc,nls|compat:kirkstone| #needs libgit2, libssh2
+yes|gegl|gegl|exe,dev,doc,nls|compat:kirkstone| #needed by gimp.
+yes|gettext|gettext|exe,dev>null,doc>null,nls>null|compat:kirkstone
+yes|gettext_devxonly|gettext|exe>dev,dev,doc,nls|compat:kirkstone
+yes|gexiv2|gexiv2|exe,dev,doc,nls|compat:kirkstone| #new. needed by inkscape.
+yes|gfnrename|gfnrename|exe,dev>null,doc,nls|compat:kirkstone|
+yes|gfontsel|gfontsel|exe,dev>null,doc,nls|compat:kirkstone|
+yes|gftp|gftp|exe,dev>null,doc,nls|compat:kirkstone
+yes|ghostscript|ghostscript|exe,dev,doc,nls|compat:kirkstone
+yes|gif2lss|gif2lss|exe,dev,doc,nls|compat:kirkstone|
+yes|gifsicle|gifsicle|exe,dev,doc,nls|compat:kirkstone|
+yes|gimp|gimp|exe,dev,doc,nls|compat:kirkstone|
+yes|git|git|exe>dev,dev,doc,nls|compat:kirkstone
+yes|glade|glade|exe>dev,dev,doc,nls|compat:kirkstone| #ui designer.
+yes|glew|glew|exe,dev,doc,nls|compat:kirkstone|
+yes|glib|glib-2.0|exe,dev,doc,nls|compat:kirkstone
+yes|glibc|glibc|exe,dev,doc,nls|compat:kirkstone
+yes|glibc-locale|glibc-locale|exe,dev,doc,nls>exe|compat:kirkstone|
+yes|glibmm|glibmm|exe,dev,doc,nls|compat:kirkstone
+yes|glib-networking|glib-networking|exe,dev,doc,nls|compat:kirkstone|
+yes|glipper-lite|glipper-lite|exe,dev>null,doc,nls|compat:kirkstone|
+yes|glm|glm|exe,dev,doc,nls|compat:kirkstone|
+yes|Global_IP_TV_Panel_Any_Pup_using_mpv||exe|pet:noarch|
+yes|gmeasures|gmeasures|exe,dev>null,doc,nls|compat:kirkstone|
+yes|gmp|gmp|exe,dev,doc,nls|compat:kirkstone
+yes|gnet|gnet|exe,dev,doc,nls|compat:kirkstone| #needed by helpsurfer
+yes|gnome-bluetooth|gnome-bluetooth|exe,dev,doc,nls|compat:kirkstone|
+yes|gnome-common|gnome-common|exe>dev,dev,doc,nls|compat:kirkstone|
+yes|gnome-doc-utils-stub|gnome-doc-utils-stub|exe,dev,doc,nls|compat:kirkstone|
+yes|gnome-icon-theme||exe>dev,dev,doc,nls|pet:noarch| #in devx, may need to extract some into main f.s.
+yes|gnome-keyring|gnome-keyring|exe,dev,doc,nls|compat:kirkstone|
+yes|gnome-menus|gnome-menus|exe,dev,doc,nls|compat:kirkstone| #needed by xdg_puppy.
+yes|gnu-config|gnu-config|exe>dev,dev,doc,nls|compat:kirkstone
+yes|gnu-efi|gnu-efi|exe>dev,dev,doc,nls|compat:kirkstone| #needed to compile refind.
+yes|gnupg|gnupg|exe,dev,doc,nls|compat:kirkstone| #deps are libassuan, npth, libksba, pinentry
+yes|gnutls|gnutls|exe,dev,doc,nls|compat:kirkstone
+yes|gobject-introspection|gobject-introspection|exe,dev,doc,nls|compat:kirkstone|
+yes|gpart|gpart|exe,dev,doc,nls|compat:kirkstone| #utility used by gparted.
+yes|gparted|gparted|exe,dev,doc,nls|compat:kirkstone
+yes|gperf|gperf|exe>dev,dev,doc,nls|compat:kirkstone|
+yes|gpgme|gpgme|exe,dev,doc,nls|compat:kirkstone| #dep is libassuan
+yes|gphoto2|gphoto2|exe,dev,doc,nls|compat:kirkstone
+yes|gphotofs|gphotofs|exe,dev,doc,nls|compat:kirkstone|
+yes|gpicview|gpicview|exe,dev,doc,nls|compat:kirkstone| #instead of viewnior.
+yes|gpptp|gpptp|exe,dev,doc,nls|compat:kirkstone| #binary executables only. written by jafadmin.
+yes|gpptp-noarch||exe|pet:noarch| #created by jafadmin.
+yes|gptfdisk|gptfdisk|exe,dev,doc,nls|compat:kirkstone
+yes|graphite2|graphite2|exe,dev,doc,nls|compat:kirkstone|
+yes|grep|grep|exe,dev,doc,nls|compat:kirkstone
+yes|groff|groff|exe>dev,dev,doc,nls|compat:kirkstone
+yes|gsettings-desktop-schemas|gsettings-desktop-schemas|exe,dev,doc,nls|compat:kirkstone|
+yes|gsl|gsl|exe,dev,doc,nls|compat:kirkstone| #new. needed by inkscape. and claws-mail. and pitivi.
+yes|gspell|gspell|exe,dev,doc,nls|compat:kirkstone| #new. needed by evince. not if using gtk2 evince. inkscape wants.
+yes|gstreamer1|gstreamer1.0|exe,dev,doc,nls|compat:kirkstone| #needed by evince gtk3 version.
+yes|gtk+|gtk+|exe,dev,doc,nls|compat:kirkstone
+yes|gtk+3|gtk+3|exe,dev,doc,nls|compat:kirkstone| #needs at-spi2-core, at-spi2-atk
+yes|gtk-chtheme|gtk-chtheme|exe,dev>null,doc,nls|compat:kirkstone|
+yes|gtkdialog|gtkdialog|exe,dev,doc>dev,nls|compat:kirkstone|
+yes|gtkhash|gtkhash|exe,dev,doc,nls|compat:kirkstone|
+yes|gtklp|gtklp|exe,dev,doc,nls|compat:kirkstone|
+yes|gtkmm3|gtkmm3|exe,dev,doc,nls|compat:kirkstone|
+yes|gtksourceview2|gtksourceview2|exe,dev,doc,nls|compat:kirkstone
+yes|gtk_2_3_theme_easyblue||exe|pet:noarch|
+yes|gtk_theme_citrus_cut||exe|pet:noarch
+yes|gtk_theme_easyflatgrey2||exe|pet:noarch|
+yes|gtk_theme_grey-deep-flat||exe|pet:noarch|
+yes|gtk_theme_peachy_darkbrown||exe|pet:noarch|
+yes|gummiboot||exe|pet:kirkstone|
+yes|gutenprint|gutenprint|exe,dev,doc,nls|compat:kirkstone|
+yes|guvcview|guvcview|exe,dev,doc,nls|compat:kirkstone| #requires portaudio
+yes|gview|gview|exe,dev,doc,nls|compat:kirkstone|
+yes|gwhere|gwhere|exe,dev,doc,nls|compat:kirkstone|
+yes|gxlat||exe,dev,doc,nls|pet:noarch|
+yes|gxmessage|gxmessage|exe,dev,doc,nls|compat:kirkstone|
+yes|gzip|gzip|exe,dev>null,doc,nls|compat:kirkstone
+yes|hardinfo|hardinfo|exe,dev,doc,nls|compat:kirkstone| #also using Pup-SysInfo
+yes|harfbuzz|harfbuzz|exe,dev,doc,nls|compat:kirkstone
+yes|hdparm|hdparm|exe,dev,doc,nls|compat:kirkstone
+yes|helpsurfer|helpsurfer|exe,dev,doc,nls|compat:kirkstone| #needs gnet, libsystem.
+yes|hiawatha|hiawatha|exe,dev,doc,nls|compat:kirkstone|
+yes|hicolor-icon-theme|hicolor-icon-theme|exe,dev,doc,nls|compat:kirkstone
+yes|homebank|homebank|exe,dev,doc,nls|compat:kirkstone| #needs libofx
+yes|hostname|hostname|exe,dev,doc,nls|compat:kirkstone|
+yes|hotplug2stdout|hotplug2stdout|exe,dev,doc,nls|compat:kirkstone|
+yes|hplip|hplip|exe,dev,doc,nls|compat:kirkstone|
+yes|html-notepad||exe,dev,doc,nls|pet:kirkstone| #instead of seamonkey
+yes|hunspell|hunspell|exe,dev,doc,nls|compat:kirkstone
+yes|hunspell-en-au||exe|pet:noarch|
+yes|hunspell-en-gb||exe|pet:noarch|
+yes|hunspell-en-us||exe|pet:noarch
+yes|hyphen|hyphen|exe,dev,doc,nls|compat:kirkstone| #reqd by libreoffice.
+yes|iceauth|iceauth|exe,dev,doc,nls|compat:kirkstone|
+yes|iconfinder||exe,dev,doc,nls|pet:noarch
+yes|icu|icu|exe,dev,doc,nls|compat:kirkstone
+yes|ifplugd|ifplugd|exe,dev,doc,nls|compat:kirkstone
+yes|ifplugd_old|ifplugd-old|exe,dev,doc,nls|compat:kirkstone|
+yes|ijs|ijs|exe,dev,doc,nls|compat:kirkstone|
+yes|imake|imake|exe>dev,dev,doc,nls|compat:kirkstone|
+yes|inkscape|inkscape|exe,dev,doc,nls|compat:kirkstone|
+yes|inotify-tools|inotify-tools|exe,dev,doc,nls|compat:kirkstone
+yes|installwatch|installwatch|exe,dev,doc,nls|compat:kirkstone|
+yes|intltool|intltool|exe,dev,doc,nls|compat:kirkstone
+yes|iotop|iotop-py|exe,dev,doc,nls|compat:kirkstone|
+yes|iproute2|iproute2|exe,dev,doc,nls|compat:kirkstone| #only has ip utility
+yes|iptables|iptables|exe,dev,doc,nls|compat:kirkstone
+yes|iso-codes|iso-codes|exe,dev,doc,nls|compat:kirkstone| #network-manager-applet needs this.
+yes|isomaster|isomaster|exe,dev,doc,nls|compat:kirkstone|
+yes|itstool|itstool|exe>dev,dev,doc,nls|compat:kirkstone| #needed to compile modem-manager-gui
+yes|iw|iw|exe,dev,doc,nls|compat:kirkstone| #i think needed superceeds wireless-tools.
+yes|jack|jack|exe,dev,doc,nls|compat:kirkstone| #celluloid audacious need this.
+yes|jansson|jansson|exe,dev,doc,nls|compat:kirkstone| #networkmanager needs this.
+yes|jasper|jasper|exe,dev,doc,nls|compat:kirkstone
+yes|jimtcl|jimtcl|exe,dev,doc,nls|compat:kirkstone| #needed by usb-modeswitch.
+yes|json-c|json-c|exe,dev,doc,nls|compat:kirkstone #needed by solvespace.
+yes|json-glib|json-glib|exe,dev,doc,nls|compat:kirkstone|
+yes|jwm|jwm|exe,dev,doc,nls|compat:kirkstone|
+yes|jwm3_theme_black-deep||exe|pet:noarch|
+yes|jwm3_theme_easyblue||exe|pet:noarch|
+yes|jwm3_theme_peachy-darkbrown||exe|pet:noarch|
+yes|jwm3_theme_peachy-red||exe|pet:noarch|
+yes|jwm3_theme_slate||exe|pet:noarch|
+yes|JWMDesk||exe|pet:noarch|
+yes|keyutils|keyutils|exe,dev,doc,nls|compat:kirkstone| #kernel keyring management.
+yes|kmod|kmod|exe,dev,doc,nls|compat:kirkstone
+yes|ktsuss|ktsuss|exe,dev,doc,nls|compat:kirkstone|
+yes|lame|lame|exe,dev,doc,nls|compat:kirkstone
+yes|lcms|lcms|exe,dev,doc,nls|compat:kirkstone
+yes|leafpad|leafpad|exe,dev,doc,nls|compat:kirkstone
+yes|less|less|exe,dev,doc,nls|compat:kirkstone
+yes|liba52|liba52|exe,dev,doc,nls|compat:kirkstone
+yes|libabw|libabw|exe,dev,doc,nls|compat:kirkstone| #reqd by libreoffice.
+yes|libaio|libaio|exe,dev,doc,nls|compat:kirkstone|
+yes|libao|libao|exe,dev,doc,nls|compat:kirkstone| #needed by vorbis-tools
+yes|libarchive|libarchive|exe,dev,doc,nls|compat:kirkstone
+yes|libart-lgpl|libart-lgpl|exe,dev,doc,nls|compat:kirkstone| #needed by some april apps, ex dia.
+yes|libass|libass|exe,dev,doc,nls|compat:kirkstone|
+yes|libassuan|libassuan|exe,dev,doc,nls|compat:kirkstone|
+yes|libatomic-ops|libatomic-ops|exe,dev,doc,nls|compat:kirkstone
+yes|libavc1394|libavc1394|exe,dev,doc,nls|compat:kirkstone
+yes|libbluray|libbluray|exe,dev,doc,nls|compat:kirkstone|
+yes|libbsd|libbsd|exe,dev,doc,nls|compat:kirkstone|
+yes|libcanberra|libcanberra|exe,dev,doc,nls|compat:kirkstone| #new. needed by pavucontrol, gnome-bluetooth.
+yes|libcap|libcap|exe,dev,doc,nls|compat:kirkstone
+yes|libcap-ng|libcap-ng|exe,dev,doc,nls|compat:kirkstone| #needed by pflask
+yes|libcddb|libcddb|exe,dev,doc,nls|compat:kirkstone|
+yes|libcdio|libcdio|exe,dev,doc,nls|compat:kirkstone
+yes|libcdio-paranoia|libcdio-paranoia|exe,dev,doc,nls|compat:kirkstone|
+yes|libcdr|libcdr|exe,dev,doc,nls|compat:kirkstone| #reqd by libreoffice.
+yes|libcmis|libcmis|exe,dev,doc,nls|compat:kirkstone| #reqd by libreoffice.
+yes|libcroco|libcroco|exe,dev,doc,nls|compat:kirkstone
+yes|libdaemon|libdaemon|exe,dev,doc,nls|compat:kirkstone
+yes|libdc1394|libdc1394|exe,dev,doc,nls|compat:kirkstone
+yes|libdmx|libdmx|exe,dev,doc,nls|compat:kirkstone|
+yes|libdrm|libdrm|exe,dev,doc,nls|compat:kirkstone|
+yes|libdvdcss|libdvdcss|exe,dev,doc,nls|compat:kirkstone|
+yes|libdvdnav|libdvdnav|exe,dev,doc,nls|compat:kirkstone
+yes|libdvdread|libdvdread|exe,dev,doc,nls|compat:kirkstone
+yes|libe-book|libe-book|exe,dev,doc,nls|compat:kirkstone| #reqd by libreoffice.
+yes|libebml|libebml|exe,dev,doc,nls|compat:kirkstone| #needed by planner.
+yes|libedit|libedit|exe,dev,doc,nls|compat:| #needed by llvm.
+yes|libepoxy|libepoxy|exe,dev,doc,nls|compat:kirkstone|
+yes|libetonyek|libetonyek|exe,dev,doc,nls|compat:kirkstone| #reqd by libreoffice.
+yes|libevdev|libevdev|exe,dev,doc,nls|compat:kirkstone
+yes|libevent|libevent|exe,dev,doc,nls|compat:kirkstone
+yes|libexif|libexif|exe,dev,doc,nls|compat:kirkstone
+yes|libexif-gtk|libexif-gtk|exe,dev,doc,nls|compat:kirkstone|
+yes|libexttextcat|libexttextcat|exe,dev,doc,nls|compat:kirkstone| #reqd by libreoffice.
+yes|libexttextcat-data||exe,dev,doc,nls|pet:kirkstone| #oe should have installed this, it is in libexttextcat pkg. 20210411 still have this problem.
+yes|libffi|libffi|exe,dev,doc,nls|compat:kirkstone
+yes|libfreehand|libfreehand|exe,dev,doc,nls|compat:kirkstone| #reqd by libreoffice.
+yes|libgcrypt|libgcrypt|exe,dev,doc,nls|compat:kirkstone
+yes|libgd|libgd|exe,dev,doc,nls|compat:kirkstone| #needed by some libgphoto2 drivers.
+yes|libgee|libgee|exe,dev,doc,nls|compat:kirkstone| #data-type extension library for vala.
+yes|libgif|giflib|exe,dev,doc,nls|compat:kirkstone
+yes|libgit2|libgit2|exe,dev,doc,nls|compat:kirkstone| #needed by geany-plugins
+yes|libglade|libglade|exe,dev,doc,nls|compat:kirkstone| #needed by planner.
+yes|libgltf|libgltf|exe,dev,doc,nls|compat:kirkstone| #reqd by libreoffice.
+yes|libglu|libglu|exe,dev,doc,nls|compat:kirkstone| #needed by mpv.
+yes|libgnomecanvas|libgnomecanvas|exe,dev,doc,nls|compat:kirkstone| #needed by planner.
+yes|libgpg-error|libgpg-error|exe,dev,doc,nls|compat:kirkstone
+yes|libgphoto2|libgphoto2|exe,dev,doc,nls|compat:kirkstone
+yes|libgtkhtml|libgtkhtml|exe,dev,doc,nls|compat:kirkstone|
+yes|libgudev|libgudev|exe,dev,doc,nls|compat:kirkstone
+yes|libhandy|libhandy|exe,dev,doc,nls|compat:kirkstone| #needed by gnome-boxes
+yes|libical|libical|exe,dev,doc,nls|compat:kirkstone
+yes|libid3tag|libid3tag|exe,dev,doc,nls|compat:kirkstone
+yes|libidl|libidl|exe,dev,doc,nls|compat:kirkstone| #needed by old versions of seamonkey.
+yes|libidn|libidn|exe,dev,doc,nls|compat:kirkstone
+yes|libidn2|libidn2|exe,dev,doc,nls|compat:kirkstone|
+yes|libjpeg-turbo|libjpeg-turbo|exe,dev,doc,nls|compat:kirkstone
+yes|libksba|libksba|exe,dev,doc,nls|compat:kirkstone| #dep of gnupg
+yes|liblangtag|liblangtag|exe,dev,doc,nls|compat:kirkstone| #reqd by libreoffice.
+yes|liblocale-gettext-perl|liblocale-gettext-perl|exe>dev,dev,doc,nls|compat:kirkstone| #dep of po4a
+yes|libmaa|libmaa|exe,dev,doc,nls|compat:kirkstone| #needed by dictd
+yes|libmad|libmad|exe,dev,doc,nls|compat:kirkstone
+yes|libmikmod|libmikmod|exe,dev,doc,nls|compat:kirkstone|
+yes|libmime-charset-perl|libmime-charset-perl|exe>dev,dev,doc,nls|compat:kirkstone| #dep of po4a
+yes|libmng|libmng|exe,dev,doc,nls|compat:kirkstone
+yes|libmnl|libmnl|exe,dev,doc,nls|compat:kirkstone| #needed by ip.
+yes|libmodplug|libmodplug|exe,dev,doc,nls|compat:kirkstone| #. used by kodi, xine.
+yes|libmpc|libmpc|exe,dev,doc,nls|compat:kirkstone|
+yes|libmspub|libmspub|exe,dev,doc,nls|compat:kirkstone| #reqd by libreoffice.
+yes|libmtp|libmtp|exe,dev,doc,nls|compat:kirkstone| #needed by simple-mtpfs
+yes|libmwaw|libmwaw|exe,dev,doc,nls|compat:kirkstone| #reqd by libreoffice.
+yes|libmypaint|libmypaint|exe,dev,doc,nls|compat:kirkstone| #needed by gimp.
+yes|libndp|libndp|exe,dev,doc,nls|compat:kirkstone| #networkmanager needs this.
+yes|libnet-ident-perl|libnet-ident-perl|exe,dev,doc,nls|compat:kirkstone| #needed by ident-user-enum.pl which is called from easyshare
+yes|libnewt|libnewt|exe,dev,doc,nls|compat:kirkstone| #needed by networkmanager.
+yes|libnl|libnl|exe,dev,doc,nls|compat:kirkstone
+yes|libnotify|libnotify|exe,dev,doc,nls|compat:kirkstone| #network-manager-applet needs this.
+yes|libnsl2|libnsl2|exe,dev,doc,nls|compat:kirkstone|
+yes|libodfgen|libodfgen|exe,dev,doc,nls|compat:kirkstone| #reqd by libreoffice.
+yes|libofx|libofx|exe,dev,doc,nls|compat:kirkstone| #optional needed by grisbi, homebank.
+yes|libogg|libogg|exe,dev,doc,nls|compat:kirkstone
+yes|libpagemaker|libpagemaker|exe,dev,doc,nls|compat:kirkstone| #reqd by libreoffice.
+yes|libpcap|libpcap|exe,dev,doc,nls|compat:kirkstone
+yes|libpciaccess|libpciaccess|exe,dev,doc,nls|compat:kirkstone
+yes|libpipeline|libpipeline|exe,dev,doc,nls|compat:kirkstone|
+yes|libpcre|libpcre|exe,dev,doc,nls|compat:kirkstone
+yes|libpcre2|libpcre2|exe,dev,doc,nls|compat:kirkstone| #qt5 needs this. synaptic needs.
+yes|libplist|libplist|exe,dev,doc,nls|compat:kirkstone| #needed by droidcam.
+yes|libpng|libpng|exe,dev,doc,nls|compat:kirkstone
+yes|libpng12|libpng12|exe,dev,doc,nls|compat:kirkstone| #does not conflict with later libpng.
+yes|libproxy|libproxy|exe,dev,doc,nls|compat:kirkstone
+yes|libpsl|libpsl|exe,dev,doc,nls|compat:kirkstone| #needed by networkmanager.
+yes|libpthread-stubs|libpthread-stubs|exe,dev,doc,nls|compat:kirkstone
+yes|libraw1394|libraw1394|exe,dev,doc,nls|compat:kirkstone
+yes|libreoffice|libreoffice|exe,dev,doc,nls|compat:kirkstone|
+yes|libreoffice-icons-colibre-v7.1.3.2||exe|pet:noarch| #some colibre icons are missing from libreoffice pkg.
+yes|librevenge|librevenge|exe,dev,doc,nls|compat:kirkstone| #reqd by libreoffice.
+yes|librsvg|librsvg|exe,dev,doc,nls|compat:kirkstone
+yes|libsamplerate0|libsamplerate0|exe,dev,doc,nls|compat:kirkstone
+yes|libsdl|libsdl|exe,dev,doc,nls|compat:kirkstone|
+yes|libsdl-image|libsdl-image|exe,dev,doc,nls|compat:kirkstone|
+yes|libsdl-mixer|libsdl-mixer|exe,dev,doc,nls|compat:kirkstone|
+yes|libsdl-ttf|libsdl-ttf|exe,dev,doc,nls|compat:kirkstone|
+yes|libsdl2|libsdl2|exe,dev,doc,nls|compat:kirkstone|
+yes|libsdl2-image|libsdl2-image|exe,dev,doc,nls|compat:kirkstone| #a config option for qemu.
+yes|libsdl2-ttf|libsdl2-ttf|exe,dev,doc,nls|compat:kirkstone|
+yes|libsecret|libsecret|exe,dev,doc,nls|compat:kirkstone| #network-manager-applet needs this.
+yes|libsigc++-2.0|libsigc++-2.0|exe,dev,doc,nls|compat:kirkstone
+yes|libsndfile1|libsndfile1|exe,dev,doc,nls|compat:kirkstone
+yes|libsombok3|libsombok3|exe>dev,dev,doc,nls|compat:kirkstone| #dep of po4a
+yes|libsoup|libsoup-2.4|exe,dev,doc,nls|compat:kirkstone| #needed by networkmanager.
+yes|libssh|libssh|exe,dev,doc,nls|compat:kirkstone| #seems config option for qemu.
+yes|libssh2|libssh2|exe,dev,doc,nls|compat:kirkstone| #changed from libssh. needed by vlc, gstreamer, geany-plugins
+yes|libsystem|libsystem|exe,dev,doc,nls|compat:kirkstone| #needed by helpsurfer.
+yes|libtalloc|libtalloc|exe,dev,doc,nls|compat:kirkstone| #new. needed by samba.
+yes|libtasn1|libtasn1|exe,dev,doc,nls|compat:kirkstone| #maybe needed samba.
+yes|libtdb|libtdb|exe,dev,doc,nls|compat:kirkstone| #needed compile pulseaudio in running easyos.
+yes|libterm-readkey-perl|libterm-readkey-perl|exe>dev,dev,doc,nls|compat:kirkstone| #dep of po4a
+yes|libtevent|libtevent|exe,dev,doc,nls|compat:kirkstone| #new. needed by samba.
+yes|libtext-charwidth-perl|libtext-charwidth-perl|exe>dev,dev,doc,nls|compat:kirkstone| #dep of po4a
+yes|libtext-wrapi18n-perl|libtext-wrapi18n-perl|exe>dev,dev,doc,nls|compat:kirkstone| #dep of po4a
+yes|libtheora|libtheora|exe,dev,doc,nls|compat:kirkstone
+yes|libtirpc|libtirpc|exe,dev,doc,nls|compat:kirkstone
+yes|libtommath|libtommath|exe>dev,dev,doc,nls|compat:kirkstone| #static lib, needed when compile libreoffice.
+yes|libtool|libtool|exe>dev,dev,doc,nls|compat:kirkstone
+yes|libtool_runtime|libtool|exe,dev,doc,nls|compat:kirkstone
+yes|libtubo|libtubo|exe,dev,doc,nls|compat:kirkstone| #needed by xfdiff.
+yes|libunicode-linebreak-perl|libunicode-linebreak-perl|exe>dev,dev,doc,nls|compat:kirkstone| #dep of po4a
+yes|libunistring|libunistring|exe,dev,doc,nls|compat:kirkstone
+yes|liburcu|liburcu|exe,dev,doc,nls|compat:kirkstone|
+yes|libusb|libusb1|exe,dev,doc,nls|compat:kirkstone
+yes|libusb-compat|libusb-compat|exe,dev,doc,nls|compat:kirkstone
+yes|libusbmuxd|libusbmuxd|exe,dev,doc,nls|compat:kirkstone| #needed by droidcam.
+yes|libva|libva|exe,dev,doc,nls|compat:kirkstone|
+yes|libvdpau|libvdpau|exe,dev,doc,nls|compat:kirkstone|
+yes|libvdpau-va-gl|libvdpau-va-gl|exe,dev,doc,nls|compat:kirkstone|
+yes|libvisio|libvisio|exe,dev,doc,nls|compat:kirkstone| #reqd by libreoffice.
+yes|libvncserver|libvncserver|exe,dev,doc,nls|compat:kirkstone| #config option for qemu use the client lib.
+yes|libvorbis|libvorbis|exe,dev,doc,nls|compat:kirkstone
+yes|libvpx|libvpx|exe,dev,doc,nls|compat:kirkstone
+yes|libwebp|libwebp|exe,dev,doc,nls|compat:kirkstone|
+yes|libwpd|libwpd|exe,dev,doc,nls|compat:kirkstone| #reqd by libreoffice.
+yes|libwpg|libwpg|exe,dev,doc,nls|compat:kirkstone| #reqd by libreoffice.
+yes|libwps|libwps|exe,dev,doc,nls|compat:kirkstone| #reqd by libreoffice.
+yes|libxaw|libxaw|exe,dev,doc,nls|compat:kirkstone
+yes|libxcrypt|libxcrypt|exe,dev,doc,nls|compat:kirkstone|
+yes|libxcvt|libxcvt|exe,dev,doc,nls|compat:kirkstone| #xorg needs this.
+yes|libxfont|libxfont|exe,dev,doc,nls|compat:kirkstone|
+yes|libxkbcommon|libxkbcommon|exe,dev,doc,nls|compat:kirkstone|
+yes|libxklavier|libxklavier|exe,dev,doc,nls|compat:kirkstone| #needed by libgnomekbd
+yes|libxml++|libxml++|exe,dev,doc,nls|compat:kirkstone| #needed by libofx which is needed by homebank.
+yes|libxml2|libxml2|exe,dev,doc,nls|compat:kirkstone
+yes|libxml-parser-perl|libxml-parser-perl|exe,dev,doc,nls|compat:kirkstone
+yes|libxpm|libxpm|exe,dev,doc,nls|compat:kirkstone
+yes|libxscrnsaver|libxscrnsaver|exe,dev,doc,nls|compat:kirkstone|
+yes|libxshmfence|libxshmfence|exe,dev,doc,nls|compat:kirkstone| #needed by xorg.
+yes|libxslt|libxslt|exe,dev,doc,nls|compat:kirkstone
+yes|libxv|libxv|exe,dev,doc,nls|compat:kirkstone
+yes|libyaml|libyaml|exe,dev,doc,nls|compat:kirkstone| #needed by appstream-glib which is needed by celluloid.
+yes|limine|limine|exe,dev,doc,nls|compat:kirkstone| #bootloader
+yes|linux-libc-headers|linux-libc-headers|exe>dev,dev,doc,nls|compat:kirkstone|
+yes|litehtml|litehtml|exe,dev,doc,nls|compat:kirkstone| #dep of claws-mail
+yes|llvm-lib|llvm|exe,dev,doc,nls|compat:kirkstone|
+yes|llvm-clang|llvm|exe>dev,dev,doc,nls|compat:kirkstone|
+yes|lmarbles||exe,dev,doc,nls|pet:kirkstone|
+yes|lockdev|lockdev|exe,dev,doc,nls|compat:kirkstone|
+yes|lpsolve|lpsolve|exe,dev,doc,nls|compat:kirkstone| #reqd by libreoffice.
+yes|lrzsz|lrzsz|exe,dev,doc,nls|compat:kirkstone
+yes|lsof|lsof|exe,dev,doc,nls|compat:kirkstone| #want full lsof utility instead of busybox.
+yes|lttng-ust|lttng-ust|exe,dev,doc,nls|compat:kirkstone|
+yes|lua|lua|exe,dev,doc,nls|compat:kirkstone| #mpv now needs libass lua luajit
+yes|luajit|luajit|exe,dev,doc,nls|compat:kirkstone| #needed by obs-studio and mpv
+yes|lz4|lz4|exe,dev,doc,nls|compat:kirkstone|
+yes|lzo|lzo|exe,dev,doc,nls|compat:kirkstone|
+yes|m4|m4|exe>dev,dev,doc,nls|compat:kirkstone
+yes|maag||exe,dev,doc,nls|pet:noarch|
+yes|make|make|exe>dev,dev,doc,nls|compat:kirkstone
+yes|makedepend|makedepend|exe,dev,doc,nls|compat:kirkstone|
+yes|man|man-db|exe>dev,dev,doc,nls|compat:kirkstone|
+yes|man_cut|man-db|exe,dev>null,doc>null,nls>null|compat:kirkstone|
+yes|mdds-1.2|mdds-1.2|exe,dev,doc,nls|compat:kirkstone| #reqd by libreoffice.
+yes|mdds-1.5|mdds-1.5|exe,dev,doc,nls|compat:kirkstone| #reqd by libreoffice.
+yes|mdview|mdview|exe,dev,doc,nls|compat:kirkstone|
+yes|memtester|memtester|exe,dev,doc,nls|compat:kirkstone|
+yes|mercurial|mercurial|exe>dev,dev,doc,nls|compat:kirkstone|
+yes|mesa|mesa|exe,dev,doc,nls|compat:kirkstone|
+yes|mesa-demos|mesa-demos|exe,dev,doc,nls|compat:kirkstone|
+yes|meson||exe>dev,dev,doc>dev,nls>dev|pet:kirkstone| #later version required to compile libcamera and pipewire.
+yes|metamail|metamail|exe,dev,doc,nls|compat:kirkstone|
+yes|mhwaveedit|mhwaveedit|exe,dev,doc,nls|compat:kirkstone|
+yes|mingetty|mingetty|exe,dev,doc,nls|compat:kirkstone
+no|minibase-net||exe,dev,doc,nls|pet:kirkstone| #needed for UltraSNS.
+yes|minicom|minicom|exe,dev,doc,nls|compat:kirkstone
+yes|minixcal|minixcal|exe,dev,doc,nls|compat:kirkstone
+yes|mirdir|mirdir|exe,dev,doc,nls|compat:kirkstone|
+yes|mkfontscale|mkfontscale|exe,dev,doc,nls|compat:kirkstone| #note, also has mkfontdir utility.
+yes|mm-common|mm-common|exe>dev,dev,doc,nls|compat:kirkstone| #move to devx.
+yes|mobile-broadband-provider-info|mobile-broadband-provider-info|exe,dev,doc,nls|compat:kirkstone| #removed.
+yes|modem-stats|modem-stats|exe,dev,doc,nls|compat:kirkstone|
+yes|mp|mped|exe,dev,doc,nls|compat:kirkstone| #bumped version 3.2.13 to 3.3.17 menu now works.
+yes|mpeg2dec|mpeg2dec|exe,dev,doc,nls|compat:kirkstone| #needed by mpv.
+yes|mpfr|mpfr|exe,dev,doc,nls|compat:kirkstone
+yes|mpg123|mpg123|exe,dev,doc,nls|compat:kirkstone|
+yes|mplayer_codecs_basic||exe|pet:kirkstone| #have x86_64 pet.
+yes|mpscan|mpscan|exe,dev,doc,nls|compat:kirkstone|
+yes|mpv|mpv|exe,dev,doc,nls|compat:kirkstone|
+yes|mtdev|mtdev|exe,dev,doc,nls|compat:kirkstone
+yes|mtools|mtools|exe,dev,doc,nls|compat:kirkstone
+yes|mtpaint|mtpaint|exe,dev,doc,nls|compat:kirkstone|
+yes|mtr||exe,dev,doc,nls|pet:kirkstone| #mtr compiled in oe is cli only.
+yes|mythes|mythes|exe,dev,doc,nls|compat:kirkstone| #reqd by libreoffice.
+yes|nasm|nasm|exe>dev,dev,doc,nls|compat:kirkstone
+yes|nbtscan|nbtscan|exe,dev,doc,nls|compat:kirkstone|
+yes|ncurses|ncurses|exe,dev,doc,nls|compat:kirkstone
+yes|nenscript|nenscript|exe,dev,doc,nls|compat:kirkstone|
+yes|neon|neon|exe,dev,doc,nls|compat:kirkstone
+yes|netpbm|netpbm|exe,dev,doc,nls|compat:kirkstone| #recent version.
+yes|nettle|nettle|exe,dev,doc,nls|compat:kirkstone
+yes|networkmanager|networkmanager|exe,dev,doc,nls|compat:kirkstone|
+yes|network-manager-applet|network-manager-applet|exe,dev,doc,nls|compat:kirkstone|
+yes|network_tray|network-tray|exe,dev,doc,nls|compat:kirkstone|
+yes|nim|nim|exe>dev,dev,doc,nls|compat:kirkstone|
+yes|nim-tools||exe>dev,dev,doc,nls|pet:kirkstone|
+yes|ninja|ninja|exe>dev,dev,doc,nls|compat:kirkstone| #build system used with meson.
+yes|nmap|nmap|exe,dev,doc,nls|compat:kirkstone|
+yes|normalize|normalize|exe,dev,doc,nls|compat:kirkstone|
+yes|notecase|notecase|exe,dev,doc,nls|compat:kirkstone|
+yes|notification-daemon|notification-daemon|exe,dev,doc,nls|compat:kirkstone|
+yes|npth|npth|exe,dev,doc,nls|compat:kirkstone| #dep of gnupg
+yes|nspr|nspr|exe,dev,doc,nls|compat:kirkstone
+yes|nss|nss|exe,dev,doc,nls|compat:kirkstone
+yes|ntfs-3g-ntfsprogs|ntfs-3g-ntfsprogs|exe,dev,doc,nls|compat:kirkstone|
+yes|ntpdate|ntp|exe,dev,doc,nls|compat:kirkstone| #used by qsync to sync local time and date from the internet.
+yes|numlockx|numlockx|exe,dev,doc,nls|compat:kirkstone| #needed by shinobars firstrun.
+yes|obexfs|obexfs|exe,dev,doc,nls|compat:kirkstone|
+yes|obexftp|obexftp|exe,dev,doc,nls|compat:kirkstone|
+yes|ofono|ofono|exe,dev,doc,nls|compat:kirkstone| #needed by iwd, optionally by networkmanager.
+yes|opencore-amr|opencore-amr|exe,dev,doc,nls|compat:kirkstone
+yes|openjpeg|openjpeg|exe,dev,doc,nls|compat:kirkstone
+yes|openldap|openldap|exe,dev,doc,nls|compat:kirkstone|
+yes|openobex|openobex|exe,dev,doc,nls|compat:kirkstone| #new. needed by obexftp
+yes|opensp|opensp|exe,dev,doc,nls|compat:kirkstone| #needed by libofx. see also sgml-common.
+yes|openssh|openssh|exe,dev,doc,nls|compat:kirkstone|
+yes|openssl|openssl|exe,dev,doc,nls|compat:kirkstone
+yes|opkg-utils|opkg-utils|exe,dev,doc,nls|compat:kirkstone| #needed by mingetty.
+yes|orc|orc|exe,dev,doc,nls|compat:kirkstone
+yes|osmo|osmo|exe,dev,doc,nls|compat:kirkstone|
+yes|p11-kit|p11-kit|exe,dev,doc,nls|compat:kirkstone| #network-manager-applet needs this.
+yes|p8platform|p8platform|exe,dev,doc,nls|compat:kirkstone|
+yes|pa-applet|pa-applet|exe,dev,doc,nls|compat:kirkstone| #volume control for pulseaudio.
+yes|pango|pango|exe,dev,doc,nls|compat:kirkstone
+yes|pangomm|pangomm|exe,dev,doc,nls|compat:kirkstone
+yes|parted|parted|exe,dev,doc,nls|compat:kirkstone
+yes|patch|patch|exe,dev,doc,nls|compat:kirkstone
+yes|patchutils|patchutils|exe>dev,dev,doc,nls|compat:kirkstone|
+yes|pavucontrol|pavucontrol|exe,dev,doc,nls|compat:kirkstone| #gui for pulseaudio.
+yes|pbackup||exe|pet:noarch
+yes|pburn3||exe|pet:noarch| #using cdrkit, not cdrtools.
+yes|pcd||exe|pet:noarch
+yes|pcdripper||exe|pet:noarch
+yes|pciutils|pciutils|exe,dev,doc,nls|compat:kirkstone
+yes|pclock||exe|pet:noarch| #replaces ptimer, pstopwatch.
+yes|pctorrent||exe|pet:noarch| #needs ctorrent.
+yes|pdvdrip||exe|pet:noarch| #replaces pdvdrsab
+yes|peasydisc||exe|pet:noarch
+yes|peasyglue||exe,dev,doc,nls|pet:noarch|
+yes|peasypdf||exe|pet:noarch
+yes|peasyport-noarch||exe,dev,doc,nls|pet:noarch| #rcrsn51, alternative to superscan. needs pnscan
+yes|peasyprint||exe|pet:noarch| #print graphics files png/jpg.
+yes|peasyscale-exec|peasyscale-exec|exe,dev,doc,nls|compat:kirkstone| #binary needed by peasyscale.
+yes|peasyscale-noarch||exe|pet:noarch| #rcrsn51, jpg image resizer.
+yes|peasyscan-exec|peasyscan-exec|exe,dev,doc,nls|compat:kirkstone| #rcrsn51, binary needed by peasyscan.
+yes|peasyscan-noarch||exe|pet:noarch| #rcrsn51, scanner gui
+yes|perl|perl|exe>dev,dev,doc,nls|compat:kirkstone
+yes|perl-net-ident||exe|pet:noarch| #needed for ident-user-enum script
+yes|perl_tiny|perl|exe,dev>null,doc>null,nls>null|compat:kirkstone
+yes|pfilesearch||exe|pet:noarch
+yes|pfind||exe|pet:noarch
+yes|pflask|pflask|exe,dev,doc,nls|compat:kirkstone| #needs libcap-ng
+yes|phash||exe|pet:noarch
+yes|picpuz||exe,dev,doc,nls|pet:kirkstone|
+yes|picscale|picscale|exe,dev,doc,nls|compat:kirkstone|
+yes|pinentry|pinentry|exe,dev,doc,nls|compat:kirkstone| #dep of gnupg
+yes|pixman|pixman|exe,dev,doc,nls|compat:kirkstone
+yes|pkgconfig|pkgconfig|exe,dev,doc,nls|compat:kirkstone
+yes|planner|planner|exe,dev,doc,nls|compat:kirkstone|
+yes|pmcputemp||exe,dev,doc,nls|pet:kirkstone| #new version 1.2. does the oe one not work
+yes|pmirror||exe|pet:noarch
+yes|pmirrorget||exe|pet:noarch
+yes|pm-utils|pm-utils|exe,dev,doc,nls|compat:kirkstone
+yes|pngoverlay-cairo|pngoverlay-cairo|exe|compat:kirkstone| #replaces pngoverlay from pup-tools.
+yes|pnscan|pnscan|exe,dev,doc,nls|compat:kirkstone|
+yes|po4a|po4a|exe>dev,dev,doc,nls|compat:kirkstone| #needed to compile modem-manager-gui
+yes|pointercal-xinput|pointercal-xinput|exe,dev,doc,nls|compat:kirkstone|
+yes|poppler|poppler|exe,dev,doc,nls|compat:kirkstone
+yes|popt|popt|exe,dev,doc,nls|compat:kirkstone
+yes|portaudio|portaudio-v19|exe,dev,doc,nls|compat:kirkstone| #needed by guvcview.
+yes|potrace|potrace|exe,dev,doc,nls|compat:kirkstone| #needed by inkscape.
+yes|powerapplet_tray|powerapplet-tray|exe,dev,doc,nls|compat:kirkstone|
+yes|ppp|ppp|exe,dev,doc,nls|compat:kirkstone
+yes|pprocess||exe|pet:noarch
+yes|pps-tools|pps-tools|exe,dev,doc,nls| #needed by ntp.
+yes|pptp-linux|pptp-linux|exe,dev,doc,nls|compat:kirkstone| #generic name must be pptp-linux
+yes|precord||exe|pet:noarch
+yes|prename||exe,dev,doc,nls|pet:noarch|
+yes|printer-driver-samsung||exe|pet:kirkstone|
+yes|procps|procps|exe,dev,doc,nls|compat:kirkstone
+yes|programchooser||exe|pet:noarch
+yes|prun||exe|pet:noarch
+yes|pschedule||exe|pet:noarch
+yes|psmisc|psmisc|exe,dev,doc,nls|compat:kirkstone
+yes|ptooltips||exe|pet:noarch
+yes|pulseaudio|pulseaudio|exe,dev,doc,nls|compat:kirkstone| #restored.
+yes|PupControl||exe,dev,doc,nls|pet:noarch| #by radky.
+yes|puppyinputdetect|puppyinputdetect|exe,dev,doc,nls|compat:kirkstone|
+yes|puppy-podcast-grabber||exe|pet:noarch
+yes|puppyserialdetect|puppyserialdetect|exe,dev,doc,nls|compat:kirkstone|
+yes|pupradio||exe,dev,doc,nls|pet:noarch
+yes|Pup-SysInfo||exe,dev,doc,nls|pet:noarch| #instead of hardinfo.
+yes|pup-tools|pup-tools|exe,dev,doc,nls|compat:kirkstone|
+yes|pupx||exe|pet:noarch
+yes|pure-ftpd|pure-ftpd|exe,dev,doc,nls|compat:kirkstone
+yes|pwsget||exe|pet:noarch
+yes|python3-tiny|python3|exe,dev>null,doc,nls|compat:kirkstone|
+yes|python3|python3|exe>dev,dev,doc,nls|compat:kirkstone
+yes|python3-asn1crypto|python3-asn1crypto|exe>dev,dev,doc,nls|compat:kirkstone|
+yes|python3-cffi|python3-cffi|exe,dev,doc,nls|compat:kirkstone| #hexchat needs this.
+yes|python3-cryptography|python3-cryptography|exe>dev,dev,doc,nls|compat:kirkstone|
+yes|python3-cython|python3-cython|exe>dev,dev,doc,nls|compat:kirkstone|
+yes|python3-dbus|python3-dbus|exe,dev,doc,nls|compat:kirkstone| #needed by blueman.
+yes|python3-docutils|python3-docutils|exe>dev,dev,doc,nls|compat:kirkstone|
+yes|python3-idna|python3-idna|exe>dev,dev,doc,nls|compat:kirkstone|
+yes|python3-jinja2|python3-jinja2|exe>dev,dev,doc,nls|compat:kirkstone|
+yes|python3-lxml|python3-lxml|exe>dev,dev,doc,nls|compat:kirkstone|
+yes|python3-mako|python3-mako|exe>dev,dev,doc,nls|compat:kirkstone|
+yes|python3-markupsafe|python3-markupsafe|exe>dev,dev,doc,nls|compat:kirkstone|
+yes|python3-pip|python3-pip|exe>dev,dev,doc,nls|compat:kirkstone| #python package installer.
+yes|python3-ply|python3-ply|exe>dev,dev,doc,nls|compat:kirkstone|
+yes|python3-prctl|python3-prctl|exe,dev,doc,nls|compat:kirkstone| #needed by pulseaudio-autoconnect.
+yes|python3-pycairo|python3-pycairo|exe,dev,doc,nls|compat:kirkstone| #needed by blueman.
+yes|python3-pycparser|python3-pycparser|exe,dev,doc,nls|compat:kirkstone| #hexchat needs this.
+yes|python3-pygobject|python3-pygobject|exe,dev,doc,nls|compat:kirkstone| #needed by blueman.
+yes|python3-pyparsing|python3-pyparsing|exe,dev,doc,nls|compat:kirkstone| #pitivi needs this.
+yes|python3-scons|python3-scons|exe>dev,dev,doc,nls|compat:kirkstone|
+yes|python3-setuptools|python3-setuptools|exe>dev,dev,doc,nls|compat:kirkstone|
+yes|python3-six|python3-six|exe,dev,doc,nls|compat:kirkstone| #pitivi needs this.
+yes|qpdf|qpdf|exe,dev,doc,nls|compat:kirkstone|
+yes|qt5-styleplugins|qt5-styleplugins|exe,dev,doc,nls|compat:kirkstone| #gtk2 theme. leave this in.
+yes|quilt|quilt|exe>dev,dev,doc,nls|compat:kirkstone
+yes|quota|quota|exe,dev,doc,nls|compat:kirkstone
+yes|raptor2|raptor2|exe,dev,doc,nls|compat:kirkstone|
+yes|rasqal|rasqal|exe,dev,doc,nls|compat:kirkstone| #reqd by libreoffice.
+yes|re2c|re2c|exe>dev,dev,doc,nls|compat:kirkstone| #i think need this to compile qt5 and meson.
+yes|read-edid|read-edid|exe,dev,doc,nls|compat:kirkstone| #warning, i2c only, no vbe libx86 support.
+yes|readline|readline|exe,dev,doc,nls|compat:kirkstone
+yes|recordmydesktop|recordmydesktop|exe,dev,doc,nls|compat:kirkstone|
+yes|redland|redland|exe,dev,doc,nls|compat:kirkstone| #reqd by libreoffice.
+yes|redshift|redshift|exe,dev,doc,nls|compat:kirkstone| #reqd by rshift_tray
+yes|refind|refind|exe,dev,doc,nls|compat:kirkstone|
+yes|restarter|restarter|exe,dev,doc,nls|compat:kirkstone|
+yes|rgb|rgb|exe,dev,doc,nls|compat:kirkstone
+yes|rman|rman|exe>dev,dev,doc,nls|compat:kirkstone|
+yes|rox-filer|rox-filer|exe,dev,doc,nls|compat:kirkstone| #works both quirky and easy.
+yes|rpcbind|rpcbind|exe,dev,doc,nls|compat:kirkstone
+yes|rpcsvc-proto|rpcsvc-proto|exe,dev,doc,nls|compat:kirkstone| #has rpcgen needed for easy dunfell host for oe.
+yes|rpm|rpm|exe,dev,doc,nls|compat:kirkstone| #busybox rpm2cpio is inadequate.
+yes|rp-pppoe|rp-pppoe|exe,dev,doc,nls|compat:kirkstone
+yes|rshift_tray||exe|pet:noarch| #requires redshift.
+yes|rsync|rsync|exe,dev,doc,nls|compat:kirkstone|
+yes|rubix|rubix|exe,dev,doc,nls|compat:kirkstone|
+yes|rxvt-unicode|rxvt-unicode|exe,dev>null,doc,nls|compat:kirkstone|
+yes|sakura|sakura|exe,dev,doc,nls|compat:kirkstone| #needs vte.
+yes|samba|samba|exe,dev,doc,nls|compat:kirkstone|
+yes|sane-backends|sane-backends|exe,dev,doc,nls|compat:kirkstone|
+yes|sbc|sbc|exe,dev,doc,nls|compat:kirkstone|
+yes|scale2x|scale2x|exe,dev,doc,nls|compat:kirkstone|
+yes|schroedinger|schroedinger|exe,dev,doc,nls|compat:kirkstone
+yes|scons|scons|exe>dev,dev,doc,nls|compat:kirkstone| #needed by serf to compile.
+yes|scrcpy|scrcpy|exe,dev,doc,nls|compat:kirkstone|
+yes|sed|sed|exe,dev,doc,nls|compat:kirkstone
+yes|serf|serf|exe,dev,doc,nls|compat:kirkstone
+yes|setcolortemperature|setcolortemperature|exe,dev,doc,nls|compat:kirkstone| #no longer using sct but keep it.
+yes|setserial|setserial|exe,dev>null,doc,nls|compat:kirkstone
+yes|setvol|setvol|exe,dev,doc,nls|compat:kirkstone|
+yes|setxkbmap|setxkbmap|exe,dev,doc,nls|compat:kirkstone|
+yes|sgml-common|sgml-common|exe,dev,doc,nls|compat:kirkstone| #needed by opensp, which needed by libofx.
+yes|shared-mime-info|shared-mime-info|exe,dev,doc,nls|compat:kirkstone|
+yes|simple-mtpfs||exe|pet:kirkstone| #new. used by pupmtp builtin to woof.
+yes|slang|slang|exe,dev,doc,nls|compat:kirkstone| #needed by networkmanager.
+yes|smbnetfs|smbnetfs|exe,dev,doc,nls|compat:kirkstone| #needs samba.
+yes|socat|socat|exe,dev,doc,nls|compat:kirkstone|
+yes|solvespace|solvespace|exe,dev,doc,nls|compat:kirkstone|
+yes|speex|speex|exe,dev,doc,nls|compat:kirkstone
+yes|speexdsp|speexdsp|exe,dev,doc,nls|compat:kirkstone
+yes|sqlite3|sqlite3|exe,dev,doc,nls|compat:kirkstone
+yes|squashfs-tools|squashfs-tools|exe,dev>null,doc,nls|compat:kirkstone
+yes|sshfs|sshfs-fuse|exe,dev,doc,nls|compat:kirkstone| #needs fuse, openssh
+yes|ssh-gui|ssh-gui|exe,dev,doc,nls|compat:kirkstone|
+yes|sshpass|sshpass|exe,dev,doc,nls|compat:kirkstone|
+yes|startup-notification|startup-notification|exe,dev,doc,nls|compat:kirkstone|
+yes|stat|stat|exe,dev,doc,nls|compat:kirkstone
+yes|streamripper|streamripper|exe,dev,doc,nls|compat:kirkstone
+yes|subversion|subversion|exe>dev,dev,doc,nls|compat:kirkstone
+yes|sudo|sudo|exe,dev,doc,nls|compat:kirkstone
+yes|sysfsutils|sysfsutils|exe,dev,doc,nls|compat:kirkstone
+yes|syslinux|syslinux|exe,dev,doc,nls|compat:kirkstone
+yes|sysvinit-utils-cut|sysvinit|exe,dev>null,doc>null,nls>null|compat:kirkstone|
+yes|taglib|taglib|exe,dev,doc,nls|compat:kirkstone
+yes|tar|tar|exe,dev>null,doc,nls|compat:kirkstone
+yes|tas||exe,dev,doc,nls|pet:noarch| #take-a-shot
+yes|tcp-wrappers|tcp-wrappers|exe,dev,doc,nls|compat:kirkstone
+yes|texinfo|texinfo|exe>dev,dev,doc,nls|compat:kirkstone
+yes|tiff|tiff|exe,dev,doc,nls|compat:kirkstone| #also known as libtiff
+yes|tzdata|tzdata|exe,dev,doc,nls|compat:kirkstone
+yes|ufiformat|ufiformat|exe,dev,doc,nls|compat:kirkstone|
+yes|uget|uget|exe,dev,doc,nls|compat:kirkstone|
+yes|unclutter|unclutter|exe,dev>null,doc,nls|compat:kirkstone|
+yes|unifont||exe|pet:noarch| #needed by solvespace
+yes|unrar|unrar|exe,dev,doc,nls|compat:kirkstone
+yes|unzip|unzip|exe,dev,doc,nls|compat:kirkstone
+yes|UrxvtControl||exe,dev,doc,nls|pet:noarch|
+yes|usb-modeswitch|usb-modeswitch|exe,dev,doc,nls|compat:kirkstone| #requires tcl or jimtcl.
+yes|usb-modeswitch-data|usb-modeswitch-data|exe|compat:kirkstone|
+yes|usbutils|usbutils|exe,dev,doc,nls|compat:kirkstone|
+yes|usbview|usbview|exe,dev,doc,nls|compat:kirkstone|
+yes|util-linux|util-linux|exe,dev,doc,nls|compat:kirkstone
+yes|util-macros|util-macros|exe,dev,doc,nls|compat:kirkstone
+yes|v4l-utils|v4l-utils|exe,dev,doc,nls|compat:kirkstone|
+yes|vala|vala|exe>dev,dev,doc>dev,nls|compat:kirkstone
+yes|vamps|vamps|exe,dev,doc,nls|compat:kirkstone|
+yes|vcdimager|vcdimager|exe,dev,doc,nls|compat:kirkstone|
+yes|vigra|vigra|exe,dev,doc,nls|compat:kirkstone| #reqd by libreoffice.
+yes|vobcopy|vobcopy|exe,dev,doc,nls|compat:kirkstone|
+yes|vorbis-tools|vorbis-tools|exe,dev,doc,nls|compat:kirkstone|
+yes|vte|vte|exe,dev,doc,nls|compat:kirkstone| #needed by synaptic. gtk3 version. needed by remmina.
+yes|vte9|vte9|exe,dev,doc,nls|compat:kirkstone| #needed by sakura. gtk2 version.
+yes|wag_profiles||exe|pet:noarch| #taken out of net_setup pet, see oldforum t=82092&start=300
+yes|wavpack|wavpack|exe,dev,doc,nls|compat:kirkstone|
+yes|wavplay|wavplay|exe,dev,doc,nls|compat:kirkstone|
+yes|wcpufreq||exe|pet:noarch
+yes|wget|wget|exe,dev>null,doc,nls|compat:kirkstone
+yes|whois|whois|exe,dev,doc,nls|compat:kirkstone|
+yes|wireguard-tools||exe,dev,doc,nls|pet:kirkstone|
+yes|wireless-regdb||exe|pet:noarch|
+yes|wireless-tools||exe,dev,doc,nls|pet:kirkstone| #this is deprecated i think.
+yes|wmctrl|wmctrl|exe,dev,doc,nls|compat:kirkstone|
+yes|wpa-supplicant|wpa-supplicant|exe,dev,doc,nls|compat:kirkstone
+yes|x264|x264|exe,dev,doc,nls|compat:kirkstone
+yes|x265|x265|exe,dev,doc,nls|compat:kirkstone|
+yes|xarchive|xarchive|exe,dev>null,doc,nls|compat:kirkstone|
+yes|xauth|xauth|exe,dev,doc,nls|compat:kirkstone
+yes|xbitmaps|xbitmaps|exe,dev,doc,nls|compat:kirkstone|
+yes|xcalc|xcalc|exe,dev,doc,nls|compat:kirkstone|
+yes|xcb-proto|xcb-proto|exe>dev,dev,doc,nls|compat:kirkstone
+yes|xcb-util|xcb-util|exe,dev,doc,nls|compat:kirkstone
+yes|xcb-util-image|xcb-util-image|exe,dev,doc,nls|compat:kirkstone| #needed by xephyr x server.
+yes|xcb-util-keysyms|xcb-util-keysyms|exe,dev,doc,nls|compat:kirkstone| #needed by xephyr x server.
+yes|xcb-util-renderutil|xcb-util-renderutil|exe,dev,doc,nls|compat:kirkstone| #needed by xephyr x server.
+yes|xcb-util-wm|xcb-util-wm|exe,dev,doc,nls|compat:kirkstone| #needed by xephyr x server.
+yes|xclip|xclip|exe,dev,doc,nls|compat:kirkstone
+yes|xclipboard|xclipboard|exe,dev,doc,nls|compat:kirkstone|
+yes|xconsole|xconsole|exe,dev,doc,nls|compat:kirkstone|
+yes|xcur2png|xcur2png|exe,dev,doc,nls|compat:kirkstone|
+yes|xcursorgen|xcursorgen|exe,dev,doc,nls|compat:kirkstone|
+yes|xdelta3|xdelta3|exe,dev,doc,nls|compat:kirkstone
+yes|xdg-puppy|xdg-puppy|exe,dev,doc,nls|compat:kirkstone|
+yes|xdialog|xdialog|exe,dev,doc,nls|compat:kirkstone|
+yes|xdotool|xdotool|exe,dev,doc,nls|compat:kirkstone|
+yes|xdpyinfo|xdpyinfo|exe,dev,doc,nls|compat:kirkstone
+yes|xev|xev|exe,dev,doc,nls|compat:kirkstone|
+yes|xf86-input-wacom|xf86-input-wacom|exe,dev,doc,nls|compat:kirkstone|
+yes|xfdiff-cut|xfdiff-cut|exe,dev,doc,nls|compat:kirkstone|
+yes|xfontsel|xfontsel|exe,dev,doc,nls|compat:kirkstone|
+yes|xgamma|xgamma|exe,dev,doc,nls|compat:kirkstone|
+yes|xhost|xhost|exe,dev,doc,nls|compat:kirkstone
+yes|xinit|xinit|exe,dev,doc,nls|compat:kirkstone
+yes|xinput|xinput|exe,dev,doc,nls|compat:kirkstone
+yes|xinput-calibrator|xinput-calibrator|exe,dev,doc,nls|compat:kirkstone
+yes|xkbcomp|xkbcomp|exe,dev,doc,nls|compat:kirkstone
+yes|xkeyboard-config|xkeyboard-config|exe,dev,doc,nls|compat:kirkstone
+yes|xload|xload|exe,dev,doc,nls|compat:kirkstone|
+yes|xlockmore|xlockmore|exe,dev,doc,nls|compat:kirkstone|
+yes|xmessage|xmessage|exe,dev,doc,nls|compat:kirkstone
+yes|xmlto|xmlto|exe>dev,dev,doc,nls|compat:kirkstone
+yes|xmodmap|xmodmap|exe,dev,doc,nls|compat:kirkstone
+yes|xorg_base|rgb,libfontenc,libice,libsm,libx11,libxau,libxcb,libxcomposite,libxcursor,libxdamage,libxdmcp,libxext,libxfixes,libxfont2,libxft,libxi,libxinerama,libxkbfile,libxmu,libxrandr,libxrender,libxt,libxtst,libxvmc,libxxf86vm|exe,dev,doc,nls|compat:kirkstone| #removed ,libxxf86dga,libxxf86misc not in oe. took out libdrm.
+yes|xorgproto|xorgproto|exe>dev,dev,doc,nls|compat:kirkstone|
+yes|xorriso|xorriso|exe,dev,doc,nls|compat:kirkstone
+yes|xprop|xprop|exe,dev,doc,nls|compat:kirkstone
+yes|xrandr|xrandr|exe,dev,doc,nls|compat:kirkstone
+yes|xresprobe|xresprobe|exe,dev,doc,nls|compat:kirkstone| #has ddcprobe utility.
+yes|xrdb|xrdb|exe,dev,doc,nls|compat:kirkstone|
+yes|xsane||exe,dev>null,doc,nls|pet:kirkstone|
+yes|xserver-xf86-config|xserver-xf86-config|exe,dev,doc,nls|compat:kirkstone
+yes|xserver_xorg|xserver-xorg,xf86-input-*,xf86-video-*|exe,dev,doc,nls|compat:kirkstone|
+yes|xset|xset|exe,dev,doc,nls|compat:kirkstone
+yes|xsetmode|xsetmode|exe,dev,doc,nls|compat:kirkstone
+yes|xsetroot|xsetroot|exe,dev,doc,nls|compat:kirkstone|
+yes|xsoldier|xsoldier|exe,dev,doc,nls|compat:kirkstone|
+yes|xtrans|xtrans|exe>dev,dev,doc,nls|compat:kirkstone
+yes|xvidcore|xvidcore|exe,dev,doc,nls|compat:kirkstone|
+yes|xvidtune|xvidtune|exe,dev,doc,nls|compat:kirkstone|
+yes|xvinfo|xvinfo|exe,dev,doc,nls|compat:kirkstone|
+yes|xvkbd|xvkbd|exe,dev,doc,nls|compat:kirkstone|
+yes|xwd|xwd|exe,dev,doc,nls|compat:kirkstone| #needed by 01mickos screeny.
+yes|xwininfo|xwininfo|exe,dev,doc,nls|compat:kirkstone
+yes|xxd|vim|exe,dev,doc,nls|compat:kirkstone| #want xxd from vim not busybox xxd.
+yes|xz|xz|exe,dev,doc,nls|compat:kirkstone
+yes|yad|yad0|exe,dev,doc,nls|compat:kirkstone| #yad0 is gtk2
+yes|yaf-splash|yaf-splash|exe|compat:kirkstone|
+yes|yajl|yajl|exe,dev,doc,nls|compat:kirkstone|
+yes|yasm|yasm|exe>dev,dev,doc,nls|compat:kirkstone
+yes|ycalc||exe,dev,doc,nls|pet:kirkstone|  #failed to compile in oe. i like it
+yes|yelp-tools|yelp-tools|exe>dev,dev,doc,nls|compat:kirkstone|
+yes|yelp-xsl|yelp-xsl|exe,dev,doc,nls|compat:kirkstone| #want this in main fs in case install yelp
+yes|youtube-dl||exe|pet:noarch|
+yes|youtubedl-gui||exe|pet:noarch|
+yes|z2_geany_bacon_hack||exe|pet:noarch| #temp hack for geany. will probably have to remove soon.
+yes|zarfy|zarfy|exe,dev,doc,nls|compat:kirkstone| #new. handle multiple monitors.
+yes|zip|zip|exe,dev>null,doc,nls|compat:kirkstone|
+yes|zlib|zlib|exe,dev,doc,nls|compat:kirkstone
+yes|zstd|zstd|exe,dev,doc,nls|compat:kirkstone|
+'
