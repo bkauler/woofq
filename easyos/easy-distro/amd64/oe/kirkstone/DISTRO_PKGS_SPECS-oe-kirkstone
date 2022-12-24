@@ -81,8 +81,10 @@ yes|cddetect_quick|cddetect-quick|exe,dev>null,doc,nls|compat:kirkstone|
 yes|cdrkit|cdrkit|exe,dev,doc,nls|compat:kirkstone|
 yes|celluloid|celluloid|exe,dev,doc,nls|compat:kirkstone|
 yes|cgtkcalc|cgtkcalc|exe,dev>null,doc,nls|compat:kirkstone|
+yes|chromium|chromium-x11|exe,dev,doc,nls|compat:kirkstone| #20221222
 yes|chrpath|chrpath|exe,dev,doc,nls|compat:kirkstone|
 yes|cifs-utils||exe,dev,doc,nls|pet:kirkstone| #recompiled in oe but still does not work. use pet.
+yes|clang|clang|exe>dev,dev,doc,nls|compat:kirkstone| #20221223
 yes|cmake|cmake|exe>dev,dev,doc,nls|compat:kirkstone|
 yes|coreutils|coreutils|exe,dev,doc,nls|compat:kirkstone|
 yes|cpio|cpio|exe,dev>null,doc,nls|compat:kirkstone
@@ -90,7 +92,7 @@ yes|cppunit|cppunit|exe,dev,doc,nls|compat:kirkstone|
 yes|cryptodev-linux|cryptodev-linux|exe,dev,doc,nls|compat:kirkstone
 yes|ctorrent|ctorrent|exe,dev,doc,nls|compat:kirkstone|
 yes|cups|cups|exe,dev,doc>exe,nls|compat:kirkstone| #important doc goes into exe
-yes|cups-filters|cups-filters|exe,dev,doc,nls|compat:dunfell| #check if printing works, else use pet.
+yes|cups-filters|cups-filters|exe,dev,doc,nls|compat:kirkstone| #check if printing works, else use pet.
 no|cups-filters||exe,dev,doc,nls|pet:kirkstone| #dunfell, printing was broken, now works.
 yes|cups_pdf||exe|pet:noarch| #why do we still have this as can print to file anyway.
 yes|curl|curl|exe,dev,doc,nls|compat:kirkstone
@@ -149,8 +151,8 @@ yes|ffmpeg|ffmpeg|exe,dev,doc,nls|compat:kirkstone
 yes|fftag||exe|pet:noarch| #replaces pmetatagger.
 yes|file|file|exe,dev,doc,nls|compat:kirkstone
 yes|findutils|findutils|exe,dev,doc,nls|compat:kirkstone
-yes|firefox-skeleton||exe|pet:noarch| #trying ungoogled chromium.
-no|firefox-skel-ask||exe|pet:noarch|
+no|firefox-skeleton||exe|pet:noarch| #trying chromium. 20221222
+yes|firefox-skel-ask||exe|pet:noarch| #20221222
 yes|firmware_asus_e200ha||exe|pet:noarch| #needed for my asus e200ha notebook.
 yes|firmware_linux_acer_aspire1||exe|pet:noarch| #for my acer aspire1 laptop. note has regulatory.db useful all wifi.
 yes|firmware_linux_all_k5p15||exe|pet:noarch|
@@ -177,7 +179,7 @@ yes|fuse3|fuse3|exe,dev,doc,nls|compat:kirkstone| #maybe a compile option for qe
 yes|galculator|galculator|exe,dev,doc,nls|compat:kirkstone|
 yes|gawk|gawk|exe,dev,doc,nls|compat:kirkstone
 yes|gcab|gcab|exe,dev,doc,nls|compat:kirkstone| #needed by appstream-glib which is needed by celluloid.
-yes|gcc||exe>dev,dev,doc,nls|pet:kirkstone| #recompiled for nocona target.
+yes|gcc|gcc|exe>dev,dev,doc,nls|compat:kirkstone|
 yes|gccmakedep|gccmakedep|exe>dev,dev,doc,nls|compat:kirkstone|
 yes|gcc-runtime|gcc-runtime,libgcc|exe,dev,doc,nls|compat:kirkstone
 yes|gcc-sanitizers|gcc-sanitizers|exe>dev,dev,doc,nls|compat:kirkstone
@@ -187,6 +189,7 @@ yes|gcr|gcr|exe,dev,doc,nls|compat:kirkstone| #network-manager-applet needs this
 yes|gdb|gdb|exe>dev,dev,doc,nls|compat:kirkstone
 yes|gdbm|gdbm|exe,dev,doc,nls|compat:kirkstone
 yes|gdk-pixbuf|gdk-pixbuf|exe,dev,doc,nls|compat:kirkstone
+yes|gdk-pixbuf-xlib|gdk-pixbuf-xlib|exe,dev,doc,nls|compat:kirkstone| #20221223
 yes|gdl|gdl|exe,dev,doc,nls|compat:kirkstone| #needed by inkscape.
 yes|gdmap|gdmap|exe,dev>null,doc,nls|compat:kirkstone|
 yes|geany|geany|exe,dev>null,doc,nls|compat:kirkstone
@@ -292,7 +295,7 @@ yes|inkscape|inkscape|exe,dev,doc,nls|compat:kirkstone|
 yes|inotify-tools|inotify-tools|exe,dev,doc,nls|compat:kirkstone
 yes|installwatch|installwatch|exe,dev,doc,nls|compat:kirkstone|
 yes|intltool|intltool|exe,dev,doc,nls|compat:kirkstone
-yes|iotop|iotop-py|exe,dev,doc,nls|compat:kirkstone|
+no|iotop|iotop-py|exe,dev,doc,nls|compat:kirkstone| #20221223 oe compile fail.
 yes|iproute2|iproute2|exe,dev,doc,nls|compat:kirkstone| #only has ip utility
 yes|iptables|iptables|exe,dev,doc,nls|compat:kirkstone
 yes|iso-codes|iso-codes|exe,dev,doc,nls|compat:kirkstone| #network-manager-applet needs this.
@@ -368,7 +371,7 @@ yes|libgit2|libgit2|exe,dev,doc,nls|compat:kirkstone| #needed by geany-plugins
 yes|libglade|libglade|exe,dev,doc,nls|compat:kirkstone| #needed by planner.
 yes|libgltf|libgltf|exe,dev,doc,nls|compat:kirkstone| #reqd by libreoffice.
 yes|libglu|libglu|exe,dev,doc,nls|compat:kirkstone| #needed by mpv.
-yes|libgnomecanvas|libgnomecanvas|exe,dev,doc,nls|compat:kirkstone| #needed by planner.
+no|libgnomecanvas|libgnomecanvas|exe,dev,doc,nls|compat:kirkstone| #needed by planner. 20221223 oe compile fail.
 yes|libgpg-error|libgpg-error|exe,dev,doc,nls|compat:kirkstone
 yes|libgphoto2|libgphoto2|exe,dev,doc,nls|compat:kirkstone
 yes|libgtkhtml|libgtkhtml|exe,dev,doc,nls|compat:kirkstone|
@@ -376,7 +379,7 @@ yes|libgudev|libgudev|exe,dev,doc,nls|compat:kirkstone
 yes|libhandy|libhandy|exe,dev,doc,nls|compat:kirkstone| #needed by gnome-boxes
 yes|libical|libical|exe,dev,doc,nls|compat:kirkstone
 yes|libid3tag|libid3tag|exe,dev,doc,nls|compat:kirkstone
-yes|libidl|libidl|exe,dev,doc,nls|compat:kirkstone| #needed by old versions of seamonkey.
+no|libidl|libidl|exe,dev,doc,nls|compat:kirkstone| #needed by old versions of seamonkey. 20221223 oe compile fail.
 yes|libidn|libidn|exe,dev,doc,nls|compat:kirkstone
 yes|libidn2|libidn2|exe,dev,doc,nls|compat:kirkstone|
 yes|libjpeg-turbo|libjpeg-turbo|exe,dev,doc,nls|compat:kirkstone
@@ -485,8 +488,7 @@ yes|libyaml|libyaml|exe,dev,doc,nls|compat:kirkstone| #needed by appstream-glib 
 yes|limine|limine|exe,dev,doc,nls|compat:kirkstone| #bootloader
 yes|linux-libc-headers|linux-libc-headers|exe>dev,dev,doc,nls|compat:kirkstone|
 yes|litehtml|litehtml|exe,dev,doc,nls|compat:kirkstone| #dep of claws-mail
-yes|llvm-lib|llvm|exe,dev,doc,nls|compat:kirkstone|
-yes|llvm-clang|llvm|exe>dev,dev,doc,nls|compat:kirkstone|
+yes|llvm-lib|clang|exe,dev,doc,nls|compat:kirkstone| #20221223
 yes|lmarbles||exe,dev,doc,nls|pet:kirkstone|
 yes|lockdev|lockdev|exe,dev,doc,nls|compat:kirkstone|
 yes|lpsolve|lpsolve|exe,dev,doc,nls|compat:kirkstone| #reqd by libreoffice.
@@ -510,7 +512,7 @@ yes|memtester|memtester|exe,dev,doc,nls|compat:kirkstone|
 yes|mercurial|mercurial|exe>dev,dev,doc,nls|compat:kirkstone|
 yes|mesa|mesa|exe,dev,doc,nls|compat:kirkstone|
 yes|mesa-demos|mesa-demos|exe,dev,doc,nls|compat:kirkstone|
-yes|meson||exe>dev,dev,doc>dev,nls>dev|pet:kirkstone| #later version required to compile libcamera and pipewire.
+yes|meson|meson|exe>dev,dev,doc>dev,nls>dev|compat:kirkstone|
 yes|metamail|metamail|exe,dev,doc,nls|compat:kirkstone|
 yes|mhwaveedit|mhwaveedit|exe,dev,doc,nls|compat:kirkstone|
 yes|mingetty|mingetty|exe,dev,doc,nls|compat:kirkstone
@@ -545,7 +547,6 @@ yes|networkmanager|networkmanager|exe,dev,doc,nls|compat:kirkstone|
 yes|network-manager-applet|network-manager-applet|exe,dev,doc,nls|compat:kirkstone|
 yes|network_tray|network-tray|exe,dev,doc,nls|compat:kirkstone|
 yes|nim|nim|exe>dev,dev,doc,nls|compat:kirkstone|
-yes|nim-tools||exe>dev,dev,doc,nls|pet:kirkstone|
 yes|ninja|ninja|exe>dev,dev,doc,nls|compat:kirkstone| #build system used with meson.
 yes|nmap|nmap|exe,dev,doc,nls|compat:kirkstone|
 yes|normalize|normalize|exe,dev,doc,nls|compat:kirkstone|
@@ -608,7 +609,7 @@ yes|picscale|picscale|exe,dev,doc,nls|compat:kirkstone|
 yes|pinentry|pinentry|exe,dev,doc,nls|compat:kirkstone| #dep of gnupg
 yes|pixman|pixman|exe,dev,doc,nls|compat:kirkstone
 yes|pkgconfig|pkgconfig|exe,dev,doc,nls|compat:kirkstone
-yes|planner|planner|exe,dev,doc,nls|compat:kirkstone|
+no|planner|planner|exe,dev,doc,nls|compat:kirkstone| #20221223 dep libgnomecanvas oe compile fail.
 yes|pmcputemp||exe,dev,doc,nls|pet:kirkstone| #new version 1.2. does the oe one not work
 yes|pmirror||exe|pet:noarch
 yes|pmirrorget||exe|pet:noarch
@@ -695,7 +696,7 @@ yes|rsync|rsync|exe,dev,doc,nls|compat:kirkstone|
 yes|rubix|rubix|exe,dev,doc,nls|compat:kirkstone|
 yes|rxvt-unicode|rxvt-unicode|exe,dev>null,doc,nls|compat:kirkstone|
 yes|sakura|sakura|exe,dev,doc,nls|compat:kirkstone| #needs vte.
-yes|samba|samba|exe,dev,doc,nls|compat:kirkstone|
+no|samba|samba|exe,dev,doc,nls|compat:kirkstone| #20221222
 yes|sane-backends|sane-backends|exe,dev,doc,nls|compat:kirkstone|
 yes|sbc|sbc|exe,dev,doc,nls|compat:kirkstone|
 yes|scale2x|scale2x|exe,dev,doc,nls|compat:kirkstone|
@@ -754,7 +755,7 @@ yes|v4l-utils|v4l-utils|exe,dev,doc,nls|compat:kirkstone|
 yes|vala|vala|exe>dev,dev,doc>dev,nls|compat:kirkstone
 yes|vamps|vamps|exe,dev,doc,nls|compat:kirkstone|
 yes|vcdimager|vcdimager|exe,dev,doc,nls|compat:kirkstone|
-yes|vigra|vigra|exe,dev,doc,nls|compat:kirkstone| #reqd by libreoffice.
+no|vigra|vigra|exe,dev,doc,nls|compat:kirkstone| #reqd by libreoffice. 20221223 no longer.
 yes|vobcopy|vobcopy|exe,dev,doc,nls|compat:kirkstone|
 yes|vorbis-tools|vorbis-tools|exe,dev,doc,nls|compat:kirkstone|
 yes|vte|vte|exe,dev,doc,nls|compat:kirkstone| #needed by synaptic. gtk3 version. needed by remmina.
@@ -765,7 +766,7 @@ yes|wavplay|wavplay|exe,dev,doc,nls|compat:kirkstone|
 yes|wcpufreq||exe|pet:noarch
 yes|wget|wget|exe,dev>null,doc,nls|compat:kirkstone
 yes|whois|whois|exe,dev,doc,nls|compat:kirkstone|
-yes|wireguard-tools||exe,dev,doc,nls|pet:kirkstone|
+yes|wireguard-tools||exe,dev,doc,nls|pet:kirkstone| #20221223
 yes|wireless-regdb||exe|pet:noarch|
 yes|wireless-tools||exe,dev,doc,nls|pet:kirkstone| #this is deprecated i think.
 yes|wmctrl|wmctrl|exe,dev,doc,nls|compat:kirkstone|
@@ -815,7 +816,7 @@ yes|xprop|xprop|exe,dev,doc,nls|compat:kirkstone
 yes|xrandr|xrandr|exe,dev,doc,nls|compat:kirkstone
 yes|xresprobe|xresprobe|exe,dev,doc,nls|compat:kirkstone| #has ddcprobe utility.
 yes|xrdb|xrdb|exe,dev,doc,nls|compat:kirkstone|
-yes|xsane||exe,dev>null,doc,nls|pet:kirkstone|
+yes|xsane|xsane|exe,dev>null,doc,nls|compat:kirkstone|
 yes|xserver-xf86-config|xserver-xf86-config|exe,dev,doc,nls|compat:kirkstone
 yes|xserver_xorg|xserver-xorg,xf86-input-*,xf86-video-*|exe,dev,doc,nls|compat:kirkstone|
 yes|xset|xset|exe,dev,doc,nls|compat:kirkstone
@@ -841,7 +842,7 @@ yes|yelp-xsl|yelp-xsl|exe,dev,doc,nls|compat:kirkstone| #want this in main fs in
 yes|youtube-dl||exe|pet:noarch|
 yes|youtubedl-gui||exe|pet:noarch|
 yes|z2_geany_bacon_hack||exe|pet:noarch| #temp hack for geany. will probably have to remove soon.
-yes|zarfy|zarfy|exe,dev,doc,nls|compat:kirkstone| #new. handle multiple monitors.
+yes|zarfy|zarfy|exe,dev,doc,nls|compat:kirkstone| #handle multiple monitors.
 yes|zip|zip|exe,dev>null,doc,nls|compat:kirkstone|
 yes|zlib|zlib|exe,dev,doc,nls|compat:kirkstone
 yes|zstd|zstd|exe,dev,doc,nls|compat:kirkstone|
