@@ -96,7 +96,11 @@ case $DISTRO_BINARY_COMPAT in
 esac
 
 #w480 some pkgs no longer exist, maybe now builtin to the skeleton f.s. (for ex, 'petget')...
-#this variable is processed in /usr/local/petget/pkg_chooser.sh, used in /usr/local/petget/filterpkgs.sh
+#variable PKG_NAME_IGNORE is processed in /usr/local/petget/pkg_chooser.sh, used in /usr/local/petget/filterpkgs.sh
+
+#20221224 getcurpos is in pup-tools. mktemp is in coreutils or busybox.
+PKG_NAME_IGNORE="getcurpos mktemp"
+
 case $DISTRO_COMPAT_VERSION in
  wary5)
   #have some combo PETs with lots of pkgs combined, but also have them separately as PETs in repo,
@@ -105,10 +109,10 @@ case $DISTRO_COMPAT_VERSION in
   IGNORE_xorg73_base='bdftopcf evieext fontconfig fslsfonts fstobdf iceauth makedepend mkfontdir mkfontscale setxkbmap xauth xcalc xclipboard xconsole xcursorgen xdpyinfo xev xfontsel xgamma xhost xinit xkbcomp xmag xmessage xmodmap xprop xrandr xrdb xset xsetmode xsetpointer xsetroot xtrap xvidtune xwininfo libdmx libdrm libfontenc libfs libice libsm libx11 libxau libxaw libxcomposite libxcursor libxdamage libxdmcp libxevie libxext libxfixes libxfont libxfontcache libxft libxi libxinerama libxkbfile libxkbui libxmu libxp libxpm libxrandr libxrender libxres libxt libxtrap libxtst libxv libxvmc libxxf86dga libxxf86misc libxxf86vm '
   IGNORE_xserver_xorg_partialcut_t2='xf86-video-amd xf86-video-apm xf86-video-ark xf86-video-ast xf86-video-chips xf86-video-cirrus xf86-video-cyrix xf86-video-glint xf86-video-i128 xf86-video-i740 xf86-video-imstt xf86-video-mga xf86-video-neomagic xf86-video-nsc xf86-video-nv xf86-video-openchrome xf86-video-radeonhd xf86-video-rendition xf86-video-s3 xf86-video-s3virge xf86-video-savage xf86-video-siliconmotion xf86-video-sis xf86-video-sisusb xf86-video-tdfx xf86-video-tga xf86-video-trident xf86-video-tseng xf86-video-v4l xf86-video-vesa xf86-video-voodoo xf86-video-xgi xf86-input-evdev xf86-input-keyboard xf86-input-mouse xf86-input-synaptics '
   IGNORE_xf86_video_ati_extra='xf86-video-ati xf86-video-mach64 xf86-video-r128 '
-  PKG_NAME_IGNORE="rocknet dpkg fbset mime-support petget rgb sysfiles sysklogd ${IGNORE_x11proto}${IGNORE_xorg73_base}${IGNORE_xserver_xorg_partialcut_t2}${IGNORE_xf86_video_ati_extra}"
+  PKG_NAME_IGNORE="rocknet dpkg fbset mime-support petget rgb sysfiles sysklogd ${IGNORE_x11proto}${IGNORE_xorg73_base}${IGNORE_xserver_xorg_partialcut_t2}${IGNORE_xf86_video_ati_extra} ${PKG_NAME_IGNORE}"
  ;;
  *)
-  PKG_NAME_IGNORE='fbset petget rgb sysfiles sysklogd'
+  PKG_NAME_IGNORE="fbset petget rgb sysfiles sysklogd ${PKG_NAME_IGNORE}"
  ;;
 esac
 case $DISTRO_BINARY_COMPAT in #110705
