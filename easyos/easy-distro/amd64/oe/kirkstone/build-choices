@@ -54,7 +54,7 @@ BUILD_CHOICE_DEVX_STATIC_KEEP='no'
 BUILD_CHOICE_XORG_DRIVER_DEF='auto'
 #200108 whether to rebuild png files without compression. options: yes, no, <nothing> then ask...
 BUILD_CHOICE_PNG_NOCOMPRESSION='no'
-#200110 whether to load any found swap partition at bootup. yes, no, <nathing> to ask...
+#200110 whether to load any found swap partition at bootup. yes, no, <nothing> to ask...
 BUILD_CHOICE_LOAD_SWAP_BOOTUP='yes'
 #200210 whether to strip files. yes, no <nothing> to ask...
 BUILD_CHOICE_FILE_STRIP='yes'
@@ -62,7 +62,9 @@ BUILD_CHOICE_FILE_STRIP='yes'
 #20210116 want gzip sfs compression for arm boards...
 #options: gzip, xz, <nothing> then defaults to xz (if mksquashfs is v4.3)
 #20220606 now supporting lz4, with optional -Xhc high-compression
-BUILD_CHOICE_SFS_COMPRESSION='lz4 -Xhc'
+#BUILD_CHOICE_SFS_COMPRESSION='lz4 -Xhc'
+#20221226 kernel now supports zstd...
+BUILD_CHOICE_SFS_COMPRESSION='zstd -X15'
 
 #20220525
 #1=yes, 0 or anything else=no.
