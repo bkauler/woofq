@@ -182,7 +182,8 @@ yes|fuse3|fuse3|exe,dev,doc,nls|compat:kirkstone| #maybe a compile option for qe
 yes|galculator|galculator|exe,dev,doc,nls|compat:kirkstone|
 yes|gawk|gawk|exe,dev,doc,nls|compat:kirkstone
 yes|gcab|gcab|exe,dev,doc,nls|compat:kirkstone| #needed by appstream-glib which is needed by celluloid.
-yes|gcc|gcc|exe>dev,dev,doc,nls|compat:kirkstone|
+no|gcc|gcc|exe>dev,dev,doc,nls|compat:kirkstone| #20221225 removed.
+yes|gcc||exe>dev,dev,doc,nls|pet:kirkstone| #20221225 same problem as with dunfell, had to recompile in running easyos.
 yes|gccmakedep|gccmakedep|exe>dev,dev,doc,nls|compat:kirkstone|
 yes|gcc-runtime|gcc-runtime,libgcc|exe,dev,doc,nls|compat:kirkstone
 yes|gcc-sanitizers|gcc-sanitizers|exe>dev,dev,doc,nls|compat:kirkstone
@@ -222,7 +223,7 @@ yes|Global_IP_TV_Panel_Any_Pup_using_mpv||exe|pet:noarch|
 yes|gmeasures|gmeasures|exe,dev>null,doc,nls|compat:kirkstone|
 yes|gmp|gmp|exe,dev,doc,nls|compat:kirkstone
 yes|gnet|gnet|exe,dev,doc,nls|compat:kirkstone| #needed by helpsurfer
-yes|gnome-bluetooth|gnome-bluetooth|exe,dev,doc,nls|compat:kirkstone|
+yes|gnome-bluetooth|gnome-bluetooth3|exe,dev,doc,nls|compat:kirkstone| #gnome-bluetooth needs gtk4, gnome-bluetooth3 needs gtk+3
 yes|gnome-common|gnome-common|exe>dev,dev,doc,nls|compat:kirkstone|
 yes|gnome-doc-utils-stub|gnome-doc-utils-stub|exe,dev,doc,nls|compat:kirkstone|
 yes|gnome-icon-theme||exe>dev,dev,doc,nls|pet:noarch| #in devx, may need to extract some into main f.s.
@@ -248,12 +249,12 @@ yes|grep|grep|exe,dev,doc,nls|compat:kirkstone
 yes|groff|groff|exe>dev,dev,doc,nls|compat:kirkstone
 yes|gsettings-desktop-schemas|gsettings-desktop-schemas|exe,dev,doc,nls|compat:kirkstone|
 yes|gsl|gsl|exe,dev,doc,nls|compat:kirkstone| #needed by inkscape. and claws-mail. and pitivi.
-yes|gsound|gsound|exe,dev,doc,nls|compat:kirkstone| #20221224 needed by gnome-bluetooth
+no|gsound|gsound|exe,dev,doc,nls|compat:kirkstone| #20221224 needed by gnome-bluetooth. 20221225 gnome-bluetooth3 not need.
 yes|gspell|gspell|exe,dev,doc,nls|compat:kirkstone| #needed by evince. not if using gtk2 evince. inkscape wants.
 no|gstreamer1|gstreamer1.0|exe,dev,doc,nls|compat:kirkstone| #needed by evince gtk3 version.
 yes|gtk+|gtk+|exe,dev,doc,nls|compat:kirkstone
 yes|gtk+3|gtk+3|exe,dev,doc,nls|compat:kirkstone| #needs at-spi2-core, at-spi2-atk
-yes|gtk4|gtk4|exe,dev,doc,nls|compat:kirkstone| #20221224 needed by gnome-bluetooth
+no|gtk4|gtk4|exe,dev,doc,nls|compat:kirkstone| #20221224 needed by gnome-bluetooth. 20221225 gnome-bluetooth3 not need.
 yes|gtk-chtheme|gtk-chtheme|exe,dev>null,doc,nls|compat:kirkstone|
 yes|gtkdialog|gtkdialog|exe,dev,doc>dev,nls|compat:kirkstone|
 yes|gtkhash|gtkhash|exe,dev,doc,nls|compat:kirkstone|
@@ -329,7 +330,7 @@ yes|leafpad|leafpad|exe,dev,doc,nls|compat:kirkstone
 yes|less|less|exe,dev,doc,nls|compat:kirkstone
 yes|liba52|liba52|exe,dev,doc,nls|compat:kirkstone
 yes|libabw|libabw|exe,dev,doc,nls|compat:kirkstone| #reqd by libreoffice.
-yes|libadwaita|libadwaita|exe,dev,doc,nls|compat:kirkstone| #20221224 needed by gnome-bluetooth
+no|libadwaita|libadwaita|exe,dev,doc,nls|compat:kirkstone| #20221224 needed by gnome-bluetooth. 20221225 gnome-bluetooth3 not need.
 yes|libaio|libaio|exe,dev,doc,nls|compat:kirkstone|
 yes|libao|libao|exe,dev,doc,nls|compat:kirkstone| #needed by vorbis-tools
 yes|libarchive|libarchive|exe,dev,doc,nls|compat:kirkstone
@@ -504,7 +505,7 @@ yes|libyaml|libyaml|exe,dev,doc,nls|compat:kirkstone| #needed by appstream-glib 
 yes|limine|limine|exe,dev,doc,nls|compat:kirkstone| #bootloader
 yes|linux-libc-headers|linux-libc-headers|exe>dev,dev,doc,nls|compat:kirkstone|
 yes|litehtml|litehtml|exe,dev,doc,nls|compat:kirkstone| #dep of claws-mail
-yes|llvm-lib|clang|exe,dev,doc,nls|compat:kirkstone| #20221223
+yes|llvm-lib|clang|exe,dev>exe,doc,nls|compat:kirkstone| #20221223 20221225 do not separate out the dev
 yes|lmarbles||exe,dev,doc,nls|pet:kirkstone|
 yes|lockdev|lockdev|exe,dev,doc,nls|compat:kirkstone|
 yes|lpsolve|lpsolve|exe,dev,doc,nls|compat:kirkstone| #reqd by libreoffice.
@@ -763,7 +764,7 @@ yes|unclutter|unclutter|exe,dev>null,doc,nls|compat:kirkstone|
 yes|unifont||exe|pet:noarch| #needed by solvespace
 yes|unrar|unrar|exe,dev,doc,nls|compat:kirkstone
 yes|unzip|unzip|exe,dev,doc,nls|compat:kirkstone
-yes|upower|upower|exe,dev,doc,nls|compat:kirkstone| #20221224 needed by gnome-bluetooth
+no|upower|upower|exe,dev,doc,nls|compat:kirkstone| #20221224 needed by gnome-bluetooth. 20221225 gnome-bluetooth3 not need.
 yes|UrxvtControl||exe,dev,doc,nls|pet:noarch|
 yes|usb-modeswitch|usb-modeswitch|exe,dev,doc,nls|compat:kirkstone| #requires tcl or jimtcl.
 yes|usb-modeswitch-data|usb-modeswitch-data|exe|compat:kirkstone|
