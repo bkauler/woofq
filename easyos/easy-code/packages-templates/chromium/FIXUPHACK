@@ -1,82 +1,50 @@
-#190906 fix for easyos
-#200514 keep support for quirky.
+#20221226 rewrite.
 
-#190906 running as root, need "--no-sandbox", however to avoid warning msg,
-# also need "--test-type"
-
-#190906 pre-created in easy-code/boot/initrd-tree/skeleton...
-if [ "$WOOF_VARIANT" == "quirky" ];then #200514
- mkdir -p file/portable/chromium/profile/Default
- #this 0-byte file is needed so chromium will start at our puppy home page on 1st startup...
- touch "file/portable/chromium/profile/First Run"
-fi
-
-[ -e usr/bin/chromium ] && CBEXE='chromium'
-[ -e usr/bin/chromium-browser ] && CBEXE='chromium-browser' #note, pinstall.sh create chromium symlink.
-
-#have a go at editing the startup script...
-CBPARAM=''
-if [ "$WOOF_VARIANT" == "quirky" ];then #200514
- if [ "`file usr/bin/${CBEXE} | grep 'shell'`" != "" ];then
-  #190906 this works for the debian script...
-  cbPTN='s%exec \$LIBDIR/\$APPNAME \$CHROMIUM_FLAGS%exec $LIBDIR/$APPNAME $CHROMIUM_FLAGS --test-type --no-sandbox --user-data-dir=/file/portable/chromium/profile%'
-  sed -i -e "$cbPTN" usr/bin/${CBEXE}
- else
-  CBPARAM=" --test-type --no-sandbox --user-data-dir=/file/portable/chromium/profile"
- fi
-else
- if [ "`file usr/bin/${CBEXE} | grep 'shell'`" != "" ];then
-  #190906 this works for the debian script...
-  cbPTN='s%exec \$LIBDIR/\$APPNAME \$CHROMIUM_FLAGS%exec $LIBDIR/$APPNAME $CHROMIUM_FLAGS --test-type --no-sandbox --user-data-dir=/files/portable/chromium/profile%'
-  sed -i -e "$cbPTN" usr/bin/${CBEXE}
- else
-  CBPARAM=" --test-type --no-sandbox --user-data-dir=/files/portable/chromium/profile"
+if [ -e usr/bin/chromium-browser ];then
+ if [ ! -e usr/bin/chromium  ];then
+  ln -s chromium-browser usr/bin/chromium
  fi
 fi
+if [ ! -e usr/bin/chromium ];then #oe kirkstone
+ #do not insert "--no-sandbox"...
+ echo '#!/bin/ash
+exec /usr/lib/chromium/chromium-wrapper --user-data-dir=/root/.config/chrome --disk-cache-size=10000000 --media-cache-size=10000000 $@' > usr/bin/chromium
+ chmod 755 usr/bin/chromium
+fi
 
-CBDSK=''
-[ -f usr/share/applications/chromium.desktop ] && CBDSK='chromium.desktop'
-[ -f usr/share/applications/chromium-browser.desktop ] && CBDSK='chromium-browser.desktop'
+if [ -f usr/share/applications/chromium-browser.desktop ];then
+ rm -f usr/share/applications/chromium-browser.desktop
+fi
+mkdir -p usr/share/pixmaps
+if [ -f usr/share/pixmaps/chromium-browser.png ];then
+ mv -f usr/share/pixmaps/chromium-browser.png usr/share/pixmaps/chromium.png
+fi
+if [ ! -e usr/share/pixmaps/chromium.png ];then
+ cp -a usr/share/icons/hicolor/48x48/apps/chromium.png usr/share/pixmaps/
+fi
 
-if [ "$CBDSK" ];then
- echo "[Desktop Entry]
+echo "[Desktop Entry]
 Version=1.0
 Name=Chromium web browser
 GenericName=Chromium
 Comment=Chromium web browser
-Exec=chromium${CBPARAM}
+Exec=chromium
 Terminal=false
 X-MultipleArgs=false
 Type=Application
-Icon=chromium-browser.png
+Icon=chromium.png
 Categories=X-Internet-browser
 MimeType=text/html;text/xml;application/xhtml_xml;x-scheme-handler/http;x-scheme-handler/https;
 StartupWMClass=Chromium-browser
 StartupNotify=true
 Actions=NewWindow;Incognito;TempProfile;
-X-AppInstall-Package=chromium-browser" > usr/share/applications/${CBDSK}
-fi
+X-AppInstall-Package=chromium-browser" > usr/share/applications/chromium.desktop
 
-#190906 /files is a symlink, set at bootup, can't do this here...
-#preset some preferences...
-#echo '{
-#   "download": {
-#      "default_directory": "/files/downloads",
-#      "directory_upgrade": true,
-#      "extensions_to_open": "",
-#      "prompt_for_download": true
-#   },
-#   "savefile": {
-#      "default_directory": "/files/downloads"
-#   },
-#   "homepage": "file:///usr/share/doc/home.htm",
-#   "homepage_is_newtabpage": false
-#}' > home/portable/chromium/profile/Default/Preferences
-
-#190906 instead, do this...
 mkdir -p root/.config/chromium/Default
-if [ "$WOOF_VARIANT" == "quirky" ];then #200514
- echo '{"download":{"default_directory":"/file/downloads","directory_upgrade":true,"prompt_for_download":true},"savefile":{"default_directory":"/files"}}' > root/.config/chromium/Default/Preferences
-else
- echo '{"download":{"default_directory":"/files/downloads","directory_upgrade":true,"prompt_for_download":true},"savefile":{"default_directory":"/files"}}' > root/.config/chromium/Default/Preferences
-fi
+echo '{"download":{"default_directory":"/files/downloads","directory_upgrade":true,"prompt_for_download":true},"savefile":{"default_directory":"/files"}}' > root/.config/chromium/Default/Preferences
+
+mkdir -p ../chromium_NLS/usr/lib/chromium
+mv -f usr/lib/chromium/locales ../chromium_NLS/usr/lib/chromium/locales
+mkdir usr/lib/chromium/locales
+cp -a ../chromium_NLS/usr/lib/chromium/locales/en-US.pak usr/lib/chromium/locales/
+cp -a ../chromium_NLS/usr/lib/chromium/locales/en-GB.pak usr/lib/chromium/locales/
