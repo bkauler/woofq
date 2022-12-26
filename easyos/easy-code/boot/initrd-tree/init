@@ -134,6 +134,7 @@
 #20221030 support EOS_LOGIN_ZEUS, /mnt/wkg/.loginzeus.flg can override.
 #20221102 remove support EOS_LOGIN_ZEUS
 #20221118 playing with new logo.
+#20221226 support skeleton wkg partition 672MiB.
 
 #20220525 3buildeasydistro will substitute values here...
 EOS_TOP_LEVEL_ZRAM=EOSTOPLEVELZRAM #20220521 1=yes, anything else no.
@@ -856,19 +857,19 @@ PW=''; ALLOW_ASK_PW=''; Bmntd=0; Tmntd=0 #20220517
 #Wsize=$(grep ' ${WKG_DEV}$' /proc/partitions | tr -s ' ' | rev | cut -f 2 -d ' ' | rev)
 Wsize="$(fdisk -u -l /dev/${WKG_DRV} | grep "^/dev/${WKG_DEV} " | tr -s ' ' | rev | cut -f 3 -d ' ' | rev)"
 #20220621 new skeleton 7MiB 1st, 816MiB 2nd, Wstart=16384
-#20220911 for easy bookworm, bumped wkg-part to 848MiB
-if [ "$Wsize" == "816M" -o "$Wsize" == "848M" ];then #current skeleton.
+#20220911 for easy bookworm, bumped wkg-part to 848MiB. 20221226 kirkstone 672MiB
+if [ "$Wsize" == "816M" -o "$Wsize" == "848M" -o "$Wsize" == "672M" ];then #current skeleton.
  #starting sector of wkg partition...
  Wstart="$(fdisk -u -l /dev/${WKG_DRV} | grep "^/dev/${WKG_DEV} " | tr -s ' ' | rev | cut -f 6 -d ' ' | rev)"
  #need to be paranoid here, to get this right, restrict to my skeletons...
  if [ "$Wstart" == "16384" ];then
-  #this has to be done with all partitons in WKG_DRV unmounted...
+  #this has to be done with all partitions in WKG_DRV unmounted...
   echo -n -e "\\033[1;35mResizing working-partition to fill drive\\033[0;39m\n " #purple
   echo -e "d\n${WKG_PARTNUM}\nn\np\n${WKG_PARTNUM}\n${Wstart}\n\nw" | fdisk -u /dev/${WKG_DRV} > /dev/null 2>&1
   #fdisk should have informed kernel to rescan partition table, however precaution...
   partprobe /dev/${WKG_DRV}
   Wnewsize="$(fdisk -u -l /dev/${WKG_DRV} | grep "^/dev/${WKG_DEV} " | tr -s ' ' | rev | cut -f 3 -d ' ' | rev)"
-  if [ "$Wnewsize" == "816M" -o "$Wnewsize" == "848M" ];then
+  if [ "$Wnewsize" == "816M" -o "$Wnewsize" == "848M" -o "$Wnewsize" == "672M" ];then
    echo -e "\\033[1;31m ERROR: unable to resize working-partition\\033[0;39m" #red.
    Wbad=1 #20220511
   else
