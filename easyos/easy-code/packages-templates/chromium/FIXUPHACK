@@ -8,7 +8,7 @@ fi
 if [ ! -e usr/bin/chromium ];then #oe kirkstone
  #do not insert "--no-sandbox"...
  echo '#!/bin/ash
-exec /usr/lib/chromium/chromium-wrapper --user-data-dir=/root/.config/chrome --disk-cache-size=10000000 --media-cache-size=10000000 $@' > usr/bin/chromium
+exec /usr/lib/chromium/chromium-wrapper --user-data-dir=${HOME}/.config/chromium --disk-cache-size=10000000 --media-cache-size=10000000 $@' > usr/bin/chromium
  chmod 755 usr/bin/chromium
 fi
 
