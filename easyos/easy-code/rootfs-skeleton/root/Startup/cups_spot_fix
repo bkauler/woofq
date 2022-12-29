@@ -1,0 +1,13 @@
+#!/bin/ash
+#20221229 cupsd tries to run utilities in /usr/libexec/cups/filter/ as user spot
+# but fails, see /var/log/cups/error_log. this is due to fscrypt and kernel keys.
+# when we run an app non-root, the startup script (ex: /usr/bin/firefox) makes
+# fscrypt work in that user. however, for cupsd, it switches into spot without
+# that fix. this little hack fixes...
+# ref: https://bkhome.org/news/202212/required-key-not-available-fix-for-cups.html
+
+echo "/root/Startup/cups_spot_fix:"
+FSCRYPTID="$(grep ' logon ' /proc/keys | head -n 1 | cut -f 1 -d ' ')"
+if [ "$FSCRYPTID" ];then
+ su -l spot -c "grep -q '_uid\.502' /proc/keys || keyctl link 0x${FSCRYPTID} @us"
+fi
