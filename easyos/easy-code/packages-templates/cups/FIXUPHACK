@@ -145,7 +145,7 @@ grep -v 'help/' ${DOCROOT}/index.htmlORIG > ${DOCROOT}/index.html
 
 #20221227 NO don't bother. other problems with cups 2.4.2, going to roll back to 2.3.3 ...
 ##20221227 oe kirkstone, remove message from ui:
-## "Printer drivers and raw queues are deprecated and will stop working in a future version of CUPS."
-#if [ -f usr/share/cups/templates/printer-added.tmpl ];then
-# sed -i '/^<blockquote>/,/^<\/blockquote>/d' usr/share/cups/templates/printer-added.tmpl
-#fi
+# "Printer drivers and raw queues are deprecated and will stop working in a future version of CUPS."
+if [ -f usr/share/cups/templates/printer-added.tmpl ];then
+ sed -i '/^<blockquote>/,/^<\/blockquote>/d' usr/share/cups/templates/printer-added.tmpl
+fi

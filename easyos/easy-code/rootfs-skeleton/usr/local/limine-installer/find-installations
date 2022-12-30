@@ -11,6 +11,7 @@
 #20220722 find fatdog savefile.
 #20220725 improve chainload. 20220726 chainload active entries in uefi.
 #20221003 fix variable names. thanks Caramel
+#20221230 fix detect new installation of EasyOS
 
 export LANG=C
 
@@ -146,30 +147,32 @@ do
     bPATH="${bLINUZ%/*}"
     
     ###find easyos###
-    if [ -f ${MOUNTPOINT}${bPATH}/initrd -a -d ${MOUNTPOINT}${bPATH}/.session ];then
-     #this is EasyOS. note, .session will only exist in a Linux partition.
-     DISTRO_NAME=''; DISTRO_VERSION=''
-     if [ -f ${MOUNTPOINT}${bPATH}/easy.sfs ];then
-      #a new installation (after 1st run, easy.sfs gets moved into sfs folder).
-      #will have to open it up to find DISTRO_SPECS
-      mkdir -p /tmp/limine-installer/mntpt
-      ${BB} mount -t squashfs -r ${MOUNTPOINT}${bPATH}/easy.sfs /tmp/limine-installer/mntpt
-      if [ $? -eq 0 ];then
-       . /tmp/limine-installer/mntpt/etc/DISTRO_SPECS
-       ${BB} umount /tmp/limine-installer/mntpt
+    if [ -f ${MOUNTPOINT}${bPATH}/initrd ];then #20221230 fix...
+     if [ -d ${MOUNTPOINT}${bPATH}/.session -o -f ${MOUNTPOINT}${bPATH}/easy.sfs ];then
+      DISTRO_NAME=''; DISTRO_VERSION=''
+      if [ -f ${MOUNTPOINT}${bPATH}/easy.sfs ];then
+       #a new installation (after 1st run, easy.sfs gets moved into sfs folder).
+       #will have to open it up to find DISTRO_SPECS
+       mkdir -p /tmp/limine-installer/mntpt
+       ${BB} mount -t squashfs -r ${MOUNTPOINT}${bPATH}/easy.sfs /tmp/limine-installer/mntpt
+       if [ $? -eq 0 ];then
+        . /tmp/limine-installer/mntpt/etc/DISTRO_SPECS
+        sync #20221230
+        ${BB} umount /tmp/limine-installer/mntpt
+       fi
       fi
-     fi
-     if [ -f ${MOUNTPOINT}${bPATH}/.session/etc/DISTRO_SPECS ];then
-      . ${MOUNTPOINT}${bPATH}/.session/etc/DISTRO_SPECS
-     fi
-     if [ "$DISTRO_NAME" ];then
-      echo "Found ${DISTRO_NAME} ${DISTRO_VERSION}"
-      echo "NAME='${DISTRO_NAME}'
+      if [ -f ${MOUNTPOINT}${bPATH}/.session/etc/DISTRO_SPECS ];then
+       . ${MOUNTPOINT}${bPATH}/.session/etc/DISTRO_SPECS
+      fi
+      if [ "$DISTRO_NAME" ];then
+       echo "Found ${DISTRO_NAME} ${DISTRO_VERSION}"
+       echo "NAME='${DISTRO_NAME}'
 VERSION='${DISTRO_VERSION}'
 VMLINUZ='${bPATH}/vmlinuz'
 INITRD='${bPATH}/initrd'" > /tmp/limine-installer/i-easyos-${eCNT}
-      write_vars_func easyos ${eCNT}
-      eCNT=$(($eCNT+1))
+       write_vars_func easyos ${eCNT}
+       eCNT=$(($eCNT+1))
+      fi
      fi
     fi
     
@@ -247,7 +250,7 @@ SAVEFILE='${SAVEFILE}'" > /tmp/limine-installer/i-fatdog-${fdCNT}
  case "$FSTYPE" in
   ext2|ext3|ext4|f2fs)
    ###find linux###
-   #WARNING: this code could be wrong, as /boot may be a different parition from
+   #WARNING: this code could be wrong, as /boot may be a different partition from
    # the full install, only mounted on /boot in install-partition after bootup.
    bPATH=''
    bVMLINUZ="$(find ${MOUNTPOINT}/boot -mindepth 1 -maxdepth 1 -type f -name 'vmlinuz*' 2>/dev/null | sort -V | tail -n 1)"
@@ -374,6 +377,9 @@ EFIPATH='/EFI/${aSUBDIR}/grubx64.efi'" > /tmp/limine-installer/i-efichain-${ecCN
  
  #unmount the partition...
  if [ $MNTflg -eq 1 ];then
+  sync #20221230
+  #20221230 hmmm, getting "can't unmount, resource busy", sleep fixes it...
+  sleep 1
   umount /dev/$aDEV
  fi
 done
