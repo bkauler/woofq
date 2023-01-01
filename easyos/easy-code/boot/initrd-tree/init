@@ -983,6 +983,10 @@ if [ ! -d /mnt/${WKG_DEV}/${WKG_DIR}.session ];then
     echo -e "\\033[1;31m The working-partition does not have ext4 encrypt feature enabled.
 This feature is required to encrypt folders. Recommended for your security.
 If you decline, future bootups will not ask for a password.\\033[0;39m" #red.
+    echo -e "\\033[1;41m WARNING: old bootloaders such as GRUB v1, GRUB4DOS, and GRUB v2 prior to 
+ version 2.0.4 (released 2019), do not  recognize modern ext4 features    
+ such as folder encryption, and will no longer work with the partition    
+ if you enable encrypt (the partition will no longer be recognized).      \\033[0;39m" #red background.
     echo "Press ENTER key to enable encrypt, any other key not to: "
     read wantencrypt
     if [ "$wantencrypt" == "" ];then
