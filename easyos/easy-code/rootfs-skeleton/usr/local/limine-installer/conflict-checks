@@ -2,6 +2,7 @@
 #called from limine-installer
 #find-installations has created /tmp/limine-installer/unique-check-usb.log
 #and /tmp/limine-installer/unique-check-internal.log
+#20230103
 
 export TEXTDOMAIN=limine-installer
 export TEXTDOMAINDIR=/usr/share/locale
@@ -10,7 +11,7 @@ export OUTPUT_CHARSET=UTF-8
 echo -n '' > /tmp/limine-installer/conflicts-found
 
 if [ ! -s /tmp/limine-installer/unique-check-internal.log ];then
- exit
+ exit 0
 fi
 
 #ex: KNAME="sda8" LABEL="hdd96gb1" UUID="aad57b63-14e1-4fd5-ac01-14d15ef81e3e" PARTUUID="1911d005-c4cb-4f06-8975-208d32755084"
@@ -64,7 +65,8 @@ if [ -s /tmp/limine-installer/conflicts-found ];then
  
  grep -q 'continue' /tmp/limine-installer/VARSc
  if [ $? -ne 0 ];then
-  exit
+  exit 1
  fi
 fi
-
+exit 0
+###end###

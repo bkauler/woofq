@@ -200,6 +200,11 @@ fi
 
 #20230103 find any duplicate UUID etc...
 /usr/local/limine-installer/conflict-checks
+if [ $? -ne 0 ];then
+ Mchk="$(gettext 'You chose not to continue. Quiting.')"
+ err_popup_func "$Mchk"
+ exit
+fi
 
 ###assemble scan results###
 ASR="$(ls -1 /tmp/limine-installer/i-* 2>/dev/null)"
