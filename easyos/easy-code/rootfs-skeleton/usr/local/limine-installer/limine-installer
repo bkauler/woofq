@@ -20,10 +20,17 @@
 #20220929 bios release date not reliable to determine if bios or uefi.
 #20221003 fix dimensions of scanned results window.
 #20221023 may be running as zeus super-user. 20221031 think still need to bump to root.
+#20230102 must run as root.
+#20230103 find any duplicate UUID etc.
 
-if [ -f /usr/sbin/askpass ];then #20220722 only the pups have gui frontend for sudo. ref: /etc/sudo.conf
- WHOIAM="$(whoami)"
- [ "${WHOIAM}" != "root" ] && exec sudo -A ${0} ${@} #20221023 20221031
+#20230102
+WHOIAM="$(whoami)"
+if [ "${WHOIAM}" != "root" ];then
+ if [ -f /usr/sbin/askpass ];then #20220722 only the pups have gui frontend for sudo. ref: /etc/sudo.conf
+  exec sudo -A ${0} ${@} #20221023 20221031
+ else
+  exit
+ fi
 fi
 
 export TEXTDOMAIN=limine-installer
@@ -117,9 +124,9 @@ export UEFIflg #20220722 read in generate-menu-entry and find-installations
 #20220810 ref: https://www.cyberciti.biz/faq/linux-how-to-find-if-processor-is-64-bit-or-not/
 grep -q -o -w lm /proc/cpuinfo
 CPU64bit=$?  #0 64-bit, else 32-bit CPU
-if which uname >/dev/null ; then
+if type -p uname >/dev/null ; then
  OSarch="$(uname -m)"
-elif which arch >/dev/null ; then
+elif type -p arch >/dev/null ; then
  OSarch="$(arch)"
 else
  exit #really stupid linux system if it comes here.
@@ -190,6 +197,9 @@ else
  #killall xmessage
  killall gtkdialog
 fi
+
+#20230103 find any duplicate UUID etc...
+/usr/local/limine-installer/conflict-checks
 
 ###assemble scan results###
 ASR="$(ls -1 /tmp/limine-installer/i-* 2>/dev/null)"

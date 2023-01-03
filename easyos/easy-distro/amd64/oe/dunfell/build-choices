@@ -62,7 +62,9 @@ BUILD_CHOICE_FILE_STRIP='yes'
 #20210116 want gzip sfs compression for arm boards...
 #options: gzip, xz, <nothing> then defaults to xz (if mksquashfs is v4.3)
 #20220606 now supporting lz4, with optional -Xhc high-compression
-BUILD_CHOICE_SFS_COMPRESSION='lz4 -Xhc'
+#BUILD_CHOICE_SFS_COMPRESSION='lz4 -Xhc'
+#20230103 kernel now supports zstd...
+BUILD_CHOICE_SFS_COMPRESSION='zstd -Xcompression-level 15'
 
 #20220525
 #1=yes, 0 or anything else=no.
