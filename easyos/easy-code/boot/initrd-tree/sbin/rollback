@@ -30,6 +30,7 @@
 #20220613 do rollback initrd.
 #20220621 no longer have BOOT_DRV, BOOT_DEV
 #20220622 no longer have BOOT_SPECS file. WKG_DIR=$3
+#20230104 /mnt/${WKG_DEV}/${WKG_DIR}.session/.rollback.flg moved to /mnt/${WKG_DEV}/${WKG_DIR}.rollback.flg
 
 WKG_DRV=$1 #ex: sda
 WKG_DEV=$2 #ex: sda2
@@ -45,9 +46,9 @@ err_exit() {
  exit 1
 }
 
-backVER="$(cat /mnt/${WKG_DEV}/${WKG_DIR}.session/.rollback.flg | cut -f 1 -d ',')"
-backDATE="$(cat /mnt/${WKG_DEV}/${WKG_DIR}.session/.rollback.flg | cut -f 2 -d ',')"
-rm -f /mnt/${WKG_DEV}/${WKG_DIR}.session/.rollback.flg
+backVER="$(cat /mnt/${WKG_DEV}/${WKG_DIR}.rollback.flg | cut -f 1 -d ',')" #20230104
+backDATE="$(cat /mnt/${WKG_DEV}/${WKG_DIR}.rollback.flg | cut -f 2 -d ',')" #20230104
+rm -f /mnt/${WKG_DEV}/${WKG_DIR}.rollback.flg #20230104
 [ "$backVER" == "" ] && backVER="$DISTRO_VERSION" #180331
 
 case "$backDATE" in

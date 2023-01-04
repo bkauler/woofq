@@ -135,6 +135,7 @@
 #20221102 remove support EOS_LOGIN_ZEUS
 #20221118 playing with new logo.
 #20221226 support skeleton wkg partition 672MiB.
+#20230104 /mnt/${WKG_DEV}/${WKG_DIR}.session/.rollback.flg moved to /mnt/${WKG_DEV}/${WKG_DIR}.rollback.flg
 
 #20220525 3buildeasydistro will substitute values here...
 EOS_TOP_LEVEL_ZRAM=EOSTOPLEVELZRAM #20220521 1=yes, anything else no.
@@ -378,10 +379,10 @@ menu_delay_func() {
    touch /mnt/${WKG_DEV}/${WKG_DIR}.session/root/bootcnt.txt #see /root/.profile
   ;;
   RBSAVED)
-   echo -n ",last" > /mnt/${WKG_DEV}/${WKG_DIR}.session/.rollback.flg
+   echo -n ",last" > /mnt/${WKG_DEV}/${WKG_DIR}.rollback.flg #20230104
   ;;
   RBPRISTINE)
-   echo -n ",erase" > /mnt/${WKG_DEV}/${WKG_DIR}.session/.rollback.flg
+   echo -n ",erase" > /mnt/${WKG_DEV}/${WKG_DIR}.rollback.flg #20230104
   ;;
   FSCHECK)
    echo -n "${WKG_DEV},${WKG_FS},REQUEST" > /mnt/${WKG_DEV}/${WKG_DIR}.fsckme.flg #20220801
@@ -1170,14 +1171,14 @@ if [ "$QFIX" ];then #190817 see similar code above.
  do
   case $ONEFIX in
    fsck|FSCK) echo -n "${WKG_DEV},${WKG_FS},REQUEST" > /mnt/${WKG_DEV}/${WKG_DIR}.fsckme.flg ;; #20220801
-   back|bak|BACK|BAK) echo -n ",last" > /mnt/${WKG_DEV}/${WKG_DIR}.session/.rollback.flg ;;
-   new|NEW) echo -n ",erase" > /mnt/${WKG_DEV}/${WKG_DIR}.session/.rollback.flg ;; #181009 200720
+   back|bak|BACK|BAK) echo -n ",last" > /mnt/${WKG_DEV}/${WKG_DIR}.rollback.flg ;; #20230104
+   new|NEW) echo -n ",erase" > /mnt/${WKG_DEV}/${WKG_DIR}.rollback.flg ;; #181009 200720 20230104
   esac
  done
 fi
 
 #191224 if easy.sfs mounted on /tro (via loop0), rollback fails (easy.sfs seems to delete, but isn't), hence moved rollback below unmount /tnew
-[ -s /mnt/${WKG_DEV}/${WKG_DIR}.session/.rollback.flg ] && rollback "${WKG_DRV}" "${WKG_DEV}" "${WKG_DIR}"
+[ -s /mnt/${WKG_DEV}/${WKG_DIR}.rollback.flg ] && rollback "${WKG_DRV}" "${WKG_DEV}" "${WKG_DIR}" #20230104
 
 #200726 if boot- and wkg-partition the same, cannot unmount wkg-partition and fscheck
 #fails, coz of temporary easy.sfs mounted on tro. moved down...

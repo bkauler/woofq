@@ -42,6 +42,7 @@
 #20220626 fix snapshot if there is a top-level-zram
 #20220703 fix container erase and rollback if a top-level-zram.
 #20221015 get rid of .cache folders when create rw-* sfs, direct write to .session.
+#20230104 /.rollback.flg moved to /mnt/wkg/.rollback.flg
 
 export TEXTDOMAIN=version-control
 export OUTPUT_CHARSET=UTF-8
@@ -383,10 +384,10 @@ if [ "$EXIT" == "erase" ];then
  #200813 ask about exceptions...
  /usr/local/easy_version/erase-exceptions
  if [ $? -eq 0 ];then 
-  echo -n ",erase" > /.rollback.flg #init in initramfs will read this.
+  echo -n ",erase" > /mnt/wkg/.rollback.flg #init in initramfs will read this. 20230104
   pupdialog --background '#40FF40' --backtitle "$(gettext 'Erase almost completed')" --msgbox "$(gettext 'The rw layer will be erased. However, as this is currently in use, a reboot is required to take effect.')" 0 0
  else
-  [ -f /.rollback.flg ] && rm -f /.rollback.flg
+  [ -f /mnt/wkg/.rollback.flg ] && rm -f /mnt/wkg/.rollback.flg #20230104
   pupdialog --background '#FF8080' --backtitle "$(gettext 'Erase aborted')" --msgbox "$(gettext 'Confirming, you decided not to erase the working session.')" 0 0
  fi
  
@@ -499,9 +500,9 @@ if [ "$EXIT" == "rollback" ];then
    if [ $SESSIONSFSflag -eq 1 ];then
     #170525 if no session.sfs in previous easy- folder, reconstitute it...
     reconstitute_sessionsfs_func ${backEASYver}
-    echo -n "${backEASYver},erase" > /.rollback.flg #init in initramfs will read this. 170526 170529
+    echo -n "${backEASYver},erase" > /mnt/wkg/.rollback.flg #init in initramfs will read this. 170526 170529 20230104
    else
-    echo -n "${backEASYver},${backEASYver}" > /.rollback.flg #init in initramfs will read this. 170526
+    echo -n "${backEASYver},${backEASYver}" > /mnt/wkg/.rollback.flg #init in initramfs will read this. 170526 20230104
    fi
    sync
 
@@ -564,13 +565,13 @@ $(gettext 'This requires a reboot to take effect')" 0 0
    [ $UMNTFLG -eq 1 ] && busybox umount /mnt/${BOOT_DEV}
    if [ "$backVER" == "$DISTRO_VERSION" ];then
     echo -e "\nDate: ${DATE}\n------------------\n$(gettext 'Version:') ${DISTRO_VERSION}\n$(gettext 'Rolled-back to snapshot:') rw-${backDATE}.sfs" >> /mnt/${WKG_DEV}/${WKG_DIR}releases/rollback-log #171226
-    echo -n ",${backDATE}" > /.rollback.flg #init in initramfs will read this.
+    echo -n ",${backDATE}" > /mnt/wkg/.rollback.flg #init in initramfs will read this. 20230104
     MSGdone="$(gettext 'Rolled-back to snapshot:') rw-${backDATE}.sfs
 $(gettext 'This will be copied to:') /mnt/${WKG_DEV}/${WKG_DIR}.session
 $(gettext 'This requires a reboot to take effect.')"
    else
     echo -e "\nDate: ${DATE}\n------------------\n$(gettext 'Rolled-back to version:') ${backVER}\n$(gettext 'Rolled-back to snapshot:') ${backDATE}" >> /mnt/${WKG_DEV}/${WKG_DIR}releases/rollback-log #171226
-    echo -n "${backVER},${backDATE}" > /.rollback.flg #init in initramfs will read this.
+    echo -n "${backVER},${backDATE}" > /mnt/wkg/.rollback.flg #init in initramfs will read this. 20230104
     MSGdone="$(gettext 'Rolled-back to version:') ${backVER}
 $(gettext 'Rolled-back to snapshot:') ${backDATE}
 $(gettext 'This will be copied to:') /mnt/${WKG_DEV}/${WKG_DIR}.session

@@ -2,6 +2,7 @@
 #called from /usr/bin/wmreboot, from menu Shutdown --> Reboot, with rollback"
 #200815 erase session, offer to keep some settings.
 #20221124 "wmreboot rollback" --> here --> "wmreboot nosave"
+#20230104 /.rollback.flg moved to /mnt/wkg/.rollback.flg
 
 export TEXTDOMAIN=easy-rollback
 export OUTPUT_CHARSET=UTF-8
@@ -40,11 +41,11 @@ if [ $DISPLAY ];then #check X still running
  RETVARS="$(gtkdialog --program=WMR_DLG --center)"
  eval "$RETVARS"
  if [ "$EXIT" == "reboot" ];then
-  [ "$BAK_SNAP" == "true" ] && echo -n ",last" > /.rollback.flg
+  [ "$BAK_SNAP" == "true" ] && echo -n ",last" > /mnt/wkg/.rollback.flg #20230104
   if [ "$BAK_ERASE" == "true" ];then #200815 offer to keep some settings...
    /usr/local/easy_version/erase-exceptions
    [ $? -ne 0 ] && exit
-   echo -n ",erase" > /.rollback.flg
+   echo -n ",erase" > /mnt/wkg/.rollback.flg #20230104
    exec wmreboot nosave #20221124 do not ask to save session.
   fi
   exec wmreboot #default to reboot now.
@@ -60,9 +61,9 @@ else
  echo "4. $(gettext 'Exit, do nothing')"
  echo -n "$(gettext 'Enter a number (ENTER only will choose item 4)'): "
  read EASYBAK
- case "$EASYBAK" in
-  1) echo -n ",last" > /.rollback.flg ;;
-  2) echo -n ",erase" > /.rollback.flg ;;
+ case "$EASYBAK" in #20230104...
+  1) echo -n ",last" > /mnt/wkg/.rollback.flg ;;
+  2) echo -n ",erase" > /mnt/wkg/.rollback.flg ;;
   3) true ;;
   *) exit ;;
  esac
