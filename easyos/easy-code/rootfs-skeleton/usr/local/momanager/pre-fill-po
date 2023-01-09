@@ -1,0 +1,108 @@
+#!/bin/bash
+#called from momanager.
+#call 'translate-string' to prefill translations in .po file.
+#target lang, .po file passed on commandline.
+
+TRANSLANG="${1/_/-}" #exs: fr-FR fr fr-CA
+POFILE="/tmp/momanager/${2}" #ex: pupx.po
+if [ ! -f "$POFILE" ];then
+ exit 1
+fi
+#append blank line, needed to process last translation...
+cp -f $POFILE ${POFILE}X
+echo '' >> ${POFILE}X
+
+#example:
+##: pupx.sh:271
+#msgid "This is the interval for change of background pattern"
+#msgstr ""
+
+#multiline example:
+##: widgets_gtk.c:1160
+#msgid ""
+#"Double-clicking doesn't work until you\n"
+#"set your default handler using the\n"
+#"'set double-click default handler' flag\n"
+#"in the 'open with..' dialog.\n"
+#"\n"
+#msgstr ""
+
+trans --list-codes > /tmp/momanager/CODES
+grep -q -x -f /tmp/momanager/CODES <<< $TRANSLANG
+if [ $? -ne 0 ];then
+ TRANSLANG="${TRANSLANG/-*/}"
+ grep -q -x -f /tmp/momanager/CODES <<< $TRANSLANG
+ if [ $? -ne 0 ];then
+  echo "Sorry, this language cannot be automatically translated."
+  exit 1
+ fi
+fi
+
+#iterate through the file, extract each paragraph...
+echo "TRANSLATING:"
+PARAMflg=0; FLGmsgid=xxx
+echo -n '' > /tmp/momanager/po-en-lines
+echo -n '' > /tmp/momanager/po-trans-lines
+echo -n '' > /tmp/momanager/po-trans-file
+while read -r aLINE
+do
+ if [ "$aLINE" == "" ];then
+  FLGmsgid=xxx
+  if [ -s /tmp/momanager/po-trans-lines ];then
+   echo -n 'msgstr ' >> /tmp/momanager/po-trans-file
+   sed -e 's%^%"%' -e 's% $%%' -e 's%$%"%' /tmp/momanager/po-trans-lines >> /tmp/momanager/po-trans-file
+   echo '' >> /tmp/momanager/po-trans-file
+  fi
+  PARAMflg=0
+  echo -n '' > /tmp/momanager/po-en-lines
+  echo -n '' > /tmp/momanager/po-trans-lines
+  echo '' >> /tmp/momanager/po-trans-file
+  continue
+ fi
+ case "$aLINE" in
+  msgid*)
+   PARAMflg=1
+   ENline="$(echo -n "$aLINE" | cut -f 2 -d '"')"
+   echo "$ENline" > /tmp/momanager/po-en-lines
+   echo "$aLINE" >> /tmp/momanager/po-trans-file
+   FLGmsgid="$(echo -n "$aLINE" | cut -f 2 -d '"')" #want to know if empty.
+  ;;
+  msgstr*)
+   if [ "$FLGmsgid" == "" -a $PARAMflg -eq 1 ];then
+    echo "$aLINE" >> /tmp/momanager/po-trans-file
+    PARAMflg=0
+    continue
+   fi
+   PARAMflg=2
+   #read each line of /tmp/momanager/po-en-lines and translate...
+   #if end of line is a space-char, then concatenate them...
+   #but make sure the last line does not have a trailing space...
+   sed -i '$ s% $%%' /tmp/momanager/po-en-lines #note, that first $ means last line.
+   echo -n "" > /tmp/momanager/en-input-string
+   while read -r aEN
+   do
+    echo -n "$aEN" >> /tmp/momanager/en-input-string
+    echo "$aEN"
+    if [ "${aEN: -1:1}" == " " ];then #test last char is a space
+     continue
+    fi
+    /usr/local/momanager/translate-string $TRANSLANG
+    sleep 1
+    cat /tmp/momanager/translated-output-string >> /tmp/momanager/po-trans-lines
+    echo -n "" > /tmp/momanager/en-input-string
+   done </tmp/momanager/po-en-lines
+  ;;
+  *)
+   FLGmsgid=xxx
+   if [ "${aLINE:0:1}" == "\"" -a $PARAMflg -eq 1 ];then
+    ENline="$(echo -n "$aLINE" | cut -f 2 -d '"')"
+    echo "$ENline" >> /tmp/momanager/po-en-lines
+    echo "$aLINE" >> /tmp/momanager/po-trans-file
+   fi
+   if [ $PARAMflg -eq 0 ];then
+    echo "$aLINE" >> /tmp/momanager/po-trans-file
+   fi
+  ;;
+ esac
+done <${POFILE}X
+

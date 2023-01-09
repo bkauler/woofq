@@ -125,6 +125,7 @@
 #20220801 move /.fsckme.flg to /mnt/${WKG_DEV}/${WKG_DIR}  ditto .XLOADED
 #20220911 chooselocale is called from 3buildeaysdistro, via chroot, do not have PC_HARDWARE_PROFILE
 #20221023 may be running as zeus super-user. 20221031 hmmm, maybe still need bump to root.
+#20230109 always create fr_FR, de_DE, etc.
 
 WHOIAM="$(whoami)"
 [ "${WHOIAM}" != "root" ] && exec sudo -A ${0} ${@} #20221023 20221031
@@ -1448,6 +1449,14 @@ if [ "$SET_LOCALE" ];then
    else
     localedef -f UTF-8 -i $LANGCHOICE --no-archive ${LANGCHOICE}.utf8 > /dev/null #111022
     NEWLANGLINE="LANG=${LANGCHOICE}.UTF-8"
+    #20230109 always create fr_FR, de_DE, etc...
+    LC1="${LANGCHOICE/_*/}"
+    if [ ! -d /usr/lib/locale/${LC1}_${LC1^^}.utf8 ];then
+     grep -q "^${LC1}_${LC1^^}" /usr/share/i18n/SUPPORTED
+     if [ $? -eq 0 ];then
+      localedef -f UTF-8 -i ${LC1}_${LC1^^} --no-archive ${LC1}_${LC1^^}.utf8 >/dev/null 2>&1
+     fi
+    fi
    fi
    #190103 remove...
    ##190101 planning to have 'easyinitrd.mo' builtin for all langs, initrd needs it copied-up to .session ...

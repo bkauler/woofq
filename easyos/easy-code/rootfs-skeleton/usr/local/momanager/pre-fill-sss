@@ -1,0 +1,28 @@
+#!/bin/bash
+#called from momanager
+#passed lang, sss file.
+#writes to /tmp/momanager/sss-trans-file
+
+TRANSLANG="${1}"
+SSSFILE="/tmp/momanager/${2}"
+
+echo "TRANSLATING:"
+echo -n '' > /tmp/momanager/sss-trans-file
+while read -r aLINE
+do
+ if [ "${aLINE:0:2}" == "s%" ];then
+  IFS='%'
+  ARR=($aLINE)
+  unset IFS
+  echo -n "s%" >> /tmp/momanager/sss-trans-file
+  echo -n "${ARR[1]}" >> /tmp/momanager/sss-trans-file #english
+  echo -n "${ARR[1]}" > /tmp/momanager/sss-en-line
+  echo "${ARR[1]}"
+  echo -n "%" >> /tmp/momanager/sss-trans-file
+  trans -e bing -no-ansi -b -s en -t ${TRANSLANG/_/-} -i /tmp/momanager/sss-en-line >> /tmp/momanager/sss-trans-file
+  sed -i '$ s/$/%/' /tmp/momanager/sss-trans-file #append %
+  sleep 1
+ else
+  echo "$aLINE" >> /tmp/momanager/sss-trans-file
+ fi
+done <${SSSFILE}

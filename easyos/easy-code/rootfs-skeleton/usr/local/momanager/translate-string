@@ -1,0 +1,75 @@
+#!/bin/bash
+#called from pre-fill-po
+#string to be translated is /tmp/momanager/en-input-string
+#$1 is language to convert to.
+#translated string to /tmp/momanager/translated-output-string
+#google translate limited to 178 chars, using bing.
+
+export LANG=C
+echo -n '' > /tmp/momanager/translated-output-string
+if [ ! -s /tmp/momanager/en-input-string ];then
+ exit
+fi
+if [ ! $1 ];then #exs: fr fr-FR fr-CA
+ exit
+fi
+
+#preprocess the input string.
+#remove all html tags...
+sed -e 's%<[^>]*%%g' -e 's%>%%g' /tmp/momanager/en-input-string > /tmp/momanager/en-input-string0
+#strip out all escaped single and double quotes...
+sed -e 's%\\\"%%g' -e "s%\\\'%%g" /tmp/momanager/en-input-string0 > /tmp/momanager/en-input-string1
+#strip out 'dialog' utility color formatting...
+sed -e 's%\\Z[0-9a-zA-Z]%%g' /tmp/momanager/en-input-string1 > /tmp/momanager/en-input-string0
+#strip out \n and \t newline and tab chars...
+sed -e 's%\\n%%g' -e "s%\\t%%g" /tmp/momanager/en-input-string0 > /tmp/momanager/en-input-string1
+
+echo -n '' > /tmp/momanager/encoded-input-string
+while read aW
+do
+ if [ "$aW" == "" ];then
+  echo -n ' ' >> /tmp/momanager/encoded-input-string
+ else
+  grep -q -G -x -f /usr/local/momanager/keep-patterns <<< $aW
+  if [ $? -eq 0 ];then
+   echo -n 'ZZZ_' >> /tmp/momanager/encoded-input-string
+   busybox base32 -w 0 <<< $aW >> /tmp/momanager/encoded-input-string
+  else
+   #strip out any remaining back-slashes (note, \$ is preserved by above keep-patterns)
+   xaW="$(sed -e 's%\\%%g' <<< ${aW})"
+   echo -n ${xaW} >> /tmp/momanager/encoded-input-string
+  fi
+  echo -n ' ' >> /tmp/momanager/encoded-input-string
+ fi
+done <<_END1
+$(cat /tmp/momanager/en-input-string1 | tr ' ' '\n')
+_END1
+
+#translate the complete string...
+#aS="$(cat /tmp/momanager/encoded-input-string | sed -e "s%'%\\'%g" -e 's%"%\\"%g')"
+#aS="$(cat /tmp/momanager/encoded-input-string)"
+#trans -b -s en -t ${1} -j <<< $aS > /tmp/momanager/translated-input-string
+trans -e bing -no-ansi -b -s en -t ${1} -i /tmp/momanager/encoded-input-string -o /tmp/momanager/translated-input-string
+
+#decode base32 words...
+while read aW
+do
+ if [ "$aW" == "" ];then
+  echo -n ' ' >> /tmp/momanager/translated-output-string
+ else
+  grep -q -G '^ZZZ_' <<< $aW
+  if [ $? -eq 0 ];then
+   aX="${aW/ZZZ_/}"
+   aXX="${aX/=./=}" #remove any full-stop on end.
+   aY="$(busybox base32 -d -w 0 <<< $aXX)"
+   echo -n "$aY" >> /tmp/momanager/translated-output-string
+  else
+   echo -n ${aW} >> /tmp/momanager/translated-output-string
+  fi
+  echo -n ' ' >> /tmp/momanager/translated-output-string
+ fi
+done <<_END1
+$(cat /tmp/momanager/translated-input-string | tr ' ' '\n')
+_END1
+
+###end###

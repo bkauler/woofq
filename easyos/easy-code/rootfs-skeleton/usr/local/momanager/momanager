@@ -54,12 +54,14 @@
 #20210612 replaced all yaf-splash with gtkdialog-splash. note, still ok to kill yaf-splash, see gtkdialog-splash script.
 #20211206 removed /root/my-applications
 #20221031 if running as zeus, think need to bump up to root.
+#20230106 /usr/sbin/momanager0 moved here, substantial rewrite started.
+#20230107 automatic translation when create a po file. 20230108 .directory and .desktop files, sss files.
 
 #***MOMANAGER IS ENGLISH ONLY (NOT GETTEXT'ED)***
 #it is for use by developers/translators with knowledge of english.
 
 WHOIAM="$(whoami)"
-[ "${WHOIAM}" != "root" ] && exec sudo -A ${0} ${@} #20221031
+[ "${WHOIAM}" != "root" ] && exec sudo -A ${0} ${@}
 
 PARAM1=""
 [ $1 ] && PARAM1="$1"
@@ -67,60 +69,48 @@ PARAM1=""
 ORIGLANG=$LANG
 export LANG=C
 
-. /etc/DISTRO_SPECS #170818
-PUPNAME="${DISTRO_NAME/ */}" #170818 exs: Puppy, Easy
+. /etc/DISTRO_SPECS
+PUPNAME="${DISTRO_NAME/ */}" #exs: Puppy, Easy
 
 . /etc/rc.d/PUPSTATE
 GTKDIALOGEXE="gtkdialog"
-[ "`which gtkdialog4`" ] && GTKDIALOGEXE="gtkdialog4"
 mkdir -p /tmp/momanager
-ADATE="`date +%Y%m%d`" #ex: 20120205
+ADATE="`date +%Y%m%d`" #ex: 20220205
 WINICON="gtk-preferences"; HELPICON="gtk-index" #gtk-info
 
 ORIGLANG1="`echo -n $ORIGLANG | cut -f 1 -d '_'`"  #ex: de
 ORIGLANG12="`echo -n $ORIGLANG | cut -f 1 -d '.'`" #ex: de_DE
 
 if [ "$ORIGLANG1" = "en" ];then
- pupdialog --title "MoManager: abort" --background pink --colors --msgbox "This application is intended for creation and editing of non-English translations of scripts, but your locale is currently \Zb${ORIGLANG}\ZB. Click the \Zbsetup\ZB icon on the desktop to change locale (and be sure to enable UTF-8). Aborting." 0 0
- exit 1
+ pupdialog --yes-label "Choose Locale" --no-label "Abort" --title "MoManager: non-English locale required" --background pink --colors --yesno "This application is intended for creation and editing of non-English translations of scripts, but your locale is currently \Zb${ORIGLANG}\ZB. Click the \ZbChoose Locale\ZB button to change locale -- be sure to enable UTF-8, and decline restarting the X-server so that this script will continue." 0 0
+ if [ $? -eq 0 ];then
+  chooselocale
+  exec momanager
+ else
+  exit 1
+ fi
 fi
 if [ "`echo -n $ORIGLANG | grep -i 'utf'`" = "" ];then
  pupdialog --title "MoManager: abort" --background pink --colors --msgbox "Sorry, your \Zblocale\ZB (language) must have UTF-8 enabled to use this application. Click the \Zbsetup\ZB icon on the desktop to change locale. Aborting." 0 0
  exit 1
 fi
-CHKI18=0
-[ "`which xgettext`" != "" ] && CHKI18=`expr $CHKI18 + 1`
-[ "`which intltoolize`" != "" ] && CHKI18=`expr $CHKI18 + 1`
-if [ $CHKI18 -lt 2 ];then
- pupdialog --title "MoManager: abort" --background pink --colors --msgbox "Sorry, you must have the \Zbdevx\ZB PET installed. Aborting." 0 0
- exit 1
-fi
+
 MISSINGFILE=""
-[ "`which intltool-update`" = "" ] && MISSINGFILE="intltool-update "
 [ "`which xgettext`" = "" ] && MISSINGFILE="${MISSINGFILE}xgettext "
 [ "`which msginit`" = "" ] && MISSINGFILE="${MISSINGFILE}msginit "
 [ "`which msgfmt`" = "" ] && MISSINGFILE="${MISSINGFILE}msgfmt "
 [ "`which msgunfmt`" = "" ] && MISSINGFILE="${MISSINGFILE}msgunfmt "
-[ "`which msgmerge`" = "" ] && MISSINGFILE="${MISSINGFILE}msgmerge" #130526
+[ "`which msgmerge`" = "" ] && MISSINGFILE="${MISSINGFILE}msgmerge"
 if [ "$MISSINGFILE" ];then
- pupdialog --title "MoManager: abort" --background pink --colors --msgbox "Sorry, these needed applications are missing: \Zb${MISSINGFILE}\ZB. The \Zbdevx\ZB SFS normally has these, but it must be incomplete. Aborting." 0 0
+ pupdialog --title "MoManager: abort" --background pink --colors --msgbox "Sorry, these needed utilities are missing: \Zb${MISSINGFILE}\ZB. Aborting." 0 0
  exit 1
 fi
 
 POEDITOR="`which poeditor`"
 [ ! "$POEDITOR" ] && POEDITOR="`which poedit`"
 
-PATHPREFIX=""
-case $PUPMODE in
- 2) PATHPREFIX="" ;; #full hd installation.
- 3) PATHPREFIX="" ;;
- *) PATHPREFIX="/initrd/pup_ro2" ;;
-esac
-if [ "$PATHPREFIX" = "" ];then
- pupdialog --title "MoManager: abort" --background pink --msgbox "Sorry, the PUPMODE must be a value greater than 3, that is, not be a full hd installation. Aborting." 0 0
- exit 1
-fi
-ppPTN="s%${PATHPREFIX}%%"
+EASYSFSMNTPT='/mnt/.easy_ro/easy_sfs'
+ppPTN="s%${EASYSFSMNTPT}%%"
 
 #download woof, to get latest files... no, too difficult, just put up warning...
 export MM1_DLG="<window title=\"MoManager: welcome\" window_position=\"1\" resizable=\"false\" icon-name=\"${WINICON}\">
@@ -138,6 +128,14 @@ export MM1_DLG="<window title=\"MoManager: welcome\" window_position=\"1\" resiz
 if [ ! "$PARAM1" ];then #on reentry, bypass this window.
  MM1RET="`$GTKDIALOGEXE --program=MM1_DLG`"
  [ "`echo "$MM1RET" | grep 'OK'`" = "" ] && exit 2
+ 
+ #20230107
+ pupdialog --colors --background yellow --backtitle "MoManager: automatic translation" --yes-label "Automatic" --no-label "No" --yesno "MoManager is capable of automatic translation. It is not perfect, and does require a human to check the translation; however, it can save a lot of time. An Internet connection is required. Click the \ZbAutomatic\ZB button to accept, else \ZbNo\ZB to decline..." 0 0
+ if [ $? -eq 0 ];then
+  touch /tmp/momanager/FLGautotrans
+ else
+  rm -f /tmp/momanager/FLGautotrans 2>/dev/null
+ fi
 fi
 
 gtkdialog-splash -close never -bg orange -text "Please wait, scanning files..." &
@@ -162,7 +160,7 @@ poptop_func() {
 
 #####SCRIPTS#######
 #find all gettext'ed scripts...
-#GETTEXTSCRIPTS="`find ${PATHPREFIX}/bin ${PATHPREFIX}/sbin ${PATHPREFIX}/usr/bin ${PATHPREFIX}/usr/sbin ${PATHPREFIX}/usr/X11R7/bin ${PATHPREFIX}/usr/local ${PATHPREFIX}/etc/rc.d -maxdepth 4 -type f -executable | xargs -I INPUTFILE grep --files-with-matches '^export TEXTDOMAIN=' INPUTFILE | sed -e 's% %SPACECHAR%g' -e "$ppPTN" | sort | tr '\n' ' '`"
+#GETTEXTSCRIPTS="`find ${EASYSFSMNTPT}/bin ${EASYSFSMNTPT}/sbin ${EASYSFSMNTPT}/usr/bin ${EASYSFSMNTPT}/usr/sbin ${EASYSFSMNTPT}/usr/X11R7/bin ${EASYSFSMNTPT}/usr/local ${EASYSFSMNTPT}/etc/rc.d -maxdepth 4 -type f -executable | xargs -I INPUTFILE grep --files-with-matches '^export TEXTDOMAIN=' INPUTFILE | sed -e 's% %SPACECHAR%g' -e "$ppPTN" | sort | tr '\n' ' '`"
 GETTEXTSCRIPTS="`find /bin /sbin /usr/bin /usr/sbin /usr/local /etc/rc.d /usr/share/doc -maxdepth 4 -type f -executable | xargs -I INPUTFILE grep --files-with-matches '^export TEXTDOMAIN=' INPUTFILE | sed -e 's% %SPACECHAR%g' | sort | tr '\n' ' '`" #170818 20211206
 
 #find all matching .mo files...
@@ -193,7 +191,7 @@ do
  fi
  [ ! "$aPKGNAME" ] && aPKGNAME="`grep "$zPTN" /root/.packages/*.files 2>/dev/null | head -n 1 | cut -f 1 -d ':' | rev | cut -f 1 -d '/' | rev | sed -e 's%\.files$%%'`" #test if user-installed pkg. 120308
  #...return nothing if in Woof
- [ ! "$aPKGNAME" ] && [ -f "${PATHPREFIX}${xAGTS}" ] && aPKGNAME="WOOF" #file is in Woof.
+ [ ! "$aPKGNAME" ] && [ -f "${EASYSFSMNTPT}${xAGTS}" ] && aPKGNAME="WOOF" #file is in Woof.
  [ ! "$aPKGNAME" ] && aPKGNAME="UNKNOWN"
 
  FNDMO=""
@@ -247,7 +245,7 @@ do
  aPKGNAME="`grep "$xPTN" /root/.packages/builtin_files/* | head -n 1 | cut -f 1 -d ':' | rev | cut -f 1 -d '/' | rev`" #test if pkg used in Woof build.
  [ ! "$aPKGNAME" ] && aPKGNAME="`grep "$zPTN" /root/.packages/*.files 2>/dev/null | head -n 1 | cut -f 1 -d ':' | rev | cut -f 1 -d '/' | rev | sed -e 's%\.files$%%'`" #test if user-installed pkg. 120308
  #...return nothing if in Woof
- [ ! "$aPKGNAME" ] && [ -f "${PATHPREFIX}${ADESKTOP}" ] && aPKGNAME="WOOF" #file is in Woof.
+ [ ! "$aPKGNAME" ] && [ -f "${EASYSFSMNTPT}${ADESKTOP}" ] && aPKGNAME="WOOF" #file is in Woof.
  [ ! "$aPKGNAME" ] && aPKGNAME="UNKNOWN"
  
  if [ "`grep "$dPTN" $ADESKTOP`" != "" ];then
@@ -342,9 +340,9 @@ export DLG_HELP_NOTOP="<window resizable=\"false\" title=\"MoManager: Help edit 
 NOTOPHELP_XML='<button><input file>/usr/local/lib/X11/mini-icons/mini-question.xpm</input><action type="launch">DLG_HELP_NOTOP</action></button>'
 
 #######XML#######
-#search $PATHPREFIX to avoid devx files...
+#search $EASYSFSMNTPT to avoid devx files...
 YESXML_XML='' ; NOXML_XML=''
-#XMLFILES="`find ${PATHPREFIX}/usr/local -type f -name '*.xml' | sed "s%^${PATHPREFIX}%%" | sed -e 's% %SPACECHAR%g' | tr '\n' ' '`" #ex: /usr/local/apps/Connect/AppInfo.xml
+#XMLFILES="`find ${EASYSFSMNTPT}/usr/local -type f -name '*.xml' | sed "s%^${EASYSFSMNTPT}%%" | sed -e 's% %SPACECHAR%g' | tr '\n' ' '`" #ex: /usr/local/apps/Connect/AppInfo.xml
 XMLFILES="`find /usr/local -type f -name '*.xml' | sed -e 's% %SPACECHAR%g' | tr '\n' ' '`" #ex: /usr/local/apps/Connect/AppInfo.xml
 aPTN="xml:lang=\"${ORIGLANG1}\""  #ex: xml:lang="de"
 bPTN="xml:lang=\"${ORIGLANG12}\"" #ex: xml:lang="de_DE"
@@ -375,7 +373,7 @@ do
  fi
  [ ! "$aPKGNAME" ] && aPKGNAME="`grep "$zPTN" /root/.packages/*.files 2>/dev/null | head -n 1 | cut -f 1 -d ':' | rev | cut -f 1 -d '/' | rev | sed -e 's%\.files$%%'`" #test if user-installed pkg. 120308
  #...return nothing if in Woof
- [ ! "$aPKGNAME" ] && [ -f "${PATHPREFIX}${AXMLFILE}" ] && aPKGNAME="WOOF" #file is in Woof.
+ [ ! "$aPKGNAME" ] && [ -f "${EASYSFSMNTPT}${AXMLFILE}" ] && aPKGNAME="WOOF" #file is in Woof.
  [ ! "$aPKGNAME" ] && aPKGNAME="UNKNOWN"
  
  FNDFLAG=''
@@ -536,7 +534,7 @@ do
     fi
     [ ! "$aPKGNAME" ] && aPKGNAME="`grep "$zPTN" /root/.packages/*.files 2>/dev/null | head -n 1 | cut -f 1 -d ':' | rev | cut -f 1 -d '/' | rev | sed -e 's%\.files$%%'`" #test if user-installed pkg. 120308
     #...return nothing if in Woof
-    [ ! "$aPKGNAME" ] && [ -f "${PATHPREFIX}${BINEXEC}" ] && aPKGNAME="WOOF" #file is in Woof.
+    [ ! "$aPKGNAME" ] && [ -f "${EASYSFSMNTPT}${BINEXEC}" ] && aPKGNAME="WOOF" #file is in Woof.
     [ ! "$aPKGNAME" ] && aPKGNAME="UNKNOWN"
     
     FNDMO=""
@@ -780,14 +778,15 @@ If there is no maintainer for a langpack for \Zb${ORIGLANG1}\ZB, then the invita
 
 #note: edit_mo and create_mo have much common code, *to do* eliminate duplication.
 case $EXIT in
+ ########
  edit_mo)
   #ex: YESMO_COMBO='/usr/sbin/mousecheck (de mousecheck.mo)'
   ASCRIPT="`echo -n "$YESMO_COMBO" | cut -f 1 -d '(' | rev | cut -f 2-9 -d ' ' | rev`"
   ANAME="`basename "$ASCRIPT"`"
-  ATRANSLANG="`echo -n "$YESMO_COMBO" | cut -f 2 -d '(' | cut -f 1 -d ' '`" #ex: de
+  aTRANSLANG="`echo -n "$YESMO_COMBO" | cut -f 2 -d '(' | cut -f 1 -d ' '`" #ex: de
   AMO="`echo -n "$YESMO_COMBO" | cut -f 2 -d '(' | cut -f 1 -d ')' | cut -f 2 -d ' '`" #ex: mousecheck.mo
   APKGNAME="`echo -n "$YESMO_COMBO" | cut -f 2 -d '(' | cut -f 1 -d ')' | cut -f 3 -d ' '`" #ex: bluefish  ex: WOOF
-  AMOSPEC="/usr/share/locale/${ATRANSLANG}/LC_MESSAGES/${AMO}"
+  AMOSPEC="/usr/share/locale/${aTRANSLANG}/LC_MESSAGES/${AMO}"
   ATEXTDOMAIN="`basename $AMO .mo`"
   cp -f "$AMOSPEC" /tmp/momanager/${ATEXTDOMAIN}.moOLD
   msgunfmt --no-wrap "$AMOSPEC" > /tmp/momanager/${ATEXTDOMAIN}1.po
@@ -894,10 +893,10 @@ Click 'Abort' to give up..." 0 0
   if [ $ABORTFLG -eq 0 ];then #130502
    cp -f /tmp/momanager/${ATEXTDOMAIN}.mo "${AMOSPEC}"
    #output as a tarball that user can email to pkg author...
-   mkdir -p /root/MoManager-${ORIGLANG12}-${APKGNAME}/usr/share/locale/${ATRANSLANG}/LC_MESSAGES
-   cp -f /tmp/momanager/${ATEXTDOMAIN}.mo /root/MoManager-${ORIGLANG12}-${APKGNAME}/usr/share/locale/${ATRANSLANG}/LC_MESSAGES/
+   mkdir -p /root/MoManager-${ORIGLANG12}-${APKGNAME}/usr/share/locale/${aTRANSLANG}/LC_MESSAGES
+   cp -f /tmp/momanager/${ATEXTDOMAIN}.mo /root/MoManager-${ORIGLANG12}-${APKGNAME}/usr/share/locale/${aTRANSLANG}/LC_MESSAGES/
    ASTAT="`stat --format=%y "$ASCRIPT" | cut -f 1 -d ' ' | tr -d '-' `" #so can check against file version in latest Woof.
-   [ -f ${PATHPREFIX}${ASCRIPT} ] && ASTAT="`stat --format=%y "${PATHPREFIX}$ASCRIPT" | cut -f 1 -d ' ' | tr -d '-' `" #get orig modify date.
+   [ -f ${EASYSFSMNTPT}${ASCRIPT} ] && ASTAT="`stat --format=%y "${EASYSFSMNTPT}$ASCRIPT" | cut -f 1 -d ' ' | tr -d '-' `" #get orig modify date.
    echo "MACTION=${EXIT} TODAY_DATE=${ADATE} ORIG_DATE_SCRIPT=${ASTAT} SCRIPT='${ASCRIPT}' MO_FILE='${AMOSPEC}' AUTHOR='${AUTHORSPECS}'" >> /root/MoManager-${ORIGLANG12}-${APKGNAME}/write.log
    cd /root
    mv -f MoManager-${ORIGLANG12}-${APKGNAME}.tar.gz MoManager-${ORIGLANG12}-${APKGNAME}.tar.gzOLD 2>/dev/null
@@ -907,7 +906,7 @@ Click 'Abort' to give up..." 0 0
    pupdialog --background pink --backtitle "MoManager: mo edit aborted" --msgbox "You have declined to update the mo file. Ok, the previous one has been retained." 0 0
   fi
   export LANG=$ORIGLANG
-  exec momanager0 reenter #170818
+  exec momanager reenter
  ;;
  
  create_mo)
@@ -918,9 +917,9 @@ Click 'Abort' to give up..." 0 0
   FIELD2ND="`echo -n "$ORIGLANG12" | cut -f 2 -d '_'`"
   pupdialog --colors --background yellow --backtitle "MoManager: mo language" --yes-label "${ORIGLANG1}" --no-label "${ORIGLANG12}" --yesno "Please click the \Zb${ORIGLANG1}\ZB button to create a translation file for that language. However, the \Zb${FIELD2ND}\ZB designates a particular country in which the language is used, and if you need such a specific translation then click the \Zb${ORIGLANG12}\ZB button. It is highly recommended that you click the \Zb${ORIGLANG1}\ZB button, unless you absolutely must have a country-specific translation..." 0 0
   if [ $? -eq 0 ];then
-   ATRANSLANG="$ORIGLANG1"
+   aTRANSLANG="$ORIGLANG1"
   else
-   ATRANSLANG="$ORIGLANG12"
+   aTRANSLANG="$ORIGLANG12"
   fi
 #  ATEXTDOMAIN="`basename "$NOMO_COMBO"`"
 #  if [ "`which $ATEXTDOMAIN`" = "" ];then #if not in path, then insert a prefix...
@@ -930,8 +929,8 @@ Click 'Abort' to give up..." 0 0
 #  fi
   ANAME="`basename "$ASCRIPT"`"
   AMO="${ATEXTDOMAIN}.mo"
-  AMOSPEC="/usr/share/locale/${ATRANSLANG}/LC_MESSAGES/${AMO}"
-  mkdir -p /usr/share/locale/${ATRANSLANG}/LC_MESSAGES
+  AMOSPEC="/usr/share/locale/${aTRANSLANG}/LC_MESSAGES/${AMO}"
+  mkdir -p /usr/share/locale/${aTRANSLANG}/LC_MESSAGES
   cd /tmp/momanager
 #  ALREADYSH="$(echo -n "$ANAME" | grep '\.sh$')" #120731
 #  if [ "$ALREADYSH" = "" ];then
@@ -982,11 +981,23 @@ Click 'Abort' to give up..." 0 0
   esac
   LANG=${ORIGLANG} rxvt -e msginit --no-wrap --locale=${ORIGLANG12} --output-file=${ATEXTDOMAIN}.po --input=${ATEXTDOMAIN}.pot
   sync
+  
+  #20230107 msginit o/p needs fix...
+  sed -i -e 's%Content-Type: text/plain; charset=ASCII%Content-Type: text/plain; charset=UTF-8%' ${ATEXTDOMAIN}.po
+  
+  cp -f /tmp/momanager/${ATEXTDOMAIN}.po /tmp/momanager/${ATEXTDOMAIN}.poBACKUP1
+  
+  #20230107
+  if [ -e /tmp/momanager/FLGautotrans ];then
+   poptop_func "Automatic translation in progress..."
+   rxvt -e /usr/local/momanager/pre-fill-po ${aTRANSLANG} ${ATEXTDOMAIN}.po
+   cp -f /tmp/momanager/po-trans-file /tmp/momanager/${ATEXTDOMAIN}.po
+  fi
+  
   poptop_func "The translation file is now open in a text editor. Edit, then Save, then Quit text editor..."
 
   #130502 L18L/BK: stay in a loop if there is an error converting .po to .mo...
   ABORTFLG=0
-  cp -f /tmp/momanager/${ATEXTDOMAIN}.po /tmp/momanager/${ATEXTDOMAIN}.poBACKUP1
   while true ; do
    if [ "$POEDITOR" ];then
     LANG=${ORIGLANG} ${POEDITOR} /tmp/momanager/${ATEXTDOMAIN}.po
@@ -1026,10 +1037,10 @@ Click 'Abort' to give up..." 0 0
    0)
     cp -f /tmp/momanager/${ATEXTDOMAIN}.mo "${AMOSPEC}"
     #output as a tarball that user can email to pkg author...
-    mkdir -p /root/MoManager-${ORIGLANG12}-${APKGNAME}/usr/share/locale/${ATRANSLANG}/LC_MESSAGES
-    cp -f /tmp/momanager/${ATEXTDOMAIN}.mo /root/MoManager-${ORIGLANG12}-${APKGNAME}/usr/share/locale/${ATRANSLANG}/LC_MESSAGES/
+    mkdir -p /root/MoManager-${ORIGLANG12}-${APKGNAME}/usr/share/locale/${aTRANSLANG}/LC_MESSAGES
+    cp -f /tmp/momanager/${ATEXTDOMAIN}.mo /root/MoManager-${ORIGLANG12}-${APKGNAME}/usr/share/locale/${aTRANSLANG}/LC_MESSAGES/
     ASTAT="`stat --format=%y "$ASCRIPT" | cut -f 1 -d ' ' | tr -d '-' `" #so can check against file version in latest Woof.
-    [ -f ${PATHPREFIX}${ASCRIPT} ] && ASTAT="`stat --format=%y "${PATHPREFIX}$ASCRIPT" | cut -f 1 -d ' ' | tr -d '-' `" #get orig modify date.
+    [ -f ${EASYSFSMNTPT}${ASCRIPT} ] && ASTAT="`stat --format=%y "${EASYSFSMNTPT}$ASCRIPT" | cut -f 1 -d ' ' | tr -d '-' `" #get orig modify date.
     echo "MACTION=${EXIT} TODAY_DATE=${ADATE} ORIG_DATE_SCRIPT=${ASTAT} SCRIPT='${ASCRIPT}' MO_FILE='${AMOSPEC}' AUTHOR='${AUTHORSPECS}'" >> /root/MoManager-${ORIGLANG12}-${APKGNAME}/write.log
     cd /root
     mv -f MoManager-${ORIGLANG12}-${APKGNAME}.tar.gz MoManager-${ORIGLANG12}-${APKGNAME}.tar.gzOLD 2>/dev/null
@@ -1047,7 +1058,7 @@ Click 'Abort' to give up..." 0 0
    ;;
   esac
   export LANG=$ORIGLANG
-  exec momanager0 reenter #170818
+  exec momanager reenter
  ;;
  edit_desk|create_desk)
   if [ "$EXIT" = "edit_desk" ];then
@@ -1058,13 +1069,26 @@ Click 'Abort' to give up..." 0 0
    DESKFILE="`echo -n "$NODESK_COMBO" | cut -f 1 -d ' '`"
    APKGNAME="`echo -n "$NODESK_COMBO" | cut -f 2 -d '(' | cut -f 1 -d ')'`"
    cp -f -a /usr/share/applications/$DESKFILE /tmp/momanager/
-   sed -i -e "s%^Name=%Name[${ORIGLANG1}]=PLEASE INSERT YOUR TRANSLATION HERE\\nName=%" /usr/share/applications/$DESKFILE
+   #20230108
+   if [ -e /tmp/momanager/FLGautotrans ];then
+    poptop_func "Automatic translation in progress..."
+    NAMEen="$(grep '^Name=.*' /usr/share/applications/$DESKFILE | cut -f 2 -d '=')"
+    NAMEtrans="$(trans -e bing -no-ansi -b -s en -t ${aTRANSLANG/_/-} "${NAMEen}")"
+    sed -i -e "s%^Name=%Name[${ORIGLANG1}]=${NAMEtrans}\\nName=%" /usr/share/applications/$DESKFILE
+    COMMENTen="$(grep '^Comment=.*' /usr/share/applications/$DESKFILE | cut -f 2 -d '=')"
+    if [ "$COMMENTen" ];then
+     COMMENTtrans="$(trans -e bing -no-ansi -b -s en -t ${aTRANSLANG/_/-} "${COMMENTen}")"
+     sed -i -e "s%^Comment=%Comment[${ORIGLANG1}]=${COMMENTtrans}\\nComment=%" /usr/share/applications/$DESKFILE
+    fi
+   else
+    sed -i -e "s%^Name=%Name[${ORIGLANG1}]=PLEASE INSERT YOUR TRANSLATION HERE\\nName=%" /usr/share/applications/$DESKFILE
+   fi
   fi
   sync
   killall geany 2>/dev/null
   poptop_func "The menu file is now open in a text editor. Edit, then Save, then Quit text editor..."
   ASTAT="`stat --format=%y "/usr/share/applications/$DESKFILE" | cut -f 1 -d ' ' | tr -d '-' `" #so can check against file version in latest Woof.
-  [ -f ${PATHPREFIX}/usr/share/applications/$DESKFILE ] && ASTAT="`stat --format=%y "${PATHPREFIX}/usr/share/applications/$DESKFILE" | cut -f 1 -d ' ' | tr -d '-' `" #get orig modify date.
+  [ -f ${EASYSFSMNTPT}/usr/share/applications/$DESKFILE ] && ASTAT="`stat --format=%y "${EASYSFSMNTPT}/usr/share/applications/$DESKFILE" | cut -f 1 -d ' ' | tr -d '-' `" #get orig modify date.
   xASTAT1="`stat --format=%Y "/usr/share/applications/$DESKFILE"`" #seconds since epoch.
   LANG=${ORIGLANG} defaulttexteditor /usr/share/applications/$DESKFILE
   xASTAT2="`stat --format=%Y "/usr/share/applications/$DESKFILE"`" #seconds since epoch.
@@ -1074,17 +1098,13 @@ Click 'Abort' to give up..." 0 0
   fi
   if [ "$xASTAT1" = "$xASTAT2" ];then
    export LANG=$ORIGLANG
-   exec momanager0 reenter #170818
+   exec momanager reenter
   fi
   gtkdialog-splash -bg '#80FF80' -timeout 3 -text "The menu is being updated..." &
   LANG=$ORIGLANG /usr/sbin/fixmenus
-  if [ "`pidof jwm`" != "" ];then
-   JWMVER=`jwm -v|head -n1|cut -d ' ' -f2|cut -d - -f2`
-   if vercmp $JWMVER lt 574;then
-    LANG=${ORIGLANG} jwm -restart
-   else
-    LANG=${ORIGLANG} jwm -reload
-   fi
+  pidof jwm >/dev/null
+  if [ $? -eq 0 ];then
+   LANG=${ORIGLANG} jwm -reload
   fi
   cp -f /usr/share/applications/$DESKFILE /root/
   #add translation to tarball that user can email to pkg author...
@@ -1097,7 +1117,7 @@ Click 'Abort' to give up..." 0 0
   dir2tgz MoManager-${ORIGLANG12}-${APKGNAME}/
   tarball_func
   export LANG=$ORIGLANG
-  exec momanager0 reenter #170818
+  exec momanager reenter
  ;;
  
  edit_top|create_top) #menu categories.
@@ -1108,13 +1128,26 @@ Click 'Abort' to give up..." 0 0
   else
    TOPFILE="$NOTOP_COMBO"
    cp -f -a /usr/share/desktop-directories/$TOPFILE /tmp/momanager/
-   sed -i -e "s%^Name=%Name[${ORIGLANG1}]=PLEASE INSERT YOUR TRANSLATION HERE\\nName=%" /usr/share/desktop-directories/$TOPFILE
+   #20230108
+   if [ -e /tmp/momanager/FLGautotrans ];then
+    poptop_func "Automatic translation in progress..."
+    NAMEen="$(grep '^Name=.*' /usr/share/desktop-directories/$TOPFILE | cut -f 2 -d '=')"
+    NAMEtrans="$(trans -e bing -no-ansi -b -s en -t ${aTRANSLANG/_/-} "${NAMEen}")"
+    sed -i -e "s%^Name=%Name[${ORIGLANG1}]=${NAMEtrans}\\nName=%" /usr/share/desktop-directories/$TOPFILE
+    COMMENTen="$(grep '^Comment=.*' /usr/share/desktop-directories/$TOPFILE | cut -f 2 -d '=')"
+    if [ "$COMMENTen" ];then
+     COMMENTtrans="$(trans -e bing -no-ansi -b -s en -t ${aTRANSLANG/_/-} "${COMMENTen}")"
+     sed -i -e "s%^Comment=%Comment[${ORIGLANG1}]=${COMMENTtrans}\\nComment=%" /usr/share/desktop-directories/$TOPFILE
+    fi
+   else
+    sed -i -e "s%^Name=%Name[${ORIGLANG1}]=PLEASE INSERT YOUR TRANSLATION HERE\\nName=%" /usr/share/desktop-directories/$TOPFILE
+   fi
   fi
   sync
   killall geany 2>/dev/null
   poptop_func "The menu-category file is now open in a text editor. Edit, then Save, then Quit text editor..."
   ASTAT="`stat --format=%y "/usr/share/desktop-directories/$TOPFILE" | cut -f 1 -d ' ' | tr -d '-' `" #so can check against file version in latest Woof.
-  [ -f ${PATHPREFIX}/usr/share/desktop-directories/$TOPFILE ] && ASTAT="`stat --format=%y "${PATHPREFIX}/usr/share/desktop-directories/$TOPFILE" | cut -f 1 -d ' ' | tr -d '-' `" #get orig modify date.
+  [ -f ${EASYSFSMNTPT}/usr/share/desktop-directories/$TOPFILE ] && ASTAT="`stat --format=%y "${EASYSFSMNTPT}/usr/share/desktop-directories/$TOPFILE" | cut -f 1 -d ' ' | tr -d '-' `" #get orig modify date.
   xASTAT1="`stat --format=%Y "/usr/share/desktop-directories/$TOPFILE"`" #seconds since epoch.
   LANG=${ORIGLANG} defaulttexteditor /usr/share/desktop-directories/$TOPFILE
   xASTAT2="`stat --format=%Y "/usr/share/desktop-directories/$TOPFILE"`" #seconds since epoch.
@@ -1125,17 +1158,13 @@ Click 'Abort' to give up..." 0 0
   fi
   if [ "$xASTAT1" = "$xASTAT2" ];then
    export LANG=$ORIGLANG
-   exec momanager0 reenter #170818
+   exec momanager reenter
   fi
   gtkdialog-splash -bg '#80FF80' -timeout 3 -text "The menu is being updated..." &
   LANG=$ORIGLANG /usr/sbin/fixmenus
-  if [ "`pidof jwm`" != "" ];then
-   JWMVER=`jwm -v|head -n1|cut -d ' ' -f2|cut -d - -f2`
-   if vercmp $JWMVER lt 574;then
-    LANG=${ORIGLANG} jwm -restart
-   else
-    LANG=${ORIGLANG} jwm -reload
-   fi
+  pidof jwm >/dev/null
+  if [ $? -eq 0 ];then
+   LANG=${ORIGLANG} jwm -reload
   fi
   cp -f /usr/share/desktop-directories/$TOPFILE /root/
   #add translation to tarball that user can email to pkg author...
@@ -1148,9 +1177,10 @@ Click 'Abort' to give up..." 0 0
   dir2tgz MoManager-${ORIGLANG12}-${APKGNAME}/
   tarball_func
   export LANG=$ORIGLANG
-  exec momanager0 reenter #170818
+  exec momanager reenter
  ;;
  
+ ###########
  create_sss) #BK's Simple String Substitution method.
   APKGNAME="WOOF"
   SSSFILE="$NOSSS_COMBO" #ex: menu_strings (located at /usr/share/sss/menu_strings/)
@@ -1202,8 +1232,8 @@ Click 'Abort' to give up..." 0 0
      ftPTN="s%\.${FILETYPE}$%-en.${FILETYPE}%"
      ENFILE="`echo -n "$TARGETFILE" | sed -e "$ftPTN"`"
      if [ ! -f "$ENFILE" ];then
-      if [ -f ${PATHPREFIX}"${TARGETFILE}" ];then
-       cp -f ${PATHPREFIX}"${TARGETFILE}" "$ENFILE" #get it from sfs layer, to ensure it is en.
+      if [ -f ${EASYSFSMNTPT}"${TARGETFILE}" ];then
+       cp -f ${EASYSFSMNTPT}"${TARGETFILE}" "$ENFILE" #get it from sfs layer, to ensure it is en.
       else
        cp -f "${TARGETFILE}" "$ENFILE"
       fi
@@ -1218,6 +1248,23 @@ Click 'Abort' to give up..." 0 0
     LANG=${ORIGLANG} ${SSS_HANDLER_VIEWER} "$TARGETFILE" &
     dPID=$!
     sleep 10
+    
+    #20230109
+    if [ -e /tmp/momanager/FLGautotrans ];then
+     poptop_func "Automatic translation in progress..."
+     echo -n '' > ${SSS_TRANSLATION_FILE}TRANS
+     case "${SSS_TRANSLATION_FILE}" in
+      *.htm|*.html)
+       trans -e google -no-ansi -b -s en -t ${aTRANSLANG/_/-} -i ${SSS_TRANSLATION_FILE} -o ${SSS_TRANSLATION_FILE}TRANS
+       mv -f ${SSS_TRANSLATION_FILE}TRANS ${SSS_TRANSLATION_FILE}
+      ;;
+      *) #plain text file...
+       trans -e google -no-ansi -b -s en -t ${aTRANSLANG/_/-} -i ${SSS_TRANSLATION_FILE} -o ${SSS_TRANSLATION_FILE}TRANS
+       mv -f ${SSS_TRANSLATION_FILE}TRANS ${SSS_TRANSLATION_FILE}
+      ;;
+     esac
+    fi
+    
     poptop_func "You must translate all of the text in this file to '${ORIGLANG1}' language. Edit, then Save, then Quit. Note, if you do not want to change anything, just Quit the editor..." yellow 11
     xASTAT1="`stat --format=%Y "$SSS_TRANSLATION_FILE"`" #seconds since epoch.
     LANG=${ORIGLANG} ${SSS_HANDLER_EDITOR} ${SSS_TRANSLATION_FILE}
@@ -1236,19 +1283,27 @@ Click 'Abort' to give up..." 0 0
    mkdir -p /root/MoManager-${ORIGLANG12}-${APKGNAME}/usr/share/sss/${SSSFILE}/
    cp -f /usr/share/sss/${SSSFILE}/$SSSFILE.$ORIGLANG1 /root/MoManager-${ORIGLANG12}-${APKGNAME}/usr/share/sss/${SSSFILE}/
    export LANG=$ORIGLANG
-   exec momanager0 reenter #170818
+   exec momanager reenter
   fi
   
   killall geany 2>/dev/null
+    
+  #20230108
+  if [ -e /tmp/momanager/FLGautotrans ];then
+   poptop_func "Automatic translation in progress..."
+   rxvt -e /usr/local/momanager/pre-fill-sss ${aTRANSLANG} ${SSSFILE}.${ORIGLANG1}
+   cp -f /tmp/momanager/sss-trans-file /tmp/momanager/${SSSFILE}.${ORIGLANG1}
+  fi
+
   poptop_func "The SSS file is now open in a text editor. You must only edit between the last two % characters. Edit, then Save, then Quit text editor..."
   ASTAT="`stat --format=%y "/usr/share/sss/$SSSFILE/$SSSFILE" | cut -f 1 -d ' ' | tr -d '-'`" #so can check against file version in latest Woof.
-  [ -f ${PATHPREFIX}/usr/share/sss/$SSSFILE/$SSSFILE ] && ASTAT="`stat --format=%y "${PATHPREFIX}/usr/share/sss/$SSSFILE/$SSSFILE" | cut -f 1 -d ' ' | tr -d '-' `" #get orig modify date.
+  [ -f ${EASYSFSMNTPT}/usr/share/sss/$SSSFILE/$SSSFILE ] && ASTAT="`stat --format=%y "${EASYSFSMNTPT}/usr/share/sss/$SSSFILE/$SSSFILE" | cut -f 1 -d ' ' | tr -d '-' `" #get orig modify date.
   xASTAT1="`stat --format=%Y "/tmp/momanager/$SSSFILE.$ORIGLANG1"`" #seconds since epoch.
   LANG=${ORIGLANG} defaulttexteditor /tmp/momanager/$SSSFILE.$ORIGLANG1
   xASTAT2="`stat --format=%Y "/tmp/momanager/$SSSFILE.$ORIGLANG1"`" #seconds since epoch.
   if [ "$xASTAT1" = "$xASTAT2" ];then
    export LANG=$ORIGLANG
-   exec momanager0 reenter #170818
+   exec momanager reenter
   fi
   [ "$SSSFILE" = "desk_strings" ] && fixdesk en #120212 translate all target files back to english. (using old $SSSFILE)
   [ "$SSSFILE" = "script_strings" ] && fixscripts en #120212 translate all target files back to english. (using old $SSSFILE)
@@ -1257,13 +1312,9 @@ Click 'Abort' to give up..." 0 0
   [ "$SSSFILE" = "script_strings" ] && fixscripts $ORIGLANG1 #120212 translate all target files back to current language. (using new SSSFILE)
   gtkdialog-splash -bg '#80FF80' -timeout 3 -text "The desktop and menus are being updated..." &
   LANG=$ORIGLANG /usr/sbin/fixmenus
-  if [ "`pidof jwm`" != "" ];then
-   JWMVER=`jwm -v|head -n1|cut -d ' ' -f2|cut -d - -f2`
-   if vercmp $JWMVER lt 574;then
-    LANG=${ORIGLANG} jwm -restart
-   else
-    LANG=${ORIGLANG} jwm -reload
-   fi
+  pidof jwm >/dev/null
+  if [ $? -eq 0 ];then
+   LANG=${ORIGLANG} jwm -reload
   fi
   echo "MACTION=${EXIT} TODAY_DATE=${ADATE} ORIG_DATE_FILE=${ASTAT} SSS_FILE='/usr/share/sss/${SSSFILE}/${SSSFILE}.${ORIGLANG1}' AUTHOR='${AUTHORSPECS}'" >> /root/MoManager-${ORIGLANG12}-${APKGNAME}/write.log
   mkdir -p /root/MoManager-${ORIGLANG12}-${APKGNAME}/usr/share/sss/${SSSFILE}/
@@ -1273,9 +1324,10 @@ Click 'Abort' to give up..." 0 0
   dir2tgz MoManager-${ORIGLANG12}-${APKGNAME}/
   tarball_func
   export LANG=$ORIGLANG
-  exec momanager0 reenter #170818
+  exec momanager reenter
  ;;
  
+ #########
  edit_sss)
   APKGNAME="WOOF"
   SSSFILE="$YESSSS_COMBO" #ex: menu_strings.de (located at /usr/share/sss/menu_strings/)
@@ -1326,8 +1378,8 @@ Click 'Abort' to give up..." 0 0
      ftPTN="s%\.${FILETYPE}$%-en.${FILETYPE}%"
      ENFILE="`echo -n "$TARGETFILE" | sed -e "$ftPTN"`"
      if [ ! -f "$ENFILE" ];then
-      if [ -f ${PATHPREFIX}"${TARGETFILE}" ];then
-       cp -f ${PATHPREFIX}"${TARGETFILE}" "$ENFILE" #get it from sfs layer, to ensure it is en.
+      if [ -f ${EASYSFSMNTPT}"${TARGETFILE}" ];then
+       cp -f ${EASYSFSMNTPT}"${TARGETFILE}" "$ENFILE" #get it from sfs layer, to ensure it is en.
       else
        cp -f "${TARGETFILE}" "$ENFILE"
       fi
@@ -1360,7 +1412,7 @@ Click 'Abort' to give up..." 0 0
    mkdir -p /root/MoManager-${ORIGLANG12}-${APKGNAME}/usr/share/sss/${SSSFILE}/
    cp -f /usr/share/sss/${SSSFILE}/$SSSFILE.$ORIGLANG1 /root/MoManager-${ORIGLANG12}-${APKGNAME}/usr/share/sss/${SSSFILE}/
    export LANG=$ORIGLANG
-   exec momanager0 reenter #170818
+   exec momanager reenter
   fi
   
   #sync translated sss-file with original (master) sss-file (/usr/share/sss/$SSSFILE/$SSSFILE)...
@@ -1421,13 +1473,13 @@ Click 'Abort' to give up..." 0 0
   killall geany 2>/dev/null
   poptop_func "The SSS file is now open in a text editor. You must only edit between the last two % characters. Edit, then Save, then Quit text editor..."
   ASTAT="`stat --format=%y "/usr/share/sss/$SSSFILE/$SSSFILE.$ORIGLANG1" | cut -f 1 -d ' ' | tr -d '-'`" #so can check against file version in latest Woof.
-  [ -f ${PATHPREFIX}/usr/share/sss/$SSSFILE/$SSSFILE.$ORIGLANG1 ] && ASTAT="`stat --format=%y "${PATHPREFIX}/usr/share/sss/$SSSFILE/$SSSFILE.$ORIGLANG1" | cut -f 1 -d ' ' | tr -d '-' `" #get orig modify date.
+  [ -f ${EASYSFSMNTPT}/usr/share/sss/$SSSFILE/$SSSFILE.$ORIGLANG1 ] && ASTAT="`stat --format=%y "${EASYSFSMNTPT}/usr/share/sss/$SSSFILE/$SSSFILE.$ORIGLANG1" | cut -f 1 -d ' ' | tr -d '-' `" #get orig modify date.
   xASTAT1="`stat --format=%Y "/tmp/momanager/$SSSFILE.$ORIGLANG1"`" #seconds since epoch.
   LANG=${ORIGLANG} defaulttexteditor /tmp/momanager/$SSSFILE.$ORIGLANG1
   xASTAT2="`stat --format=%Y "/tmp/momanager/$SSSFILE.$ORIGLANG1"`" #seconds since epoch.
   if [ "$xASTAT1" = "$xASTAT2" ];then
    export LANG=$ORIGLANG
-   exec momanager0 reenter #170818
+   exec momanager reenter
   fi
   [ "$SSSFILE" = "desk_strings" ] && fixdesk en #120209 translate all target files back to english. (using old $SSSFILE)
   [ "$SSSFILE" = "script_strings" ] && fixscripts en #120209 translate all target files back to english. (using old $SSSFILE)
@@ -1436,13 +1488,9 @@ Click 'Abort' to give up..." 0 0
   [ "$SSSFILE" = "script_strings" ] && fixscripts $ORIGLANG1 #120209 translate all target files back to current language. (using new SSSFILE)
   gtkdialog-splash -bg '#80FF80' -timeout 3 -text "The desktop and menus are being updated..." &
   LANG=$ORIGLANG /usr/sbin/fixmenus
-  if [ "`pidof jwm`" != "" ];then
-   JWMVER=`jwm -v|head -n1|cut -d ' ' -f2|cut -d - -f2`
-   if vercmp $JWMVER lt 574;then
-    LANG=${ORIGLANG} jwm -restart
-   else
-    LANG=${ORIGLANG} jwm -reload
-   fi
+  pidof jwm >/dev/null
+  if [ $? -eq 0 ];then
+   LANG=${ORIGLANG} jwm -reload
   fi
   echo "MACTION=${EXIT} TODAY_DATE=${ADATE} ORIG_DATE_FILE=${ASTAT} SSS_FILE='/usr/share/sss/${SSSFILE}/${SSSFILE}.${ORIGLANG1}' AUTHOR='${AUTHORSPECS}'" >> /root/MoManager-${ORIGLANG12}-${APKGNAME}/write.log
   mkdir -p /root/MoManager-${ORIGLANG12}-${APKGNAME}/usr/share/sss/${SSSFILE}/
@@ -1452,9 +1500,10 @@ Click 'Abort' to give up..." 0 0
   dir2tgz MoManager-${ORIGLANG12}-${APKGNAME}/
   tarball_func
   export LANG=$ORIGLANG
-  exec momanager0 reenter #170818
+  exec momanager reenter
  ;;
  
+ ####################
  edit_xml|create_xml) #XML data files.
   if [ "$EXIT" = "edit_xml" ];then
    XMLFILE="`echo -n "$YESXML_COMBO" | cut -f 1 -d ' '`"
@@ -1467,13 +1516,13 @@ Click 'Abort' to give up..." 0 0
   killall geany 2>/dev/null
   poptop_func "The XML file is now open in a text editor. Edit, then Save, then Quit text editor..."
   ASTAT="`stat --format=%y "$XMLFILE" | cut -f 1 -d ' ' | tr -d '-' `" #so can check against file version in latest Woof.
-  [ -f "${PATHPREFIX}${XMLFILE}" ] && ASTAT="`stat --format=%y "${PATHPREFIX}${XMLFILE}" | cut -f 1 -d ' ' | tr -d '-' `" #get orig modify date.
+  [ -f "${EASYSFSMNTPT}${XMLFILE}" ] && ASTAT="`stat --format=%y "${EASYSFSMNTPT}${XMLFILE}" | cut -f 1 -d ' ' | tr -d '-' `" #get orig modify date.
   xASTAT1="`stat --format=%Y "${XMLFILE}"`" #seconds since epoch.
   LANG=${ORIGLANG} defaulttexteditor "${XMLFILE}"
   xASTAT2="`stat --format=%Y "${XMLFILE}"`" #seconds since epoch.
   if [ "$xASTAT1" = "$xASTAT2" ];then
    export LANG=$ORIGLANG
-   exec momanager0 reenter #170818
+   exec momanager reenter
   fi
   #add translation to tarball that user can email to pkg author...
   cd /root
@@ -1487,67 +1536,49 @@ Click 'Abort' to give up..." 0 0
   dir2tgz MoManager-${ORIGLANG12}-${APKGNAME}/
   tarball_func
   export LANG=$ORIGLANG
-  exec momanager0 reenter #170818
+  exec momanager reenter
  ;;
  
- edit_bin|create_bin) #binary executables.
-  if [ "$EXIT" = "edit_bin" ];then
-   ABIN="`echo -n "$YESBIN_COMBO" | cut -f 1 -d '(' | rev | cut -f 2-9 -d ' ' | rev`"
-   ANAME="`basename "$ABIN"`"
-   ATRANSLANG="`echo -n "$YESBIN_COMBO" | cut -f 2 -d '(' | cut -f 1 -d ' '`" #ex: de
-   AMO="`echo -n "$YESBIN_COMBO" | cut -f 2 -d '(' | cut -f 1 -d ')' | cut -f 2 -d ' '`" #ex: mousecheck.mo
-   APKGNAME="`echo -n "$YESBIN_COMBO" | cut -f 2 -d '(' | cut -f 1 -d ')' | cut -f 3 -d ' '`" #ex: bluefish  ex: WOOF
-   ATEXTDOMAIN="`basename $AMO .mo`"
-  else
-   ABIN="`echo -n "$NOBIN_COMBO" | cut -f 1 -d '(' | rev | cut -f 2 -d ' ' | rev`"
-   ATEXTDOMAIN="`echo -n "$NOBIN_COMBO" | cut -f 2 -d '(' | cut -f 1 -d ' '`"
-   APKGNAME="`echo -n "$NOBIN_COMBO" | cut -f 2 -d '(' | cut -f 1 -d ')' | cut -f 2 -d ' '`" #ex: bluefish  ex: WOOF
-   FIELD2ND="`echo -n "$ORIGLANG12" | cut -f 2 -d '_'`"
-   pupdialog --colors --background yellow --backtitle "MoManager: mo language" --yes-label "${ORIGLANG1}" --no-label "${ORIGLANG12}" --yesno "Please click the \Zb${ORIGLANG1}\ZB button to create a translation file for that language. However, the \Zb${FIELD2ND}\ZB designates a particular country in which the language is used, and if you need such a specific translation then click the \Zb${ORIGLANG12}\ZB button. It is highly recommended that you click the \Zb${ORIGLANG1}\ZB button, unless you absolutely must have a country-specific translation..." 0 0
-   if [ $? -eq 0 ];then
-    ATRANSLANG="$ORIGLANG1"
-   else
-    ATRANSLANG="$ORIGLANG12"
-   fi
-   ANAME="`basename "$ABIN"`"
-   AMO="${ATEXTDOMAIN}.mo"
-  fi
+ #########
+ edit_bin) #binary executables. 20230107 have split out create_bin
+  ABIN="`echo -n "$YESBIN_COMBO" | cut -f 1 -d '(' | rev | cut -f 2-9 -d ' ' | rev`"
+  ANAME="`basename "$ABIN"`"
+  aTRANSLANG="`echo -n "$YESBIN_COMBO" | cut -f 2 -d '(' | cut -f 1 -d ' '`" #ex: de
+  AMO="`echo -n "$YESBIN_COMBO" | cut -f 2 -d '(' | cut -f 1 -d ')' | cut -f 2 -d ' '`" #ex: mousecheck.mo
+  APKGNAME="`echo -n "$YESBIN_COMBO" | cut -f 2 -d '(' | cut -f 1 -d ')' | cut -f 3 -d ' '`" #ex: bluefish  ex: WOOF
+  ATEXTDOMAIN="`basename $AMO .mo`"
   PREFIXLOCALEDIR='/usr/share/locale' #120308
   #120308 there are exceptions to /usr/share/locale. unfortunately looks like i have to hard-code those...
   case $ATEXTDOMAIN in
    ROX-Filer) PREFIXLOCALEDIR='/usr/local/apps/ROX-Filer/Messages' ;;
   esac
-  AMOSPEC="${PREFIXLOCALEDIR}/${ATRANSLANG}/LC_MESSAGES/${AMO}"
-  mkdir -p "${PREFIXLOCALEDIR}/${ATRANSLANG}/LC_MESSAGES" #120308
+  AMOSPEC="${PREFIXLOCALEDIR}/${aTRANSLANG}/LC_MESSAGES/${AMO}"
+  mkdir -p "${PREFIXLOCALEDIR}/${aTRANSLANG}/LC_MESSAGES" #120308
   cp -f /usr/share/doc/nls/${ATEXTDOMAIN}/${ATEXTDOMAIN}.pot /tmp/momanager/
   cd /tmp/momanager
   ROPID=0 ; POPCOL='yellow'
   BINMSG="A po file is open for editing. Edit, then Save, then Quit text editor..."
-  if [ -f /usr/share/doc/nls/${ATEXTDOMAIN}/${ATRANSLANG}.po ];then #120309 use pre-existing po file.
-   cp -f /usr/share/doc/nls/${ATEXTDOMAIN}/${ATRANSLANG}.po ./${ATEXTDOMAIN}.po
-   BINMSG="A po file is open for editing. NOTE: this file was obtained from /usr/share/doc/nls/${ATEXTDOMAIN}/${ATRANSLANG}.po. Edit, then Save, then Quit text editor..."
+  if [ -f /usr/share/doc/nls/${ATEXTDOMAIN}/${aTRANSLANG}.po ];then #120309 use pre-existing po file.
+   cp -f /usr/share/doc/nls/${ATEXTDOMAIN}/${aTRANSLANG}.po ./${ATEXTDOMAIN}.po
+   BINMSG="A po file is open for editing. NOTE: this file was obtained from /usr/share/doc/nls/${ATEXTDOMAIN}/${aTRANSLANG}.po. Edit, then Save, then Quit text editor..."
    [ -f "$AMOSPEC" ] && cp -f "$AMOSPEC" /tmp/momanager/${ATEXTDOMAIN}.moOLD
   else
-   if [ "$EXIT" = "edit_bin" ];then
-    cp -f "$AMOSPEC" /tmp/momanager/${ATEXTDOMAIN}.moOLD
-    msgunfmt --no-wrap "$AMOSPEC" > /tmp/momanager/${ATEXTDOMAIN}1.po
-    #this syncs textdomain1.po and textdomain.pot, merges to textdomain.po ...
-    rm -f ${ATEXTDOMAIN}.po 2>/dev/null
-    #130526 L18L: intltool-update fails with ROX-Filer and xdialog, but msgmerge works...
-    #LANG=${ORIGLANG} rxvt -e intltool-update --dist --gettext-package=${ATEXTDOMAIN} --output-file=${ATEXTDOMAIN}.po ${ATEXTDOMAIN}1
-    LANG=${ORIGLANG} rxvt -e msgmerge --no-wrap --output-file=${ATEXTDOMAIN}.po ${ATEXTDOMAIN}1.po ${ATEXTDOMAIN}.pot  #130526 L18L.  170818
-    BINMSG="A mo file has been converted to an editable po file. Edit, then Save, then Quit text editor..."
-    #120308 intltool-update is broken with ROX-Filer.pot. need a fallback method...
-    if [ ! -s ${ATEXTDOMAIN}.po ];then
-     LANG=${ORIGLANG} rxvt -e msginit --no-wrap --locale=${ORIGLANG12} --output-file=${ATEXTDOMAIN}.po --input=${ATEXTDOMAIN}.pot #create po file without any translations.
-     LANG=${ORIGLANG} defaulttextviewer /tmp/momanager/${ATEXTDOMAIN}1.po & #warning, this must be different from defaulttexteditor!
-     ROPID=$!
-     #BINMSG="BAD NEWS: the 'intltool-update' utility was unable to merge your existing translations with the pot file. Therefore, the translations are open in a separate file '${ATEXTDOMAIN}1.po' and you must paste them into '${ATEXTDOMAIN}.po' -- edit the latter only! Edit '${ATEXTDOMAIN}.po', save, then quit..."
-     BINMSG="BAD NEWS: the 'msgmerge' utility was unable to merge your existing translations with the pot file. Therefore, the translations are open in a separate file '${ATEXTDOMAIN}1.po' and you must paste them into '${ATEXTDOMAIN}.po' -- edit the latter only! Edit '${ATEXTDOMAIN}.po', save, then quit..."
-     POPCOL='LightPink'
-    fi
-   else
-    LANG=${ORIGLANG} rxvt -e msginit --no-wrap --locale=${ORIGLANG12} --output-file=${ATEXTDOMAIN}.po --input=${ATEXTDOMAIN}.pot
+   cp -f "$AMOSPEC" /tmp/momanager/${ATEXTDOMAIN}.moOLD
+   msgunfmt --no-wrap "$AMOSPEC" > /tmp/momanager/${ATEXTDOMAIN}1.po
+   #this syncs textdomain1.po and textdomain.pot, merges to textdomain.po ...
+   rm -f ${ATEXTDOMAIN}.po 2>/dev/null
+   #130526 L18L: intltool-update fails with ROX-Filer and xdialog, but msgmerge works...
+   #LANG=${ORIGLANG} rxvt -e intltool-update --dist --gettext-package=${ATEXTDOMAIN} --output-file=${ATEXTDOMAIN}.po ${ATEXTDOMAIN}1
+   LANG=${ORIGLANG} rxvt -e msgmerge --no-wrap --output-file=${ATEXTDOMAIN}.po ${ATEXTDOMAIN}1.po ${ATEXTDOMAIN}.pot  #130526 L18L.  170818
+   BINMSG="A mo file has been converted to an editable po file. Edit, then Save, then Quit text editor..."
+   #120308 intltool-update is broken with ROX-Filer.pot. need a fallback method...
+   if [ ! -s ${ATEXTDOMAIN}.po ];then
+    LANG=${ORIGLANG} rxvt -e msginit --no-wrap --locale=${ORIGLANG12} --output-file=${ATEXTDOMAIN}.po --input=${ATEXTDOMAIN}.pot #create po file without any translations.
+    LANG=${ORIGLANG} defaulttextviewer /tmp/momanager/${ATEXTDOMAIN}1.po & #warning, this must be different from defaulttexteditor!
+    ROPID=$!
+    #BINMSG="BAD NEWS: the 'intltool-update' utility was unable to merge your existing translations with the pot file. Therefore, the translations are open in a separate file '${ATEXTDOMAIN}1.po' and you must paste them into '${ATEXTDOMAIN}.po' -- edit the latter only! Edit '${ATEXTDOMAIN}.po', save, then quit..."
+    BINMSG="BAD NEWS: the 'msgmerge' utility was unable to merge your existing translations with the pot file. Therefore, the translations are open in a separate file '${ATEXTDOMAIN}1.po' and you must paste them into '${ATEXTDOMAIN}.po' -- edit the latter only! Edit '${ATEXTDOMAIN}.po', save, then quit..."
+    POPCOL='LightPink'
    fi
   fi
   sync
@@ -1564,25 +1595,25 @@ Click 'Abort' to give up..." 0 0
   zASTAT2="`stat --format=%Y /tmp/momanager/${ATEXTDOMAIN}.po`" #120309 modify date.
   if [ "$zASTAT1" = "$zASTAT2" ];then #120309
    export LANG=$ORIGLANG
-   exec momanager0 reenter #170818
+   exec momanager reenter
   fi
   LANG=${ORIGLANG} rxvt -e msgfmt --check --output-file=/tmp/momanager/${ATEXTDOMAIN}.mo /tmp/momanager/${ATEXTDOMAIN}.po
 #  pupdialog --background yellow --colors --backtitle "MoManager: post-edit mo" --yes-label "OK" --no-label "Cancel" --yesno "The file /tmp/momanager/${ATEXTDOMAIN}.po has been edited and converted to /tmp/momanager/${ATEXTDOMAIN}.mo. If all went well, click the \ZbOK\ZB button to copy it to \Zb${AMOSPEC}\ZB. Note, as a precaution, the old mo file is at /tmp/momanager/${ATEXTDOMAIN}.moOLD." 0 0
   pupdialog --background yellow --colors --backtitle "MoManager: post-edit mo" --yes-label "OK" --no-label "Cancel" --extra-button --extra-label "OK, keep po" --yesno "The file /tmp/momanager/${ATEXTDOMAIN}.po has been edited and converted to /tmp/momanager/${ATEXTDOMAIN}.mo. If all went well, click the \ZbOK\ZB button to copy it to \Zb${AMOSPEC}\ZB. Note, as a precaution, the old mo file is at /tmp/momanager/${ATEXTDOMAIN}.moOLD.
 
-WARNING: If there is an existing mo file, MoManager uncompiles it and merges with the pot file, to create the editable po file. However, sometimes this process fails (ROX-Filer for example). In such a case, you can click the \ZbOK, keep po\ZB button, which will retain the po file at \Zb/usr/share/doc/nls/${ATEXTDOMAIN}/${ATRANSLANG}.po\ZB, for use next time that you want to edit it with MoManager. Note, if uncertain, do not click this button." 0 0 #120309
+WARNING: If there is an existing mo file, MoManager uncompiles it and merges with the pot file, to create the editable po file. However, sometimes this process fails (ROX-Filer for example). In such a case, you can click the \ZbOK, keep po\ZB button, which will retain the po file at \Zb/usr/share/doc/nls/${ATEXTDOMAIN}/${aTRANSLANG}.po\ZB, for use next time that you want to edit it with MoManager. Note, if uncertain, do not click this button." 0 0 #120309
   RETVAL=$?
   if [ $RETVAL -eq 3 ];then #extra button
-   cp -f /tmp/momanager/${ATEXTDOMAIN}.po /usr/share/doc/nls/${ATEXTDOMAIN}/${ATRANSLANG}.po
+   cp -f /tmp/momanager/${ATEXTDOMAIN}.po /usr/share/doc/nls/${ATEXTDOMAIN}/${aTRANSLANG}.po
    RETVAL=0
   fi
   if [ $RETVAL -eq 0 ];then
    cp -f /tmp/momanager/${ATEXTDOMAIN}.mo "${AMOSPEC}"
    #output as a tarball that user can email to pkg author...
-   mkdir -p /root/MoManager-${ORIGLANG12}-${APKGNAME}${PREFIXLOCALEDIR}/${ATRANSLANG}/LC_MESSAGES
-   cp -f /tmp/momanager/${ATEXTDOMAIN}.mo /root/MoManager-${ORIGLANG12}-${APKGNAME}${PREFIXLOCALEDIR}/${ATRANSLANG}/LC_MESSAGES/
+   mkdir -p /root/MoManager-${ORIGLANG12}-${APKGNAME}${PREFIXLOCALEDIR}/${aTRANSLANG}/LC_MESSAGES
+   cp -f /tmp/momanager/${ATEXTDOMAIN}.mo /root/MoManager-${ORIGLANG12}-${APKGNAME}${PREFIXLOCALEDIR}/${aTRANSLANG}/LC_MESSAGES/
    ASTAT="`stat --format=%y "$ABIN" | cut -f 1 -d ' ' | tr -d '-' `" #so can check against file version in latest Woof.
-   [ -f ${PATHPREFIX}${ABIN} ] && ASTAT="`stat --format=%y "${PATHPREFIX}$ABIN" | cut -f 1 -d ' ' | tr -d '-' `" #get orig modify date.
+   [ -f ${EASYSFSMNTPT}${ABIN} ] && ASTAT="`stat --format=%y "${EASYSFSMNTPT}$ABIN" | cut -f 1 -d ' ' | tr -d '-' `" #get orig modify date.
    echo "MACTION=${EXIT} TODAY_DATE=${ADATE} ORIG_DATE_BINARY=${ASTAT} BINARY='${ABIN}' MO_FILE='${AMOSPEC}' AUTHOR='${AUTHORSPECS}'" >> /root/MoManager-${ORIGLANG12}-${APKGNAME}/write.log
    cd /root
    mv -f MoManager-${ORIGLANG12}-${APKGNAME}.tar.gz MoManager-${ORIGLANG12}-${APKGNAME}.tar.gzOLD 2>/dev/null
@@ -1592,9 +1623,98 @@ WARNING: If there is an existing mo file, MoManager uncompiles it and merges wit
    pupdialog --background pink --backtitle "MoManager: mo edit aborted" --msgbox "You have declined to update the mo file." 0 0
   fi
   export LANG=$ORIGLANG
-  exec momanager0 reenter #170818
+  exec momanager reenter
  ;;
  
+ ###########
+ create_bin) #binary executables. 20230107 have split out edit_bin
+  ABIN="`echo -n "$NOBIN_COMBO" | cut -f 1 -d '(' | rev | cut -f 2 -d ' ' | rev`"
+  ATEXTDOMAIN="`echo -n "$NOBIN_COMBO" | cut -f 2 -d '(' | cut -f 1 -d ' '`"
+  APKGNAME="`echo -n "$NOBIN_COMBO" | cut -f 2 -d '(' | cut -f 1 -d ')' | cut -f 2 -d ' '`" #ex: bluefish  ex: WOOF
+  FIELD2ND="`echo -n "$ORIGLANG12" | cut -f 2 -d '_'`"
+  pupdialog --colors --background yellow --backtitle "MoManager: mo language" --yes-label "${ORIGLANG1}" --no-label "${ORIGLANG12}" --yesno "Please click the \Zb${ORIGLANG1}\ZB button to create a translation file for that language. However, the \Zb${FIELD2ND}\ZB designates a particular country in which the language is used, and if you need such a specific translation then click the \Zb${ORIGLANG12}\ZB button. It is highly recommended that you click the \Zb${ORIGLANG1}\ZB button, unless you absolutely must have a country-specific translation..." 0 0
+  if [ $? -eq 0 ];then
+   aTRANSLANG="$ORIGLANG1"
+  else
+   aTRANSLANG="$ORIGLANG12"
+  fi
+  ANAME="`basename "$ABIN"`"
+  AMO="${ATEXTDOMAIN}.mo"
+  PREFIXLOCALEDIR='/usr/share/locale' #120308
+  #120308 there are exceptions to /usr/share/locale. unfortunately looks like i have to hard-code those...
+  case $ATEXTDOMAIN in
+   ROX-Filer) PREFIXLOCALEDIR='/usr/local/apps/ROX-Filer/Messages' ;;
+  esac
+  AMOSPEC="${PREFIXLOCALEDIR}/${aTRANSLANG}/LC_MESSAGES/${AMO}"
+  mkdir -p "${PREFIXLOCALEDIR}/${aTRANSLANG}/LC_MESSAGES" #120308
+  cp -f /usr/share/doc/nls/${ATEXTDOMAIN}/${ATEXTDOMAIN}.pot /tmp/momanager/
+  cd /tmp/momanager
+  ROPID=0 ; POPCOL='yellow'
+  BINMSG="A po file is open for editing. Edit, then Save, then Quit text editor..."
+  if [ -f /usr/share/doc/nls/${ATEXTDOMAIN}/${aTRANSLANG}.po ];then #120309 use pre-existing po file.
+   cp -f /usr/share/doc/nls/${ATEXTDOMAIN}/${aTRANSLANG}.po ./${ATEXTDOMAIN}.po
+   BINMSG="A po file is open for editing. NOTE: this file was obtained from /usr/share/doc/nls/${ATEXTDOMAIN}/${aTRANSLANG}.po. Edit, then Save, then Quit text editor..."
+   [ -f "$AMOSPEC" ] && cp -f "$AMOSPEC" /tmp/momanager/${ATEXTDOMAIN}.moOLD
+  else
+   LANG=${ORIGLANG} rxvt -e msginit --no-wrap --locale=${ORIGLANG12} --output-file=${ATEXTDOMAIN}.po --input=${ATEXTDOMAIN}.pot
+  fi
+  sync
+  
+  #20230107 msginit o/p needs fix...
+  sed -i -e 's%Content-Type: text/plain; charset=ASCII%Content-Type: text/plain; charset=UTF-8%' ${ATEXTDOMAIN}.po
+  
+  #20230107
+  if [ -e /tmp/momanager/FLGautotrans ];then
+   poptop_func "Automatic translation in progress..."
+   rxvt -e /usr/local/momanager/pre-fill-po ${aTRANSLANG} ${ATEXTDOMAIN}.po
+   cp -f /tmp/momanager/po-trans-file /tmp/momanager/${ATEXTDOMAIN}.po
+  fi
+  
+  poptop_func "$BINMSG" $POPCOL
+  zASTAT1="`stat --format=%Y /tmp/momanager/${ATEXTDOMAIN}.po`" #120309 modify date, seconds.
+  if [ "$POEDITOR" ];then
+   ${POEDITOR} /tmp/momanager/${ATEXTDOMAIN}.po
+  else
+   killall geany 2> /dev/null #otherwise geany will return immediately and continue executing this script.
+   sleep 0.5
+   LANG=${ORIGLANG} defaulttexteditor /tmp/momanager/${ATEXTDOMAIN}.po
+  fi
+  [ $ROPID -ne 0 ] && kill $ROPID
+  zASTAT2="`stat --format=%Y /tmp/momanager/${ATEXTDOMAIN}.po`" #120309 modify date.
+  if [ "$zASTAT1" = "$zASTAT2" ];then #120309
+   export LANG=$ORIGLANG
+   exec momanager reenter
+  fi
+  LANG=${ORIGLANG} rxvt -e msgfmt --check --output-file=/tmp/momanager/${ATEXTDOMAIN}.mo /tmp/momanager/${ATEXTDOMAIN}.po
+#  pupdialog --background yellow --colors --backtitle "MoManager: post-edit mo" --yes-label "OK" --no-label "Cancel" --yesno "The file /tmp/momanager/${ATEXTDOMAIN}.po has been edited and converted to /tmp/momanager/${ATEXTDOMAIN}.mo. If all went well, click the \ZbOK\ZB button to copy it to \Zb${AMOSPEC}\ZB. Note, as a precaution, the old mo file is at /tmp/momanager/${ATEXTDOMAIN}.moOLD." 0 0
+  pupdialog --background yellow --colors --backtitle "MoManager: post-edit mo" --yes-label "OK" --no-label "Cancel" --extra-button --extra-label "OK, keep po" --yesno "The file /tmp/momanager/${ATEXTDOMAIN}.po has been edited and converted to /tmp/momanager/${ATEXTDOMAIN}.mo. If all went well, click the \ZbOK\ZB button to copy it to \Zb${AMOSPEC}\ZB. Note, as a precaution, the old mo file is at /tmp/momanager/${ATEXTDOMAIN}.moOLD.
+
+WARNING: If there is an existing mo file, MoManager uncompiles it and merges with the pot file, to create the editable po file. However, sometimes this process fails (ROX-Filer for example). In such a case, you can click the \ZbOK, keep po\ZB button, which will retain the po file at \Zb/usr/share/doc/nls/${ATEXTDOMAIN}/${aTRANSLANG}.po\ZB, for use next time that you want to edit it with MoManager. Note, if uncertain, do not click this button." 0 0 #120309
+  RETVAL=$?
+  if [ $RETVAL -eq 3 ];then #extra button
+   cp -f /tmp/momanager/${ATEXTDOMAIN}.po /usr/share/doc/nls/${ATEXTDOMAIN}/${aTRANSLANG}.po
+   RETVAL=0
+  fi
+  if [ $RETVAL -eq 0 ];then
+   cp -f /tmp/momanager/${ATEXTDOMAIN}.mo "${AMOSPEC}"
+   #output as a tarball that user can email to pkg author...
+   mkdir -p /root/MoManager-${ORIGLANG12}-${APKGNAME}${PREFIXLOCALEDIR}/${aTRANSLANG}/LC_MESSAGES
+   cp -f /tmp/momanager/${ATEXTDOMAIN}.mo /root/MoManager-${ORIGLANG12}-${APKGNAME}${PREFIXLOCALEDIR}/${aTRANSLANG}/LC_MESSAGES/
+   ASTAT="`stat --format=%y "$ABIN" | cut -f 1 -d ' ' | tr -d '-' `" #so can check against file version in latest Woof.
+   [ -f ${EASYSFSMNTPT}${ABIN} ] && ASTAT="`stat --format=%y "${EASYSFSMNTPT}$ABIN" | cut -f 1 -d ' ' | tr -d '-' `" #get orig modify date.
+   echo "MACTION=${EXIT} TODAY_DATE=${ADATE} ORIG_DATE_BINARY=${ASTAT} BINARY='${ABIN}' MO_FILE='${AMOSPEC}' AUTHOR='${AUTHORSPECS}'" >> /root/MoManager-${ORIGLANG12}-${APKGNAME}/write.log
+   cd /root
+   mv -f MoManager-${ORIGLANG12}-${APKGNAME}.tar.gz MoManager-${ORIGLANG12}-${APKGNAME}.tar.gzOLD 2>/dev/null
+   dir2tgz MoManager-${ORIGLANG12}-${APKGNAME}/
+   tarball_func
+  else
+   pupdialog --background pink --backtitle "MoManager: mo edit aborted" --msgbox "You have declined to update the mo file." 0 0
+  fi
+  export LANG=$ORIGLANG
+  exec momanager reenter
+ ;;
+ 
+ ###########
  create_pet) #create a langpack PET
   mv -f /root/langpack_${GENLANG}-${ADATE}.pet /root/langpack_${GENLANG}-${ADATE}.petOLD 2>/dev/null
   [ -d /root/langpack_${GENLANG}-${ADATE} ] && rm -rf /root/langpack_${GENLANG}-${ADATE}
