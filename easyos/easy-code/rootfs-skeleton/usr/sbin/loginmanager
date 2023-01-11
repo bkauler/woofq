@@ -19,6 +19,7 @@
 #20210919 now /home/spot
 #20221023 now supporting zeus administrator ***TODO***
 #20221124 modify message, non-root app also able to open|save under /files
+#20230111 root-${LANG/_*/}.htm
 
 export TEXTDOMAIN=loginmanager
 export TEXTDOMAINDIR=/usr/share/locale
@@ -117,6 +118,13 @@ fi
 #140129 
 M_w1="<text use-markup=\"true\"><label>\"<span fgcolor='"'red'"'><b>$(gettext "Not available in EasyOS")</b></span>\"</label></text>" #need some funny stuff.
 
+#20230111
+if [ -f /usr/share/doc/root-${LANG/_*/}.htm ];then
+ ROOTHTM="root-${LANG/_*/}.htm"
+else
+ ROOTHTM="root.htm"
+fi
+
 export MAIN_DIALOG="
 <window title=\"Login and Security Manager\" icon-name=\"gtk-execute\" resizable=\"false\">
  <vbox>
@@ -162,7 +170,7 @@ export MAIN_DIALOG="
   
   <hbox>
    <text><label>$(gettext 'Help:')</label></text>
-   <button><input file>/usr/local/lib/X11/mini-icons/mini-question.xpm</input><action>basichtmlviewer file:///usr/share/doc/root.htm & </action></button>
+   <button><input file>/usr/local/lib/X11/mini-icons/mini-question.xpm</input><action>basichtmlviewer file:///usr/share/doc/${ROOTHTM} & </action></button>
    <text><label>$(gettext '*Legal:')</label></text>
    <button><input file>/usr/local/lib/X11/mini-icons/mini-question.xpm</input><action>basichtmlviewer file:///usr/share/doc/legal/easyos.htm & </action></button>
    <text><label>\"     \"</label></text>

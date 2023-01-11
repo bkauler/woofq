@@ -1,0 +1,147 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html><head>
+<meta http-equiv="content-type" content="text/html; charset=windows-1252">
+<title></title>
+</head>
+<body>
+<table cellspacing="2" cellpadding="2" align="center" width="600" border="0">
+  <tbody>
+    <tr>
+      <td valign="top">
+        <h1>À propos de root, spot et fido<br>
+        </h1>
+Ceci est une explication des raisons pour lesquelles les utilisateurs se connectent en tant qu'administrateur (root)
+  dans EasyOS (et Puppy Linux), et/ou utilisent les comptes Spot et Fido non root.<br>
+        <h2>root, spot, fido</h2>
+Pour faire simple, la connexion «<b>root</b>» vous donne un accès total à tout, alors qu'une connexion non root vous donne un accès restreint (configurable pour chaque utilisateur par l'administrateur). <br> EasyOS n'est pas un système multi-utilisateur comme la plupart des autres distributions Linux,
+dans lesquellles il y a une connexion «root» à laquelle s'ajoute un nombre indéterminé de comptes de connexions 
+non root.<br>
+D'autre part, EasyOS possède «root» et seulement deux connexions non root, appelées
+  «<b>spot</b>» et «<b>fido</b>». EasyOS possède également «<b>crippled root</b>» dans les conteneurs.<br><h2>root</h2>
+Il existe deux principales objections à la connexion en tant que root : premièrement, vous
+pourriez accidentellement faire des bétises, comme supprimer des fichiers importants,
+deuxièmement, si quelqu'un accède à votre ordinateur, (soit à distance via le
+Internet/réseau local, soit localement), étant au niveau racine il pourra faire beaucoup plus de
+dégats que s'il était connecté en tant qu'utilisateur non root.<br>
+        <h3>Faire des bétises</h3>
+En cas d'effacement accidentel de fichiers importants : lesquels sont
+important pour vous? Vos propres fichiers et données personnels bien sûr. Et
+que vous soyez connecté en tant que non root ou
+root, vous serez tout aussi enclin à faire la même chose stupide.<br>
+Autrement dit, vos fichiers personnels, paramètres, applications, appartiennent tous à
+l'utilisateur non root, et peuvent tout aussi bien être supprimé par l'utilisateur non root
+que par l'administrateur (root).<br>
+En d'autres termes, cet argument contre l'exécution en tant que root est stupide. Au moins en ce qui concerne la sécurité de vos propres fichiers.<br>
+<br>
+Lorsque l'argument «faire des bétises»" est valable, c'est dans un système multi-utilisateur,
+où l'administrateur peut accidentellement supprimer ou compromettre les fichiers d'un autre utilisateur. MAIS, EasyOS <b>n'est pas</b> multi-utilisateurs.<br>
+<br>
+
+En ce qui concerne les fichiers système, ils peuvent facilement être restaurés, en fait EasyOS
+rend cela facile car tout le système est contenu dans un seul fichier Squashfs.<br>
+        <h3>Accès à distance en tant que root</h3>
+De quoi avez-vous peur? De quelqu'un accédant à vos fichiers et données personnels,
+  en particulier les données d'identification et de connexion ou vos mots de passe. Beaucoup
+sont dans votre ordinateur et si vous lancez une distribution dans laquelle
+  vous vous connectez en tant qu'utilisateur non root, ces données sont dans des fichiers appartenant à votre compte non root,
+   ce qui signifie qu'ils sont accessibles de manière égale par un
+utilisateur non root ou root.<br>
+<br>
+POURTANT, il existe deux scénarios dans lesquels l'exécution en tant que root présente un risque pour la sécurité, et dont un seul s'applique à EasyOS.<br>
+<br>
+Premièrement, si vous vous connectez non root, vous pouvez passer au niveau root pour
+effectuer certaines opérations telles que conserver un fichier de noms d'utilisateur et de
+mots de passe. Certaines applications utilisent également des fichiers secrets appartenant à
+root, que les utilisateurs non root ne sont pas censés lire. Ainsi, n'importe qui
+connecté en root, peut lire tous ces fichiers.<br>
+<br>
+Note à part à propos du paragraphe ci-dessus : les principales distributions, comme
+Ubuntu, permettent au premier compte utilisateur de passer à <b>root</b> juste en préfixant
+  les commandes avec «<b>sudo</b>» ou «<b>su</b>», sans exiger le <b>mot de passe</b> de <b>root</b>, ce qui
+fait de l'ensemble du mécanisme de protection une plaisanterie. En considérant que la plupart
+des utilisateurs d'Ubuntu utilisent ce premier compte de connexion comme connexion régulière ...<br>
+<br>
+Deuxièmement, dans un environnement multi-utilisateur, l'ennemi peut être un autre utilisateur.
+Mais vous n'aurez jamais d'utilisateurs se connectant en root dans ce scénario puisque je le répète, EasyOS <b>n'est pas</b> multi-utilisateurs.<br>
+<br>EasyOS suppose un environnement local «convivial», et la principale menace vient
+de quelqu'un ayant accès à votre ordinateur via les ports réseau lorsque
+  vous êtes en ligne.<br>
+Ce qui est très peu probable dans Puppy, en raison du pare-feu, des démons minimaux (avec une 
+capacité de réseau désactivée). Mais, l'inquiétude est toujours là ...<br>
+        <h2><img alt="" src="../../../root/spot/spot.png" height="100" align="middle" width="100"> spot</h2>
+Cela nous amène à «<b>spot</b>», un nom classique pour un chien. «<b>spot</b>»
+  n'est pas un utilisateur normal, vous ne vous connectez pas en tant qu'utilisateur normal. Vous démarrez
+  de la manière normale en tant qu'utilisateur <b>root</b>, mais vous pouvez choisir d'exécuter certaines
+applications Internet dans un espace utilisateur restreint.<br>
+Cela signifie que vous avez un accès illimité à votre système local, tous les
+  avantages de root, sans tracas avec la propriété des fichiers ou répertoires et
+autorisations, ni aucune restriction sur l'accès à tout le matériel.<br>
+Par exemple, vous pouvez lancer SeaMonkey (navigateur, Composer,
+mail_et_actualités, IRC-chat), sous <b>spot</b>. Le répertoire personnel de spot est
+/root/spot et SeaMonkey ne pourra (normalement) modifier/créer/écrire que des fichiers
+à l'intérieur de /root/spot.<br>
+        <br>
+Avec <b>spot</b>, vous avez le meilleur des deux mondes. Liberté dans votre système local et un utilisateur restreint pour l'accès à Internet. <br>
+<br>
+A noter que EasyOS propose uniquement le blog personnel Didiwiki
+fonctionnant sous spot et Seamonkey fonctionnant éventuellement sous spot - vous pouvez
+choisir votre niveau de danger pour la navigation Ouèb, via le <i>Gestionnaire de connexion et de sécurité</i> dans le menu Système.<br>
+Une «branche» de Puppy, FatDog64, présente toutes les applications Internet fonctionnant sous spot.<br>
+        <h2><img alt="" src="fido96.png" height="96" align="middle" width="96"> fido</h2>
+<b>fido</b> est un autre nom pour un chien. C'est un compte de connexion non root complet, comme vous le feriez dans n'importe quelle autre
+distribution Linux. Avec une particularité, son répertoire personnel est /root (ce qui peut en effet vous sembler <i>très</i>
+  particulier, mais il y a une raison à cela!). Comme avec d'autres distributions,
+  vous utiliseriez «su» ou «sudo» pour effectuer des activités d'administrateur.<br>
+<br>
+<b>fido</b> nécessite toujours un mot de passe administrateur pour effectuer des opérations de niveau administrateur.<br>
+<br>
+La connexion utilisateur sous <b>fido</b> appartient à Puppy Linux et n'est pas prise en charge dans EasyOS. <br>
+<h2><img src="/usr/local/easy_containers/images/container96.png" alt="ec-logo" height="96" align="middle" width="96"> "crippled root"</h2>
+Puppy Linux prend en charge <b>spot</b> et <b>fido</b>, mais EasyOS possède une autre fonctionnalité nouvelle et majeure
+  : l'exécution d'applications en mode «<b>crippled root</b>». Il s'agit d'un utilisateur root,
+mais avec les droits supprimés, c'est pratiquement comme être un utilisateur non root. <br>
+<br>
+Il existe deux implémentations, d'une part dans les conteneurs, et d'autre part
+au démarrage, vous avez l'option du menu "Copier la session en RAM &amp; désactiver les disques".<br>
+<br>
+        <h2>Finalement</h2>
+EasyOS est conçu pour les personnes qui savent ce qu'elles font et ce qu'elles
+veulent, et pouvoir le faire avec le moins de tracas. Ils veulent aussi avoir 
+l'utilisation exclusive de leur ordinateur, ou peut-être partager avec une
+personne. <br>Mais si vous voulez mettre un petit enfant
+devant votre ordinateur et le laisser faire n'importe quoi, EasyOS n'est pas
+recommandé, parce qu'il pourrait faire beaucoup de ravages indépendamment du 
+Système d'Exploitation. Dans ce cas, vous devriez récupérer un vieux PC, y installer EasyOS,
+et laisser faire à votre petit enfant tout ce qu'il voudra. <br>Chaque utilisateur devrait avoir son propre matériel distinct.<br>
+<h2>Liens</h2>
+FatDog64, une «branche» de Puppy créé par «kirk» et «jamesbond», depuis
+sa création exécute toutes les applications réseau sous l'utilisateur «<b>spot</b>». Ces gens-là ont
+créé une excellente page Ouèb qui explique pourquoi l'exécution en tant que root est sûre
+(ou pas moins sûre que l'exécution non root) :<br>
+<br>
+<a href="http://distro.ibiblio.org/fatdog/web/faqs/login.html">http://distro.ibiblio.org/fatdog/web/faqs/login.html</a> <br>
+<br>
+Quelques liens plus pertinents sur l'exécution sous root :<br>
+<br>
+<a href="http://igurublog.wordpress.com/2010/01/16/fear-not-root/">http://igurublog.wordpress.com/2010/01/16/fear-not-root/</a> <br>
+<a href="http://web.archive.org/web/20080604034010/grafpup.org/news/?page_id=243">http://web.archive.org/web/20080604034010/grafpup.org/news/?page_id=243</a> <br>
+<br>
+        Une introduction aux conteneurs dans EasyOS :<br>
+<br>
+<a href="https://easyos.org/tech/how-easy-works-part-2.html">https://easyos.org/tech/how-easy-works-part-2.html</a><br>
+<br>
+"Copier la session en RAM &amp; désactiver les disques" :<br>
+<br>
+<a href="http://bkhome.org/news/201908/run-totally-in-ram-isolated-from-pc.html">http://bkhome.org/news/201908/run-totally-in-ram-isolated-from-pc.html</a><br>
+<br>
+<br>
+Cordialement,<br>
+Barry Kauler<br>
+        <small>(c) Copyright Barry Kauler 2013</small> ,2019<br>
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+
+</body></html>

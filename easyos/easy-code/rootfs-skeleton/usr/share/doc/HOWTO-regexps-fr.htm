@@ -1,0 +1,1014 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xml:lang="fr" lang="fr">
+<head>
+  <title>zez.org : about code</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+</head>
+
+<body>
+
+<table width="100%" cellspacing="0" cellpadding="0" border="0">
+  <tbody>
+    <tr>
+      <td align="center"><h3>Trouvé sur :
+        <a href="http://zez.org/article/articleview/11/">publish.ez.no</a></h3>
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+<table width="100%" cellspacing="0" cellpadding="0" border="0">
+  <tbody>
+    <tr>
+      <td><h1>Les expressions régulières/rationnelles expliquées</h1>
+      </td>
+    </tr>
+  </tbody>
+</table>
+<hr noshade="noshade" size="4" />
+<br />
+
+
+<table width="100%" cellspacing="0" cellpadding="0" border="0">
+  <tbody>
+    <tr>
+      <td><p class="byline">Auteur: <a class="byline"
+        href="http://zez.org/article/author/view/26">Jan Borsodi</a></p>
+      </td>
+      <td align="right"><p class="byline">Date de publication : 30.10.2000
+        18:02</p>
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+<p>Cet article est une introduction au monde des <i>expressions régulières</i>. 
+Je commencerai par expliquer ce que sont les expressions régulières et vous présenter leur syntaxe, puis quelques exemples de complexité variable, et enfin une liste des outils qui utilisent les <i>expressions régulières</i>.</p>
+
+<p><span style="color: #FF0000">[PUPPY/TOUTOU a un outil d'évaluation et d'étude des expressions régulières dans le menu Utilitaires]</span></p>
+
+<h2>Concept</h2>
+Une <i>expression régulière</i>  est un modèle/motif de texte consistant en une combinaison de caractères alphanumériques et de caractères spéciaux appelés méta-caractères. Un parent proche est en fait le <i>joker</i> qui est souvent utilisé dans la gestion de fichier. Le modèle est utilisé pour faire correspondre des chaînes de caractères. Une correspondance peut être trouvée ou non, pourtant quand une correspondance au motif est trouvée, elle peut ne pas être complète, c'est expliqué plus loin dans l'article.
+<br />
+<br />
+Vous comprendrez que les <i>expressions régulières</i> sont utilisées de trois manières différentes : correspondance à un texte simple, recherche et remplacement, et fragmentation. Cette dernière est essentiellement identique à une correspondance inverse, c'est-à-dire tout ce qui ne correspond pas à l'<i>expression régulière</i>.<br />
+<br />
+Les <i>expressions régulières</i> sont souvent simplement appelées regexps ou RE, mais ici j'y ferai référence en utilisant le nom complet.<br />
+<br />
+En raison de la polyvalence de l'<i>expression régulière</i> elle est largement utilisée dans le traitement de texte et l'analyse syntaxique. Les utilisateurs UNIX sont probablement familiers avec elle au travers de l'utilisation des programmes, <i>grep</i>, <i>sed</i>, <i>awk</i> et <i>ed</i>. Des éditeurs de textes comme <i>(X)Emacs</i> et <i>vi</i> l'utilisent aussi fréquemment. L'utilisation la plus connue des <i>expressions régulières</i> est probablement celle du langage de programmation Perl, vous remarquerez que Perl supporte l'implémentation la plus avancée à ce jour, des <i>expression régulières</i>.<br />
+
+
+<h2>Utilisation</h2>
+Maintenant vous vous demandez probablement pourquoi vous devriez vous donner la peine d'apprendre les <i>expressions régulières</i>. Eh bien, si vous êtes un utilisateur normal d'ordinateur, le bénéfice à en tirer sera peu important, mais si vous êtes développeur ou administrateur système, vous constaterez que la connaissance des <i>expressions régulières</i> améliorera beaucoup votre vie (professionnelle).<br />
+<br />
+Les développeurs peuvent les utiliser pour faire l'analyse syntaxique de fichiers texte, arranger du code ou d'autres merveilles. 
+Les administrateurs système peuvent s'en servir pour rechercher dans des fichiers de journalisation, automatiser des tâches ennuyeuses ou parcourir le trafic réseau à la recherche d'activité non autorisée.
+<br />
+<br />
+J'irai même jusqu'à dire que c'est réellement un crime pour un administrateur système de n'avoir <b>aucune</b> connaissance sur les <i>expressions régulières</i>.<br />
+
+
+<h2>Quantificateurs</h2>
+Avant de commencer l'explication de la syntaxe, vous pouvez sauter à la dernière page pour connaître quels programmes utiliser pour évaluer les exemples de cet article.<br />
+<br />
+Le contenu d'une expression est, comme expliqué plus haut, une combinaison de caractères alphanumériques et de méta-caractères. Un caractère alphanumérique est soit une lettre de l'alphabet<br />
+<br clear="all" />
+
+
+<p></p>
+
+<table width="100%" cellspacing="0" cellpadding="4" border="0">
+  <tbody>
+    <tr>
+      <td bgcolor="#f0f0f0"><pre>abc</pre>
+      </td>
+    </tr>
+  </tbody>
+</table>
+soit un chiffre<br />
+<br clear="all" />
+
+
+<p></p>
+
+<table width="100%" cellspacing="0" cellpadding="4" border="0">
+  <tbody>
+    <tr>
+      <td bgcolor="#f0f0f0"><pre>123</pre>
+      </td>
+    </tr>
+  </tbody>
+</table>
+En réalité dans le monde des expressions régulières, chaque caractère qui n'est pas un méta-caractère correspondra à lui-même (souvent appelés caractères littéraux), cependant la plupart du temps vous êtes surtout concernés par les caractères alphanumériques. Un caractère très spécial est l'antislash <b>\</b>, qui transforme chaque méta-caractère en caractère littéral et les caractères alphanumériques en une sorte de méta-caractère ou séquence. Les méta-caractères sont :<br />
+<br clear="all" />
+
+
+<p></p>
+
+<table width="100%" cellspacing="0" cellpadding="4" border="0">
+  <tbody>
+    <tr>
+      <td bgcolor="#f0f0f0"><pre>\ | ( ) [ ] ^ $ * + ? . &lt; &gt;</pre>
+      </td>
+    </tr>
+  </tbody>
+</table>
+Cela étant dit les caractères normaux ne semblent pas très intéressants, passons directement à nos tous premiers méta-caractères.<br />
+<br />
+D'abord, le signe de ponctuation, ou point, <b>.</b>, nécessite des explications car il prête souvent à confusion. Ce caractère ne correspondra pas, comme on pourrait le penser, à la ponctuation dans une ligne. C'est au lieu de cela un méta-caractère spécial qui correspond à n'importe quel caractère. Son utilisation afin de trouver la fin d'une phrase ou la décimale dans un nombre flottant vous renverra d'étranges résultats. Comme expliqué ci-dessus, vous avez besoin de l'antislash pour obtenir sa signification littérale. Prenez par exemple cette expression<br />
+<br clear="all" />
+
+
+<p></p>
+
+<table width="100%" cellspacing="0" cellpadding="4" border="0">
+  <tbody>
+    <tr>
+      <td bgcolor="#f0f0f0"><pre>1.23</pre>
+      </td>
+    </tr>
+  </tbody>
+</table>
+correspondra au nombre 1.23 dans un texte comme vous pourriez l'avoir deviné, mais il correspondra aussi aux lignes suivantes<br />
+<br clear="all" />
+
+
+<p></p>
+
+<table width="100%" cellspacing="0" cellpadding="4" border="0">
+  <tbody>
+    <tr>
+      <td bgcolor="#f0f0f0"><pre>1x23
+1 23
+1-23</pre>
+      </td>
+    </tr>
+  </tbody>
+</table>
+pour que l'expression retourne <b>uniquement</b> le nombre flottant, changeons-la en<br />
+<br clear="all" />
+
+
+<p></p>
+
+<table width="100%" cellspacing="0" cellpadding="4" border="0">
+  <tbody>
+    <tr>
+      <td bgcolor="#f0f0f0"><pre>1\.23</pre>
+      </td>
+    </tr>
+  </tbody>
+</table>
+Ne l'oubliez pas, c'est très important. Maintenant cela étant dit, nous pouvons poursuivre la visite.<br />
+<br />
+Deux méta-caractères sont récurrents <br />
+<br clear="all" />
+
+
+<p></p>
+
+<table width="100%" cellspacing="0" cellpadding="4" border="0">
+  <tbody>
+    <tr>
+      <td bgcolor="#f0f0f0"><pre>* et +</pre>
+      </td>
+    </tr>
+  </tbody>
+</table>
+Ils sont appelés des quantificateurs et indiquent de chercher plusieurs répétitions d'un caractère, le quantificateur succède toujours au caractère au plus près. Le caractère <b>*</b> correspond à une succession de zéro caractère ou plus, le caractère <b>+</b> est semblable, mais correspond à une succession de un caractère ou plus.<br />
+<br />
+Et si vous avez décidé de trouver les mots qui possède le caractère <i>c</i> vous pourriez être tentés d'écrire :<br />
+<br clear="all" />
+
+
+<p></p>
+
+<table width="100%" cellspacing="0" cellpadding="4" border="0">
+  <tbody>
+    <tr>
+      <td bgcolor="#f0f0f0"><pre>c*</pre>
+      </td>
+    </tr>
+  </tbody>
+</table>
+Ce qui pourrait vous étonner c'est que vous vous trouverez devant une énorme quantité de correspondances, même les mots sans c correspondront. Vous vous demander pourquoi, et bien la réponse est simple. Rappelez-vous que le caractère <b>*</b> correspond à une répétition de <b>zéro</b> caractère ou plus. Eh bien c'est exactement ce que vous avez fait, aucun caractère correspondant.<br />
+Vous remarquerez que dans les <i>expressions régulières</i> vous avez la possibilité de faire correspondre ce qui est appelé la <b>chaîne vide</b>, qui est simplement une chaîne de caractères de taille nulle.
+Cette chaîne vide peut en réalité être trouvée dans tous les textes, par exemple le mot :<br />
+<br clear="all" />
+
+
+<p></p>
+
+<table width="100%" cellspacing="0" cellpadding="4" border="0">
+  <tbody>
+    <tr>
+      <td bgcolor="#f0f0f0"><pre>go</pre>
+      </td>
+    </tr>
+  </tbody>
+</table>
+contient trois chaînes vides. Elles se trouvent à droite avant le <b>g</b>, entre le <b>g</b> et le <b>o</b> et après le <b>o</b>. Et une chaîne vide contient exactement <b>une</b> chaîne vide. D'abord cela pourrait sembler vraiment idiot à faire mais vous apprendrez plus tard comment c'est utilisé dans des expressions plus complexes.<br />
+<br />
+Sachant cela, nous pouvons changer notre expression :<br />
+<br clear="all" />
+
+
+<p></p>
+
+<table width="100%" cellspacing="0" cellpadding="4" border="0">
+  <tbody>
+    <tr>
+      <td bgcolor="#f0f0f0"><pre>c+</pre>
+      </td>
+    </tr>
+  </tbody>
+</table>
+et voilà, nous n'obtenons que les mots contenant c.<br />
+<br />
+Le prochain méta-caractère que vous apprendrez est :<br />
+<br clear="all" />
+
+
+<p></p>
+
+<table width="100%" cellspacing="0" cellpadding="4" border="0">
+  <tbody>
+    <tr>
+      <td bgcolor="#f0f0f0"><pre>?</pre>
+      </td>
+    </tr>
+  </tbody>
+</table>
+Cela indique simplement une correspondance facultative du caractère (zéro ou un). Par exemple l'expression :<br />
+<br clear="all" />
+
+
+<p></p>
+
+<table width="100%" cellspacing="0" cellpadding="4" border="0">
+  <tbody>
+    <tr>
+      <td bgcolor="#f0f0f0"><pre>cows?</pre>
+      </td>
+    </tr>
+  </tbody>
+</table>
+renverra chacune de ces lignes :<br />
+<br clear="all" />
+
+
+<p></p>
+
+<table width="100%" cellspacing="0" cellpadding="4" border="0">
+  <tbody>
+    <tr>
+      <td bgcolor="#f0f0f0"><pre>cow
+cows</pre>
+      </td>
+    </tr>
+  </tbody>
+</table>
+<br />
+Ces trois méta-caractères sont simplement des formes spéciales d'un quantificateur plus général<br />
+<br clear="all" />
+
+
+<p></p>
+
+<table width="100%" cellspacing="0" cellpadding="4" border="0">
+  <tbody>
+    <tr>
+      <td bgcolor="#f0f0f0"><pre>{n,m}</pre>
+      </td>
+    </tr>
+  </tbody>
+</table>
+le <b>n</b> et le <b>m</b> sont respectivement la taille minimale et maximale pour le quantificateur. Par exemple :<br />
+<br clear="all" />
+
+
+<p></p>
+
+<table width="100%" cellspacing="0" cellpadding="4" border="0">
+  <tbody>
+    <tr>
+      <td bgcolor="#f0f0f0"><pre>{1,5}</pre>
+      </td>
+    </tr>
+  </tbody>
+</table>
+signifie une répétition de un ou jusqu'à cinq caractères. Vous pouvez aussi éviter le m pour prendre en compte une correspondance infinie :<br />
+<br clear="all" />
+
+
+<p></p>
+
+<table width="100%" cellspacing="0" cellpadding="4" border="0">
+  <tbody>
+    <tr>
+      <td bgcolor="#f0f0f0"><pre>{1,}</pre>
+      </td>
+    </tr>
+  </tbody>
+</table>
+qui correspond à un caractère ou plusieurs. C'est exactement ce que le méta-caractère <b>+</b> fait. Si maintenant vous voyez le rapport, <b>*</b> est identique à <b>{0,}</b>, <b>+</b> est identique à <b>{1,}</b> et <b>?</b> est identique à <b>{0,1}</b>.<br />
+La dernière chose que vous pouvez faire avec le quantificateur est d'éviter aussi la virgule<br />
+<br clear="all" />
+
+
+<p></p>
+
+<table width="100%" cellspacing="0" cellpadding="4" border="0">
+  <tbody>
+    <tr>
+      <td bgcolor="#f0f0f0"><pre>{5}</pre>
+      </td>
+    </tr>
+  </tbody>
+</table>
+qui signifie correspondre à 5 caractères, ni plus ni moins.<br />
+
+
+<h2>Assertions</h2>
+Le type suivant de méta-caractères est l'assertion, celle-ci correspondra si une affirmation donnée est vraie. La première paire d'assertions est<br />
+<br clear="all" />
+
+
+<p></p>
+
+<table width="100%" cellspacing="0" cellpadding="4" border="0">
+  <tbody>
+    <tr>
+      <td bgcolor="#f0f0f0"><pre>^ et $</pre>
+      </td>
+    </tr>
+  </tbody>
+</table>
+qui correspondent au début et à la fin de la ligne. Notez que certaines mises en oeuvres d'<i>expressions régulières</i> vous permettent de changer leurs comportements pour qu'elles correspondent au lieu de cela, au début et à la fin du texte. Ces assertions correspondent toujours à une chaîne de longueur nulle, ou autrement dit elles correspondent à une position. Par exemple si vous avez écrit cette expression :<br />
+<br clear="all" />
+
+
+<p></p>
+
+<table width="100%" cellspacing="0" cellpadding="4" border="0">
+  <tbody>
+    <tr>
+      <td bgcolor="#f0f0f0"><pre>^The</pre>
+      </td>
+    </tr>
+  </tbody>
+</table>
+correspondrait à chaque ligne qui commence par le mot <b>The</b>.<br />
+<br />
+Les prochains caractères d'assertions correspondent au début et à la fin d'un mot, ce sont :<br />
+<br clear="all" />
+
+
+<p></p>
+
+<table width="100%" cellspacing="0" cellpadding="4" border="0">
+  <tbody>
+    <tr>
+      <td bgcolor="#f0f0f0"><pre>&lt; et &gt;</pre>
+      </td>
+    </tr>
+  </tbody>
+</table>
+ils s'avèrent pratique quand vous voulez une correspondance à un mot précisément, par exemple :<br
+/>
+<br clear="all" />
+
+
+<p></p>
+
+<table width="100%" cellspacing="0" cellpadding="4" border="0">
+  <tbody>
+    <tr>
+      <td bgcolor="#f0f0f0"><pre>cow</pre>
+      </td>
+    </tr>
+  </tbody>
+</table>
+renverrait chacun des mots suivants<br />
+<br clear="all" />
+
+
+<p></p>
+
+<table width="100%" cellspacing="0" cellpadding="4" border="0">
+  <tbody>
+    <tr>
+      <td bgcolor="#f0f0f0"><pre>cow
+coward
+cowage
+cowboy
+cowl</pre>
+      </td>
+    </tr>
+  </tbody>
+</table>
+un petit changement à l'expression :<br />
+<br clear="all" />
+
+
+<p></p>
+
+<table width="100%" cellspacing="0" cellpadding="4" border="0">
+  <tbody>
+    <tr>
+      <td bgcolor="#f0f0f0"><pre>&lt;cow&gt;</pre>
+      </td>
+    </tr>
+  </tbody>
+</table>
+et vous auriez seulement une correspondance au mot <b>cow</b> dans le texte.<br />
+<br />
+Une dernière chose doit être dite, tous les caractères littéraux sont en fait des assertions eux-mêmes, la différence est que les littéraux ont une taille. Ainsi dans un souci de clarté, nous utilisons le mot assertion seulement pour ceux qui sont de taille nulle.<br />
+
+
+<h2>Groupes et alternances</h2>
+Une chose que vous pourriez avoir remarqué quand nous avons expliqué les quantificateurs est qu'ils ont fonctionné seulement sur le caractère à leur gauche. Puisque cela limite beaucoup nos expressions, j'expliquerai d'autres utilisations des quantificateurs. Les quantificateurs peuvent aussi être utilisés sur des méta-caractères, les utiliser sur des assertions est idiot puisqu'elles sont de taille nulle et la correspondance à une, deux, trois ou plus d'entre elles est inutile.
+Cependant le groupement et la séquence de méta-caractères sont parfaits pour être quantifiés. Commençons d'abord par le groupement.  
+<br />
+<br />
+Vous pouvez former des groupes, ou des sous-expressions comme ils sont fréquemment appelés, en utilisant des parenthèses :<br />
+<br clear="all" />
+
+
+<p></p>
+
+<table width="100%" cellspacing="0" cellpadding="4" border="0">
+  <tbody>
+    <tr>
+      <td bgcolor="#f0f0f0"><pre>( et )</pre>
+      </td>
+    </tr>
+  </tbody>
+</table>
+<b>(</b> commence la sous-expression et <b>)</b> la termine. 
+Il est aussi possible d'inclure une ou plusieurs sous-expressions à l'intérieur de sous-expressions. La sous-expression correspondra si le contenu correspond. Ainsi en mixant ceci avec des quantificateurs et des assertions vous pouvez faire :<br />
+<br clear="all" />
+
+
+<p></p>
+
+<table width="100%" cellspacing="0" cellpadding="4" border="0">
+  <tbody>
+    <tr>
+      <td bgcolor="#f0f0f0"><pre>( ?ho)+</pre>
+      </td>
+    </tr>
+  </tbody>
+</table>
+qui correspond à toutes les lignes suivantes<br />
+<br clear="all" />
+
+
+<p></p>
+
+<table width="100%" cellspacing="0" cellpadding="4" border="0">
+  <tbody>
+    <tr>
+      <td bgcolor="#f0f0f0"><pre>ho
+ho ho
+ho ho ho
+hohoho</pre>
+      </td>
+    </tr>
+  </tbody>
+</table>
+Une autre utilisation des sous-expressions est l'extraction d'une partie de la correspondance si elle existe, c'est souvent utilisé conjointement avec les séquences, qui sont abordées plus loin.<br />
+<br />
+<br />
+Vous pouvez aussi utiliser le résultat d'une sous-expression pour ce qui est appelé une rétro-référence. Une rétro-référence est obtenue en utilisant un chiffre 'antislashé', seulement un chiffre différent de zéro, cela vous permet neuf rétro-références. <Br /> 
+La rétro-référence renverra la correspondance à la sous-expression désignée (sauf que {article_contents_1} correspond à un caractère nul). Pour trouver le nombre de sous-expressions, comptez les parenthèses gauches à partir de la gauche.<br
+/>
+<br />
+L'utilisation des rétro-références est un peu limitée, d'autant plus que vous en avez seulement neuf, mais en certaines rares occasions vous pourriez en avoir besoin. Notez que certaines implémentations d'<i>expressions régulières</i> peuvent utiliser des nombres de plusieurs chiffres tant qu'ils ne commencent pas par 0.<br />
+<br />
+Ensuite ce sont les alternances qui vous permettent une correspondance à beaucoup de mots, le caractère d'alternative est<br />
+<br clear="all" />
+
+
+<p></p>
+
+<table width="100%" cellspacing="0" cellpadding="4" border="0">
+  <tbody>
+    <tr>
+      <td bgcolor="#f0f0f0"><pre>|</pre>
+      </td>
+    </tr>
+  </tbody>
+</table>
+Une utilisation type est :<br />
+<br clear="all" />
+
+
+<p></p>
+
+<table width="100%" cellspacing="0" cellpadding="4" border="0">
+  <tbody>
+    <tr>
+      <td bgcolor="#f0f0f0"><pre>Bill|Linus|Steve|Larry</pre>
+      </td>
+    </tr>
+  </tbody>
+</table>
+correspondrait à Bill, Linus, Steve ou Larry, et la combinaison avec des sous-expressions et des quantificateurs nous permet de faire :<br />
+<br clear="all" />
+
+
+<p></p>
+
+<table width="100%" cellspacing="0" cellpadding="4" border="0">
+  <tbody>
+    <tr>
+      <td bgcolor="#f0f0f0"><pre>cow(ard|age|boy|l)?</pre>
+      </td>
+    </tr>
+  </tbody>
+</table>
+qui renverra chacun des mots suivants, et aucun autre.<br />
+<br clear="all" />
+
+
+<p></p>
+
+<table width="100%" cellspacing="0" cellpadding="4" border="0">
+  <tbody>
+    <tr>
+      <td bgcolor="#f0f0f0"><pre>cow
+coward
+cowage
+cowboy
+cowl</pre>
+      </td>
+    </tr>
+  </tbody>
+</table>
+J'ai mentionné plus tôt dans l'article que l'expression n'a pas à correspondre entièrement pour être couronnée de succès, cela peut arriver quand vous utilisez des sous-expressions mélangées à des alternances. Par exemple<br />
+<br clear="all" />
+
+
+<p></p>
+
+<table width="100%" cellspacing="0" cellpadding="4" border="0">
+  <tbody>
+    <tr>
+      <td bgcolor="#f0f0f0"><pre>((Donald|Dolly) Duck)|(Scrooge McDuck)</pre>
+      </td>
+    </tr>
+  </tbody>
+</table>
+Comme vous le voyez, seulement la sous-expression supérieure gauche ou droite pourra correspondre, mais pas les deux. C'est parfois pratique quand vous voulez exécuter un motif complexe dans une sous-expression, et s'il échoue, en essayer un autre.<br />
+
+
+<h2>Séquences</h2>
+Enfin nous avons les séquences qui définissent une suite de caractères à faire correspondre, parfois vous ne voulez pas directement une correspondance à un mot, mais plutôt à quelque chose qui lui ressemble. Les caractères de séquence sont<br />
+<br clear="all" />
+
+
+<p></p>
+
+<table width="100%" cellspacing="0" cellpadding="4" border="0">
+  <tbody>
+    <tr>
+      <td bgcolor="#f0f0f0"><pre>[ et ]</pre>
+      </td>
+    </tr>
+  </tbody>
+</table>
+Chaque caractère mis à l'intérieur des crochets de séquence est traité comme caractère littéral, même les méta-caractères. Les seuls caractères spéciaux sont <b>-</b> qui désigne un ensemble de caractères, et <b>^</b> qui est utilisé pour exclure une séquence. La séquence est assez semblable à l'alternance, la similitude est que un seul des éléments inscrits correspondra. Par exemple<br />
+<br clear="all" />
+
+
+<p></p>
+
+<table width="100%" cellspacing="0" cellpadding="4" border="0">
+  <tbody>
+    <tr>
+      <td bgcolor="#f0f0f0"><pre>[a-z]</pre>
+      </td>
+    </tr>
+  </tbody>
+</table>
+correspondra à toute lettre minuscule non accentuée qui est dans l'alphabet (de a à z).
+Une autre séquence commune est<br />
+<br clear="all" />
+
+
+<p></p>
+
+<table width="100%" cellspacing="0" cellpadding="4" border="0">
+  <tbody>
+    <tr>
+      <td bgcolor="#f0f0f0"><pre>[a-zA-Z0-9]</pre>
+      </td>
+    </tr>
+  </tbody>
+</table>
+qui correspond à n'importe quel caractère non accentué minuscule ou majuscule dans l'alphabet, ainsi que les chiffres. Les séquences sont aussi mélangées avec des quantificateurs et des assertions pour produire des recherches plus complexes. Par exemple<br />
+<br clear="all" />
+
+
+<p></p>
+
+<table width="100%" cellspacing="0" cellpadding="4" border="0">
+  <tbody>
+    <tr>
+      <td bgcolor="#f0f0f0"><pre><[a-zA-Z]+></pre>
+      </td>
+    </tr>
+  </tbody>
+</table>
+Correspond à tous les mots complets. Cela correspondra à<br />
+<br clear="all" />
+
+
+<p></p>
+
+<table width="100%" cellspacing="0" cellpadding="4" border="0">
+  <tbody>
+    <tr>
+      <td bgcolor="#f0f0f0"><pre>cow
+Linus
+regular
+expression</pre>
+      </td>
+    </tr>
+  </tbody>
+</table>
+mais ne correspondra pas à<br />
+<br clear="all" />
+
+
+<p></p>
+
+<table width="100%" cellspacing="0" cellpadding="4" border="0">
+  <tbody>
+    <tr>
+      <td bgcolor="#f0f0f0"><pre>200
+x-files
+C++</pre>
+      </td>
+    </tr>
+  </tbody>
+</table>
+Maintenant, et si vous aviez voulu trouver n'importe quoi sauf des mots, l'expression<br />
+<br clear="all" />
+
+
+<p></p>
+
+<table width="100%" cellspacing="0" cellpadding="4" border="0">
+  <tbody>
+    <tr>
+      <td bgcolor="#f0f0f0"><pre>[^a-zA-Z0-9]+</pre>
+      </td>
+    </tr>
+  </tbody>
+</table>
+trouverait n'importe quelles séquences de caractères qui ne sont pas tirés de l'alphabet ou constitués de chiffres.<br />
+<br />
+Quelques implémentations d'<i>expressions régulières</i> vous permettent d'utiliser des abréviations de séquences couramment utilisées, ce sont:<br />
+<br clear="all" />
+
+
+<p></p>
+
+<table width="100%" cellspacing="0" cellpadding="4" border="0">
+  <tbody>
+    <tr>
+      <td bgcolor="#f0f0f0"><pre>\d, un chiffre [0-9]
+\D, un non-chiffre [^0-9]
+\w, un mot (alphanumérique) [A-zA-Z0-9]
+\W, un non-mot [^a-zA-Z0-9]
+\s, un espace [ \t\n\r\f]
+\S, un non-espace [^ \t\n\r\f]</pre>
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>Caractères de remplacement/jokers</h2>
+Pour les personnes qui ont quelques connaissances sur les caractères de remplacement, je donnerai une brève explication sur la façon de les convertir en <i>expressions régulières</i>. Après la lecture de cet article, vous avez probablement vu les ressemblances avec les caractères de remplacement.
+Par exemple<br />
+<br clear="all" />
+
+
+<p></p>
+
+<table width="100%" cellspacing="0" cellpadding="4" border="0">
+  <tbody>
+    <tr>
+      <td bgcolor="#f0f0f0"><pre>*.jpg</pre>
+      </td>
+    </tr>
+  </tbody>
+</table>
+renvoie n'importe quel texte qui finit par .jpg. Vous pouvez aussi spécifier des crochets avec des caractères, par exemple<br />
+<br clear="all" />
+
+
+<p></p>
+
+<table width="100%" cellspacing="0" cellpadding="4" border="0">
+  <tbody>
+    <tr>
+      <td bgcolor="#f0f0f0"><pre>*.[ch]pp</pre>
+      </td>
+    </tr>
+  </tbody>
+</table>
+correspond à n'importe quel texte qui termine par .cpp ou .hpp. Tout cela est très semblable aux expressions régulières.<br />
+<br />
+
+
+<h2>Conversion de l'opérateur *</h2>
+Dans les jokers, le * signifie une correspondance à zéro ou plus, de n'importe quel caractère. Comme nous l'avons appris, nous le faisons sous forme d'expression régulière avec le signe de ponctuation '.' et le quantificateur *.
+Cela donne<br />
+<br clear="all" />
+
+
+<p></p>
+
+<table width="100%" cellspacing="0" cellpadding="4" border="0">
+  <tbody>
+    <tr>
+      <td bgcolor="#f0f0f0"><pre>.*</pre>
+      </td>
+    </tr>
+  </tbody>
+</table>
+Rappelez-vous aussi de convertir les signes de ponctuation '.' des jokers avec l'antislash.<br />
+<br />
+
+
+<h2>Conversion de l'opérateur ?</h2>
+Le ? signifie une correspondance à n'importe quel caractère, mais une correspondance à vraiment <b>quelque chose</b>, c'est exactement ce que le signe de ponctuation '.' fait.<br />
+<br />
+
+
+<h2>Conversion de l'opérateur [ ]</h2>
+Les [ ] peuvent être utilisés tels quels puisqu'ils ont la même signification dans les jokers que dans les expressions régulières.<br />
+<br />
+Ceci nous laissent avec :<br />
+Remplacez chaque * par .*<br />
+Remplacez chaque ? par .<br />
+Laissez les crochets comme ils sont<br />
+Remplacez tous les caractères qui sont des méta-caractères par leur variante avec l'antislash.<br />
+<br />
+
+
+<h2>Exemples</h2>
+<br clear="all" />
+
+
+<p></p>
+
+<table width="100%" cellspacing="0" cellpadding="4" border="0">
+  <tbody>
+    <tr>
+      <td bgcolor="#f0f0f0"><pre>*.jpg</pre>
+      </td>
+    </tr>
+  </tbody>
+</table>
+serait converti en<br />
+<br clear="all" />
+
+
+<p></p>
+
+<table width="100%" cellspacing="0" cellpadding="4" border="0">
+  <tbody>
+    <tr>
+      <td bgcolor="#f0f0f0"><pre>.*\.jpg</pre>
+      </td>
+    </tr>
+  </tbody>
+</table>
+<br />
+<br clear="all" />
+
+
+<p></p>
+
+<table width="100%" cellspacing="0" cellpadding="4" border="0">
+  <tbody>
+    <tr>
+      <td bgcolor="#f0f0f0"><pre>ez*.[ch]pp</pre>
+      </td>
+    </tr>
+  </tbody>
+</table>
+serait converti en<br />
+<br clear="all" />
+
+
+<p></p>
+
+<table width="100%" cellspacing="0" cellpadding="4" border="0">
+  <tbody>
+    <tr>
+      <td bgcolor="#f0f0f0"><pre>ez.*\.[ch]pp</pre>
+      </td>
+    </tr>
+  </tbody>
+</table>
+ou bien<br />
+<br clear="all" />
+
+
+<p></p>
+
+<table width="100%" cellspacing="0" cellpadding="4" border="0">
+  <tbody>
+    <tr>
+      <td bgcolor="#f0f0f0"><pre>ez.*\.(cpp|hpp)</pre>
+      </td>
+    </tr>
+  </tbody>
+</table>
+<br />
+
+
+<h2>Exemples</h2>
+Pour vraiment parvenir à connaître les <i>expressions régulières</i> j'ai laissé sur cette page, certaines des expressions les plus couramment utilisées. Étudiez-les, expérimentez-les et essayez de comprendre exactement ce qu'elles font.<br />
+<br />
+Validité de courrier électronique, correspondra seulement aux adresses électroniques qui sont valables, par exemple user@host.com<br />
+<br clear="all" />
+
+
+<p></p>
+
+<table width="100%" cellspacing="0" cellpadding="4" border="0">
+  <tbody>
+    <tr>
+      <td bgcolor="#f0f0f0"><pre>[a-z0-9_-]+(\.[a-z0-9_-]+)*@[a-z0-9_-]+(\.[a-z0-9_-]+)+</pre>
+      </td>
+    </tr>
+  </tbody>
+</table>
+<br />
+
+Validité de courrier électronique #2, correspond aux adresses électroniques comprenant un nom, par exemple "Joe Doe "<br />
+<br clear="all" />
+
+
+<p></p>
+
+<table width="100%" cellspacing="0" cellpadding="4" border="0">
+  <tbody>
+    <tr>
+      <td bgcolor="#f0f0f0"><pre>("?[a-zA-Z]+"?[ \t]*)+\<[a-z0-9_-]+(\.[a-z0-9_-]+)*@[a-z0-9_-]+(\.[a-z0-9_-]+)+\></pre>
+      </td>
+    </tr>
+  </tbody>
+</table>
+<br />
+Validité de protocole, correspond aux protocoles web basés sur http://, ftp:// ou https://<br />
+<br clear="all" />
+
+
+<p></p>
+
+<table width="100%" cellspacing="0" cellpadding="4" border="0">
+  <tbody>
+    <tr>
+      <td bgcolor="#f0f0f0"><pre>[a-z]+://</pre>
+      </td>
+    </tr>
+  </tbody>
+</table>
+<br />
+Inclusion en C/C++, correspond aux déclarations d'inclusion de fichier valables en C/C++ .<br />
+<br clear="all" />
+
+
+<p></p>
+
+<table width="100%" cellspacing="0" cellpadding="4" border="0">
+  <tbody>
+    <tr>
+      <td bgcolor="#f0f0f0"><pre>^#include[ \t]+[<"][^>"]+["&gt;]</pre>
+      </td>
+    </tr>
+  </tbody>
+</table>
+<br />
+Commentaires C++ en fin de ligne<br />
+<br clear="all" />
+
+
+<p></p>
+
+<table width="100%" cellspacing="0" cellpadding="4" border="0">
+  <tbody>
+    <tr>
+      <td bgcolor="#f0f0f0"><pre>//.+$</pre>
+      </td>
+    </tr>
+  </tbody>
+</table>
+<br />
+Commentaires C/C++ sur plusieurs lignes, elle a un défaut, pouvez-vous le découvrir ?<br />
+<br clear="all" />
+
+
+<p></p>
+
+<table width="100%" cellspacing="0" cellpadding="4" border="0">
+  <tbody>
+    <tr>
+      <td bgcolor="#f0f0f0"><pre>/\*[^*]*\*/</pre>
+      </td>
+    </tr>
+  </tbody>
+</table>
+<br />
+Nombres à virgule flottante, correspond aux nombres simples à virgule flottante de type 1.2 et 0.5<br />
+<br clear="all" />
+
+
+<p></p>
+
+<table width="100%" cellspacing="0" cellpadding="4" border="0">
+  <tbody>
+    <tr>
+      <td bgcolor="#f0f0f0"><pre>-?[0-9]+\.[0-9]+</pre>
+      </td>
+    </tr>
+  </tbody>
+</table>
+<br />
+Nombres hexadécimaux, correspond aux nombres hexa de style C/C++, 0xcafebabe<br />
+<br clear="all" />
+
+
+<p></p>
+
+<table width="100%" cellspacing="0" cellpadding="4" border="0">
+  <tbody>
+    <tr>
+      <td bgcolor="#f0f0f0"><pre>0x[0-9a-fA-F]+</pre>
+      </td>
+    </tr>
+  </tbody>
+</table>
+<br />
+
+
+<h2>Utilitaires</h2>
+Il existe plusieurs utilitaires exploitant les expressions régulières. Je laisse une liste de certains d'entre eux avec une courte description :<br />
+<br />
+
+
+<h2>grep</h2>
+Grep recherche dans les fichiers indiqués les lignes correspondant au motif donné. Il peut aussi être utilisé pour trouver les fichiers contenant un motif spécifique, par exemple :<br />
+<br clear="all" />
+
+
+<p></p>
+
+<table width="100%" cellspacing="0" cellpadding="4" border="0">
+  <tbody>
+    <tr>
+      <td bgcolor="#f0f0f0"><pre>grep -E "cow|vache" * &gt;/dev/null &amp;&amp; echo "Found a cow"</pre>
+      </td>
+    </tr>
+  </tbody>
+</table>
+<br />
+C'est un utilitaire plutôt commun sur les distributions Linux, mais si vous ne l'avez pas vous pouvez obtenir une version sur <a href="http://directory.fsf.org/project/grep/">la page GNU</a><br />
+<br />
+Une petite astuce est d'activer les expressions régulières étendues avec l'option -E, sinon la plupart des méta-caractères expliqués dans cet article ne fonctionnent pas.<br />
+<br />
+
+
+<h2>sed</h2>
+Sed est un éditeur de flux. Un éditeur de flux est utilisé pour exécuter des transformations basiques de texte sur un flux séquentiel de données.<br />
+<br />
+C'est un utilitaire plutôt commun sur les distributions Linux, mais si vous ne l'avez pas vous pouvez trouver une version sur <a href="http://directory.fsf.org/project/sed/">la page GNU</a><br />
+<br />
+
+
+<h2>gawk</h2>
+Gawk est l'implémentation du projet GNU du langage de programmation AWK. Elle est conforme à la définition du langage édictée par le Standard POSIX 1003.2 des Langages de Commandes et Utilitaires.<br /> 
+<br />
+C'est un utilitaire plutôt commun sur les distributions Linux, mais si vous ne l'avez pas vous pouvez trouver une version sur <a href="http://directory.fsf.org/project/gawk/">la page GNU</a><br />
+<br />
+<span style="color: #FF0000; background-color: #FFFFFF">[document édité ici]</span><br style="color: #FF0000; background-color: #FFFFFF" />
+<i>Expressions régulières</i> liens associés :<br />
+<br />
+<a href="http://www.plover.com/~mjd/perl/NPC/index.html">Regular Expressions
+and NP-Completeness</a><br />
+<a href="http://www.cs.rochester.edu/u/leblanc/csc173/fa/re.html">Equivalence
+of Regular Expressions and Finite Automata</a><br />
+<a href="http://virtual.park.uga.edu/humcomp/perl/regex2a.html">Perl Regular
+Expression Tutorial</a><br />
+[NdT : <a href="http://fr.wikipedia.org/wiki/Expression_rationnelle">fr.wikipedia</a>]
+<br clear="all" />
+</body>
+</html>

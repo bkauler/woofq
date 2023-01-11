@@ -273,17 +273,7 @@ if [ "$MYBASE" = "quicksetup" ];then #120313 only allow in main quicksetup windo
     H_daemon="$(gettext "Daemons are background processes.")${CR}$(gettext 'Two bad things about them, is they use system resources, although maybe very small, and are a potential security risk while online.')${CR}${CR}$(gettext 'If you are not going to use Samba (sharing drives over the Internet) or Rsync (remote file backup) especially, recommend disable.')${CR}$(gettext 'Others, such as Bluetooth (local network), Sane (scanner), Cups (printing), disable if you do not require those features.')${CR}${CR}$(gettext 'Note: you can always enable them later, via the <b>BootManager</b> in the System menu.')"
     export DLG_HELP_daemon="<window resizable=\"false\" title=\"$(gettext 'Help: Daemons')\" icon-name=\"${HELPICON}\" window_position=\"1\"><vbox><text use-markup=\"true\"><label>\"${H_daemon}\"</label><variable>DLG_HELP_daemon</variable></text><hbox><button><label>${M_close}</label><action type=\"closewindow\">DLG_HELP_daemon</action></button></hbox></vbox></window>"
     
-    #130701...
-    SPOT_XML=''
     HOMEUSER="`whoami`"
-    #180409 easyos, remove run as spot...
-    #if [ "$HOMEUSER" = "root" ];then
-    # TT_CH_S="$(gettext 'Tick this if interested in running Internet applications as non-root user spot, for extra security')"
-    # SPOT_XML="
-    #    <checkbox tooltip-text=\"${TT_CH_S}\"><label>$(gettext 'Run apps as spot')</label><variable>CHECK_SPOT</variable><default>false</default></checkbox>
-    #    <button><input file>/usr/local/lib/X11/mini-icons/mini-question.xpm</input><action>basichtmlviewer /usr/share/doc/root.htm & </action></button>
-    #   "
-    #fi
     
     #160921 160926
     if [ -s /etc/iso3166-1-alpha2 ];then #precaution
@@ -332,7 +322,7 @@ A list of country codes is in /etc/iso3166-1-alpha2, and /etc/modprobe.d/crdw.co
         <button><input file>/usr/local/lib/X11/mini-icons/mini-question.xpm</input><action type=\"launch\">DLG_HELP_FW</action></button>
        </hbox>
        <hbox>
-        ${SPOT_XML} <text><label>\" \"</label></text>
+        <text><label>\" \"</label></text>
         ${CHKBOXNTP}
        </hbox>
       </vbox>

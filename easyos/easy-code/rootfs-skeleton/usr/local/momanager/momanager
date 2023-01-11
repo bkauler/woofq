@@ -427,8 +427,8 @@ YESSSS_XML=""; NOSSS_XML=""
 for ASSSDOMAIN in `find /usr/share/sss -mindepth 1 -maxdepth 1 -type d | sed -e 's%^/usr/share/sss/%%' | tr '\n' ' '`
 do
 
- #120224 doc_strings is a special case, the translated file is elsewhere...
- if [ -f /usr/share/sss/${ASSSDOMAIN}/${ASSSDOMAIN}.${ORIGLANG1} ];then
+ #120224 doc_strings is a special case, the translated file is elsewhere... 20230111 remove if-fi
+ #if [ -f /usr/share/sss/${ASSSDOMAIN}/${ASSSDOMAIN}.${ORIGLANG1} ];then
   if [ "$ASSSDOMAIN" = "doc_strings" ];then
    cp -f /usr/share/sss/${ASSSDOMAIN}/${ASSSDOMAIN} /usr/share/sss/${ASSSDOMAIN}/${ASSSDOMAIN}.${ORIGLANG1} #120228 must always be same as orig.
    TRANSFLAG='fail'
@@ -440,9 +440,9 @@ do
      TRANSFLAG='success'
     fi
    done
-   [ "$TRANSFLAG" = "fail" ] && rm -f /usr/share/sss/${ASSSDOMAIN}/${ASSSDOMAIN}.${ORIGLANG1} #because translated file(s) does not exist.
+   #[ "$TRANSFLAG" = "fail" ] && rm -f /usr/share/sss/${ASSSDOMAIN}/${ASSSDOMAIN}.${ORIGLANG1} #because translated file(s) does not exist. 20230111 remove
   fi
- fi
+ #fi
 
  if [ -f /usr/share/sss/${ASSSDOMAIN}/${ASSSDOMAIN}.${ORIGLANG1} ];then
   #there is already a translation.

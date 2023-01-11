@@ -1,0 +1,79 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+
+  <meta http-equiv="Content-Type" content=""><title>lisez-moi de Pudd</title></head><body alink="red" bgcolor="#efefef" link="blue" text="black" vlink="#551a8b">
+<h1>Pudd: Puppy universal dd</h1>
+
+<p>C'est la premi&egrave;re version de Pudd et on s'attend &agrave;&nbsp; ce que beaucoup d'am&eacute;liorations adviennent.</p>
+
+<h2>Quelques notes sur la terminologie</h2>
+
+<p>Les mots "lecteur de disque" ou "disque dur" font r&eacute;f&eacute;rence &agrave;&nbsp; la totalit&eacute; physique du lecteur,
+tandis qu'une "partition" est une partie du lecteur pouvant contenir un "syst&egrave;me de fichier".</p>
+
+<p>Par exemple, dans le monde Unix/Linux, un lecteur entier peut
+&ecirc;tre nomm&eacute; comme ceci : /dev/hda, alors que les divisions
+&agrave;&nbsp; l'int&eacute;rieur peuvent &ecirc;tre nomm&eacute;es
+/dev/hda1, /dev/hda2, etc.</p>
+
+<p>Le probl&egrave;me avec cette terminologie est que dans le monde de
+Windows/DOS le mot "lecteur" peut faire r&eacute;f&eacute;rence
+&agrave;&nbsp; une partition, et non &agrave;&nbsp; la totalit&eacute;
+du lecteur. Par exemple, "lecteur C:" est r&eacute;ellement une
+partition. C'est plus correct de se r&eacute;f&eacute;rer
+&agrave;&nbsp; C: comme un "lecteur logique", qui est aussi un terme
+usit&eacute; dans le monde Windows/DOS.</p>
+
+<p>Il est aussi n&eacute;cessaire de distinguer entre une partition et
+un syst&egrave;me de fichiers, ce qui est de nouveau trouble dans le
+monde de Windows/DOS. Vous pouvez cr&eacute;er, une partition dans un
+disque dur, ensuite un syst&egrave;me de fichiers &agrave;&nbsp;
+l'int&eacute;rieur de celle-ci. Des exemples de syst&egrave;mes de
+fichiers : MS-DOS, vfat, ntfs, ext2, ext3 et reiserfs.</p>
+
+<p>Un point de confusion ici, c'est le programme "format" de DOS. En
+fait il cr&eacute;&eacute; un syst&egrave;me de fichier msdos dans une
+partition. Le programme de DOS "fdisk" peut cr&eacute;er et supprimer
+des partitions (noter que Linux aussi poss&egrave;de un programme
+"fdisk" , et il est dans PUPPY/TOUTOU</p>
+
+<h2>Copies des lecteurs ou des partitions</h2>
+
+<p>Quand j'utilise le mot "lecteur" je me r&eacute;f&egrave;re
+normalement &agrave;&nbsp; la totalit&eacute; du lecteur. J'utilise
+"partition" quand je me r&eacute;f&egrave;re &agrave;&nbsp; une
+partition.</p>
+
+<p>Pudd peut copier un lecteur en entier ou une partition. Il y a
+quelques restrictions ici, que j'esp&egrave;re rectifier dans les
+versions futures de Pudd :</p>
+<ul>
+  <li>Un lecteur peut seulement &ecirc;tre copi&eacute; vers un autre lecteur identique. Par exemple, 
+    vous pouvez copier une carte Flash Compact de 128M vers une autre  carte Flash Compact 
+    de 128M (je ne sais pas encore s'il y a des probl&egrave;mes de copie entre les diff&eacute;rents 
+    mod&egrave;les de carte CF, ou d'autres types de cartes de Flash).</li>
+  <li>Une
+partition peut &ecirc;tre copi&eacute;e vers une autre partition qui
+est de taille identique ou sup&eacute;rieure. Ici il y a quelques
+d&eacute;tails &agrave;&nbsp; travailler : pour le moment, elles
+doivent &ecirc;tre ajust&eacute;es pour avoir le m&ecirc;me type de
+syst&egrave;me de fichiers. Le syst&egrave;me de fichiers source
+recopiera ce qui est dans la partition de destination. Jusqu'ici, Pudd
+peut seulement redimensionner des syst&egrave;mes de fichiers ext2 et
+ext3 pour remplir la partition de destination.</li>
+</ul>
+
+<p>
+Pudd vous permet de copier un/une lecteur/partition vers un fichier,
+puis vous pouvez copier le fichier vers un/une lecteur/partition. Mais,
+vous ne pouvez pas m&eacute;langer les deux. C'est &agrave;&nbsp; dire
+vous ne pouvez pas copier un lecteur vers un fichier puis le fichier
+vers une partition, car le fichier contiendra l'image du lecteur dans
+sa totalit&eacute;, et non simplement, une seule partition.</p>
+
+<p></p>
+
+<p>Meilleures salutations,<br>
+Barry Kauler</p>
+
+</body></html>
