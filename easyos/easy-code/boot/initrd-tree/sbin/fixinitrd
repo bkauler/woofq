@@ -35,6 +35,7 @@ do
  sed -i -e 's%\[%\\[%g' -e 's$\]$\\]$g' -e 's%\\\\\[%\\[%g' -e 's%\\\\\]%\\]%g' /tmp/fixdesk-translationblock
  sed -i -e 's%\.%\\.%g' -e 's%\\\\\.%\\.%g' /tmp/fixdesk-translationblock #note: 2nd ptn gets rid of prior escape char, so there remains just one.
  sed -f /tmp/fixdesk-translationblock "${TARGETFILE}.en" > ${TARGETFILE}.${LANG1}
+ chmod 755 ${TARGETFILE}.${LANG1}
  ln -snf ${TARGETFILE##*/}.${LANG1} ${TARGETFILE}
 done
 ###end###
