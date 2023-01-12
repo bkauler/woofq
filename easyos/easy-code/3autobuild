@@ -1,58 +1,22 @@
 #!/bin/sh
-#got to make it easier to build easyos!
-#20210329 optional passed param: en, de, fr, nb, nn
-#20210702 take out nb_NO.UTF-8 nn_NO.UTF-8
-#20210913 seamonkey can run as user seamonkey, not spot.
-#20211103 default pipewire or pulseaudio.
-#20220606 run hexchat as non-root.
 
-#BUILDLANGS='de_DE.UTF-8 fr_FR.UTF-8 nb_NO.UTF-8 nn_NO.UTF-8 en_US.UTF-8'
-BUILDLANGS='de_DE.UTF-8 fr_FR.UTF-8 en_US.UTF-8'
-if [ "$1" ];then
- case "${1}" in
-  en) BUILDLANGS="en_US.UTF-8" ;;
-  de) BUILDLANGS="de_DE.UTF-8" ;;
-  fr) BUILDLANGS="fr_FR.UTF-8" ;;
-  nb) BUILDLANGS="nb_NO.UTF-8" ;;
-  nn) BUILDLANGS="nn_NO.UTF-8" ;;
-  *) exit 1 ;;
- esac
-fi
+export WAITENDPINSTALL='no'
+export WAITHUNSPELLPET='no'
+export DODEPSCHECK='no'
+export SEAMONKEYASCLIENT='yes' #20210913 ask, no, yes (default ask)
+export ASKEXTRATRANSPKGS='yes'
+export ASKREPACKJAR='no'
+export ASKDISABLEAPPLETS='no'
+export ASKEASYIDFILE='no'
+export ASKINBUILTINITRD='no'
+export RUNCHOOSETHEMES='no'
+export ASKDLSMLANGPACK='no'
+export DEFAULTPAorPW='pa' #20211103 pa, pw, ask (default ask).
+export FIREFOXASCLIENT='yes' #2021108 ask, no, yes (default ask)
+export CLAWSASCLIENT='yes' #2021212 ask, no, yes (default ask)
+export CHROMIUMASCLIENT='yes' #2021213 ask, no, yes (default ask)
+export HEXCHATASCLIENT='yes' #20220606
 
-for aLANG in ${BUILDLANGS} #de_DE.UTF-8 fr_FR.UTF-8 nb_NO.UTF-8 nn_NO.UTF-8 en_US.UTF-8
-do
- export DEFAULTLANG="$aLANG"
- case "$aLANG" in
-  nb*|nn*) DEFAULTKMAP='no' ;;
-  en*)     DEFAULTKMAP='us' ;;
-  de*)     DEFAULTKMAP='de' ;;
-  fr*)     DEFAULTKMAP='fr' ;;
-  *)       DEFAULTKMAP='' ;;
- esac
- export DEFAULTKMAP
- export WAITENDPINSTALL='no'
- export WAITHUNSPELLPET='no'
- export DODEPSCHECK='no'
- export SEAMONKEYASCLIENT='yes' #20210913 ask, no, yes (default ask)
- export ASKEXTRATRANSPKGS='yes'
- export ASKREPACKJAR='no'
- export ASKDISABLEAPPLETS='no'
- export ASKEASYIDFILE='no'
- export ASKINBUILTINITRD='no'
- export RUNCHOOSETHEMES='no'
- export ASKDLSMLANGPACK='no'
- export DEFAULTPAorPW='pa' #20211103 pa, pw, ask (default ask).
- export FIREFOXASCLIENT='yes' #2021108 ask, no, yes (default ask)
- export CLAWSASCLIENT='yes' #2021212 ask, no, yes (default ask)
- export CHROMIUMASCLIENT='yes' #2021213 ask, no, yes (default ask)
- export HEXCHATASCLIENT='yes' #20220606
- 
- ./3buildeasydistro
- sync
- #echo -n "Finished ${aLANG} build, ENTER to do next: "
- #read yepdoit
-
-done
-
-#20210403 install to www...
-
+./3buildeasydistro
+sync
+###end###

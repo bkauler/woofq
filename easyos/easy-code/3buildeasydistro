@@ -272,26 +272,14 @@
 # ex:  blkid /dev/sdc1
 # /dev/sdc1: SEC_TYPE="msdos" UUID="260A-C6D3" BLOCK_SIZE="512" TYPE="vfat" PARTUUID="03fa83c2-01"
 # --also differentiate UUID and PARTUUID
-
-#for easy linux, want to build a drive image, with just one 639MB fat32 partition.
-#for PCs, bootable with syslinux. partition contains vmlinuz, initrd and easy.sfs
-#for arm boards, use a ready-made skeleton image (which may have kernel in it).
-#to make it easier for PCs, will also use a skeleton image, so no need to use syslinux to set it up.
-# sd-skeleton-images has '*.img.gz', has one 639MB fat32 partition, total size
-# of image is 640MB, appending a ext4 partition in target will start on a 8MB boundary.
-#...actually, have made the image file 641MB, 1MB zeroes on end.
+#20230111 only have en build, create nls_<ver>_noarch.sfs
+#20230112 populate initrd with sss initrd_strings*
 
 export LANG=C #faster.
 
 BOOTLOADER='limine' #20221010
 
 mkdir -p /tmp/3buildeasydistro #20201228
-
-#190107
-if [ ! -e /usr/sbin/fixboot ];then
- echo "You must be running EasyOS version 1.0 or later. Aborting."
- exit 1
-fi
 if ! which gcc >/dev/null;then #need strip
  echo "You need to have the devx SFS installed. Aborting."
  exit 1
@@ -1126,52 +1114,11 @@ fi
 #190712 moved this up...
 cp -a -f woof-installed-packages sandbox3/rootfs-complete/root/.packages/
 
-#120216 set default LANG and KMAP... 120401 improve...  190107 moved up...
-echo
-#DEFAULTKMAP="us" #190712 20210128
-if [ "$DEFAULTLANG" == "" ];then #20210128
- if [ "$BUILD_CHOICE_LANG" != "" ];then #150726
-  DEFAULTLANG="$BUILD_CHOICE_LANG"
- else
-  echo
-  echo "Puppy is built with a default locale LANG=en_US and keyboard layout KMAP=us,
-which may be changed after bootup.
-However, if you are building a language-specific Puppy, you may change the
-defaults now. But, please do make sure that your Puppy has a 'langpack' PET
-for your language installed -- if one does not exist, then you will have to
-create one -- see MoManager in the Utility menu, also read the Menu -> Help
--> HOWTO Internationalization."
-  echo
-  echo "These are the available LANG values (in /usr/share/i18n/locales):
-aa_DJ aa_ER aa_ER@saaho aa_ET af_ZA am_ET an_ES ar_AE ar_BH ar_DZ ar_EG ar_IN ar_IQ ar_JO ar_KW ar_LB ar_LY ar_MA ar_OM ar_QA ar_SA ar_SD ar_SY ar_TN ar_YE as_IN ast_ES az_AZ be_BY be_BY@latin ber_DZ ber_MA bg_BG bn_BD bn_IN br_FR br_FR@euro bs_BA byn_ER ca_AD ca_ES ca_ES@euro ca_FR ca_IT crh_UA csb_PL cs_CZ cy_GB da_DK de_AT de_AT@euro de_BE de_BE@euro de_CH de_DE de_DE@euro de_LU de_LU@euro dz_BT el_CY el_GR el_GR@euro en_AU en_BW en_CA en_DK en_GB en_HK en_IE en_IE@euro en_IN en_NG en_NZ en_PH en_SG en_US en_ZA en_ZW es_AR es_BO es_CL es_CO es_CR es_DO es_EC es_ES es_ES@euro es_GT es_HN es_MX es_NI es_PA es_PE es_PR es_PY es_SV es_US es_UY es_VE et_EE eu_ES eu_ES@euro fa_IR fi_FI fi_FI@euro fil_PH fo_FO fr_BE fr_BE@euro fr_CA fr_CH fr_FR fr_FR@euro fr_LU fr_LU@euro fur_IT fy_DE fy_NL ga_IE ga_IE@euro gd_GB gez_ER gez_ER@abegede gez_ET gez_ET@abegede gl_ES gl_ES@euro gu_IN gv_GB ha_NG he_IL hi_IN hr_HR hsb_DE hu_HU hy_AM id_ID ig_NG ik_CA is_IS it_CH it_IT it_IT@euro iu_CA iw_IL ja_JP ka_GE kk_KZ kl_GL km_KH kn_IN ko_KR ks_IN ku_TR kw_GB ky_KG lg_UG li_BE li_NL lo_LA lt_LT lv_LV mai_IN mg_MG mi_NZ mk_MK ml_IN mn_MN mr_IN ms_MY mt_MT nb_NO nds_DE nds_NL ne_NP nl_BE nl_BE@euro nl_NL nl_NL@euro nn_NO nr_ZA nso_ZA oc_FR om_ET om_KE or_IN pa_IN pap_AN pa_PK pl_PL pt_BR pt_PT pt_PT@euro ro_RO ru_RU ru_UA rw_RW sa_IN sc_IT se_NO shs_CA sid_ET si_LK sk_SK sl_SI so_DJ so_ET so_KE so_SO sq_AL sr_ME sr_RS sr_RS@latin ss_ZA st_ZA sv_FI sv_FI@euro sv_SE ta_IN te_IN tg_TJ th_TH ti_ER ti_ET tig_ER tk_TM tl_PH tn_ZA tr_CY tr_TR ts_ZA tt_RU tt_RU@iqtelif ug_CN uk_UA ur_PK uz_UZ uz_UZ@cyrillic ve_ZA vi_VN wa_BE wa_BE@euro wal_ET wo_SN xh_ZA yi_US yo_NG zh_CN zh_HK zh_SG zh_TW zu_ZA"
-  echo "ENTER only for default, else type one of the above. Usually, you would want UTF-8 enabled, so append that. ex: de_DE.UTF-8."
-  echo "(the default is en_US.UTF-8)"
-  echo -n "ENTER only for default, or type it now: "
-  read DEFAULTLANG
- fi
-fi
-if [ "$DEFAULTLANG" ];then
- echo "...ok, set to ${DEFAULTLANG}"
- DEFAULTLANG1="${DEFAULTLANG%_*}"
- if [ "$DEFAULTLANG1" != "en" ];then
-  echo
-  if [ "$DEFAULTKMAP" == "" ];then #20210128
-   echo "These are the available keyboard layout values (in /lib/keymaps):
-azerty be-latin1 br-abnt2 br-abnt br-latin1-abnt2 br-latin1-us by cf croat cz de de-latin1 dk dvorak dvorak-l dvorak-r es et fi fr gb gr hu101 hu il it jp106 lt mk nl no pl pt-latin1 ro ru se sg sk-qwerty sk-qwertz slovene sv-latin1 us wangbe"
-   echo "You don't have to choose a default here, as Easy will ask at first bootup. Whatever, after bootup the user will have the opportunity to change it, in the QuickSetup window."
-   echo -n "Enter only for 'us', else type one of the above: "
-   read DEFAULTKMAP
-   [ "$DEFAULTKMAP" = "" ] && DEFAULTKMAP="us"
-   echo "...ok, set to ${DEFAULTKMAP}"
-  fi
- fi
-else
- DEFAULTKMAP="us" #20210128
- DEFAULTLANG="en_US.UTF-8" #121123
- DEFAULTLANG1="en" #190107
- echo "...ok, set to ${DEFAULTLANG}"
-fi
-DEFAULTLANG12="${DEFAULTLANG%.*}"
+#20230111
+DEFAULTKMAP="us"
+DEFAULTLANG="en_US.UTF-8"
+DEFAULTLANG1="en"
+DEFAULTLANG12="en_US"
 #i think also, set LANG in /etc/profile...
 sed -i -e "s%^LANG=.*%LANG=${DEFAULTLANG}%" sandbox3/rootfs-complete/etc/profile
 echo
@@ -1257,6 +1204,14 @@ echo -n "${DEFAULTKMAP}" > sandbox3/rootfs-complete/etc/keymap
 if [ ! -d /usr/lib/locale/${DEFAULTLANG12}.utf8 ];then
  localedef -f UTF-8 -i ${DEFAULTLANG12} --no-archive ${DEFAULTLANG12}.utf8
 fi
+#20230111 also...
+for aCTRY in US GB AU CA NZ
+do
+ if [ ! -d /usr/lib/locale/en_${aCTRY}.utf8 ];then
+  localedef -f UTF-8 -i en_${aCTRY} --no-archive en_${aCTRY}.utf8
+ fi
+done
+
 #190112 host needs latest translation files...
 mkdir -p /usr/share/locale/${DEFAULTLANG1}
 cp -a -f -u sandbox3/rootfs-complete/usr/share/locale/${DEFAULTLANG1}/* /usr/share/locale/${DEFAULTLANG1}/ 2>/dev/null #20210822 hide err en empty.
@@ -1436,10 +1391,20 @@ mkdir -p rootfs-complete/usr/local/petget
 cp ${WKGDIR}/support/arch/runDotInstalls rootfs-complete/usr/local/petget/ArchRunDotInstalls
 chmod 755 rootfs-complete/usr/local/petget/ArchRunDotInstalls
 
-#190107 non-english build... 190111 moved up.
-if [ "$DEFAULTLANG1" != "en" ];then
- echo "EXECUTING: chroot rootfs-complete localedef -f UTF-8 -i ${DEFAULTLANG12} --no-archive ${DEFAULTLANG12}.utf8"
- chroot rootfs-complete localedef -f UTF-8 -i ${DEFAULTLANG12} --no-archive ${DEFAULTLANG12}.utf8
+#20230111
+if [ "$WOOF_HOSTARCH" = "$WOOF_TARGETARCH" ];then
+ if [ "$DEFAULTLANG1" != "en" ];then
+  echo "EXECUTING: chroot rootfs-complete localedef -f UTF-8 -i ${DEFAULTLANG12} --no-archive ${DEFAULTLANG12}.utf8"
+  chroot rootfs-complete localedef -f UTF-8 -i ${DEFAULTLANG12} --no-archive ${DEFAULTLANG12}.utf8
+ fi
+ for aCTRY in US GB AU CA NZ
+ do
+  if [ ! -d rootfs-complete/usr/lib/locale/en_${aCTRY}.utf8 ];then
+   chroot rootfs-complete localedef -f UTF-8 -i en_${aCTRY} --no-archive en_${aCTRY}.utf8
+  fi
+ done
+else
+ cp -a -f /usr/lib/locale/en_* rootfs-complete/usr/lib/locale/
 fi
 
 #20211110 if building with firefox-skeleton, copy latest version...
@@ -1489,68 +1454,8 @@ if [ -e ../youtube-dl ];then
  cp -a -f ../youtube-dl rootfs-complete/usr/bin/
 fi
 
-#190107 copy langpack if exists...
-cd ..
-if [ "$DEFAULTLANG1" != "en" ];then
- LANGPACK="$(grep "^langpack_${DEFAULTLANG1}\-[0-9]" Packages-pet-noarch-official | tail -n 1 | cut -f 1 -d '|')" #190114 fix.
- if [ ! "$LANGPACK" ];then
-  echo "WARNING: there is no 'langpack_${DEFAULTLANG1}' PET in the 'noarch' database."
-  echo "This will mean a somewhat incomplete translation."
- else
-  if [ ! -f packages-pet/${LANGPACK}.pet ];then
-   echo "ERROR: packages-pet/${LANGPACK}.pet does not exist."
-   echo -n "Please obtain it, then press ENTER key to continue: "
-   read waitforlp
-  fi
-  if [ ! -f packages-pet/${LANGPACK}.pet ];then
-   echo "WARNING: proceeding without installing ${LANGPACK}.pet"
-  else
-   cp -f packages-pet/${LANGPACK}.pet sandbox3/
-   cd sandbox3
-   [ -d ./${LANGPACK} ] && rm -rf ./${LANGPACK}
-   pet2dir ${LANGPACK}.pet
-   echo "Copying ${LANGPACK} contents into rootfs-complete..."
-   #mv -f ${LANGPACK}/pinstall.sh ${LANGPACK}/pinstall.shLP
-   rm -f ${LANGPACK}/pinstall.sh #190115 see below.
-   [ -f ${LANGPACK}/pinstall_hacks.sh ] && rm -f ${LANGPACK}/pinstall_hacks.sh #de: cannot run, as has absolute paths.
-   [ -d ${LANGPACK}/archive ] && rm -rf ${LANGPACK}/archive
-   for aAPP in `find ${LANGPACK}/usr/local/apps -mindepth 1 -maxdepth 1 -type d | tr '\n' ' '`
-   do
-    bAPP="$(basename $aAPP)"
-    [ ! -d rootfs-complete/usr/local/apps/${bAPP} ] && rm -rf ./${aAPP}
-   done
-   cat ${LANGPACK}/pet.specs >> rootfs-complete/root/.packages/woof-installed-packages
-   #190115 rename all AppInfo.xml to AppInfo.xml.in ... 190119 hide err.
-   for aAI in `ls -1 ${LANGPACK}/usr/local/apps/*/AppInfo.xml 2>/dev/null | tr '\n' ' '`
-   do
-    if [ -f ${aAI}.in ];then #precaution
-     rm -f ./${aAI}
-     continue
-    fi
-    mv -f ./${aAI} ${aAI}.in
-   done
-   #190115 also need the latest pinstall.sh to process those *.in files...
-   cp -f ../rootfs-skeleton/usr/share/doc/langpack-template/pinstall.sh ${LANGPACK}/pinstall.shLP
-   #rm -f ${LANGPACK}/pet.specs
-   cp -a -f --remove-destination ${LANGPACK}/* rootfs-complete/
-   cd rootfs-complete
-   sed -i -e 's%pupdialog%#pupdialog%' pinstall.shLP #remove popup.
-   #NEWLANG="`grep '^LANG=' etc/profile | cut -f 2 -d '=' | cut -f 1 -d ' '`" #190713
-   sed -i -e "s%TARGETLANG%${DEFAULTLANG1}%g" pinstall.shLP #190713 substitution reqd
-   ./pinstall.shLP
-   cd ../../
-   rm -f sandbox3/rootfs-complete/pet.specs #190110 keep until after exec pinstall.shLP
-   rm -f sandbox3/rootfs-complete/pinstall.shLP
-   #190115 rootfs-skeleton has .pot files, there may also be some in langpack...
-   for aPOT in `find rootfs-skeleton -mindepth 1 -type f -name '*.pot' | grep -v ' ' | cut -f 2- -d '/'`
-   do
-    [ "$aPOT" == "" ] && continue
-    aCUT="$(dirname $aPOT)"
-    cp -a -f --remove-destination rootfs-skeleton/${aPOT} sandbox3/rootfs-complete/${aCUT}/
-   done
-  fi
- fi
-fi
+cd .. #20230111
+
 #190107 copy package translations...
 echo "Copying package translations..."
 DEFAULTLANG12="${DEFAULTLANG%.*}"
@@ -1630,6 +1535,83 @@ if [ "$DEFAULTLANG1" != "en" ];then
   done
  fi
 fi
+
+#20230111 new nls_<ver>_noarch.sfs
+echo "Building sandbox3/nls_${DISTRO_VERSION}_noarch"
+if [ -d sandbox3/nls_${DISTRO_VERSION}_noarch ];then
+ rm -rf sandbox3/nls_${DISTRO_VERSION}_noarch
+fi
+mkdir sandbox3/nls_${DISTRO_VERSION}_noarch
+echo "  copying package translations..."
+for aNLS in $(find packages-${DISTRO_FILE_PREFIX} -mindepth 1 -maxdepth 1 -type d -name '*_NLS' | tr '\n' ' ')
+do
+ cp -a -f --remove-destination ${aNLS}/* sandbox3/nls_${DISTRO_VERSION}_noarch/
+done
+sync
+echo "  hunspell non-english pets..."
+HSPETS="$(grep "^hunspell-[a-z]" Packages-pet-noarch-official | cut -f 1 -d '|' | tr '\n' ' ')"
+for aHSPET in $HSPETS
+do
+ if [ ! -f packages-pet/${aHSPET}.pet ];then
+  continue
+ fi
+ if [ "${aHSPET:0:2}" == "en" ];then
+  continue
+ fi
+ cp -f packages-pet/${aHSPET}.pet sandbox3/
+ cd sandbox3
+ [ -d ./${aHSPET} ] && rm -rf ./${aHSPET}
+ pet2dir ${aHSPET}.pet
+ cp -a -f --remove-destination ${aHSPET}/* nls_${DISTRO_VERSION}_noarch/
+ rm -f nls_${DISTRO_VERSION}_noarch/pinstall.sh
+ rm -f nls_${DISTRO_VERSION}_noarch/pet.specs
+ cd ..
+ rm -rf sandbox3/${aHSPET}
+done
+
+#20230111 create nls sfs...
+sync
+echo "Creating sandbox3/nls_${DISTRO_VERSION}_noarch.sfs"
+cd sandbox3
+SIZEK="$(du -s -k nls_${DISTRO_VERSION}_noarch | cut -f 1)"
+echo "Creating meta-data for nls sfs..."
+echo "#generated by 3buildeasydistro:
+SFS_DB_pkgname='nls_${DISTRO_VERSION}'
+SFS_DB_nameonly='nls'
+SFS_DB_version='${DISTRO_VERSION}'
+SFS_DB_revision=''
+SFS_DB_arch='noarch'
+SFS_DB_categories='Utility'
+SFS_DB_size='${SIZEK}'
+SFS_DB_fullfilename='nls_${DISTRO_VERSION}_noarch.sfs'
+SFS_DB_dependencies='easy_${DISTRO_VERSION}'
+SFS_DB_description='non-English translations'
+SFS_DB_description_long='non-English translations for packages, scripts and text files'
+SFS_DB_compileddistro='${DISTRO_BINARY_COMPAT}'
+SFS_DB_compiledrelease='${DISTRO_COMPAT_VERSION}'
+SFS_DB_path='easyos/${DISTRO_BINARY_COMPAT}/${DISTRO_COMPAT_VERSION}'
+SFS_DB_apps='nls'
+SFS_DB_icons='nls'
+SFS_DB_install='mainonly'
+SFS_DB_hash=''" > nls_${DISTRO_VERSION}_noarch.specs
+#'mainonly' but intend will automatically load when start a container.
+mkdir -p nls_${DISTRO_VERSION}_noarch/.control
+cp -a -f nls_${DISTRO_VERSION}_noarch.specs nls_${DISTRO_VERSION}_noarch/.control/nls.specs
+#icon...
+mkdir -p nls_${DISTRO_VERSION}_noarch/usr/share/pixmaps
+cp -a -f rootfs-complete/usr/share/pixmaps/nls48.png nls_${DISTRO_VERSION}_noarch/usr/share/pixmaps/
+cp -a -f rootfs-complete/usr/share/pixmaps/nls48.png nls_${DISTRO_VERSION}_noarch/usr/share/pixmaps/nls.png
+cp -a -f rootfs-complete/usr/share/pixmaps/nls48.png nls.png
+if [ -f nls_${DISTRO_VERSION}_noarch.sfs ];then
+ rm -f nls_${DISTRO_VERSION}_noarch.sfs
+fi
+mksquashfs nls_${DISTRO_VERSION}_noarch nls_${DISTRO_VERSION}_noarch.sfs -comp ${COMPR_SFS} -processors 1
+sync
+HASH="$(sha256sum nls_${DISTRO_VERSION}_noarch.sfs | cut -f 1 -d ' ')"
+sed -i -e "s%^SFS_DB_hash=.*%SFS_DB_hash='${HASH}'%" nls_${DISTRO_VERSION}_noarch.specs
+ln -snf nls_${DISTRO_VERSION}_noarch nls
+cd ..
+
 #190110 need to sort sandbox3/rootfs-complete/root/.packages/woof-installed-packages
 if [ "$DEFAULTLANG1" != "en" ];then
  #sort alphabetically...
@@ -5187,6 +5169,11 @@ fi
 
 #20220613 useful to have this in initrd...
 cp -a -f ../../sandbox3/rootfs-complete/etc/DISTRO_SPECS etc/
+
+#20230112 populate initrd with sss initrd_strings*
+mkdir -p usr/share/sss/initrd_strings
+cp -a -f ../../sandbox3/nls/usr/share/sss/initrd_strings/* usr/share/sss/initrd_strings/
+cp -a -f ../../sandbox3/rootfs-complete/usr/share/sss/initrd_strings/* usr/share/sss/initrd_strings/
 
 find . | cpio -o -H newc > ../initrd #181130
 sync
