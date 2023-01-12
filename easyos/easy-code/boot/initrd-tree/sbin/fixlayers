@@ -31,6 +31,7 @@
 #20220829 /usr/local/debget
 #20220907 do not have /var symlink. do not have /root/.var or /root/.var0 see also: rc.sysinit, erase-exceptions, fixlayers
 #20221020 uninstall user-installed pkg if it is now in easy.sfs
+#20230112 separate strings to file /nls/fixlayers.str.en
 
 WKG_DRV=$1 #ex: sda
 WKG_DEV=$2 #ex: sda2
@@ -39,6 +40,17 @@ WKG_DIR=$5 #20220622
 #180601 users may forget to put a trailing slash... a leading slash is not allowed...
 [ "$WKG_DIR" ] && [ "${WKG_DIR##*/}" ] && WKG_DIR="${WKG_DIR}/"
 [ "$WKG_DIR" ] && [ "${WKG_DIR:0:1}" == "/" ] && WKG_DIR="${WKG_DIR:1:99}"
+
+#20230112 QLANG exported from init
+if [ "$QLANG" ];then
+ if [ ! -e /nls/fixlayers.str.${QLANG} ];then
+. /nls/fixlayers.str.en
+ else
+. /nls/fixlayers.str.${QLANG}
+ fi
+else
+. /nls/fixlayers.str.en
+fi
 
 sessionlayer=''
 [ $SESSIONSFSflag -eq 1 ] && sessionlayer='/easy_ro/session'
@@ -51,7 +63,7 @@ EXTRASFSDIRS=''
 # $EXTRASFSDIRS
 # /easy_ro/easy_sfs (easy.sfs)
 
-echo -e "\\033[1;35mFixing changed SFS layers\\033[0;39m" #purple
+echo -e "\\033[1;35m${S001}\\033[0;39m" #purple
 
 ##puppy linux init script in initrd, does a lot of checking for files/folders deleted
 ##at rw layer, but exist at a lower layer. say that a ro layer has /opt, gets deleted
@@ -64,7 +76,7 @@ rm -rf /mnt/${WKG_DEV}/${WKG_DIR}.session/.wh..wh* 2>/dev/null #some whiteout fo
 
 #want almost everything in easy.sfs to be visible on top...
 #the extra-sfs layers could stuff things up, but defer checking for that.
-echo "  Scanning: /mnt/${WKG_DEV}/${WKG_DIR}.session"
+echo "  ${S002} /mnt/${WKG_DEV}/${WKG_DIR}.session"
 cd /mnt/${WKG_DEV}/${WKG_DIR}.session
 mkdir -p lib usr
 fndlib64=''

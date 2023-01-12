@@ -31,6 +31,7 @@
 #20220621 no longer have BOOT_DRV, BOOT_DEV
 #20220622 no longer have BOOT_SPECS file. WKG_DIR=$3
 #20230104 /mnt/${WKG_DEV}/${WKG_DIR}.session/.rollback.flg moved to /mnt/${WKG_DEV}/${WKG_DIR}.rollback.flg
+#20230112 separate strings to file /nls/rollback.str.en
 
 WKG_DRV=$1 #ex: sda
 WKG_DEV=$2 #ex: sda2
@@ -39,10 +40,21 @@ WKG_DIR=$3 #20220622
 [ "$WKG_DIR" ] && [ "${WKG_DIR##*/}" ] && WKG_DIR="${WKG_DIR}/"
 [ "$WKG_DIR" ] && [ "${WKG_DIR:0:1}" == "/" ] && WKG_DIR="${WKG_DIR:1:99}"
 
+#20230112 QLANG exported from init
+if [ "$QLANG" ];then
+ if [ ! -e /nls/rollback.str.${QLANG} ];then
+. /nls/rollback.str.en
+ else
+. /nls/rollback.str.${QLANG}
+ fi
+else
+. /nls/rollback.str.en
+fi
+
 . /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/DISTRO_SPECS #note, 'init' always copies this up. 170521 fix path.
 
 err_exit() {
- echo -e "\\033[1;31mERROR: ${1}\\033[0;39m" #red
+ echo -e "\\033[1;31m${S001} ${1}\\033[0;39m" #red
  exit 1
 }
 
@@ -53,15 +65,15 @@ rm -f /mnt/${WKG_DEV}/${WKG_DIR}.rollback.flg #20230104
 
 case "$backDATE" in
  erase)
-  echo -e "\\033[1;35mErasing current working session\\033[0;39m" #purple
-  echo "  (erasing the read-write layer)"
+  echo -e "\\033[1;35m${S002}\\033[0;39m" #purple
+  echo "  ${S003}"
  ;;
  last)
-  echo -e "\\033[1;35mRolling read-write layer back to last saved session\\033[0;39m" #purple
+  echo -e "\\033[1;35m${S004}\\033[0;39m" #purple
  ;;
  *)
-  echo -e "\\033[1;35mRolling back to an earlier version or snapshot\\033[0;39m" #purple
-  echo "  Current version: ${DISTRO_VERSION}. Back to: ${backVER}, snapshot: ${backDATE}"
+  echo -e "\\033[1;35m${S005}\\033[0;39m" #purple
+  echo "  ${S006} ${DISTRO_VERSION}. ${S007} ${backVER}, ${S008} ${backDATE}"
  ;;
 esac
 
@@ -87,7 +99,7 @@ if [ "$backDATE" == "last" ];then
  if [ ! "$backDATE" ];then
   backDATE="${DISTRO_VERSION}"
   if [ ! -f /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${DISTRO_VERSION}/rw-${backDATE}.sfs ];then
-   echo -e "  \\033[1;31mCannot rollback, no saved session\\033[0;39m" #red
+   echo -e "  \\033[1;31m${S009}\\033[0;39m" #red
    backDATE=""
   fi
  fi
@@ -96,7 +108,7 @@ fi
 if [ "$backDATE" ];then
  case "$backDATE" in
   erase)
-   echo "  Erasing working session..."
+   echo "  ${S010}"
    rm -rf /mnt/${WKG_DEV}/${WKG_DIR}.session/*
    rm -rf /mnt/${WKG_DEV}/${WKG_DIR}.session/.[a-z]* 2>/dev/null #181121 181123
    #181121 handle .sessionSKEL and .control ...
@@ -111,7 +123,7 @@ if [ "$backDATE" ];then
    sync
   ;;
   *)
-   echo "  Rolling working session back..."
+   echo "  ${S011}"
    #170529 do not flag error if no rw-${backDATE}.sfs, just erase...
    #[ ! -f /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${backVER}/rw-${backDATE}.sfs ] && err_exit "Missing snapshot: /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${backVER}/rw-${backDATE}.sfs"
    rm -rf /mnt/${WKG_DEV}/${WKG_DIR}.session/*
@@ -122,14 +134,14 @@ if [ "$backDATE" ];then
    if [ -f /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${backVER}/rw-${backDATE}.sfs ];then #170529
     mkdir snapmnt
     mount -t squashfs -o loop,noatime /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${backVER}/rw-${backDATE}.sfs snapmnt
-    [ $? -ne 0 ] && err_exit "Failed to mount snapshot: rw-${backDATE}.sfs"
+    [ $? -ne 0 ] && err_exit "${S012} rw-${backDATE}.sfs"
     cp -a snapmnt/* /mnt/${WKG_DEV}/${WKG_DIR}.session/ 2>/dev/null #180602 hide error if empty.
     sync
     umount snapmnt
    fi
   ;;
  esac
- echo "  ...done"
+ echo "  ${S013}"
 fi
 
 [ "$backVER" == "$DISTRO_VERSION" -o "$backVER" == "" ] && exit 0
@@ -137,7 +149,7 @@ fi
 #rolling back to earlier version, need to replace files in wkg partition...
 #note, WKG_DIR already have a trailing slash
 #note, 'version-control' script has already copied vmlinuz, checking here as precaution...
-echo -n "  Rolling back:"
+echo -n "  ${S014}"
 echo -n " ${KERNELNAME}"
 if [ ! -f /mnt/${WKG_DEV}/${WKG_DIR}/${KERNELNAME} ];then #precaution.
  cp -a -f /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${backVER}/${KERNELNAME} /mnt/${WKG_DEV}/${WKG_DIR}
@@ -156,14 +168,14 @@ if [ "$backDATE" == "" ];then #200828 coz may have already been done above.
  if [ -f /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${backVER}/rw-${backVER}.sfs ];then #this will exist.
   mkdir -p snapmnt
   mount -t squashfs -o loop,noatime /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${backVER}/rw-${backVER}.sfs snapmnt
-  [ $? -ne 0 ] && err_exit "Failed to mount snapshot: rw-${backVER}.sfs"
+  [ $? -ne 0 ] && err_exit "${S015} rw-${backVER}.sfs"
   cp -a snapmnt/* /mnt/${WKG_DEV}/${WKG_DIR}.session/ 2>/dev/null #180602 hide error if empty.
   sync
   umount snapmnt
  fi
 fi
 sync
-echo "  ...done"
+echo "  ${S013}"
 
 exit 0
 ###end###

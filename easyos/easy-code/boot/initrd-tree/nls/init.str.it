@@ -1,0 +1,150 @@
+#create_savefile_func()
+S001='Creazione file di salvataggio easysave.ext4...'
+
+#exit_to_initrd()
+S002='Linea'
+S003='Nota 1: digitare "exit", lo script init tenterà di continuare.'
+S004='Nota 2: Su alcuni PC la tastiera non funziona in questa fase dell'avvio.'
+S005='Nota 3: se "ctrl-alt-canc" non funziona, tenere premuto il pulsante di accensione per spegnere.'
+S006='Nota 4: l'editor di testo della console "mp" è disponibile.'
+S007='Nota 5: File manager della console "shfm": Naviga con i tasti freccia, "!" deporre le uova'
+S008=' una shell, "?" aiuto popup, "q" per uscire. Il file della Guida è "/shfm.txt"'
+S009='Nota 6: File manager della console "nnn": Stesse chiavi. File di aiuto "/nnn.txt"'
+
+#err_exit()
+S010='ERRORE:'
+S011='Sono ora caduto in una shell in initramfs.'
+S012='Premi la combinazione di tasti CTRL-ALT-CANC per riavviare,'
+S013='o TENERE PREMUTO IL PULSANTE DI ACCENSIONE PER SPEGNERE'
+S014='Le seguenti istruzioni sono solo per sviluppatori:'
+
+#chiedi_kb()
+S015='Inserisci il numero corrispondente al tuo layout di tastiera.'
+S016='Scegli la corrispondenza più vicina, ci sarà l'opportunità di mettere a punto il layout dopo che il desktop è stato caricato. Premere INVIO solo per US.'
+S017='Nota: su alcuni PC la tastiera non funziona in questa fase di avvio. In tal caso, attendere 5 minuti per l'avvio.'
+S018='Disposizione tastiera:'
+S019='...ok, mappa tasti scelta:'
+
+#menu_func()
+S020='Non fare niente, torna indietro per inserire la password'
+S021='Rimuovi blocco, ripristina avvio normale'
+S022='Avvio solo da riga di comando, nessuna X'
+S023='Ritorna all'ultima sessione salvata'
+S024='Ripristino al primo avvio originale'
+S025='Controllo del filesystem della partizione di lavoro'
+S026=Premere il tasto INVIO o attendere 10 secondi per l'avvio normale'
+S027='Digita un numero dalla colonna di sinistra:'
+S028='...hai scelto di ripristinare l'avvio normale; tuttavia,'
+S029='l'avvio normale verrà ripristinato al PROSSIMO avvio'
+S030='...si avvierà alla riga di comando, nessuna X'
+S031='...verrà eseguito il rollback all'ultima sessione salvata'
+S032='...verrà eseguito il rollback al primo avvio originale'
+S033='...effettuerà il controllo del filesystem'
+
+#chiedi_pw()
+S034='Inserisci una password, qualsiasi carattere a-z, A-Z, 0-9, qualsiasi lunghezza. La password crittograferà parti della partizione di lavoro e deve essere ricordata, poiché dovrà essere inserita ad ogni avvio.'
+S035='Oppure, premi semplicemente il tasto INVIO per nessuna password.'
+S036='Per la tua sicurezza, è fortemente consigliata una password'
+S037='Password:'
+S038='Spiacente, sono consentiti solo a-z, A-Z, 0-9 caratteri, riprova'
+S039='Inserisci la password per decifrare la partizione di lavoro'
+S040='OPPURE basta premere INVIO per visualizzare un menu di opzioni di avvio'
+S041='Password:'
+
+#cp_verify_func()
+S042='Questa copia non è riuscita:'
+S043='È possibile che l'unità sia guasta.'
+S044='Tentativo di copia di nuovo...'
+S045='Secondo tentativo fallito. Tentativo di recupero ripristinando'
+S046='vmlinuz, initrd e easy.sfs della versione precedente.'
+S047='Secondo tentativo di copia file fallito. Forse l'unità sta fallendo.'
+S048='Secondo tentativo riuscito, ma l'avviso potrebbe non riuscire.'
+
+###trova unità###
+S100='Ricerca unità'
+S101='le partizioni hanno ID in conflitto'
+S102='AVVISO: NO! Non hai ancora una sessione, eseguendo un normale avvio'
+S103='Uscito dallo script init in anticipo, ancora niente montato.'
+
+###ram molto basso###
+S110='AVVISO: Blocco disabilitato, RAM insufficiente'
+S111='AVVISO: EasyOS funzionerà totalmente nella RAM, nessuna memoria persistente'
+S112='AVVISO: la sessione verrà copiata nella RAM e EasyOS verrà eseguito nella RAM'
+S113='Creazione zram compresso. RAM allocata:'
+S114='Partizione di lavoro:'
+S115='Test della velocità di lettura dell'unità funzionante (minore è meglio):'
+
+###impostare e montare la partizione funzionante###
+S120='Ridimensionamento della partizione di lavoro per riempire l'unità'
+S121='ERRORE: impossibile ridimensionare la partizione di lavoro'
+S122='Ridimensionamento del filesystem ext4 per riempire la partizione di lavoro, dimensione:'
+S123='ERRORE: impossibile ridimensionare il filesystem ext4 per riempire la partizione di lavoro, dimensione:'
+S124='Impossibile ridimensionare la partizione di lavoro. Non sicuro continuare'
+S125='Impossibile montare la partizione di lavoro:'
+S126='Uscito dallo script init, partizione wkg montata.'
+
+###crea $WKG_DIR e cartelle###
+S130='già esiste'
+S131='La partizione di lavoro non ha la funzione di crittografia ext4 abilitata.'
+S132='Questa funzione è necessaria per crittografare le cartelle. Consigliato per la tua sicurezza.'
+S133='Se rifiuti, i futuri avvii non richiederanno una password.'
+S134='ATTENZIONE: vecchi bootloader come GRUB v1, GRUB4DOS e GRUB v2 precedenti a '
+S135='versione 2.0.4 (rilasciata nel 2019), non riconosce le moderne funzionalità ext4 '
+S136='come la crittografia delle cartelle e non funzionerà più con la partizione '
+S137='se abiliti la crittografia (la partizione non sarà più riconosciuta). '
+S138='Premere il tasto INVIO per abilitare la crittografia, qualsiasi altro tasto non per:'
+S139='Abilitazione crittografia cartella ext4...'
+S140='Spiacente, l'abilitazione della crittografia della cartella non è riuscita.'
+S141='...crittografia abilitata.'
+S142='Nota, se per qualche motivo vuoi disattivarlo, rimuovi l'installazione di EasyOS. Quindi, ci sono istruzioni su Internet per disattivare la crittografia.'
+S143='Il montaggio della partizione di lavoro non è riuscito.'
+S144='Supporto per la crittografia delle cartelle non abilitato.'
+S145='Spiacente, le cartelle nella partizione di lavoro non possono essere crittografate. La password verrà impostata solo per l'accesso root.'
+S146='Password errata. Riprova'
+S147='Salvataggio posticipato dell'ultima sessione, attendere...'
+
+###ORDINARE###
+S150='Esecuzione di fstrim sulla partizione di lavoro SSD...'
+S151='Uscito dallo script init, prima delle operazioni di ripristino e manutenzione.'
+
+###recupero, manutenzione###
+S160='Errore irreversibile durante il controllo del filesystem'
+S161='Uscito dallo script init, prima del controllo della versione.'
+
+###controllo della versione###
+S170='Operazione una tantum, creazione di un'istantanea di EasyOS'
+S171='Questo consentirà futuri rollback con Easy Version Control Manager'
+S172='Popolamento:'
+S173='Attenzione, cancellazione vecchia versione:'
+S174='Impossibile trovare easy.sfs'
+
+S180='Perché esiste questo file? Rimuovendolo.'
+S181='Uscito dallo script init, prima di configurare i livelli SFS.'
+
+###imposta il layer ro inferiore, con easy.sfs###
+S190='Montaggio livello di sola lettura del filesystem a più livelli'
+S191='Montaggio file squashfs easy.sfs'
+S192='Copia easy.sfs nella RAM, quindi montaggio'
+S193='Impossibile montare easy.sfs'
+S194='ATTENZIONE, le versioni non corrispondono.'
+S195='il file extra squashfs non esiste, rimosso dalla lista di caricamento.'
+S196='Copia nella RAM e montaggio del file squashfs aggiuntivo:'
+S197='Montaggio file extra squashfs:'
+S198='ERRORE: /usr/lib64 percorso errato in SFS:'
+S199='QUESTO SFS NON VERRÀ CARICATO'
+S200='ERRORE: /usr/lib/x86_64-linux-gnu percorso errato in SFS:'
+S201='Configurazione sicurezza al primo avvio...'
+S202='Impostazione della stessa password per gli utenti zeus e root'
+
+###forse copiare la sessione su zram###
+S210='Copia ultima sessione di lavoro in RAM'
+
+###il grande momento, crea f.s. a strati###
+S220='Creazione filesystem a strati, digitare:'
+S221='Impossibile creare il filesystem a strati'
+S222='Uscito dallo script init, prima di spostare i punti di montaggio in wkg f.s.'
+
+###riposizionare i punti di montaggio prima di switch_root###
+S230='Esecuzione di switch_root sul filesystem a strati'
+S231='Spegnimento unità:'
+S232='Uscito dallo script init, appena prima di switch_root.'

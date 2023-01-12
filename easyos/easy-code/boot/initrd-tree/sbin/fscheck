@@ -18,6 +18,7 @@
 #20220522 revert 20220304
 #20220622 no longer have BOOT_SPECS file. no BOOT_* variables. WKG_DIR=$3 WKG_FS=$4
 #20220801 move /.fsckme.flg to /mnt/${WKG_DEV}/${WKG_DIR}
+#20230112 separate strings to file /nls/fscheck.str.en
 
 WKG_DRV=$1 #ex: sda
 WKG_DEV=$2 #ex: sda2
@@ -27,9 +28,20 @@ WKG_FS=$4  #20220622
 [ "$WKG_DIR" ] && [ "${WKG_DIR##*/}" ] && WKG_DIR="${WKG_DIR}/"
 [ "$WKG_DIR" ] && [ "${WKG_DIR:0:1}" == "/" ] && WKG_DIR="${WKG_DIR:1:99}"
 
+#20230112 QLANG exported from init
+if [ "$QLANG" ];then
+ if [ ! -e /nls/fscheck.str.${QLANG} ];then
+. /nls/fscheck.str.en
+ else
+. /nls/fscheck.str.${QLANG}
+ fi
+else
+. /nls/fscheck.str.en
+fi
+
 #190314 non-fatal error exit...
 err_exit() {
- echo -e "\\033[1;31mERROR: ${1}\\033[0;39m" #red
+ echo -e "\\033[1;31m${S001} ${1}\\033[0;39m" #red
  rm -f /mnt/${WKG_DEV}/${WKG_DIR}.fsckme.flg #20220801
  exit 0
 }
@@ -50,21 +62,21 @@ fi
 #the f.s. is mounted. could do a f.s. check, but prefer to unmount it...
 sync
 umount /dev/$WKG_DEV
-[ $? -ne 0 ] && err_exit "Could not check the filesystem of working partition, unable to unmount"
+[ $? -ne 0 ] && err_exit "${S002}"
 
 echo -e "\\033[1;35m" #purple. 34=blue, 33=yellow, 32=green, 31=red, 35=purple, 36=aquablue, 38=black.
-echo "Filesystem operations are to be performed upon the working partition."
-echo "Working partition: ${WKG_DEV}"
+echo "${S003}"
+echo "${S004} ${WKG_DEV}"
 echo -en "\\033[0;39m"
 
 case "$CHECK" in
- MAXIMAL) echo "  Performing filesystem check, maximal mount count..." ;;
- REQUEST) echo "  Performing filesystem check, on request..." ;;
- *) echo "  Performing filesystem check, after improper shutdown..." ;;
+ MAXIMAL) echo "  ${S005}" ;;
+ REQUEST) echo "  ${S006}" ;;
+ *) echo "  ${S007}" ;;
 esac
 
 #200303
-echo -n "  Current date: "
+echo -n "  ${S008} "
 echo "$DATE"
 
 if [ "$WKG_FS" == "ext4" -o "$WKG_FS" == "ext3" ];then #20210524
@@ -75,7 +87,7 @@ if [ "$WKG_FS" == "ext4" -o "$WKG_FS" == "ext3" ];then #20210524
  if [ -f /fsck-err.log ];then
   if grep -q 'UNEXPECTED INCONSISTENCY' /fsck-err.log;then
    #can force it like this...
-   echo -e "\\033[1;31m  Unexpected inconsistency fixing filesystem. Trying again...\\033[0;39m" #red
+   echo -e "\\033[1;31m  ${S009}\\033[0;39m" #red
    e2fsck -y -f /dev/${WKG_DEV} >/dev/null 2>&1
    busybox sync
   fi
@@ -90,7 +102,7 @@ if [ "$WKG_LOOP" ];then #20210524
  if [ -f /fsck-err.log ];then
   if grep -q 'UNEXPECTED INCONSISTENCY' /fsck-err.log;then
    #can force it like this...
-   echo -e "\\033[1;31m  Unexpected inconsistency fixing filesystem. Trying again...\\033[0;39m" #red
+   echo -e "\\033[1;31m  ${S009}\\033[0;39m" #red
    e2fsck -y -f /mnt/${WKG_DEV}/${WKG_DIR}easysave.ext4 >/dev/null 2>&1
    busybox sync
   fi
@@ -98,7 +110,7 @@ if [ "$WKG_LOOP" ];then #20210524
  fi
 fi
 
-echo "  Filesystem check completed!"
+echo "  ${S010}"
 
 sync
 #190314 WKG_FS is exported from init, return error-code...
