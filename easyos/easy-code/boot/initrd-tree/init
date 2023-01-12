@@ -136,17 +136,17 @@
 #20221118 playing with new logo.
 #20221226 support skeleton wkg partition 672MiB.
 #20230104 /mnt/${WKG_DEV}/${WKG_DIR}.session/.rollback.flg moved to /mnt/${WKG_DEV}/${WKG_DIR}.rollback.flg
-#20230112 option pass "plang=nn" where nn is two-letter language, ex: fr
+#20230112 option pass "qlang=nn" where nn is two-letter language, ex: fr
 
 #20230112
-if [ "$plang" ];then
- PLANG="$plang"
+if [ "$qlang" ];then
+ QLANG="$qlang"
 fi
-if [ "$PLANG" ];then
- if [ ! -e /init.${PLANG} ];then
-  /sbin/fixinitrd ${PLANG}
+if [ "$QLANG" ];then
+ if [ ! -e /init.${QLANG} ];then
+  /sbin/fixinitrd ${QLANG}
+  exec /init.${QLANG}
  fi
- exec /init.${PLANG}
 fi
 
 #20220525 3buildeasydistro will substitute values here...
@@ -1785,6 +1785,14 @@ echo "BOOT_CAPS_DROPPED='${CAPS_DROP}'" >> /easy_new/etc/rc.d/PUPSTATE #190812 c
 
 if [ "$WKG_LOOP" ];then #20210524
  echo "WKG_LOOP='${WKG_LOOP}'" >> /easy_new/etc/rc.d/PUPSTATE
+fi
+
+#20230112
+if [ "$QLANG" ];then
+ grep -q "^LANG=${QLANG}_" /easy_new/etc/profile
+ if [ $? -ne 0 ];then
+  sed -i -e "s%^LANG=.*%LANG=${QLANG}_${QLANG^^}.UTF-8%" /easy_new/etc/profile
+ fi
 fi
 
 #200623 log stuff for debugging...
