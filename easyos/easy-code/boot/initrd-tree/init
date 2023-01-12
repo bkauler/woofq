@@ -136,6 +136,18 @@
 #20221118 playing with new logo.
 #20221226 support skeleton wkg partition 672MiB.
 #20230104 /mnt/${WKG_DEV}/${WKG_DIR}.session/.rollback.flg moved to /mnt/${WKG_DEV}/${WKG_DIR}.rollback.flg
+#20230112 option pass "plang=nn" where nn is two-letter language, ex: fr
+
+#20230112
+if [ "$plang" ];then
+ PLANG="$plang"
+fi
+if [ "$PLANG" ];then
+ if [ ! -e /init.${PLANG} ];then
+  /sbin/fixinitrd ${PLANG}
+ fi
+ exec /init.${PLANG}
+fi
 
 #20220525 3buildeasydistro will substitute values here...
 EOS_TOP_LEVEL_ZRAM=EOSTOPLEVELZRAM #20220521 1=yes, anything else no.
