@@ -138,21 +138,7 @@
 #20230104 /mnt/${WKG_DEV}/${WKG_DIR}.session/.rollback.flg moved to /mnt/${WKG_DEV}/${WKG_DIR}.rollback.flg
 #20230112 option pass "qlang=nn" where nn is two-letter language, ex: fr
 #20230112 separate strings to file /nls/init.str.en
-
-#20230112
-if [ "$qlang" ];then
- QLANG="$qlang"
-fi
-if [ "$QLANG" ];then
- if [ ! -e /nls/init.str.${QLANG} ];then
-. /nls/init.str.en
- else
-. /nls/init.str.${QLANG}
- fi
- export QLANG
-else
-. /nls/init.str.en
-fi
+#20230113 load font for country code.
 
 #20220525 3buildeasydistro will substitute values here...
 EOS_TOP_LEVEL_ZRAM=EOSTOPLEVELZRAM #20220521 1=yes, anything else no.
@@ -489,10 +475,24 @@ load_font() {
   az|be|br|by|cr|de|dk|es|fi|fr|gr|hu|it|nl|no|pt|ro|ru|se|sk|sl) #all european languages
    loadfont < /lib/consolefonts/LatGrkCyr-8x16.psfu
   ;;
-  il) #arabic, hebrew
+  il) #arabic, hebrew. il=israel
    loadfont < /lib/consolefonts/LatArCyrHeb-16.psfu
   ;;
  esac 
+}
+
+#20230113 load font based on the 2-letter country code...
+load_font_country() {
+ case "$1" in
+  az|be|br|by|cr|de|dk|es|fi|fr|gr|hu|it|nl|no|pt|ro|ru|se|sk|sl)
+   #all european languages
+   loadfont < /lib/consolefonts/LatGrkCyr-8x16.psfu
+  ;;
+  il|dz|bh|td|km|dj|eg|iq|jo|kw|lb|ly|mr|ma|om|qa|sa|so|sd|sy|tn|ae|ye)
+   #arabic, hebrew. il=israel arab countries: dz bh td km dj eg iq jo kw lb ly mr ma om qa sa so sd sy tn ae ye
+   loadfont < /lib/consolefonts/LatArCyrHeb-16.psfu
+  ;;
+ esac
 }
 
 #190828 try to recover if cp fails...
@@ -540,6 +540,22 @@ mnt_wkg_ext4_func() {
  fi
  return $RET
 }
+
+#20230112
+if [ "$qlang" ];then
+ QLANG="$qlang"
+fi
+if [ "$QLANG" ];then
+ if [ ! -e /nls/init.str.${QLANG} ];then
+. /nls/init.str.en
+ else
+. /nls/init.str.${QLANG}
+ fi
+ export QLANG
+ load_font_country ${QLANG} #20230113
+else
+. /nls/init.str.en
+fi
 
 #190313 have static /dev, so will have /dev/fb0 even if no framebuffer... no, now have dynamic /dev
 #190307 display logo, -f = reduces to fit screen. 20220929
@@ -745,12 +761,31 @@ if [ "$LOCKDOWN" == "" -o "$DROPOUT" == "" ];then
     EOS_TOP_LEVEL_ZRAM=$(cat /mnt/${WKG_DEV}/${WKG_DIR}.zramtl.flg) #1 or 0
    fi
   fi
-  #20221102 remove
-#  if [ -s /mnt/${WKG_DEV}/${WKG_DIR}.loginzeus.flg ];then #20221030 override build-choices file.
-#   EOS_LOGIN_ZEUS=$(cat /mnt/${WKG_DEV}/${WKG_DIR}.loginzeus.flg) #1 or 0
-#  else
-#   echo -n "${EOS_LOGIN_ZEUS}" > /mnt/${WKG_DEV}/${WKG_DIR}.loginzeus.flg
-#  fi
+  
+  #20230113 choose language 2-letter code...
+  if [ ! "$QLANG" ];then #set if kernel param.
+   if [ ! -f /mnt/${WKG_DEV}/${WKG_DIR}.qlang ];then
+    #ask language code...
+    #if [ ! -e /dev/fb0 ];then
+    # QLANG=en #well, we could have a text-mode ask.
+    #else
+     /sbin/ask-language #currently using dialog so don't need /dev/fb0
+     QLANG="$(cat /qlang)"
+    #fi
+    echo -n "$QLANG" > /mnt/${WKG_DEV}/${WKG_DIR}.qlang
+   else
+    QLANG="$(cat /mnt/${WKG_DEV}/${WKG_DIR}.qlang)"
+   fi
+   if [ ! -e /nls/init.str.${QLANG} ];then
+.   /nls/init.str.en
+   else
+.   /nls/init.str.${QLANG}
+   fi
+   load_font_country ${QLANG}
+   export QLANG
+  fi
+  
+  sync
   umount /mnt/${WKG_DEV}
  fi
 fi
@@ -981,7 +1016,9 @@ if [ ! -d /mnt/${WKG_DEV}/${WKG_DIR}.session ];then
  while [ 1 ];do
   ask_kb #sets $KEYMAP
   if [ $? -eq 0 ];then
-   load_font ${KEYMAP:0:2}
+   if [ ! "$QLANG" ];then #20230113
+    load_font ${KEYMAP:0:2}
+   fi
    gunzip -c /lib/keymaps/${KEYMAP}.gz | loadkmap
    if [ "$WKG_FS" == "ext4" -o "$WKG_LOOP" ];then #20210524 $WKG_LOOP set if have save-file
     ask_pw 0 #sets $PW
@@ -1070,7 +1107,9 @@ else
   ###...end precaution stuff
   . /mnt/${WKG_DEV}/${WKG_DIR}sfs/settings/initrd/CONFIG #has KEYMAP, ALLOW_ASK_PW
   #20211212 took out some "precaution stuff". cannot read .session folder yet anyway.
-  load_font ${KEYMAP:0:2}
+  if [ ! "$QLANG" ];then #20230113
+   load_font ${KEYMAP:0:2}
+  fi
   [ "$KEYMAP" != "us" ] && gunzip -c /lib/keymaps/${KEYMAP}.gz | loadkmap
   echo
   if [ "$ALLOW_ASK_PW" == "yes" ];then
