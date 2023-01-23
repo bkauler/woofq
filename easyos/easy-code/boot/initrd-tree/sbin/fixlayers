@@ -32,6 +32,7 @@
 #20220907 do not have /var symlink. do not have /root/.var or /root/.var0 see also: rc.sysinit, erase-exceptions, fixlayers
 #20221020 uninstall user-installed pkg if it is now in easy.sfs
 #20230112 separate strings to file /nls/fixlayers.str.en
+#20230123 removed SESSIONSFSflag. it is an old idea from 2017, not used.
 
 WKG_DRV=$1 #ex: sda
 WKG_DEV=$2 #ex: sda2
@@ -52,14 +53,10 @@ else
 . /nls/fixlayers.str.en
 fi
 
-sessionlayer=''
-[ $SESSIONSFSflag -eq 1 ] && sessionlayer='/easy_ro/session'
-
 EXTRASFSDIRS=''
 [ "${3}" ] && EXTRASFSDIRS="$(echo -n "$3" | sed -e 's%:$%%' -e 's%:%\n%g' | sed -e 's%^%/easy_ro/%' | tr '\n' ' ' | sed -e 's% $%%')" #tricky, need two sed's
 #these are the layers:
 # /mnt/${WKG_DEV}/${WKG_DIR}.session
-# if SESSIONSFSflag=1: /easy_ro/session (session.sfs)
 # $EXTRASFSDIRS
 # /easy_ro/easy_sfs (easy.sfs)
 
@@ -112,7 +109,7 @@ for onefile in functions functions4puppy functions4puppy4 rc.country rc.hacks rc
 do
  [ -e /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/rc.d/${onefile} ] && rm -f /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/rc.d/${onefile}
  #however, if on a ro layer (not easy.sfs), copy it up from easy.sfs to top...
- for onelayer in ${sessionlayer} ${EXTRASFSDIRS}
+ for onelayer in ${EXTRASFSDIRS}
  do
   #note, recent busybox cp supports --remove-destination (even though not in --help)
   [ -e ${onelayer}/etc/rc.d/${onefile} ] && cp -a --remove-destination /easy_ro/easy_sfs/etc/rc.d/${onefile} /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/rc.d/ 2>/dev/null
@@ -148,7 +145,7 @@ do
   fi
  else
   #if on a ro layer (not easy.sfs), copy it up from easy.sfs to top...
-  for onelayer in ${sessionlayer} ${EXTRASFSDIRS}
+  for onelayer in ${EXTRASFSDIRS}
   do
    if [ -e ${onelayer}/etc/init.d/${onefile} ];then
     if [ -x ${onelayer}/etc/init.d/${onefile} ];then
@@ -169,7 +166,7 @@ done
 
 #200111 /etc/eventmanager has a mix of user-setable and system-setable variables.
 #make sure the system-setable ones are updated...
-for onelayer in ${sessionlayer} ${EXTRASFSDIRS}
+for onelayer in ${EXTRASFSDIRS}
 do
  #if exist, copy it to the top...
  if [ -e ${onelayer}/etc/eventmanager ];then
@@ -201,7 +198,7 @@ for onefile in alsaconf alsawizard app-dev-setup-readme.sh askpass ask-save-zram
 do
  [ -e /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/sbin/${onefile} ] && rm -f /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/sbin/${onefile}
  #however, if on a ro layer (not easy.sfs), copy it up from easy.sfs to top...
- for onelayer in ${sessionlayer} ${EXTRASFSDIRS}
+ for onelayer in ${EXTRASFSDIRS}
  do
   [ -e ${onelayer}/usr/sbin/${onefile} ] && cp -a --remove-destination /easy_ro/easy_sfs/usr/sbin/${onefile} /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/sbin/ 2>/dev/null
  done
@@ -212,7 +209,7 @@ for onefile in cmptree dir2pet dirs2pets gtkdialog-splash lprshell lsb_release n
 do
  [ -e /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/bin/${onefile} ] && rm -f /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/bin/${onefile}
  #however, if on a ro layer (not easy.sfs), copy it up from easy.sfs to top...
- for onelayer in ${sessionlayer} ${EXTRASFSDIRS}
+ for onelayer in ${EXTRASFSDIRS}
  do
   [ -e ${onelayer}/usr/bin/${onefile} ] && cp -a --remove-destination /easy_ro/easy_sfs/usr/bin/${onefile} /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/bin/ 2>/dev/null
  done
@@ -223,7 +220,7 @@ for onefile in clean_desk_icons dhcp-delayed dir2sfs dir2tgz gtklogfileviewer in
 do
  [ -e /mnt/${WKG_DEV}/${WKG_DIR}.session/sbin/${onefile} ] && rm -f /mnt/${WKG_DEV}/${WKG_DIR}.session/sbin/${onefile}
  #however, if on a ro layer (not easy.sfs), copy it up from easy.sfs to top...
- for onelayer in ${sessionlayer} ${EXTRASFSDIRS}
+ for onelayer in ${EXTRASFSDIRS}
  do
   [ -e ${onelayer}/sbin/${onefile} ] && cp -a --remove-destination /easy_ro/easy_sfs/sbin/${onefile} /mnt/${WKG_DEV}/${WKG_DIR}.session/sbin/ 2>/dev/null
  done
@@ -234,7 +231,7 @@ for onefile in df initrd_layer_test mount ps pupkill umount
 do
  [ -e /mnt/${WKG_DEV}/${WKG_DIR}.session/bin/${onefile} ] && rm -f /mnt/${WKG_DEV}/${WKG_DIR}.session/bin/${onefile}
  #however, if on a ro layer (not easy.sfs), copy it up from easy.sfs to top...
- for onelayer in ${sessionlayer} ${EXTRASFSDIRS}
+ for onelayer in ${EXTRASFSDIRS}
  do
   [ -e ${onelayer}/bin/${onefile} ] && cp -a --remove-destination /easy_ro/easy_sfs/bin/${onefile} /mnt/${WKG_DEV}/${WKG_DIR}.session/bin/ 2>/dev/null
  done
@@ -246,7 +243,7 @@ for onefile in .bashrc .profile .xinitrc .bash_profile .bash_login .xinitrc #.Xr
 do
  [ -e /mnt/${WKG_DEV}/${WKG_DIR}.session/root/${onefile} ] && rm -f /mnt/${WKG_DEV}/${WKG_DIR}.session/root/${onefile}
  #however, if on a ro layer (not easy.sfs), copy it up from easy.sfs to top...
- for onelayer in ${sessionlayer} ${EXTRASFSDIRS}
+ for onelayer in ${EXTRASFSDIRS}
  do
   [ -e ${onelayer}/root/${onefile} ] && cp -a --remove-destination /easy_ro/easy_sfs/root/${onefile} /mnt/${WKG_DEV}/${WKG_DIR}.session/root/ 2>/dev/null
  done
@@ -258,7 +255,7 @@ for onefile in blueman_tray freememapplet_tray getflash_auto networkmanager_tray
 do
  [ -e /mnt/${WKG_DEV}/${WKG_DIR}.session/root/Startup/${onefile} ] && rm -f /mnt/${WKG_DEV}/${WKG_DIR}.session/root/Startup/${onefile}
  #however, if on a ro layer (not easy.sfs), copy it up from easy.sfs to top...
- for onelayer in ${sessionlayer} ${EXTRASFSDIRS}
+ for onelayer in ${EXTRASFSDIRS}
  do
   [ -e ${onelayer}/root/Startup/${onefile} ] && cp -a --remove-destination /easy_ro/easy_sfs/root/Startup/${onefile} /mnt/${WKG_DEV}/${WKG_DIR}.session/root/Startup/ 2>/dev/null
  done
@@ -270,7 +267,7 @@ for onefile in create-veth easy-containers ec-chroot ec-chroot-admin ec-create-d
 do
  [ -e /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/easy_containers/${onefile} ] && rm -f /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/easy_containers/${onefile}
  #however, if on a ro layer (not easy.sfs), copy it up from easy.sfs to top...
- for onelayer in ${sessionlayer} ${EXTRASFSDIRS}
+ for onelayer in ${EXTRASFSDIRS}
  do
   [ -e ${onelayer}/usr/local/easy_containers/${onefile} ] && cp -a --remove-destination /easy_ro/easy_sfs/usr/local/easy_containers/${onefile} /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/easy_containers/ 2>/dev/null
  done
@@ -281,7 +278,7 @@ for onefile in dnsmasq-server easyshare samba-setup sshlogin ssh-setup
 do
  [ -e /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/EasyShare/${onefile} ] && rm -f /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/EasyShare/${onefile}
  #however, if on a ro layer (not easy.sfs), copy it up from easy.sfs to top...
- for onelayer in ${sessionlayer} ${EXTRASFSDIRS}
+ for onelayer in ${EXTRASFSDIRS}
  do
   [ -e ${onelayer}/usr/local/EasyShare/${onefile} ] && cp -a --remove-destination /easy_ro/easy_sfs/usr/local/EasyShare/${onefile} /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/EasyShare/ 2>/dev/null
  done
@@ -292,7 +289,7 @@ for onefile in easy-rollback easy-update easy-version-control erase-exceptions
 do
  [ -e /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/easy_version/${onefile} ] && rm -f /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/easy_version/${onefile}
  #however, if on a ro layer (not easy.sfs), copy it up from easy.sfs to top...
- for onelayer in ${sessionlayer} ${EXTRASFSDIRS}
+ for onelayer in ${EXTRASFSDIRS}
  do
   [ -e ${onelayer}/usr/local/easy_version/${onefile} ] && cp -a --remove-destination /easy_ro/easy_sfs/usr/local/easy_version/${onefile} /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/easy_version/ 2>/dev/null
  done
@@ -303,7 +300,7 @@ for onefile in check_deps.sh configure.sh dependencies.sh downloadpkgs.sh fetchi
 do
  [ -e /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/petget/${onefile} ] && rm -f /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/petget/${onefile}
  #however, if on a ro layer (not easy.sfs), copy it up from easy.sfs to top...
- for onelayer in ${sessionlayer} ${EXTRASFSDIRS}
+ for onelayer in ${EXTRASFSDIRS}
  do
   [ -e ${onelayer}/usr/local/petget/${onefile} ] && cp -a --remove-destination /easy_ro/easy_sfs/usr/local/petget/${onefile} /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/petget/ 2>/dev/null
  done
@@ -314,7 +311,7 @@ for onefile in apt-setup apt-update debdb2pupdb files-pup2dpkg-single get-keys m
 do
  [ -e /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/debget/${onefile} ] && rm -f /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/debget/${onefile}
  #however, if on a ro layer (not easy.sfs), copy it up from easy.sfs to top...
- for onelayer in ${sessionlayer} ${EXTRASFSDIRS}
+ for onelayer in ${EXTRASFSDIRS}
  do
   [ -e ${onelayer}/usr/local/debget/${onefile} ] && cp -a --remove-destination /easy_ro/easy_sfs/usr/local/debget/${onefile} /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/debget/ 2>/dev/null
  done
@@ -325,7 +322,7 @@ for onefile in pgprs-connect pgprs-setup
 do
  [ -e /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/pgprs/${onefile} ] && rm -f /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/pgprs/${onefile}
  #however, if on a ro layer (not easy.sfs), copy it up from easy.sfs to top...
- for onelayer in ${sessionlayer} ${EXTRASFSDIRS}
+ for onelayer in ${EXTRASFSDIRS}
  do
   [ -e ${onelayer}/usr/local/pgprs/${onefile} ] && cp -a --remove-destination /easy_ro/easy_sfs/usr/local/pgprs/${onefile} /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/pgprs/ 2>/dev/null
  done
@@ -336,7 +333,7 @@ for onefile in bluetooth-add bluetooth-add-run bluetoothhw bluetoothhw-run bluet
 do
  [ -e /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/pup_event/${onefile} ] && rm -f /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/pup_event/${onefile}
  #however, if on a ro layer (not easy.sfs), copy it up from easy.sfs to top...
- for onelayer in ${sessionlayer} ${EXTRASFSDIRS}
+ for onelayer in ${EXTRASFSDIRS}
  do
   [ -e ${onelayer}/usr/local/pup_event/${onefile} ] && cp -a --remove-destination /easy_ro/easy_sfs/usr/local/pup_event/${onefile} /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/pup_event/ 2>/dev/null
  done
@@ -347,7 +344,7 @@ for onefile in dir2sfs ec-security filterpkgs pkgtext-compose sfsget sfsspec sfs
 do
  [ -e /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/sfsget/${onefile} ] && rm -f /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/sfsget/${onefile}
  #however, if on a ro layer (not easy.sfs), copy it up from easy.sfs to top...
- for onelayer in ${sessionlayer} ${EXTRASFSDIRS}
+ for onelayer in ${EXTRASFSDIRS}
  do
   [ -e ${onelayer}/usr/local/sfsget/${onefile} ] && cp -a --remove-destination /easy_ro/easy_sfs/usr/local/sfsget/${onefile} /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/sfsget/ 2>/dev/null
  done
@@ -357,7 +354,7 @@ mkdir -p /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/bluepup/support
 for onefile in bluepup
 do
  [ -e /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/bluepup/${onefile} ] && rm -f /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/bluepup/${onefile}
- for onelayer in ${sessionlayer} ${EXTRASFSDIRS}
+ for onelayer in ${EXTRASFSDIRS}
  do
   if [ -e ${onelayer}/usr/local/bluepup/${onefile} ];then
    cp -a --remove-destination /easy_ro/easy_sfs/usr/local/bluepup/${onefile} /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/bluepup/ 2>/dev/null
@@ -367,7 +364,7 @@ done
 for onefile in bluetooth-add-refresh bluetooth-remove-refresh bt-agent-monitor bt-agent-run command-go connect disconnect finished get-connected reg-dev-chosen register run-btinfo run-mscw scan set-status-icon startup unregister wait-response
 do
  [ -e /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/bluepup/support/${onefile} ] && rm -f /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/bluepup/support/${onefile}
- for onelayer in ${sessionlayer} ${EXTRASFSDIRS}
+ for onelayer in ${EXTRASFSDIRS}
  do
   if [ -e ${onelayer}/usr/local/bluepup/support/${onefile} ];then
    cp -a --remove-destination /easy_ro/easy_sfs/usr/local/bluepup/support/${onefile} /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/bluepup/support/ 2>/dev/null
@@ -380,7 +377,7 @@ for onefile in depend-checks find-installations generate-menu-entry limine-insta
 do
  [ -e /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/limine-installer/${onefile} ] && rm -f /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/limine-installer/${onefile}
  #however, if on a ro layer (not easy.sfs), copy it up from easy.sfs to top...
- for onelayer in ${sessionlayer} ${EXTRASFSDIRS}
+ for onelayer in ${EXTRASFSDIRS}
  do
   [ -e ${onelayer}/usr/local/limine-installer/${onefile} ] && cp -a --remove-destination /easy_ro/easy_sfs/usr/local/limine-installer/${onefile} /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/limine-installer/ 2>/dev/null
  done
@@ -393,7 +390,7 @@ mkdir -p /mnt/${WKG_DEV}/${WKG_DIR}.session/root/Choices/ROX-Filer
 echo '<?xml version="1.0"?>
 <pinboard>' > newPuppyPin
 xxsfsdirs="$(echo -n "${EXTRASFSDIRS}" | tr ' ' '\n')"
-for onelayer in /mnt/${WKG_DEV}/${WKG_DIR}.session ${sessionlayer} ${EXTRASFSDIRS} /easy_ro/easy_sfs
+for onelayer in /mnt/${WKG_DEV}/${WKG_DIR}.session ${EXTRASFSDIRS} /easy_ro/easy_sfs
 do
  [ ! -f ${onelayer}/root/Choices/ROX-Filer/PuppyPin ] && continue
  while read oneline
@@ -403,7 +400,7 @@ do
     [ $cntbak -ne 0 ] && continue
     pathspec="$(echo -n "${oneline}" | cut -f 2 -d '>' | cut -f 1 -d '<')" #ex: /usr/share/backgrounds/default.jpg
     xxspecs="$(echo -n "$xxsfsdirs" | sed -e "s%$%${pathspec}%" | tr '\n' ' ')"
-    fndfile="$(ls -1 /mnt/${WKG_DEV}/${WKG_DIR}.session${pathspec} ${sessionlayer}${pathspec} ${xxspecs} /easy_ro/easy_sfs${pathspec} 2>/dev/null)"
+    fndfile="$(ls -1 /mnt/${WKG_DEV}/${WKG_DIR}.session${pathspec} ${xxspecs} /easy_ro/easy_sfs${pathspec} 2>/dev/null)"
     [ ! "$fndfile" ] && continue
     [ "$(grep "${pathspec}" newPuppyPin)" == "" ] && echo "$oneline" >> newPuppyPin
     cntbak=1
@@ -411,7 +408,7 @@ do
    *\<icon*)
     pathspec="$(echo -n "${oneline}" | cut -f 2 -d '>' | cut -f 1 -d '<')" #ex: /usr/sbin/sfsget
     xxspecs="$(echo -n "$xxsfsdirs" | sed -e "s%$%${pathspec}%" | tr '\n' ' ')"
-    fndfile="$(ls -1 /mnt/${WKG_DEV}/${WKG_DIR}.session${pathspec} ${sessionlayer}${pathspec} ${xxspecs} /easy_ro/easy_sfs${pathspec} 2>/dev/null)"
+    fndfile="$(ls -1 /mnt/${WKG_DEV}/${WKG_DIR}.session${pathspec} ${xxspecs} /easy_ro/easy_sfs${pathspec} 2>/dev/null)"
     [ ! "$fndfile" ] && continue
     [ "$(grep "${pathspec}" newPuppyPin)" == "" ] && echo "$oneline" >> newPuppyPin
    ;;
@@ -433,7 +430,7 @@ sed -i -e 's%label="petget"%label="pkg"%' /mnt/${WKG_DEV}/${WKG_DIR}.session/roo
 mkdir -p /mnt/${WKG_DEV}/${WKG_DIR}.session/root/.config/rox.sourceforge.net/ROX-Filer
 echo '<?xml version="1.0"?>
 <special-files>' > newglobicons
-for onelayer in /mnt/${WKG_DEV}/${WKG_DIR}.session ${sessionlayer} ${EXTRASFSDIRS} /easy_ro/easy_sfs
+for onelayer in /mnt/${WKG_DEV}/${WKG_DIR}.session ${EXTRASFSDIRS} /easy_ro/easy_sfs
 do
  globspec=""
  [ -f ${onelayer}/root/Choices/ROX-Filer/globicons ] && globspec="${onelayer}/root/Choices/ROX-Filer/globicons"
@@ -497,7 +494,7 @@ for onefile in build-choices devx-only-installed-packages DISTRO_COMPAT_REPOS DI
 do
  [ -e /mnt/${WKG_DEV}/${WKG_DIR}.session/root/.packages/${onefile} ] && rm -f /mnt/${WKG_DEV}/${WKG_DIR}.session/root/.packages/${onefile}
  #however, if on a ro layer (not easy.sfs), copy it up from easy.sfs to top...
- for onelayer in ${sessionlayer} ${EXTRASFSDIRS}
+ for onelayer in ${EXTRASFSDIRS}
  do
   [ -e ${onelayer}/root/.packages/${onefile} ] && cp -a --remove-destination /easy_ro/easy_sfs/root/.packages/${onefile} /mnt/${WKG_DEV}/${WKG_DIR}.session/root/.packages/ 2>/dev/null
  done
@@ -511,7 +508,7 @@ if [ "$prevVER" ];then
    onepkgdb="$(basename $apkgdb)"
    [ -e /mnt/${WKG_DEV}/${WKG_DIR}.session/root/.packages/${onepkgdb} ] && rm -f /mnt/${WKG_DEV}/${WKG_DIR}.session/root/.packages/${onepkgdb}
    #however, if on a ro layer (not easy.sfs), copy it up from easy.sfs to top...
-   for onelayer in ${sessionlayer} ${EXTRASFSDIRS}
+   for onelayer in ${EXTRASFSDIRS}
    do
     [ -e ${onelayer}/root/.packages/${onepkgdb} ] && cp -a --remove-destination /easy_ro/easy_sfs/root/.packages/${onepkgdb} /mnt/${WKG_DEV}/${WKG_DIR}.session/root/.packages/ 2>/dev/null
    done

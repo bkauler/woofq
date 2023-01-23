@@ -43,12 +43,13 @@
 #20220703 fix container erase and rollback if a top-level-zram.
 #20221015 get rid of .cache folders when create rw-* sfs, direct write to .session.
 #20230104 /.rollback.flg moved to /mnt/wkg/.rollback.flg
+#20230123 removed SESSIONSFSflag. it is an old idea from 2017, not used.
 
 export TEXTDOMAIN=version-control
 export OUTPUT_CHARSET=UTF-8
 
 . /etc/DISTRO_SPECS
-. /etc/rc.d/PUPSTATE #170924 has SESSIONSFSflag (see 'init' script in initrd) 0=no session.sfs
+. /etc/rc.d/PUPSTATE
 
 if [ -d /boot/device-tree ];then #20220621 rpi
  #this is a hack...
@@ -218,20 +219,10 @@ $(gettext 'The snapshot will be saved as:')
 /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${DISTRO_VERSION}/rw-${DATE}.sfs"
 export DLG_HELP2="<window resizable=\"false\" title=\"$(gettext 'Help: take snapshot')\" icon-name=\"gtk-index\" window_position=\"1\"><vbox><text use-markup=\"true\"><label>\"${M_help2}\"</label><variable>DLG_HELP2</variable></text><hbox><button><label>${M_close}</label><action type=\"closewindow\">DLG_HELP2</action></button></hbox></vbox></window>"
 
-if [ $SESSIONSFSflag -eq 1 ];then #170525
- M_help3b="$(gettext 'Files found inside each easy-<i>version</i> folder are:') ${KERNELNAME}, initrd, easy.sfs, session.sfs, $(gettext 'and any extra SFS files that are desired to be loaded.')"
- M_help3c="
-session.sfs: $(gettext 'Merge of session.sfs and rw layer of previous version')"
- M_help4b="$(gettext 'Easy Linux runs on a layered filesystem, with read-only (ro) layers <i>easy.sfs</i> and <i>session.sfs</i>, and a read-write (rw) layer on top.')"
- M_help4c="
-$(gettext 'Note that session.sfs is the merge of session.sfs and the rw-layer from the previous version of Easy Linux.')
-"
-else
- M_help3b="$(gettext 'Files found inside each easy-<i>version</i> folder are:') ${KERNELNAME}, initrd, easy.sfs, $(gettext 'and any extra SFS files that are desired to be loaded.')"
- M_help3c=""
- M_help4b="$(gettext 'Easy Linux runs on a layered filesystem, with read-only (ro) layer <i>easy.sfs</i>, and a read-write (rw) layer on top.')"
- M_help4c=""
-fi
+M_help3b="$(gettext 'Files found inside each easy-<i>version</i> folder are:') ${KERNELNAME}, initrd, easy.sfs, $(gettext 'and any extra SFS files that are desired to be loaded.')"
+M_help3c=""
+M_help4b="$(gettext 'Easy Linux runs on a layered filesystem, with read-only (ro) layer <i>easy.sfs</i>, and a read-write (rw) layer on top.')"
+M_help4c=""
 
 if [ -d /boot/device-tree ];then #20210125 rpi
  DTFmsg="
@@ -438,46 +429,6 @@ $(gettext 'Please type a short one-line comment about this snapshot:')" 0 0 2> /
  exit
 fi
 
-#170525
-reconstitute_sessionsfs_func() {
- localBackVer="$1"
- ROLAYERS=""
- if [ ! -f /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${localBackVer}/session.sfs ];then
-  for APREVER in $revsortedVERS
-  do
-   [ "$APREVER" == "" ] && continue #precaution
-   if vercmp ${APREVER} gt ${localBackVer}; then continue; fi
-   if [ -f /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${localBackVer}/session.sfs ];then
-    mkdir -p /tmp/easy_version_control/sessionsfs
-    busybox mount -t squashfs -o loop,noatime /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${APREVER}/session.sfs /tmp/easy_version_control/sessionsfs
-    ROLAYERS="${ROLAYERS}:/tmp/easy_version_control/sessionsfs${RO}"
-    break
-   else
-    mkdir -p /tmp/easy_version_control/${APREVER}
-    busybox mount -t squashfs -o loop,noatime /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${APREVER}/rw-${APREVER}.sfs /tmp/easy_version_control/${APREVER}
-    ROLAYERS="${ROLAYERS}:/tmp/easy_version_control/${APREVER}${RO}"
-   fi
-  done
- fi
- if [ "$ROLAYERS" ];then
-  xROLAYERS="$(echo -n "$ROLAYERS" | sed -e 's%^:%%')"
-  mkdir -p /tmp/easy_version_control/tempwork
-  mkdir -p /tmp/easy_version_control/rwlayer
-  mkdir -p /tmp/easy_version_control/mntpt
-  if [ "$LAYERFS" == "aufs" ];then
-   mount -t aufs -o br=/tmp/easy_version_control/rwlayer=rw${ROLAYERS} aufs /tmp/easy_version_control/mntpt
-  else
-   mount -t overlay -o lowerdir=${xROLAYERS},upperdir=/tmp/easy_version_control/rwlayer,workdir=/tmp/easy_version_control/tempwork overlay /tmp/easy_version_control/mntpt
-  fi
-  urxvt -bg '#09A0FF' -e mksquashfs /tmp/easy_version_control/mntpt /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${localBackVer}/session.sfs #>/dev/null
-  sync
-  for AMNTD in `echo -n "$xROLAYERS" | tr ':' '\n' | cut -f 1 -d '=' | tr '\n' ' '`
-  do
-   busybox umount $AMNTD
-  done
- fi
-}
-
 if [ "$EXIT" == "rollback" ];then
  backEASYver="$(echo "$RETVARS" | grep '^EASYVC_' | grep '"true"' | cut -f 2 -d '_' | cut -f 1 -d '=' | tr 'Z' '.')"
  if [ "$backEASYver" ];then
@@ -497,13 +448,7 @@ if [ "$EXIT" == "rollback" ];then
    cp -a -f /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${backEASYver}/initrd /mnt/${WKG_DEV}/${WKG_DIR} #200729 do not change this file.
    cp -a -f /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${backEASYver}/configuration-${backEASYver} /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${backEASYver}/configuration #170225 200829
    sync
-   if [ $SESSIONSFSflag -eq 1 ];then
-    #170525 if no session.sfs in previous easy- folder, reconstitute it...
-    reconstitute_sessionsfs_func ${backEASYver}
-    echo -n "${backEASYver},erase" > /mnt/wkg/.rollback.flg #init in initramfs will read this. 170526 170529 20230104
-   else
-    echo -n "${backEASYver},${backEASYver}" > /mnt/wkg/.rollback.flg #init in initramfs will read this. 170526 20230104
-   fi
+   echo -n "${backEASYver},${backEASYver}" > /mnt/wkg/.rollback.flg #init in initramfs will read this. 170526 20230104
    sync
 
    if [ -d /boot/device-tree ];then #20210125 rpi. see also easy-update.
@@ -540,10 +485,6 @@ $(gettext 'This requires a reboot to take effect')" 0 0
     cp -a -f /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${backVER}/${KERNELNAME} /mnt/${WKG_DEV}/${WKG_DIR}
     #20220613 must copy initrd, as now has /etc/DISTRO_SPECS...
     cp -f /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${backVER}/initrd /mnt/${WKG_DEV}/${WKG_DIR}
-    if [ $SESSIONSFSflag -eq 1 ];then
-     #170525 if no session.sfs in previous easy- folder, reconstitute it...
-     reconstitute_sessionsfs_func ${backVER}
-    fi
     sync
    fi
    cp -a -f /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${backVER}/configuration-${backDATE} /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${backVER}/configuration #200829

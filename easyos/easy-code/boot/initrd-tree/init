@@ -139,6 +139,7 @@
 #20230112 option pass "qlang=nn" where nn is two-letter language, ex: fr
 #20230112 separate strings to file /nls/init.str.en
 #20230113 load font for country code.
+#20230123 removed SESSIONSFSflag. it is an old idea from 2017, not used.
 
 #20220525 3buildeasydistro will substitute values here...
 EOS_TOP_LEVEL_ZRAM=EOSTOPLEVELZRAM #20220521 1=yes, anything else no.
@@ -601,8 +602,6 @@ else
  RO=''
 fi
 
-SESSIONSFSflag=0 #170525 see also /usr/sbin/easy_version_control. 170924 change 1 to 0.
-export SESSIONSFSflag
 SALT="aprilandvincent" #190308 previously used $WKG_DISKID
 
 #now have DISTRO_SPECS in initrd... 20220615  20220629 moved up.
@@ -1428,50 +1427,18 @@ XDG_VIDEOS_DIR="/files/media"' > ${bDL}/.config/user-dirs.dirs
   done
  fi
    
- if [ $SESSIONSFSflag -eq 1 ];then #170525
-  if [ ! "$prevVER" ];then
-   #.session folder (rw layer) is empty, but need a session.sfs anyway...
-   echo -n ' session'; mksquashfs /mnt/${WKG_DEV}/${WKG_DIR}.session /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${INIT_DISTRO_VERSION}/session.sfs -comp lz4 -Xhc >/dev/null
-  else
-   #need to merge .session (rw layer) with easy-$prevVER/session.sfs, create new session.sfs...
-   mkdir sro snew
-   mount -t squashfs -o loop,noatime /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${prevVER}/session.sfs sro
-   [ $? -ne 0 ] && err_exit "FAILED: mount -t squashfs -o loop,noatime /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${prevVER}/session.sfs sro"
-   if [ "$LAYERFS" == "aufs" ];then
-    mount -t aufs -o br=/mnt/${WKG_DEV}/${WKG_DIR}.session=rw:sro=ro aufs snew
-    [ $? -ne 0 ] && err_exit "FAILED: mount -t aufs -o br=/mnt/${WKG_DEV}/${WKG_DIR}.session=rw:sro=ro aufs snew"
-   else
-    mkdir -p /mnt/${WKG_DEV}/${WKG_DIR}swork
-    mount -t overlay -o lowerdir=sro,upperdir=/mnt/${WKG_DEV}/${WKG_DIR}.session,workdir=/mnt/${WKG_DEV}/${WKG_DIR}swork overlay snew
-    [ $? -ne 0 ] && err_exit "FAILED: mount -t overlay -o lowerdir=sro,upperdir=/mnt/${WKG_DEV}/${WKG_DIR}.session,workdir=/mnt/${WKG_DEV}/${WKG_DIR}swork overlay snew"
-   fi
-   #180606 need path root/.XLOADED  181121 exclude .control
-   echo -e 'dev\nmnt\nproc\nrun\nsys\ntmp\nvar\nlost+found\nroot/.XLOADED\n.control' > exclusions1 #exclusions.
-   mksquashfs snew /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${INIT_DISTRO_VERSION}/session.sfs -ef exclusions1 -comp lz4 -Xhc #>/dev/null
-   echo -e "\\033[1;33mPlease wait, synchronizing...\\033[0;39m" #yellow
-   sync
-   umount snew
-   umount sro
-   [ -d /mnt/${WKG_DEV}/${WKG_DIR}swork ] && rm -rf /mnt/${WKG_DEV}/${WKG_DIR}swork
-   rm -rf /mnt/${WKG_DEV}/${WKG_DIR}.session/*
-   rm -f /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${prevVER}/session.sfs #remove session.sfs in prev. version.
-  fi
- else
-  #echo -n "rw-${INIT_DISTRO_VERSION}.sfs"; 
-  
-  #20221015 code from easy-version-control...
-  echo -e 'dev\nmnt\nproc\nrun\nsys\ntmp\nvar\n.fsckme.flg\nlost+found\nroot/.XLOADED\n.control' > exclusions1
-  if [ -d /mnt/${WKG_DEV}/${WKG_DIR}.session/root/.ccache ];then #does oe create this? huge, 6.8GB
-   echo 'root/.ccache' >> exclusions1
-  fi
-  DOTC="$(find /mnt/${WKG_DEV}/${WKG_DIR}.session -maxdepth 3 -type d -name '.cache' | cut -f 6- -d '/' | tr '/n' ' ')" #ex: home/firefox/.cache
-  for aDOTC in $DOTC
-  do
-   echo "$aDOTC" >> exclusions1
-  done
-  
-  mksquashfs /mnt/${WKG_DEV}/${WKG_DIR}.session /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${INIT_DISTRO_VERSION}/rw-${INIT_DISTRO_VERSION}.sfs -ef exclusions1 -comp lz4 -Xhc #>/dev/null
+ #20221015 code from easy-version-control...
+ echo -e 'dev\nmnt\nproc\nrun\nsys\ntmp\nvar\n.fsckme.flg\nlost+found\nroot/.XLOADED\n.control' > exclusions1
+ if [ -d /mnt/${WKG_DEV}/${WKG_DIR}.session/root/.ccache ];then #does oe create this? huge, 6.8GB
+  echo 'root/.ccache' >> exclusions1
  fi
+ DOTC="$(find /mnt/${WKG_DEV}/${WKG_DIR}.session -maxdepth 3 -type d -name '.cache' | cut -f 6- -d '/' | tr '/n' ' ')" #ex: home/firefox/.cache
+ for aDOTC in $DOTC
+ do
+  echo "$aDOTC" >> exclusions1
+ done
+ mksquashfs /mnt/${WKG_DEV}/${WKG_DIR}.session /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${INIT_DISTRO_VERSION}/rw-${INIT_DISTRO_VERSION}.sfs -ef exclusions1 -comp lz4 -Xhc #>/dev/null
+ 
  if [ "$EOS_SUPPORT_CONTAINERS" != "0" ];then
   #also save any container sessions:
   for EXE in `ls -1 /mnt/${WKG_DEV}/${WKG_DIR}containers | tr '\n' ' '`
@@ -1549,11 +1516,6 @@ fi
 mkdir -p /mnt/${WKG_DEV}/${WKG_DIR}.session/etc #170927 missing if have erased session.
 cp -a -f /easy_ro/easy_sfs/etc/DISTRO_SPECS /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/ #need to be sure correct one is on top. 200828 -a
 EXTRASFS=""; sessionSFS=""; NEWEXTRASFSLIST=""
-if [ $SESSIONSFSflag -eq 1 ];then #170525
- mkdir /easy_ro/session
- mount -r -t squashfs -o loop,noatime /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${INIT_DISTRO_VERSION}/session.sfs /easy_ro/session
- sessionSFS="/easy_ro/session${RO}:"
-fi
 #precaution...
 . /easy_ro/easy_sfs/etc/DISTRO_SPECS
 [ "$DISTRO_VERSION" != "$INIT_DISTRO_VERSION" ] && echo -e "\\033[1;31m${S194} initrd: ${INIT_DISTRO_VERSION}, easy.sfs: ${DISTRO_VERSION}\\033[0;39m" #red
@@ -1817,7 +1779,7 @@ if [ "$origWKG_DEV" != "$WKG_DEV" ];then #200808 200822
  echo -e "origWKG_DEV='${origWKG_DEV}'\norigWKG_FS='${origWKG_FS}'\norigWKG_UUID='${origWKG_UUID}'\norigWKG_DIR='${origWKG_DIR}'" >> /easy_new/etc/rc.d/PUPSTATE
 fi
 echo "WKGDRV_SPEED=${TIME10k}" >> /easy_new/etc/rc.d/PUPSTATE #20220611
-echo -e "EXTRASFSLIST='${NEWEXTRASFSLIST}'\nSESSIONSFSflag=${SESSIONSFSflag}" >> /easy_new/etc/rc.d/PUPSTATE #170919 170924
+echo "EXTRASFSLIST='${NEWEXTRASFSLIST}'" >> /easy_new/etc/rc.d/PUPSTATE
 echo "EOS_TOP_LEVEL_ZRAM='${EOS_TOP_LEVEL_ZRAM}'" >> /easy_new/etc/rc.d/PUPSTATE #20220521
 echo "EOS_SUPPORT_CONTAINERS='${EOS_SUPPORT_CONTAINERS}'" >> /easy_new/etc/rc.d/PUPSTATE #20220525
 #echo "EOS_LOGIN_ZEUS='${EOS_LOGIN_ZEUS}'" >> /easy_new/etc/rc.d/PUPSTATE #20221030 20221102 remove
