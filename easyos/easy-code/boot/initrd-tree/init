@@ -140,6 +140,7 @@
 #20230112 separate strings to file /nls/init.str.en
 #20230113 load font for country code.
 #20230123 removed SESSIONSFSflag. it is an old idea from 2017, not used.
+#20230123 bring back tnew; gtk apps run in initrd
 
 #20220525 3buildeasydistro will substitute values here...
 EOS_TOP_LEVEL_ZRAM=EOSTOPLEVELZRAM #20220521 1=yes, anything else no.
@@ -496,6 +497,44 @@ load_font_country() {
  esac
 }
 
+###temporary mount easy.sfs###20230123
+mount_tnew() {
+ mkdir tro trw tnew
+ mount -t squashfs -o loop,noatime /mnt/$BOOT_DEV/${BOOT_DIR}easy.sfs tro
+ [ $? -ne 0 ] && err_exit "FAILED: mount -t squashfs -o loop,noatime /mnt/$BOOT_DEV/${BOOT_DIR}easy.sfs tro"
+ if [ "$LAYERFS" == "aufs" ];then
+  mount -t aufs -o br=trw=rw:tro=ro aufs tnew
+  [ $? -ne 0 ] && err_exit "FAILED: mount -t aufs -o br=trw=rw:sro=ro aufs tnew"
+ else
+  mkdir twork
+  mount -t overlay -o lowerdir=tro,upperdir=trw,workdir=twork overlay tnew
+  [ $? -ne 0 ] && err_exit "FAILED: mount -t overlay -o lowerdir=tro,upperdir=trw,workdir=twork overlay tnew"
+ fi
+ mount -o bind /dev tnew/dev
+ mount -o bind /proc tnew/proc
+ cp -a /etc/mtab tnew/etc/
+ mkdir -p tnew/dev/pts
+ mount -t devpts devpts tnew/dev/pts #need this to run xterm.
+ #configure so can run X...
+ cp -a -f tnew/etc/X11/xorg.conf.d/10-evdev-puppy.conf / #coz need it later.
+ rm -f tnew/etc/X11/xorg.conf.d/*
+ rm -f tnew/usr/share/X11/xorg.conf.d/* 2>/dev/null
+ rm -f tnew/etc/X11/Xsession.d/*
+ cp -f /xorg.conf tnew/etc/X11/
+ cp -f ask-country-x tnew/
+ cp -f ask-pw-x tnew/
+ cp -f startx tnew/
+ cp -f xinitrc tnew/
+ if [ -d tnew/usr/lib/xorg-fb ];then #alternative xorg runs on framebuffer.
+  rm -rf tnew/usr/lib/xorg/modules
+  cp -a -f tnew/usr/lib/xorg-fb/modules tnew/usr/lib/xorg/
+  cp -a -f tnew/usr/lib/xorg-fb/Xorg tnew/usr/lib/xorg/
+  cp -a -f tnew/usr/lib/xorg-fb/Xorg tnew/usr/bin/
+ fi
+ sed -e 's%^DISTRO_%INIT_DISTRO_%' tnew/etc/DISTRO_SPECS > /INIT_DISTRO_SPECS
+. /INIT_DISTRO_SPECS
+}
+
 #190828 try to recover if cp fails...
 cp_verify_func() {
  #passed params: source destination
@@ -761,16 +800,34 @@ if [ "$LOCKDOWN" == "" -o "$DROPOUT" == "" ];then
    fi
   fi
   
-  #20230113 choose language 2-letter code...
+  #20230113 choose language 2-letter code... 20230123
   if [ ! "$QLANG" ];then #set if kernel param.
    if [ ! -f /mnt/${WKG_DEV}/${WKG_DIR}.qlang ];then
     #ask language code...
-    #if [ ! -e /dev/fb0 ];then
-    # QLANG=en #well, we could have a text-mode ask.
-    #else
+    EXIT='bad'
+    if [ -e /dev/fb0 ];then
+     mount_tnew #aufs temporary mount easy.sfs
+     chroot tnew /bin/busybox ash -c "/startx ask-country-x"
+     touch tnew/RETASKCOUNTRY
+     if grep -q '^EXIT="OK"' tnew/RETASKCOUNTRY; then
+      KEYMAP="$(grep '^COMBO_KEYBOARD.*' tnew/RETASKCOUNTRY | cut -f 2 -d '"' | cut -f 1 -d ' ')" #ex: de
+      BASELANG="$(grep '^COMBO_LOCALE.*' tnew/RETASKCOUNTRY | cut -f 2 -d '"' | cut -f 1 -d ' ')" #ex: de_DE
+      BASELANG="${BASELANG/@*/}" #@euro chopped.
+      QLANG="${BASELANG/_*/}"
+      EXIT='OK'
+     fi
+     #umount temporary easy.sfs
+     sync
+     umount tnew/dev/pts
+     umount tnew/proc
+     umount tnew/dev
+     umount tnew
+     umount tro
+    fi
+    if [ "$EXIT" != "OK" ];then 
      /sbin/ask-language #currently using dialog so don't need /dev/fb0
      QLANG="$(cat /qlang)"
-    #fi
+    fi
     echo -n "$QLANG" > /mnt/${WKG_DEV}/${WKG_DIR}.qlang
    else
     QLANG="$(cat /mnt/${WKG_DEV}/${WKG_DIR}.qlang)"
@@ -1013,7 +1070,11 @@ if [ ! -d /mnt/${WKG_DEV}/${WKG_DIR}.session ];then
  
  #190713...
  while [ 1 ];do
-  ask_kb #sets $KEYMAP
+  if [ "$KEYMAP" ];then #20230123 already set by ask-country-x
+   true
+  else
+   ask_kb #sets $KEYMAP
+  fi
   if [ $? -eq 0 ];then
    if [ ! "$QLANG" ];then #20230113
     load_font ${KEYMAP:0:2}
@@ -1797,7 +1858,11 @@ fi
 if [ "$QLANG" ];then
  grep -q "^LANG=${QLANG}_" /easy_new/etc/profile
  if [ $? -ne 0 ];then
-  sed -i -e "s%^LANG=.*%LANG=${QLANG}_${QLANG^^}.UTF-8%" /easy_new/etc/profile
+  if [ "$BASELANG" ];then #20230123 from ask-country-x
+   sed -i -e "s%^LANG=.*%LANG=${BASELANG}.UTF-8%" /easy_new/etc/profile
+  else
+   sed -i -e "s%^LANG=.*%LANG=${QLANG}_${QLANG^^}.UTF-8%" /easy_new/etc/profile
+  fi
  fi
 fi
 
