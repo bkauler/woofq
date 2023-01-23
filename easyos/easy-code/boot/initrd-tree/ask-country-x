@@ -2,6 +2,7 @@
 #ask locale and keyboard layout.
 #190712 reduce locale choices to default lang (ex: fr_*) or en_*
 #20210530 console keyboard layout uk changed to gb. see also /usr/sbin/quicksetup.
+#20230123 partial translate language and country names.
 
 export PATH='/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin'
 
@@ -26,7 +27,7 @@ export PATH='/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin'
   [ ! -d /usr/lib/locale/en_US.utf8 ] && localedef -f UTF-8 -i en_US --no-archive en_US.utf8 >/dev/null #110409 111022
 
   #build language table...
-  LANGUAGEDESCR='aa:Afar ab:Abkhazian af:Africaans am:Amharic an:Aragonese ar:Arabic az:Azeri be:Belarusian bn:Bengali bs:Bosnian bg:Bulgarian br:Breton ca:Catalan cs:Czech cy:Welsh da:Danish de:German dv:Divehi dz:Dzongkha el:Greek en:English eo:Esperanto es:Spanish et:Estonian eu:Basque fa:Persian fo:Faeroese fi:Finnish fr:French ga:Irish gd:Scots_Gaelic gl:Galician gv:Manx_Gaelic gu:Gujarati he:Hebrew hi:Hindi hr:Croatian hu:Hungarian hy:Armenian is:Icelandic id:Indonesian iw:Hebrew it:Italian ja:Japanese ka:Georgian kl:Greenlandic kn:Kannada kk:Kazakh km:Khmer kok:Konkani ko:Korean ku:Kurdish kw:Cornish ky:Kyrgyz lg:Luganda lo:Lao lt:Lithuanian lv:Latvian mg:Malagasy ms:Malay ml:Malayalam mt:Maltese mi:Maori mk:Macedonian mn:Mongolian mr:Marathi ne:Nepali nl:Dutch nb:Norgwegian nn:Norwegian_Nynorsk no:Norwegian_Bokm oc:Occitan om:Oromo or:Oriya pa:Pashto pl:Polish pt:Portuguese pa:Punjabi quz:Quechua ro:Romania rs:Serbian ru:Russian rw:Kinyarwanda smn:Sami smj:Sami se:Sami sa:Sanskrit sma:Sami sms:Sami sq:Albanian sr:Srpski sl:Slovenian sw:Swahili sv:Swedish syr:Syriac ta:Tamil th:Thai tl:Tagalog tt:Tatar te:Telugu tr:Turkish uk:Ukrainian ur:Urdu uz:Uzbek vi:Vietnamese wa:Walloon xh:Xhosa yi:Yiddish zh:Chinese zu:Zulu'
+  LANGUAGEDESCR='aa:Afar ab:Abkhazian af:Africaans am:Amharic an:Aragonese ar:Arabic az:Azeri be:Belarusian bn:Bengali bs:Bosnian bg:Bulgarian br:Breton ca:Catalan cs:Czech cy:Welsh da:Danish de:German dv:Divehi dz:Dzongkha el:Greek en:English eo:Esperanto es:Spanish et:Estonian eu:Basque fa:Persian fo:Faeroese fi:Finnish fr:French ga:Irish gd:Scots_Gaelic gl:Galician gv:Manx_Gaelic gu:Gujarati he:Hebrew hi:Hindi hr:Croatian hu:Hungarian hy:Armenian is:Icelandic id:Indonesian iw:Hebrew it:Italian ja:Japanese ka:Georgian kl:Greenlandic kn:Kannada kk:Kazakh km:Khmer kok:Konkani ko:Korean ku:Kurdish kw:Cornish ky:Kyrgyz lg:Luganda lo:Lao lt:Lithuanian lv:Latvian mg:Malagasy ms:Malay ml:Malayalam mt:Maltese mi:Maori mk:Macedonian mn:Mongolian mr:Marathi ne:Nepali nl:Dutch nb:Norgwegian nn:Norwegian_Nynorsk no:Norwegian_Bokm oc:Occitan om:Oromo or:Oriya pa:Pashto pl:Polish pt:Portuguese pa:Punjabi quz:Quechua ro:Romanian rs:Serbian ru:Russian rw:Kinyarwanda smn:Sami smj:Sami se:Sami sa:Sanskrit sma:Sami sms:Sami sq:Albanian sr:Srpski sl:Slovenian sw:Swahili sv:Swedish syr:Syriac ta:Tamil th:Thai tl:Tagalog tt:Tatar te:Telugu tr:Turkish uk:Ukrainian ur:Urdu uz:Uzbek vi:Vietnamese wa:Walloon xh:Xhosa yi:Yiddish zh:Chinese zu:Zulu'
   REGIONDESCR='AA:ArabicCountries AE:UAE AL:Yugoslavia AR:Argentina AT:Austria AU:Australia BE:Belgium BG:Bularia BH:Bahrain BN:Brunei BO:Bolvia BR:Brazil BZ:Belize CA:Canada CH:Switzerland CL:Chile CN:PeoplesRepublicChina CO:Columbia CR:CostaRica CY:Cyprus CZ:CzechRepublic DE:Germany DK:Denmark DO:DominicanRepublic EC:Ecuador EE:Estonia ES:Spain DO:Dominican DZ:Algeria EC:Ecuador EG:Egypt FI:Finland FR:France GB:GreatBritain GR:Greece GT:Guatemalia HK:HongKong HN:Honduras HR:Croatia HU:Hungary ID:Indonesia IE:Ireland IL:Israel IN:India IQ:Iraq IS:Iceland IT:Italy JM:Jamaica JO:Jordan JP:Japan KR:Korea KW:Kuwait KZ:Kazakhstan LB:Lebanon LI:Liechtenstein LU:Luxembourg LY:Libya MA:Morocco MC:Monaco MK:Macedonia MO:Macau MY:Malaysia MX:Mexico NI:Nicaragua NL:Netherlands NO:Norway NZ:NewZealand OM:Oman PA:Panama PE:Peru PH:Philippines PL:Poland PR:PuertoRico PT:Portugal PY:Paraguay QA:Qatar RO:Romania RU:Russia SA:SaudiArabia SE:Sweden SG:Singapore SK:Slovakia SY:Syria TH:Thailand TN:Tunisia TR:Turkey TW:Taiwan ZA:SouthAfrica TT:Trinidad US:USA PE:Peru SV:ElSalvador MX:Mexico NI:Nicaragua UY:Uruguay VE:Venezuela YE:Yemen YU:Yugoslavia ZA:SouthAfrica'
   #need sanity check, as format of these files has changed...
   SANITYFLAG='pass'
@@ -154,50 +155,50 @@ ${CHOICES_CLI}"
     case $AKMAP in
      us*) ACNTRY="(USA)";;
      fr*) ACNTRY="(France)";;
-     it*) ACNTRY="(Italy)";;
+     it*) ACNTRY="(Italy, Italia)";;
      ba*) ACNTRY="(Bashkir)";;
-     be*) ACNTRY="(Belgium)";;
-     bg*) ACNTRY="(Bulgaria)";;
+     be*) ACNTRY="(Belgium, België)";;
+     bg*) ACNTRY="(Bulgaria, Bulgariya)";;
      br*) ACNTRY="(Brazil)";;
      by*) ACNTRY="(Byelorussian)";;
      cf*) ACNTRY="(French-Canadian)";;
-     croat*) ACNTRY="(Croatia)";;
-     cz*) ACNTRY="(Czech)";;
-     de) ACNTRY="(Germany)";;
-     de_*) ACNTRY="(Germany)";;
-     de-*) ACNTRY="(Germany)";;
-     dk*) ACNTRY="(Denmark)";;
-     es*) ACNTRY="(Spain)";;
+     croat*) ACNTRY="(Croatia, Hrvatska)";;
+     cz*) ACNTRY="(Czech, Česko)";;
+     de) ACNTRY="(Germany, Deutschland)";;
+     de_*) ACNTRY="(Germany, Deutschland)";;
+     de-*) ACNTRY="(Germany, Deutschland)";;
+     dk*) ACNTRY="(Denmark, Danmark)";;
+     es*) ACNTRY="(Spain, España)";;
      fi*) ACNTRY="(Finland)";;
-     hu*) ACNTRY="(Hungary)";;
-     ka*) ACNTRY="(Kazakhstan)";;
+     hu*) ACNTRY="(Hungary, Magyarország)";;
+     ka*) ACNTRY="(Kazakhstan, Qazaqstan)";;
      ky*) ACNTRY="(Kyrgyzstan)";;
-     et*) ACNTRY="(Estonia)";;
-     lt*) ACNTRY="(Lithuania)";;
+     et*) ACNTRY="(Estonia, Eesti)";;
+     lt*) ACNTRY="(Lithuania, Lietuva)";;
      mk*) ACNTRY="(Macedonia)";;
-     sr*) ACNTRY="(Serbia)";;
-     tr*) ACNTRY="(Turkey)";;
+     sr*) ACNTRY="(Serbia, Srbija)";;
+     tr*) ACNTRY="(Turkey, Türkiye)";;
      tt*) ACNTRY="(Tatar)";;
      sg*) ACNTRY="(Swiss-German)";;
-     ua*) ACNTRY="(Ukraine)";;
-     gr*) ACNTRY="(Greece)";;
-     il*) ACNTRY="(Israel)";;
-     is*) ACNTRY="(Iceland)";;
-     jp*) ACNTRY="(Japan)";;
+     ua*) ACNTRY="(Ukraine, Ukraїna)";;
+     gr*) ACNTRY="(Greece, Hellas)";;
+     il*) ACNTRY="(Israel, Israʼiyl)";;
+     is*) ACNTRY="(Iceland, Ísland)";;
+     jp*) ACNTRY="(Japan, Nippon)";;
      pc*) ACNTRY="(Japanese/English)";;
      la*) ACNTRY="(Latin_America)";;
      nl*) ACNTRY="(Netherlands)";;
      no*) ACNTRY="(Norway)";;
-     pl*) ACNTRY="(Poland)";;
+     pl*) ACNTRY="(Poland, Polska)";;
      pt*) ACNTRY="(Portugal)";;
-     ro*) ACNTRY="(Romania)";;
-     ru*) ACNTRY="(Russia)";;
-     se*) ACNTRY="(Sweden)";;
-     sv*) ACNTRY="(Sweden)";;
-     sk*) ACNTRY="(Slovakia)";;
-     sl*) ACNTRY="(Slovenia)";;
+     ro*) ACNTRY="(Romania, România)";;
+     ru*) ACNTRY="(Russia, Россия)";;
+     se*) ACNTRY="(Sweden, Sverige)";;
+     sv*) ACNTRY="(Sweden, Sverige)";;
+     sk*) ACNTRY="(Slovakia, Slovensko)";;
+     sl*) ACNTRY="(Slovenia, Slovenija)";;
      gb*) ACNTRY="(UK)";; #20210530 changed from uk. see also /usr/sbin/quicksetup.
-     wangbe*) ACNTRY="(Belgium)";;
+     wangbe*) ACNTRY="(Belgium, België)";;
      azerty) ACNTRY="(Tandon)";;
      dvorak-r) ACNTRY="(Right_single-handed)";;
      dvorak-l) ACNTRY="(Left_single-handed)";;
