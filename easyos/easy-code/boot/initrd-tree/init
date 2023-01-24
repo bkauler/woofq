@@ -141,7 +141,7 @@
 #20230113 load font for country code.
 #20230123 removed SESSIONSFSflag. it is an old idea from 2017, not used.
 #20230123 bring back tnew; gtk apps run in initrd
-#20230124 choose from two splash images in tnew.
+#20230124 choose from two splash images in tnew. apply default gtk2 theme.
 
 #20220525 3buildeasydistro will substitute values here...
 EOS_TOP_LEVEL_ZRAM=EOSTOPLEVELZRAM #20220521 1=yes, anything else no.
@@ -526,8 +526,9 @@ mount_tnew() {
  cp -f ask-pw-x tnew/
  cp -f startx tnew/
  cp -f xinitrc tnew/
- cp -f logo800x600.png tnew/
- cp -f logo1920x1440.png tnew/
+ cp -f logo800x600.png tnew/       #20230124
+ cp -f logo1920x1440.png tnew/     # "
+ cp -f tnew/root/.gtkrc-2.0 tnew/  # "
  if [ -d tnew/usr/lib/xorg-fb ];then #alternative xorg runs on framebuffer.
   rm -rf tnew/usr/lib/xorg/modules
   cp -a -f tnew/usr/lib/xorg-fb/modules tnew/usr/lib/xorg/
