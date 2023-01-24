@@ -141,6 +141,7 @@
 #20230113 load font for country code.
 #20230123 removed SESSIONSFSflag. it is an old idea from 2017, not used.
 #20230123 bring back tnew; gtk apps run in initrd
+#20230124 choose from two splash images in tnew.
 
 #20220525 3buildeasydistro will substitute values here...
 EOS_TOP_LEVEL_ZRAM=EOSTOPLEVELZRAM #20220521 1=yes, anything else no.
@@ -500,8 +501,8 @@ load_font_country() {
 ###temporary mount easy.sfs###20230123
 mount_tnew() {
  mkdir tro trw tnew
- mount -t squashfs -o loop,noatime /mnt/$BOOT_DEV/${BOOT_DIR}easy.sfs tro
- [ $? -ne 0 ] && err_exit "FAILED: mount -t squashfs -o loop,noatime /mnt/$BOOT_DEV/${BOOT_DIR}easy.sfs tro"
+ mount -t squashfs -o loop,noatime /mnt/${WKG_DEV}/${WKG_DIR}easy.sfs tro
+ [ $? -ne 0 ] && err_exit "FAILED: mount -t squashfs -o loop,noatime /mnt/${WKG_DEV}/${WKG_DIR}easy.sfs tro"
  if [ "$LAYERFS" == "aufs" ];then
   mount -t aufs -o br=trw=rw:tro=ro aufs tnew
   [ $? -ne 0 ] && err_exit "FAILED: mount -t aufs -o br=trw=rw:sro=ro aufs tnew"
@@ -525,6 +526,8 @@ mount_tnew() {
  cp -f ask-pw-x tnew/
  cp -f startx tnew/
  cp -f xinitrc tnew/
+ cp -f logo800x600.png tnew/
+ cp -f logo1920x1440.png tnew/
  if [ -d tnew/usr/lib/xorg-fb ];then #alternative xorg runs on framebuffer.
   rm -rf tnew/usr/lib/xorg/modules
   cp -a -f tnew/usr/lib/xorg-fb/modules tnew/usr/lib/xorg/
@@ -597,16 +600,20 @@ else
 . /nls/init.str.en
 fi
 
-#190313 have static /dev, so will have /dev/fb0 even if no framebuffer... no, now have dynamic /dev
 #190307 display logo, -f = reduces to fit screen. 20220929
-#20221118 playing with new logo... 20230119...
+#20221118 playing with new logo... 20230119... 20230124...
+fbX='800'
 if [ -e /dev/fb0 ];then
- #idump -f logo1920x1440.png 2>/dev/null
- idump -f logo1920x1440new.png 2>/dev/null
+ if [ -s /sys/class/graphics/fb0/virtual_size ];then
+  fbRES="$(cat /sys/class/graphics/fb0/virtual_size)"
+  fbX="${fbRES/,*/}"
+ fi
+ idump -f logo1920x1440.png 2>/dev/null
  [ $? -ne 0 ] && rm -f /dev/fb0 #190313
 else
  clear #20220206 no logo, just clear the screen.
 fi
+export fbX #want in tnew
 
 #optional WKG_DEV passed in as kernel boot param...
 [ "$wkg_dev" ] && WKG_DEV="$wkg_dev" #ex: zram0

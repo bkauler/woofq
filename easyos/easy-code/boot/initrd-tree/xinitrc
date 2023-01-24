@@ -3,8 +3,12 @@
 
 /usr/bin/xsetroot -cursor_name top_left_arrow
 
-#20230123
-/usr/bin/xloadimage -onroot -quiet -fullscreen -display :0 logo1920x1440new.png
+#20230123 20230124
+if [ "$fbX" == "800" ];then
+ /usr/bin/xloadimage -onroot -quiet -fullscreen /logo800x600.png
+else
+ /usr/bin/xloadimage -onroot -quiet -fullscreen /logo1920x1440.png
+fi
 
 if [ $2 ];then
  exec /${1} ${2}
