@@ -274,6 +274,8 @@
 # --also differentiate UUID and PARTUUID
 #20230111 only have en build, create nls_<ver>_noarch.sfs
 #20230112 populate initrd with sss initrd_strings*
+#20230125 no longer using initrd_strings
+#20230125 escape single-quote chars in translations. ' replaced with '\''
 
 export LANG=C #faster.
 
@@ -1212,10 +1214,10 @@ do
  fi
 done
 
-#190112 host needs latest translation files...
+#190112 host needs latest translation files... 20230125 remove initrd_strings
 mkdir -p /usr/share/locale/${DEFAULTLANG1}
 cp -a -f -u sandbox3/rootfs-complete/usr/share/locale/${DEFAULTLANG1}/* /usr/share/locale/${DEFAULTLANG1}/ 2>/dev/null #20210822 hide err en empty.
-for aSSS in boot_strings desk_strings doc_strings initrd_strings menu_strings script_strings
+for aSSS in boot_strings desk_strings doc_strings menu_strings script_strings
 do
  if [ -f sandbox3/rootfs-complete/usr/share/sss/${aSSS}/${aSSS}.${DEFAULTLANG1} ];then
   cp -a -f -u sandbox3/rootfs-complete/usr/share/sss/${aSSS}/${aSSS}.${DEFAULTLANG1} /usr/share/sss/${aSSS}/
@@ -5170,10 +5172,17 @@ fi
 #20220613 useful to have this in initrd...
 cp -a -f ../../sandbox3/rootfs-complete/etc/DISTRO_SPECS etc/
 
-#20230112 populate initrd with sss initrd_strings*
-mkdir -p usr/share/sss/initrd_strings
-cp -a -f ../../sandbox3/nls/usr/share/sss/initrd_strings/* usr/share/sss/initrd_strings/
-cp -a -f ../../sandbox3/rootfs-complete/usr/share/sss/initrd_strings/* usr/share/sss/initrd_strings/
+#20230125 no longer using initrd_strings
+##20230112 populate initrd with sss initrd_strings*
+#mkdir -p usr/share/sss/initrd_strings
+#cp -a -f ../../sandbox3/nls/usr/share/sss/initrd_strings/* usr/share/sss/initrd_strings/
+#cp -a -f ../../sandbox3/rootfs-complete/usr/share/sss/initrd_strings/* usr/share/sss/initrd_strings/
+
+#20230125 escape single-quote chars in translations. ' replaced with '\''
+for aNLS in `ls -1 nls/*str*`
+do
+ sed -i -e "s%='%=___%" -e "s%'$%___%" -e "s%'%'\\\''%g" -e "s%___%'%g" $aNLS
+done
 
 find . | cpio -o -H newc > ../initrd #181130
 sync
