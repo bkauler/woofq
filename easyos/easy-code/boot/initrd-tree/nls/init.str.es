@@ -58,13 +58,13 @@ S044='Intentando copiar de nuevo...'
 S045='Falló el segundo intento. Intento de recuperación restaurando'
 S046='vmlinuz, initrd y easy.sfs de la versión anterior.'
 S047='Falló el segundo intento de copiar el archivo. Tal vez la unidad esté fallando.'
-S048='El segundo intento fue exitoso, pero la unidad de advertencia podría estar fallando".
+S048='El segundo intento fue exitoso, pero la unidad de advertencia podría estar fallando'
 
 ###buscar unidades###
 S100='Buscando unidades'
 S101='las particiones tienen id en conflicto'
 S102='AVISO: ¡NO! Todavía no tienes una sesión, haciendo un arranque normal'
-S103='Salido temprano de la secuencia de comandos de inicio, aún no se montó nada".
+S103='Salido temprano de la secuencia de comandos de inicio, aún no se montó nada'
 
 ###muy poca memoria RAM###
 S110='AVISO: Bloqueo deshabilitado, RAM insuficiente'
@@ -87,19 +87,19 @@ S126='Salido del guión de inicio, partición wkg montada.'
 S130='ya existe'
 S131='La partición de trabajo no tiene habilitada la función de cifrado ext4.'
 S132='Esta función es necesaria para cifrar carpetas. Recomendada por su seguridad.'
-S133='Si rechaza, los arranques futuros no le pedirán una contraseña".
+S133='Si rechaza, los arranques futuros no le pedirán una contraseña'
 S134='ADVERTENCIA: gestores de arranque antiguos como GRUB v1, GRUB4DOS y GRUB v2 anteriores a '
 S135='versión 2.0.4 (lanzada en 2019), no reconoce las características modernas de ext4'
 S136='como el cifrado de carpetas, y ya no funcionará con la partición'
-S137='si habilita el cifrado (ya no se reconocerá la partición)".
+S137='si habilita el cifrado (ya no se reconocerá la partición)'
 S138='Presione la tecla ENTER para habilitar el cifrado, cualquier otra tecla no para:'
 S139='Habilitando el cifrado de carpetas ext4...'
-S140='Lo siento, no se pudo habilitar el cifrado de carpetas".
+S140='Lo siento, no se pudo habilitar el cifrado de carpetas'
 S141='...cifrado habilitado.'
 S142='Nota, si por alguna razón desea desactivarlo, elimine la instalación de EasyOS. Luego, hay instrucciones en Internet para desactivar el cifrado.'
 S143='El montaje de la partición de trabajo ha fallado.'
 S144='La compatibilidad con el cifrado de carpetas no está habilitada.'
-S145='Lo siento, las carpetas en la partición de trabajo no se pueden cifrar. La contraseña solo se establecerá para el inicio de sesión raíz".
+S145='Lo siento, las carpetas en la partición de trabajo no se pueden cifrar. La contraseña solo se establecerá para el inicio de sesión raíz'
 S146='Contraseña incorrecta. Vuelva a intentarlo'
 S147='Última sesión guardada en diferido, espere...'
 
@@ -127,7 +127,7 @@ S191='Montando archivo squashfs easy.sfs'
 S192='Copiando easy.sfs a RAM, luego montando'
 S193='Error al montar easy.sfs'
 S194='ADVERTENCIA, las versiones no coinciden.'
-S195='El archivo squashfs adicional no existe, se eliminó de la lista de carga".
+S195='El archivo squashfs adicional no existe, se eliminó de la lista de carga'
 S196='Copiando a RAM y montando archivo squashfs extra:'
 S197='Montando archivo squashfs extra:'
 S198='ERROR: /usr/lib64 ruta incorrecta en SFS:'
