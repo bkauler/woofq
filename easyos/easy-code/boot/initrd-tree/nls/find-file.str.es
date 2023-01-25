@@ -1,1 +1,1 @@
-S001="Buscando archivo externo:"
+S001='Buscando archivo externo:'
