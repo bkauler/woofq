@@ -8,6 +8,9 @@ if [ "`pwd`" != "/" ];then
  echo "exec chromium \"\$@\"" >> ./usr/local/bin/defaultbrowser
  chmod 755 ./usr/local/bin/defaultbrowser
  
+ #20230130 replace seamonkey 'www' container...
+ sed -i -e 's% seamonkey% chromium%' usr/sbin/ec-chroot-www 
+
 else
  #installing in running easyos, run as root...
  if [ -e usr/bin/chromium-browser ];then
