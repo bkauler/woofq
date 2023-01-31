@@ -276,6 +276,7 @@
 #20230112 populate initrd with sss initrd_strings*
 #20230125 no longer using initrd_strings
 #20230125 escape single-quote chars in translations. ' replaced with '\''
+#20230131 ppm restrict pkg choices
 
 export LANG=C #faster.
 
@@ -2153,13 +2154,18 @@ do
  ../support/rationalize_categories ../Packages-pet-${APSUB}-official
  cp -f /tmp/rationalized_categories rootfs-complete/root/.packages/Packages-pet-${APSUB}-official
 done
-for APDB in `find ../ -maxdepth 1 -type f  -name "Packages-${DISTRO_BINARY_COMPAT}-*" | tr '\n' ' '`
-do
- #../support/rationalize_categories $APDB
- #APBASE="`basename $APDB`"
- #cp -f /tmp/rationalized_categories rootfs-complete/root/.packages/${APBASE}
- cp -f $APDB rootfs-complete/root/.packages/
-done
+#20230131 restrict...
+if [ "${DISTRO_BINARY_COMPAT}" == "oe" ];then
+ cp -a -f ../Packages-oe-${DISTRO_COMPAT_VERSION}-official rootfs-complete/root/.packages/
+else
+ for APDB in `find ../ -maxdepth 1 -type f  -name "Packages-${DISTRO_BINARY_COMPAT}-*" | tr '\n' ' '`
+ do
+  #../support/rationalize_categories $APDB
+  #APBASE="`basename $APDB`"
+  #cp -f /tmp/rationalized_categories rootfs-complete/root/.packages/${APBASE}
+  cp -f $APDB rootfs-complete/root/.packages/
+ done
+fi
 echo
 
 #also copy this...
@@ -2255,6 +2261,11 @@ if [ "$DISTRO_BINARY_COMPAT" = "t2" ];then
  if [ "$DISTRO_COMPAT_VERSION" = "quirky6" ];then
   enabledrepos='Packages-pet-quirky6-official Packages-pet-noarch-official Packages-pet-common-official '
  fi
+fi
+
+#20230131 restrict 
+if [ "$DISTRO_BINARY_COMPAT" = "oe" ];then
+ enabledrepos=" Packages-pet-noarch-official Packages-pet-${DISTRO_COMPAT_VERSION}-official Packages-oe-${DISTRO_COMPAT_VERSION}-official "
 fi
 
 echo "PKG_REPOS_ENABLED='${enabledrepos}'" >> rootfs-complete/root/.packages/PKGS_MANAGEMENT
