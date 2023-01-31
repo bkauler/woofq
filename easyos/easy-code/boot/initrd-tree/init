@@ -142,6 +142,7 @@
 #20230123 removed SESSIONSFSflag. it is an old idea from 2017, not used.
 #20230123 bring back tnew; gtk apps run in initrd
 #20230124 choose from two splash images in tnew. apply default gtk2 theme.
+#20230131 for sfs exceeding releases max-depth, do not delete if used in container.
 
 #20220525 3buildeasydistro will substitute values here...
 EOS_TOP_LEVEL_ZRAM=EOSTOPLEVELZRAM #20220521 1=yes, anything else no.
@@ -1333,8 +1334,17 @@ if [ ! -d /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${INIT_DISTRO_VERSION} ];then
     MSGdel="${S173}"
     echo -e "  \\033[1;31m${MSGdel} easy-${ADEL}\\033[0;39m" #red
     #181205 remove sfs files symlinked to sfs folder...
+    #20230231 however, not if sfs in use in a container...
+    realpath /mnt/${WKG_DEV}/${WKG_DIR}containers/*/*.sfs 2>/dev/null >/sfss-in-use
     for aSL in `realpath /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${ADEL}/*.sfs | tr '\n' ' '`
     do
+     if [ -s /sfss-in-use ];then #20230131
+      echo -n "$aSL" >/sfs-want-del
+      grep -qFx -f /sfss-in-use /sfs-want-del
+      if [ $? -eq 0 ];then
+       continue
+      fi
+     fi
      aMAIN="${aSL/.sfs/}"
      rm -f ${aSL}
      [ -f ${aMAIN}.specs ] && rm -f ${aMAIN}.specs
