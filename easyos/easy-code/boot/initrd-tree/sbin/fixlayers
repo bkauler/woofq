@@ -33,7 +33,7 @@
 #20221020 uninstall user-installed pkg if it is now in easy.sfs
 #20230112 separate strings to file /nls/fixlayers.str.en
 #20230123 removed SESSIONSFSflag. it is an old idea from 2017, not used.
-#20230207 removed some code that deletes firefox when installed via ff update.
+#20230207 removed some code that deletes firefox when installed via ff update. 20230208 fix.
 
 WKG_DRV=$1 #ex: sda
 WKG_DEV=$2 #ex: sda2
@@ -573,7 +573,8 @@ fi
 
 #20211111 if firefox in an sfs, delete .session/usr/lib/firefox...
 FFflg=0
-if [ -d /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/lib/firefox ];then
+#20230208 firefox-latest-version created by ff-dl-latest script (firefox-skel-ask pet)...
+if [ -d /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/lib/firefox -a ! -e /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/firefox-latest-version ];then
  for onelayer in ${EXTRASFSDIRS} /easy_ro/easy_sfs
  do
   if [ -d ${onelayer}/usr/lib/firefox ];then
@@ -584,19 +585,18 @@ if [ -d /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/lib/firefox ];then
    break
   fi
  done
- #20230207 remove...
- #if [ $FFflg -eq 0 ];then
- # #hmmm, it might be a pet or some other user-installed ff pkg...
- # grep -q '^firefox' /mnt/${WKG_DEV}/${WKG_DIR}.session/root/.packages/user-installed-packages
- # if [ $? -ne 0 ];then
- #  rm -rf /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/lib/firefox
- #  rm -f /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/bin/firefox 2>/dev/null
- #  rm -f /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/bin/firefox.bin 2>/dev/null
- #  if [ -d /mnt/${WKG_DEV}/${WKG_DIR}.session/home/firefox ];then
- #   rm -rf /mnt/${WKG_DEV}/${WKG_DIR}.session/home/firefox
- #  fi
- # fi
- #fi
+ if [ $FFflg -eq 0 ];then
+  #hmmm, it might be a pet or some other user-installed ff pkg...
+  grep -q '^firefox' /mnt/${WKG_DEV}/${WKG_DIR}.session/root/.packages/user-installed-packages
+  if [ $? -ne 0 ];then
+   rm -rf /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/lib/firefox
+   rm -f /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/bin/firefox 2>/dev/null
+   rm -f /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/bin/firefox.bin 2>/dev/null
+   if [ -d /mnt/${WKG_DEV}/${WKG_DIR}.session/home/firefox ];then
+    rm -rf /mnt/${WKG_DEV}/${WKG_DIR}.session/home/firefox
+   fi
+  fi
+ fi
 fi
 
 #20211111 delete container if no longer valid...
