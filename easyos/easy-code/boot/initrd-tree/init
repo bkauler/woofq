@@ -143,6 +143,7 @@
 #20230123 bring back tnew; gtk apps run in initrd
 #20230124 choose from two splash images in tnew. apply default gtk2 theme.
 #20230131 for sfs exceeding releases max-depth, do not delete if used in container.
+#20230210 always load .str.en, in case non-english is incomplete.
 
 #20220525 3buildeasydistro will substitute values here...
 EOS_TOP_LEVEL_ZRAM=EOSTOPLEVELZRAM #20220521 1=yes, anything else no.
@@ -590,16 +591,13 @@ mnt_wkg_ext4_func() {
 if [ "$qlang" ];then
  QLANG="$qlang"
 fi
+. /nls/init.str.en #20230110
 if [ "$QLANG" ];then
- if [ ! -e /nls/init.str.${QLANG} ];then
-. /nls/init.str.en
- else
+ if [ -e /nls/init.str.${QLANG} -a "$QLANG" != "en" ];then
 . /nls/init.str.${QLANG}
+  export QLANG
+  load_font_country ${QLANG} #20230113
  fi
- export QLANG
- load_font_country ${QLANG} #20230113
-else
-. /nls/init.str.en
 fi
 
 #190307 display logo, -f = reduces to fit screen. 20220929
@@ -842,12 +840,10 @@ if [ "$LOCKDOWN" == "" -o "$DROPOUT" == "" ];then
    else
     QLANG="$(cat /mnt/${WKG_DEV}/${WKG_DIR}.qlang)"
    fi
-   if [ ! -e /nls/init.str.${QLANG} ];then
-.   /nls/init.str.en
-   else
+   if [ -e /nls/init.str.${QLANG} -a "$QLANG" != "en" ];then #20230110
 .   /nls/init.str.${QLANG}
+    load_font_country ${QLANG}
    fi
-   load_font_country ${QLANG}
    export QLANG
   fi
   

@@ -3,19 +3,17 @@
 #190716 guess_fstype no longer available.
 #20210611 paragon ntfs driver needs "-t ntfs3" mount option.
 #20230112 separate strings to file /nls/find-file.str.en
+#20230210 always load .str.en, in case non-english is incomplete.
 
 FNDFILE="$1"
 TIMEOUT=$2
 
 #20230112 QLANG exported from init
+. /nls/find-file.str.en #20230110
 if [ "$QLANG" ];then
- if [ ! -e /nls/find-file.str.${QLANG} ];then
-. /nls/find-file.str.en
- else
+ if [ -e /nls/find-file.str.${QLANG} -a "$QLANG" != "en" ];then
 . /nls/find-file.str.${QLANG}
  fi
-else
-. /nls/find-file.str.en
 fi
 
 echo -e "\\033[1;31m  ${S001} ${FNDFILE}\\033[0;39m" #red.
