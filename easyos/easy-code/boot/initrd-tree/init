@@ -816,6 +816,7 @@ if [ "$LOCKDOWN" == "" -o "$DROPOUT" == "" ];then
     EXIT='bad'
     if [ -e /dev/fb0 ];then
      mount_tnew #aufs temporary mount easy.sfs
+     cp -f tnew/root/.packages/build-choices build-choices #20230210 used in /sbin/ask-language
      chroot tnew /bin/busybox ash -c "/startx ask-country-x"
      touch tnew/RETASKCOUNTRY
      if grep -q '^EXIT="OK"' tnew/RETASKCOUNTRY; then
@@ -833,7 +834,7 @@ if [ "$LOCKDOWN" == "" -o "$DROPOUT" == "" ];then
      umount tnew
      umount tro
     fi
-    if [ "$EXIT" != "OK" ];then 
+    if [ "$EXIT" != "OK" ];then #fallback...
      /sbin/ask-language #currently using dialog so don't need /dev/fb0
      QLANG="$(cat /qlang)"
     fi

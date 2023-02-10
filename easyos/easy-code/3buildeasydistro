@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #(c) Copyright Barry Kauler 2009,2017. License GPL v3 (/usr/share/doc/legal)
 #2createpackages has already built the generic packages in packages-$DISTRO_FILE_PREFIX/.
 #these packages have generic names as specified in the second field of PKGS_SPECS_TABLE,
@@ -277,6 +277,7 @@
 #20230125 no longer using initrd_strings
 #20230125 escape single-quote chars in translations. ' replaced with '\''
 #20230131 ppm restrict pkg choices
+#20230209 merge a cutdown nls into rootfs-complete
 
 export LANG=C #faster.
 
@@ -5275,6 +5276,81 @@ sync
 #170128 creating 'q.sfs' again...
 echo
 echo 'Now creating easy.sfs...'
+
+#20230209
+#cutdown supported languages...
+if [ "$BUILD_SUPPORT_LANGS" ];then #see build-choices file.
+ tr ' ' '\n' <<<$BUILD_SUPPORT_LANGS > /tmp/3bed-lang-codes
+ sed -i -e 's%:.*%%' /tmp/3bed-lang-codes
+else
+ CODES='bg Bulgarian cs Czech da Danish de German el Greek en English es Spanish et Estonian fi Finnish fr French hr Croatian hu Hungarian is Icelandic it Italian lt Lithuanian lv Latvian mk Macedonian  nl Dutch no Norwegian pl Polish pt Portuguese ro Romanian ru Russian sk Slovak sl Slovenian sq Albanian sr Serbian sv Swedish tr Turkish uk Ukrainian uz Uzbek'
+ CODES2='bg cs da de el en es et fi fr hr hu is it lt lv mk nl no pl pt ro ru sk sl sq sr sv tr uk uz'
+ tr ' ' '\n' <<<$CODES2 > /tmp/3bed-lang-codes
+fi
+# no (norway) may have nn and nb, so add those...
+echo -e 'nn\nnb' >> /tmp/3bed-lang-codes
+sed -i -e '/^$/d' /tmp/3bed-lang-codes
+sed -i -e 's%^%^%' /tmp/3bed-lang-codes
+echo '^common' >> /tmp/3bed-lang-codes
+#usr/lib/libreoffice/program/resource...
+if [ -d nls/usr/lib/libreoffice/program/resource ];then
+ for aPATH in `find nls/usr/lib/libreoffice/program/resource -mindepth 1 -maxdepth 1 -type d | tr '\n' ' '`
+ do
+  aDIR="${aPATH##*/}"
+  grep -q -f /tmp/3bed-lang-codes <<<$aDIR
+  if [ $? -ne 0 ];then
+   rm -rf ./$aPATH
+  fi
+ done
+fi
+#usr/lib/libreoffice/share/registry/res
+if [ -d nls/usr/lib/libreoffice/share/registry/res ];then
+ for aPATH in `find nls/usr/lib/libreoffice/share/registry/res -mindepth 1 -maxdepth 1 -type f -name '*.xcd' | tr '\n' ' '`
+ do
+  aL2="${aPATH##*_}"
+  aL2="${aL2##*_}"
+  aL2="${aL2:0:2}"
+  grep -q -x -f /tmp/3bed-lang-codes <<<$aL2
+  if [ $? -ne 0 ];then
+   rm -f ./$aPATH
+  fi
+ done
+fi
+#usr/lib/chromium/locales
+if [ -d nls/usr/lib/chromium/locales ];then
+ for aPATH in `find nls/usr/lib/chromium/locales -mindepth 1 -maxdepth 1 -type f -name '*.pak' | tr '\n' ' '`
+ do
+  aL2="${aPATH##*/}"
+  aL2="${aL2/.*/}"
+  aL2="${aL2:0:2}"
+  grep -q -x -f /tmp/3bed-lang-codes <<<$aL2
+  if [ $? -ne 0 ];then
+   rm -f ./$aPATH
+  fi
+ done
+fi
+#usr/share/locale
+for aPATH in `find nls/usr/share/locale -mindepth 1 -maxdepth 1 -type d | tr '\n' ' '`
+do
+ aDIR="${aPATH##*/}"
+ grep -q -f /tmp/3bed-lang-codes <<<$aDIR
+ if [ $? -ne 0 ];then
+  rm -rf ./$aPATH
+ fi
+done
+#usr/share/hunspell
+for aPATH in `find nls/usr/share/hunspell -mindepth 1 -maxdepth 1 -type f -o -type l -name '*.aff' -o -name '*.dic' | tr '\n' ' '`
+do
+ aL2="${aPATH##*/}"
+ aL2="${aL2:0:2}"
+ grep -q -f /tmp/3bed-lang-codes <<<$aL2
+ if [ $? -ne 0 ];then
+  rm -f ./$aPATH
+ fi
+done
+sync
+cp -a -f --remove-destination nls/* rootfs-complete/
+sync
 
 echo #190131...
 

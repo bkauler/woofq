@@ -3,15 +3,13 @@
 #190712 reduce locale choices to default lang (ex: fr_*) or en_*
 #20210530 console keyboard layout uk changed to gb. see also /usr/sbin/quicksetup.
 #20230123 partial translate language and country names.
+#20230209 reduce lang choices to list in variable BUILD_SUPPORT_LANGS
 
 export PATH='/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin'
 
+. /root/.packages/build-choices #20230209 has BUILD_SUPPORT_LANGS
+
 ###locale###
-#code from /usr/sbin/quicksetup...
- INSTLANGPACK="`grep '^langpack_' /root/.packages/woof-installed-packages | cut -f 2 -d '|'`"
- [ ! "$INSTLANGPACK" ] && [ -f /root/.packages/user-installed-packages ] && INSTLANGPACK="`grep '^langpack_' /root/.packages/user-installed-packages | cut -f 2 -d '|'`"
- [ ! "$INSTLANGPACK" ] && INSTLANGPACK="none"
- 
  LOCALEXML=""
 
   CURRLANG="`grep '^LANG=' /etc/profile | tr -d "'" | tr -d '"' | cut -f 2 -d '='`"
@@ -27,8 +25,12 @@ export PATH='/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin'
   [ ! -d /usr/lib/locale/en_US.utf8 ] && localedef -f UTF-8 -i en_US --no-archive en_US.utf8 >/dev/null #110409 111022
 
   #build language table...
-  LANGUAGEDESCR='aa:Afar ab:Abkhazian af:Africaans am:Amharic an:Aragonese ar:Arabic az:Azeri be:Belarusian bn:Bengali bs:Bosnian bg:Bulgarian br:Breton ca:Catalan cs:Czech cy:Welsh da:Danish de:German dv:Divehi dz:Dzongkha el:Greek en:English eo:Esperanto es:Spanish et:Estonian eu:Basque fa:Persian fo:Faeroese fi:Finnish fr:French ga:Irish gd:Scots_Gaelic gl:Galician gv:Manx_Gaelic gu:Gujarati he:Hebrew hi:Hindi hr:Croatian hu:Hungarian hy:Armenian is:Icelandic id:Indonesian iw:Hebrew it:Italian ja:Japanese ka:Georgian kl:Greenlandic kn:Kannada kk:Kazakh km:Khmer kok:Konkani ko:Korean ku:Kurdish kw:Cornish ky:Kyrgyz lg:Luganda lo:Lao lt:Lithuanian lv:Latvian mg:Malagasy ms:Malay ml:Malayalam mt:Maltese mi:Maori mk:Macedonian mn:Mongolian mr:Marathi ne:Nepali nl:Dutch nb:Norgwegian nn:Norwegian_Nynorsk no:Norwegian_Bokm oc:Occitan om:Oromo or:Oriya pa:Pashto pl:Polish pt:Portuguese pa:Punjabi quz:Quechua ro:Romanian rs:Serbian ru:Russian rw:Kinyarwanda smn:Sami smj:Sami se:Sami sa:Sanskrit sma:Sami sms:Sami sq:Albanian sr:Srpski sl:Slovenian sw:Swahili sv:Swedish syr:Syriac ta:Tamil th:Thai tl:Tagalog tt:Tatar te:Telugu tr:Turkish uk:Ukrainian ur:Urdu uz:Uzbek vi:Vietnamese wa:Walloon xh:Xhosa yi:Yiddish zh:Chinese zu:Zulu'
-  REGIONDESCR='AA:ArabicCountries AE:UAE AL:Yugoslavia AR:Argentina AT:Austria AU:Australia BE:Belgium BG:Bularia BH:Bahrain BN:Brunei BO:Bolvia BR:Brazil BZ:Belize CA:Canada CH:Switzerland CL:Chile CN:PeoplesRepublicChina CO:Columbia CR:CostaRica CY:Cyprus CZ:CzechRepublic DE:Germany DK:Denmark DO:DominicanRepublic EC:Ecuador EE:Estonia ES:Spain DO:Dominican DZ:Algeria EC:Ecuador EG:Egypt FI:Finland FR:France GB:GreatBritain GR:Greece GT:Guatemalia HK:HongKong HN:Honduras HR:Croatia HU:Hungary ID:Indonesia IE:Ireland IL:Israel IN:India IQ:Iraq IS:Iceland IT:Italy JM:Jamaica JO:Jordan JP:Japan KR:Korea KW:Kuwait KZ:Kazakhstan LB:Lebanon LI:Liechtenstein LU:Luxembourg LY:Libya MA:Morocco MC:Monaco MK:Macedonia MO:Macau MY:Malaysia MX:Mexico NI:Nicaragua NL:Netherlands NO:Norway NZ:NewZealand OM:Oman PA:Panama PE:Peru PH:Philippines PL:Poland PR:PuertoRico PT:Portugal PY:Paraguay QA:Qatar RO:Romania RU:Russia SA:SaudiArabia SE:Sweden SG:Singapore SK:Slovakia SY:Syria TH:Thailand TN:Tunisia TR:Turkey TW:Taiwan ZA:SouthAfrica TT:Trinidad US:USA PE:Peru SV:ElSalvador MX:Mexico NI:Nicaragua UY:Uruguay VE:Venezuela YE:Yemen YU:Yugoslavia ZA:SouthAfrica'
+  if [ "$BUILD_SUPPORT_LANGS" ];then #20230209
+   LANGUAGEDESCR="${BUILD_SUPPORT_LANGS}"
+  else
+   LANGUAGEDESCR='aa:Afar ab:Abkhazian af:Africaans am:Amharic an:Aragonese ar:Arabic az:Azeri be:Belarusian bn:Bengali bs:Bosnian bg:Bulgarian br:Breton ca:Catalan cs:Czech cy:Welsh da:Danish de:German dv:Divehi dz:Dzongkha el:Greek en:English eo:Esperanto es:Spanish et:Estonian eu:Basque fa:Persian fo:Faeroese fi:Finnish fr:French ga:Irish gd:Scots_Gaelic gl:Galician gv:Manx_Gaelic gu:Gujarati he:Hebrew hi:Hindi hr:Croatian hu:Hungarian hy:Armenian is:Icelandic id:Indonesian iw:Hebrew it:Italian ja:Japanese ka:Georgian kl:Greenlandic kn:Kannada kk:Kazakh km:Khmer kok:Konkani ko:Korean ku:Kurdish kw:Cornish ky:Kyrgyz lg:Luganda lo:Lao lt:Lithuanian lv:Latvian mg:Malagasy ms:Malay ml:Malayalam mt:Maltese mi:Maori mk:Macedonian mn:Mongolian mr:Marathi ne:Nepali nl:Dutch nb:Norgwegian nn:Norwegian_Nynorsk no:Norwegian_Bokm oc:Occitan om:Oromo or:Oriya pa:Pashto pl:Polish pt:Portuguese pa:Punjabi quz:Quechua ro:Romanian rs:Serbian ru:Russian rw:Kinyarwanda smn:Sami smj:Sami se:Sami sa:Sanskrit sma:Sami sms:Sami sq:Albanian sr:Srpski sl:Slovenian sw:Swahili sv:Swedish syr:Syriac ta:Tamil th:Thai tl:Tagalog tt:Tatar te:Telugu tr:Turkish uk:Ukrainian ur:Urdu uz:Uzbek vi:Vietnamese wa:Walloon xh:Xhosa yi:Yiddish zh:Chinese zu:Zulu'
+  fi
+  REGIONDESCR='AA:ArabicCountries AE:UAE AL:Yugoslavia AR:Argentina AT:Austria AU:Australia BE:Belgium BG:Bularia BH:Bahrain BN:Brunei BO:Bolvia BR:Brazil BZ:Belize CA:Canada CH:Switzerland CL:Chile CN:PeoplesRepublicChina CO:Columbia CR:CostaRica CY:Cyprus CZ:CzechRepublic DE:Germany DK:Denmark DO:DominicanRepublic EC:Ecuador EE:Estonia ES:Spain DO:Dominican DZ:Algeria EC:Ecuador EG:Egypt FI:Finland FR:France GB:GreatBritain GR:Greece GT:Guatemalia HK:HongKong HN:Honduras HR:Croatia HU:Hungary ID:Indonesia IE:Ireland IL:Israel IN:India IQ:Iraq IS:Iceland IT:Italy JM:Jamaica JO:Jordan JP:Japan KR:Korea KW:Kuwait KZ:Kazakhstan LB:Lebanon LI:Liechtenstein LT:Lithuania LU:Luxembourg LV:Latvia LY:Libya MA:Morocco MC:Monaco ME:Montenegro MK:Macedonia MO:Macau MY:Malaysia MX:Mexico NI:Nicaragua NL:Netherlands NO:Norway NZ:NewZealand OM:Oman PA:Panama PE:Peru PH:Philippines PL:Poland PR:PuertoRico PT:Portugal PY:Paraguay QA:Qatar RO:Romania RS:Serbia RU:Russia SA:SaudiArabia SE:Sweden SG:Singapore SK:Slovakia SL:Slovenia SY:Syria TH:Thailand TN:Tunisia TR:Turkey TW:Taiwan ZA:SouthAfrica TT:Trinidad UA:Ukraine US:USA PE:Peru SV:ElSalvador MX:Mexico NI:Nicaragua UY:Uruguay UZ:Uzbekistan VE:Venezuela YE:Yemen YU:Yugoslavia ZA:SouthAfrica'
   #need sanity check, as format of these files has changed...
   SANITYFLAG='pass'
   [ ! -f /usr/share/i18n/dialog_table_x ] && SANITYFLAG='fail' #precaution.
@@ -44,8 +46,14 @@ export PATH='/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin'
     REGION="`echo -n "$ONELOCALE" | cut -f 2 -d '_' | cut -f 1 -d '.' | cut -f 1 -d '@'`"
     lPATTERN="^${LANGUAGE}:"
     LANGUAGE="`echo "$LANGUAGEDESCR" | tr ' ' '\n' | grep "$lPATTERN" | head -n 1 | cut -f 2 -d ':'`"
+    if [ "$LANGUAGE" == "" ];then #20230209
+     continue
+    fi
     rPATTERN="^${REGION}:"
     REGION="`echo "$REGIONDESCR" | tr ' ' '\n' | grep "$rPATTERN" | head -n 1 | cut -f 2 -d ':'`"
+    if [ "$REGION" == "" ];then #20230210 ignore if cannot find matching region.
+     continue
+    fi
     [ "$LANGUAGE" != "" ] && [ "$REGION" != "" ] && LANGUAGE="${LANGUAGE}, "
     DESCR="${LANGUAGE}${REGION}"
     if [ "$STATUS" = "on" ];then
@@ -86,8 +94,9 @@ ${CHOICES_CLI}"
   DEFAULT="`grep ' on$' /usr/share/i18n/dialog_table_x | sed -e 's% on$%%' -e 's%"%%g' -e "s% %  ${TABCHAR}%"`" #'geany
   [ "$DEFAULT" ] && DEFAULTXML="<item>${DEFAULT}</item>" #combobox does not support default tag.
   
-  #190712 only offer the default language and en...
-  grep -E "^en_|^${DEFAULTLANG1}_" /usr/share/i18n/dialog_table_x > dialog_table_x
+  #190712 only offer the default language and en... 20230209 no...
+  #grep -E "^en_|^${DEFAULTLANG1}_" /usr/share/i18n/dialog_table_x > dialog_table_x
+  cp -f /usr/share/i18n/dialog_table_x dialog_table_x
   ITEMS="`sed -e 's% on$%%' -e 's% off$%%' -e 's%"%%g' -e "s% %  ${TABCHAR}%" -e 's%^%<item>%' -e 's%$%</item>%' dialog_table_x`" #'geany  190712
   
 #  #change the default locale item if LANGUAGE set (occurs on reentry after click a flag)
@@ -152,7 +161,7 @@ ${CHOICES_CLI}"
     AKMAP="`basename $AFILE .gz`" #us, fr, br, etc.
     AKMAP="`basename $AKMAP .kmap`"
     AKMAP="`basename $AKMAP .map`"
-    case $AKMAP in
+    case "$AKMAP" in
      us*) ACNTRY="(USA)";;
      fr*) ACNTRY="(France)";;
      it*) ACNTRY="(Italy, Italia)";;
@@ -197,7 +206,8 @@ ${CHOICES_CLI}"
      sv*) ACNTRY="(Sweden, Sverige)";;
      sk*) ACNTRY="(Slovakia, Slovensko)";;
      sl*) ACNTRY="(Slovenia, Slovenija)";;
-     gb*) ACNTRY="(UK)";; #20210530 changed from uk. see also /usr/sbin/quicksetup.
+     #20210530 gb changed from uk. see also /usr/sbin/quicksetup...
+     gb*) ACNTRY="(UK)";;
      wangbe*) ACNTRY="(Belgium, België)";;
      azerty) ACNTRY="(Tandon)";;
      dvorak-r) ACNTRY="(Right_single-handed)";;
