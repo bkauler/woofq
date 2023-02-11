@@ -127,6 +127,7 @@
 #20221023 may be running as zeus super-user. 20221031 hmmm, maybe still need bump to root.
 #20230109 always create fr_FR, de_DE, etc.
 #20230209 variable BUILD_SUPPORT_LANGS has list of supported locales.
+#20230111 remove country flags.
 
 WHOIAM="$(whoami)"
 [ "${WHOIAM}" != "root" ] && exec sudo -A ${0} ${@} #20221023 20221031
@@ -179,7 +180,6 @@ fi
 
 MYBASE=$(basename $0)
 WINICON="gtk-preferences"; HELPICON="gtk-index" #gtk-info
-SET_FLAGS="" #150424
 SET_LOCALE=""; SET_TIMEZONE=""; SET_KEYBOARD=""; SET_X=""; SET_COUNTRY=""; SET_XRES=""; SET_XWIZARD=""; SET_NETWORK=""
 SET_WINTITLE="1"; SET_COUNTRYFRAMETITLE="1"; SET_XFRAMETITLE="1"; SET_BACKTITLE="1"
 #[ "$DISTRO_XORG_AUTO" = "yes" ] && SET_XRES="yes"
@@ -187,13 +187,13 @@ SET_WINTITLE="1"; SET_COUNTRYFRAMETITLE="1"; SET_XFRAMETITLE="1"; SET_BACKTITLE=
 case $MYBASE in
  chooselocale) SET_WINTITLE="2"; SET_COUNTRYFRAMETITLE="2"; SET_LOCALE="yes"; SET_BACKTITLE="2" ;;
  timezone-set) SET_WINTITLE="3"; SET_COUNTRYFRAMETITLE="3"; SET_TIMEZONE="yes"; SET_BACKTITLE="3" ;;
- quickcountry) SET_WINTITLE="4"; SET_LOCALE="yes"; SET_TIMEZONE="yes"; SET_KEYBOARD="yes"; SET_BACKTITLE="4"; SET_FLAGS="yes" ;;
+ quickcountry) SET_WINTITLE="4"; SET_LOCALE="yes"; SET_TIMEZONE="yes"; SET_KEYBOARD="yes"; SET_BACKTITLE="4" ;;
  countrywizard) SET_WINTITLE="5"; SET_LOCALE="yes"; SET_TIMEZONE="yes"; SET_KEYBOARD="yes"; SET_BACKTITLE="5" ;;
  xrandrshell) SET_WINTITLE="6"; SET_XRES="yes"; SET_BACKTITLE="6"; SET_XFRAMETITLE="6" ;;
  *) #quicksetup
   case $BOOT_BOARD in
-   raspi) SET_LOCALE="yes"; SET_TIMEZONE="yes"; SET_KEYBOARD="yes"; SET_NETWORK="yes"; SET_RP_AUDIO="yes"; SET_RP_VIDEO="yes"; SET_FLAGS="yes" ;; #120714 Raspberry Pi. 150424
-   *) SET_LOCALE="yes"; SET_TIMEZONE="yes"; SET_KEYBOARD="yes"; SET_XRES="yes"; SET_XWIZARD="yes"; SET_NETWORK="yes"; SET_FLAGS="yes" ;; #normal quicksetup. 150424
+   raspi) SET_LOCALE="yes"; SET_TIMEZONE="yes"; SET_KEYBOARD="yes"; SET_NETWORK="yes"; SET_RP_AUDIO="yes"; SET_RP_VIDEO="yes" ;; #120714 Raspberry Pi. 150424
+   *) SET_LOCALE="yes"; SET_TIMEZONE="yes"; SET_KEYBOARD="yes"; SET_XRES="yes"; SET_XWIZARD="yes"; SET_NETWORK="yes" ;; #normal quicksetup. 150424
   esac
  ;;
 esac
@@ -1143,49 +1143,6 @@ B_cancel=$(gettext "Cancel")
 M_exit="`gettext 'Confirm the settings and click OK:'`"
 B_ok=$(gettext "OK")
 
-#150424 add lang flags...
-FLAGSXML1=""; FLAGSXML2=""
-if [ "$SET_FLAGS" == "yes" ];then
- FCNT=1
- for AFLAG in `find /usr/share/pixmaps -mindepth 1 -maxdepth 1 -type f -name 'lang-*-64.png' | sort | tr '\n' ' '`
- do
-  flagLANG="$(echo -n "$AFLAG" | cut -f 2 -d '-')"
-  [ "$xLANGUAGE" == "$flagLANG" ] && continue
-  if [ "$flagLANG" != "en" ];then
-   [ -f /usr/share/locale/${flagLANG}/LC_MESSAGES/quicksetup.mo ] || continue
-  fi
-  case $FCNT in
-   1) FLAGSXML1="<hbox spacing=\"4\"><vbox spacing=\"4\">" ;; #4 is the default anyway.
-   15) FCNT=1; FLAGSXML1="${FLAGSXML1}</vbox><vbox spacing=\"4\">" ;; #170131 changed 9 to 15
-  esac
-  case $flagLANG in
-   da) ttMSG="Klik for at oversætte til dansk" ;; #danish
-   de) ttMSG="Klicken Sie, um ins Deutsche zu übersetzen" ;; #german. 150429 fix.
-   el) ttMSG="Κάντε κλικ για να μεταφράσει στην ελληνική" ;; #greek
-   es) ttMSG="Haga clic aquí para traducir al español" ;; #spanish
-   et) ttMSG="Kliki tõlkida eesti" ;; #estonian
-   fi) ttMSG="Klikkaa kääntää suomeksi" ;; #finnish
-   fr) ttMSG="Cliquez pour traduire en français" ;; #french
-   hu) ttMSG="Kattintson lefordítani magyarra" ;; #hungarian
-   it) ttMSG="Clicca per tradurre in italiano" ;; #italian
-   nl) ttMSG="Klik om te vertalen naar het Nederlands" ;; #dutch
-   pl) ttMSG="Kliknij, aby przetłumaczyć na polski" ;; #polish
-   pt) ttMSG="Clique para traduzir para Português" ;; #portuguese
-   ru) ttMSG="Нажмите, чтобы перевести на русский язык" ;; #russian
-   sv) ttMSG="Klicka för att översätta till svenska" ;; #swedish
-   tr) ttMSG="Türkçe'ye çevirmek için tıklayın" ;; #turkish
-   *) ttMSG="Click to translate to English" ;;
-  esac
-  #170131 reduced size of flags, 64 down to 32 pixels...
-  FLAGSXML1="${FLAGSXML1}<eventbox tooltip-text=\"${ttMSG}\"><pixmap><width>48</width><input file>${AFLAG}</input></pixmap>
-  <action signal=\"button-release-event\">EXIT:flag_${flagLANG}</action>
-  </eventbox>"
-  FCNT=`expr $FCNT + 1`
- done
- FLAGSXML1="${FLAGSXML1}</vbox>"
- FLAGSXML2="</hbox>"
-fi
-
 #170210 offer to recompress xz easy.sfs to gz-compressed... 20220515 LZ4_HC
 EXPANDFS_XML=""; CHECK_EXPFS=""
 if [ $DISPLAY ];then
@@ -1211,7 +1168,7 @@ fi
 
 MAINCONTENTXML=""
 export QUICKSETUP_DIALOG="<window title=\"${WINTITLE}\" window_position=\"1\" icon-name=\"${WINICON}\" ${WINWIDTHPARAM} resizable=\"false\">
-${FLAGSXML1}<vbox>
+<vbox>
   <hbox>
     ${BACKTITLEXML}
     <text><label>\"         \"</label></text>
@@ -1228,7 +1185,7 @@ ${FLAGSXML1}<vbox>
     <text><label>${M_exit}</label></text>
     <button><label>${B_ok}</label><input file>/usr/local/lib/X11/mini-icons/mini-tick.xpm</input><action>EXIT:OK</action></button>
   </hbox>
-</vbox>${FLAGSXML2}
+</vbox>
 </window>"
 
 ###display main window###
