@@ -1,0 +1,150 @@
+#create_savefile_func()
+S001='Býr til vistunarskrá easysave.ext4...'
+
+#exit_to_initrd()
+S002='Lína'
+S003='Athugasemd 1: Sláðu inn "exit", init scriptið mun reyna að halda áfram.'
+S004='Athugasemd 2: Á sumum tölvum virkar lyklaborðið ekki á þessu stigi ræsingar.'
+S005='Athugasemd 3: ef "ctrl-alt-del" virkar ekki, haltu niðri aflhnappinum til að slökkva á.'
+S006='Athugasemd 4: Console textaritill "mp" er í boði.'
+S007='Athugasemd 5: Stjórnborðsskráastjóri "shfm": Farðu með örvatakkana, "!" að hrygna'
+S008=' skel, "?" sprettigluggahjálp, "q" til að hætta. Hjálparskráin er "/shfm.txt"'
+S009='Athugasemd 6: Stjórnborðsskráastjóri "nnn": Sömu lyklar. Hjálparskrá "/nnn.txt"'
+
+#err_exit()
+S010='VILLA:'
+S011='Hefur nú dottið í skel í initramfs.'
+S012='Vinsamlegast ýttu á lyklasamsetningu CTRL-ALT-DEL til að endurræsa,'
+S013='eða haltu niðri aflhnappinum til að slökkva á'
+S014='Eftirfarandi leiðbeiningar eru eingöngu fyrir forritara:'
+
+#ask_kb()
+S015='Vinsamlegast sláðu inn númerið sem samsvarar lyklaborðinu þínu.'
+S016='Veldu næst samsvörun, það verður tækifæri til að fínstilla útlitið eftir að skjáborðið hefur hlaðið inn. Ýttu á ENTER aðeins fyrir BNA.'
+S017='Athugið: á sumum tölvum virkar lyklaborðið ekki á þessu stigi ræsingar. Í því tilviki skaltu bíða í 5 mínútur eftir ræsingu.'
+S018='Lyklaborðsskipulag:'
+S019='...ok, lyklamynd valin:'
+
+#menu_func()
+S020='Gerðu ekkert, farðu til baka til að slá inn lykilorð'
+S021='Fjarlægja læsingu, endurheimta venjulega ræsingu'
+S022='Ræsing í skipanalínu eingöngu, ekkert X'
+S023='Til baka í síðustu vistuðu lotu'
+S024='Til baka í óspillt fyrsta stígvél'
+S025='Skráakerfisskoðun á vinnusneiði'
+S026='Ýttu á ENTER takkann eða bíddu í 10 sekúndur fyrir venjulega ræsingu'
+S027='Sláðu inn tölu úr vinstri dálki:'
+S028='...þú hefur valið að endurheimta venjulega ræsingu; hins vegar,'
+S029='venjuleg ræsing verður endurheimt við NÆSTU ræsingu'
+S030='... mun ræsa í skipanalínu, ekkert X'
+S031='... mun fara aftur í síðustu vistuðu lotu'
+S032='... mun snúa aftur í óspilltan fyrsta stígvél'
+S033='...mun framkvæma skráakerfisskoðun'
+
+#ask_pw()
+S034='Vinsamlegast sláðu inn lykilorð, hvaða stafi sem er a-z, A-Z, 0-9, hvaða lengd sem er. Lykilorðið mun dulkóða hluta vinnuhlutans og verður að muna það, þar sem það verður að slá inn við hverja ræsingu.'
+S035='Eða, ýttu bara á ENTER takkann fyrir ekkert lykilorð.'
+S036='Til öryggis er eindregið mælt með lykilorði'
+S037='Lykilorð:'
+S038='Því miður, aðeins a-ö, A-Ö, 0-9 stafir leyfðir, reyndu aftur'
+S039='Vinsamlegast sláðu inn lykilorð til að afkóða vinnusneiðið'
+S040='EÐA ýttu bara á ENTER til að koma upp valmynd með ræsivalkostum'
+S041='Lykilorð:'
+
+#cp_verify_func()
+S042='Þetta afrit mistókst:'
+S043='Það er mögulegt að drifið sé bilað.'
+S044='Reynir að afrita aftur...'
+S045='Önnur tilraun mistókst. Reyndu að endurheimta með því að endurheimta'
+S046='vmlinuz, initrd og easy.sfs fyrri útgáfu.'
+S047='Önnur tilraun til að afrita skrá mistókst. Kannski bilar drifið.'
+S048='Önnur tilraun tókst, en viðvörunardrif gæti bilað.'
+
+###finna drif###
+S100='Finnur diska'
+S101='skilrúm hafa misvísandi auðkenni'
+S102='ATKYNNING: NEI! Þú ert ekki enn með lotu, gerir venjulega ræsingu'
+S103='Hættur snemma úr frumforriti, ekkert ennþá tengt.'
+
+###mjög lítill hrútur###
+S110='ATKÝNING: Lokun óvirk, ófullnægjandi vinnsluminni'
+S111='ATKYNNING: EasyOS mun keyra algjörlega í vinnsluminni, engin viðvarandi geymsla'
+S112='ATKYNNING: Fundurinn verður afritaður í vinnsluminni og EasyOS mun keyra í vinnsluminni'
+S113='Býr til þjappað zram. RAM úthlutað:'
+S114='Vinnandi skipting:'
+S115='Leshraðaprófun vinnudrifs (lægra því betra):'
+
+###uppsetning og uppsett vinnusneið###
+S120='Breyta stærð vinnusneiðs til að fylla drifið'
+S121='VILLA: ekki hægt að breyta stærð vinnusneiðs'
+S122='Breyta stærð ext4 skráarkerfis til að fylla út vinnusneið, stærð:'
+S123='VILLA: ekki hægt að breyta stærð ext4 skráarkerfisins til að fylla út vinnusneið, stærð:'
+S124='Ekki tókst að breyta stærð vinnusneiðs. Óöruggt að halda áfram'
+S125='Ekki hægt að tengja vinnusneið:'
+S126='Hættur úr init script, wkg skipting sett upp.'
+
+###búa til $WKG_DIR og möppur###
+S130='er þegar til'
+S131='Vinnandi skiptingin er ekki með ext4 dulkóðunareiginleika virkan.'
+S132='Þessi eiginleiki er nauðsynlegur til að dulkóða möppur. Mælt með fyrir öryggi þitt.'
+S133='Ef þú hafnar mun ræsing í framtíðinni ekki biðja um lykilorð.'
+S134='VIÐVÖRUN: gamlir ræsiforritarar eins og GRUB v1, GRUB4DOS og GRUB v2 fyrir '
+S135='útgáfa 2.0.4 (út 2019), þekki ekki nútíma ext4 eiginleika '
+S136='eins og möppu dulkóðun, og mun ekki lengur virka með skiptingunni '
+S137='ef þú kveikir á dulkóðun (sneiðin verður ekki lengur þekkt). '
+S138='Ýttu á ENTER takkann til að virkja dulkóðun, annar lykill ekki:'
+S139='Kveikir á dulkóðun ext4 möppu...'
+S140='Því miður mistókst að virkja dulkóðun möppu.'
+S141='...dulkóðun virkt.'
+S142='Athugið, ef þú vilt af einhverjum ástæðum slökkva á því skaltu fjarlægja EasyOS uppsetninguna. Síðan eru leiðbeiningar á netinu um að slökkva á dulkóðun.'
+S143='Mistókst að setja upp vinnudeilið.'
+S144='Möppu dulkóðunarstuðningur ekki virkur.'
+S145='Því miður er ekki hægt að dulkóða möppurnar í vinnusneiðinni. Lykilorðið verður aðeins stillt fyrir rótarinnskráningu.'
+S146='Lykilorð rangt. Reyndu aftur'
+S147='Síðustu lotu frestað, vinsamlegast bíddu...'
+
+###TRIM###
+S150='Kjórir fstrim á SSD vinnusneiði...'
+S151='Hættur úr init script, fyrir endurheimt og viðhaldsaðgerðir.'
+
+###bati, viðhald###
+S160='Bráðskemmtileg villa við athugun á skráarkerfi'
+S161='Hættur úr init script, fyrir útgáfustýringu.'
+
+###útgáfustýring###
+S170='Aðeins aðgerð, búa til skyndimynd af EasyOS'
+S171='Þetta mun leyfa afturköllun í framtíðinni með Easy Version Control Manager'
+S172='Íbúar:'
+S173='Viðvörun, eyðir gamalli útgáfu:'
+S174='Finn ekki easy.sfs'
+
+S180='Hvers vegna er þessi skrá til? Að fjarlægja það.'
+S181='Hættur úr init script, áður en SFS lag var sett upp.'
+
+###uppsetning botnro lags, með easy.sfs###
+S190='Setur skrifvarið lag af lagskiptu skráarkerfi'
+S191='Setja squashfs skrá easy.sfs'
+S192='Afrita easy.sfs í vinnsluminni, síðan festa'
+S193='Mistókst að tengja easy.sfs'
+S194='VIÐVÖRUN, útgáfur passa ekki saman.'
+S195='auka squashfs skrá er ekki til, fjarlægð af hleðslulistanum.'
+S196='Afrita í vinnsluminni og setja upp auka squashfs skrá:'
+S197='Setur auka squashfs skrá:'
+S198='VILLA: /usr/lib64 röng slóð í SFS:'
+S199='ÞETTA SFS verður ekki hlaðið'
+S200='VILLA: /usr/lib/x86_64-linux-gnu röng slóð í SFS:'
+S201='Öryggisuppsetning fyrstu ræsingu...'
+S202='Setur sama lykilorð fyrir notendur Zeus og root'
+
+###kannski afrita lotuna í zram###
+S210='Afritar síðustu vinnulotu í vinnsluminni'
+
+###stóra augnablikið, búðu til lagskipt f.s.###
+S220='Býr til lagskipt skráarkerfi, sláðu inn:'
+S221='Tókst ekki að búa til lagskipt skráarkerfi'
+S222='Hættur úr init script, áður en tengipunktar eru færðir í wkg f.s.'
+
+###færðu tengipunkta fyrir switch_root###
+S230='Framkvæmir switch_root á lagskiptu skráarkerfið'
+S231='Slökkt á drifinu:'
+S232='Hættur úr init skriftu, rétt fyrir switch_root.'

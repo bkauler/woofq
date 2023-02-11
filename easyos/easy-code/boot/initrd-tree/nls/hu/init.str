@@ -1,0 +1,150 @@
+#create_savefile_func()
+S001='Mentésfájl létrehozása easysave.ext4...'
+
+#exit_to_initrd()
+S002='Vonal'
+S003='1. megjegyzés: Írja be az "exit" parancsot, az init szkript megpróbálja folytatni.'
+S004='Megjegyzés 2: Egyes számítógépeken a billentyűzet nem működik a rendszerindítás ezen szakaszában.'
+S005='3. megjegyzés: ha a "ctrl-alt-del" nem működik, tartsa lenyomva a bekapcsológombot a kikapcsoláshoz.'
+S006='4. megjegyzés: Az "mp" konzol szövegszerkesztő elérhető.'
+S007='5. megjegyzés: Konzol fájlkezelő "shfm": Navigáljon a nyílbillentyűkkel, "!" ívni'
+S008=' shell, "?" előugró súgó, "q" a kilépéshez. A súgófájl a következő: "/shfm.txt"'
+S009='6. megjegyzés: Konzolfájlkezelő "nnn": Ugyanazok a kulcsok. Súgófájl "/nnn.txt"'
+
+#err_exit()
+S010='HIBA:'
+S011='Most beleesett egy shellbe az initramfs-ben.'
+S012='Az újraindításhoz nyomja meg a CTRL-ALT-DEL billentyűkombinációt,'
+S013='vagy TARTSA LE A BEKAPCSOLÓ GOMBOT A KIKAPCSOLÁSHOZ'
+S014='A következő utasítások csak fejlesztőknek szólnak:'
+
+#ask_kb()
+S015='Kérjük, adja meg a billentyűzetkiosztásnak megfelelő számot.'
+S016='Válassza ki a legközelebbi egyezést, lehetőség nyílik az elrendezés finomhangolására az asztal betöltése után. Nyomja meg az ENTER-t csak az Egyesült Államokhoz.'
+S017='Megjegyzés: egyes számítógépeken a billentyűzet nem működik a rendszerindítás ezen szakaszában. Ebben az esetben várjon 5 percet a rendszerindításhoz.'
+S018='Billentyűzetkiosztás:'
+S019='...oké, billentyűkiosztás kiválasztott:'
+
+#menu_func()
+S020='Ne csinálj semmit, menj vissza a jelszó megadásához'
+S021='Zárolás eltávolítása, normál rendszerindítás visszaállítása'
+S022='Csak parancssorból indul, nincs X'
+S023='Visszaállítás az utolsó mentett munkamenethez'
+S024='Visszaállítás az eredeti első rendszerindításhoz'
+S025='A működő partíció fájlrendszer-ellenőrzése'
+S026='Nyomja meg az ENTER billentyűt, vagy várjon 10 másodpercet a normál rendszerindításhoz'
+S027='Írjon be egy számot a bal oldali oszlopból:'
+S028='...a normál rendszerindítás visszaállítását választottad; azonban,'
+S029='A normál rendszerindítás a KÖVETKEZŐ rendszerindításkor visszaáll'
+S030='...a parancssorból indul el, nincs X'
+S031='...visszaáll az utolsó mentett munkamenetre'
+S032='...visszaáll az eredeti első rendszerindításra'
+S033='...fájlrendszer-ellenőrzést fog végezni'
+
+#ask_pw()
+S034='Kérjük, adjon meg egy jelszót, bármilyen karaktert a-z, A-Z, 0-9, bármilyen hosszúságú. A jelszó titkosítja a működő partíció egyes részeit, és emlékezni kell rá, mivel minden rendszerindításkor meg kell adni.'
+S035='Vagy csak nyomja meg az ENTER billentyűt jelszó nélkül.'
+S036='Az Ön biztonsága érdekében a jelszó használata erősen ajánlott'
+S037='Jelszó:'
+S038='Sajnos csak a-z, A-Z, 0-9 karakter megengedett, próbáld újra'
+S039='Kérjük, adja meg a jelszót a munkapartíció visszafejtéséhez'
+S040='VAGY csak nyomja meg az ENTER-t a rendszerindítási opciók menüjének megjelenítéséhez'
+S041='Jelszó:'
+
+#cp_verify_func()
+S042='Ez a másolás nem sikerült:'
+S043='Lehetséges, hogy a meghajtó meghibásodik.'
+S044='Újbóli másolási kísérlet...'
+S045='A második próbálkozás sikertelen. Próbálja meg helyreállítani a helyreállítással'
+S046='vmlinuz, initrd és easy.sfs az előző verzióból.'
+S047='A második kísérlet a fájl másolására nem sikerült. Lehet, hogy a hajtás nem működik.'
+S048='A második próbálkozás sikerült, de lehet, hogy a figyelmeztető meghajtó sikertelen.'
+
+###meghajtók keresése###
+S100='Meghajtók keresése'
+S101='partíciók ütköző azonosítóval rendelkeznek'
+S102='FIGYELMEZTETÉS: NEM! Még nincs munkameneted, normál rendszerindítást végez'
+S103='Kilépés az init szkriptből korán, még semmi nincs csatlakoztatva.'
+
+###nagyon alacsony ram###
+S110='FIGYELMEZTETÉS: Lezárás letiltva, nincs elegendő RAM'
+S111='FIGYELMEZTETÉS: Az EasyOS teljes mértékben RAM-ban fog futni, nincs állandó tárhely'
+S112='FIGYELMEZTETÉS: A munkamenet a RAM-ba lesz másolva, és az EasyOS a RAM-ban fog futni'
+S113='Tömörített zram létrehozása. RAM lefoglalva:'
+S114='Munkapartíció:'
+S115='Munkahajtás olvasási sebesség tesztje (alacsonyabb, annál jobb):'
+
+###működő partíció beállítása és csatlakoztatása###
+S120='Munkapartíció átméretezése a meghajtó kitöltéséhez'
+S121='HIBA: nem lehet átméretezni a munkapartíciót'
+S122='Az ext4 fájlrendszer átméretezése a munkapartíció kitöltéséhez, méret:'
+S123='HIBA: nem lehet átméretezni az ext4 fájlrendszert, hogy kitöltse a működő partíciót, méret:'
+S124='Nem lehet átméretezni a munkapartíciót. Nem biztonságos a folytatás'
+S125='Nem sikerült csatlakoztatni a működő partíciót:'
+S126='Kilépés az init parancsfájlból, wkg partíció csatlakoztatva.'
+
+###$WKG_DIR és mappák létrehozása###
+S130='már létezik'
+S131='A működő partíción nincs engedélyezve az ext4 titkosítás.'
+S132='Ez a szolgáltatás szükséges a mappák titkosításához. Az Ön biztonsága érdekében ajánlott.'
+S133='Ha elutasítod, a jövőbeni rendszerindítások nem kérnek jelszót.'
+S134='FIGYELEM: régi rendszerbetöltők, mint például a GRUB v1, GRUB4DOS és a GRUB v2 előtti'
+S135='2.0.4-es verzió (2019-ben), nem ismeri fel a modern ext4 funkciókat'
+S136='például mappa titkosítás, és a továbbiakban nem működik a partícióval'
+S137='ha engedélyezi a titkosítást (a partíciót a rendszer többé nem ismeri fel).'
+S138='Nyomja meg az ENTER billentyűt a titkosítás engedélyezéséhez, bármely más kulcsot nem:'
+S139='Ext4 mappatitkosítás engedélyezése...'
+S140='Sajnos a mappatitkosítás engedélyezése nem sikerült.'
+S141='...titkosítás engedélyezve.'
+S142='Megjegyzés, ha valamilyen okból ki szeretné kapcsolni, távolítsa el az EasyOS telepítést. Ezután az interneten található utasítások a titkosítás kikapcsolására.'
+S143='A munkapartíció csatlakoztatása nem sikerült.'
+S144='A mappatitkosítás támogatása nincs engedélyezve.'
+S145='Sajnos a munkapartíción lévő mappák nem titkosíthatók. A jelszó csak a root bejelentkezéshez lesz beállítva.'
+S146='Hibás jelszó. Próbáld újra'
+S147='Az utolsó munkamenet elhalasztott mentése, kérem várjon...'
+
+###TRIM###
+S150='Fstrim végrehajtása az SSD munkapartíción...'
+S151='Kilépés az indítószkriptből, helyreállítási és karbantartási műveletek előtt.'
+
+###helyreállítás, karbantartás###
+S160='Végzetes hiba a fájlrendszer ellenőrzésekor'
+S161='Kilépés az indító szkriptből, verzióvezérlés előtt.'
+
+###verzióvezérlés###
+S170='Egyszeri művelet, pillanatkép létrehozása az EasyOS-ről'
+S171='Ez lehetővé teszi a jövőbeni visszaállítást az Easy Version Control Managerrel'
+S172='Népesítés:'
+S173='Figyelmeztetés, a régi verzió törlése:'
+S174='Nem található easy.sfs'
+
+S180='Miért létezik ez a fájl? Eltávolítani.'
+S181='Kilépés az init parancsfájlból, az SFS rétegek beállítása előtt.'
+
+###alsó ro réteg beállítása easy.sfs###
+S190='Réteges fájlrendszer csak olvasható rétegének csatlakoztatása'
+S191='Squashfs fájl csatlakoztatása easy.sfs'
+S192='Easy.sfs másolása RAM-ba, majd csatlakoztatás'
+S193='Az easy.sfs csatlakoztatása sikertelen'
+S194='FIGYELEM, a verziók nem egyeznek.'
+S195='Extra squashfs fájl nem létezik, eltávolítva a betöltési listáról.'
+S196='Másolás a RAM-ba és extra squashfs fájl csatolása:'
+S197='Extra squashfs fájl csatolása:'
+S198='HIBA: /usr/lib64 helytelen elérési út az SFS-ben:'
+S199='EZ SFS NEM LESZ BETÖLTVE'
+S200='HIBA: /usr/lib/x86_64-linux-gnu helytelen elérési út az SFS-ben:'
+S201='Első rendszerindítási biztonsági beállítás...'
+S202='Ugyanaz a jelszó beállítása a zeus és a root felhasználók számára'
+
+###talán másolja a munkamenetet a zramba###
+S210='Utolsó munkamenet másolása a RAM-ba'
+
+###a nagy pillanat, hozzon létre réteges f.s.###
+S220='Réteges fájlrendszer létrehozása, típus:'
+S221='Nem sikerült létrehozni a réteges fájlrendszert'
+S222='Kilépés az init parancsfájlból, mielőtt a csatolási pontokat áthelyezte a wkg f.s-be.'
+
+###áthelyezési pontok áthelyezése a switch_root elé###
+S230='Switch_root végrehajtása a réteges fájlrendszeren'
+S231='Kikapcsolási meghajtó:'
+S232='Kilépés az init parancsfájlból, közvetlenül a switch_root előtt.'

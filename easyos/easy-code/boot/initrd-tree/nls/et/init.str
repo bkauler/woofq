@@ -1,0 +1,150 @@
+#create_savefile_func()
+S001='Salvestamisfaili loomine easysave.ext4...'
+
+#exit_to_initrd()
+S002='Line'
+S003='Märkus 1: Tippige "exit", init skript proovib jätkata.'
+S004='Märkus 2: Mõnel arvutil ei tööta klaviatuur käivitamise selles etapis.'
+S005='Märkus 3: kui "ctrl-alt-del" ei tööta, hoidke väljalülitamiseks toitenuppu all.'
+S006='Märkus 4: Konsooli tekstiredaktor "mp" on saadaval.'
+S007='Märkus 5: konsooli failihaldur "shfm": navigeerige nooleklahvidega "!" kudema'
+S008=' kest, "?" hüpikakna spikker, väljumiseks "q". Abifail on "/shfm.txt"'
+S009='Märkus 6: Konsooli failihaldur "nnn": samad võtmed. Abifail "/nnn.txt"'
+
+#err_exit()
+S010='VIGA:'
+S011='Oled nüüd initramfsis kesta kukkunud.'
+S012='Taaskäivitamiseks vajutage klahvikombinatsiooni CTRL-ALT-DEL,'
+S013='või VÄLJALÜLITAMISEKS HOIA TOITENUPU ALATT'
+S014='Järgmised juhised on ainult arendajatele:'
+
+#ask_kb()
+S015='Palun sisesta oma klaviatuuripaigutusele vastav number.'
+S016='Valige lähim vaste, pärast töölaua laadimist on võimalik paigutust peenhäälestada. Vajutage ENTER ainult USA jaoks.'
+S017='Märkus: mõnel arvutil ei tööta klaviatuur käivitamise selles etapis. Sel juhul oodake käivitamist 5 minutit.'
+S018='Klaviatuuri paigutus:'
+S019='...ok, klahvikaart valitud:'
+
+#menu_func()
+S020='Ära midagi, mine tagasi parooli sisestamiseks'
+S021='Eemalda lukustus, taasta tavaline algkäivitus'
+S022='Ainult käsurealt käivitamine, X-i pole'
+S023='Tagasi viimati salvestatud seansi juurde'
+S024='Tagasi algkäivitusse'
+S025='Tööpartitsiooni failisüsteemi kontroll'
+S026='Vajutage ENTER klahvi või oodake 10 sekundit normaalseks käivitamiseks'
+S027='Tippige number vasakust veerust:'
+S028='...olete valinud normaalse alglaadimise taastamise; Kuid,'
+S029='tavaline alglaadimine taastatakse JÄRGMISEL alglaadimisel'
+S030='...käivitub käsurealt, ei X'
+S031='...tagasi viimati salvestatud seansile'
+S032='...tagasi algkäivitusse'
+S033='...viib läbi failisüsteemi kontrolli'
+
+#ask_pw()
+S034='Palun sisesta parool, mis tahes tähemärgid a-z, A-Z, 0-9, mis tahes pikkusega. Parool krüpteerib osa tööpartitsioonist ja seda tuleb meeles pidada, kuna see tuleb sisestada igal alglaadimisel.'
+S035='Või lihtsalt vajuta ENTER klahvi parooli puudumiseks.'
+S036='Teie turvalisuse huvides on parool tungivalt soovitatav'
+S037='Parool:'
+S038='Vabandust, lubatud on ainult a-z, A-Z, 0-9 tähemärki, proovi uuesti'
+S039='Palun sisesta parool tööpartitsiooni dekrüpteerimiseks'
+S040='VÕI lihtsalt vajuta ENTER, et avada algkäivitusvalikute menüü'
+S041='Parool:'
+
+#cp_verify_func()
+S042='See koopia ebaõnnestus:'
+S043='Võimalik, et draiv on rikkis.'
+S044='Püütakse uuesti kopeerida...'
+S045='Teine katse ebaõnnestus. Proovige taastada taastamise teel'
+S046='vmlinuz, initrd ja easy.sfs eelmisest versioonist.'
+S047='Teine katse faili kopeerimiseks ebaõnnestus. Võib-olla on sõit rikkis.'
+S048='Teine katse õnnestus, kuid hoiatusajam võib ebaõnnestuda.'
+
+###leida draive###
+S100='Draivide leidmine'
+S101='partitsioonidel on vastuoluline ID'
+S102='MÄRKUS: EI! Teil pole veel seanssi, teete tavalist alglaadimist'
+S103='Väljusime algskriptist varakult, midagi pole veel ühendatud.'
+
+###väga madal ram###
+S110='MÄRKUS: lukustamine on keelatud, RAM-i pole piisavalt'
+S111='MÄRKUS: EasyOS töötab täielikult RAM-is, püsivat salvestusruumi pole'
+S112='MÄRKUS: Seanss kopeeritakse RAM-i ja EasyOS töötab RAM-is'
+S113='Tihendatud zram-i loomine. Eraldatud RAM:'
+S114='Tööpartitsioon:'
+S115='Tööajami lugemiskiiruse test (madalam, seda parem):'
+
+###seadista ja ühenda tööpartitsioon###
+S120='Tööpartitsiooni suuruse muutmine draivi täitmiseks'
+S121='VIGA: tööpartitsiooni suurust ei saa muuta'
+S122='Ext4 failisüsteemi suuruse muutmine tööpartitsiooni täitmiseks, suurus:'
+S123='VIGA: ei saa muuta ext4 failisüsteemi suurust, et see täidaks tööpartitsiooni, suurus:'
+S124='Tööpartitsiooni suurust ei saa muuta. Ebaturvaline jätkata'
+S125='Tööpartitsiooni ei saa ühendada:'
+S126='Väljuti algskriptist, wkg partitsioon on ühendatud.'
+
+###loo $WKG_DIR ja kaustad###
+S130='juba olemas'
+S131='Tööpartitsioonil ei ole ext4 krüptimise funktsioon lubatud.'
+S132='See funktsioon on vajalik kaustade krüptimiseks. Teie turvalisuse huvides soovitatav.'
+S133='Kui keeldute, ei küsi tulevased alglaadimised parooli.'
+S134='HOIATUS: vanad alglaadurid nagu GRUB v1, GRUB4DOS ja GRUB v2 enne '
+S135='versioon 2.0.4 (välja antud 2019), ei tunne kaasaegseid ext4 funktsioone'
+S136='nagu kausta krüptimine ja ei tööta enam partitsiooniga'
+S137='kui lubate krüptimise (sektsiooni enam ei tuvastata). '
+S138='Krüptimise lubamiseks vajutage ENTER klahvi, mis tahes muu võti mitte:'
+S139='Ext4 kausta krüptimise lubamine...'
+S140='Vabandust, kausta krüptimise lubamine nurjus.'
+S141='...krüpt lubatud.'
+S142='Märkus, kui soovid mingil põhjusel selle välja lülitada, eemalda EasyOS-i install. Seejärel on Internetis juhised krüptimise väljalülitamiseks.'
+S143='Tööpartitsiooni paigaldamine nurjus.'
+S144='Kausta krüptimise tugi pole lubatud.'
+S145='Vabandust, tööpartitsiooni kaustu ei saa krüpteerida. Parool määratakse ainult root sisselogimiseks.'
+S146='Parool on vale. Proovi uuesti'
+S147='Eelmise seansi salvestamine on edasi lükatud, palun oota...'
+
+###TRIMME###
+S150='Fstrimi käivitamine SSD tööpartitsioonil...'
+S151='Väljuti algskriptist enne taaste- ja hooldustoiminguid.'
+
+###taastamine, hooldus###
+S160='Saatuslik viga failisüsteemi kontrollimisel'
+S161='Väljuti algskriptist, enne versiooni juhtimist.'
+
+###versioonikontroll###
+S170='Ainult ühekordne toiming, EasyOS-i hetketõmmise loomine'
+S171='See võimaldab edaspidi tagasipööramist Easy Version Control Manageriga'
+S172='Asustamine:'
+S173='Hoiatus, vana versiooni kustutamine:'
+S174='Ei leia easy.sfs'i'
+
+S180='Miks see fail olemas on? Selle eemaldamine.'
+S181='Väljuti algskriptist enne SFS-i kihtide seadistamist.'
+
+###seadista alumine ro kiht, kasutades easy.sfs###
+S190='Kihilise failisüsteemi kirjutuskaitstud kihi ühendamine'
+S191='Squashfs faili lihtne.sfs paigaldamine'
+S192='Easy.sfs kopeerimine RAM-i, seejärel paigaldamine'
+S193='Easi.sfs ühendamine nurjus'
+S194='HOIATUS, versioonid ei ühti.'
+S195='Täiendavat squashfs-faili pole olemas, laadimisnimekirjast eemaldatud.'
+S196='Kopeerimine RAM-i ja lisa squashfs faili paigaldamine:'
+S197='Täiendava squashfs-faili paigaldamine:'
+S198='VIGA: /usr/lib64 vale tee SFS-is:'
+S199='SEDA SFS-i EI LAADI'
+S200='VIGA: /usr/lib/x86_64-linux-gnu vale tee SFS-is:'
+S201='Esimese algkäivituse turbeseadistus...'
+S202='Sama parooli määramine kasutajatele zeus ja root'
+
+###võib-olla kopeerige seanss zrami###
+S210='Viimase tööseansi kopeerimine RAM-i'
+
+###suur hetk, loo kihiline f.s.###
+S220='Kihilise failisüsteemi loomine, tüüp:'
+S221='Kihilise failisüsteemi loomine nurjus'
+S222='Väljuti algskriptist, enne ühenduspunktide teisaldamist wkg f.s.'
+
+###paigutage ühenduspunktid ümber enne switch_root'i###
+S230='Switch_root teostamine kihilisele failisüsteemile'
+S231='Toite väljalülitamine:'
+S232='Väljuti algskriptist, vahetult enne switch_root'i.'
