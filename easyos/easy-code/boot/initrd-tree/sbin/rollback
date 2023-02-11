@@ -33,6 +33,7 @@
 #20230104 /mnt/${WKG_DEV}/${WKG_DIR}.session/.rollback.flg moved to /mnt/${WKG_DEV}/${WKG_DIR}.rollback.flg
 #20230112 separate strings to file /nls/rollback.str.en
 #20230210 always load .str.en, in case non-english is incomplete.
+#20230211 .str files folder hierarchy reorganized.
 
 WKG_DRV=$1 #ex: sda
 WKG_DEV=$2 #ex: sda2
@@ -41,11 +42,11 @@ WKG_DIR=$3 #20220622
 [ "$WKG_DIR" ] && [ "${WKG_DIR##*/}" ] && WKG_DIR="${WKG_DIR}/"
 [ "$WKG_DIR" ] && [ "${WKG_DIR:0:1}" == "/" ] && WKG_DIR="${WKG_DIR:1:99}"
 
-#20230112 QLANG exported from init
-. /nls/rollback.str.en #20230110
+#20230112 QLANG exported from init. 20230211
+. /nls/en/rollback.str #20230210
 if [ "$QLANG" ];then
- if [ -e /nls/rollback.str.${QLANG} -a "$QLANG" != "en" ];then
-. /nls/rollback.str.${QLANG}
+ if [ -e /nls/${QLANG}/rollback.str -a "$QLANG" != "en" ];then
+. /nls/${QLANG}/rollback.str
  fi
 fi
 

@@ -4,15 +4,16 @@
 #20210611 paragon ntfs driver needs "-t ntfs3" mount option.
 #20230112 separate strings to file /nls/find-file.str.en
 #20230210 always load .str.en, in case non-english is incomplete.
+#20230211 .str files folder hierarchy reorganized.
 
 FNDFILE="$1"
 TIMEOUT=$2
 
-#20230112 QLANG exported from init
-. /nls/find-file.str.en #20230110
+#20230112 QLANG exported from init. 20230211
+. /nls/en/find-file.str #20230210
 if [ "$QLANG" ];then
- if [ -e /nls/find-file.str.${QLANG} -a "$QLANG" != "en" ];then
-. /nls/find-file.str.${QLANG}
+ if [ -e /nls/${QLANG}/find-file.str -a "$QLANG" != "en" ];then
+. /nls/${QLANG}/find-file.str
  fi
 fi
 

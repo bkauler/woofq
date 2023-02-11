@@ -278,6 +278,7 @@
 #20230125 escape single-quote chars in translations. ' replaced with '\''
 #20230131 ppm restrict pkg choices
 #20230209 merge a cutdown nls into rootfs-complete
+#20230211 initrd nls: fix if ' missing on end, space after variable. also folder hierarchy changed.
 
 export LANG=C #faster.
 
@@ -5191,8 +5192,11 @@ cp -a -f ../../sandbox3/rootfs-complete/etc/DISTRO_SPECS etc/
 #cp -a -f ../../sandbox3/rootfs-complete/usr/share/sss/initrd_strings/* usr/share/sss/initrd_strings/
 
 #20230125 escape single-quote chars in translations. ' replaced with '\''
-for aNLS in `ls -1 nls/*str*`
+#20230211 fix if ' missing on end. also folder hierarchy changed.
+for aNLS in `ls -1 nls/*/*str`
 do
+ sed -i -e "s%\(^S[0-9][0-9][0-9]\) %\1='%" $aNLS #fix space after variable.
+ sed -i -e "s%\([^']\)$%\1'%" $aNLS #make sure ' on end.
  sed -i -e "s%='%=___%" -e "s%'$%___%" -e "s%'%'\\\''%g" -e "s%___%'%g" $aNLS
 done
 
