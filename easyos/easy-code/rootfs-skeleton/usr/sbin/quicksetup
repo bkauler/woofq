@@ -127,7 +127,7 @@
 #20221023 may be running as zeus super-user. 20221031 hmmm, maybe still need bump to root.
 #20230109 always create fr_FR, de_DE, etc.
 #20230209 variable BUILD_SUPPORT_LANGS has list of supported locales.
-#20230111 remove country flags.
+#20230111 remove country flags. remove all reference to langpack pets.
 
 WHOIAM="$(whoami)"
 [ "${WHOIAM}" != "root" ] && exec sudo -A ${0} ${@} #20221023 20221031
@@ -344,13 +344,6 @@ fi
 
 ###Country localization###
 if [ "$SET_COUNTRY" ];then
-
- #120402 190712
- WOOFLANGPACK="`grep '^langpack_' /root/.packages/woof-installed-packages | cut -f 2 -d '|'`" #ex: langpack_fr
- [ ! "$WOOFLANGPACK" ] && WOOFLANGPACK='none'
- INSTALLLANGPACK=""
- [ -s /root/.packages/user-installed-packages ] && INSTLANGPACK="`grep '^langpack_' /root/.packages/user-installed-packages | cut -f 2 -d '|'`"
- [ ! "$INSTLANGPACK" ] && INSTLANGPACK="none"
  
  ###Choose locale###
  LOCALEXML=""
@@ -360,13 +353,6 @@ if [ "$SET_COUNTRY" ];then
   H_l2="$(gettext "The locale setting provides money, date and font localization for your country.")
 
 $(gettext "The format is, for example, <b>en_US</b> where <b>en</b> designates the language and <b>US</b> designates the country in which it is spoken and written.")
-
-$(gettext "When you choose a non-English locale, you will also need a langpack PET package to provide full translation for applications in Easy. You will receive more information about this after choosing the locale.")
-
-$(gettext "However, EasyOS is now available in international variants, with a langpack already built-in, plus much more translation. Downloading one of these is preferred to installing a langpack PET.")
-
-$(gettext "Built-in langpack:") <b>${WOOFLANGPACK}</b>
-$(gettext 'User installed langpack PET:') <b>${INSTLANGPACK}</b>
 
 <b>$(gettext "Technical")</b>
 $(gettext "The chosen locale file is generated in /usr/lib/locale (if not already) and LANG variable set in /etc/profile.")"
@@ -1458,184 +1444,8 @@ if [ "$SET_LOCALE" ];then
   [ "$MYBASE" = "chooselocale" ] && [ "$PARAM1" = "cli" ] && exit #refer rc.country.
   
   if [ "$OLDLANGLINE" != "$NEWLANGLINE" ];then
-   #120213 need language-pack...
    LANG1=${LANGCHOICE%_*}  #"`echo -n $LANGCHOICE | cut -f 1 -d '_'`"  #ex: de
    LANG12=${LANGCHOICE%.*} #"`echo -n $LANGCHOICE | cut -f 1 -d '.'`" #ex: de_DE
-   l1PTN="|langpack_${LANG1}|"
-   l12PTN="|langpack_${LANG12}|"
-   if [ "$LANG1" != "en" ];then
-    LANGFLAG='no'
-    [ "`grep "$l12PTN" /root/.packages/woof-installed-packages`" != "" ] && LANGFLAG='yes'
-    [ "`grep "$l12PTN" /root/.packages/user-installed-packages`" != "" ] && LANGFLAG='yes'
-    [ "`grep "$l1PTN" /root/.packages/woof-installed-packages`" != "" ] && LANGFLAG='yes'
-    [ "`grep "$l1PTN" /root/.packages/user-installed-packages`" != "" ] && LANGFLAG='yes'
-    if [ "$LANGFLAG" = "no" ];then
-     
-     #150425 moved up...
-     AVAILPACK='' #150429 moved up.
-     [ "`grep "$l12PTN" /root/.packages/Packages-pet-noarch-official`" != "" ] && AVAILPACK="langpack_${LANG12}"
-     [ "`grep "$l1PTN" /root/.packages/Packages-pet-noarch-official`" != "" ] && AVAILPACK="langpack_${LANG1}"
-
-     #check if a langpack available... 150425 more translations... 190712 more...
-     case $NEWLANG in #120313 hardcode translations... 120315
-      da*) #Danish
-       AVAILMSG1="Der er en passende \Zb${AVAILPACK}\ZB pakke i \Zbnoarch\ZB PET repository, i kategorien Setup. Når du har en internetforbindelse, skal du klikke på ikonet \Zbinstallere\ZB på skrivebordet for at køre Easy Package Manager, og vælg derefter lageret og kategori.
-Bemærk: Før du downloader langpack, bliver du nødt til at gøre en internetforbindelse og bruge Easy Package Manager på engelsk. Hvis du tror, at du ikke kan læse engelsk tilstrækkeligt, et alternativ er at køre et andet operativsystem, skal du gå til http://distro.ibiblio.org/easyos/noarch/packages/pet/pet_packages-noarch og downloade langpack. Derefter starte Easy Klik på ikonet partition på skrivebordet for at montere den aktuelle partition (hvor du downloadede langpack til), og klik derefter på langpack PET at installere det."
-       AVAILMSG2="Officielle langpacks er tilgængelige i \Zbnoarch\ZB repository, men der er ikke én for dit sprog. Måske er der en under udvikling i Puppy Forum (vær forsigtig, nogle ældre versioner af Puppy har inkompatible langpacks). Eller måske kan du frivilligt til at hjælpe og skabe en langpack - klik på Menu -> Hjælp -> HOWTO Internationalisering (du naturligvis brug for et godt kendskab til engelsk)."
-       AVAILTITLE="Sprog pack nødvendig"
-       AVAILMSG3="Den locale vil blive ændret til ${LANGCHOICE}, men du nødt til at installere en sprogpakke til at oversætte Easy til dit sprog. Du har brug for en PET-pakke med navnet \Zblangpack_${LANG12}\ZB eller \Zblangpack_${LANG1}\ZB. Vi har endnu ikke automatiseret dette, så du bliver nødt til at hente og installere pakken. Du kan gøre dette når som helst i fremtiden. Offentligt støttede langpacks er tilgængelige ved at køre Easy Package Manager (klik på ikonet \Zbinstall\ZB på skrivebordet), i \Zbnoarch\ZB repository."
-       AVAILMSG4="Denne langpack er allerede installeret:"
-       AVAILMSG5="Denne langpack er allerede indbygget:"
-      ;;
-      de*) #German, L18L
-       AVAILMSG1="Es gibt ein passendes Sprachpaket \Zb${AVAILPACK}\ZB in der Kategorie \ZbSetup\ZB des PET-Repositoriums \Zbnoarch\ZB. Bei vorhandener Internetverbindung ein Klick auf das Symbol \Zbinstall\ZB auf dem Desktop und dann ein Klick auf Easy Package Manager startet diesen. Im Paketmanager dann Kategorie Setup und Repo: puppy-noarch wählen.
-Hinweis: Vor dem Herunterladen des Sprachpakets muß eine Internetverbindung hergestellt sein und der Easy-Paket-Manager auf Englisch benutzt werden. Falls man glaubt, dies nicht auf Englisch hinzukriegen, kann man alternativ mit einem anderen Betriebssystem das langpack, Sprachpaket, herunterladen von http://distro.ibiblio.org/easyos/noarch/packages/pet/pet_packages-noarch. Dann Easy hochfahren, ein Klick auf das Partitions-Symbol auf dem Desktop hängt die Partition ein, auf die das Sprachpaket heruntergeladen wurde und ein Klick auf das Sprachpaket-PET installiert es dann."
-       AVAILMSG2="Offizielle langpacks, Sprachpakete, sind im Repositorium \Zbnoarch\ZB vefügbar, jedoch keines für deutsch. Vielleicht ist eines in Entwicklung im Puppy Forum (aber Achtung: einige ältere Puppy-Versionen haben inkompatible langpacks, Sprachpakete.). Oder \"Do It Yourself\":  klick Menü -> Hilfe -> HOWTO Internationalization (you will of course need a good knowledge of English; und deshalb bleibt dieser Satz unübersetzt)."
-       AVAILTITLE="Sprachpaket erforderlich"
-       AVAILMSG3="Die locale wird geändert in ${LANGCHOICE}, aber es muß ein Sprachpaket installiert werden, um Easy auf deutsch laufen zu lassen. Ein PET-Paket namens \Zblangpack_${LANG12}\ZB oder \Zblangpack_${LANG1}\ZB wird gebraucht. Wir habe dies noch nicht automatisiert, sodaß man das Paket noch selbst herunterladen und installieren muß, das ist auch irgendwann in der Zukunft noch möglich. Offiziell unterstützte langpacks, Sprachpakete, sind im Easy Package Manager (Klick auf das Symbol \Zbinstall\ZB auf dem Desktop), im Repo: \Zbpuppy-noarch\ZB zu finden."
-       AVAILMSG4="Dieses Langpack ist bereits installiert:"
-       AVAILMSG5="Dieses Langpack ist bereits eingebaut:"
-      ;;
-      el*) #Greek
-       AVAILMSG1="Υπάρχει ένα κατάλληλο πακέτο \Zb${AVAILPACK}\ZB στο \Zbnoarch\ZB αποθετήριο ΡΕΤ, στην κατηγορία εγκατάστασης. Αφού έχετε μια σύνδεση στο Internet, κάντε κλικ στο εικονίδιο \ZbInstall\ZB στην επιφάνεια εργασίας για να τρέξει το Package Manager Easy, στη συνέχεια, επιλέξτε το αποθετήριο και την κατηγορία.
-Σημείωση: Πριν από τη λήψη του Langpack, θα πρέπει να κάνει μια σύνδεση στο Internet και να χρησιμοποιήσετε το διαχειριστή πακέτων Easy στα αγγλικά. Αν νομίζετε ότι δεν μπορείτε να διαβάσετε αρκετά αγγλικά, μια εναλλακτική λύση είναι να εκτελέσετε ένα άλλο λειτουργικό σύστημα, πηγαίνετε στο http://distro.ibiblio.org/easyos/noarch/packages/pet/pet_packages-noarch και να κατεβάσετε το Langpack. Στη συνέχεια, εκκίνηση Easy, κάντε κλικ στο εικονίδιο διαμέρισμα στην επιφάνεια εργασίας για να τοποθετήσετε το διαμέρισμα (όπου κάνατε λήψη του Langpack να), στη συνέχεια, κάντε κλικ στο Langpack ΡΕΤ για να το εγκαταστήσετε."
-       AVAILMSG2="Επίσημη langpacks είναι διαθέσιμα στο \ Zbnoarch\ZB αποθετήριο, ωστόσο δεν υπάρχει για τη γλώσσα σας. Ίσως υπάρχει ένα υπό ανάπτυξη στο φόρουμ Puppy (να είστε προσεκτικοί, κάποιες παλαιότερες εκδόσεις του Puppy έχουν ασυμβίβαστες langpacks). Ή, ίσως και εσείς εθελοντικά να βοηθήσουν και να δημιουργήσει ένα Langpack - Κάντε κλικ στο μενού -> Βοήθεια -> HOWTO Διεθνοποίηση (θα χρειαστείτε φυσικά καλή γνώση της αγγλικής γλώσσας)."
-       AVAILTITLE="Γλώσσα που απαιτείται πακέτο"
-       AVAILMSG3="Η τοπική ρύθμιση θα αλλάξει σε ${LANGCHOICE}, αλλά θα πρέπει να εγκαταστήσετε ένα πακέτο γλώσσας για να μεταφράσει Εκκεντρικά στη γλώσσα σας. Χρειάζεται ένα πακέτο που ονομάζεται PET \Zblangpack_${LANG12}\ZB ή \Zblangpack_${LANG1}\ZB. Δεν έχουμε ακόμη αυτοματοποιημένη αυτό, έτσι θα πρέπει να κατεβάσετε και να εγκαταστήσετε το πακέτο. Μπορείτε να το κάνετε αυτό οποιαδήποτε στιγμή στο μέλλον. Επισήμως υποστηρίζεται langpacks είναι διαθέσιμα, εκτελώντας τον διαχειριστή πακέτων Εκκεντρικά (κάντε κλικ στο εικονίδιο ZB \Zbinstall\ZB στην επιφάνεια εργασίας), στο αποθετήριο \ Zbnoarch\ZB."
-       AVAILMSG4="Αυτό το langpack είναι ήδη εγκατεστημένο:"
-       AVAILMSG5="Αυτό το langpack είναι ήδη ενσωματωμένο:"
-      ;;
-      es*) #Spanish, vicmz
-       AVAILMSG1="Hay un paquete \Zb${AVAILPACK}\ZB apropiado en el respositorio de PETs \Zbnoarch\ZB, en la categoría \ZbConfiguración\ZB. Después de tener una conexión a Internet, pulse el ícono \Zbinstalar\ZB del escritorio para abrir el Administrador de Paquetes, luego elija el repositorio y la categoría.
-Nota: Antes de descargar el paquete de idioma, tendrá que hacer una conexión a Internet y usar el Administrador de Paquetes (Puppy Package Manager) en inglés. Si piensa que no sabe leer inglés lo suficiente, una alternativa es usar otro sistema operativo, ir a http://distro.ibiblio.org/easyos/noarch/packages/pet/pet_packages-noarch y descargar el paquete de idioma. Entonces, inicie Easy, haga clic en el ícono de partición (donde descargó el paquete de idioma), y haga clic en el PET de paquete de idioma para instalarlo." 
-       AVAILMSG2="Hay paquetes de idioma oficiales disponibles en el repositorio \Zbnoarch\ZB, sin embargo no hay uno para su idioma. Tal vez haya uno en desarrollo en el Foro de Easy (cuidado, algunas versiones más antiguas de Easy tienen paquetes incompatibles). Ó, tal vez usted pueda ofrecerse como voluntario para ayudar y crear un paquete de idioma (haga clic en Menu -> Help -> HOWTO Internationalization, por supuesto usted necesitará un buen conocimiento de inglés)."
-       AVAILTITLE="Se necesita un paquete de idioma"
-       AVAILMSG3="El idioma se cambiará a ${LANGCHOICE}, pero usted necesita instalar un paquete de idioma para traducir Easy a su lengua. Usted necesita un paquete PET llamado \Zblangpack_${LANG12}\ZB o \Zblangpack_${LANG1}\ZB. No hemos automatizado esto aún, así que tendrá que descargar e instalar el paquete. Puede hacer esto en cualquier momento en el futuro. Hay paquetes de idioma con soporte oficial disponibles usando el Administrador de Paquetes (Easy Package Manager) (haga clic en el ícono \Zbinstalar\ZB del escritorio), en el repositorio \Zbnoarch\ZB. "
-       AVAILMSG4="Este langpack ya está instalado:"
-       AVAILMSG5="Este langpack ya está incorporado:"
-      ;;
-      et*) #Estonian
-       AVAILMSG1="Seal on sobiv \Zb${AVAILPACK}\ZB paketi \Zbnoarch\ZB PET hoidla \ZbHäälestus\ZB kategooriasse. Kui olete Interneti-ühendus, klõpsake \Zbpaigaldada\ZB töölaual ikooni joosta Easy Package Manager ja valige hoidla kategooriasse.
-Märkus: Enne allalaadimist langpack, siis pead tegema internetiühenduse ja kasuta Easy Package Manager inglise keeles. Kui te arvate, et te ei saa lugeda inglise piisavalt, alternatiivse võimalusena võib teha teise operatsioonisüsteemi, minge http://distro.ibiblio.org/easyos/noarch/pet/packages/pet_packages-noarch ja lae langpack. Siis boot Easy klõpsake partitsiooni ikooni töölaual paigaldada vahesein (kui sa alla laadida langpack kuni), siis klõpsa langpack PET seda installida."
-       AVAILMSG2="Ametlik langpacks on saadaval \Zbnoarch\ZB hoidla, aga seal ei ole üks keel. Võib-olla on üks väljatöötamisel Puppy Foorum (ettevaatust, mõned vanemad versioonid Puppy on vastuolus langpacks). Või ehk siis võiks vabatahtlikuna appi ja luua langpack - klõpsake Menu -> Abi -> HOWTO Rahvusvahelistumine (te Loomulikult tuleb hea inglise keele oskus)."
-       AVAILTITLE="Keelepaketti vaja"
-       AVAILMSG3="Locale muutub to ${LANGCHOICE}, kuid peate installima keelepaketi tõlkida Pentsik keel. Sa pead PET paketi nimega \Zblangpack_${LANG12}\ZB või \Zblangpack_${LANG1}\ZB. Me ei ole veel automatiseeritud see, et sa pead alla laadima ja installima paketi. Seda saab teha mis tahes ajal tulevikus. Ametlikult toetatud langpacks on saadaval käivitades Pentsik Package Manager (kliki \Zbinstall\ZB ikooni töölaual), in \Zbnoarch\ZB hoidla."
-       AVAILMSG4="See keelepakett on juba installitud:"
-       AVAILMSG5="See keelepakett on juba sisseehitatud:"
-      ;;
-      fi*) #Finnish
-       AVAILMSG1="On sopiva \Zb${AVAILPACK}\ZB paketin \Zbnoarch\ZB PET arkiston, \ZbSetup\ZB luokkaan. Kun sinulla on Internet-yhteys, napsauta \ZbAsenna\ZB-kuvaketta työpöydällä ajaa Easy Package Manager, valitse arkistoon ja luokka.
-Märkus: Enne allalaadimist langpack, siis pead tegema internetiühenduse ja kasuta Easy Package Manager inglise keeles. Kui te arvate, et te ei saa lugeda inglise piisavalt, alternatiivse võimalusena võib teha teise operatsioonisüsteemi, minge http://distro.ibiblio.org/easyos/noarch/packages/pet/pet_packages-noarch ja lae langpack. Siis boot Easy klõpsake partitsiooni ikooni töölaual paigaldada vahesein (kui sa alla laadida langpack kuni), siis klõpsa langpack PET seda installida."
-       AVAILMSG2="Virallinen langpacks ovat saatavilla \Zbnoarch\ZB arkistosta, mutta siellä ei ole yksi kieli. Ehkä siellä on yksi kehitteillä Puppy Forum (varo, jotkut vanhemmat versiot Puppy on ristiriidassa langpacks). Tai, ehkä saatat vapaaehtoisiksi auttamaan ulos ja luoda langpack - klikkaa Menu -> Ohjeet -> HOWTO Kansainvälistyminen (sinun on tietenkin hyvä tuntemus Englanti)."
-       AVAILTITLE="Kielipaketti tarvitaan"
-       AVAILMSG3="Maa muuttuu ${LANGCHOICE}, mutta sinun täytyy asentaa kielipaketin kääntää Omituinen ja kieli. Tarvitset PET paketti nimeltään \Zblangpack_${LANG12}\ZB tai \Zblangpack_${LANG1}\ZB. Emme ole vielä automatisoitu tätä, niin sinun täytyy ladata ja asentaa paketin. Voit tehdä tämän milloin tahansa tulevaisuudessa. Julkisesti tuettujen langpacks ovat käytettävissä ajamalla Omituinen Package Manager (klikkaa \Zbinstall\ZB -kuvaketta) ja \Zbnoarch\ZB arkistoon."
-       AVAILMSG4="Tämä langpack on jo asennettu:"
-       AVAILMSG5="Tämä langpack on jo sisäänrakennettu:"
-      ;;
-      fr*) #French, esmourguit
-       AVAILMSG1="Il y a un paquet \Zb${AVAILPACK}\ZB dans le répertoire \Zbnoarch\ZB, catégorie \ZbSetup\ZB. Après être connecté à Internet, cliquer sur l'icône du bureau \Zbinstall\ZB pour lancer le Gestionnaire des Paquets, puis choisir le répertoire et la catégorie.
-Remarque: Avant de télécharger le paquet, vous devrez établir une connexion Internet et utiliser le Gestionnaire des Paquets en anglais. Si vous ne comprenez pas l'anglais, l'alternative consiste à lancer avec un autre système d'exploitation, d'aller sur le site http://distro.ibiblio.org/easyos/noarch/packages/pet/pet_packages-noarch et télécharger le Langpack. Redémarrez Easy, cliquez sur l'icône des partitions du bureau pour monter la partition (où est téléchargé le Langpack) et cliquez sur le fichier pour l'installer."
-       AVAILMSG2="Les Langpacks officiels sont disponibles dans \Zbnoarch\ZB, mais il n'y en a pas pour votre langue. Peut-être y en a-t'il un en développement dans le forum (attention, certaines anciennes versions de Easy possèdent des Langpacks incompatibles). Peut-être voulez-vous aider et/ou créer un Langpack - cliquez sur le menu -> Aide -> HOWTO internationalisation (vous devrez connaitre bien l'anglais)."
-       AVAILTITLE="Langpack nécessaire"
-       AVAILMSG3="La locale sera changée en ${LANGCHOICE}, mais vous devez installer un Langpack pour avoir Easy dans votre langue. Vous avez besoin du paquet \Zblangpack_${LANG12}\ZB ou \Zblangpack_${LANG1}\ZB. Ce n'est pas encore automatisé, vous devrez donc télécharger et installer le paquet vous même. Vous pourrez le faire à n'importe quel moment plus tard. Les Langpacks bénéficiant d'un soutien officiel sont disponibles dans le Gestionnaire des Paquets (cliquez sur l'icône du bureau \Zbinstall\ZB ), et dans le répertoire \Zbnoarch\ZB."
-       AVAILMSG4="Ce langpack est déjà installé:"
-       AVAILMSG5="Ce langpack est déjà intégré:"
-      ;;
-      hu*) #Hungarian
-       AVAILMSG1="Van egy megfelelő \Zb${AVAILPACK}\ZB csomagot a \Zbnoarch\ZB PET adattár, a \ZbSetup\ZB kategóriában. Miután rendelkezik internetkapcsolattal, kattints a \Zbtelepítés\ZB ikonjára az asztalon futtatni a Easy Package Manager, majd válassza ki a forrás és a kategóriában.
-Megjegyzés: Mielőtt letöltené a Langpack, akkor meg kell tenni az internetkapcsolat, és a Easy Package Manager angolul. Ha úgy gondolja, hogy nem tudja elolvasni English elég, egy másik az, hogy fut egy másik operációs rendszer, menj http://distro.ibiblio.org/easyos/noarch/packages/pet/pet_packages-noarch és töltse le a Langpack. Ezután indul Easy, kattintson a partíció ikonra az asztalon, hogy csatold (ahová letöltöttük a Langpack a), majd kattintson a Langpack PET-e telepíteni."
-       AVAILMSG2="Hivatalos langpacks állnak rendelkezésre a \Zbnoarch\ZB adattár azonban nem egy, a nyelvet. Lehet, hogy van egy fejlesztés alatt áll a Puppy Forum (legyen óvatos, néhány régebbi verziói Puppy van összeegyeztethetetlen langpacks). Vagy talán lehet, hogy önkéntes segít, és hozzon létre egy Langpack - kattintson a Menü -> Help -> HOGYAN Nemzetközivé (akkor természetesen szükség van egy jó angol nyelvtudás)."
-       AVAILTITLE="Nyelvi csomag szükséges"
-       AVAILMSG3="A locale fog változni ${LANGCHOICE}, de meg kell telepíteni a nyelvi csomagot lefordítani Furcsa, hogy a nyelvet. Szüksége van egy PET nevű csomagot \Zblangpack_${LANG12}\ZB vagy \Zblangpack_${LANG1}\ZB. Még nem automatizált ezt, így lesz, hogy töltse le és telepítse a csomagot. Ezt megteheti bármikor a jövőben. Hivatalosan támogatott langpacks állnak a futás a Furcsa Package Manager (kattintson a \Zbinstall\ZB ikonra az asztalon), a \Zbnoarch\ZB tárolóból."
-       AVAILMSG4="Ez a langpack már telepítve van:"
-       AVAILMSG5="A langpack már beépítve van:"
-      ;;
-      it*) #Italian, vicmz
-       AVAILMSG1="C'è un pacchetto \Zb${AVAILPACK}\ZB idoneo nel repository di PET \Zbnoarch\ZB, nella categoria \ZbImpostazioni\ZB. Una volta ottenuto una connessione a Internet, fare clic sull'icona \Zbinstallare\ZB sul desktop per eseguire l'Amministratore di Pacchetti, quindi scegli il repository e la categoria.
-Nota: Prima di scaricare il pacchetto di lingua, si dovrà effettuare una connessione a Internet e utilizzare l'Amministratore di Pacchetti (Easy Package Manager) in lingua inglese. Se pensi che non puoi leggere l'inglese a sufficienza, un'alternativa è quella di eseguire un altro sistema operativo, andare a http://distro.ibiblio.org/easyos/noarch/packages/pet/pet_packages-noarch e scaricare il pacchetto di lingua. Poi, avvia Easy, clicca sull'icona di partizione sul desktop per montare la partizione (dove ai scaricato il pacchetto di lingua), quindi clicca sul PET del pacchetto di lingua per installarlo."
-       AVAILMSG2="Pacchetti di lingua ufficiali sono disponibili nel repository \Zbnoarch\ZB, ma non ce n'è uno per tua lingua. Forse ce n'è uno in fase di sviluppo nel Forum Puppy (attenzione, alcune vecchie versioni di Puppy hanno pacchetti di lingua incompatibili). O, forse potrebbe volontari per aiutare e creare un pacchetto di lingua -- fare clic sul Menu -> Help -> HOWTO Internationalization (ovviamente hai bisogno di una buona conoscenza della lingua inglese)."
-       AVAILTITLE="È necessario un pacchetto di lingua"
-       AVAILMSG3="La lingua sarà cambiata in ${LANGCHOICE}, però hai bisogno d'installare un pacchetto di lingua per tradurre Easy nella tua lingua. Hai bisogno di un pacchetto PET chiamato \Zblangpack_${LANG12}\ZB o \Zblangpack_${LANG1}\ZB. Non abbiamo ancora automatizzato questa azione, quindi dovrete scaricare e installare il pacchetto. Puoi fare ne in qualsiasi momento in futuro. Pacchetti di lingua ufficialmente supportati sono disponibili eseguendo l'Amministratori di Pacchetti (Easy Package Manager) (clicca l'icona \Zbinstallare\ZB sul desktop), nel repository \Zbnoarch\ZB."
-       AVAILMSG4="Questo langpack è già installato:"
-       AVAILMSG5="Questo langpack è già integrato:"
-      ;;
-      nl*) #Netherlands (Dutch), FlyingDutchman 120701 fix...
-       AVAILMSG1="Er is een geschikt \Zb${AVAILPACK}\ZB pakket in de \Zbnoarch\ZB PET repository, in de \ZbSetup\ZB categorie. Klik op het \Zbinstall\ZB pictogram op het bureaublad om de Easy Package Manager te starten en kies vervolgens de repository en categorie.
-Opmerking: Voor het downloaden van het taalpakket is een werkende internetverbinding nodig. Tevens moet de Easy Package Manager in het Engels worden gebruikt. Als u Engels hiervoor onvoldoende beheerst is het ook mogelijk om vanuit een ander besturingssysteem naar http://distro.ibiblio.org/easyos/noarch/packages/pet/pet_packages-noarch te gaan en het taalpakket (langpack_nl) te downloaden. Start daarna Easy op, klik op het pictogram van de partitie waarop het taalpakket is opgeslagen en klik vervolgens op de taalpakket PET om het te installeren."
-       AVAILMSG2="Er zijn officiële taalpakketten beschikbaar in de \Zbnoarch\ZB repository maar helaas is er geen taalpakket gevonden voor uw taal. Wellicht wordt er aan een vertaling gewerkt in het Puppy Forum (pas op, sommige oudere Puppy versies gebruiken taalpakketten die niet uitwisselbaar zijn). Of misschien wilt u helpen bij het creëren van een taalpakket -- Klik Menu -> Help -> HOWTO Internationalization (U hebt hiervoor uiteraard een goede kennis van het Engels voor nodig)."
-       AVAILTITLE="Taalpakket nodig"
-       AVAILMSG3="De standaard taal wordt gewijzigd naar ${LANGCHOICE}, maar u moet een taalpakket installeren om Easy in uw taal te vertalen. U hebt daarvoor een PET pakket nodig met de naam \Zblangpack_${LANG12}\ZB of \Zblangpack_${LANG1}\ZB. We hebben dit nog niet geautomatiseerd dus u zult dit zelf moeten downloaden en installeren. U kunt dit op elk gewenst moment doen. Officeel ondersteunde taalpakketten zijn beschikbaar door het de Easy Package Manager te starten (klik op het \Zbinstall\ZB pictogram op het bureaublad), in de \Zbnoarch\ZB repository."
-       AVAILMSG4="Deze langpack is al geïnstalleerd:"
-       AVAILMSG5="Deze langpack is al ingebouwd:"
-      ;;
-      pl*) #120331 Polish, robwoj44 (Robert)
-       AVAILMSG1="Jest odpowiedni pakiet \Zb${AVAILPACK}\ZB w repozytorium \Zbnoarch\ZB PET, w kategorii \ZbSetup\ZB. Po uzyskaniu połączenia z Internetem, kliknij ikonę \Zbinstall\ZB na pulpicie by uruchomić Easy Package Manager, potem wybierz repozytorium i kategorię.
-Uwaga: Przed pobraniem pakietu językowego, trzeba mieć połączenie z Internetem i użyć Easy Manager Pakietów po angielsku. Jeśli myślisz że nie zrozumiesz po angielsku dostatecznie, alternatywą jest uruchomienie innego systemu operacyjnego, wejście na http://distro.ibiblio.org/easyos/noarch/packages/pet/pet_packages-noarch i pobranie pakietu językowego. Następnie, rozruch Easy, kliknięcie ikony partycji na pulpicie by zamontować partycję (tą gdzie ściągnąłeś pakiet językowy), potem kliknięcie na pakiecie językowym PET by go zainstalować."
-       AVAILMSG2="Oficjalne pakiety językowe są dostępne w repozytorium \Zbnoarch\ZB, jednak gdy nie ma dla twojego języka. Możliwe że jest jakiś w przygotowaniu na Forum Puppy (uważaj, niektóre starsze wersje Puppy mają niekompatybilne pakiety językowe). Albo, możesz dobrowolnie pomóc i stworzyć pakiet językowy -- kliknij Menu -> Help -> HOWTO Internationalization (oczywiście będziesz potrzebował dobrej znajomości angielskiego)."
-       AVAILTITLE="Pakiet językowy potrzebny"
-       AVAILMSG3="Ustawienia regionalne będą zmienione na ${LANGCHOICE}, ale musisz zainstalować pakiet językowy by przetłumaczyć Easy na swój język. Potrzebujesz pakietu PET nazwanego \Zblangpack_${LANG12}\ZB lub \Zblangpack_${LANG1}\ZB. Jeszcze nie zautomatyzowaliśmy tego, zatem musisz pobrać i zainstalować pakiet. Możesz to zrobić w każdym czasie w przyszłości. Oficjalnie obsługiwane pakiety językowe są dostępne przez uruchomienie Easy Package Manager (kliknij ikonę \Zbinstall\ZB na pulpicie), w repozytorium \Zbnoarch\ZB."
-       AVAILMSG4="Ten pakiet langpack jest już zainstalowany:"
-       AVAILMSG5="Ten pakiet langpack jest już wbudowany:"
-      ;;
-      pt*) #Portuguese, vicmz
-       AVAILMSG1="Há um pacote \Zb${AVAILPACK}\ZB apropriado no respositório de PETs \Zbnoarch\ZB, na categoria \ZbConfiguração\ZB. Após ter uma conexão a Internet, clique o ícone \Zbinstalar\ZB da Área de Trabalho para abrir o Administrador de Pacotes, então escolha o repositório e a categoria.
-Nota: Antes de transferir o pacote de língua, você terá que fazer uma conexão a Internet e usar o Administrador de Pacotes (Easy Package Manager) em inglês. Se pensar que não sabe ler inglês o bastante, uma alternativa é usar outro sistema operativo, ir para http://distro.ibiblio.org/easyos/noarch/packages/pet/pet_packages-noarch e descarregar o pacote de língua. Então, inicie Easy, clique no ícone de partição (onde descarregou o pacote de língua), e clique no PET do pacote de língua para instalá-lo."
-       AVAILMSG2="Há pacotes de língua oficiais disponíveis no repositório \Zbnoarch\ZB, porém não há um para sua língua. Talvez há um em desenvolvimento no Fórum de Puppy (atenção, algumas versões mais antigas de Puppy têm pacotes incompatíveis). Ou, talvez você possa se oferecer como voluntário para ajudar e criar um pacote de língua (clique no Menu -> Help -> HOWTO Internationalization, certamente você precisará um bom conhecimento de inglês)."
-       AVAILTITLE="Precisa-se de um pacote de língua"
-       AVAILMSG3="A língua será mudada para ${LANGCHOICE}, mas você precisa instalar um pacote de língua para traduzir Easy em sua língua. Você precisa um pacote PET chamado de \Zblangpack_${LANG12}\ZB ou \Zblangpack_${LANG1}\ZB. Nós não temos automatizado isto ainda, asim que você terá que descarregar e instalar o pacote. Você pode fazer isto em qualquer momento no futuro. Há pacotes com suporte oficial disponíveis usando o Administrador de Pacotes (Easy Package Manager) (clique no ícone \Zbinstalar\ZB na Área de Trabalho), no repositório  \Zbnoarch\ZB. "
-       AVAILMSG4="Este langpack já está instalado:"
-       AVAILMSG5="Este langpack já está embutido:"
-      ;;
-      ru*) #Russian, rodin.s
-       AVAILMSG1="Есть подходящий пакет \\Zb${AVAILPACK}\\ZB в \\Zbnoarch\\ZB PET-репозитарии, в категории \\ZbSetup\\ZB. После того, как у вас появится подключение к Интернет нажмите значок \\Zbinstall\\ZB на рабочем столе для запуска Менеджера пакетов Easy, затем выберите репозитарий и категорию.
-Примечание: Перед загрузкой пакета локализации вы должны будете настроить подключение к Интернет и использовать Менеджер пакетов Easy на английском. Если вы думаете, что не знаете английский достаточно хорошо, альтернатива - это запуск другой операционной системы, зайдете на http://distro.ibiblio.org/easyos/noarch/packages/pet/pet_packages-noarch и загрузите пакет локализации. После этого загрузите Easy, нажмите на значок раздела на рабочем столе для монтирования раздела (на который вы загрузили пакет локализации), затем кликните на сам PET-пакет лангпака для его установки."
-       AVAILMSG2="Официальные пакеты локализации доступны в \\Zbnoarch\\ZB-репозитарии, однако для вашего языка нет пакета. Возможно пакет для вашего языка в разработке на форуме Easy (будте осторожны, пакеты для старых версий Easy не подходят). Или, возможно, вы захотите помочь и создать пакет -- Кликните Меню -> Справка -> HOWTO Internationalization (конечно же вам будет нужно хорошее знание английского языка)."
-       AVAILTITLE="Нужен пакет локализации"
-       AVAILMSG3="Локаль будет изменена на ${LANGCHOICE}, но вам нужно установить языковой пакет для перевода Easy на ваш язык. Вам нужен PET-пакет с названием \\Zblangpack_${LANG12}\\ZB или \\Zblangpack_${LANG1}\\ZB. Этот процесс ещё не автоматизирован, так, что вам нужно загрузить и установить пакет. Вы можете сделать это в любое время в будущем. Официально поддерживаемые пакеты локализации доступны в Менеджере пакетов Easy (кликните значок \\Zbinstall\\ZB на рабочем столе), в репозитарии \\Zbnoarch\\ZB."
-       AVAILMSG4="Этот langpack уже установлен:"
-       AVAILMSG5="Этот langpack уже встроен:"
-      ;;
-      sv*) #Swedish
-       AVAILMSG1="Det är en lämplig \Zb${AVAILPACK}\ZB paket i \Zbnoarch\ZB PET förvaret, i kategorin \ZbSetup\ZB. Efter att du har en Internetanslutning klickar \Zbinstallera\ZB ikonen på skrivbordet för att köra Easy Package Manager, välj sedan förvaret och kategori.
-Obs: Innan du laddar ner den langpack, måste du göra en Internet-anslutning och använda Easy Package Manager på engelska. Om du tror att du inte kan läsa engelska tillräckligt, är ett alternativ att köra ett annat operativsystem, gå till http://distro.ibiblio.org/easyos/noarch/packages/pet/pet_packages-noarch och hämta langpack. Sedan starta Easy, klicka på ikonen partitionen på skrivbordet för att montera partitionen (där du hämtade langpack till) och klicka på langpack PET för att installera det."
-       AVAILMSG2="Officiella språkpaket finns i \Zbnoarch\ZB slutförvar, men det finns inte en för ditt språk. Kanske finns det ett under utveckling i Puppy forumet (var försiktig, vissa äldre versioner av Puppy har oförenliga språkpaket). Eller, kanske du kan frivilligt att hjälpa till och skapa en langpack - klicka på Meny -> Hjälp -> HOWTO Internationalisering (du kommer naturligtvis att behöva goda kunskaper i engelska)."
-       AVAILTITLE="Språkpaket behövs"
-       AVAILMSG3="Lokalen kommer att ändras till ${LANGCHOICE}, men du måste installera ett språkpaket för att översätta Easy till ditt språk. Du behöver en PET-paketet som heter \Zblangpack_${LANG12}\ZB eller \Zblangpack_${LANG1}\ZB. Vi har ännu inte automatiserat detta, så du måste ladda ner och installera paketet. Du kan göra detta när som helst i framtiden. Språkpaket statsstödda finns genom att köra Easy Package Manager (klicka ikonen \Zbinstall\ZB på skrivbordet), i \Zbnoarch\ZB slutförvar."
-       AVAILMSG4="Denna långpack är redan installerad:"
-       AVAILMSG5="Denna långpack är redan inbyggd:"
-      ;;
-      tr*) #Turkish
-       AVAILMSG1="\ZbKurulum\ZB kategorisinde \Zbnoarch\ZB PET deposunda uygun bir \Zb${AVAILPACK}\Zb paket bulunmaktadır. İnternet bağlantınız var sonra, daha sonra, Easy Paket Yöneticisi çalıştırmak depo ve kategori seçmek için masaüstünde \Zbyüklemek\ZB simgesini tıklatın.
-Not: Dil Paketi indirmeden önce, bir internet bağlantısı ve İngilizce Easy Paket Yöneticisi kullanmak zorunda olacak. Eğer yeterince İngilizce okuyamaz düşünüyorsanız, alternatif, başka bir işletim sistemini çalıştırmak http://distro.ibiblio.org/easyos/noarch/packages/pet/pet_packages-noarch gidin ve Dil Paketi indirmektir. Ardından, Easy çizme, daha sonra yüklemek için LangPack PET üzerine tıklayın (size Dil Paketi karşıdan yüklediğiniz) bölümü mount masaüstündeki bölüm simgesini tıklatın."
-       AVAILMSG2="Resmi Langpacks ancak sizin dilinizde için bir tane değil, \Zbnoarch\ZB depoda mevcuttur. Belki Puppy Forum geliştiriliyor bir (Puppy bazı eski sürümleri uyumsuz Langpacks var, dikkatli olun) bulunmaktadır. Ya da, belki de yardım ve Dil Paketi oluşturmak için gönüllü olabilir - Menu tıklayın -> Yardım -> NASIL Uluslararasılaşma (tabii iyi derecede İngilizce bilgisine ihtiyacınız olacak)."
-       AVAILTITLE="Dil paketi gerekli"
-       AVAILMSG3="Yerel ${LANGCHOICE} değiştirildi, ancak kendi dilinize çevirmek Easy bir dil paketini yüklemeniz gerekir. Sen adında bir PET paketi gerekir \Zblangpack_${LANG12}\ZB veya \Zblangpack_${LANG1}\ZB. Paketi indirmek ve kurmak zorunda olacak, böylece henüz, bu otomatik değil. Bu gelecekte herhangi bir zaman yapabilir. Resmen desteklenen Langpacks \Zbnoarch\ZB depo, İlginç Paket Yöneticisi (masaüstünde \Zbinstall\ZB simgesini tıklatın) çalışan ulaşabilirsiniz."
-       AVAILMSG4="Bu langpack zaten kurulu:"
-       AVAILMSG5="Bu langpack zaten yerleşiktir:"
-      ;;
-      *)
-       AVAILMSG1="There is a suitable \Zb${AVAILPACK}\ZB package in the \Zbnoarch\ZB PET repository, in the \ZbSetup\ZB category. After you have an Internet connection, click the \Zbinstall\ZB icon on the desktop to run the Easy Package Manager, then choose the repository and category.
-Note: Before downloading the langpack, you will have to make an Internet connection and use the Easy Package Manager in English. If you think that you cannot read English sufficiently, an alternative is to run another operating system, go to http://distro.ibiblio.org/easyos/noarch/packages/pet/pet_packages-noarch and download the langpack. Then, boot Easy, click the partition icon on the desktop to mount the partition (where you downloaded the langpack to), then click on the langpack PET to install it."
-       AVAILMSG2="Official langpacks are available in the \Zbnoarch\ZB repository, however there is not one for your language. Perhaps there is one under development in the Puppy Forum (be careful, some older versions of Puppy have incompatible langpacks). Or, perhaps you might volunteer to help out and create a langpack -- click the Menu -> Help -> HOWTO Internationalization (you will of course need a good knowledge of English)."
-       AVAILTITLE="Language pack needed"
-       AVAILMSG3="The locale will be changed to ${LANGCHOICE}, but you need to install a language pack to translate Easy to your language. You need a PET package named \Zblangpack_${LANG12}\ZB or \Zblangpack_${LANG1}\ZB. We have not yet automated this, so you will have to download and install the package. You may do this any time in the future. Officially supported langpacks are available by running the Easy Package Manager (click the \Zbinstall\ZB icon on the desktop), in the \Zbnoarch\ZB repository."
-       AVAILMSG4="This langpack is already installed:"
-       AVAILMSG5="This langpack is already built-in:"
-      ;;
-     esac
-     AVAILMSG="$AVAILMSG2"
-     [ "$AVAILPACK" ] && AVAILMSG="$AVAILMSG1"
-     [ "langpack_${LANG1}" == "$INSTLANGPACK" ] && AVAILMSG="${AVAILMSG4} \Zb${LANG1}\ZB"
-     [ "langpack_${LANG1}" == "$WOOFLANGPACK" ] && AVAILMSG="${AVAILMSG5} \Zb${LANG1}\ZB"     
-     if [ "$DISPLAY" ];then
-      [ $wPID -ne 0 ] && kill $wPID #120524
-      wPID=0
-      LANG=${NEWLANG} pupdialog --background '#8080FF' --colors --backtitle "${AVAILTITLE}" --msgbox "${AVAILMSG3}\n\n${AVAILMSG}" 0 0
-     else
-      dialog --msgbox "`eval_gettext \"Note, you will need to install langpack_\\\${LANG12} or langpack_\\\${LANG1} PET package to more fully translate Easy to your language. Run the Easy Package Manager after connection to the Internet, to download and install this package.\"`" 0 0 >/dev/console
-     fi
-    fi
-   fi
    
    #120215 offer to translate initrd... 120216 moved to separate script (so universal installer can also do it)...
    #190103 simplify the logic....
