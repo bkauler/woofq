@@ -279,6 +279,7 @@
 #20230131 ppm restrict pkg choices
 #20230209 merge a cutdown nls into rootfs-complete
 #20230211 initrd nls: fix if ' missing on end, space after variable. also folder hierarchy changed.
+#20230212 rootfs-skeleton.list files in rootfs-skeleton sans translations.
 
 export LANG=C #faster.
 
@@ -5104,6 +5105,9 @@ if [ -s ../usb.ids ];then
  cp -a -f ../usb.ids rootfs-complete/usr/share/
  ln -snf ../usb.ids rootfs-complete/usr/share/misc/usb.ids
 fi
+
+#20230212 momanager will read this.
+find ../rootfs-skeleton -type f | grep -vE '/usr/share/locale\.in|/usr/share/applications\.in' | sed -e 's%\.\./rootfs-skeleton%%' > rootfs-complete/root/.packages/rootfs-skeleton.list
 
 
 

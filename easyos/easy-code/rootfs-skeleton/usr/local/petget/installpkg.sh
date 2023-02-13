@@ -80,6 +80,7 @@
 #20210915 Exec=<path>/AppRun in .desktop file stuffs things up. 
 #20220903 sync with dpkg|apt
 #20221023 may be running as zeus super-user.
+#20230213 check if .mo files in /usr/share/locale.in
 
 #information from 'labrador', to expand a .pet directly to '/':
 #NAME="a52dec-0.7.4"
@@ -724,7 +725,7 @@ do
   sed -i -e "$iPATTERN" ${DEBSHERE}${ONEDOT} #note, ONEDOT is name of .desktop file.
  fi
  
- #120926 if a langpack installed, it will have /usr/share/applications.in (see /usr/sbin/momanager, /usr/share/doc/langpack-template/pinstall.sh).
+ #120926 if a langpack installed, it will have /usr/share/applications.in (see /usr/sbin/momanager).
  ABASEDESKTOP="`basename $ONEDOT`"
  ADIRDESKTOP="`dirname $ONEDOT`"
  if [ -f /usr/share/applications.in/${ABASEDESKTOP} ];then
@@ -767,6 +768,24 @@ do
   fi
  fi
  
+done
+
+#20230213 check if .mo files in /usr/share/locale.in
+MOnames="$(grep '\.mo$' /root/.packages/${DLPKG_NAME}.files)"
+for aMO in $MOnames
+do
+ [ "$aMO" == "" ] && continue
+ bMO="${aMO##*/}"
+ for cMO in `find /usr/share/locale.in -type f -name "$bMO"`
+ do
+  [ "$cMO" == "" ] && continue
+  dirMO="$(dirname $cMO | sed -e 's%\.in/%/%')"
+  if [ ! -f ${dirMO}/${bMO} ];then #don't overwrite the official .mo
+   mkdir -p $dirMO
+   cp -f $cMO ${dirMO}/
+   echo "${dirMO}/${bMO}" >> /root/.packages/${DLPKG_NAME}.files
+  fi
+ done
 done
 
 #due to images at / in .pet and post-install script, .files may have some invalid entries...
