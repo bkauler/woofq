@@ -1,0 +1,31 @@
+[general]
+#the boot-partition may have Syslinux and reFind config files.
+#if so, there are strings that can be translated.
+#note, when there is a locale change, QuickSetup will call lang2initrd which
+# will call fixboot, which will translate files in the boot-partition.
+#Please type translation only between the last two % characters. For example: s%"done"%"fertig"%
+#Keep all formatting exactly the same, that is retain all " ' < > / \ characters.
+# -- do not replace the " and ' with left-side or right-side quote characters.
+#Keep all variables as-is, exs: ${DROPOUT} $DROPOUT -- do not translate!
+#Note: do not use UTF-8 characters in these boot manager menus.
+
+[_syslinux.cfg]
+#/syslinux.cfg
+s%Normal startup%Lancement normal%
+s%Filesystem check%Examen du Syst. de Fichiers%
+s%Commandline only, do not start X%Ligne de commande uniquement, ne lance pas X%
+s%Rollback to last saved session%Retour vers l'ultime session enregistree%
+s%Rollback to pristine first bootup%Retour au premier lancement original%
+s%Copy session to ram & disable drives%Copier la session en RAM & inactiver les disques%
+s%Copy session to ram & unmount all partitions%Copier la session en RAM & demonter toutes les partitions%
+
+[_EFI_BOOT_refind.conf]
+#/EFI/BOOT/refind.conf
+s%normal bootup%Lancement normal%
+s%Filesystem check%Examen du Syst. de Fichiers%
+s%Commandline only, do not start X%Ligne de commande uniquement, ne lance pas X%
+s%Rollback to last saved session%Retour vers l'ultime session enregistree%
+s%Rollback to pristine first bootup%Retour au premier lancement original%
+s%Copy session to ram & disable drives%Copier la session en RAM & inactiver les disques%
+s%Copy session to ram & unmount all partitions%Copier la session en RAM & demonter toutes les partitions%
+

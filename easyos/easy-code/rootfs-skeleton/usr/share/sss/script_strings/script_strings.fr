@@ -1,0 +1,92 @@
+[general]
+#this "script_strings" SSS domain is intended for any scripts that need translation.
+#the SSS technique translates files "in place", meaning that the original file gets replaced by the
+#translated file (menu_strings domain is slightly different, in that it first generates English files from
+#templates, then translates them). Thus the files are translated *before* execution, whereas the gettext
+#and t12s methods are run-time translations.
+#the translations in this SSS-domain, that is, this file script_strings*, are performed by /usr/sbin/fixscripts, which
+#in turn is called from quicksetup (chooselocale) whenever locale is changed, also by rc.update whenever a version upgrade.
+#the section-ids are a full path, for example _etc_rc.d_functions4puppy4 means /etc/rc.d/functions4puppy4
+# ...fixscripts will accept any substitution for the '/' char, ex XetcXrc.dXfunctions4puppy4
+#Please type translation only between the last two % characters. For example: s%"done"%"fertig"%
+#Keep all formatting exactly the same, that is retain all " ' < > / \ characters.
+# -- do not replace the " and ' with left-side or right-side quote characters.
+#Keep all variables as-is, exs: ${DROPOUT} $DROPOUT -- do not translate!
+
+[_etc_rc.d_functions4puppy4]
+#target file is /etc/rc.d/functions4puppy4
+s%Only very old PCs may have a serial mouse. These are recognised by the fairly large rectangular plug, technically known as a DB9 or the even larger DB25 (where the 9 or 25 refers to the number of pins in the plug). Press the UP and DOWN arrow keys to choose your mouse type, then press the ENTER key:%Seuls les très très vieux PC peuvent avoir une souris série. On les reconnait à la très grande fiche rectangulaire, techniquement connue sous le nom de DB9 ou encore par la fiche DB25, encore plus grande, (le chiffre 9 ou 25 se réfère au nombre des broches de la fiche). Appuyez sur les touches flèches HAUT et BAS pour choisir le type de souris, puis appuyez sur la touche Entrée :%
+s%(mouse in very old computers)%(souris dans de très très vieux ordinateurs)%
+s%(mouse or touchpad in all modern computers)%(souris ou pavé tactile dans tous les ordinateurs modernes)%
+s%Please choose mouse type...%Veuillez choisir le type de souris ...%
+s%Serial port mouse plugged into...\\nUse UP/DOWN ARROW keys, ENTER key to finish%Souris de port série branchée sur ...\\nUtilisez les touches flèches HAUT/BAS et la touche ENTRÉE pour terminer.%
+s%(most likely)%(probablement)%
+
+[_etc_rc.d_rc.sysinit]
+s%"done"%"Terminé"%
+s%"failed"%"Échec"%
+s%Loading swap partition $ONESWAP...%Chargement de la partition d'échange $ONESWAP...%
+s%Loading swap file ${SWAPFILE}...%Chargement du fichier d'échange ${SWAPFILE}...%
+s%Making the filesystem usable...%Rend le système utilisable%
+s%"Updating..."%"Actualisation ..."%
+s%Updating unique hostname...%Actualisation du nom d'hôte unique ...%
+s%Loading kernel modules...%Chargement des modules du noyau%
+s%Waiting for modules to complete loading...%En attente du chargement complet des modules%
+s%Loading user-selected modules...%Chargement des modules choisis par l'utilisateur%
+s%Setting up services (network, printing, etc.)...%Mise en place des services (réseau, impression, etc)%
+s%\[backgrounded\]%\[Mis en arrière plan]%
+s%Recognising media devices...%Reconnaissance des périphériques multimédia%
+s%"save"%"enregistrer"%
+
+[_etc_rc.d_rc.update]
+s%" cross-build-fix"%" solution de construction croisée"%
+s%" network-drivers-list"%" liste des pilotes réseau"%
+s%" pixbuf-loaders"%" chargeurs pixbuf"%
+s%" gtk-icon-cache"%" cache d'icônes gtk"%
+s%" desk-icons"%" icônes du bureau"%
+s%" $OLDPVERSION to $NEWPVERSION"%" $OLDPVERSION vers $NEWPVERSION"%
+s%from version $OLDPVERSION to%de la version $OLDPVERSION vers%
+s%Upgrading ${DISTRO_NAME} ${VERstr} ${NEWPVERSION}...%Actualisation de ${DISTRO_NAME} ${VERstr} ${NEWPVERSION}...%
+s%" network-drivers-list"%" liste des pilotes réseau"%
+s%layered-filesystem%SF_à_couches%
+s%next boot will be faster!%Le prochain démarrage sera plus rapide%
+
+[_etc_rc.d_rc.country]
+s%Select the keyboard layout:\n(UP/DOWN arrows then ENTER key)%Choisir la disposition du clavier:\n(flèches HAUT/BAS puis Entrée)%
+s%Is the hardware clock on the computer set to the local time, or to UTC? Note, most PCs with Windows installed have the hardware clock set to the local time, so if in doubt choose that...%L'horloge matérielle de votre PC est-elle réglée sur l'heure locale ou UTC? Remarque, la plupart des PC sous Windows sont en heure locale, dans le doute choisissez locale...%
+s%Set hardware-clock type%Définir l'horloge matérielle%
+s%"Local"%"Local"%
+s%"UTC"%"UTC"%
+
+[_usr_local_petget_0setup]
+s%This is a report on the last time the '0setup' script was run%Rapport sur la dernière fois que le script '0setup' a été exécuté%
+s%Date and time '0setup' last run:%Date et heure de la dernière exécution de '0setup' :%
+s%Compatible-distro and release-name:%Distribution compatible et nom de la version :%
+s%Mostly only errors get logged, so the less seen below, the better.%La plupart du temps, seules les erreurs sont consignées. Par conséquent, moins il y en a d'affiché en dessous mieux c'est.%
+s%Log of last run of '0setup':%Journal de la dernière exécution de '0setup' :%
+s%A package information database file needs to be downloaded.%Un fichier de base de données d'informations sur les paquets doit être téléchargé.%
+s%This will be downloaded from:%Il sera téléchargé à partir de :%
+s%and will be processed and named:%et sera traité et nommé :%
+s%Press ENTER key to download, any other to skip it:%Pressez la touche ENTRÉE pour télécharger, n'importe quelle autre pour passer :%
+s%Processing ${DLFILE} please wait...%Traitement de ${DLFILE}, veuillez patienter ...%
+s%...success%... réussi%
+s%Downloaded file is corrupted. Deleting file and aborting.%Le fichier téléchargé est corrompu. Suppression du fichier puis abandon.%
+s%Failed to download, aborting.%Échec du téléchargement, abandon.%
+s%Failed to download db file:%Échec du téléchargement du fichier db :%
+s%...exited from 0setup script.%... est sorti du script 0setup.%
+s%...skipped%... ignoré%
+s%Do you want to download the ${DISTRO_BINARY_COMPAT}-updates package databases?%Voulez-vous télécharger le paquet de mise à jour des bases de données ${DISTRO_BINARY_COMPAT}?%
+s%Accept, they will be downloaded and merged,%Acceptez, il sera téléchargé et fusionné,%
+s%such that only the updated pkg db entries are kept.%de sorte que seules les entrées des paquets db mis à jour soient conservées.%
+s%Example: as at August 31, 2012, Ubuntu Precise Pangolin 12.04 has the first%Exemple : au 31 août 2012, Ubuntu Precise Pangolin 12.04 disposait du premier%
+s%'Service Pack' which is version 12.04.1 -- accepting here will obtain the%'Service Pack', version 12.04.1 - en l'acceptant ici, vous obtiendrez la%
+s%package lists for 12.04.1 -- it is generally recommended to accept.%liste des paquets pour 12.04.1 - il est généralement recommandé d'accepter.%
+s%ENTER key only to accept, any other printable char then ENTER to decline:%Touche ENTRÉE uniquement pour accepter, n'importe quel autre caractère, puis ENTRÉE pour refuser :%
+s%Processing ${ONE_PKGLISTS_COMPAT} into a standard format...%Traitement de ${ONE_PKGLISTS_COMPAT} dans un format standard ...%
+s%please wait...%veuillez patienter ...%
+s%...it's already in the Puppy standard format.%... il est déjà au format standard de Puppy.%
+s%FINISHED%TERMINÉ%
+s%After restarting Puppy Package Manager (PPM),%Après avoir redémarré le Gestionnaire des Paquets de Puppy (PPM),%
+s%it will be reading the updated database files.%il lira les fichiers des base de données mis à jour.%
+s%Press ENTER key to exit:%Pressez la touche ENTRÉE pour quitter :%
+
