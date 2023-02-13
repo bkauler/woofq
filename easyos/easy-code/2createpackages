@@ -1126,7 +1126,7 @@ then run this script again and choose to build ${GENERICNAME}." >> ERROR-2CREATE
      grep -F '^Name[' $ONEDESKTOP >> /tmp/2createpackages_tmp/desktop-nls-names
      grep -Fv '^Name[' $ONEDESKTOP > /tmp/2createpackages_tmp/desktop-sans-nls-names
      sort -t '=' -k 1 -u /tmp/2createpackages_tmp/desktop-nls-names > /tmp/2createpackages_tmp/desktop-nls-names2
-     for aName in `cat /tmp/2createpackages_tmp/desktop-nls-names2 | tr '\n' ' '`
+     #for aName in `cat /tmp/2createpackages_tmp/desktop-nls-names2 | tr '\n' ' '`
      while read aName
      do
       [ "$aName" == "" ] && continue
@@ -1141,7 +1141,7 @@ EOF
      grep -F '^Comment[' $ONEDESKTOP >> /tmp/2createpackages_tmp/desktop-nls-comments
      grep -Fv '^Comment[' $ONEDESKTOP > /tmp/2createpackages_tmp/desktop-sans-nls-comments
      sort -t '=' -k 1 -u /tmp/2createpackages_tmp/desktop-nls-comments > /tmp/2createpackages_tmp/desktop-nls-comments2
-     for aComment in `cat /tmp/2createpackages_tmp/desktop-nls-comments2 | tr '\n' ' '`
+     #for aComment in `cat /tmp/2createpackages_tmp/desktop-nls-comments2 | tr '\n' ' '`
      while read aComment
      do
       [ "$aComment" == "" ] && continue
