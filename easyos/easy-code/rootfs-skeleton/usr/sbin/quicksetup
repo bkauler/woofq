@@ -128,6 +128,8 @@
 #20230109 always create fr_FR, de_DE, etc.
 #20230209 variable BUILD_SUPPORT_LANGS has list of supported locales.
 #20230111 remove country flags. remove all reference to langpack pets.
+#20230214 filter-out all locales with "@" ex: sv_FI@euro
+#20230214 no longer have /usr/sbin/lang2initrd
 
 WHOIAM="$(whoami)"
 [ "${WHOIAM}" != "root" ] && exec sudo -A ${0} ${@} #20221023 20221031
@@ -420,7 +422,8 @@ Basically, if your language is not a <b>Latin</b> derivative, such as all Asian 
   [ -s /usr/share/i18n/dialog_table_x ] && [ `cat /usr/share/i18n/dialog_table_x | wc -l` -le 1 ] && SANITYFLAG='fail'
   if [ "$PARAM1" = "composeonly" -o "$SANITYFLAG" = "fail" ];then
    CHOICES_CLI=""; ON=""; OFF=""; CHOICES_X="" #120717 remove XPID=""; 
-   for ONELOCALE in `ls -1 /usr/share/i18n/locales | grep -v -E 'i18n|iso|translit|POSIX'`
+   #20230214 filter-out all locales with "@" ex: sv_FI@euro
+   for ONELOCALE in `ls -1 /usr/share/i18n/locales | grep -v -E 'i18n|iso|translit|POSIX|@'`
    do
     STATUS="off"
     [ "$ONELOCALE" = "$BASELANG" ] && STATUS="on"
@@ -1349,14 +1352,11 @@ fi #end SET_KEYBOARD
 if [ "$SET_LOCALE" ];then
  #two variables, COMBO_LOCALE and CHECK_UTF8
  
- #150302
- #LANGCHOICE="`echo -n "$COMBO_LOCALE" | cut -f 1 -d ' ' | cut -f 1 -d '@'`" #nl_BE@euro, need to chop.
- #refer: http://murga-linux.com/puppy/viewtopic.php?t=97897&start=75
+ #20230214 note: all @ locales were filtered out from dropdown-list above.
  #Nobody needs @euro if using utf8. But that code has chopped each @ that is
  # @latin  has been chopped ! Change it to look like:
  LANGCHOICE="`echo -n ${COMBO_LOCALE//@euro/} | cut -f 1 -d ' '`" #all @euro chopped.
  #.... and locale sr_SR@latin can be activated.
- #note: ${COMBO_LOCALE//@euro/} is the bash builtin equivalent of echo ${COMBO_LOCALE}| sed s/@euro//
  
  UTF8=""
  [ "$CHECK_UTF8" = "true" ] && UTF8='.UTF-8'
@@ -1432,33 +1432,9 @@ if [ "$SET_LOCALE" ];then
    esac
   fi
     
-  if [ "$PARAM2" = "quiet" ];then #120215 refer to /etc/rc.d/rc.country.
-   #scripts fixdesk and fixmenus translate files to new language (as specified in /usr/share/sss/menu_strings and desk_strings).
-   #so need to call them here...
-   #note, these are also called in /etc/rc.d/rc.update, and further down.
-   LANG=${NEWLANG} fixscripts
-   LANG=${NEWLANG} fixdesk
-   LANG=${NEWLANG} fixmenus
-   exit
-  fi
-  [ "$MYBASE" = "chooselocale" ] && [ "$PARAM1" = "cli" ] && exit #refer rc.country.
-  
   if [ "$OLDLANGLINE" != "$NEWLANGLINE" ];then
    LANG1=${LANGCHOICE%_*}  #"`echo -n $LANGCHOICE | cut -f 1 -d '_'`"  #ex: de
    LANG12=${LANGCHOICE%.*} #"`echo -n $LANGCHOICE | cut -f 1 -d '.'`" #ex: de_DE
-   
-   #120215 offer to translate initrd... 120216 moved to separate script (so universal installer can also do it)...
-   #190103 simplify the logic....
-   GIVEITAGO='no'
-   NEWLANG1=${NEWLANG%_*} #ex: en
-   PLANG1="en"
-   #[ "$INIT_LANG" ] && PLANG1="${INIT_LANG%_*}" #defined in PUPSTATE by init script in initrd. 190103
-   [ "$PLANG1" != "$NEWLANG1" ] && GIVEITAGO='yes'
-   if [ -f /var/local/lang2initrd.log ];then #read log from /usr/sbin/lang2initrd
-    [ "`grep "^DECLINED ${NEWLANG1} " /var/local/lang2initrd.log`" != "" ] && GIVEITAGO='no'
-    [ "`grep "^SUCCESS ${NEWLANG1} " /var/local/lang2initrd.log`" != "" ] && GIVEITAGO='no'
-   fi
-   [ "$GIVEITAGO" == "yes" ] && /usr/sbin/lang2initrd $NEWLANG #note, script has more tests, then asks if want translate initrd. 190105 change NEWLANG1 to NEWLANG passed.
    
    #120209 scripts fixdesk and fixmenus translate files to new language (as specified in /usr/share/sss/menu_strings and desk_strings).
    #so need to call them here...
@@ -1469,11 +1445,18 @@ if [ "$SET_LOCALE" ];then
    #...no need to refresh screen, as changing locale requires restart of X.
    
    #170812 regenerate the translated help files... 190110 LANG prepend...
-   LANG=${LANGCHOICE}${UTF8} /usr/share/doc/easy/help.sh
-   LANG=${LANGCHOICE}${UTF8} /usr/share/doc/easy/home.sh
-   LANG=${LANGCHOICE}${UTF8} /usr/share/doc/easy/welcome.sh
-  
+   if [ ! -e /usr/share/doc/easy/help_${LANG1}.htm ];then #20230214
+    LANG=${LANGCHOICE}${UTF8} /usr/share/doc/easy/help.sh
+    LANG=${LANGCHOICE}${UTF8} /usr/share/doc/easy/home.sh
+    LANG=${LANGCHOICE}${UTF8} /usr/share/doc/easy/welcome.sh
+   fi
   fi
+
+  if [ "$PARAM2" = "quiet" ];then #refer to /etc/rc.d/rc.country.
+   exit
+  fi
+  [ "$MYBASE" = "chooselocale" ] && [ "$PARAM1" = "cli" ] && exit #refer rc.country.
+  
  fi
 fi #end SET_LOCALE
 

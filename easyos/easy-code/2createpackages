@@ -1156,7 +1156,7 @@ EOF
   
   #20230213 check if .mo files in rootfs-skeleton/usr/share/locale.in
   #created by momanager (see also /usr/local/petget/installpkg.sh)
-  MOs="$(find sandbox2/usr/share/locale -type f -name '*.mo')"
+  MOs="$(find sandbox2/usr/share/locale -type f -name '*.mo' 2>/dev/null)"
   for aMO in $MOs
   do
    [ "$aMO" == "" ] && continue

@@ -280,6 +280,7 @@
 #20230209 merge a cutdown nls into rootfs-complete
 #20230211 initrd nls: fix if ' missing on end, space after variable. also folder hierarchy changed.
 #20230212 rootfs-skeleton.list files in rootfs-skeleton sans translations.
+#20230214 translating desktop image now done in /usr/share/doc/easy/welcome.sh
 
 export LANG=C #faster.
 
@@ -1629,12 +1630,14 @@ fi
 #170325 /usr/local/petget/0setup wants this...
 [ -f build-choices ] && cp -a -f build-choices sandbox3/rootfs-complete/root/.packages/
 
-#20220525 images for welcome.sh  20220531 improve
-if [ -f sandbox3/rootfs-complete/usr/share/doc/easy/images/choices/desk_${EOS_SUPPORT_CONTAINERS}_${EOS_TOP_LEVEL_ZRAM}_${DEFAULTLANG1}.png ];then
- cp -f sandbox3/rootfs-complete/usr/share/doc/easy/images/choices/desk_${EOS_SUPPORT_CONTAINERS}_${EOS_TOP_LEVEL_ZRAM}_${DEFAULTLANG1}.png sandbox3/rootfs-complete/usr/share/doc/easy/images/desktop1.png
-else
- cp -f sandbox3/rootfs-complete/usr/share/doc/easy/images/choices/desk_${EOS_SUPPORT_CONTAINERS}_${EOS_TOP_LEVEL_ZRAM}_en.png sandbox3/rootfs-complete/usr/share/doc/easy/images/desktop1.png
-fi
+#20230214 translating desktop image now done in /usr/share/doc/easy/welcome.sh ...
+##20220525 images for welcome.sh  20220531 improve
+#if [ -f sandbox3/rootfs-complete/usr/share/doc/easy/images/choices/desk_${EOS_SUPPORT_CONTAINERS}_${EOS_TOP_LEVEL_ZRAM}_${DEFAULTLANG1}.png ];then
+# cp -f sandbox3/rootfs-complete/usr/share/doc/easy/images/choices/desk_${EOS_SUPPORT_CONTAINERS}_${EOS_TOP_LEVEL_ZRAM}_${DEFAULTLANG1}.png sandbox3/rootfs-complete/usr/share/doc/easy/images/desktop1.png
+#else
+# cp -f sandbox3/rootfs-complete/usr/share/doc/easy/images/choices/desk_${EOS_SUPPORT_CONTAINERS}_${EOS_TOP_LEVEL_ZRAM}_en.png sandbox3/rootfs-complete/usr/share/doc/easy/images/desktop1.png
+#fi
+cp -f -L sandbox3/rootfs-complete/usr/share/doc/easy/images/choices/desk_${EOS_SUPPORT_CONTAINERS}_${EOS_TOP_LEVEL_ZRAM}.png sandbox3/rootfs-complete/usr/share/doc/easy/images/desktop0.png
 cp -f sandbox3/rootfs-complete/usr/share/doc/easy/images/choices/working_${EOS_SUPPORT_CONTAINERS}.png sandbox3/rootfs-complete/usr/share/doc/easy/images/working-partition-easyos.png
 rm -rf sandbox3/rootfs-complete/usr/share/doc/easy/images/choices
 

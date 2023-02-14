@@ -24,6 +24,7 @@
 #20220621 no longer have BOOT_* variables.  no longer recognize $3
 #20220622 lang2initrd no longer calls fixboot (which is symlink to fixdesk).
 #20220718 fix path to initrd when fixinitrd called from 3buildeasydistro
+#20230214 removed fixinitrd symlink to this script. no longer have initrd_strings, lang2initrd
 
 #Note to developers:
 #you can run "fixdesk en" or "fixdesk de" in a terminal to convert the target files to en or de
@@ -40,7 +41,6 @@ SSSSCRIPT=$(basename $0)    #but now can have symlinks to fixdesk. ex: fixscript
 case $SSSSCRIPT in
  fixdesk) SSSDOMAIN="desk_strings" ;;
  fixscripts) SSSDOMAIN="script_strings" ;;
- fixinitrd)  SSSDOMAIN="initrd_strings" ;; #190103
  fixboot)    SSSDOMAIN="boot_strings" ;; #190105 syslinux/refind menus.
  *)          SSSDOMAIN="$SSSSCRIPT" ;;  #for the future.
 esac
@@ -60,57 +60,7 @@ LANG1="`echo -n $LANG | cut -f 1 -d '_'`"  #ex: de
 [ $2 ] && LANG="$2"
 export LANG
 
-#190103
-goodbye_func() {
- if [ "$SSSDOMAIN" == "initrd_strings" ];then #190103
-  #close up initrd...
-  cd /tmp/momanager/initrd-expanded
-  if [ "$PATHdest" ];then
-   rm -f ${PATHdest}/${WKG_DIR}initrd
-   find . | cpio -o -H newc > ${PATHdest}/${WKG_DIR}initrd
-  else
-   rm -f /mnt/${WKG_DEV}/${WKG_DIR}initrd
-   find . | cpio -o -H newc > /mnt/${WKG_DEV}/${WKG_DIR}initrd
-  fi
-  sync
-  cd ..
-  rm -rf initrd-expanded
-  rm -f initrd
- fi
-}
-
-#190103
 TRPREFIX=""
-if [ "$SSSDOMAIN" == "initrd_strings" ];then
- if [ "$PATHdest" ];then #20220718
-  cp -f ${PATHdest}/${WKG_DIR}initrd /tmp/momanager/
- else
-  cp -f /mnt/${WKG_DEV}/${WKG_DIR}initrd /tmp/momanager/
- fi
- #open up initrd...
- cd /tmp/momanager
- [ -d initrd-expanded ] && rm -rf initrd-expanded
- mkdir initrd-expanded
- cd initrd-expanded
- cpio -i -d -m -F ../initrd #expand
- TRPREFIX="/tmp/momanager/initrd-expanded"
- #190104 if init script uses getttext, then do not want to apply sss method...
- if grep '^export TEXTDOMAIN' /tmp/momanager/initrd-expanded/init >/dev/null;then
-  mkdir -p /tmp/momanager/initrd-expanded/usr/lib/locale
-  rm -rf /tmp/momanager/initrd-expanded/usr/lib/locale/* 2>/dev/null
-  if [ "$LANG1" != "en" ];then
-   cp -a /usr/lib/locale/${LANG1}_* /tmp/momanager/initrd-expanded/usr/lib/locale/ 2>/dev/null
-   #these are very big, and do not seem to be needed...
-   rm -f /tmp/momanager/initrd-expanded/usr/lib/locale/*/LC_COLLATE 2>/dev/null
-   rm -f /tmp/momanager/initrd-expanded/usr/lib/locale/*/LC_CTYPE 2>/dev/null
-  fi
-  mkdir -p /tmp/momanager/initrd-expanded/usr/share/locale/${LANG1}/LC_MESSAGES
-  [ -f /usr/share/locale/${LANG1}/LC_MESSAGES/easyinitrd.mo ] && cp -f /usr/share/locale/${LANG1}/LC_MESSAGES/easyinitrd.mo /tmp/momanager/initrd-expanded/usr/share/locale/${LANG1}/LC_MESSAGES/
-  goodbye_func
-  exit 0
- fi
-fi
-
 
 #150303
 #i commented-out the above code, as it is only suitable if the file to be translated is truly static.
@@ -169,12 +119,6 @@ if [ -d /var/local/sss/usr/share/sss/${SSSDOMAIN} ];then
  done
 fi
 
-
-if [ "$LANG1" = "en" ];then #momanager may call with 'en' passed param.
- goodbye_func #190103
- exit 0
-fi
-
 #now translate to $LANG1...
 for ASECTIONID in `grep '^\[' /usr/share/sss/${SSSFILE}/${SSSFILE}.${LANG1} | tr -d '[' | tr -d ']' | tr '\n' ' '` #ex: general _root_Choices_ROX-Filer_PuppyPin
 do
@@ -196,6 +140,5 @@ do
  sed -i -f /tmp/fixdesk-translationblock "${TRPREFIX}${TARGETFILE}" #190103
 done
 
-goodbye_func #190103
 exit 0
 ###END###

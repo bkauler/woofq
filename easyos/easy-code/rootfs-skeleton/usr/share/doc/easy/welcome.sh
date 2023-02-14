@@ -13,6 +13,7 @@
 #20220526 current css for text over image not work in helpsurfer, just use image. see: 3buildeasydistro
 #         note: <!-- BLOB1 --> comment disabled as cannot nest comments.
 #20221111 improve explanation boot and working drives.
+#20230214 desktop image translated text overlay by svg.
 
 export TEXTDOMAIN=easyhelp
 export OUTPUT_CHARSET=UTF-8
@@ -36,6 +37,90 @@ if [ ! -f /usr/share/locale/${xNEWLANG}/LC_MESSAGES/easyhelp.mo ];then
 fi
 export LANGUAGE="$xNEWLANG"
 
+###20230214###
+S01="$(gettext 'Install')"
+S02="$(gettext 'mega-apps')"
+S03="$(gettext 'or right-click on desktop')"
+S04="$(gettext 'Containerized')"
+S05="$(gettext 'RAM to drive')"
+S06="$(gettext 'Save session')"
+S07="$(gettext 'latest version')"
+S08="$(gettext 'Update EasyOS to')"
+S09="$(gettext 'over the network')"
+S10="$(gettext 'Share files &amp; printers')"
+S11="$(gettext 'Connect to the Internet')"
+S12="$(gettext 'Menu: bottom-left of screen,')"
+S13="$(gettext 'apps')"
+OVERLAYSVG="/usr/share/doc/easy/images/overlay.svg"
+[ -f $OVERLAYSVG ] && rm -f $OVERLAYSVG
+cat >> ${NEWFILE} <<_EOF1
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg width="640" height="480" viewBox="0 0 169.33334 127" version="1.1" xmlns="http://www.w3.org/2000/svg">
+<style>
+  .mainfont {
+    font-style:normal;font-variant:normal;font-weight:bold;font-size:5.6px;font-family:'DejaVu Sans';fill:#ff0000;fill-opacity:1;stroke:none;stroke-width:0;stroke-dasharray:none;
+  }
+  .mainline {
+    fill:#ff0000;fill-opacity:1;stroke:#ff0000;stroke-width:1.05833;stroke-dasharray:none;stroke-opacity:1;
+  }
+</style>
+<g transform="translate(-33.490788,-20.03125)">
+<text class="mainfont" x="91.684166" y="39.407032">
+  <tspan x="91.684166" y="39.407032">${S01}</tspan>
+</text>
+<text class="mainfont" x="91.25695" y="45.528339">
+  <tspan x="91.25695" y="45.528339">${S02}</tspan>
+</text>
+<text class="mainfont" x="54.177029" y="126.66013">
+  <tspan x="54.177029" y="126.66013">${S03}</tspan>
+</text>
+<text class="mainfont" x="157.11078" y="58.268532">
+  <tspan x="157.11078" y="58.268532">${S04}</tspan>
+</text>
+<text class="mainfont" x="79.326881" y="61.75177">
+  <tspan x="79.326881" y="61.75177">${S05}</tspan>
+</text>
+<text class="mainfont" x="78.778191" y="54.602173">
+  <tspan x="78.778191" y="54.602173">${S06}</tspan>
+</text>
+<text class="mainfont" x="68.396561" y="78.357773">
+  <tspan x="68.396561" y="78.357773">${S07}</tspan>
+</text>
+<text class="mainfont" x="68.011627" y="71.309212">
+  <tspan x="68.011627" y="71.309212">${S08}</tspan>
+</text>
+<text class="mainfont" x="58.641693" y="96.851074">
+  <tspan x="58.641693" y="96.851074">${S09}</tspan>
+</text>
+<text class="mainfont" x="52.750999" y="89.105911">
+  <tspan x="52.750999" y="89.105911">${S10}</tspan>
+</text>
+<text class="mainfont" x="42.896725" y="108.18369">
+  <tspan x="42.896725" y="108.18369">${S11}</tspan>
+</text>
+<text class="mainfont" x="35.422188" y="119.28849">
+  <tspan x="35.422188" y="119.28849">${S12}</tspan>
+</text>
+<text class="mainfont" x="158.04077" y="64.77507">
+  <tspan x="158.04077" y="64.77507">${S13}</tspan>
+</text>
+<path class="mainline" d="m 48.604281,48.073644 7.496394,34.626201" />
+<path class="mainline" d="m 70.00499,47.371474 7.496376,7.496391" />
+<path class="mainline" d="m 153.16482,37.975631 9.28126,14.278846" />
+<path class="mainline" d="m 81.500377,32.702891 8.924283,7.496393" />
+<path class="mainline" d="m 132.62704,122.80933 12.85097,-12.85096" />
+<path class="mainline" d="M 59.347165,47.555305 71.541464,64.759183" />
+<path class="mainline" d="M 38.886186,48.723655 45.942182,101.241" />
+<path class="mainline" d="m 40.853579,120.73036 1.784856,23.20313" />
+</g></svg>
+_EOF1
+
+#merge the desktop images...
+#note, desktop0.png is created by 3buildeasydistro
+rsvg-convert ${OVERLAYSVG} -o /usr/share/doc/easy/images/overlay.png
+pngoverlay.sh /usr/share/doc/easy/images/desktop0.png /usr/share/doc/easy/images/overlay.png /usr/share/doc/easy/images/desktop1.png
+
+###########################################
 BLOB0="$(gettext 'Easy Operating System')"
 BLOB1="$(gettext 'Containerized<br>apps')"
 BLOB2="$(gettext 'Install<br>mega-apps')"

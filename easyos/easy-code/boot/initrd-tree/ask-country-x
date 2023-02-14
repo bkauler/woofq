@@ -4,6 +4,7 @@
 #20210530 console keyboard layout uk changed to gb. see also /usr/sbin/quicksetup.
 #20230123 partial translate language and country names.
 #20230209 reduce lang choices to list in variable BUILD_SUPPORT_LANGS
+#20230214 filter-out all locales with "@" ex: sv_FI@euro
 
 export PATH='/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin'
 
@@ -38,7 +39,8 @@ export PATH='/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin'
   [ -s /usr/share/i18n/dialog_table_x ] && [ `cat /usr/share/i18n/dialog_table_x | wc -l` -le 1 ] && SANITYFLAG='fail'
   if [ "$PARAM1" = "composeonly" -o "$SANITYFLAG" = "fail" ];then
    CHOICES_CLI=""; ON=""; OFF=""; CHOICES_X="" #120717 remove XPID=""; 
-   for ONELOCALE in `ls -1 /usr/share/i18n/locales | grep -v -E 'i18n|iso|translit|POSIX'`
+   #20230214 filter-out all locales with "@" ex: sv_FI@euro
+   for ONELOCALE in `ls -1 /usr/share/i18n/locales | grep -v -E 'i18n|iso|translit|POSIX|@'`
    do
     STATUS="off"
     [ "$ONELOCALE" = "$BASELANG" ] && STATUS="on"
