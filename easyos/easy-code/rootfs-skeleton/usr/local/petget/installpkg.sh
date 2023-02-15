@@ -81,6 +81,8 @@
 #20220903 sync with dpkg|apt
 #20221023 may be running as zeus super-user.
 #20230213 check if .mo files in /usr/share/locale.in
+#20230215 remove duplicates in /usr/share/applicatins|applications.in & locale|locale.in (see also 3buildeasydistro)
+# ***TODO*** restore them if uninstall pkg.
 
 #information from 'labrador', to expand a .pet directly to '/':
 #NAME="a52dec-0.7.4"
@@ -766,6 +768,7 @@ do
     sed -i -e "s%^Comment=%${INSERTALINE}\\nComment=%" ${ADIRDESKTOP}/${ABASEDESKTOP}
    fi
   fi
+  rm -f /usr/share/applications.in/${ABASEDESKTOP} #20230215
  fi
  
 done
@@ -784,6 +787,7 @@ do
    mkdir -p $dirMO
    cp -f $cMO ${dirMO}/
    echo "${dirMO}/${bMO}" >> /root/.packages/${DLPKG_NAME}.files
+   rm -f $cMO #20230215
   fi
  done
 done

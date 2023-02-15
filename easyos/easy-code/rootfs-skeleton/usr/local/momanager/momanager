@@ -60,6 +60,7 @@
 #20230211 auto translation fixes.
 #20230212 prefix translations4tarball with pkgname. overhaul tarball creation.
 #20230213 overhaul finding what pkg a file belongs to.
+#20230215 also search /usr/share/applications.in & locale.in
 
 #***MOMANAGER IS ENGLISH ONLY (NOT GETTEXT'ED)***
 #it is for use by developers/translators with knowledge of english.
@@ -188,6 +189,10 @@ where_file_from_func() {
  local lFILE
  lFILE="$1"
  aPKGNAME=''
+ if [ "${lFILE:0:1}" == "/" ];then #20230215
+  #momanager also searches usr/share/applications.in & locale.in, so modify path...
+  lFILE="$(echo -n "$lFILE" | sed -e 's%/locale\.in/%/locale/%' -e 's%/applications\.in/%/applications/%')"
+ fi
  #find out if builtin...
  zPTN="^${lFILE}$"
  PKGNAMEs="$(grep -F -x " ${lFILE##*/}" /root/.packages/builtin_files/* | cut -f 1 -d ':' | rev | cut -f 1 -d '/' | rev | sort -u | tr '\n' ' ')"
@@ -296,7 +301,7 @@ dPTN="\\[${ORIGLANG1}\\]"
 for aDESKTOP in `find /usr/share/applications -mindepth 1 -maxdepth 1 -type f -name '*.desktop' | grep -v ' ' | sort | tr '\n' ' '`
 do
  [ "`grep '^Icon' $aDESKTOP`" = "" ] && continue #some dummy .desktop files used by xfce, ignore them.
- ADESKNAME="`basename $aDESKTOP`"
+ aDESKNAME="`basename $aDESKTOP`"
  
  #20230213
  #want to know if from woofQ (rootfs-skeleton) or a builtin pkg or later-installed pkg...
@@ -305,13 +310,37 @@ do
  
  if [ "`grep "$dPTN" $aDESKTOP`" != "" ];then
   YESDESK_XML="${YESDESK_XML}
-<item>${ADESKNAME} (${aPKGNAME})</item>"
+<item>${aDESKNAME} (${aPKGNAME})</item>"
   echo "${aPKGNAME} ${aDESKTOP}" >> /tmp/momanager/translations4tarball #20230212
  else
   NODESK_XML="${NODESK_XML}
-<item>${ADESKNAME} (${aPKGNAME})</item>"
+<item>${aDESKNAME} (${aPKGNAME})</item>"
  fi
 done
+
+#20230215 also search applications.in
+for aDESKTOP in `find /usr/share/applications.in -mindepth 1 -maxdepth 1 -type f -name '*.desktop' | grep -v ' ' | sort | tr '\n' ' '`
+do
+ [ "`grep '^Icon' $aDESKTOP`" = "" ] && continue #some dummy .desktop files used by xfce, ignore them.
+ aDESKNAME="${aDESKTOP##*/}"
+ #awkward, but think avoid duplicates....
+ if [ -f /usr/share/applications/${aDESKNAME} ];then
+  rm -f /usr/share/applications.in/${aDESKNAME}
+  continue
+ fi
+ #want to know if from woofQ (rootfs-skeleton) or a builtin pkg or later-installed pkg...
+ where_file_from_func ${aDESKTOP}
+ #...returns aPKGNAME
+ if [ "`grep "$dPTN" $aDESKTOP`" != "" ];then
+  YESDESK_XML="${YESDESK_XML}
+<item>${aDESKNAME} (${aPKGNAME})</item>"
+  echo "${aPKGNAME} ${aDESKTOP}" >> /tmp/momanager/translations4tarball
+ else
+  NODESK_XML="${NODESK_XML}
+<item>${aDESKNAME} (${aPKGNAME})</item>"
+ fi
+done
+
 if [ "$YESDESK_XML" ];then
  YESDESK_XML="<combobox width-request=\"310\"><variable>YESDESK_COMBO</variable>${YESDESK_XML}</combobox>"
 else
@@ -1034,40 +1063,53 @@ Click 'Abort' to give up..." 0 0
   exec momanager reenter
  ;;
  edit_desk|create_desk)
-  xASTAT1="`stat --format=%Y "/usr/share/applications/$DESKFILE"`" #seconds since epoch.
   if [ "$EXIT" = "edit_desk" ];then
    DESKFILE="`echo -n "$YESDESK_COMBO" | cut -f 1 -d ' '`"
+   #20230215 could be in applications or applications.in ...
+   if [ -f /usr/share/applications/${DESKFILE} ];then
+    DESKPATH='/usr/share/applications'
+   else
+    DESKPATH='/usr/share/applications.in'
+   fi
+   xASTAT1="`stat --format=%Y "${DESKPATH}/$DESKFILE"`" #seconds since epoch.
    APKGNAME="`echo -n "$YESDESK_COMBO" | cut -f 2 -d '(' | cut -f 1 -d ')'`"
-   cp -f -a /usr/share/applications/$DESKFILE /tmp/momanager/
+   cp -f -a ${DESKPATH}/$DESKFILE /tmp/momanager/
   else
    aTRANSLANG="$ORIGLANG1" #20230211
    DESKFILE="`echo -n "$NODESK_COMBO" | cut -f 1 -d ' '`"
+   #20230215 could be in applications or applications.in ...
+   if [ -f /usr/share/applications/${DESKFILE} ];then
+    DESKPATH='/usr/share/applications'
+   else
+    DESKPATH='/usr/share/applications.in'
+   fi
+   xASTAT1="`stat --format=%Y "${DESKPATH}/$DESKFILE"`" #seconds since epoch.
    APKGNAME="`echo -n "$NODESK_COMBO" | cut -f 2 -d '(' | cut -f 1 -d ')'`"
-   cp -f -a /usr/share/applications/$DESKFILE /tmp/momanager/
+   cp -f -a ${DESKPATH}/$DESKFILE /tmp/momanager/
    #20230108
    if [ -e /tmp/momanager/FLGautotrans ];then
     poptop_func "Automatic translation in progress..."
-    NAMEen="$(grep '^Name=.*' /usr/share/applications/$DESKFILE | cut -f 2 -d '=')"
+    NAMEen="$(grep '^Name=.*' ${DESKPATH}/$DESKFILE | cut -f 2 -d '=')"
     NAMEtrans="$(trans -e bing -no-ansi -b -s en -t ${aTRANSLANG/_/-} "${NAMEen}")"
-    sed -i -e "s%^Name=%Name[${ORIGLANG1}]=${NAMEtrans}\\nName=%" /usr/share/applications/$DESKFILE
-    COMMENTen="$(grep '^Comment=.*' /usr/share/applications/$DESKFILE | cut -f 2 -d '=')"
+    sed -i -e "s%^Name=%Name[${ORIGLANG1}]=${NAMEtrans}\\nName=%" ${DESKPATH}/$DESKFILE
+    COMMENTen="$(grep '^Comment=.*' ${DESKPATH}/$DESKFILE | cut -f 2 -d '=')"
     if [ "$COMMENTen" ];then
      COMMENTtrans="$(trans -e bing -no-ansi -b -s en -t ${aTRANSLANG/_/-} "${COMMENTen}")"
-     sed -i -e "s%^Comment=%Comment[${ORIGLANG1}]=${COMMENTtrans}\\nComment=%" /usr/share/applications/$DESKFILE
+     sed -i -e "s%^Comment=%Comment[${ORIGLANG1}]=${COMMENTtrans}\\nComment=%" ${DESKPATH}/$DESKFILE
     fi
    else
-    sed -i -e "s%^Name=%Name[${ORIGLANG1}]=PLEASE INSERT YOUR TRANSLATION HERE\\nName=%" /usr/share/applications/$DESKFILE
+    sed -i -e "s%^Name=%Name[${ORIGLANG1}]=PLEASE INSERT YOUR TRANSLATION HERE\\nName=%" ${DESKPATH}/$DESKFILE
    fi
   fi
   sync
   killall geany 2>/dev/null
   poptop_func "The menu file is now open in a text editor. Edit, then Save, then Quit text editor..."
-  ASTAT="`stat --format=%y "/usr/share/applications/$DESKFILE" | cut -f 1 -d ' ' | tr -d '-' `" #so can check against file version in latest woofQ.
-  [ -f ${EASYSFSMNTPT}/usr/share/applications/$DESKFILE ] && ASTAT="`stat --format=%y "${EASYSFSMNTPT}/usr/share/applications/$DESKFILE" | cut -f 1 -d ' ' | tr -d '-' `" #get orig modify date.
-  LANG=${ORIGLANG} defaulttexteditor /usr/share/applications/$DESKFILE
-  xASTAT2="`stat --format=%Y "/usr/share/applications/$DESKFILE"`" #seconds since epoch.
-  if [ "`grep 'PLEASE INSERT YOUR TRANSLATION HERE' /usr/share/applications/$DESKFILE`" != "" ];then
-   mv -f /tmp/momanager/$DESKFILE /usr/share/applications/
+  ASTAT="`stat --format=%y "${DESKPATH}/$DESKFILE" | cut -f 1 -d ' ' | tr -d '-' `" #so can check against file version in latest woofQ.
+  [ -f ${EASYSFSMNTPT}${DESKPATH}/$DESKFILE ] && ASTAT="`stat --format=%y "${EASYSFSMNTPT}${DESKPATH}/$DESKFILE" | cut -f 1 -d ' ' | tr -d '-' `" #get orig modify date.
+  LANG=${ORIGLANG} defaulttexteditor ${DESKPATH}/$DESKFILE
+  xASTAT2="`stat --format=%Y "${DESKPATH}/$DESKFILE"`" #seconds since epoch.
+  if [ "`grep 'PLEASE INSERT YOUR TRANSLATION HERE' ${DESKPATH}/$DESKFILE`" != "" ];then
+   mv -f /tmp/momanager/$DESKFILE ${DESKPATH}/
    xASTAT2="$xASTAT1"
   fi
   if [ "$xASTAT1" = "$xASTAT2" ];then
@@ -1080,10 +1122,10 @@ Click 'Abort' to give up..." 0 0
   if [ $? -eq 0 ];then
    LANG=${ORIGLANG} jwm -reload
   fi
-  cp -f /usr/share/applications/${DESKFILE} /root/
+  cp -f ${DESKPATH}/${DESKFILE} /root/
   #20230212...
-  mkdir -p /tmp/momanager/newtranslations/${APKGNAME}/usr/share/applications/
-  cp -f /usr/share/applications/${DESKFILE} /tmp/momanager/newtranslations/${APKGNAME}/usr/share/applications/
+  mkdir -p /tmp/momanager/newtranslations/${APKGNAME}${DESKPATH}/
+  cp -f ${DESKPATH}/${DESKFILE} /tmp/momanager/newtranslations/${APKGNAME}${DESKPATH}/
   export LANG=$ORIGLANG
   exec momanager reenter
  ;;

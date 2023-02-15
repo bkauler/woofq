@@ -52,8 +52,10 @@ S11="$(gettext 'Connect to the Internet')"
 S12="$(gettext 'Menu: bottom-left of screen,')"
 S13="$(gettext 'apps')"
 OVERLAYSVG="/usr/share/doc/easy/images/overlay.svg"
-[ -f $OVERLAYSVG ] && rm -f $OVERLAYSVG
-cat >> ${NEWFILE} <<_EOF1
+if [ -f $OVERLAYSVG ];then
+ rm -f $OVERLAYSVG
+fi
+cat >> ${OVERLAYSVG} <<_EOF1
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <svg width="640" height="480" viewBox="0 0 169.33334 127" version="1.1" xmlns="http://www.w3.org/2000/svg">
 <style>

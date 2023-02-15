@@ -281,6 +281,7 @@
 #20230211 initrd nls: fix if ' missing on end, space after variable. also folder hierarchy changed.
 #20230212 rootfs-skeleton.list files in rootfs-skeleton sans translations.
 #20230214 translating desktop image now done in /usr/share/doc/easy/welcome.sh
+#20230215 remove duplicates in /usr/share/applicatins|applications.in & locale|locale.in
 
 export LANG=C #faster.
 
@@ -5109,7 +5110,26 @@ if [ -s ../usb.ids ];then
  ln -snf ../usb.ids rootfs-complete/usr/share/misc/usb.ids
 fi
 
-#20230212 momanager will read this.
+#20230215 remove duplicates in /usr/share/applicatins|applications.in & locale|locale.in
+# note, see also /usr/local/petget/installpkg.sh
+for aDT in $(find rootfs-complete/usr/share/applications -mindepth 1 -maxdepth 1 -type f -name '*.desktop')
+do
+ [ "$aDT" == "" ] && continue
+ baDT="${aDT##*/}"
+ if [ -e rootfs-complete/usr/share/applications.in/${baDT} ];then
+  rm -f rootfs-complete/usr/share/applications.in/${baDT}
+ fi
+done
+for aMO in $(find rootfs-complete/usr/share/locale -mindepth 1 -type f -name '*.mo')
+do
+ [ "$aMO" == "" ] && continue
+ cMO="$(echo -n "$aMO" | sed -e 's%/locale/%/locale.in/%')"
+ if [ -e ${cMO} ];then
+  rm -f ./${cMO}
+ fi
+done
+
+#20230212 momanager will read this, to find builtin files...
 find ../rootfs-skeleton -type f | grep -vE '/usr/share/locale\.in|/usr/share/applications\.in' | sed -e 's%\.\./rootfs-skeleton%%' > rootfs-complete/root/.packages/rootfs-skeleton.list
 
 

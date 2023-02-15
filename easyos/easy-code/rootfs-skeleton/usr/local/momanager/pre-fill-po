@@ -2,6 +2,7 @@
 #called from momanager.
 #call 'translate-string' to prefill translations in .po file.
 #target lang, .po file passed on commandline.
+#20230214 fix nested read. fix ENline
 
 TRANSLANG="${1/_/-}" #exs: fr-FR fr fr-CA
 POFILE="/tmp/momanager/${2}" #ex: pupx.po
@@ -44,7 +45,8 @@ PARAMflg=0; FLGmsgid=xxx
 echo -n '' > /tmp/momanager/po-en-lines
 echo -n '' > /tmp/momanager/po-trans-lines
 echo -n '' > /tmp/momanager/po-trans-file
-while read -r aLINE
+#20230214 use fd 3 to avoid conflict with nested read...
+while read -u 3 -r aLINE
 do
  if [ "$aLINE" == "" ];then
   FLGmsgid=xxx
@@ -62,7 +64,7 @@ do
  case "$aLINE" in
   msgid*)
    PARAMflg=1
-   ENline="$(echo -n "$aLINE" | cut -f 2 -d '"')"
+   ENline="$(echo -n "$aLINE" | cut -f 2- -d '"' | sed -e 's%"$%%')" #20230214
    echo "$ENline" > /tmp/momanager/po-en-lines
    echo "$aLINE" >> /tmp/momanager/po-trans-file
    FLGmsgid="$(echo -n "$aLINE" | cut -f 2 -d '"')" #want to know if empty.
@@ -104,5 +106,5 @@ do
    fi
   ;;
  esac
-done <${POFILE}X
+done 3< ${POFILE}X
 
