@@ -61,6 +61,9 @@
 #20230212 prefix translations4tarball with pkgname. overhaul tarball creation.
 #20230213 overhaul finding what pkg a file belongs to.
 #20230215 also search /usr/share/applications.in & locale.in
+#20230215 [new]translations: .xml files also go into WOOF folder.
+#20230216 prevent duplicate entries in translations4tarball. tarball: UNKNOWN into WOOF
+#20230216 find existing .mo files for binary executables.
 
 #***MOMANAGER IS ENGLISH ONLY (NOT GETTEXT'ED)***
 #it is for use by developers/translators with knowledge of english.
@@ -259,20 +262,42 @@ do
  #...returns aPKGNAME
 
  FNDMO=""
+ #20230215 .mo could be in locale or locale.in
+ #actually, 3buildeasydistro will have removed duplicates, but check anyway...
  if [ -f /usr/share/locale/${ORIGLANG12}/LC_MESSAGES/${TEXTDOMAINVALUE}.mo ];then
+  if [ -f /usr/share/locale.in/${ORIGLANG12}/LC_MESSAGES/${TEXTDOMAINVALUE}.mo ];then
+   rm -f /usr/share/locale.in/${ORIGLANG12}/LC_MESSAGES/${TEXTDOMAINVALUE}.mo
+  fi
   FNDMO="/usr/share/locale/${ORIGLANG12}/LC_MESSAGES/${TEXTDOMAINVALUE}.mo"
   TRANSLANG=$ORIGLANG12
- else
-  if [ -f /usr/share/locale/${ORIGLANG1}/LC_MESSAGES/${TEXTDOMAINVALUE}.mo ];then
+ fi
+ if [ -f /usr/share/locale/${ORIGLANG1}/LC_MESSAGES/${TEXTDOMAINVALUE}.mo ];then
+  if [ -f /usr/share/locale.in/${ORIGLANG1}/LC_MESSAGES/${TEXTDOMAINVALUE}.mo ];then
+   rm -f /usr/share/locale.in/${ORIGLANG1}/LC_MESSAGES/${TEXTDOMAINVALUE}.mo
+  fi
+  if [ "$FNDMO" == "" ];then
    FNDMO="/usr/share/locale/${ORIGLANG1}/LC_MESSAGES/${TEXTDOMAINVALUE}.mo"
    TRANSLANG=$ORIGLANG1
   fi
  fi
+ if [ -f /usr/share/locale.in/${ORIGLANG12}/LC_MESSAGES/${TEXTDOMAINVALUE}.mo ];then
+  FNDMO="/usr/share/locale.in/${ORIGLANG12}/LC_MESSAGES/${TEXTDOMAINVALUE}.mo"
+  TRANSLANG=$ORIGLANG12
+ else
+  if [ -f /usr/share/locale.in/${ORIGLANG1}/LC_MESSAGES/${TEXTDOMAINVALUE}.mo ];then
+   FNDMO="/usr/share/locale.in/${ORIGLANG1}/LC_MESSAGES/${TEXTDOMAINVALUE}.mo"
+   TRANSLANG=$ORIGLANG1
+  fi
+ fi
+ 
  if [ "$FNDMO" ];then
   YESCNT=$(($YESCNT + 1))
   YESMO_XML="${YESMO_XML}
 <item>${xAGTS} (${TRANSLANG} ${TEXTDOMAINVALUE}.mo ${aPKGNAME})</item>"
-  echo "${aPKGNAME} ${FNDMO}" >> /tmp/momanager/translations4tarball #20230212
+  grep -q -F "${aPKGNAME} ${FNDMO}" /tmp/momanager/translations4tarball #20230216
+  if [ $? -ne 0 ];then
+   echo "${aPKGNAME} ${FNDMO}" >> /tmp/momanager/translations4tarball #20230212
+  fi
  else
   NOCNT=$(($NOCNT + 1))
 #  NOMO_XML="${NOMO_XML}
@@ -356,7 +381,7 @@ fi
 
 #help buttons...
 YESMO_HELP_MSG="${PUPNAME} has many <b>scripts</b>, applications that are plain text files, usually written in Bash or Ash. These scripts all have English capability, but language translation files may be created for them, known as <b>mo</b> files.
-The drop-down list is a list of scripts for which there is a mo translation file in your language.
+The drop-down list is a list of scripts for which there is a <b>mo</b> translation file in your language.
 The drop-down list has extra information in brackets, in the format <b>(lang TEXTDOMAIN package)</b>. In particular, package=WOOF means the file is in woofQ, or the name of the package from which the file comes is given, or if not known then package=UNKNOWN.
 A mo translation file in your language (${ORIGLANG12}) is at /usr/share/locale/${ORIGLANG12}/LC_MESSAGES/ or /usr/share/locale/${ORIGLANG1}/LC_MESSAGES/. You may select one of the scripts, then click the <b>Edit</b> button to update it.
 Updating is required if the translation is incorrect or incomplete in any way. One reason this can happen is if there is a later version of the script with some changed English text strings."
@@ -364,14 +389,15 @@ export DLG_HELP_YESMO="<window resizable=\"false\" title=\"MoManager: Help edit 
 YESMOHELP_XML='<button><input file>/usr/local/lib/X11/mini-icons/mini-question.xpm</input><action type="launch">DLG_HELP_YESMO</action></button>'
 
 NOMO_HELP_MSG="${PUPNAME} has many <b>scripts</b>, applications that are plain text files, usually written in Bash or Ash. These scripts all have English capability, but language translation files may be created for them, known as <b>mo</b> files.
-The drop-down list is a list of scripts for which there is no mo translation file in your language.
+The drop-down list is a list of scripts for which there is no <b>mo</b> translation file in your language.
 The drop-down list has extra information in brackets, in the format <b>(TEXTDOMAIN package)</b>. In particular, package=WOOF means the file is in woofQ, or the name of the package from which the file comes is given, or if not known then package=UNKNOWN.
-To create a translation file, select a script from the list, then click the <b>Create</b> button. This will open a file in a text editor which has all the English strings from the script, and below each you type in your translations. This file is known as a <b>po</b> file, and after saving and quiting the text editor, the file will be compiled into a binary format known as a <b>mo</b> file -- note, po files have a filename ending in .po and mo files end in .mo. It is the mo file that the script will use when it runs."
+To create a translation file, select a script from the list, then click the <b>Create</b> button. This will open a file in a text editor which has all the English strings from the script, and below each you type in your translations. This file is known as a <b>po</b> file, and after saving and quiting the text editor, the file will be compiled into a binary format known as a <b>mo</b> file -- note, po files have a filename ending in .po and mo files end in .mo. It is the mo file that the script will use when it runs.
+MoManager now supports automatic translation, but you will need to check that the translated text is sane. Also, some formatting may be missing from the translation; compare carefully with the English text to insert the formatting."
 export DLG_HELP_NOMO="<window resizable=\"false\" title=\"MoManager: Help create mo files\" icon-name=\"${HELPICON}\" window_position=\"1\"><vbox><text use-markup=\"true\"><label>\"${NOMO_HELP_MSG}\"</label><variable>VAR_HELP_NOMO</variable></text><hbox><button><label>Close</label><action type=\"closewindow\">VAR_HELP_NOMO</action></button></hbox></vbox></window>"
 NOMOHELP_XML='<button><input file>/usr/local/lib/X11/mini-icons/mini-question.xpm</input><action type="launch">DLG_HELP_NOMO</action></button>'
 
 YESDESK_HELP_MSG="The drop-down list is of .desktop files in /usr/share/applications, that have translations for your language.
-The <b>Name[${ORIGLANG1}]</b> entry in these files is what you see when you click on the Menu button at bottom-left of the screen (in some puppies the menu button is placed elsewhere). There will be a translation for each application.
+The <b>Name[${ORIGLANG1}]</b> entry in these files is what you see when you click on the Menu button at bottom-left of the screen (or right-click on the desktop). There will be a translation for each application.
 If you need to correct an entry, select the appropriate .desktop file, then click the <b>Edit</b> button.
 Note, The drop-down list has extra information in brackets, which is the name of the package that the file belongs to. <b>WOOF</b> means that the file is in woofQ."
 export DLG_HELP_YESDESK="<window resizable=\"false\" title=\"MoManager: Help edit menu entries\" icon-name=\"${HELPICON}\" window_position=\"1\"><vbox><text use-markup=\"true\"><label>\"${YESDESK_HELP_MSG}\"</label><variable>VAR_HELP_YESDESK</variable></text><hbox><button><label>Close</label><action type=\"closewindow\">VAR_HELP_YESDESK</action></button></hbox></vbox></window>"
@@ -414,11 +440,11 @@ else
  NOTOP_XML="<combobox width-request=\"330\"><variable>EMPTYNOTOP_COMBO</variable><item>--empty--</item></combobox>"
 fi
 #help buttons...
-YESTOP_HELP_MSG="These are the top-level menu titles, or categories, that you see when you click on the 'Menu' button at bottom-left of the screen (or elsewhere in some puppies). The drop-down list is for those categories that already have a translation for the <b>${ORIGLANG1}</b> locale.
+YESTOP_HELP_MSG="These are the top-level menu titles, or categories, that you see when you click on the 'Menu' button at bottom-left of the screen (or right-click on the desktop). The drop-down list is for those categories that already have a translation for the <b>${ORIGLANG1}</b> locale.
 If you wish to change a translation, select a file from the drop-down list, then click the <b>Edit</b> button. A text editor will open, then edit the <b>Name[${ORIGLANG1}]</b> entry, then save and quit the editor. Afterward, the menu will refresh and you will be able to see the change."
 export DLG_HELP_YESTOP="<window resizable=\"false\" title=\"MoManager: Help edit menu categories\" icon-name=\"${HELPICON}\" window_position=\"1\"><vbox><text use-markup=\"true\"><label>\"${YESTOP_HELP_MSG}\"</label><variable>VAR_HELP_YESTOP</variable></text><hbox><button><label>Close</label><action type=\"closewindow\">VAR_HELP_YESTOP</action></button></hbox></vbox></window>"
 YESTOPHELP_XML='<button><input file>/usr/local/lib/X11/mini-icons/mini-question.xpm</input><action type="launch">DLG_HELP_YESTOP</action></button>'
-NOTOP_HELP_MSG="These are the top-level menu titles, or categories, that you see when you click on the 'Menu' button at bottom-left of the screen (or elsewhere in some puppies). The drop-down list is for those categories that do <i>not</i> have a translation for the <b>${ORIGLANG1}</b> locale (so they will display in English).
+NOTOP_HELP_MSG="These are the top-level menu titles, or categories, that you see when you click on the 'Menu' button at bottom-left of the screen (or right-click on the desktop). The drop-down list is for those categories that do <i>not</i> have a translation for the <b>${ORIGLANG1}</b> locale (so they will display in English).
 If you wish to create a translation, select a file from the drop-down list, click the <b>Create</b> button. A text editor will open, then edit the <b>Name[${ORIGLANG1}]</b> entry, then save and quit the editor. Afterward, the menu will refresh and you will be able to see the change."
 export DLG_HELP_NOTOP="<window resizable=\"false\" title=\"MoManager: Help edit menu categories\" icon-name=\"${HELPICON}\" window_position=\"1\"><vbox><text use-markup=\"true\"><label>\"${NOTOP_HELP_MSG}\"</label><variable>VAR_HELP_NOTOP</variable></text><hbox><button><label>Close</label><action type=\"closewindow\">VAR_HELP_NOTOP</action></button></hbox></vbox></window>"
 NOTOPHELP_XML='<button><input file>/usr/local/lib/X11/mini-icons/mini-question.xpm</input><action type="launch">DLG_HELP_NOTOP</action></button>'
@@ -474,13 +500,13 @@ XML_COM_HELP="XML files are a form of structured data that applications (such as
  &lt;Label xml:lang="zh_CN"&gt;运行互联网连接向导&lt;/Label&gt;"
 YESXML_HELP_MSG="${XML_COM_HELP}
 
-The XML files in the drop-down list already have xml:lang translations for your <b>${ORIGLANG12}</b> locale, however they might not be correct or complete so should be reviewed. Please select a file, then click the <b>Edit</b> button.
+The XML files in the drop-down list already have xml:lang translations for your <b>${ORIGLANG1}</b> locale, however they might not be correct or complete so should be reviewed. Please select a file, then click the <b>Edit</b> button.
 Note, the brackets alongside each filename in the drop-down list contains the name of the package that the file comes from -- WOOF means that the file comes from woofQ."
 export DLG_HELP_YESXML="<window resizable=\"false\" title=\"MoManager: Help edit XML files\" icon-name=\"${HELPICON}\" window_position=\"1\"><vbox><text use-markup=\"true\" width-chars=\"70\"><label>\"${YESXML_HELP_MSG}\"</label><variable>VAR_HELP_YESXML</variable></text><hbox><button><label>Close</label><action type=\"closewindow\">VAR_HELP_YESXML</action></button></hbox></vbox></window>"
 YESXMLHELP_XML='<button><input file>/usr/local/lib/X11/mini-icons/mini-question.xpm</input><action type="launch">DLG_HELP_YESXML</action></button>'
 NOXML_HELP_MSG="${XML_COM_HELP}
 
-The XML files in the drop-down list do <i>not</i> have xml:lang translations for your <b>${ORIGLANG12}</b> locale. You will need to determine where the translations are to be inserted. Please select a file, then click the <b>Create</b> button.
+The XML files in the drop-down list do <i>not</i> have xml:lang translations for your <b>${ORIGLANG1}</b> locale. You will need to determine where the translations are to be inserted. Please select a file, then click the <b>Create</b> button.
 Note, the brackets alongside each filename in the drop-down list contains the name of the package that the file comes from -- WOOF means that the file comes from woofQ."
 export DLG_HELP_NOXML="<window resizable=\"false\" title=\"MoManager: Help edit XML files\" icon-name=\"${HELPICON}\" window_position=\"1\"><vbox><text use-markup=\"true\" width-chars=\"70\"><label>\"${NOXML_HELP_MSG}\"</label><variable>VAR_HELP_NOXML</variable></text><hbox><button><label>Close</label><action type=\"closewindow\">VAR_HELP_NOXML</action></button></hbox></vbox></window>"
 NOXMLHELP_XML='<button><input file>/usr/local/lib/X11/mini-icons/mini-question.xpm</input><action type="launch">DLG_HELP_NOXML</action></button>'
@@ -556,19 +582,49 @@ export DLG_HELP_NOSSS="<window resizable=\"false\" title=\"MoManager: Help creat
 NOSSSHELP_XML='<button><input file>/usr/local/lib/X11/mini-icons/mini-question.xpm</input><action type="launch">DLG_HELP_NOSSS</action></button>'
 
 ########Binary executables#######
-#support a limited number of binary executables that have .pot files in /usr/share/doc/nls
+#20230216 find all .mo files...
 YESCNT=0 ; NOCNT=0 ; YESBIN_XML="" ; NOBIN_XML=""
+MOs="$(find /usr/share/locale/${ORIGLANG1}/LC_MESSAGES /usr/share/locale/${ORIGLANG12}/LC_MESSAGES /usr/share/locale.in/${ORIGLANG1}/LC_MESSAGES /usr/share/locale.in/${ORIGLANG12}/LC_MESSAGES -mindepth 1 -maxdepth 1 -type f -name '*.mo' 2>/dev/null)"
+for aMO in ${MOs}
+do
+ #avoid duplicates in locale and locale.in, just in case...
+ case "$aMO" in
+  /usr/share/locale.in/*)
+   xaMO="$(echo -n "$aMO" | sed -e 's%/locale\.in/%/locale/%')"
+   if [ -f "$xaMO" ];then
+    continue
+   fi
+  ;;
+ esac
+ aPKGNAME="$(basename $aMO .mo)"
+ BINEXEC="$(which $aPKGNAME)"
+ [ ! "$BINEXEC" ] && BINEXEC="$(find /usr/local -maxdepth 4 -executable -type f -name ${aPKGNAME})" #ex: /usr/local/simple_network_setup/proxy-setup
+ if [ "$BINEXEC" ];then
+  if [ "`file "$BINEXEC" | grep ' ELF ' | grep 'executable'`" != "" ];then #file 5.39 will also show "ELF 64-bit LSB pie executable"
+   #have found binary executable for the .mo file...
+   TEXTDOMAINVALUE="$aPKGNAME" #TEXTDOMAIN must be same as executable name.
+   TRANSLANG="$(echo -n "$aMO" | cut -f 5 -d '/')"
+   grep -q -F -x "${aPKGNAME} ${aMO}"  /tmp/momanager/translations4tarball
+   if [ $? -ne 0 ];then #precaution.
+    echo "${aPKGNAME} ${aMO}" >> /tmp/momanager/translations4tarball
+   fi
+   YESCNT=$(($YESCNT + 1))
+   YESBIN_XML="${YESBIN_XML}
+<item>${BINEXEC} (${TRANSLANG} ${TEXTDOMAINVALUE}.mo ${aPKGNAME})</item>"
+  fi
+ fi
+done
+
+#support a limited number of binary executables that have .pot files in /usr/share/doc/nls
 for aNLSDIR in `ls -1 /usr/share/doc/nls | tr '\n' ' '`
 do
  if [ -d  /usr/share/doc/nls/${aNLSDIR} ];then
- 
   #120309 po files may now be there... ex: /usr/share/doc/nls/ROX-Filer/de.po
   FNDPO="`find /usr/share/doc/nls/${aNLSDIR} -mindepth 1 -maxdepth 1 -type f -name '*.po' | tr '\n' ' '`"
   for APO in $FNDPO
   do
    echo "WOOF ${APO}" >> /tmp/momanager/translations4tarball #20230212
   done
- 
   BINEXEC=""
   BINEXEC="`which $aNLSDIR`"
   [ ! "$BINEXEC" ] && BINEXEC="`find /usr/local -maxdepth 4 -executable -type f -name "$aNLSDIR"`" #ex: /usr/local/simple_network_setup/proxy-setup
@@ -583,27 +639,48 @@ do
     #...returns aPKGNAME
  
     FNDMO=""
-    PREFIXLOCALEDIR='/usr/share/locale' #120308
+    #20230215 .mo could be in locale or locale.in
+    #actually, 3buildeasydistro will have removed duplicates, but check anyway...
     if [ -f /usr/share/locale/${ORIGLANG12}/LC_MESSAGES/${TEXTDOMAINVALUE}.mo ];then
+     if [ -f /usr/share/locale.in/${ORIGLANG12}/LC_MESSAGES/${TEXTDOMAINVALUE}.mo ];then
+      rm -f /usr/share/locale.in/${ORIGLANG12}/LC_MESSAGES/${TEXTDOMAINVALUE}.mo
+     fi
      FNDMO="/usr/share/locale/${ORIGLANG12}/LC_MESSAGES/${TEXTDOMAINVALUE}.mo"
      TRANSLANG=$ORIGLANG12
-    else
-     if [ -f /usr/share/locale/${ORIGLANG1}/LC_MESSAGES/${TEXTDOMAINVALUE}.mo ];then
+    fi
+    if [ -f /usr/share/locale/${ORIGLANG1}/LC_MESSAGES/${TEXTDOMAINVALUE}.mo ];then
+     if [ -f /usr/share/locale.in/${ORIGLANG1}/LC_MESSAGES/${TEXTDOMAINVALUE}.mo ];then
+      rm -f /usr/share/locale.in/${ORIGLANG1}/LC_MESSAGES/${TEXTDOMAINVALUE}.mo
+     fi
+     if [ "$FNDMO" == "" ];then
       FNDMO="/usr/share/locale/${ORIGLANG1}/LC_MESSAGES/${TEXTDOMAINVALUE}.mo"
       TRANSLANG=$ORIGLANG1
      fi
     fi
+    if [ -f /usr/share/locale.in/${ORIGLANG12}/LC_MESSAGES/${TEXTDOMAINVALUE}.mo ];then
+     FNDMO="/usr/share/locale.in/${ORIGLANG12}/LC_MESSAGES/${TEXTDOMAINVALUE}.mo"
+     TRANSLANG=$ORIGLANG12
+    else
+     if [ -f /usr/share/locale.in/${ORIGLANG1}/LC_MESSAGES/${TEXTDOMAINVALUE}.mo ];then
+      FNDMO="/usr/share/locale.in/${ORIGLANG1}/LC_MESSAGES/${TEXTDOMAINVALUE}.mo"
+      TRANSLANG=$ORIGLANG1
+     fi
+    fi
+    
     #120308 ROX-Filer is example where .mo is elsewhere. search all roxapps..
     if [ ! "$FNDMO" ];then
      FNDMO="`find /usr/local/apps -type f -name "${TEXTDOMAINVALUE}.mo"`"
      TRANSLANG=$ORIGLANG1
-     PREFIXLOCALEDIR="`echo -n "$FNDMO" | sed -e 's%/LC_MESSAGES.*%%' | rev | cut -f 2-9 -d '/' | rev`" #ex: /usr/local/apps/ROX-Filer/Messages/de/LC_MESSAGES/ROX-Filer.mo, extract /usr/local/apps/ROX-Filer/Messages
     fi
     if [ "$FNDMO" ];then
+     PREFIXLOCALEDIR="`echo -n "$FNDMO" | sed -e 's%/LC_MESSAGES.*%%' | rev | cut -f 2-9 -d '/' | rev`" #ex: /usr/local/apps/ROX-Filer/Messages/de/LC_MESSAGES/ROX-Filer.mo, extract /usr/local/apps/ROX-Filer/Messages
      YESCNT=$(($YESCNT + 1))
      YESBIN_XML="${YESBIN_XML}
 <item>${BINEXEC} (${TRANSLANG} ${TEXTDOMAINVALUE}.mo ${aPKGNAME})</item>"
-     echo "${aPKGNAME} ${PREFIXLOCALEDIR}/${TRANSLANG}/LC_MESSAGES/${TEXTDOMAINVALUE}.mo" >> /tmp/momanager/translations4tarball #120308 20230212
+     grep -q -F "${aPKGNAME} ${PREFIXLOCALEDIR}/${TRANSLANG}/LC_MESSAGES/${TEXTDOMAINVALUE}.mo" /tmp/momanager/translations4tarball #20230216
+     if [ $? -ne 0 ];then
+      echo "${aPKGNAME} ${PREFIXLOCALEDIR}/${TRANSLANG}/LC_MESSAGES/${TEXTDOMAINVALUE}.mo" >> /tmp/momanager/translations4tarball #120308 20230212
+     fi
     else
      NOCNT=$(($NOCNT + 1))
      NOBIN_XML="${NOBIN_XML}
@@ -631,7 +708,7 @@ The drop-down list has extra information in brackets, in the format <b>(lang TEX
 
 A <b>pot</b> file is a translation template file. MoManager converts it to a <b>po</b> file, which is an editable form for your language, and it is finally compiled to a <b>mo</b> file and placed at /usr/share/locale.
 
-There are many other binary executable applications in ${PUPNAME} that are not managed by MoManager. For those, for example the Abiword word processor, the author of the application provides translations. In many cases you can find a nls translation package for an application via the PKGget Package Manager."
+There are many other binary executable applications in ${PUPNAME}, the packages of which may have <b>mo</b> files. If there is an <b>mo</b> file in your language, it may be edited via the drop-down list."
 export DLG_HELP_YESBIN="<window resizable=\"false\" title=\"MoManager: Help edit mo files\" icon-name=\"${HELPICON}\" window_position=\"1\"><vbox><text use-markup=\"true\"><label>\"${YESBIN_HELP_MSG}\"</label><variable>VAR_HELP_YESBIN</variable></text><hbox><button><label>Close</label><action type=\"closewindow\">VAR_HELP_YESBIN</action></button></hbox></vbox></window>"
 YESBINHELP_XML='<button><input file>/usr/local/lib/X11/mini-icons/mini-question.xpm</input><action type="launch">DLG_HELP_YESBIN</action></button>'
 NOBIN_HELP_MSG="MoManager provides translation support for a limited number of binary executables. These are executables in packages that have <b>pot</b> files at /usr/share/doc/nls. The drop-down list is of binary executables that do <i>not</i> have a ${ORIGLANG1} or ${ORIGLANG12} translation. To create one, select a file, then click the <b>Create</b> button.
@@ -640,7 +717,7 @@ The drop-down list has extra information in brackets, in the format <b>(TEXTDOMA
 
 A <b>pot</b> file is a translation template file. MoManager converts it to a <b>po</b> file, which is an editable form for your language, and it is finally compiled to a <b>mo</b> file and placed at /usr/share/locale.
 
-There are many other binary executable applications in ${PUPNAME} that are not managed by MoManager. For those, for example the Abiword word processor, the author of the application provides translations. In many cases you can find a nls translation package for an application via the PKGget Package Manager."
+There are many other binary executable applications in ${PUPNAME}, the packages of which may have <b>mo</b> files. If there is an <b>mo</b> file in your language, it may be edited via the drop-down list."
 export DLG_HELP_NOBIN="<window resizable=\"false\" title=\"MoManager: Help create mo files\" icon-name=\"${HELPICON}\" window_position=\"1\"><vbox><text use-markup=\"true\"><label>\"${NOBIN_HELP_MSG}\"</label><variable>VAR_HELP_NOBIN</variable></text><hbox><button><label>Close</label><action type=\"closewindow\">VAR_HELP_NOBIN</action></button></hbox></vbox></window>"
 NOBINHELP_XML='<button><input file>/usr/local/lib/X11/mini-icons/mini-question.xpm</input><action type="launch">DLG_HELP_NOBIN</action></button>'
 
@@ -652,7 +729,7 @@ PET_HELP_MSG="When you click the <b>OK</b> button, two translation tarballs are 
 
 One is a collection of all translated files, the second is created or edited translation files since power-on.
 
-If you wish to contribute to internationalization of EasyOS for other users, kindly send one or both tarballs to Barry, via the Puppy Linux Forum (member BarryK).
+If you wish to contribute to internationalization of EasyOS for other users, kindly send the <b>newtranslations</b> tarball to Barry, via the Puppy Linux Forum (member BarryK).
 Barry will put new or edited translation files into woofQ, ready for the next build of EasyOS."
 export DLG_HELP_PET="<window resizable=\"false\" title=\"MoManager: Help translation tarballs\" icon-name=\"${HELPICON}\" window_position=\"1\"><vbox><text use-markup=\"true\"><label>\"${PET_HELP_MSG}\"</label><variable>VAR_HELP_PET</variable></text><hbox><button><label>Close</label><action type=\"closewindow\">VAR_HELP_PET</action></button></hbox></vbox></window>"
 PETHELP_XML='<button><input file>/usr/local/lib/X11/mini-icons/mini-question.xpm</input><action type="launch">DLG_HELP_PET</action></button>'
@@ -800,7 +877,11 @@ case $EXIT in
   aTRANSLANG="`echo -n "$YESMO_COMBO" | cut -f 2 -d '(' | cut -f 1 -d ' '`" #ex: de
   AMO="`echo -n "$YESMO_COMBO" | cut -f 2 -d '(' | cut -f 1 -d ')' | cut -f 2 -d ' '`" #ex: mousecheck.mo
   APKGNAME="`echo -n "$YESMO_COMBO" | cut -f 2 -d '(' | cut -f 1 -d ')' | cut -f 3 -d ' '`" #ex: bluefish  ex: WOOF
-  AMOSPEC="/usr/share/locale/${aTRANSLANG}/LC_MESSAGES/${AMO}"
+  if [ -f /usr/share/locale/${aTRANSLANG}/LC_MESSAGES/${AMO} ];then #20230215
+   AMOSPEC="/usr/share/locale/${aTRANSLANG}/LC_MESSAGES/${AMO}"
+  else
+   AMOSPEC="/usr/share/locale.in/${aTRANSLANG}/LC_MESSAGES/${AMO}"
+  fi
   ATEXTDOMAIN="`basename $AMO .mo`"
   cp -f "$AMOSPEC" /tmp/momanager/${ATEXTDOMAIN}.moOLD
   msgunfmt --no-wrap "$AMOSPEC" > /tmp/momanager/${ATEXTDOMAIN}1.po
@@ -1538,7 +1619,15 @@ Click 'Abort' to give up..." 0 0
   AMO="`echo -n "$YESBIN_COMBO" | cut -f 2 -d '(' | cut -f 1 -d ')' | cut -f 2 -d ' '`" #ex: mousecheck.mo
   APKGNAME="`echo -n "$YESBIN_COMBO" | cut -f 2 -d '(' | cut -f 1 -d ')' | cut -f 3 -d ' '`" #ex: bluefish  ex: WOOF
   ATEXTDOMAIN="`basename $AMO .mo`"
-  PREFIXLOCALEDIR='/usr/share/locale' #120308
+  if [ -f /usr/share/locale/${aTRANSLANG}/LC_MESSAGES/${AMO} ];then #20230215
+   PREFIXLOCALEDIR='/usr/share/locale'
+  else
+   if [ -f /usr/share/locale.in/${aTRANSLANG}/LC_MESSAGES/${AMO} ];then
+    PREFIXLOCALEDIR='/usr/share/locale.in'
+   else
+    PREFIXLOCALEDIR='/usr/share/locale'
+   fi
+  fi
   #120308 there are exceptions to /usr/share/locale. unfortunately looks like i have to hard-code those...
   case $ATEXTDOMAIN in
    ROX-Filer) PREFIXLOCALEDIR='/usr/local/apps/ROX-Filer/Messages' ;;
@@ -1694,12 +1783,15 @@ WARNING: If there is an existing mo file, MoManager uncompiles it and merges wit
  ;;
  
  ########### 20230212
+ #20230215 note, any .desktop & .mo not in rootfs-skeleton/usr/share/applications & locale
+ # (ie WOOF) must be copied to applications.in and locale.in in /root/[new]translations*
  create_tarball) #create translations tarball
   rm -rf /root/translations-* 2>/dev/null
   mkdir /root/translations-${GENLANG}-${ADATE}
   cat /tmp/momanager/translations4tarball |
   while read ALINE
   do
+   toWOOF=no
    aPKGNAME="${ALINE/ */}"
    aFILE="${ALINE#* }"
    aDIR="`dirname "$aFILE"`"
@@ -1714,15 +1806,38 @@ WARNING: If there is an existing mo file, MoManager uncompiles it and merges wit
      *usr/share/locale/*) #.mo files
       aDIR2="$(echo -n "$aDIR" | sed -e 's%usr/share/locale/%usr/share/locale.in/%')"
      ;;
+     *usr/share/applications.in) #20230216
+      toWOOF=yes
+      aDIR2="$aDIR"
+     ;;
+     *usr/share/locale.in/*) #20230216
+      toWOOF=yes
+      aDIR2="$aDIR"
+     ;;
      *)
       aDIR2="$aDIR"
      ;;
     esac
     mkdir -p /root/translations-${GENLANG}-${ADATE}/${aPKGNAME}"${aDIR}"
     cp -a -f "$aFILE" /root/translations-${GENLANG}-${ADATE}/${aPKGNAME}"${aDIR}"/
-    if [ "$aDIR" != "$aDIR2" ];then
+    if [ "$aDIR" != "$aDIR2" -o "$toWOOF" == "yes" ];then #20230216
      mkdir -p /root/translations-${GENLANG}-${ADATE}/WOOF"${aDIR2}"
      cp -a -f "$aFILE" /root/translations-${GENLANG}-${ADATE}/WOOF"${aDIR2}"/
+    fi
+    #20230215 .xml files also go into WOOF folder...
+    case "$aFILE" in
+     *.xml)
+      #rename .xml to .xml.in in WOOF ...
+      mkdir -p /root/translations-${GENLANG}-${ADATE}/WOOF"${aDIR}"
+      cp -a -f "$aFILE" /root/translations-${GENLANG}-${ADATE}/WOOF"${aFILE}".in
+     ;;
+    esac
+    #20230216 put UNKNOWNs into WOOF...
+    if [ "$aPKGNAME" == "UNKNOWN" ];then
+     if [ ! -e /root/translations-${GENLANG}-${ADATE}/WOOF"${aFILE}" ];then
+      mkdir -p /root/translations-${GENLANG}-${ADATE}/WOOF"${aDIR}"
+      cp -a -f "$aFILE" /root/translations-${GENLANG}-${ADATE}/WOOF"${aDIR}"/
+     fi
     fi
    fi
   done
@@ -1732,7 +1847,9 @@ WARNING: If there is an existing mo file, MoManager uncompiles it and merges wit
   sync
   
   #20230212 also tarball of new translations
-  rm -rf /root/newtranslations-* 2>/dev/null
+  rm -f /root/newtranslations-${GENLANG}-${ADATE}.tar.gz 2> /dev/null
+  rm -rf /root/newtranslations-${GENLANG}-${ADATE} 2> /dev/null
+  #rm -rf /root/newtranslations-* 2>/dev/null
   mkdir -p /tmp/momanager/newtranslations/WOOF/usr/share/applications.in
   mkdir -p /tmp/momanager/newtranslations/WOOF/usr/share/locale.in
   for aPKGPATH in `find /tmp/momanager/newtranslations -mindepth 1 -maxdepth 1 -type d`
@@ -1745,6 +1862,17 @@ WARNING: If there is an existing mo file, MoManager uncompiles it and merges wit
     if [ -d ${aPKGPATH}/usr/share/locale ];then
      cp -a -f ${aPKGPATH}/usr/share/locale/* /tmp/momanager/newtranslations/WOOF/usr/share/locale.in/
     fi
+   fi
+  done
+  #20230215 .xml files must also go into WOOF...
+  for aXML in $(find /tmp/momanager/newtranslations -type f -name '*.xml' | grep '/usr/local/')
+  do
+   [ "$aXML" == "" ] && continue
+   [ ! -f "$aXML" ] && continue
+   bXML="$(echo -n "$aXML" | grep -o '/usr/local/.*')"
+   if [ ! -e /tmp/momanager/newtranslations/WOOF${bXML} ];then
+    #rename them as .xml.in
+    cp -a -f "$aXML" /tmp/momanager/newtranslations/WOOF"${bXML}".in
    fi
   done
   cp -a -f /tmp/momanager/newtranslations /root/newtranslations-${GENLANG}-${ADATE}

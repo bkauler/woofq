@@ -148,3 +148,13 @@ grep -v 'help/' ${DOCROOT}/index.htmlORIG > ${DOCROOT}/index.html
 if [ -f usr/share/cups/templates/printer-added.tmpl ];then
  sed -i '/^<blockquote>/,/^<\/blockquote>/d' usr/share/cups/templates/printer-added.tmpl
 fi
+
+#20230215 oe kirkstone, have .po files in /usr/share/locale
+#***was going to convert them to .mo but can't do it***
+#if [ -d ../cups_NLS/usr/share/locale ];then
+# for aPO in $(find ../cups_NLS/usr/share/locale -type f -name 'cups_*.po' | tr '\n' ' ')
+# do
+#  mkdir -p ${aPO%/*}/LC_MESSAGES
+#  
+# done
+#fi

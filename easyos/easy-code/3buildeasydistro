@@ -282,6 +282,7 @@
 #20230212 rootfs-skeleton.list files in rootfs-skeleton sans translations.
 #20230214 translating desktop image now done in /usr/share/doc/easy/welcome.sh
 #20230215 remove duplicates in /usr/share/applicatins|applications.in & locale|locale.in
+#20230215 there may be translated .xml files in rootfs-skeleton (created via momanager)
 
 export LANG=C #faster.
 
@@ -5131,6 +5132,17 @@ done
 
 #20230212 momanager will read this, to find builtin files...
 find ../rootfs-skeleton -type f | grep -vE '/usr/share/locale\.in|/usr/share/applications\.in' | sed -e 's%\.\./rootfs-skeleton%%' > rootfs-complete/root/.packages/rootfs-skeleton.list
+
+#20230215 there may be .xml.in files created via momanager, merge them...
+for aXML in $(find ../rootfs-skeleton/usr/local -type f -name '*.xml.in' | sed -e 's%\.\./rootfs-skeleton%%' | tr '\n' ' ')
+do
+ [ ! -f $aXML ] && continue
+ bXML="$(echo -n ${aXML} |rev|cut -d'.' -f2- | rev)" #remove .in
+ #we could do some fancy merging, or just overwrite...
+ cp -a -f ../rootfs-skeleton${aXML} rootfs-complete${bXML}
+ rm -f rootfs-complete/${aXML} #remove the .xml.in file
+done
+
 
 
 
