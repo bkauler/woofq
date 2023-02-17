@@ -1203,7 +1203,7 @@ Click 'Abort' to give up..." 0 0
   if [ $? -eq 0 ];then
    LANG=${ORIGLANG} jwm -reload
   fi
-  cp -f ${DESKPATH}/${DESKFILE} /root/
+  #cp -f ${DESKPATH}/${DESKFILE} /root/ #20230217 what is this line for?
   #20230212...
   mkdir -p /tmp/momanager/newtranslations/${APKGNAME}${DESKPATH}/
   cp -f ${DESKPATH}/${DESKFILE} /tmp/momanager/newtranslations/${APKGNAME}${DESKPATH}/
@@ -1258,7 +1258,7 @@ Click 'Abort' to give up..." 0 0
   if [ $? -eq 0 ];then
    LANG=${ORIGLANG} jwm -reload
   fi
-  cp -f /usr/share/desktop-directories/$TOPFILE /root/
+  #cp -f /usr/share/desktop-directories/$TOPFILE /root/ #20230217 what is this line for?
   #20230212...
   mkdir -p /tmp/momanager/newtranslations/${APKGNAME}/usr/share/desktop-directories
   cp -f /usr/share/desktop-directories/${TOPFILE} /tmp/momanager/newtranslations/${APKGNAME}/usr/share/desktop-directories/
@@ -1879,7 +1879,7 @@ WARNING: If there is an existing mo file, MoManager uncompiles it and merges wit
   dir2tgz /root/newtranslations-${GENLANG}-${ADATE}
   sync
   
-  pupdialog --background '#8080FF' --backtitle "Translations tarballs created" --msgbox "/root/translations-${GENLANG}-${ADATE}.tar.gz has all translations.\n/root/newtranslations-${GENLANG}-${ADATE}.tar.gz has new and edited translations since power-on." 0 0
+  pupdialog --colors --background '#8080FF' --backtitle "Translations tarballs created" --msgbox "/root/translations-${GENLANG}-${ADATE}.tar.gz has all translations.\n/root/newtranslations-${GENLANG}-${ADATE}.tar.gz has new and edited translations \Z1\Zbsince power-on\ZB\Zn.\n\n\Z1WARNING: If reboot the computer on the same date ${DATE} and click the OK button to generate another newtranslations tarball, the previous one will be deleted. In that situation, be sure to rename the previous tarball so that it will not be deleted.\Zn" 0 0
  ;;
 esac
 
