@@ -64,6 +64,7 @@
 #20230215 [new]translations: .xml files also go into WOOF folder.
 #20230216 prevent duplicate entries in translations4tarball. tarball: UNKNOWN into WOOF
 #20230216 find existing .mo files for binary executables.
+#20230218 run defaulttexteditor with LANG=C, so have english ui
 
 #***MOMANAGER IS ENGLISH ONLY (NOT GETTEXT'ED)***
 #it is for use by developers/translators with knowledge of english.
@@ -955,7 +956,7 @@ case $EXIT in
    else
     killall geany 2> /dev/null #otherwise geany will return immediately and continue executing this script.
     sleep 0.5
-    LANG=${ORIGLANG} defaulttexteditor /tmp/momanager/${ATEXTDOMAIN}.po
+    LANG=C defaulttexteditor /tmp/momanager/${ATEXTDOMAIN}.po
    fi
    if diff -q /tmp/momanager/${ATEXTDOMAIN}.poBACKUP1 /tmp/momanager/${ATEXTDOMAIN}.po  >/dev/null 2>&1; then #130503 130506
     ABORTFLG=8
@@ -1093,7 +1094,7 @@ Click 'Abort' to give up..." 0 0
    else
     killall geany 2> /dev/null #otherwise geany will return immediately and continue executing this script.
     sleep 0.5
-    LANG=${ORIGLANG} defaulttexteditor /tmp/momanager/${ATEXTDOMAIN}.po
+    LANG=C defaulttexteditor /tmp/momanager/${ATEXTDOMAIN}.po
    fi
    if diff -q /tmp/momanager/${ATEXTDOMAIN}.poBACKUP1 /tmp/momanager/${ATEXTDOMAIN}.po  >/dev/null 2>&1; then #130503 130506
     ABORTFLG=8
@@ -1187,7 +1188,7 @@ Click 'Abort' to give up..." 0 0
   poptop_func "The menu file is now open in a text editor. Edit, then Save, then Quit text editor..."
   ASTAT="`stat --format=%y "${DESKPATH}/$DESKFILE" | cut -f 1 -d ' ' | tr -d '-' `" #so can check against file version in latest woofQ.
   [ -f ${EASYSFSMNTPT}${DESKPATH}/$DESKFILE ] && ASTAT="`stat --format=%y "${EASYSFSMNTPT}${DESKPATH}/$DESKFILE" | cut -f 1 -d ' ' | tr -d '-' `" #get orig modify date.
-  LANG=${ORIGLANG} defaulttexteditor ${DESKPATH}/$DESKFILE
+  LANG=C defaulttexteditor ${DESKPATH}/$DESKFILE
   xASTAT2="`stat --format=%Y "${DESKPATH}/$DESKFILE"`" #seconds since epoch.
   if [ "`grep 'PLEASE INSERT YOUR TRANSLATION HERE' ${DESKPATH}/$DESKFILE`" != "" ];then
    mv -f /tmp/momanager/$DESKFILE ${DESKPATH}/
@@ -1241,7 +1242,7 @@ Click 'Abort' to give up..." 0 0
   poptop_func "The menu-category file is now open in a text editor. Edit, then Save, then Quit text editor..."
   ASTAT="`stat --format=%y "/usr/share/desktop-directories/$TOPFILE" | cut -f 1 -d ' ' | tr -d '-' `" #so can check against file version in latest woofQ.
   [ -f ${EASYSFSMNTPT}/usr/share/desktop-directories/$TOPFILE ] && ASTAT="`stat --format=%y "${EASYSFSMNTPT}/usr/share/desktop-directories/$TOPFILE" | cut -f 1 -d ' ' | tr -d '-' `" #get orig modify date.
-  LANG=${ORIGLANG} defaulttexteditor /usr/share/desktop-directories/$TOPFILE
+  LANG=C defaulttexteditor /usr/share/desktop-directories/$TOPFILE
   xASTAT2="`stat --format=%Y "/usr/share/desktop-directories/$TOPFILE"`" #seconds since epoch.
 
   if [ "`grep 'PLEASE INSERT YOUR TRANSLATION HERE' /usr/share/desktop-directories/$TOPFILE`" != "" ];then
@@ -1385,7 +1386,7 @@ Click 'Abort' to give up..." 0 0
   poptop_func "The SSS file is now open in a text editor. You must only edit between the last two % characters. Edit, then Save, then Quit text editor..."
   ASTAT="`stat --format=%y "/usr/share/sss/$SSSFILE/$SSSFILE" | cut -f 1 -d ' ' | tr -d '-'`" #so can check against file version in latest woofQ.
   [ -f ${EASYSFSMNTPT}/usr/share/sss/$SSSFILE/$SSSFILE ] && ASTAT="`stat --format=%y "${EASYSFSMNTPT}/usr/share/sss/$SSSFILE/$SSSFILE" | cut -f 1 -d ' ' | tr -d '-' `" #get orig modify date.
-  LANG=${ORIGLANG} defaulttexteditor /tmp/momanager/$SSSFILE.$ORIGLANG1
+  LANG=C defaulttexteditor /tmp/momanager/$SSSFILE.$ORIGLANG1
   xASTAT2="`stat --format=%Y "/tmp/momanager/$SSSFILE.$ORIGLANG1"`" #seconds since epoch.
   if [ "$xASTAT1" = "$xASTAT2" ];then
    export LANG=$ORIGLANG
@@ -1557,7 +1558,7 @@ Click 'Abort' to give up..." 0 0
   ASTAT="`stat --format=%y "/usr/share/sss/$SSSFILE/$SSSFILE.$ORIGLANG1" | cut -f 1 -d ' ' | tr -d '-'`" #so can check against file version in latest woofQ.
   [ -f ${EASYSFSMNTPT}/usr/share/sss/$SSSFILE/$SSSFILE.$ORIGLANG1 ] && ASTAT="`stat --format=%y "${EASYSFSMNTPT}/usr/share/sss/$SSSFILE/$SSSFILE.$ORIGLANG1" | cut -f 1 -d ' ' | tr -d '-' `" #get orig modify date.
   xASTAT1="`stat --format=%Y "/tmp/momanager/$SSSFILE.$ORIGLANG1"`" #seconds since epoch.
-  LANG=${ORIGLANG} defaulttexteditor /tmp/momanager/$SSSFILE.$ORIGLANG1
+  LANG=C defaulttexteditor /tmp/momanager/$SSSFILE.$ORIGLANG1
   xASTAT2="`stat --format=%Y "/tmp/momanager/$SSSFILE.$ORIGLANG1"`" #seconds since epoch.
   if [ "$xASTAT1" = "$xASTAT2" ];then
    export LANG=$ORIGLANG
@@ -1596,7 +1597,7 @@ Click 'Abort' to give up..." 0 0
   ASTAT="`stat --format=%y "$XMLFILE" | cut -f 1 -d ' ' | tr -d '-' `" #so can check against file version in latest woofQ.
   [ -f "${EASYSFSMNTPT}${XMLFILE}" ] && ASTAT="`stat --format=%y "${EASYSFSMNTPT}${XMLFILE}" | cut -f 1 -d ' ' | tr -d '-' `" #get orig modify date.
   xASTAT1="`stat --format=%Y "${XMLFILE}"`" #seconds since epoch.
-  LANG=${ORIGLANG} defaulttexteditor "${XMLFILE}"
+  LANG=C defaulttexteditor "${XMLFILE}"
   xASTAT2="`stat --format=%Y "${XMLFILE}"`" #seconds since epoch.
   if [ "$xASTAT1" = "$xASTAT2" ];then
    export LANG=$ORIGLANG
@@ -1669,7 +1670,7 @@ Click 'Abort' to give up..." 0 0
   else
    killall geany 2> /dev/null #otherwise geany will return immediately and continue executing this script.
    sleep 0.5
-   LANG=${ORIGLANG} defaulttexteditor /tmp/momanager/${ATEXTDOMAIN}.po
+   LANG=C defaulttexteditor /tmp/momanager/${ATEXTDOMAIN}.po
   fi
   [ $ROPID -ne 0 ] && kill $ROPID
   zASTAT2="`stat --format=%Y /tmp/momanager/${ATEXTDOMAIN}.po`" #120309 modify date.
@@ -1751,7 +1752,7 @@ WARNING: If there is an existing mo file, MoManager uncompiles it and merges wit
   else
    killall geany 2> /dev/null #otherwise geany will return immediately and continue executing this script.
    sleep 0.5
-   LANG=${ORIGLANG} defaulttexteditor /tmp/momanager/${ATEXTDOMAIN}.po
+   LANG=C defaulttexteditor /tmp/momanager/${ATEXTDOMAIN}.po
   fi
   [ $ROPID -ne 0 ] && kill $ROPID
   zASTAT2="`stat --format=%Y /tmp/momanager/${ATEXTDOMAIN}.po`" #120309 modify date.

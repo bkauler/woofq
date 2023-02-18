@@ -130,6 +130,7 @@
 #20230111 remove country flags. remove all reference to langpack pets.
 #20230214 filter-out all locales with "@" ex: sv_FI@euro
 #20230214 no longer have /usr/sbin/lang2initrd
+#20230218 if change locale, update /mnt/wkg/.qlang
 
 WHOIAM="$(whoami)"
 [ "${WHOIAM}" != "root" ] && exec sudo -A ${0} ${@} #20221023 20221031
@@ -374,7 +375,7 @@ Basically, if your language is not a <b>Latin</b> derivative, such as all Asian 
   [ ! "$CURRLANG" ] && CURRLANG="en_US" #precaution
   UTF8=''
   if [ "`echo -n "$CURRLANG" | grep 'utf8'`" != "" ];then #111022 get rid of old name.
-   rm -rf /usr/lib/locale/$CURRLANG
+   #rm -rf /usr/lib/locale/$CURRLANG #20230218 why remove?
    UTF8='.UTF-8'
   fi
   [ "`echo -n "$CURRLANG" | grep 'UTF\-8'`" != "" ] && UTF8='.UTF-8'
@@ -1410,7 +1411,15 @@ if [ "$SET_LOCALE" ];then
    #[ -f /usr/share/locale/${LANGCHOICE%_*}/LC_MESSAGES/easyinitrd.mo ] && touch /usr/share/locale/${LANGCHOICE%_*}/LC_MESSAGES/easyinitrd.mo
   fi
   NEWLANG="`echo -n "$NEWLANGLINE" | cut -f 2 -d '='`" #ex: de_DE.UTF-8
-
+  
+  #20230218 .qlang 2-letter locale, used in init script in initrd...
+  if [ -s /mnt/${WKG_DEV}/${WKG_DIR}.qlang ];then
+   QLANG="$(cat /mnt/${WKG_DEV}/${WKG_DIR}.qlang)"
+   if [ "$QLANG" != "${NEWLANG/_*/}" ];then
+    echo -n "${NEWLANG/_*/}" > /mnt/${WKG_DEV}/${WKG_DIR}.qlang
+   fi
+  fi
+  
   if [ "$OLDLANGLINE" != "$NEWLANGLINE" ];then
    #langPATTERN="s/${OLDLANGLINE}/${NEWLANGLINE}/"
    langPATTERN="s%^LANG=.*%${NEWLANGLINE}%" #111022
