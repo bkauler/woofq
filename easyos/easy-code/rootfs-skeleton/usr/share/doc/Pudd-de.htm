@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>Pudd LIESMICH</title>
+<style type="text/css"><!--
+body {color:black;background:#efefef;}
+a:link    {color:blue;}
+a:visited { color:#551A8B;}
+a:active  { color:red;}
+#wrap {max-width:38em;padding-left:12em;}
+.top {margin-top:-3.3em;}    /* not possible in basichtmlviewer  */
+#translator {font-size:60%;text-align:right;}
+em {color:inherit;background:lightyellow;}
+--></style>  
+</head>
+<body><div id="wrap">
+<h1>Pudd: Puppy Universal dd</h1>
+
+<p>Dies ist die erste Version von Pudd, und es wird erwartet, dass viele Erweiterungen
+folgen werden.</p>
+
+<h2>Einige Hinweise zur Terminologie</h2>
+
+<p>Die Wörter "<em>Plattenlaufwerk</em>" oder "<em>Festplatte</em>" beziehen sich auf das gesamte 
+physische Laufwerk, wohingegen eine "<em>Partition</em>" ein Teil des Laufwerks ist, 
+das ein "<em>Dateisystem</em>" enthält.</p>
+
+<p>Zum Beispiel kann in der Welt von Unix/Linux ein gesamtes Laufwerk als 
+ /dev/hda benannt werden, wohingegen eine Partitionen darinnen als /dev/hda1,
+/dev/hda2, etc. benannt werden.</p>
+
+<p>Das Problem bei dieser Terminologie ist, dass in der Welt von Windows/DOS das 
+Wort "<em>Laufwerk</em>" sich auf eine Partition bezieht, nicht nicht auf das gesamte Gerät. 
+So ist zum Beispiel "<em>Laufwerk C:</em>" wirklich eine Partition. 
+Es ist korrekter, C: als ein "<em>logisches Laufwerk</em>" zuu bezeichnen, 
+was auch ein in der Welt von Windows/DOS benutzter Ausdruck ist.</p>
+
+<p>Es ist auch nötig, zwischen einer <em>Partition</em> und einem <em>Dateisystem</em> zu 
+unterscheiden, was wiederum in der Welt von Windows/DOS verwischt ist. 
+Man kann auf einer Festplatte eine Partition erzeugen, dann darin ein Dateisystem. 
+Beispiele von Dateisystemen sind msdos, vfat, ntfs, ext2, ext3 und reiserfs.</p>
+
+<p>Auch das DOS-Programm "format" verwirrt. 
+Es erzeugt aktuell ein MSDOS-Dateisystem in einer Partition. 
+Das DOS-Programm "fdisk" kann Partitionen erzeugen und löschen. 
+(Linux hat auch ein Programm "fdisk", und es ist in Puppy)</p>
+
+<h2>Laufwerke oder Partitionen kopieren</h2>
+
+<p>Wenn ich das Wort "<em>Laufwerk</em>" benutze, meine ich damit normalerweise das gesamte Gerät. 
+Ich benutze "<em>Partition</em>", wenn ich eine Partition meine.</p>
+
+<p>Pudd kann ein ganzes Laufwerk oder eine Partition kopieren. 
+Es gibt hier noch einige Restriktionen, die ich in künftigen Versionen beseitigen will:</p>
+<ul>
+  <li>Ein Laufwerk kann nur auf ein anderes identisches Laufwerk kopiert werden. 
+    Man kann zum Beispiel eine 128M Compact-Flash-Karte auf eine andere 128M 
+    Compact-Flash-Karte kopieren (Ich weiß nicht, ob es irgendwelche Probleme beim
+    Kopieren zwischen verschiedenen Modellen/Herstellern von CF-Karten gibt, 
+    oder bei anderen Typen von Flash-Karten).</li>
+  <li>Eine Partition kann auf eine andere Partition kopiert werden, die 
+    mindestens dieselbe Größe hat. 
+    Einige hier noch auszuarbeitende Details: 
+    Bis jetzt muss es derselbe Typ des Dateisystems sein. 
+    Das Quelldateisystem wird was auch immer in der Zielpartition ist, überschreiben. 
+    So weit kann Pudd zum Füllen der Zielpartition nur von ext2- 
+    und ext3-Dateisystemen die Größe ändern.</li>
+</ul>
+
+<p>Pudd erlaubt das Kopieren von Laufwerk/Partition auf eine Datei, 
+dann könnte man diese Datei auf ein Laufwerk/Partition kopieren. 
+Jedoch können die zwei nicht vermischt werden. 
+Das heißt, man kann nicht ein Laufwerk in eine Datei kopieren und dann Datei auf Partition, 
+da die Datei das Image des gesamten Laufwerks enthalten wird, 
+nicht nur einer einzelnen Partition.</p>
+
+<p>Regards,<br />
+Barry Kauler</p>
+
+<div class="top">
+<p id="translator">Übersetzt aus dem <a href="Pudd.htm">englischen Original</a><br />
+ von L18L am 12.3.2013</p>
+</div>
+</div>
+</body>
+</html>
