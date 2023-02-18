@@ -283,6 +283,7 @@
 #20230214 translating desktop image now done in /usr/share/doc/easy/welcome.sh
 #20230215 remove duplicates in /usr/share/applicatins|applications.in & locale|locale.in
 #20230215 there may be translated .xml files in rootfs-skeleton (created via momanager)
+#20230218 fix text in limine.cfg
 
 export LANG=C #faster.
 
@@ -5828,39 +5829,13 @@ if [ "$DEFAULTLANG1" != "en" ];then
 fi
 
 if [ "$BOOTLOADER" == "limine" ];then #20221010
- #note, fixboot above should already have translated. ref: /usr/share/sss/boot_strings
- 
- #20220929 create entire limine.cfg...
- case "$DEFAULTLANG1" in
-  de)
-   BRANDINGFIELD="EasyOS Limine Boot-Manager"
-   COMMENTFIELD="EasyOS Dunfell hochfahren"
-   OPTIONSFIELD="Optionen..."
-   FBVFIELD="Defektes Video reparieren"
-   FBVCOMMENTFIELD="Fuhren Sie den Xorg Video Wizard aus, um defekte Videos zu reparieren"
-  ;;
-  fr)
-   BRANDINGFIELD="EasyOS Limine Gestionnaire de demarrage"
-   COMMENTFIELD="EasyOS Dunfell demarrage"
-   OPTIONSFIELD="Choix..."
-   FBVFIELD="Reparer une video cassee"
-   FBVCOMMENTFIELD="Executez l'assistant video Xorg pour reparer la video cassee"
-  ;;
-  it)
-   BRANDINGFIELD="EasyOS Limine Boot Manager"
-   COMMENTFIELD="EasyOS Dunfell avviare"
-   OPTIONSFIELD="Opzioni..."
-   FBVFIELD="Correggere il video rotto"
-   FBVCOMMENTFIELD="Esegui Xorg Video Wizard per riparare il video rotto"
-  ;;
-  *)
-   BRANDINGFIELD="EasyOS Limine Boot Manager"
-   COMMENTFIELD="EasyOS Dunfell bootup"
-   OPTIONSFIELD="Options..."
-   FBVFIELD="Fix broken video"
-   FBVCOMMENTFIELD="Run Xorg Video Wizard to fix broken video"
-  ;;
- esac
+ #20230218
+ BRANDINGFIELD="EasyOS Limine Boot Manager"
+ COMMENTFIELD="EasyOS ${DISTRO_COMPAT_VERSION^} bootup" #ex: Kirkstone
+ OPTIONSFIELD="Options..."
+ FBVFIELD="Fix broken video"
+ FBVCOMMENTFIELD="Run Xorg Video Wizard to fix broken video"
+
  echo "VERBOSE=no
 TIMEOUT=10
 DEFAULT_ENTRY=1
