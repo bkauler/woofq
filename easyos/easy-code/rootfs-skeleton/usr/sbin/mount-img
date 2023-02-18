@@ -57,6 +57,32 @@ ESPEC="$1"
 [ "$ESPEC" == "" ] && exit 0
 [ ! -f "$ESPEC" ] && exit 0
  
+#20230218
+if [ $DISPLAY ];then
+ if [ $RW -eq 0 -a $QUIET -eq 0 ];then
+  M1="$(gettext 'The partitions in the image file may be mounted read-only or read-write.\nWARNING: read-write will alter the checksum of the image file, even if you do not change anything.')"
+  M2="$(gettext 'Read-only')"
+  M3="$(gettext 'Abort')"
+  M4="$(gettext 'Read-write')"
+  pupdialog --extra-button --ok-label "${M2}"  --extra-label "${M3}" --cancel-label "${M4}" --yesno "${M1}" 0 0
+  case "$?" in
+   0) #ro
+    RW=0
+    LOPT='-r'
+    MOPT='-r'
+   ;;
+   1) #rw
+    RW=1
+    LOPT=''
+    MOPT=''
+   ;;
+   *) #3
+    exit
+   ;;
+  esac
+ fi
+fi
+ 
 xESPEC="$(echo -n "$ESPEC" | sed -e 's%-%\\-%g' -e 's%\.%\\.%g' -e 's%\+%\\+%g')"
 PARTS="$(fdisk -l --bytes ${ESPEC} | grep "^${xESPEC}" | tr -d '*' | tr -s ' ')"
 #ex: offset in sectors, size in bytes. before the pipe operations...
