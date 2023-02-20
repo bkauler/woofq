@@ -56,6 +56,7 @@
 #20220923 support run as spot in container.
 #20221006 new EC_ACCESS_DRI enable 3D graphics.
 #20221031 if running as zeus, think need to bump up to root.
+#20230219 added test for kirkstone container
 
 WHOIAM="$(whoami)"
 [ "${WHOIAM}" != "root" ] && exec sudo -A ${0} ${@} #20221031
@@ -563,8 +564,8 @@ do
 done
 #190911 "easy" container has been renamed...
 case "$EXE" in
- #20220604 fix...
- pyro|buster|dunfell|bookworm) #***will need future fix when more easyos series*** 20210118 added dunfell.
+ #20220604 fix...  20230219 added kirkstone
+ pyro|buster|dunfell|bookworm|kirkstone) #***will need future fix when more easyos series*** 20210118 added dunfell.
   if [ -f ${CONTAINER}/.control/${EXE}.run-once-top ];then
    bEXE="${EXE}"
   else
