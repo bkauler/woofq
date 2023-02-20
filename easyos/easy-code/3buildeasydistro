@@ -284,6 +284,7 @@
 #20230215 remove duplicates in /usr/share/applicatins|applications.in & locale|locale.in
 #20230215 there may be translated .xml files in rootfs-skeleton (created via momanager)
 #20230218 fix text in limine.cfg
+#20230220 copy build-choices into initrd
 
 export LANG=C #faster.
 
@@ -5239,6 +5240,9 @@ do
  sed -i -e "s%\([^']\)$%\1'%" $aNLS #make sure ' on end.
  sed -i -e "s%='%=___%" -e "s%'$%___%" -e "s%'%'\\\''%g" -e "s%___%'%g" $aNLS
 done
+
+#20230220 /sbin/ask-language in initrd wants this...
+cp -a -f ../../build-choices ./
 
 find . | cpio -o -H newc > ../initrd #181130
 sync

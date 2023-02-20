@@ -145,6 +145,7 @@
 #20230131 for sfs exceeding releases max-depth, do not delete if used in container.
 #20230210 always load .str.en, in case non-english is incomplete.
 #20230211 .str files folder hierarchy reorganized.
+#20230220 3buildeasydistro copies build-choices into initrd, so don't do it here.
 
 #20220525 3buildeasydistro will substitute values here...
 EOS_TOP_LEVEL_ZRAM=EOSTOPLEVELZRAM #20220521 1=yes, anything else no.
@@ -815,7 +816,7 @@ if [ "$LOCKDOWN" == "" -o "$DROPOUT" == "" ];then
     EXIT='bad'
     if [ -e /dev/fb0 ];then
      mount_tnew #aufs temporary mount easy.sfs
-     cp -f tnew/root/.packages/build-choices build-choices #20230210 used in /sbin/ask-language
+     #cp -f tnew/root/.packages/build-choices build-choices #20230210 used in /sbin/ask-language 20230220
      chroot tnew /bin/busybox ash -c "/startx ask-country-x"
      touch tnew/RETASKCOUNTRY
      if grep -q '^EXIT="OK"' tnew/RETASKCOUNTRY; then
