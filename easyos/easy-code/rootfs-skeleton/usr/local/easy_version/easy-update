@@ -28,6 +28,7 @@
 #20220625 mount-img no longer changes the checksum.
 #20220628 check md5sum of local image file. 20220629
 #20220728 remove .delta after update.
+#20230221 no longer have language-specific .img files.
 
 export TEXTDOMAIN=easy-update
 export OUTPUT_CHARSET=UTF-8
@@ -168,9 +169,6 @@ DL_PATH="/mnt/${WKG_DEV}/${WKG_DIR}" #same as /mnt/wkg
 cd $DL_PATH
 
 #ask if have a .img of current version...
-LANGinsert='' #200730 only have de, fr builds online...
-[ "${LANG:0:2}" == "de" ] && LANGinsert="-de"
-[ "${LANG:0:2}" == "fr" ] && LANGinsert="-fr"
 echo
 
 #get rid of any old compressed...
@@ -179,17 +177,17 @@ rm -f easy-*.img.gz 2>/dev/null
 #see if already downloaded new version...
 askdl='download'
 HAVEDELTA='no'
-if [ -f easy-${latestVER}${LANGinsert}-${DISTRO_TARGETARCH}.img ];then
+if [ -f easy-${latestVER}-${DISTRO_TARGETARCH}.img ];then
  sync
- mv -f easy-${latestVER}${LANGinsert}-${DISTRO_TARGETARCH}.img XXXeasy-${latestVER}${LANGinsert}-${DISTRO_TARGETARCH}.img
+ mv -f easy-${latestVER}-${DISTRO_TARGETARCH}.img XXXeasy-${latestVER}-${DISTRO_TARGETARCH}.img
  rm -f easy-*.img 2>/dev/null #get rid of any others.
  sync
- mv -f XXXeasy-${latestVER}${LANGinsert}-${DISTRO_TARGETARCH}.img easy-${latestVER}${LANGinsert}-${DISTRO_TARGETARCH}.img
+ mv -f XXXeasy-${latestVER}-${DISTRO_TARGETARCH}.img easy-${latestVER}-${DISTRO_TARGETARCH}.img
 
  echo
  echo -en '\033[1;35m' #bright magenta
  echo "$(gettext 'The latest image file has already been downloaded:')"
- echo " easy-${latestVER}${LANGinsert}-${DISTRO_TARGETARCH}.img"
+ echo " easy-${latestVER}-${DISTRO_TARGETARCH}.img"
  echo "$(gettext 'Do you want to install it, or re-download it?')"
  echo -n "$(gettext 'Press ENTER only to install, any other char to re-download:')"
  echo -en '\033[0;39m' #reset.
@@ -198,7 +196,7 @@ if [ -f easy-${latestVER}${LANGinsert}-${DISTRO_TARGETARCH}.img ];then
   echo " $(gettext '...have chosen to install existing image file')"
  else
   echo " $(gettext '...have chosen to erase the image file and re-download it')"
-  rm -f easy-${latestVER}${LANGinsert}-${DISTRO_TARGETARCH}.img
+  rm -f easy-${latestVER}-${DISTRO_TARGETARCH}.img
  fi
 else #20220623
  #rm -f easy-*.img 2>/dev/null #get rid of any others.
@@ -214,7 +212,7 @@ else #20220623
   mv -f XXX${LASTIMG} ${LASTIMG}
   echo "$(gettext 'You have this local file:') ${LASTIMG}"
   echo "$(gettext 'Looking online to see if a delta file exists...')"
-  wget -4 -S --spider https://distro.ibiblio.org/easyos/${DISTRO_TARGETARCH}/releases/${DISTRO_COMPAT_VERSION}${DEEPER}/${YEAR}/${latestVER}/deltas/${LASTIMG}___easy-${latestVER}${LANGinsert}-${DISTRO_TARGETARCH}.img.delta > /tmp/easy-update-delta-probe 2>&1 
+  wget -4 -S --spider https://distro.ibiblio.org/easyos/${DISTRO_TARGETARCH}/releases/${DISTRO_COMPAT_VERSION}${DEEPER}/${YEAR}/${latestVER}/deltas/${LASTIMG}___easy-${latestVER}-${DISTRO_TARGETARCH}.img.delta > /tmp/easy-update-delta-probe 2>&1 
   grep -q 'HTTP/1\.1 200 OK' /tmp/easy-update-delta-probe
   if [ $? -ne 0 ];then
    echo " $(gettext '...no it does not. will have to download full-size latest version.')"
@@ -278,11 +276,11 @@ if [ "$HAVEDELTA" == "yes" ];then
   exit 9
  fi
  
- rm -f ${LASTIMG}___easy-${latestVER}${LANGinsert}-${DISTRO_TARGETARCH}.img.delta 2>/dev/null
- download_file https://distro.ibiblio.org/easyos/${DISTRO_TARGETARCH}/releases/${DISTRO_COMPAT_VERSION}${DEEPER}/${YEAR}/${latestVER}/deltas/${LASTIMG}___easy-${latestVER}${LANGinsert}-${DISTRO_TARGETARCH}.img.delta
+ rm -f ${LASTIMG}___easy-${latestVER}-${DISTRO_TARGETARCH}.img.delta 2>/dev/null
+ download_file https://distro.ibiblio.org/easyos/${DISTRO_TARGETARCH}/releases/${DISTRO_COMPAT_VERSION}${DEEPER}/${YEAR}/${latestVER}/deltas/${LASTIMG}___easy-${latestVER}-${DISTRO_TARGETARCH}.img.delta
  RET=$?
  if [ $RET -eq 0 ];then
-  MD5SUM="$(md5sum ${LASTIMG}___easy-${latestVER}${LANGinsert}-${DISTRO_TARGETARCH}.img.delta | cut -f 1 -d ' ')"
+  MD5SUM="$(md5sum ${LASTIMG}___easy-${latestVER}-${DISTRO_TARGETARCH}.img.delta | cut -f 1 -d ' ')"
   grep -q "$MD5SUM" md5sums.txt
   if [ $? -ne 0 ];then
    rm -f md5sums.txt 2>/dev/null
@@ -294,22 +292,22 @@ if [ "$HAVEDELTA" == "yes" ];then
   echo "$(gettext 'Something went wrong with the download. Aborting')"
   echo -en '\033[0;39m' #reset.
   rm -f md5sums.txt 2>/dev/null
-  rm -f ${LASTIMG}___easy-${latestVER}${LANGinsert}-${DISTRO_TARGETARCH}.img.delta 2>/dev/null
+  rm -f ${LASTIMG}___easy-${latestVER}-${DISTRO_TARGETARCH}.img.delta 2>/dev/null
   rm -rf ./.cache 2>/dev/null
   echo -e "\033[1;31m${MSGexit}\033[0;39m"
   exit 9
  fi
  sync
- chown root:root ${LASTIMG}___easy-${latestVER}${LANGinsert}-${DISTRO_TARGETARCH}.img.delta
+ chown root:root ${LASTIMG}___easy-${latestVER}-${DISTRO_TARGETARCH}.img.delta
  echo "$(gettext 'Download successful, generating the latest image file...')"
- xdelta3 -d -s ${LASTIMG} ${LASTIMG}___easy-${latestVER}${LANGinsert}-${DISTRO_TARGETARCH}.img.delta easy-${latestVER}${LANGinsert}-${DISTRO_TARGETARCH}.img
+ xdelta3 -d -s ${LASTIMG} ${LASTIMG}___easy-${latestVER}-${DISTRO_TARGETARCH}.img.delta easy-${latestVER}-${DISTRO_TARGETARCH}.img
  if [ $? -ne 0 ];then
   echo -en '\033[1;31m' #bright red.
   echo "$(gettext 'Something went wrong. Maybe the .delta file is corrupted. Aborting.')"
   echo -en '\033[0;39m' #reset.
   rm -f md5sums.txt 2>/dev/null
-  rm -f ${LASTIMG}___easy-${latestVER}${LANGinsert}-${DISTRO_TARGETARCH}.img.delta 2>/dev/null
-  rm -f easy-${latestVER}${LANGinsert}-${DISTRO_TARGETARCH}.img 2>/dev/null
+  rm -f ${LASTIMG}___easy-${latestVER}-${DISTRO_TARGETARCH}.img.delta 2>/dev/null
+  rm -f easy-${latestVER}-${DISTRO_TARGETARCH}.img 2>/dev/null
   rm -rf ./.cache 2>/dev/null
   echo -e "\033[1;31m${MSGexit}\033[0;39m"
   exit 9
@@ -317,7 +315,7 @@ if [ "$HAVEDELTA" == "yes" ];then
   echo "$(gettext 'Yippee, the new image file has been generated!')"
   echo
   rm -f md5sums.txt 2>/dev/null
-  md5sum easy-${latestVER}${LANGinsert}-${DISTRO_TARGETARCH}.img > md5sum.txt
+  md5sum easy-${latestVER}-${DISTRO_TARGETARCH}.img > md5sum.txt
  fi
 fi
 
@@ -325,46 +323,26 @@ if [ "$askdl" != "" ];then
  #download latest, full-size image file...
  echo
  echo -en '\033[1;35m' #bright magenta
- echo "$(gettext 'Downloading') easy-${latestVER}${LANGinsert}-${DISTRO_TARGETARCH}.img ..."
+ echo "$(gettext 'Downloading') easy-${latestVER}-${DISTRO_TARGETARCH}.img ..."
  echo -en '\033[0;39m' #reset.
- if [ "${LANGinsert}" == "" ];then
   
-  #20220625 get md5sum...
+ #20220625 get md5sum... 20230221
+ rm -f md5sum.txt 2>/dev/null
+ download_file https://distro.ibiblio.org/easyos/${DISTRO_TARGETARCH}/releases/${DISTRO_COMPAT_VERSION}${DEEPER}/${YEAR}/${latestVER}/md5sum.txt
+ if [ $? -ne 0 ];then
+  echo -en '\033[1;31m' #bright red.
+  echo "$(gettext 'Something went wrong with the download. Aborting')"
+  echo -en '\033[0;39m' #reset.
   rm -f md5sum.txt 2>/dev/null
-  download_file https://distro.ibiblio.org/easyos/${DISTRO_TARGETARCH}/releases/${DISTRO_COMPAT_VERSION}${DEEPER}/${YEAR}/${latestVER}/md5sum.txt
-  if [ $? -ne 0 ];then
-   echo -en '\033[1;31m' #bright red.
-   echo "$(gettext 'Something went wrong with the download. Aborting')"
-   echo -en '\033[0;39m' #reset.
-   rm -f md5sum.txt 2>/dev/null
-   rm -rf ./.cache 2>/dev/null
-   echo -e "\033[1;31m${MSGexit}\033[0;39m"
-   exit 9
-  fi
-  
-  download_file https://distro.ibiblio.org/easyos/${DISTRO_TARGETARCH}/releases/${DISTRO_COMPAT_VERSION}${DEEPER}/${YEAR}/${latestVER}/easy-${latestVER}-${DISTRO_TARGETARCH}.img
-  RETVAL=$?
- else
-  
-  #20220625 get md5sum...
-  rm -f md5sum.txt 2>/dev/null
-  download_file https://distro.ibiblio.org/easyos/${DISTRO_TARGETARCH}/releases/${DISTRO_COMPAT_VERSION}${DEEPER}/${YEAR}/${latestVER}/${LANG:0:2}/md5sum.txt
-  if [ $? -ne 0 ];then
-   echo -en '\033[1;31m' #bright red.
-   echo "$(gettext 'Something went wrong with the download. Aborting')"
-   echo -en '\033[0;39m' #reset.
-   rm -f md5sum.txt 2>/dev/null
-   rm -rf ./.cache 2>/dev/null
-   echo -e "\033[1;31m${MSGexit}\033[0;39m"
-   exit 9
-  fi
-  
-  download_file https://distro.ibiblio.org/easyos/${DISTRO_TARGETARCH}/releases/${DISTRO_COMPAT_VERSION}${DEEPER}/${YEAR}/${latestVER}/${LANG:0:2}/easy-${latestVER}${LANGinsert}-${DISTRO_TARGETARCH}.img
-  RETVAL=$?
+  rm -rf ./.cache 2>/dev/null
+  echo -e "\033[1;31m${MSGexit}\033[0;39m"
+  exit 9
  fi
+ download_file https://distro.ibiblio.org/easyos/${DISTRO_TARGETARCH}/releases/${DISTRO_COMPAT_VERSION}${DEEPER}/${YEAR}/${latestVER}/easy-${latestVER}-${DISTRO_TARGETARCH}.img
+ RETVAL=$?
  
  if [ $RETVAL -eq 0 ];then #20220625
-  MD5SUM="$(md5sum easy-${latestVER}${LANGinsert}-${DISTRO_TARGETARCH}.img | cut -f 1 -d ' ')"
+  MD5SUM="$(md5sum easy-${latestVER}-${DISTRO_TARGETARCH}.img | cut -f 1 -d ' ')"
   grep -q "$MD5SUM" md5sum.txt
   if [ $? -ne 0 ];then
    rm -f md5sum.txt 2>/dev/null
@@ -376,7 +354,7 @@ if [ "$askdl" != "" ];then
   echo -en '\033[1;31m' #bright red.
   echo "$(gettext 'Something went wrong with the download. Aborting')"
   echo -en '\033[0;39m' #reset.
-  rm -f easy-${latestVER}${LANGinsert}-${DISTRO_TARGETARCH}.img 2>/dev/null #20220512 only remove aborted update .img
+  rm -f easy-${latestVER}-${DISTRO_TARGETARCH}.img 2>/dev/null #20220512 only remove aborted update .img
   rm -rf ./.cache 2>/dev/null
   rm -f md5sum.txt 2>/dev/null
   echo -e "\033[1;31m${MSGexit}\033[0;39m"
@@ -385,12 +363,12 @@ if [ "$askdl" != "" ];then
 fi
 
 #20210425 fedora: has strange group:owner
-chown root:root /mnt/${WKG_DEV}/${WKG_DIR}easy-${latestVER}${LANGinsert}-${DISTRO_TARGETARCH}.img
+chown root:root /mnt/${WKG_DEV}/${WKG_DIR}easy-${latestVER}-${DISTRO_TARGETARCH}.img
 
 #offer to install...
 echo -en '\033[1;35m' #bright magenta
 echo "$(gettext 'This file has been downloaded:')"
-echo "/mnt/${WKG_DEV}/${WKG_DIR}easy-${latestVER}${LANGinsert}-${DISTRO_TARGETARCH}.img"
+echo "/mnt/${WKG_DEV}/${WKG_DIR}easy-${latestVER}-${DISTRO_TARGETARCH}.img"
 if [ "$KERNAME" == "kernel8.img" ];then #20210125 rpi  20210701
  echo "$(gettext 'You may do a manual update, by clicking on the file to open it up, drag kernel8.img, initrd and the device-tree files to the boot-partition, and easy.sfs to the working-partition, then click on initrd to fix the BOOT_SPECS file. These steps are documented online.')" | fold -s -w ${COLUMNS}
 else
@@ -415,7 +393,7 @@ echo -en '\033[0;39m' #reset.
 sync
 
 rm -rf /tmp/mount-img-* 2>/dev/null
-mount-img easy-${latestVER}${LANGinsert}-${DISTRO_TARGETARCH}.img quiet
+mount-img easy-${latestVER}-${DISTRO_TARGETARCH}.img quiet
 CNT=$? #number of partitions mounted.
 #...should have folders /tmp/mount-img-${CNT}-${aFS}-${LOOPn##*/}
 #   /tmp/mount-img-1-vfat-loop<n> and /tmp/mount-img-2-ext4-loop<m>
@@ -440,7 +418,7 @@ if [ $CNT -ne 2 ];then
   CNT=$(($CNT+1))
  done
  
- rm -f easy-${latestVER}${LANGinsert}-${DISTRO_TARGETARCH}.img
+ rm -f easy-${latestVER}-${DISTRO_TARGETARCH}.img
  echo -e "\033[1;31m${MSGexit}\033[0;39m"
  exit 11
 fi
@@ -533,8 +511,8 @@ if [ -d /boot/device-tree ];then #20210125 rpi
 fi
 
 #if current version exists, delete it...
-if [ -f easy-${DISTRO_VERSION}${LANGinsert}-${DISTRO_TARGETARCH}.img ];then
- rm -f easy-${DISTRO_VERSION}${LANGinsert}-${DISTRO_TARGETARCH}.img
+if [ -f easy-${DISTRO_VERSION}-${DISTRO_TARGETARCH}.img ];then
+ rm -f easy-${DISTRO_VERSION}-${DISTRO_TARGETARCH}.img
  sync
 fi
 
@@ -564,7 +542,7 @@ echo -e '\033[0;39m\033[49m' #reset. 20211221
 echo
 echo -en '\033[1;34m' #blue
 echo "$(gettext 'This is the downloaded file:')"
-echo "/mnt/${WKG_DEV}/${WKG_DIR}easy-${latestVER}${LANGinsert}-${DISTRO_TARGETARCH}.img"
+echo "/mnt/${WKG_DEV}/${WKG_DIR}easy-${latestVER}-${DISTRO_TARGETARCH}.img"
 echo "$(gettext 'It is not needed anymore. You can delete it or archive it somewhere.')"
 echo "$(gettext 'However, at the next update, this file can be used for a smaller difference-file download, so recommend leave it where it is.')" | fold -s -w ${COLUMNS}
 echo

@@ -3,7 +3,7 @@
 #20230210
 . /build-choices #copied from easy.sfs, see init script.
 if [ "$BUILD_SUPPORT_LANGS" ];then #cutdown lang list.
- echo "$BUILD_SUPPORT_LANGS" > al-build-support-langs
+ echo -n "$BUILD_SUPPORT_LANGS" > al-build-support-langs
  CODES="$(sed -e 's%:% %g' al-build-support-langs)"
 else
  CODES='af Afrikaans am Amharic ar Arabic as Assamese be Byelorussian bg Bulgarian bn Bengali bo Tibetan br Breton ca Catalan cs Czech cy Welsh da Danish de German dz Bhutani el Greek en English eo Esperanto es Spanish et Estonian eu Basque fa Persian fi Finnish fr French fy Frisian ga Irish gd Gaelic gl Galician gu Gujarati hi Hindi hr Croatian hu Hungarian is Icelandic it Italian ja Japanese ka Georgian kk Kazakh  km Cambodian kn Kannada ko Korean ks Kashmiri lo Laothian lt Lithuanian lv Latvian mk Macedonian ml Malayalam mn Mongolian mr Marathi my Burmese ne Nepali nl Dutch no Norwegian oc Occitan om Oromo or Oriya pa Punjabi pl Polish pt Portuguese ro Romanian ru Russian rw Kinyarwanda sa Sanskrit sd Sindhi si Singhalese sk Slovak sl Slovenian sq Albanian sr Serbian ss Siswati st Sesotho sv Swedish sw Swahili ta Tamil te Tegulu tg Tajik th Thai tn Setswana tr Turkish ts Tsonga tt Tatar uk Ukrainian uz Uzbek vi Vietnamese xh Xhosa zh Chinese zu Zulu'
@@ -21,8 +21,18 @@ if [ $? -ne 0 ];then #precaution.
 fi
 clear
 
+#20230221 need matching country...
+LANGS12='bg_BG cs_CZ da_DK de_DE el_GR en_US es_ES et_EE fi_FI fr_FR hr_HR hu_HU is_IS it_IT lt_LT lv_LV mk_MK nl_NL pl_PL pt_PT ro_RO ru_RU sk_SK sl_SK sq_AL sr_RS sv_SE tr_TR uk_UA'
+echo -n "$LANGS12" > LANGS12
+grep -o "${QLANG}_[A-Z][A-Z]" LANGS12 > DEFLANG12
+#precaution...
+DEFLANG12="$(cat DEFLANG12)"
+if [ "$DEFLANG12" == "" ];then
+ echo -n 'en' > qlang
+ echo -n 'en_US' > DEFLANG12
+fi
+
 #bring back the logo...
 if [ -e /dev/fb0 ];then
- #idump -f logo1920x1440.png 2>/dev/null
- idump -f logo1920x1080new.png 2>/dev/null
+ idump -f logo1920x1440.png 2>/dev/null
 fi

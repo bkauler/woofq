@@ -146,6 +146,7 @@
 #20230210 always load .str.en, in case non-english is incomplete.
 #20230211 .str files folder hierarchy reorganized.
 #20230220 3buildeasydistro copies build-choices into initrd, so don't do it here.
+#20230221 oh, busybox ash does not support ${QLANG^^} capitalization
 
 #20220525 3buildeasydistro will substitute values here...
 EOS_TOP_LEVEL_ZRAM=EOSTOPLEVELZRAM #20220521 1=yes, anything else no.
@@ -814,30 +815,32 @@ if [ "$LOCKDOWN" == "" -o "$DROPOUT" == "" ];then
    if [ ! -f /mnt/${WKG_DEV}/${WKG_DIR}.qlang ];then
     #ask language code...
     EXIT='bad'
-    if [ -e /dev/fb0 ];then
-     mount_tnew #aufs temporary mount easy.sfs
-     #cp -f tnew/root/.packages/build-choices build-choices #20230210 used in /sbin/ask-language 20230220
-     chroot tnew /bin/busybox ash -c "/startx ask-country-x"
-     touch tnew/RETASKCOUNTRY
-     if grep -q '^EXIT="OK"' tnew/RETASKCOUNTRY; then
-      KEYMAP="$(grep '^COMBO_KEYBOARD.*' tnew/RETASKCOUNTRY | cut -f 2 -d '"' | cut -f 1 -d ' ')" #ex: de
-      BASELANG="$(grep '^COMBO_LOCALE.*' tnew/RETASKCOUNTRY | cut -f 2 -d '"' | cut -f 1 -d ' ')" #ex: de_DE
-      BASELANG="${BASELANG/@*/}" #@euro chopped.
-      QLANG="${BASELANG/_*/}"
-      EXIT='OK'
-     fi
-     #umount temporary easy.sfs
-     sync
-     umount tnew/dev/pts
-     umount tnew/proc
-     umount tnew/dev
-     umount tnew
-     umount tro
-    fi
-    if [ "$EXIT" != "OK" ];then #fallback...
+    #20230221 abandon gtk ask-country-x ...
+    #if [ -e /dev/fb0 ];then
+    # mount_tnew #aufs temporary mount easy.sfs
+    # #cp -f tnew/root/.packages/build-choices build-choices #20230210 used in /sbin/ask-language 20230220
+    # chroot tnew /bin/busybox ash -c "/startx ask-country-x"
+    # touch tnew/RETASKCOUNTRY
+    # if grep -q '^EXIT="OK"' tnew/RETASKCOUNTRY; then
+    #  KEYMAP="$(grep '^COMBO_KEYBOARD.*' tnew/RETASKCOUNTRY | cut -f 2 -d '"' | cut -f 1 -d ' ')" #ex: de
+    #  BASELANG="$(grep '^COMBO_LOCALE.*' tnew/RETASKCOUNTRY | cut -f 2 -d '"' | cut -f 1 -d ' ')" #ex: de_DE
+    #  BASELANG="${BASELANG/@*/}" #@euro chopped.
+    #  QLANG="${BASELANG/_*/}"
+    #  EXIT='OK'
+    # fi
+    # #umount temporary easy.sfs
+    # sync
+    # umount tnew/dev/pts
+    # umount tnew/proc
+    # umount tnew/dev
+    # umount tnew
+    # umount tro
+    #fi
+    #if [ "$EXIT" != "OK" ];then #fallback...
      /sbin/ask-language #currently using dialog so don't need /dev/fb0
-     QLANG="$(cat /qlang)"
-    fi
+     QLANG="$(cat /qlang)"        #ex: fr
+     BASELANG="$(cat /DEFLANG12)" #ex: fr_FR
+    #fi
     echo -n "$QLANG" > /mnt/${WKG_DEV}/${WKG_DIR}.qlang
    else
     QLANG="$(cat /mnt/${WKG_DEV}/${WKG_DIR}.qlang)"
@@ -1878,7 +1881,9 @@ if [ "$QLANG" ];then
   if [ "$BASELANG" ];then #20230123 from ask-country-x
    sed -i -e "s%^LANG=.*%LANG=${BASELANG}.UTF-8%" /easy_new/etc/profile
   else
-   sed -i -e "s%^LANG=.*%LANG=${QLANG}_${QLANG^^}.UTF-8%" /easy_new/etc/profile
+   #20230221 oh, busybox ash does not support ${QLANG^^} capitalization
+   QLcaps="$(echo -n "$QLANG" | tr '[a-z]' '[A-Z]')"
+   sed -i -e "s%^LANG=.*%LANG=${QLANG}_${QLcaps}.UTF-8%" /easy_new/etc/profile
   fi
  fi
 fi

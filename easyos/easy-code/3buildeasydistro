@@ -283,8 +283,9 @@
 #20230214 translating desktop image now done in /usr/share/doc/easy/welcome.sh
 #20230215 remove duplicates in /usr/share/applicatins|applications.in & locale|locale.in
 #20230215 there may be translated .xml files in rootfs-skeleton (created via momanager)
-#20230218 fix text in limine.cfg
+#20230218 fix text in limine.cfg  20230221 fix.
 #20230220 copy build-choices into initrd
+#20230221 get rid some DEFAULTLANG conditions. fix 20230215
 
 export LANG=C #faster.
 
@@ -1402,12 +1403,8 @@ mkdir -p rootfs-complete/usr/local/petget
 cp ${WKGDIR}/support/arch/runDotInstalls rootfs-complete/usr/local/petget/ArchRunDotInstalls
 chmod 755 rootfs-complete/usr/local/petget/ArchRunDotInstalls
 
-#20230111
+#20230111 20230221
 if [ "$WOOF_HOSTARCH" = "$WOOF_TARGETARCH" ];then
- if [ "$DEFAULTLANG1" != "en" ];then
-  echo "EXECUTING: chroot rootfs-complete localedef -f UTF-8 -i ${DEFAULTLANG12} --no-archive ${DEFAULTLANG12}.utf8"
-  chroot rootfs-complete localedef -f UTF-8 -i ${DEFAULTLANG12} --no-archive ${DEFAULTLANG12}.utf8
- fi
  for aCTRY in US GB AU CA NZ
  do
   if [ ! -d rootfs-complete/usr/lib/locale/en_${aCTRY}.utf8 ];then
@@ -1469,83 +1466,7 @@ cd .. #20230111
 
 #190107 copy package translations...
 echo "Copying package translations..."
-DEFAULTLANG12="${DEFAULTLANG%.*}"
-mkdir -p sandbox3/rootfs-complete/usr/share/locale/${DEFAULTLANG1}
-echo "  ${DEFAULTLANG1}"
-cp -a -f packages-${DISTRO_FILE_PREFIX}/*_NLS/usr/share/locale/${DEFAULTLANG1}/LC_MESSAGES sandbox3/rootfs-complete/usr/share/locale/${DEFAULTLANG1}/
-LANGDIRS="$(find packages-${DISTRO_FILE_PREFIX}/*_NLS/usr/share/locale -mindepth 1 -maxdepth 1 -type d -name "${DEFAULTLANG1}_*" | rev | cut -f 1 -d '/' | rev | sort -u | tr '\n' ' ')"
-for aLANGDIR in $LANGDIRS
-do
- echo "  ${aLANGDIR}"
- mkdir -p sandbox3/rootfs-complete/usr/share/locale/${aLANGDIR}
- cp -a -f packages-${DISTRO_FILE_PREFIX}/*_NLS/usr/share/locale/${aLANGDIR}/LC_MESSAGES sandbox3/rootfs-complete/usr/share/locale/${aLANGDIR}/
-done
-#190108 find more translation files...
-echo 'finding more translation files...'
-NLSFILES="$(find packages-${DISTRO_FILE_PREFIX}/*_NLS -mindepth 1 -maxdepth 7 -type f -name "*[-_.]${DEFAULTLANG1}[-_.]*" -o -name "${DEFAULTLANG1}[-_.]*" -o -name "*[-_.]${DEFAULTLANG1}" | grep -v ' ')"
-for aNLSFILE in $NLSFILES
-do
- [ "$aNLSFILE" == "" ] && continue
- [ "$(echo -n "$aNLSFILE" | grep "NLS/usr/share/locale/")" != "" ] && continue
- aCUTDIR="$(dirname $aNLSFILE | cut -f 3- -d '/')"
- mkdir -p sandbox3/rootfs-complete/${aCUTDIR}
- echo -n '.'
- cp -a -f --remove-destination $aNLSFILE sandbox3/rootfs-complete/${aCUTDIR}/
-done
-echo
-#190112 libreoffice has .mo files, find these and maybe others... 20220213 maxdepth change 7 to 8...
-echo "Finding more .mo files..."
-MOFILES="$(find packages-${DISTRO_FILE_PREFIX}/*_NLS -mindepth 1 -maxdepth 8 -type f -name '*.mo' | grep -E "/${DEFAULTLANG1}/|/${DEFAULTLANG1}_[A-Z]*/" | grep -v ' ')"
-for aMOFILE in $MOFILES
-do
- [ "$aMOFILE" == "" ] && continue
- [ "$(echo -n "$aMOFILE" | grep "NLS/usr/share/locale/")" != "" ] && continue
- aCUTDIR="$(dirname $aMOFILE | cut -f 3- -d '/')"
- mkdir -p sandbox3/rootfs-complete/${aCUTDIR}
- echo -n '.'
- cp -a -f --remove-destination ${aMOFILE} sandbox3/rootfs-complete/${aCUTDIR}/
-done
-echo
-#190110 hunspell dictionary for non-english...
-if [ "$DEFAULTLANG1" != "en" ];then
- echo "Installing non-english hunspell dictionary..."
- HSPETS="$(grep "^hunspell-${DEFAULTLANG1}\-" Packages-pet-noarch-official | cut -f 1 -d '|')" #maybe more than one.
- if [ ! "$HSPETS" ];then
-  echo "WARNING: there is no 'hunspell-${DEFAULTLANG1}' PET in the 'noarch' database."
-  echo "This will mean a somewhat incomplete translation."
- else
-  for aHSPET in $HSPETS
-  do
-   [ "$aHSPET" == "" ] && continue
-   if [ "$WAITHUNSPELLPET" != "no" ];then #20210128
-    if [ ! -f packages-pet/${aHSPET}.pet ];then
-     echo "ERROR: packages-pet/${aHSPET}.pet does not exist."
-     echo -n "Please obtain it, then press ENTER key to continue: "
-     read waitforlp
-    fi
-   fi
-   if [ ! -f packages-pet/${aHSPET}.pet ];then
-    echo "WARNING: proceeding without installing ${aHSPET}.pet"
-   else
-    cp -f packages-pet/${aHSPET}.pet sandbox3/
-    cd sandbox3
-    [ -d ./${aHSPET} ] && rm -rf ./${aHSPET}
-    pet2dir ${aHSPET}.pet
-    echo "Copying ${aHSPET} contents into rootfs-complete..."
-    mv -f ${aHSPET}/pinstall.sh ${aHSPET}/pinstall.shHS
-    cat ${aHSPET}/pet.specs >> rootfs-complete/root/.packages/woof-installed-packages
-    rm -f ${aHSPET}/pet.specs
-    cp -a -f --remove-destination ${aHSPET}/* rootfs-complete/
-    cd rootfs-complete
-    LANG="$DEFAULTLANG" ./pinstall.shHS #post-install script. 190713
-    cd ..
-    rm -f rootfs-complete/pinstall.shHS
-    cd ..
-    rm -rf sandbox3/${aHSPET}
-   fi
-  done
- fi
-fi
+#20230221 nls files get copied further down.
 
 #20230111 new nls_<ver>_noarch.sfs
 echo "Building sandbox3/nls_${DISTRO_VERSION}_noarch"
@@ -4272,7 +4193,8 @@ fi
 if [ -f rootfs-complete/usr/bin/bluegriffon ];then
  #if [ -f ../packages-${DISTRO_FILE_PREFIX}/bluegriffon_DEV/langpack-${DEFAULTLANG1}-*.xpi ];then
   mkdir -p rootfs-complete/usr/lib/bluegriffon/distribution/extensions
-  cp -a -f ../packages-${DISTRO_FILE_PREFIX}/bluegriffon_NLS/usr/lib/bluegriffon/distribution/extensions/langpack-${DEFAULTLANG1}-*.xpi rootfs-complete/usr/lib/bluegriffon/distribution/extensions/ 2>/dev/null
+  #20230222 no...
+  #cp -a -f ../packages-${DISTRO_FILE_PREFIX}/bluegriffon_NLS/usr/lib/bluegriffon/distribution/extensions/langpack-${DEFAULTLANG1}-*.xpi rootfs-complete/usr/lib/bluegriffon/distribution/extensions/ 2>/dev/null
  #fi
 fi
 
@@ -5113,37 +5035,9 @@ if [ -s ../usb.ids ];then
  ln -snf ../usb.ids rootfs-complete/usr/share/misc/usb.ids
 fi
 
-#20230215 remove duplicates in /usr/share/applicatins|applications.in & locale|locale.in
-# note, see also /usr/local/petget/installpkg.sh
-for aDT in $(find rootfs-complete/usr/share/applications -mindepth 1 -maxdepth 1 -type f -name '*.desktop')
-do
- [ "$aDT" == "" ] && continue
- baDT="${aDT##*/}"
- if [ -e rootfs-complete/usr/share/applications.in/${baDT} ];then
-  rm -f rootfs-complete/usr/share/applications.in/${baDT}
- fi
-done
-for aMO in $(find rootfs-complete/usr/share/locale -mindepth 1 -type f -name '*.mo')
-do
- [ "$aMO" == "" ] && continue
- cMO="$(echo -n "$aMO" | sed -e 's%/locale/%/locale.in/%')"
- if [ -e ${cMO} ];then
-  rm -f ./${cMO}
- fi
-done
 
 #20230212 momanager will read this, to find builtin files...
 find ../rootfs-skeleton -type f | grep -vE '/usr/share/locale\.in|/usr/share/applications\.in' | sed -e 's%\.\./rootfs-skeleton%%' > rootfs-complete/root/.packages/rootfs-skeleton.list
-
-#20230215 there may be .xml.in files created via momanager, merge them...
-for aXML in $(find ../rootfs-skeleton/usr/local -type f -name '*.xml.in' | sed -e 's%\.\./rootfs-skeleton%%' | tr '\n' ' ')
-do
- [ ! -f $aXML ] && continue
- bXML="$(echo -n ${aXML} |rev|cut -d'.' -f2- | rev)" #remove .in
- #we could do some fancy merging, or just overwrite...
- cp -a -f ../rootfs-skeleton${aXML} rootfs-complete${bXML}
- rm -f rootfs-complete/${aXML} #remove the .xml.in file
-done
 
 
 
@@ -5399,6 +5293,38 @@ done
 sync
 cp -a -f --remove-destination nls/* rootfs-complete/
 sync
+
+#20230221 moved down...
+#20230215 remove duplicates in /usr/share/applicatins|applications.in & locale|locale.in
+# note, see also /usr/local/petget/installpkg.sh
+for aDT in $(find rootfs-complete/usr/share/applications -mindepth 1 -maxdepth 1 -type f -name '*.desktop')
+do
+ [ "$aDT" == "" ] && continue
+ baDT="${aDT##*/}"
+ if [ -e rootfs-complete/usr/share/applications.in/${baDT} ];then
+  rm -f rootfs-complete/usr/share/applications.in/${baDT}
+ fi
+done
+sync
+for aMO in $(find rootfs-complete/usr/share/locale -mindepth 1 -type f -name '*.mo')
+do
+ [ "$aMO" == "" ] && continue
+ cMO="$(echo -n "$aMO" | sed -e 's%/locale/%/locale.in/%')"
+ if [ -e ${cMO} ];then
+  rm -f ./${cMO}
+ fi
+done
+sync
+
+#20230215 there may be .xml.in files created via momanager, merge them...
+for aXML in $(find ../rootfs-skeleton/usr/local -type f -name '*.xml.in' | sed -e 's%\.\./rootfs-skeleton%%' | tr '\n' ' ')
+do
+ [ ! -f $aXML ] && continue
+ bXML="$(echo -n ${aXML} |rev|cut -d'.' -f2- | rev)" #remove .in
+ #we could do some fancy merging, or just overwrite...
+ cp -a -f ../rootfs-skeleton${aXML} rootfs-complete${bXML}
+ rm -f rootfs-complete/${aXML} #remove the .xml.in file
+done
 
 echo #190131...
 
@@ -5846,7 +5772,7 @@ DEFAULT_ENTRY=1
 INTERFACE_BRANDING=${BRANDINGFIELD}
 INTERFACE_RESOLUTION=800x600
 
-:EasyOS Dunfell
+:EasyOS ${DISTRO_COMPAT_VERSION^}
     COMMENT=${COMMENTFIELD}
     RESOLUTION=800x600
     PROTOCOL=linux
