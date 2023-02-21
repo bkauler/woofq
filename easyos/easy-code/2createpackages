@@ -95,6 +95,7 @@
 #20220121 support arch linux folder hierarchy. 20220122
 #20230213 merge .desktop translations from /usr/share/applications.in
 #20230213 check if .mo files in rootfs-skeleton/usr/share/locale.in
+#20230221 improve finding .mo files in usr/share/locale.in
 
 export LANG=C #faster.
 
@@ -1171,6 +1172,47 @@ EOF
     fi
    done
   done
+  #20230221 improving finding .mo files...
+  while read -u 3 aEXE
+  do
+   [ "$aEXE" == "" ] && continue
+   BINflg="$(file "$aEXE" | grep -F 'ELF 64-bit LSB')"
+   if [ "$BINflg" ];then
+    #find .mo files with same name as the executable...
+    BINname="${aEXE##*/}"
+    for cMO in $(find rootfs-skeleton/usr/share/locale.in -type f -name "${BINname}.mo")
+    do
+     [ "$cMO" == "" ] && continue
+     dirMO="$(dirname $cMO | sed -e 's%rootfs-skeleton/usr/share/locale\.in/%sandbox2/usr/share/locale/%')"
+     if [ ! -f ${dirMO}/${BINname}.mo ];then #don't overwrite the official .mo
+      mkdir -p $dirMO
+      cp -f $cMO ${dirMO}/
+     fi
+    done
+   else
+    SHflg="$(file "$aEXE" | grep -F 'shell script')"
+    if [ "$SHflg" ];then
+     TXTDOM="$(grep '^export TEXTDOMAIN=' "$aEXE" | cut -f 2 -d '=' | cut -f 1 -d ' ')"
+     if [ "$TXTDOM" ];then
+      #find matching .mo files...
+      bMO="${TXTDOM}.mo"
+      for cMO in `find rootfs-skeleton/usr/share/locale.in -type f -name "$bMO"`
+      do
+       [ "$cMO" == "" ] && continue
+       dirMO="$(dirname $cMO | sed -e 's%rootfs-skeleton/usr/share/locale\.in/%sandbox2/usr/share/locale/%')"
+       if [ ! -f ${dirMO}/${bMO} ];then #don't overwrite the official .mo
+        mkdir -p $dirMO
+        cp -f $cMO ${dirMO}/
+       fi
+      done
+     fi
+    fi
+   fi
+  done 3<<_EOF3
+$(find sandbox2 -mindepth 1 -type f -executable)
+_EOF3
+  
+  
 
   #w019 T2 pkgs have /var/adm...
   [ -d sandbox2/var/adm ] && rm -rf sandbox2/var/adm
