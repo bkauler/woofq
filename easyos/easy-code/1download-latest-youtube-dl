@@ -1,15 +1,32 @@
 #!/bin/sh
 #3buildeasydistro will use the downloaded file.
+#20230222 official site "latest" is dec 2021
 
-curl -L https://youtube-dl.org/downloads/latest/youtube-dl -o ./youtube-dlNEW
+#curl -L https://youtube-dl.org/downloads/latest/youtube-dl -o ./youtube-dlNEW
+#curl -L https://yt-dl.org/downloads/latest/youtube-dl -o ./youtube-dlNEW
+
+wget -4 https://github.com/ytdl-org/youtube-dl/archive/refs/heads/master.zip
+
 if [ $? -ne 0 ];then
- rm -f youtube-dlNEW
+ rm -f master.zip
 fi
-if [ ! -s youtube-dlNEW ];then
- rm -f youtube-dlNEW
+if [ ! -s master.zip ];then
+ rm -f master.zip
 fi
-if [ -e youtube-dlNEW ];then
- mv -f youtube-dlNEW youtube-dl
+
+if [ -e master.zip ];then
+ mkdir -p temp1
+ mv -f master.zip temp1/
+ cd temp1
+ unzip master.zip
+ cd youtube-dl-master
+ make 2>/dev/null
+ mv -f youtube-dl ../../
+ cd ../../
+ sync
+ rm -rf temp1
+
+ #mv -f youtube-dlNEW youtube-dl
  chmod 755 youtube-dl
 fi
 

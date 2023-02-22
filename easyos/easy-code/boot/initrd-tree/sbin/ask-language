@@ -13,7 +13,7 @@ CODES2=' af am ar as be bg bn bo br ca cs cy da de dz el en eo es et eu fa fi fr
 echo -n "$CODES2" > codes2
 
 echo -n 'zz' > qlang #20230210 default invalid lang.
-dialog --no-cancel --timeout 60 --menu "Choose language" 0 0 0 $CODES 2>qlang
+dialog --no-cancel --timeout 240 --menu "Choose language" 0 0 0 $CODES 2>qlang
 
 grep -q -w -f qlang codes2
 if [ $? -ne 0 ];then #precaution.
@@ -21,9 +21,10 @@ if [ $? -ne 0 ];then #precaution.
 fi
 clear
 
-#20230221 need matching country...
+#20230221 need matching country... 20230222 fix
 LANGS12='bg_BG cs_CZ da_DK de_DE el_GR en_US es_ES et_EE fi_FI fr_FR hr_HR hu_HU is_IS it_IT lt_LT lv_LV mk_MK nl_NL pl_PL pt_PT ro_RO ru_RU sk_SK sl_SK sq_AL sr_RS sv_SE tr_TR uk_UA'
 echo -n "$LANGS12" > LANGS12
+QLANG="$(cat qlang)"
 grep -o "${QLANG}_[A-Z][A-Z]" LANGS12 > DEFLANG12
 #precaution...
 DEFLANG12="$(cat DEFLANG12)"
@@ -32,7 +33,7 @@ if [ "$DEFLANG12" == "" ];then
  echo -n 'en_US' > DEFLANG12
 fi
 
-#bring back the logo...
-if [ -e /dev/fb0 ];then
- idump -f logo1920x1440.png 2>/dev/null
-fi
+#bring back the logo... 20230222 it may not be visible
+#if [ -e /dev/fb0 ];then
+# idump -f logo1920x1440.png 2>/dev/null
+#fi

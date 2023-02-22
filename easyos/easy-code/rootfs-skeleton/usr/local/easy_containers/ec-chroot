@@ -57,6 +57,7 @@
 #20221006 new EC_ACCESS_DRI enable 3D graphics.
 #20221031 if running as zeus, think need to bump up to root.
 #20230219 added test for kirkstone container
+#20230222 fix LANG in etc/profile
 
 WHOIAM="$(whoami)"
 [ "${WHOIAM}" != "root" ] && exec sudo -A ${0} ${@} #20221031
@@ -545,6 +546,14 @@ do
   fi
  fi
 done
+
+#20230222
+if [ -f ${CONTAINER}/etc/profile ];then
+ grep -q "^LANG=${LANG/.*/}" ${CONTAINER}/etc/profile
+ if [ $? -ne 0 ];then
+  sed -i -e "s%^LANG=.*%LANG=${LANG}%" ${CONTAINER}/etc/profile
+ fi
+fi
 
 #20220630 so that pup-advert-blocker will work in container...
 grep -q 'pup-advert-blocker' /etc/hosts

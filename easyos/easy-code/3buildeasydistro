@@ -286,7 +286,7 @@
 #20230218 fix text in limine.cfg  20230221 fix.
 #20230220 copy build-choices into initrd
 #20230221 get rid some DEFAULTLANG conditions. fix 20230215
-#20230222 major rethink /usr/share/locale.in only exist in rootfs-skeleton
+#20230222 major rethink /usr/share/locale.in only exist in rootfs-skeleton. fix applications.in
 
 export LANG=C #faster.
 
@@ -5303,6 +5303,7 @@ sync
 cp -a -f --remove-destination nls/* rootfs-complete/
 sync
 
+#20230222 mv, as applications.in has translations...
 #20230221 moved down...
 #20230215 remove duplicates in /usr/share/applicatins|applications.in
 # note, see also /usr/local/petget/installpkg.sh
@@ -5311,7 +5312,8 @@ do
  [ "$aDT" == "" ] && continue
  baDT="${aDT##*/}"
  if [ -e rootfs-complete/usr/share/applications.in/${baDT} ];then
-  rm -f rootfs-complete/usr/share/applications.in/${baDT}
+  #rm -f rootfs-complete/usr/share/applications.in/${baDT}
+  mv -f rootfs-complete/usr/share/applications.in/${baDT} ${aDT}
  fi
 done
 sync
@@ -5320,11 +5322,11 @@ sync
 #20230215 there may be .xml.in files created via momanager, merge them...
 for aXML in $(find ../rootfs-skeleton/usr/local -type f -name '*.xml.in' | sed -e 's%\.\./rootfs-skeleton%%' | tr '\n' ' ')
 do
- [ ! -f $aXML ] && continue
+ [ ! -f ../rootfs-skeleton${aXML} ] && continue
  bXML="$(echo -n ${aXML} |rev|cut -d'.' -f2- | rev)" #remove .in
  #we could do some fancy merging, or just overwrite...
  cp -a -f ../rootfs-skeleton${aXML} rootfs-complete${bXML}
- rm -f rootfs-complete/${aXML} #remove the .xml.in file
+ rm -f rootfs-complete${aXML} #remove the .xml.in file
 done
 
 echo #190131...
