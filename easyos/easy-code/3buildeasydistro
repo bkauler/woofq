@@ -286,6 +286,7 @@
 #20230218 fix text in limine.cfg  20230221 fix.
 #20230220 copy build-choices into initrd
 #20230221 get rid some DEFAULTLANG conditions. fix 20230215
+#20230222 major rethink /usr/share/locale.in only exist in rootfs-skeleton
 
 export LANG=C #faster.
 
@@ -803,6 +804,14 @@ cp -f /tmp/DISTRO_SPECSCOPY sandbox3/rootfs-complete/etc/DISTRO_SPECS #170528
 
 #copy the skeleton...
 cp -a -f --remove-destination rootfs-skeleton/* sandbox3/rootfs-complete/ #150731
+sync
+
+#20230222 merge usr/share/locale.in into usr/share/locale
+cp -a -f --remove-destination sandbox3/rootfs-complete/usr/share/locale/* sandbox3/rootfs-complete/usr/share/locale.in/
+sync
+rm -rf sandbox3/rootfs-complete/usr/share/locale
+mv -f sandbox3/rootfs-complete/usr/share/locale.in sandbox3/rootfs-complete/usr/share/locale
+
 cat sandbox3/rootfs-complete/pinstall.sh >> sandbox3/pinstall.sh
 rm -f sandbox3/rootfs-complete/pinstall.sh
 
@@ -5295,7 +5304,7 @@ cp -a -f --remove-destination nls/* rootfs-complete/
 sync
 
 #20230221 moved down...
-#20230215 remove duplicates in /usr/share/applicatins|applications.in & locale|locale.in
+#20230215 remove duplicates in /usr/share/applicatins|applications.in
 # note, see also /usr/local/petget/installpkg.sh
 for aDT in $(find rootfs-complete/usr/share/applications -mindepth 1 -maxdepth 1 -type f -name '*.desktop')
 do
@@ -5306,15 +5315,7 @@ do
  fi
 done
 sync
-for aMO in $(find rootfs-complete/usr/share/locale -mindepth 1 -type f -name '*.mo')
-do
- [ "$aMO" == "" ] && continue
- cMO="$(echo -n "$aMO" | sed -e 's%/locale/%/locale.in/%')"
- if [ -e ${cMO} ];then
-  rm -f ./${cMO}
- fi
-done
-sync
+#20230222 code-block removed. rootfs-complete/usr/share/locale.in no longer exists
 
 #20230215 there may be .xml.in files created via momanager, merge them...
 for aXML in $(find ../rootfs-skeleton/usr/local -type f -name '*.xml.in' | sed -e 's%\.\./rootfs-skeleton%%' | tr '\n' ' ')
