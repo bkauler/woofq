@@ -65,6 +65,7 @@
 #20230216 prevent duplicate entries in translations4tarball. tarball: UNKNOWN into WOOF
 #20230216 find existing .mo files for binary executables.
 #20230218 run defaulttexteditor with LANG=C, so have english ui
+#20230222 major rethink /usr/share/locale.in only exist in rootfs-skeleton
 
 #***MOMANAGER IS ENGLISH ONLY (NOT GETTEXT'ED)***
 #it is for use by developers/translators with knowledge of english.
@@ -263,30 +264,16 @@ do
  #...returns aPKGNAME
 
  FNDMO=""
+ #20230222 no longer have /usr/share/locale.in
  #20230215 .mo could be in locale or locale.in
  #actually, 3buildeasydistro will have removed duplicates, but check anyway...
  if [ -f /usr/share/locale/${ORIGLANG12}/LC_MESSAGES/${TEXTDOMAINVALUE}.mo ];then
-  if [ -f /usr/share/locale.in/${ORIGLANG12}/LC_MESSAGES/${TEXTDOMAINVALUE}.mo ];then
-   rm -f /usr/share/locale.in/${ORIGLANG12}/LC_MESSAGES/${TEXTDOMAINVALUE}.mo
-  fi
   FNDMO="/usr/share/locale/${ORIGLANG12}/LC_MESSAGES/${TEXTDOMAINVALUE}.mo"
   TRANSLANG=$ORIGLANG12
  fi
  if [ -f /usr/share/locale/${ORIGLANG1}/LC_MESSAGES/${TEXTDOMAINVALUE}.mo ];then
-  if [ -f /usr/share/locale.in/${ORIGLANG1}/LC_MESSAGES/${TEXTDOMAINVALUE}.mo ];then
-   rm -f /usr/share/locale.in/${ORIGLANG1}/LC_MESSAGES/${TEXTDOMAINVALUE}.mo
-  fi
   if [ "$FNDMO" == "" ];then
    FNDMO="/usr/share/locale/${ORIGLANG1}/LC_MESSAGES/${TEXTDOMAINVALUE}.mo"
-   TRANSLANG=$ORIGLANG1
-  fi
- fi
- if [ -f /usr/share/locale.in/${ORIGLANG12}/LC_MESSAGES/${TEXTDOMAINVALUE}.mo ];then
-  FNDMO="/usr/share/locale.in/${ORIGLANG12}/LC_MESSAGES/${TEXTDOMAINVALUE}.mo"
-  TRANSLANG=$ORIGLANG12
- else
-  if [ -f /usr/share/locale.in/${ORIGLANG1}/LC_MESSAGES/${TEXTDOMAINVALUE}.mo ];then
-   FNDMO="/usr/share/locale.in/${ORIGLANG1}/LC_MESSAGES/${TEXTDOMAINVALUE}.mo"
    TRANSLANG=$ORIGLANG1
   fi
  fi
@@ -583,20 +570,11 @@ export DLG_HELP_NOSSS="<window resizable=\"false\" title=\"MoManager: Help creat
 NOSSSHELP_XML='<button><input file>/usr/local/lib/X11/mini-icons/mini-question.xpm</input><action type="launch">DLG_HELP_NOSSS</action></button>'
 
 ########Binary executables#######
-#20230216 find all .mo files...
+#20230216 find all .mo files... 20230222
 YESCNT=0 ; NOCNT=0 ; YESBIN_XML="" ; NOBIN_XML=""
-MOs="$(find /usr/share/locale/${ORIGLANG1}/LC_MESSAGES /usr/share/locale/${ORIGLANG12}/LC_MESSAGES /usr/share/locale.in/${ORIGLANG1}/LC_MESSAGES /usr/share/locale.in/${ORIGLANG12}/LC_MESSAGES -mindepth 1 -maxdepth 1 -type f -name '*.mo' 2>/dev/null)"
+MOs="$(find /usr/share/locale/${ORIGLANG1}/LC_MESSAGES /usr/share/locale/${ORIGLANG12}/LC_MESSAGES -mindepth 1 -maxdepth 1 -type f -name '*.mo' 2>/dev/null)"
 for aMO in ${MOs}
 do
- #avoid duplicates in locale and locale.in, just in case...
- case "$aMO" in
-  /usr/share/locale.in/*)
-   xaMO="$(echo -n "$aMO" | sed -e 's%/locale\.in/%/locale/%')"
-   if [ -f "$xaMO" ];then
-    continue
-   fi
-  ;;
- esac
  aPKGNAME="$(basename $aMO .mo)"
  BINEXEC="$(which $aPKGNAME)"
  [ ! "$BINEXEC" ] && BINEXEC="$(find /usr/local -maxdepth 4 -executable -type f -name ${aPKGNAME})" #ex: /usr/local/simple_network_setup/proxy-setup
@@ -640,30 +618,16 @@ do
     #...returns aPKGNAME
  
     FNDMO=""
+    #20230222 locale.in no longer exists
     #20230215 .mo could be in locale or locale.in
     #actually, 3buildeasydistro will have removed duplicates, but check anyway...
     if [ -f /usr/share/locale/${ORIGLANG12}/LC_MESSAGES/${TEXTDOMAINVALUE}.mo ];then
-     if [ -f /usr/share/locale.in/${ORIGLANG12}/LC_MESSAGES/${TEXTDOMAINVALUE}.mo ];then
-      rm -f /usr/share/locale.in/${ORIGLANG12}/LC_MESSAGES/${TEXTDOMAINVALUE}.mo
-     fi
      FNDMO="/usr/share/locale/${ORIGLANG12}/LC_MESSAGES/${TEXTDOMAINVALUE}.mo"
      TRANSLANG=$ORIGLANG12
     fi
     if [ -f /usr/share/locale/${ORIGLANG1}/LC_MESSAGES/${TEXTDOMAINVALUE}.mo ];then
-     if [ -f /usr/share/locale.in/${ORIGLANG1}/LC_MESSAGES/${TEXTDOMAINVALUE}.mo ];then
-      rm -f /usr/share/locale.in/${ORIGLANG1}/LC_MESSAGES/${TEXTDOMAINVALUE}.mo
-     fi
      if [ "$FNDMO" == "" ];then
       FNDMO="/usr/share/locale/${ORIGLANG1}/LC_MESSAGES/${TEXTDOMAINVALUE}.mo"
-      TRANSLANG=$ORIGLANG1
-     fi
-    fi
-    if [ -f /usr/share/locale.in/${ORIGLANG12}/LC_MESSAGES/${TEXTDOMAINVALUE}.mo ];then
-     FNDMO="/usr/share/locale.in/${ORIGLANG12}/LC_MESSAGES/${TEXTDOMAINVALUE}.mo"
-     TRANSLANG=$ORIGLANG12
-    else
-     if [ -f /usr/share/locale.in/${ORIGLANG1}/LC_MESSAGES/${TEXTDOMAINVALUE}.mo ];then
-      FNDMO="/usr/share/locale.in/${ORIGLANG1}/LC_MESSAGES/${TEXTDOMAINVALUE}.mo"
       TRANSLANG=$ORIGLANG1
      fi
     fi
@@ -878,11 +842,7 @@ case $EXIT in
   aTRANSLANG="`echo -n "$YESMO_COMBO" | cut -f 2 -d '(' | cut -f 1 -d ' '`" #ex: de
   AMO="`echo -n "$YESMO_COMBO" | cut -f 2 -d '(' | cut -f 1 -d ')' | cut -f 2 -d ' '`" #ex: mousecheck.mo
   APKGNAME="`echo -n "$YESMO_COMBO" | cut -f 2 -d '(' | cut -f 1 -d ')' | cut -f 3 -d ' '`" #ex: bluefish  ex: WOOF
-  if [ -f /usr/share/locale/${aTRANSLANG}/LC_MESSAGES/${AMO} ];then #20230215
-   AMOSPEC="/usr/share/locale/${aTRANSLANG}/LC_MESSAGES/${AMO}"
-  else
-   AMOSPEC="/usr/share/locale.in/${aTRANSLANG}/LC_MESSAGES/${AMO}"
-  fi
+  AMOSPEC="/usr/share/locale/${aTRANSLANG}/LC_MESSAGES/${AMO}"
   ATEXTDOMAIN="`basename $AMO .mo`"
   cp -f "$AMOSPEC" /tmp/momanager/${ATEXTDOMAIN}.moOLD
   msgunfmt --no-wrap "$AMOSPEC" > /tmp/momanager/${ATEXTDOMAIN}1.po
@@ -1620,15 +1580,7 @@ Click 'Abort' to give up..." 0 0
   AMO="`echo -n "$YESBIN_COMBO" | cut -f 2 -d '(' | cut -f 1 -d ')' | cut -f 2 -d ' '`" #ex: mousecheck.mo
   APKGNAME="`echo -n "$YESBIN_COMBO" | cut -f 2 -d '(' | cut -f 1 -d ')' | cut -f 3 -d ' '`" #ex: bluefish  ex: WOOF
   ATEXTDOMAIN="`basename $AMO .mo`"
-  if [ -f /usr/share/locale/${aTRANSLANG}/LC_MESSAGES/${AMO} ];then #20230215
-   PREFIXLOCALEDIR='/usr/share/locale'
-  else
-   if [ -f /usr/share/locale.in/${aTRANSLANG}/LC_MESSAGES/${AMO} ];then
-    PREFIXLOCALEDIR='/usr/share/locale.in'
-   else
-    PREFIXLOCALEDIR='/usr/share/locale'
-   fi
-  fi
+  PREFIXLOCALEDIR='/usr/share/locale'
   #120308 there are exceptions to /usr/share/locale. unfortunately looks like i have to hard-code those...
   case $ATEXTDOMAIN in
    ROX-Filer) PREFIXLOCALEDIR='/usr/local/apps/ROX-Filer/Messages' ;;
@@ -1811,7 +1763,7 @@ WARNING: If there is an existing mo file, MoManager uncompiles it and merges wit
       toWOOF=yes
       aDIR2="$aDIR"
      ;;
-     *usr/share/locale.in/*) #20230216
+     *usr/share/locale.in/*) #20230216  20230222 this case no longer needed.
       toWOOF=yes
       aDIR2="$aDIR"
      ;;
