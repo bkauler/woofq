@@ -83,6 +83,7 @@
 #20230213 check if .mo files in /usr/share/locale.in
 #20230215 remove duplicates in /usr/share/applicatins|applications.in & locale|locale.in (see also 3buildeasydistro)
 # ***TODO*** restore them if uninstall pkg.
+#20230222 major rethink /usr/share/locale.in only exist in rootfs-skeleton
 
 #information from 'labrador', to expand a .pet directly to '/':
 #NAME="a52dec-0.7.4"
@@ -773,24 +774,8 @@ do
  
 done
 
-#20230213 check if .mo files in /usr/share/locale.in
-MOnames="$(grep '\.mo$' /root/.packages/${DLPKG_NAME}.files)"
-for aMO in $MOnames
-do
- [ "$aMO" == "" ] && continue
- bMO="${aMO##*/}"
- for cMO in `find /usr/share/locale.in -type f -name "$bMO"`
- do
-  [ "$cMO" == "" ] && continue
-  dirMO="$(dirname $cMO | sed -e 's%\.in/%/%')"
-  if [ ! -f ${dirMO}/${bMO} ];then #don't overwrite the official .mo
-   mkdir -p $dirMO
-   cp -f $cMO ${dirMO}/
-   echo "${dirMO}/${bMO}" >> /root/.packages/${DLPKG_NAME}.files
-   rm -f $cMO #20230215
-  fi
- done
-done
+#20230222 code-block removed. /usr/share/locale.in no longer exists.
+# (it only exists in rootfs-skeleton in woofQ)
 
 #due to images at / in .pet and post-install script, .files may have some invalid entries...
 INSTFILES="`cat /root/.packages/${DLPKG_NAME}.files`"
