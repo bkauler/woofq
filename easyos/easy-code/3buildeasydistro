@@ -287,6 +287,7 @@
 #20230220 copy build-choices into initrd
 #20230221 get rid some DEFAULTLANG conditions. fix 20230215
 #20230222 major rethink /usr/share/locale.in only exist in rootfs-skeleton. fix applications.in
+#20230224 merge applications.in into applications
 
 export LANG=C #faster.
 
@@ -5303,17 +5304,50 @@ sync
 cp -a -f --remove-destination nls/* rootfs-complete/
 sync
 
-#20230222 mv, as applications.in has translations...
+#20230222 mv, as applications.in has translations... 20230224 no, merge...
 #20230221 moved down...
 #20230215 remove duplicates in /usr/share/applicatins|applications.in
-# note, see also /usr/local/petget/installpkg.sh
+# note, see also /usr/local/petget/installpkg.sh and 2createpackages
 for aDT in $(find rootfs-complete/usr/share/applications -mindepth 1 -maxdepth 1 -type f -name '*.desktop')
 do
  [ "$aDT" == "" ] && continue
  baDT="${aDT##*/}"
  if [ -e rootfs-complete/usr/share/applications.in/${baDT} ];then
   #rm -f rootfs-complete/usr/share/applications.in/${baDT}
-  mv -f rootfs-complete/usr/share/applications.in/${baDT} ${aDT}
+  #mv -f rootfs-complete/usr/share/applications.in/${baDT} ${aDT}
+  
+  #20230224 no, don't mv, merge (just like in 2createpackages)...
+  grep -F '^Name[' rootfs-complete/usr/share/applications.in/${baDT} > /tmp/2createpackages_tmp/desktop-nls-names
+  grep -F '^Name[' $ONEDESKTOP >> /tmp/2createpackages_tmp/desktop-nls-names
+  grep -Fv '^Name[' $ONEDESKTOP > /tmp/2createpackages_tmp/desktop-sans-nls-names
+  sort -t '=' -k 1,1 -u /tmp/2createpackages_tmp/desktop-nls-names > /tmp/2createpackages_tmp/desktop-nls-names2
+  while read aName
+  do
+   [ "$aName" == "" ] && continue
+   INSERTALINE="`echo -n "$aName" | sed -e 's%\[%\\\\[%' -e 's%\]%\\\\]%'`"
+   sed -i -e "s%^Name=%${INSERTALINE}\\nName=%" /tmp/2createpackages_tmp/desktop-sans-nls-names
+  done <<_EOF4
+$(cat /tmp/2createpackages_tmp/desktop-nls-names2)
+_EOF4
+  cp -f /tmp/2createpackages_tmp/desktop-sans-nls-names ${aDT}
+  #same for Comment field...
+  grep -F '^Comment[' rootfs-complete/usr/share/applications.in/${baDT} > /tmp/2createpackages_tmp/desktop-nls-comments
+  grep -F '^Comment[' $ONEDESKTOP >> /tmp/2createpackages_tmp/desktop-nls-comments
+  grep -Fv '^Comment[' $ONEDESKTOP > /tmp/2createpackages_tmp/desktop-sans-nls-comments
+  sort -t '=' -k 1,1 -u /tmp/2createpackages_tmp/desktop-nls-comments > /tmp/2createpackages_tmp/desktop-nls-comments2
+  #for aComment in `cat /tmp/2createpackages_tmp/desktop-nls-comments2 | tr '\n' ' '`
+  while read aComment
+  do
+   [ "$aComment" == "" ] && continue
+   INSERTALINE="`echo -n "$aComment" | sed -e 's%\[%\\\\[%' -e 's%\]%\\\\]%'`"
+   sed -i -e "s%^Comment=%${INSERTALINE}\\nComment=%" /tmp/2createpackages_tmp/desktop-sans-nls-comments
+  done <<_EOF5
+$(cat /tmp/2createpackages_tmp/desktop-nls-comments2)
+_EOF5
+  cp -f /tmp/2createpackages_tmp/desktop-sans-nls-comments ${aDT}
+  #now remove...
+  rm -f rootfs-complete/usr/share/applications.in/${baDT}
+  
  fi
 done
 sync
