@@ -58,6 +58,7 @@
 #20221031 if running as zeus, think need to bump up to root.
 #20230219 added test for kirkstone container
 #20230222 fix LANG in etc/profile
+#20230223 fix if PuppyPin is translated.
 
 WHOIAM="$(whoami)"
 [ "${WHOIAM}" != "root" ] && exec sudo -A ${0} ${@} #20221031
@@ -581,7 +582,15 @@ case "$EXE" in
    bEXE="easy"
   fi
   if [ ! -f ${CONTAINER}/.control/${bEXE}.run-once-top-flag ];then
-   [ -x ${CONTAINER}/.control/${bEXE}.run-once-top ] && chroot ${CONTAINER} /.control/${bEXE}.run-once-top
+   if [ -x ${CONTAINER}/.control/${bEXE}.run-once-top ];then
+    #20230223 /root/Choices/ROX-Filer/PuppyPin may be translated, translate in the container...
+    if [ "${LANG:0:2}" != "en" ];then
+     if [ -f ${CONTAINER}/usr/share/sss/desk_strings/desk_strings.${LANG:0:2} ];then
+      chroot ${CONTAINER} /usr/sbin/fixdesk ${LANG:0:2}
+     fi
+    fi
+    chroot ${CONTAINER} /.control/${bEXE}.run-once-top
+   fi
    touch ${CONTAINER}/.control/${bEXE}.run-once-top-flag
   fi
  ;;
