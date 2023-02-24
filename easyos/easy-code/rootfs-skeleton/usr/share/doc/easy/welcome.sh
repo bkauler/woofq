@@ -76,8 +76,8 @@ cat >> ${OVERLAYSVG} <<_EOF1
 <text class="mainfont" x="54.177029" y="126.66013">
   <tspan x="54.177029" y="126.66013">${S03}</tspan>
 </text>
-<text class="mainfont" x="157.11078" y="58.268532">
-  <tspan x="157.11078" y="58.268532">${S04}</tspan>
+<text class="mainfont" x="152.11078" y="58.268532">
+  <tspan x="152.11078" y="58.268532">${S04}</tspan>
 </text>
 <text class="mainfont" x="79.326881" y="61.75177">
   <tspan x="79.326881" y="61.75177">${S05}</tspan>
@@ -110,7 +110,6 @@ cat >> ${OVERLAYSVG} <<_EOF1
 <path class="mainline" d="m 70.00499,47.371474 7.496376,7.496391" />
 <path class="mainline" d="m 153.16482,37.975631 9.28126,14.278846" />
 <path class="mainline" d="m 81.500377,32.702891 8.924283,7.496393" />
-<path class="mainline" d="m 132.62704,122.80933 12.85097,-12.85096" />
 <path class="mainline" d="M 59.347165,47.555305 71.541464,64.759183" />
 <path class="mainline" d="M 38.886186,48.723655 45.942182,101.241" />
 <path class="mainline" d="m 40.853579,120.73036 1.784856,23.20313" />
