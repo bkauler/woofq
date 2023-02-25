@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #(c) Copyright Barry Kauler, Feb 2012 bkhome.org
 #licence GPL3 (refer /usr/share/doc/legal)
 #this script has been created to translate English <-> Non-English certain files that are related to the desktop in some way.
@@ -26,6 +26,7 @@
 #20220718 fix path to initrd when fixinitrd called from 3buildeasydistro
 #20230214 removed fixinitrd symlink to this script. no longer have initrd_strings, lang2initrd
 #20230224 ignore .en
+#20230225 oh crap, rox changes utf8 chars in PuppyPin, ex: Déchets becomes D&#xE9;chets
 
 #Note to developers:
 #you can run "fixdesk en" or "fixdesk de" in a terminal to convert the target files to en or de
@@ -112,10 +113,40 @@ if [ -d /var/local/sss/usr/share/sss/${SSSDOMAIN} ];then
    ##hack, really should not process /root/Choices/ROX-Filer/PuppyPin in sss-domain, only suited to static files...
    #[ "$TARGETFILE" = "/root/Choices/ROX-Filer/PuppyPin" ] && echo -n "ICONWIPE" >/var/local/pup_event_icon_change_flag #see clean_desk_icons
    echo "$CODEBLOCK" > /tmp/fixdesk-translationblock
+   if [ "$TARGETFILE" == "/root/Choices/ROX-Filer/PuppyPin" ];then #20230225
+    #extract en text from PuppyPin in easy.sfs ...
+    echo -n '' > /tmp/fixdesk-pp-out
+    while read -u 3 aLINE
+    do
+     grep -qF '>/usr/' <<<${aLINE}
+     if [ $? -ne 0 ];then
+      echo "$aLINE" >> /tmp/fixdesk-pp-out
+      continue
+     fi
+     grep -qF '<icon ' <<<${aLINE}
+     if [ $? -ne 0 ];then
+      echo "$aLINE" >> /tmp/fixdesk-pp-out
+      continue
+     fi
+     aCUT="$(echo -n "$aLINE" | grep -o '/usr/[^<]*')"
+     grep -q "${aCUT}<" /mnt/.easy_ro/easy_sfs/root/Choices/ROX-Filer/PuppyPin
+     if [ $? -ne 0 ];then
+      echo "$aLINE" >> /tmp/fixdesk-pp-out
+      continue
+     fi
+     #get en text out of orig PuppyPin, but keep current coords...
+     echo -n "$aLINE" | sed -e 's%label=.*%%' >> /tmp/fixdesk-pp-out
+     #grep "${aCUT}<" /mnt/.easy_ro/easy_sfs/root/Choices/ROX-Filer/PuppyPin | sed -e 's%.*label=%label=%' >> /tmp/fixdesk-pp-out
+     grep -o "label=.*${aCUT}</icon>" /mnt/.easy_ro/easy_sfs/root/Choices/ROX-Filer/PuppyPin >> /tmp/fixdesk-pp-out
+    done 3</root/Choices/ROX-Filer/PuppyPin
+    sync
+    cp -f /tmp/fixdesk-pp-out /root/Choices/ROX-Filer/PuppyPin
+   else
    #121124 ensure that all [ ] are escaped... 121125 revert... 121126 restore, plus escape '.' chars...
    sed -i -e 's%\[%\\[%g' -e 's$\]$\\]$g' -e 's%\\\\\[%\\[%g' -e 's%\\\\\]%\\]%g' /tmp/fixdesk-translationblock
    sed -i -e 's%\.%\\.%g' -e 's%\\\\\.%\\.%g' /tmp/fixdesk-translationblock #note: 2nd ptn gets rid of prior escape char, so there remains just one.
    sed -i -f /tmp/fixdesk-translationblock "${TRPREFIX}${TARGETFILE}" #190103
+   fi
   done
  done
 fi
