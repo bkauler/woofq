@@ -131,6 +131,7 @@
 #20230214 filter-out all locales with "@" ex: sv_FI@euro
 #20230214 no longer have /usr/sbin/lang2initrd
 #20230218 if change locale, update /mnt/wkg/.qlang
+#20230224 if changed to en, fix symlinks.
 
 WHOIAM="$(whoami)"
 [ "${WHOIAM}" != "root" ] && exec sudo -A ${0} ${@} #20221023 20221031
@@ -1459,6 +1460,12 @@ if [ "$SET_LOCALE" ];then
     LANG=${LANGCHOICE}${UTF8} /usr/share/doc/easy/home.sh
     LANG=${LANGCHOICE}${UTF8} /usr/share/doc/easy/welcome.sh
    fi
+  fi
+  #20230224 if changed to en, fix symlinks...
+  if [ "$LANG1" == "en" ];then
+   ln -snf help_en.htm /usr/share/doc/easy/help.htm
+   ln -snf home_en.htm /usr/share/doc/easy/home.htm
+   ln -snf welcome_en.htm /usr/share/doc/easy/welcome.htm
   fi
 
   if [ "$PARAM2" = "quiet" ];then #refer to /etc/rc.d/rc.country.

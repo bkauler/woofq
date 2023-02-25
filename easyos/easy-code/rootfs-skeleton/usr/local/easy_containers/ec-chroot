@@ -59,6 +59,7 @@
 #20230219 added test for kirkstone container
 #20230222 fix LANG in etc/profile
 #20230223 fix if PuppyPin is translated.
+#20230224 Caramel: export keyboard layout to Xephyr server.
 
 WHOIAM="$(whoami)"
 [ "${WHOIAM}" != "root" ] && exec sudo -A ${0} ${@} #20221031
@@ -560,6 +561,12 @@ fi
 grep -q 'pup-advert-blocker' /etc/hosts
 if [ $? -eq 0 ];then
  cp -a -f /etc/hosts ${CONTAINER}/etc/
+fi
+
+#20230224 export keyboard layout to Xephyr server
+# ref: https://unix.stackexchange.com/questions/304391/xephyr-keyboard-mapping-not-working-properly
+if [ "${ecDISPLAY/*:/}" != "0" ];then
+ setxkbmap -display :0 -print | xkbcomp - ${ecDISPLAY}
 fi
 
 #181118 was going to do this in /.control/ec-run, but in case running as zeus, do it here... 20220922 now spot.

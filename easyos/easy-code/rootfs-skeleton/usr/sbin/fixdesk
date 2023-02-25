@@ -25,6 +25,7 @@
 #20220622 lang2initrd no longer calls fixboot (which is symlink to fixdesk).
 #20220718 fix path to initrd when fixinitrd called from 3buildeasydistro
 #20230214 removed fixinitrd symlink to this script. no longer have initrd_strings, lang2initrd
+#20230224 ignore .en
 
 #Note to developers:
 #you can run "fixdesk en" or "fixdesk de" in a terminal to convert the target files to en or de
@@ -117,6 +118,10 @@ if [ -d /var/local/sss/usr/share/sss/${SSSDOMAIN} ];then
    sed -i -f /tmp/fixdesk-translationblock "${TRPREFIX}${TARGETFILE}" #190103
   done
  done
+fi
+
+if [ ! -f /usr/share/sss/${SSSFILE}/${SSSFILE}.${LANG1} ];then #20230224 ignore .en
+ exit 0
 fi
 
 #now translate to $LANG1...
