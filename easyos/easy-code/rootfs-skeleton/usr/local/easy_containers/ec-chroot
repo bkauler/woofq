@@ -566,7 +566,7 @@ fi
 #20230224 export keyboard layout to Xephyr server
 # ref: https://unix.stackexchange.com/questions/304391/xephyr-keyboard-mapping-not-working-properly
 if [ "${ecDISPLAY/*:/}" != "0" ];then
- setxkbmap -display :0 -print | xkbcomp - ${ecDISPLAY}
+ setxkbmap -display :0 -print | xkbcomp -w 0 - ${ecDISPLAY}
 fi
 
 #181118 was going to do this in /.control/ec-run, but in case running as zeus, do it here... 20220922 now spot.

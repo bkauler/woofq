@@ -93,7 +93,7 @@
 #20220119 arch linux fix.
 #20220120 support compat:dunfell in pkg-list. fix unpack arch .zst pkg. lib64 fix.
 #20220121 support arch linux folder hierarchy. 20220122
-#20230213 merge .desktop translations from /usr/share/applications.in
+#20230213 merge .desktop translations from /usr/share/applications.in  20230225 fix.
 #20230213 check if .mo files in rootfs-skeleton/usr/share/locale.in
 #20230221 improve finding .mo files in usr/share/locale.in. fix find .desktop files.
 #20230222 major rethink /usr/share/locale.in only exist in rootfs-skeleton  20230224 fix sort.
@@ -1121,12 +1121,12 @@ then run this script again and choose to build ${GENERICNAME}." >> ERROR-2CREATE
     sed -i -e "$exePTN" $ONEDESKTOP
    fi
    
-   #20230213 momanager may have created more translations... 20230221 fix 20230224 fix sort
+   #20230213 momanager may have created more translations... 20230221 fix 20230224 fix sort. 20230225 fix
    #see also /usr/local/petget/installpkg.sh
    if [ -f rootfs-skeleton/usr/share/applications.in/${baseONEDESKTOP} ];then
-     grep -F '^Name[' rootfs-skeleton/usr/share/applications.in/${baseONEDESKTOP} > /tmp/2createpackages_tmp/desktop-nls-names
-     grep -F '^Name[' $ONEDESKTOP >> /tmp/2createpackages_tmp/desktop-nls-names
-     grep -Fv '^Name[' $ONEDESKTOP > /tmp/2createpackages_tmp/desktop-sans-nls-names
+     grep -F 'Name[' rootfs-skeleton/usr/share/applications.in/${baseONEDESKTOP} > /tmp/2createpackages_tmp/desktop-nls-names
+     grep -F 'Name[' $ONEDESKTOP >> /tmp/2createpackages_tmp/desktop-nls-names
+     grep -Fv 'Name[' $ONEDESKTOP > /tmp/2createpackages_tmp/desktop-sans-nls-names
      sort -t '=' -k 1,1 -u /tmp/2createpackages_tmp/desktop-nls-names > /tmp/2createpackages_tmp/desktop-nls-names2
      #for aName in `cat /tmp/2createpackages_tmp/desktop-nls-names2 | tr '\n' ' '`
      while read aName
@@ -1139,9 +1139,9 @@ $(cat /tmp/2createpackages_tmp/desktop-nls-names2)
 EOF
      cp -f /tmp/2createpackages_tmp/desktop-sans-nls-names ${ONEDESKTOP}
      #same for Comment field...
-     grep -F '^Comment[' rootfs-skeleton/usr/share/applications.in/${baseONEDESKTOP} > /tmp/2createpackages_tmp/desktop-nls-comments
-     grep -F '^Comment[' $ONEDESKTOP >> /tmp/2createpackages_tmp/desktop-nls-comments
-     grep -Fv '^Comment[' $ONEDESKTOP > /tmp/2createpackages_tmp/desktop-sans-nls-comments
+     grep -F 'Comment[' rootfs-skeleton/usr/share/applications.in/${baseONEDESKTOP} > /tmp/2createpackages_tmp/desktop-nls-comments
+     grep -F 'Comment[' $ONEDESKTOP >> /tmp/2createpackages_tmp/desktop-nls-comments
+     grep -Fv 'Comment[' $ONEDESKTOP > /tmp/2createpackages_tmp/desktop-sans-nls-comments
      sort -t '=' -k 1,1 -u /tmp/2createpackages_tmp/desktop-nls-comments > /tmp/2createpackages_tmp/desktop-nls-comments2
      #for aComment in `cat /tmp/2createpackages_tmp/desktop-nls-comments2 | tr '\n' ' '`
      while read aComment

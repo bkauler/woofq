@@ -287,7 +287,7 @@
 #20230220 copy build-choices into initrd
 #20230221 get rid some DEFAULTLANG conditions. fix 20230215
 #20230222 major rethink /usr/share/locale.in only exist in rootfs-skeleton. fix applications.in
-#20230224 merge applications.in into applications
+#20230224 merge applications.in into applications  20230225 fix.
 
 export LANG=C #faster.
 
@@ -5225,12 +5225,11 @@ sync
 #140119 no longer creating live-cd .iso file.
 #instead, get code from script /mnt/sda10/quirky6/create-deployable-quirky...
  
-#170128 creating 'q.sfs' again...
 echo
-echo 'Now creating easy.sfs...'
 
 #20230209
 #cutdown supported languages...
+echo "Cutdown supported languages..."
 if [ "$BUILD_SUPPORT_LANGS" ];then #see build-choices file.
  tr ' ' '\n' <<<$BUILD_SUPPORT_LANGS > /tmp/3bed-lang-codes
  sed -i -e 's%:.*%%' /tmp/3bed-lang-codes
@@ -5304,6 +5303,7 @@ sync
 cp -a -f --remove-destination nls/* rootfs-complete/
 sync
 
+echo "Merge applications.in translations into applications ..."
 #20230222 mv, as applications.in has translations... 20230224 no, merge...
 #20230221 moved down...
 #20230215 remove duplicates in /usr/share/applicatins|applications.in
@@ -5316,43 +5316,44 @@ do
   #rm -f rootfs-complete/usr/share/applications.in/${baDT}
   #mv -f rootfs-complete/usr/share/applications.in/${baDT} ${aDT}
   
-  #20230224 no, don't mv, merge (just like in 2createpackages)...
-  grep -F '^Name[' rootfs-complete/usr/share/applications.in/${baDT} > /tmp/2createpackages_tmp/desktop-nls-names
-  grep -F '^Name[' $ONEDESKTOP >> /tmp/2createpackages_tmp/desktop-nls-names
-  grep -Fv '^Name[' $ONEDESKTOP > /tmp/2createpackages_tmp/desktop-sans-nls-names
+  #20230224 no, don't mv, merge (just like in 2createpackages)... 20230225 fix
+  # note, this merging is superfluous, as 2createpackages has already done it.
+  grep -F 'Name[' rootfs-complete/usr/share/applications.in/${baDT} > /tmp/2createpackages_tmp/desktop-nls-names
+  grep -F 'Name[' ${aDT} >> /tmp/2createpackages_tmp/desktop-nls-names
+  grep -Fv 'Name[' ${aDT} > /tmp/2createpackages_tmp/desktop-sans-nls-names
   sort -t '=' -k 1,1 -u /tmp/2createpackages_tmp/desktop-nls-names > /tmp/2createpackages_tmp/desktop-nls-names2
-  while read aName
+  while read -u 3 aName
   do
    [ "$aName" == "" ] && continue
    INSERTALINE="`echo -n "$aName" | sed -e 's%\[%\\\\[%' -e 's%\]%\\\\]%'`"
    sed -i -e "s%^Name=%${INSERTALINE}\\nName=%" /tmp/2createpackages_tmp/desktop-sans-nls-names
-  done <<_EOF4
+  done 3<<_EOF4
 $(cat /tmp/2createpackages_tmp/desktop-nls-names2)
 _EOF4
   cp -f /tmp/2createpackages_tmp/desktop-sans-nls-names ${aDT}
   #same for Comment field...
-  grep -F '^Comment[' rootfs-complete/usr/share/applications.in/${baDT} > /tmp/2createpackages_tmp/desktop-nls-comments
-  grep -F '^Comment[' $ONEDESKTOP >> /tmp/2createpackages_tmp/desktop-nls-comments
-  grep -Fv '^Comment[' $ONEDESKTOP > /tmp/2createpackages_tmp/desktop-sans-nls-comments
+  grep -F 'Comment[' rootfs-complete/usr/share/applications.in/${baDT} > /tmp/2createpackages_tmp/desktop-nls-comments
+  grep -F 'Comment[' ${aDT} >> /tmp/2createpackages_tmp/desktop-nls-comments
+  grep -Fv 'Comment[' ${aDT} > /tmp/2createpackages_tmp/desktop-sans-nls-comments
   sort -t '=' -k 1,1 -u /tmp/2createpackages_tmp/desktop-nls-comments > /tmp/2createpackages_tmp/desktop-nls-comments2
   #for aComment in `cat /tmp/2createpackages_tmp/desktop-nls-comments2 | tr '\n' ' '`
-  while read aComment
+  while read -u 3 aComment
   do
    [ "$aComment" == "" ] && continue
    INSERTALINE="`echo -n "$aComment" | sed -e 's%\[%\\\\[%' -e 's%\]%\\\\]%'`"
    sed -i -e "s%^Comment=%${INSERTALINE}\\nComment=%" /tmp/2createpackages_tmp/desktop-sans-nls-comments
-  done <<_EOF5
+  done 3<<_EOF5
 $(cat /tmp/2createpackages_tmp/desktop-nls-comments2)
 _EOF5
   cp -f /tmp/2createpackages_tmp/desktop-sans-nls-comments ${aDT}
   #now remove...
   rm -f rootfs-complete/usr/share/applications.in/${baDT}
-  
  fi
 done
 sync
 #20230222 code-block removed. rootfs-complete/usr/share/locale.in no longer exists
 
+echo "Merge .xml.in to .xml ..."
 #20230215 there may be .xml.in files created via momanager, merge them...
 for aXML in $(find ../rootfs-skeleton/usr/local -type f -name '*.xml.in' | sed -e 's%\.\./rootfs-skeleton%%' | tr '\n' ' ')
 do
@@ -5377,7 +5378,7 @@ fi
 #mkdir rootfs-complete/boot
 sync
 
-echo 'creating easy.sfs...'
+echo 'Creating easy.sfs...'
 #rm -rf rootfs-complete/boot/* 2>/dev/null #20210113 keep.
 mkdir -p rootfs-complete/sys
 
