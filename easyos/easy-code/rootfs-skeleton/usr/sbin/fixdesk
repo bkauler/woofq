@@ -27,6 +27,7 @@
 #20230214 removed fixinitrd symlink to this script. no longer have initrd_strings, lang2initrd
 #20230224 ignore .en
 #20230225 oh crap, rox changes utf8 chars in PuppyPin, ex: Déchets becomes D&#xE9;chets
+#20230226 if run in chroot, /mnt/.easy_ro....PuppyPin won't exist.
 
 #Note to developers:
 #you can run "fixdesk en" or "fixdesk de" in a terminal to convert the target files to en or de
@@ -113,7 +114,8 @@ if [ -d /var/local/sss/usr/share/sss/${SSSDOMAIN} ];then
    ##hack, really should not process /root/Choices/ROX-Filer/PuppyPin in sss-domain, only suited to static files...
    #[ "$TARGETFILE" = "/root/Choices/ROX-Filer/PuppyPin" ] && echo -n "ICONWIPE" >/var/local/pup_event_icon_change_flag #see clean_desk_icons
    echo "$CODEBLOCK" > /tmp/fixdesk-translationblock
-   if [ "$TARGETFILE" == "/root/Choices/ROX-Filer/PuppyPin" ];then #20230225
+   #20230226 if run in chroot, /mnt/.easy_ro....PuppyPin won't exist...
+   if [ "$TARGETFILE" == "/root/Choices/ROX-Filer/PuppyPin" -a -f /mnt/.easy_ro/easy_sfs/root/Choices/ROX-Filer/PuppyPin ];then #20230225
     #extract en text from PuppyPin in easy.sfs ...
     echo -n '' > /tmp/fixdesk-pp-out
     while read -u 3 aLINE
@@ -142,10 +144,10 @@ if [ -d /var/local/sss/usr/share/sss/${SSSDOMAIN} ];then
     sync
     cp -f /tmp/fixdesk-pp-out /root/Choices/ROX-Filer/PuppyPin
    else
-   #121124 ensure that all [ ] are escaped... 121125 revert... 121126 restore, plus escape '.' chars...
-   sed -i -e 's%\[%\\[%g' -e 's$\]$\\]$g' -e 's%\\\\\[%\\[%g' -e 's%\\\\\]%\\]%g' /tmp/fixdesk-translationblock
-   sed -i -e 's%\.%\\.%g' -e 's%\\\\\.%\\.%g' /tmp/fixdesk-translationblock #note: 2nd ptn gets rid of prior escape char, so there remains just one.
-   sed -i -f /tmp/fixdesk-translationblock "${TRPREFIX}${TARGETFILE}" #190103
+    #121124 ensure that all [ ] are escaped... 121125 revert... 121126 restore, plus escape '.' chars...
+    sed -i -e 's%\[%\\[%g' -e 's$\]$\\]$g' -e 's%\\\\\[%\\[%g' -e 's%\\\\\]%\\]%g' /tmp/fixdesk-translationblock
+    sed -i -e 's%\.%\\.%g' -e 's%\\\\\.%\\.%g' /tmp/fixdesk-translationblock #note: 2nd ptn gets rid of prior escape char, so there remains just one.
+    sed -i -f /tmp/fixdesk-translationblock "${TRPREFIX}${TARGETFILE}" #190103
    fi
   done
  done

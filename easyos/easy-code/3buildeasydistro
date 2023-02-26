@@ -287,7 +287,7 @@
 #20230220 copy build-choices into initrd
 #20230221 get rid some DEFAULTLANG conditions. fix 20230215
 #20230222 major rethink /usr/share/locale.in only exist in rootfs-skeleton. fix applications.in
-#20230224 merge applications.in into applications  20230225 fix.
+#20230224 merge applications.in into applications  20230225 fix. 20230226 fix.
 
 export LANG=C #faster.
 
@@ -298,6 +298,8 @@ if ! which gcc >/dev/null;then #need strip
  echo "You need to have the devx SFS installed. Aborting."
  exit 1
 fi
+
+mkdir -p /tmp/2createpackages_tmp #20230226
 
 #181205 random number for disk-id
 if ! which openssl >/dev/null ;then
