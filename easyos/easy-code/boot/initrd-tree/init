@@ -147,6 +147,7 @@
 #20230211 .str files folder hierarchy reorganized.
 #20230220 3buildeasydistro copies build-choices into initrd, so don't do it here.
 #20230221 oh, busybox ash does not support ${QLANG^^} capitalization
+#20230302 new wallpaper logo.
 
 #20220525 3buildeasydistro will substitute values here...
 EOS_TOP_LEVEL_ZRAM=EOSTOPLEVELZRAM #20220521 1=yes, anything else no.
@@ -611,7 +612,8 @@ if [ -e /dev/fb0 ];then
   fbRES="$(cat /sys/class/graphics/fb0/virtual_size)"
   fbX="${fbRES/,*/}"
  fi
- idump -f logo1920x1440.png 2>/dev/null
+ #idump -f logo1920x1440.png 2>/dev/null
+ idump -f logo1920x1080.png 2>/dev/null #20230302
  [ $? -ne 0 ] && rm -f /dev/fb0 #190313
 else
  clear #20220206 no logo, just clear the screen.
