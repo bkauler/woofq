@@ -45,6 +45,7 @@
 #20220916 /usr/local/easy_containers/templates/$APPname/specs may have TEMPLATE_ACCESS_MOZBARE='yes' (ex: blender)
 #20220916 blender.
 #20220923 setup for spot in container.
+#20230302 support vivaldi --no-sandbox for crippled-root in container.
 
 APPname="${1/=*/}"  #ex: seamonkey
 APPflag="${1/*=/}" #ex: true
@@ -511,6 +512,35 @@ APPname='${APPname}'" > ${PREFIXDIR1}${APPpath}/${APPname}
  return 0
 }
 
+vivaldi_func() { #20230302
+ #setup the app to run as spot or root...
+ case $APPflag in
+  true)
+   [ ! -e ${PREFIXDIR1}${APPpath}/${APPname}.bin ] && cp -a -f ${PREFIXDIR1}${APPpath}/${APPname} ${PREFIXDIR1}${APPpath}/${APPname}.bin
+   rm -f ${PREFIXDIR1}${APPpath}/${APPname} #in case it is a symlink.
+   echo "#!/bin/bash
+APPbin='${APPpath}/${APPname}.bin'
+APPname='${APPname}'
+ROOTOPTS='--no-sandbox'
+" > ${PREFIXDIR1}${APPpath}/${APPname}
+   echo "$RUNASCLIENT" >> ${PREFIXDIR1}${APPpath}/${APPname}
+   chmod 755 ${PREFIXDIR1}${APPpath}/${APPname}
+  ;;
+  false)
+   if [ -e ${PREFIXDIR1}${APPpath}/${APPname}.bin ];then
+    cp -a -f --remove-destination ${PREFIXDIR1}${APPpath}/${APPname}.bin ${PREFIXDIR1}${APPpath}/${APPname} #restore original.
+    rm -f ${PREFIXDIR1}${APPpath}/${APPname}.bin
+   fi
+   #20210915 hide, so can bring back in future...
+   if [ -d ${PREFIXDIR1}/home/.${APPname} ];then #precaution.
+    rm -rf ${PREFIXDIR1}/home/.${APPname}
+   fi
+   mv -f ${PREFIXDIR1}/home/${APPname} ${PREFIXDIR1}/home/.${APPname} 2>/dev/null
+  ;;
+ esac
+ return 0
+}
+
 #20220916 set default open/save path to /files/Blender
 blender_func() {
  #setup the app to run as spot or root...
@@ -778,6 +808,7 @@ case $APPname in
  chrome)    chromium_${APPflag}   ;; #20211022
  firefox)   firefox_${APPflag}    ;; #20211107
  blender)   blender_func  ;; #20220916
+ vivaldi)   vivaldi_func ;; #20230302
  *)         generic_func  ;;
 esac
 if [ $? -ne 0 ];then
