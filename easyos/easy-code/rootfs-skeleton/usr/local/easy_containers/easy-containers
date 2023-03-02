@@ -40,6 +40,7 @@
 #20220809 removed picscale, now resize images with ffmpeg.
 #20221006 new EC_ACCESS_DRI enable 3D graphics.
 #20221031 if running as zeus, think need to bump up to root.
+#20230302 delete a container, did not fully delete when have indirect save.
 
 WHOIAM="$(whoami)"
 [ "${WHOIAM}" != "root" ] && exec sudo -A ${0} ${@} #20221031
@@ -192,6 +193,11 @@ if [ "$EXIT" == "delete" ];then
   rm -f /usr/share/pixmaps/ec-${EC_MANAGE}48.png 2>/dev/null
   rm -f /usr/share/applications/ec-${EC_MANAGE}.desktop 2>/dev/null
   sync
+  
+  if [ -d /mnt/.easy_rw/${EC_MANAGE} ];then #20230302
+   #ok to delete this, as container aufs layers have ended...
+   rm -rf /mnt/.easy_rw/${EC_MANAGE}
+  fi
   
   if [ "$UI_DESK_MANAGER" == "rox" ];then #20220208 20220218
    #180407 remove icon from desktop...
