@@ -5127,6 +5127,14 @@ cd initrd-tree-populated
 [ -f ../initrd.q ] && rm -f ../initrd.q
 [ -f ../initrd ] && rm -f ../initrd #181130
 
+#20230304 replace "EasyOS" in translation strings...
+if [ "${INIT_DISTRO_NAME_NORMAL}" != "EasyOS" ];then
+ for aSTR in $(find nls -type f -name 'init.str' | tr '\n' ' ')
+ do
+  sed -i -e "s%EasyOS%${INIT_DISTRO_NAME_NORMAL}%g" $aSTR
+ done
+fi
+
 #20210530 leave it as-is...
 ##190311  20210423 disable gui always...
 ##if [ "${DEFAULTLANG1}" == "en" ];then

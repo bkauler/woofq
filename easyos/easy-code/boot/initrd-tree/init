@@ -148,6 +148,7 @@
 #20230220 3buildeasydistro copies build-choices into initrd, so don't do it here.
 #20230221 oh, busybox ash does not support ${QLANG^^} capitalization
 #20230302 new wallpaper logo.
+#20230304 support distro name other than "EasyOS" and "Easy".
 
 #20220525 3buildeasydistro will substitute values here...
 EOS_TOP_LEVEL_ZRAM=EOSTOPLEVELZRAM #20220521 1=yes, anything else no.
@@ -660,8 +661,21 @@ SALT="aprilandvincent" #190308 previously used $WKG_DISKID
 sed -e 's%^DISTRO_%INIT_DISTRO_%' /etc/DISTRO_SPECS > /INIT_DISTRO_SPECS
 . /INIT_DISTRO_SPECS
 
-###display info### #20220629
-echo -n -e "\\033[1;32m${INIT_DISTRO_NAME}, version ${INIT_DISTRO_VERSION}\\033[0;39m\n" #bright green
+#20230304 support names other than "EasyOS" and "Easy", see DISTRO_SPECS
+if [ ! "$INIT_DISTRO_NAME_LONG" ];then
+ INIT_DISTRO_NAME_LONG="$INIT_DISTRO_NAME"
+else
+ INIT_DISTRO_NAME="$INIT_DISTRO_NAME_LONG" #coz deprecated in DISTRO_SPECS
+fi
+if [ ! "$INIT_DISTRO_NAME_NORMAL" ];then
+ INIT_DISTRO_NAME_NORMAL='EasyOS'
+fi
+if [ ! "$INIT_DISTRO_NAME_SHORT" ];then
+ INIT_DISTRO_NAME_SHORT='Easy'
+fi
+
+###display info### #20220629 20230304
+echo -n -e "\\033[1;32m${INIT_DISTRO_NAME_NORMAL}, version ${INIT_DISTRO_VERSION}\\033[0;39m\n" #bright green
 echo
 
 ###find drives###
@@ -1386,7 +1400,7 @@ if [ ! -d /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${INIT_DISTRO_VERSION} ];then
  fi
  ln -s ../../sfs/easyos/${INIT_DISTRO_BINARY_COMPAT}/${INIT_DISTRO_COMPAT_VERSION}/easy_${INIT_DISTRO_VERSION}_${INIT_DISTRO_TARGETARCH}.sfs /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${INIT_DISTRO_VERSION}/easy.sfs
  
- #190123 need some meta-data for easy.sfs...
+ #190123 need some meta-data for easy.sfs...  20230304
  #190913 change SFS_DB_install from 'terminal' to 'desk'...
  #also need easy.png here, done in 3buildeasydistro (see #190123)
  ESUM="$(sha256sum /mnt/${WKG_DEV}/${WKG_DIR}sfs/easyos/${INIT_DISTRO_BINARY_COMPAT}/${INIT_DISTRO_COMPAT_VERSION}/easy_${INIT_DISTRO_VERSION}_${INIT_DISTRO_TARGETARCH}.sfs | cut -f 1 -d ' ')"
@@ -1400,8 +1414,8 @@ SFS_DB_categories='Utility'
 SFS_DB_size='1537668'
 SFS_DB_fullfilename='easy_${INIT_DISTRO_VERSION}_${INIT_DISTRO_TARGETARCH}.sfs'
 SFS_DB_dependencies=''
-SFS_DB_description='EasyOS base SFS'
-SFS_DB_description_long='This is the complete EasyOS filesystem.'
+SFS_DB_description='${INIT_DISTRO_NAME_NORMAL} base SFS'
+SFS_DB_description_long='This is the complete ${INIT_DISTRO_NAME_NORMAL} filesystem.'
 SFS_DB_compileddistro='${INIT_DISTRO_BINARY_COMPAT}'
 SFS_DB_compiledrelease='${INIT_DISTRO_COMPAT_VERSION}'
 SFS_DB_path='easyos/${INIT_DISTRO_BINARY_COMPAT}/${INIT_DISTRO_COMPAT_VERSION}'
