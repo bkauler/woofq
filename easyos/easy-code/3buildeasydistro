@@ -288,6 +288,7 @@
 #20230221 get rid some DEFAULTLANG conditions. fix 20230215
 #20230222 major rethink /usr/share/locale.in only exist in rootfs-skeleton. fix applications.in
 #20230224 merge applications.in into applications  20230225 fix. 20230226 fix.
+#20230304 support distro name other than "EasyOS" and "Easy".
 
 export LANG=C #faster.
 
@@ -338,6 +339,19 @@ if [ -f ./DISTRO_PKGS_SPECS-${DISTRO_BINARY_COMPAT}-${DISTRO_COMPAT_VERSION} ];t
 else
 . ./DISTRO_PKGS_SPECS-${DISTRO_BINARY_COMPAT} #has FALLBACKS_COMPAT_VERSIONS
  DPSFILE="DISTRO_PKGS_SPECS-${DISTRO_BINARY_COMPAT}" #161003
+fi
+
+#20230304 support names other than "EasyOS" and "Easy", see DISTRO_SPECS
+if [ ! "$DISTRO_NAME_LONG" ];then
+ DISTRO_NAME_LONG="$DISTRO_NAME"
+else
+ DISTRO_NAME="$DISTRO_NAME_LONG" #coz deprecated in DISTRO_SPECS
+fi
+if [ ! "$DISTRO_NAME_NORMAL" ];then
+ DISTRO_NAME_NORMAL='EasyOS'
+fi
+if [ ! "$DISTRO_NAME_SHORT" ];then
+ DISTRO_NAME_SHORT='Easy'
 fi
 
 . ./PKGS_MANAGEMENT #101013 want variable PKG_PREFER_OLDER.
@@ -617,7 +631,7 @@ fi
 #sed -i -e 's%Filsystem%Filesystem%' img_mntpt/syslinux.cfg
 #now using rEFInd...  180531 
 #200804 write entire refind.conf, syslinux.cfg... 200806 "defaultbootup" for future editing. 200810 remove "defaultbootup".
-#20211014 new entry fix broken video...
+#20211014 new entry fix broken video...  20230304 new distro name...
 if [ -f img_mntpt/EFI/BOOT/refind.conf ];then
  echo "timeout 10
 textonly on
@@ -626,7 +640,7 @@ showtools shutdown,reboot,firmware
 #scan_all_linux_kernels off
 #scanfor manual,internal
 scanfor manual
-menuentry \"EasyOS ${DISTRO_VERSION}\" {
+menuentry \"${DISTRO_NAME_NORMAL} ${DISTRO_VERSION}\" {
  loader /vmlinuz
  initrd /initrd
  ostype Linux
@@ -686,7 +700,7 @@ fi
 if [ -f img_mntpt/syslinux.cfg ];then #180531 181202 200804 20211014 20220206 removed vga=792
  echo "ui menu.c32
 
-menu title EasyOS ${DISTRO_VERSION}
+menu title ${DISTRO_NAME_NORMAL} ${DISTRO_VERSION}
 default defboot
 timeout 100
 
@@ -1473,6 +1487,44 @@ fi
 if [ -e ../youtube-dl ];then
  cp -a -f ../youtube-dl rootfs-complete/usr/bin/
 fi
+
+#20230304 support distro name other than "EasyOS" and "Easy"
+#doing this fairly early in the script (need before run welcome.sh)...
+#code based on code in woofq/puppy/7build-puppy-cd
+
+echo "replacing Easy with ${DISTRO_NAME_SHORT} in rootfs-complete scripts..."
+mkdir -p temp11
+echo -n '' > Easy-2-Wary-files.log
+for aFILE in `find rootfs-complete/usr -type f`
+do
+ [ ! "$aFILE" ] && continue
+ file ${aFILE} > /tmp/3buildeasydistro-tmp11
+ if grep -q 'shell script' /tmp/3buildeasydistro-tmp11;then
+  if ! grep -q '^export TEXTDOMAIN' "$aFILE"; then continue; fi
+  BASEPATH="$(echo -n "$aFILE" | sed -e 's%rootfs-complete/%%')"
+  BASEDIR="$(dirname "$BASEPATH")"
+  if [ -f rootfs-complete/${BASEPATH} ];then
+   echo -n '.'
+   BASENAME="$(basename ${BASEPATH})"
+   cp -a -f rootfs-complete/${BASEPATH} temp11/
+   sed -i -e 's%\(gettext [^)]*\)EasyOS%\1'"${DISTRO_NAME_NORMAL}%g" rootfs-complete/${BASEPATH}
+   sed -i -e 's%\(gettext [^)]*\)Easy\([. ]\)%\1'"${DISTRO_NAME_SHORT}"'\2%g' rootfs-complete/${BASEPATH}
+   cmp -s temp11/${BASENAME} rootfs-complete/${BASEPATH}
+   if [ $? -ne 0 ];then
+    echo "rootfs-complete/${BASEPATH}" >> Easy-2-Wary-files.log
+    #change the TEXTDOMAIN name, preppend "wary_"...
+    echo -n "${BASENAME}"
+    if ! grep -q "^export TEXTDOMAIN=${DISTRO_NAME_SHORT,,}_" rootfs-complete/${BASEPATH}; then
+     sed -i -e 's%^export TEXTDOMAIN=\([^ ]*\)%export TEXTDOMAIN='"${DISTRO_NAME_SHORT,,}_"'\1%' rootfs-complete/${BASEPATH}
+    fi
+   fi
+   rm -f temp11/${BASENAME}
+  fi
+ fi
+done
+echo
+sync
+
 
 cd .. #20230111
 
@@ -3898,7 +3950,7 @@ if [ -e rootfs-complete/usr/bin/seamonkey ];then #161231
  if [ "$SEAMONKEYASCLIENT" == "ask" ];then #20210128 20210914
   echo
   echo "Type any character then ENTER if you want SeaMonkey to run as a client,
-or just ENTER not to. Note, in a running EasyOS 'Menu->System->Login & Security
+or just ENTER not to. Note, in a running ${DISTRO_NAME_NORMAL} 'Menu->System->Login & Security
 Manager' can be used to enable or disable running as a non-root client."
   echo
   echo -n "ENTER only to run SeaMonkey as root (any other char key for client): "
@@ -3926,7 +3978,7 @@ if [ -e rootfs-complete/usr/bin/firefox ];then
  if [ "$FIREFOXASCLIENT" == "ask" ];then
   echo
   echo "Type any character then ENTER if you want Firefox to run as a client,
-or just ENTER not to. Note, in a running EasyOS 'Menu->System->Login & Security
+or just ENTER not to. Note, in a running ${DISTRO_NAME_NORMAL} 'Menu->System->Login & Security
 Manager' can be used to enable or disable running as a non-root client."
   echo
   echo -n "ENTER only to run Firefox as root (any other char key for client): "
@@ -3954,7 +4006,7 @@ if [ -e rootfs-complete/usr/bin/claws ];then
  if [ "$CLAWSASCLIENT" == "ask" ];then
   echo
   echo "Type any character then ENTER if you want Claws Mail to run as a client,
-or just ENTER not to. Note, in a running EasyOS 'Menu->System->Login & Security
+or just ENTER not to. Note, in a running ${DISTRO_NAME_NORMAL} 'Menu->System->Login & Security
 Manager' can be used to enable or disable running as a non-root client."
   echo
   echo -n "ENTER only to run Claws Mail as root (any other char key for client): "
@@ -3982,7 +4034,7 @@ if [ -e rootfs-complete/usr/bin/chromium ];then
  if [ "$CHROMIUMASCLIENT" == "ask" ];then
   echo
   echo "Type any character then ENTER if you want Chromium to run as a client,
-or just ENTER not to. Note, in a running EasyOS 'Menu->System->Login & Security
+or just ENTER not to. Note, in a running ${DISTRO_NAME_NORMAL} 'Menu->System->Login & Security
 Manager' can be used to enable or disable running as a non-root client."
   echo
   echo -n "ENTER only to run Chromium as root (any other char key for client): "
@@ -4010,7 +4062,7 @@ if [ -e rootfs-complete/usr/bin/hexchat ];then
  if [ "$HEXCHATASCLIENT" == "ask" ];then
   echo
   echo "Type any character then ENTER if you want HexChat to run as a client,
-or just ENTER not to. Note, in a running EasyOS 'Menu->System->Login & Security
+or just ENTER not to. Note, in a running ${DISTRO_NAME_NORMAL} 'Menu->System->Login & Security
 Manager' can be used to enable or disable running as a non-root client."
   echo
   echo -n "ENTER only to run HexChat as root (any other char key for client): "
@@ -4263,11 +4315,12 @@ fi
 #140215 chromium looks for executable 'lsb_release' but this is a python3 script,
 #so have created my own script, see rootfs-skeleton/usr/bin
 #also create this, maybe debian/ubuntu apps want it...
+#20230304 new names...
 echo "LSB_VERSION=n/a
-DISTRIB_ID=EasyOS
+DISTRIB_ID=${DISTRO_NAME_NORMAL}
 DISTRIB_RELEASE=${DISTRO_VERSION}
 DISTRIB_CODENAME=${DISTRO_FILE_PREFIX}
-DISTRIB_DESCRIPTION=\"${DISTRO_NAME}\"" > rootfs-complete/etc/lsb-release
+DISTRIB_DESCRIPTION=\"${DISTRO_NAME_LONG}\"" > rootfs-complete/etc/lsb-release
 
 #141207 'planner' pet installs /var/scrollkeeper, but 'scrollkeeper' pkg has same stuff in /var/lib
 #(which I have put into the devx). hope not really needed at runtime...
@@ -5399,7 +5452,7 @@ mkdir export-sfs-${DEFAULTLANG1}
 SIZEK="$(du -s -k rootfs-complete | cut -f 1)"
 echo "Creating meta-data for easy..."
 #190911 change DB_install from 'terminal' to 'desk'...
-#20220603 change DB_* to SFS_DB_* ...
+#20220603 change DB_* to SFS_DB_* ...  20230304 new distro name...
 echo "#generated by 3buildeasydistro:
 SFS_DB_pkgname='easy_${VER}'
 SFS_DB_nameonly='easy'
@@ -5410,8 +5463,8 @@ SFS_DB_categories='Utility'
 SFS_DB_size='${SIZEK}'
 SFS_DB_fullfilename='easy_${VER}_${DISTRO_TARGETARCH}.sfs'
 SFS_DB_dependencies=''
-SFS_DB_description='EasyOS base SFS'
-SFS_DB_description_long='This is the complete EasyOS filesystem, the ${DISTRO_COMPAT_VERSION} series.'
+SFS_DB_description='${DISTRO_NAME_NORMAL} base SFS'
+SFS_DB_description_long='This is the complete ${DISTRO_NAME_NORMAL} filesystem, the ${DISTRO_COMPAT_VERSION} series.'
 SFS_DB_compileddistro='${DISTRO_BINARY_COMPAT}'
 SFS_DB_compiledrelease='${DISTRO_COMPAT_VERSION}'
 SFS_DB_path='easyos/${DISTRO_BINARY_COMPAT}/${DISTRO_COMPAT_VERSION}'
@@ -5799,9 +5852,9 @@ if [ "$DEFAULTLANG1" != "en" ];then
 fi
 
 if [ "$BOOTLOADER" == "limine" ];then #20221010
- #20230218
- BRANDINGFIELD="EasyOS Limine Boot Manager"
- COMMENTFIELD="EasyOS ${DISTRO_COMPAT_VERSION^} bootup" #ex: Kirkstone
+ #20230218  20230304
+ BRANDINGFIELD="${DISTRO_NAME_NORMAL} Limine Boot Manager"
+ COMMENTFIELD="${DISTRO_NAME_NORMAL} ${DISTRO_COMPAT_VERSION^} bootup" #ex: Kirkstone
  OPTIONSFIELD="Options..."
  FBVFIELD="Fix broken video"
  FBVCOMMENTFIELD="Run Xorg Video Wizard to fix broken video"
@@ -5812,7 +5865,7 @@ DEFAULT_ENTRY=1
 INTERFACE_BRANDING=${BRANDINGFIELD}
 INTERFACE_RESOLUTION=800x600
 
-:EasyOS ${DISTRO_COMPAT_VERSION^}
+:${DISTRO_NAME_NORMAL} ${DISTRO_COMPAT_VERSION^}
     COMMENT=${COMMENTFIELD}
     RESOLUTION=800x600
     PROTOCOL=linux
