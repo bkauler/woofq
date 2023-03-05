@@ -288,7 +288,8 @@
 #20230221 get rid some DEFAULTLANG conditions. fix 20230215
 #20230222 major rethink /usr/share/locale.in only exist in rootfs-skeleton. fix applications.in
 #20230224 merge applications.in into applications  20230225 fix. 20230226 fix.
-#20230304 support distro name other than "EasyOS" and "Easy".
+#20230304 support distro name other than "EasyOS" and "Easy". 
+#20230305 tweaks. replace "easy.sfs"
 
 export LANG=C #faster.
 
@@ -1491,39 +1492,80 @@ fi
 #20230304 support distro name other than "EasyOS" and "Easy"
 #doing this fairly early in the script (need before run welcome.sh)...
 #code based on code in woofq/puppy/7build-puppy-cd
-
-echo "replacing Easy with ${DISTRO_NAME_SHORT} in rootfs-complete scripts..."
-mkdir -p temp11
-echo -n '' > Easy-2-Wary-files.log
-for aFILE in `find rootfs-complete/usr -type f`
-do
- [ ! "$aFILE" ] && continue
- file ${aFILE} > /tmp/3buildeasydistro-tmp11
- if grep -q 'shell script' /tmp/3buildeasydistro-tmp11;then
-  if ! grep -q '^export TEXTDOMAIN' "$aFILE"; then continue; fi
-  BASEPATH="$(echo -n "$aFILE" | sed -e 's%rootfs-complete/%%')"
-  BASEDIR="$(dirname "$BASEPATH")"
-  if [ -f rootfs-complete/${BASEPATH} ];then
-   echo -n '.'
-   BASENAME="$(basename ${BASEPATH})"
-   cp -a -f rootfs-complete/${BASEPATH} temp11/
-   sed -i -e 's%\(gettext [^)]*\)EasyOS%\1'"${DISTRO_NAME_NORMAL}%g" rootfs-complete/${BASEPATH}
-   sed -i -e 's%\(gettext [^)]*\)Easy\([. ]\)%\1'"${DISTRO_NAME_SHORT}"'\2%g' rootfs-complete/${BASEPATH}
-   cmp -s temp11/${BASENAME} rootfs-complete/${BASEPATH}
-   if [ $? -ne 0 ];then
-    echo "rootfs-complete/${BASEPATH}" >> Easy-2-Wary-files.log
-    #change the TEXTDOMAIN name, preppend "wary_"...
-    echo -n "${BASENAME}"
-    if ! grep -q "^export TEXTDOMAIN=${DISTRO_NAME_SHORT,,}_" rootfs-complete/${BASEPATH}; then
-     sed -i -e 's%^export TEXTDOMAIN=\([^ ]*\)%export TEXTDOMAIN='"${DISTRO_NAME_SHORT,,}_"'\1%' rootfs-complete/${BASEPATH}
+#20230305 i think best restrict search to rootfs-skeleton, not rootfs-complete...
+if [ "$DISTRO_NAME_SHORT" != "Easy" ];then
+ echo "replacing Easy with ${DISTRO_NAME_SHORT} in rootfs-skeleton scripts..."
+ mkdir -p temp11
+ echo -n '' > Easy-2-Wary-files.log
+ for aFILE in `find ../rootfs-skeleton/usr -type f`
+ do
+  [ ! "$aFILE" ] && continue
+  file ${aFILE} > /tmp/3buildeasydistro-tmp11
+  if ! grep -q -E 'ASCII text|UTF-8 text' /tmp/3buildeasydistro-tmp11 ; then continue; fi
+  if grep -q 'shell script' /tmp/3buildeasydistro-tmp11;then
+   if ! grep -q '^export TEXTDOMAIN' "$aFILE"; then continue; fi
+   BASEPATH="$(echo -n "$aFILE" | sed -e 's%\.\./rootfs-skeleton/%%')"
+   BASEDIR="$(dirname "$BASEPATH")"
+   if [ -f rootfs-complete/${BASEPATH} ];then
+    echo -n '.'
+    BASENAME="$(basename ${BASEPATH})"
+    cp -a -f rootfs-complete/${BASEPATH} temp11/
+    sed -i -e 's%\(gettext [^)]*\)EasyOS%\1'"${DISTRO_NAME_NORMAL}%g" rootfs-complete/${BASEPATH}
+    sed -i -e 's%\(gettext [^)]*\)Easy\([. ]\)%\1'"${DISTRO_NAME_SHORT}"'\2%g' rootfs-complete/${BASEPATH}
+    cmp -s temp11/${BASENAME} rootfs-complete/${BASEPATH}
+    if [ $? -ne 0 ];then
+     echo "rootfs-complete/${BASEPATH}" >> Easy-2-Wary-files.log
+     #change the TEXTDOMAIN name, preppend "wary_"...
+     echo -n "${BASENAME}"
+     if ! grep -q "^export TEXTDOMAIN=${DISTRO_NAME_SHORT,,}_" rootfs-complete/${BASEPATH}; then
+      sed -i -e 's%^export TEXTDOMAIN=\([^ ]*\)%export TEXTDOMAIN='"${DISTRO_NAME_SHORT,,}_"'\1%' rootfs-complete/${BASEPATH}
+     fi
     fi
+    rm -f temp11/${BASENAME}
    fi
-   rm -f temp11/${BASENAME}
   fi
- fi
-done
-echo
-sync
+ done
+ echo
+ sync
+fi
+
+#20230305 replace "easy.sfs" with ${DISTRO_NAME_SHORT,,} (lowercase letters)
+#do this separate to the above code-block, in case change my mind...
+if [ "$DISTRO_NAME_SHORT" != "Easy" ];then
+ echo "replacing all \"easy.sfs\" text with \"${DISTRO_NAME_SHORT,,}.sfs\" ..."
+ for aFILE in $(grep -rl 'easy\.sfs' ../rootfs-skeleton)
+ do
+  [ "$aFILE" == "" ] && continue
+  BASEPATH="$(echo -n "$aFILE" | sed -e 's%\.\./rootfs-skeleton/%%')"
+  BASEDIR="$(dirname "$BASEPATH")"
+  BASENAME="$(basename ${BASEPATH})"
+  if ! -f rootfs-complete/${BASEPATH} ; then continue; fi #precaution.
+  file ${aFILE} > /tmp/3buildeasydistro-tmp11
+  if ! grep -q -E 'ASCII text|UTF-8 text' /tmp/3buildeasydistro-tmp11 ; then continue; fi
+  echo -n '.'
+  if grep -q 'shell script' /tmp/3buildeasydistro-tmp11;then
+   #detect if easy.sfs is occurring in a gettext string...
+   if grep -q '^export TEXTDOMAIN' "$aFILE"; then
+    cp -a -f rootfs-complete/${BASEPATH} temp11/
+    sed -i -e 's%\(gettext [^)]*\)easy\.sfs%\1'"${DISTRO_NAME_SHORT,,}.sfs%g" rootfs-complete/${BASEPATH}
+    cmp -s temp11/${BASENAME} rootfs-complete/${BASEPATH}
+    if [ $? -ne 0 ];then
+     echo "rootfs-complete/${BASEPATH}" >> Easy-2-Wary-files.log
+     #change the TEXTDOMAIN name, preppend "wary_"...
+     echo -n "${BASENAME}"
+     if ! grep -q "^export TEXTDOMAIN=${DISTRO_NAME_SHORT,,}_" rootfs-complete/${BASEPATH} ; then
+      sed -i -e 's%^export TEXTDOMAIN=\([^ ]*\)%export TEXTDOMAIN='"${DISTRO_NAME_SHORT,,}_"'\1%' rootfs-complete/${BASEPATH}
+     fi
+    fi
+    rm -f temp11/${BASENAME}
+   fi
+  fi
+  #direct substitution in all text files...
+  sed -i -e "s%easy\.sfs%${DISTRO_NAME_SHORT,,}.sfs%g" rootfs-complete/${BASEPATH}
+ done
+ sync
+ echo
+fi
 
 
 cd .. #20230111
@@ -5128,10 +5170,16 @@ cd initrd-tree-populated
 [ -f ../initrd ] && rm -f ../initrd #181130
 
 #20230304 replace "EasyOS" in translation strings...
-if [ "${INIT_DISTRO_NAME_NORMAL}" != "EasyOS" ];then
+#20230305 also replace "easy.sfs"
+if [ "${DISTRO_NAME_NORMAL}" != "EasyOS" ];then
  for aSTR in $(find nls -type f -name 'init.str' | tr '\n' ' ')
  do
-  sed -i -e "s%EasyOS%${INIT_DISTRO_NAME_NORMAL}%g" $aSTR
+  sed -i -e "s%EasyOS%${DISTRO_NAME_NORMAL}%g" $aSTR
+  sed -i -e "s%easy\.sfs%${DISTRO_NAME_SHORT,,}.sfs%g" $aSTR
+ done
+ for aSCRIPT in init sbin/uninstall sbin/rollback sbin/fixlayers sbin/ask-language sbin/fscheck containers/easy/bk-notes containers/console/bk-notes
+ do
+  sed -i -e "s%easy\.sfs%${DISTRO_NAME_SHORT,,}.sfs%g" $aSCRIPT
  done
 fi
 
