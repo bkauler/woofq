@@ -289,7 +289,7 @@
 #20230222 major rethink /usr/share/locale.in only exist in rootfs-skeleton. fix applications.in
 #20230224 merge applications.in into applications  20230225 fix. 20230226 fix.
 #20230304 support distro name other than "EasyOS" and "Easy". 
-#20230305 tweaks. replace "easy.sfs"
+#20230305 tweaks. support rename "easy.sfs". support "easy-*.img" rename.
 
 export LANG=C #faster.
 
@@ -565,6 +565,19 @@ if [ "${DISTRO_SKELETON_IMAGE/*.img./}" == "gz" ];then
  gunzip ${SKELETON_NAME}.img.gz
 else
  SKELETON_NAME="${DISTRO_SKELETON_IMAGE%.img}"
+fi
+
+#20230305 rename "easy-..."
+if [ "${DISTRO_NAME_SHORT,,}" != "easy" ];then
+ oldSKEL="$SKELETON_NAME"
+ SKELETON_NAME="$(echo -n "$oldSKEL" | sed -e "s%^easy%${DISTRO_NAME_SHORT,,}%")"
+ mv -f sandbox3/${oldSKEL}.img sandbox3/${SKELETON_NAME}.img
+ if [ "${DISTRO_SKELETON_IMAGE/*.img./}" == "gz" ];then
+  DISTRO_SKELETON_IMAGE="${SKELETON_NAME}.img.gz"
+ else
+  DISTRO_SKELETON_IMAGE="${SKELETON_NAME}.img"
+ fi
+ #also fix DISTRO_SKELETON_IMAGE in rootfs-complete/etc/DISTRO_SPECS, see below
 fi
 
 #20220511 detect sizes of partitions in img...  20220622
@@ -1566,6 +1579,15 @@ if [ "$DISTRO_NAME_SHORT" != "Easy" ];then
  sync
  echo
 fi
+
+#20230305 DISTRO_SKELETON_IMAGE name got modified above, update in DISTRO_SPECS...
+if [ "$DISTRO_NAME_SHORT" != "Easy" ];then
+ sed -i -e  "s%^DISTRO_SKELETON_IMAGE=.*%DISTRO_SKELETON_IMAGE='${DISTRO_SKELETON_IMAGE}'%" rootfs-complete/etc/DISTRO_SPECS
+ #also, update mime db for easy-*.img renamed to ${DISTRO_NAME_SHORT,,}-*.img
+ sed -i -e "s%<glob pattern=\"easy\-\*\.img\"%<glob pattern=\"${DISTRO_NAME_SHORT,,}-*.img\"/>\n    <glob pattern=\"easy-*.img\"%" rootfs-complete/usr/share/mime/packages/puppy.xml
+ #note, update-mime-database is run further down...
+fi
+
 
 
 cd .. #20230111
@@ -6010,48 +6032,28 @@ if [ "$WOOF_TARGETARCH" == "x86" ];then #20220801
  sync
 fi
 
-#200929 more meaningful to change easy- to easy-${DISTRO_COMPAT_VERSION}-  20201117 revert...
+#20230305 easy-*.img rename to ${DISTRO_NAME_SHORT,,}-*.img ...
+[ -f ${DISTRO_NAME_SHORT,,}-${DISTRO_VERSION}-${DISTRO_TARGETARCH}.img ] && rm -f ${DISTRO_NAME_SHORT,,}-${DISTRO_VERSION}-${DISTRO_TARGETARCH}.img
 
-[ -f easy-${DISTRO_VERSION}-${DISTRO_TARGETARCH}.img ] && rm -f easy-${DISTRO_VERSION}-${DISTRO_TARGETARCH}.img
-[ -f easy-${DISTRO_VERSION}-${DISTRO_TARGETARCH}.img.gz ] && rm -f easy-${DISTRO_VERSION}-${DISTRO_TARGETARCH}.img.gz
-[ -f easy-${DISTRO_VERSION}-${DEFAULTLANG1}-${DISTRO_TARGETARCH}.img ] && rm -f easy-${DISTRO_VERSION}-${DEFAULTLANG1}-${DISTRO_TARGETARCH}.img #190112
-[ -f easy-${DISTRO_VERSION}-${DEFAULTLANG1}-${DISTRO_TARGETARCH}.img.gz ] && rm -f easy-${DISTRO_VERSION}-${DEFAULTLANG1}-${DISTRO_TARGETARCH}.img.gz #190112
-
-#20220512 do not compress...
-if [ "$DEFAULTLANG1" == "en" ];then #190107
- mv -f ${SKELETON_NAME}.img easy-${DISTRO_VERSION}-${DISTRO_TARGETARCH}.img
- md5sum easy-${DISTRO_VERSION}-${DISTRO_TARGETARCH}.img > md5sum-en.txt
- sync
- echo "easy-${DISTRO_VERSION}-${DISTRO_TARGETARCH}.img has been created..."
-# #200727 "--rsyncable" to make downloads with rsync more efficient...
-# gzip --rsyncable easy-${DISTRO_VERSION}-${DISTRO_TARGETARCH}.img
-# sync
- echo
- echo "easy-${DISTRO_VERSION}-${DISTRO_TARGETARCH}.img has been created. this may be written to"
- echo "any flash-stick or sd-card, 8GB or greater. 16GB minimum recommended."
-else
- mv -f ${SKELETON_NAME}.img easy-${DISTRO_VERSION}-${DEFAULTLANG1}-${DISTRO_TARGETARCH}.img
- md5sum easy-${DISTRO_VERSION}-${DEFAULTLANG1}-${DISTRO_TARGETARCH}.img > md5sum-${DEFAULTLANG1}.txt
- sync
- echo "easy-${DISTRO_VERSION}-${DEFAULTLANG1}-${DISTRO_TARGETARCH}.img has been created..."
-# gzip --rsyncable easy-${DISTRO_VERSION}-${DEFAULTLANG1}-${DISTRO_TARGETARCH}.img #200727
-# sync
-# echo
- echo "easy-${DISTRO_VERSION}-${DEFAULTLANG1}-${DISTRO_TARGETARCH}.img has been created. this may be written to"
- echo "any flash-stick or sd-card, 2GB or greater. 4GB minimum recommended."
-fi
+mv -f ${SKELETON_NAME}.img ${DISTRO_NAME_SHORT,,}-${DISTRO_VERSION}-${DISTRO_TARGETARCH}.img
+md5sum ${DISTRO_NAME_SHORT,,}-${DISTRO_VERSION}-${DISTRO_TARGETARCH}.img > md5sum-en.txt
+sync
+echo "${DISTRO_NAME_SHORT,,}-${DISTRO_VERSION}-${DISTRO_TARGETARCH}.img has been created..."
+echo
+echo "${DISTRO_NAME_SHORT,,}-${DISTRO_VERSION}-${DISTRO_TARGETARCH}.img has been created. this may be written to"
+echo "any flash-stick or sd-card, 8GB or greater. 16GB minimum recommended."
 
 [ "${DEFAULTLANG/_*/}" != "en" ] && exit #20220624 moved up.
 
-#20220623 create .delta files.  20220624 fix.
+#20220623 create .delta files.  20220624 fix. 20230305 also check for old easy-*.img
 #format: oldimg___latestimg.delta
 #need to find all prior version .img files. um, maybe just do the previous version...
 echo "Creating delta files:"
 rm -rf deltas 2>/dev/null
 mkdir -p deltas
 xDISTRO_VERSION="$(echo -n "$DISTRO_VERSION" | sed -e 's%\.%\\.%g')"
-NEWIMGS="$(find . -mindepth 1 -maxdepth 1 -type f -name 'easy-*.img' | grep "\-${xDISTRO_VERSION}\-" | tr '\n' ' ')"
-OLDIMGS="$(find . -mindepth 1 -maxdepth 1 -type f -name 'easy-*.img' | grep -v "\-${xDISTRO_VERSION}\-" | tr '\n' ' ')"
+NEWIMGS="$(find . -mindepth 1 -maxdepth 1 -type f -name '${DISTRO_NAME_SHORT,,}-*.img' | grep "\-${xDISTRO_VERSION}\-" | tr '\n' ' ')"
+OLDIMGS="$(find . -mindepth 1 -maxdepth 1 -type f -name '${DISTRO_NAME_SHORT,,}-*.img' -o -name 'easy-*.img' | grep -v "\-${xDISTRO_VERSION}\-" | tr '\n' ' ')"
 for aNEW in $NEWIMGS
 do
  aNEW="${aNEW#./}"

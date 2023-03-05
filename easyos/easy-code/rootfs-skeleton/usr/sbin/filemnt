@@ -26,10 +26,16 @@
 #         see /etc/xdg/rox.sourceforge.net/MIME-types/application_easy-disk-image
 #         see /usr/sbin/build-rox-sendto, /usr/share/applications/mount-img.desktop
 #20220624 easy*.img, call mount-img
+#20230305 easy-*.img may have a different name.
+
+. /etc/DISTRO_SPECS #20230305
+if [ ! "$DISTRO_NAME_SHORT" ];then
+ DISTRO_NAME_SHORT='Easy'
+fi
 
 imgFile="$1"
-case "${imgFile##*/}" in #20220624
- easy-*.img)
+case "${imgFile##*/}" in #20220624  20230305
+ ${DISTRO_NAME_SHORT,,}-*.img)
   exec mount-img "$1"
  ;;
 esac

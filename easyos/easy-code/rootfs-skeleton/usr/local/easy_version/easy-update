@@ -29,6 +29,7 @@
 #20220628 check md5sum of local image file. 20220629
 #20220728 remove .delta after update.
 #20230221 no longer have language-specific .img files.
+#20230305 easy-*.img may have a different name. note: "easy.sfs" changed in 3buildeasydistro
 
 export TEXTDOMAIN=easy-update
 export OUTPUT_CHARSET=UTF-8
@@ -43,6 +44,10 @@ PARENT="${$}"
 . /etc/rc.d/PUPSTATE #has PUP_HOME
 . /etc/DISTRO_SPECS #has DISTRO_BINARY_COMPAT, DISTRO_COMPAT_VERSION DISTRO_TARGETARCH
 . /root/.packages/DISTRO_PET_REPOS #has PET_REPOS, PACKAGELISTS_PET_ORDER, SFS_REPOS
+
+if [ ! "$DISTRO_NAME_SHORT" ];then #20230305 test if not defined in DISTRO_SPECS
+ DISTRO_NAME_SHORT='Easy'
+fi
 
 if [ -d /boot/device-tree ];then #20220621 rpi
  #this is a hack...
@@ -174,20 +179,20 @@ echo
 #get rid of any old compressed...
 rm -f easy-*.img.gz 2>/dev/null
 
-#see if already downloaded new version...
+#see if already downloaded new version... 20230305
 askdl='download'
 HAVEDELTA='no'
-if [ -f easy-${latestVER}-${DISTRO_TARGETARCH}.img ];then
+if [ -f ${DISTRO_NAME_SHORT,,}-${latestVER}-${DISTRO_TARGETARCH}.img ];then
  sync
- mv -f easy-${latestVER}-${DISTRO_TARGETARCH}.img XXXeasy-${latestVER}-${DISTRO_TARGETARCH}.img
- rm -f easy-*.img 2>/dev/null #get rid of any others.
+ mv -f ${DISTRO_NAME_SHORT,,}-${latestVER}-${DISTRO_TARGETARCH}.img XXX${DISTRO_NAME_SHORT,,}-${latestVER}-${DISTRO_TARGETARCH}.img
+ rm -f ${DISTRO_NAME_SHORT,,}-*.img 2>/dev/null #get rid of any others.
  sync
- mv -f XXXeasy-${latestVER}-${DISTRO_TARGETARCH}.img easy-${latestVER}-${DISTRO_TARGETARCH}.img
+ mv -f XXX${DISTRO_NAME_SHORT,,}-${latestVER}-${DISTRO_TARGETARCH}.img ${DISTRO_NAME_SHORT,,}-${latestVER}-${DISTRO_TARGETARCH}.img
 
  echo
  echo -en '\033[1;35m' #bright magenta
  echo "$(gettext 'The latest image file has already been downloaded:')"
- echo " easy-${latestVER}-${DISTRO_TARGETARCH}.img"
+ echo " ${DISTRO_NAME_SHORT,,}-${latestVER}-${DISTRO_TARGETARCH}.img"
  echo "$(gettext 'Do you want to install it, or re-download it?')"
  echo -n "$(gettext 'Press ENTER only to install, any other char to re-download:')"
  echo -en '\033[0;39m' #reset.
@@ -196,23 +201,28 @@ if [ -f easy-${latestVER}-${DISTRO_TARGETARCH}.img ];then
   echo " $(gettext '...have chosen to install existing image file')"
  else
   echo " $(gettext '...have chosen to erase the image file and re-download it')"
-  rm -f easy-${latestVER}-${DISTRO_TARGETARCH}.img
+  rm -f ${DISTRO_NAME_SHORT,,}-${latestVER}-${DISTRO_TARGETARCH}.img
  fi
 else #20220623
  #rm -f easy-*.img 2>/dev/null #get rid of any others.
  #20220623 no, keep latest version, maybe there is a .delta online
- LASTIMG="$(ls -1 easy-*.img 2>/dev/null | sort -V -t "-" | tail -n 1)"
  #sortedVERS="$(echo "$VERS" | sort -t. -k 1,1n -k 2,2n -k 3,3n -k 4,4n)" #lowest to highest. or, could use full sort "-V" option.
  #latestVER="$(echo "$sortedVERS" | tail -n 1)"
  # ...nah, using sort -V
+ if [ "${DISTRO_NAME_SHORT}" == "Easy" ];then #20230305
+  LASTIMG="$(ls -1 easy-*.img 2>/dev/null | sort -V -t "-" | tail -n 1)"
+ else
+  LASTIMG="$(ls -1 easy-*.img ${DISTRO_NAME_SHORT,,}-*.img 2>/dev/null | sort -V -t "-" -k 2,2 | tail -n 1)"
+ fi
  if [ "$LASTIMG" ];then
   mv -f ${LASTIMG} XXX${LASTIMG}
   rm -f easy-*.img 2>/dev/null #get rid of any others.
+  rm -f ${DISTRO_NAME_SHORT,,}-*.img 2>/dev/null #20230305
   sync
   mv -f XXX${LASTIMG} ${LASTIMG}
   echo "$(gettext 'You have this local file:') ${LASTIMG}"
   echo "$(gettext 'Looking online to see if a delta file exists...')"
-  wget -4 -S --spider https://distro.ibiblio.org/easyos/${DISTRO_TARGETARCH}/releases/${DISTRO_COMPAT_VERSION}${DEEPER}/${YEAR}/${latestVER}/deltas/${LASTIMG}___easy-${latestVER}-${DISTRO_TARGETARCH}.img.delta > /tmp/easy-update-delta-probe 2>&1 
+  wget -4 -S --spider https://distro.ibiblio.org/easyos/${DISTRO_TARGETARCH}/releases/${DISTRO_COMPAT_VERSION}${DEEPER}/${YEAR}/${latestVER}/deltas/${LASTIMG}___${DISTRO_NAME_SHORT,,}-${latestVER}-${DISTRO_TARGETARCH}.img.delta > /tmp/easy-update-delta-probe 2>&1 
   grep -q 'HTTP/1\.1 200 OK' /tmp/easy-update-delta-probe
   if [ $? -ne 0 ];then
    echo " $(gettext '...no it does not. will have to download full-size latest version.')"
@@ -276,11 +286,11 @@ if [ "$HAVEDELTA" == "yes" ];then
   exit 9
  fi
  
- rm -f ${LASTIMG}___easy-${latestVER}-${DISTRO_TARGETARCH}.img.delta 2>/dev/null
- download_file https://distro.ibiblio.org/easyos/${DISTRO_TARGETARCH}/releases/${DISTRO_COMPAT_VERSION}${DEEPER}/${YEAR}/${latestVER}/deltas/${LASTIMG}___easy-${latestVER}-${DISTRO_TARGETARCH}.img.delta
+ rm -f ${LASTIMG}___${DISTRO_NAME_SHORT,,}-${latestVER}-${DISTRO_TARGETARCH}.img.delta 2>/dev/null
+ download_file https://distro.ibiblio.org/easyos/${DISTRO_TARGETARCH}/releases/${DISTRO_COMPAT_VERSION}${DEEPER}/${YEAR}/${latestVER}/deltas/${LASTIMG}___${DISTRO_NAME_SHORT,,}-${latestVER}-${DISTRO_TARGETARCH}.img.delta
  RET=$?
  if [ $RET -eq 0 ];then
-  MD5SUM="$(md5sum ${LASTIMG}___easy-${latestVER}-${DISTRO_TARGETARCH}.img.delta | cut -f 1 -d ' ')"
+  MD5SUM="$(md5sum ${LASTIMG}___${DISTRO_NAME_SHORT,,}-${latestVER}-${DISTRO_TARGETARCH}.img.delta | cut -f 1 -d ' ')"
   grep -q "$MD5SUM" md5sums.txt
   if [ $? -ne 0 ];then
    rm -f md5sums.txt 2>/dev/null
@@ -292,22 +302,22 @@ if [ "$HAVEDELTA" == "yes" ];then
   echo "$(gettext 'Something went wrong with the download. Aborting')"
   echo -en '\033[0;39m' #reset.
   rm -f md5sums.txt 2>/dev/null
-  rm -f ${LASTIMG}___easy-${latestVER}-${DISTRO_TARGETARCH}.img.delta 2>/dev/null
+  rm -f ${LASTIMG}___${DISTRO_NAME_SHORT,,}-${latestVER}-${DISTRO_TARGETARCH}.img.delta 2>/dev/null
   rm -rf ./.cache 2>/dev/null
   echo -e "\033[1;31m${MSGexit}\033[0;39m"
   exit 9
  fi
  sync
- chown root:root ${LASTIMG}___easy-${latestVER}-${DISTRO_TARGETARCH}.img.delta
+ chown root:root ${LASTIMG}___${DISTRO_NAME_SHORT,,}-${latestVER}-${DISTRO_TARGETARCH}.img.delta
  echo "$(gettext 'Download successful, generating the latest image file...')"
- xdelta3 -d -s ${LASTIMG} ${LASTIMG}___easy-${latestVER}-${DISTRO_TARGETARCH}.img.delta easy-${latestVER}-${DISTRO_TARGETARCH}.img
+ xdelta3 -d -s ${LASTIMG} ${LASTIMG}___${DISTRO_NAME_SHORT,,}-${latestVER}-${DISTRO_TARGETARCH}.img.delta ${DISTRO_NAME_SHORT,,}-${latestVER}-${DISTRO_TARGETARCH}.img
  if [ $? -ne 0 ];then
   echo -en '\033[1;31m' #bright red.
   echo "$(gettext 'Something went wrong. Maybe the .delta file is corrupted. Aborting.')"
   echo -en '\033[0;39m' #reset.
   rm -f md5sums.txt 2>/dev/null
-  rm -f ${LASTIMG}___easy-${latestVER}-${DISTRO_TARGETARCH}.img.delta 2>/dev/null
-  rm -f easy-${latestVER}-${DISTRO_TARGETARCH}.img 2>/dev/null
+  rm -f ${LASTIMG}___${DISTRO_NAME_SHORT,,}-${latestVER}-${DISTRO_TARGETARCH}.img.delta 2>/dev/null
+  rm -f ${DISTRO_NAME_SHORT,,}-${latestVER}-${DISTRO_TARGETARCH}.img 2>/dev/null
   rm -rf ./.cache 2>/dev/null
   echo -e "\033[1;31m${MSGexit}\033[0;39m"
   exit 9
@@ -315,7 +325,7 @@ if [ "$HAVEDELTA" == "yes" ];then
   echo "$(gettext 'Yippee, the new image file has been generated!')"
   echo
   rm -f md5sums.txt 2>/dev/null
-  md5sum easy-${latestVER}-${DISTRO_TARGETARCH}.img > md5sum.txt
+  md5sum ${DISTRO_NAME_SHORT,,}-${latestVER}-${DISTRO_TARGETARCH}.img > md5sum.txt
  fi
 fi
 
@@ -323,7 +333,7 @@ if [ "$askdl" != "" ];then
  #download latest, full-size image file...
  echo
  echo -en '\033[1;35m' #bright magenta
- echo "$(gettext 'Downloading') easy-${latestVER}-${DISTRO_TARGETARCH}.img ..."
+ echo "$(gettext 'Downloading') ${DISTRO_NAME_SHORT,,}-${latestVER}-${DISTRO_TARGETARCH}.img ..."
  echo -en '\033[0;39m' #reset.
   
  #20220625 get md5sum... 20230221
@@ -338,11 +348,11 @@ if [ "$askdl" != "" ];then
   echo -e "\033[1;31m${MSGexit}\033[0;39m"
   exit 9
  fi
- download_file https://distro.ibiblio.org/easyos/${DISTRO_TARGETARCH}/releases/${DISTRO_COMPAT_VERSION}${DEEPER}/${YEAR}/${latestVER}/easy-${latestVER}-${DISTRO_TARGETARCH}.img
+ download_file https://distro.ibiblio.org/easyos/${DISTRO_TARGETARCH}/releases/${DISTRO_COMPAT_VERSION}${DEEPER}/${YEAR}/${latestVER}/${DISTRO_NAME_SHORT,,}-${latestVER}-${DISTRO_TARGETARCH}.img
  RETVAL=$?
  
  if [ $RETVAL -eq 0 ];then #20220625
-  MD5SUM="$(md5sum easy-${latestVER}-${DISTRO_TARGETARCH}.img | cut -f 1 -d ' ')"
+  MD5SUM="$(md5sum ${DISTRO_NAME_SHORT,,}-${latestVER}-${DISTRO_TARGETARCH}.img | cut -f 1 -d ' ')"
   grep -q "$MD5SUM" md5sum.txt
   if [ $? -ne 0 ];then
    rm -f md5sum.txt 2>/dev/null
@@ -354,7 +364,7 @@ if [ "$askdl" != "" ];then
   echo -en '\033[1;31m' #bright red.
   echo "$(gettext 'Something went wrong with the download. Aborting')"
   echo -en '\033[0;39m' #reset.
-  rm -f easy-${latestVER}-${DISTRO_TARGETARCH}.img 2>/dev/null #20220512 only remove aborted update .img
+  rm -f ${DISTRO_NAME_SHORT,,}-${latestVER}-${DISTRO_TARGETARCH}.img 2>/dev/null #20220512 only remove aborted update .img
   rm -rf ./.cache 2>/dev/null
   rm -f md5sum.txt 2>/dev/null
   echo -e "\033[1;31m${MSGexit}\033[0;39m"
@@ -363,12 +373,12 @@ if [ "$askdl" != "" ];then
 fi
 
 #20210425 fedora: has strange group:owner
-chown root:root /mnt/${WKG_DEV}/${WKG_DIR}easy-${latestVER}-${DISTRO_TARGETARCH}.img
+chown root:root /mnt/${WKG_DEV}/${WKG_DIR}${DISTRO_NAME_SHORT,,}-${latestVER}-${DISTRO_TARGETARCH}.img
 
 #offer to install...
 echo -en '\033[1;35m' #bright magenta
 echo "$(gettext 'This file has been downloaded:')"
-echo "/mnt/${WKG_DEV}/${WKG_DIR}easy-${latestVER}-${DISTRO_TARGETARCH}.img"
+echo "/mnt/${WKG_DEV}/${WKG_DIR}${DISTRO_NAME_SHORT,,}-${latestVER}-${DISTRO_TARGETARCH}.img"
 if [ "$KERNAME" == "kernel8.img" ];then #20210125 rpi  20210701
  echo "$(gettext 'You may do a manual update, by clicking on the file to open it up, drag kernel8.img, initrd and the device-tree files to the boot-partition, and easy.sfs to the working-partition, then click on initrd to fix the BOOT_SPECS file. These steps are documented online.')" | fold -s -w ${COLUMNS}
 else
@@ -393,7 +403,7 @@ echo -en '\033[0;39m' #reset.
 sync
 
 rm -rf /tmp/mount-img-* 2>/dev/null
-mount-img easy-${latestVER}-${DISTRO_TARGETARCH}.img quiet
+mount-img ${DISTRO_NAME_SHORT,,}-${latestVER}-${DISTRO_TARGETARCH}.img quiet
 CNT=$? #number of partitions mounted.
 #...should have folders /tmp/mount-img-${CNT}-${aFS}-${LOOPn##*/}
 #   /tmp/mount-img-1-vfat-loop<n> and /tmp/mount-img-2-ext4-loop<m>
@@ -418,7 +428,7 @@ if [ $CNT -ne 2 ];then
   CNT=$(($CNT+1))
  done
  
- rm -f easy-${latestVER}-${DISTRO_TARGETARCH}.img
+ rm -f ${DISTRO_NAME_SHORT,,}-${latestVER}-${DISTRO_TARGETARCH}.img
  echo -e "\033[1;31m${MSGexit}\033[0;39m"
  exit 11
 fi
@@ -455,11 +465,11 @@ while [ 1 ];do #200826 sanity checks...
   sync
   busybox cmp -s ${MNTPT2}/easyos/initrd /mnt/${WKG_DEV}/${WKG_DIR}initrd
   if [ $? -eq 0 ];then
-   echo -n ' easy.sfs PLEASE WAIT...'
-   cp -a -f ${MNTPT2}/easyos/easy.sfs /mnt/${WKG_DEV}/${WKG_DIR}
+   echo -n ' easy.sfs PLEASE WAIT...' #note 3buidleasydistro substitutes easy.sfs
+   cp -a -f ${MNTPT2}/easyos/${DISTRO_NAME_SHORT,,}.sfs /mnt/${WKG_DEV}/${WKG_DIR}
    sync
-   busybox cmp -s ${MNTPT2}/easyos/easy.sfs /mnt/${WKG_DEV}/${WKG_DIR}easy.sfs
-   [ $? -ne 0 ] && FAILED='easy.sfs'
+   busybox cmp -s ${MNTPT2}/easyos/${DISTRO_NAME_SHORT,,}.sfs /mnt/${WKG_DEV}/${WKG_DIR}${DISTRO_NAME_SHORT,,}.sfs
+   [ $? -ne 0 ] && FAILED="easy.sfs"
   else
    FAILED='initrd'
   fi
@@ -501,7 +511,7 @@ if [ -d /boot/device-tree ];then #20210125 rpi
  echo "$(gettext 'The new easy.sfs has the latest device-tree files in it, extracting and copying them to the boot partition...')" | fold -s -w ${COLUMNS}
  echo -en '\033[0;39m' #reset.
  mkdir mntpt2
- busybox mount -t squashfs -o loop,ro /mnt/${WKG_DEV}/${WKG_DIR}easy.sfs mntpt2
+ busybox mount -t squashfs -o loop,ro /mnt/${WKG_DEV}/${WKG_DIR}${DISTRO_NAME_SHORT,,}.sfs mntpt2
  if [ -d mntpt2/boot/device-tree ];then
   cp -a -f mntpt2/boot/device-tree/* /mnt/${BOOT_DEV}/${BOOT_DIR}
  fi
@@ -518,6 +528,7 @@ fi
 
 #20220728 remove .delta file...
 rm -f easy*.delta 2>/dev/null
+rm -f ${DISTRO_NAME_SHORT,,}*.delta 2>/dev/null
 
 #maybe unmount boot-partition... for rpi4
 [ $BOOTflg -eq 1 ] && umount /mnt/${BOOT_DEV}
@@ -534,7 +545,7 @@ if [ "$KERNAME" == "kernel8.img" ];then
 else
  echo "$(gettext 'Which has the new files vmlinuz and initrd')"
 fi
-echo "$(gettext 'Which has the new file easy.sfs')"
+echo "$(gettext ' and has the new file easy.sfs')"
 echo "$(gettext 'The new version will be:') ${latestVER}"
 echo -n "$(gettext 'All that you have to do is reboot!')"
 echo -e '\033[0;39m\033[49m' #reset. 20211221
@@ -542,7 +553,7 @@ echo -e '\033[0;39m\033[49m' #reset. 20211221
 echo
 echo -en '\033[1;34m' #blue
 echo "$(gettext 'This is the downloaded file:')"
-echo "/mnt/${WKG_DEV}/${WKG_DIR}easy-${latestVER}-${DISTRO_TARGETARCH}.img"
+echo "/mnt/${WKG_DEV}/${WKG_DIR}${DISTRO_NAME_SHORT,,}-${latestVER}-${DISTRO_TARGETARCH}.img"
 echo "$(gettext 'It is not needed anymore. You can delete it or archive it somewhere.')"
 echo "$(gettext 'However, at the next update, this file can be used for a smaller difference-file download, so recommend leave it where it is.')" | fold -s -w ${COLUMNS}
 echo
