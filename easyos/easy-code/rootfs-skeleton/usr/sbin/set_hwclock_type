@@ -5,6 +5,7 @@
 #20221018 fix height of window, display radiobuttons properly.
 #20221018 show hw and software actual times.
 #20221020 fix hwclock, need to use busybox applet.
+#20230308 no need for 'Done' msg at end.
 
 export TEXTDOMAIN=set_hwclock_type
 export OUTPUT_CHARSET=UTF-8
@@ -62,6 +63,6 @@ if [ "$HWCLOCKTIME" = "utc" ] || [ "$HWCLOCKTIME" = "localtime" ]; then
       hwclock --systohc --$HWCLOCKTIME
     fi
 
-    Xdialog --title "$(gettext 'Set HW-Clock Type')" --infobox "$(gettext 'Done')" 0 0 4000
+    #Xdialog --title "$(gettext 'Set HW-Clock Type')" --infobox "$(gettext 'Done')" 0 0 4000
 
 fi
