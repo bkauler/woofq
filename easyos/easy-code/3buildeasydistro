@@ -1506,6 +1506,8 @@ fi
 #doing this fairly early in the script (need before run welcome.sh)...
 #code based on code in woofq/puppy/7build-puppy-cd
 #20230305 i think best restrict search to rootfs-skeleton, not rootfs-complete...
+#20230308 immediately fix new distro-name in .mo files...
+echo -n '' > /tmp/3buildeasydistro-chg-td #20230308
 if [ "$DISTRO_NAME_SHORT" != "Easy" ];then
  echo "Replacing Easy with ${DISTRO_NAME_SHORT} in rootfs-skeleton scripts..."
  mkdir -p temp11
@@ -1528,11 +1530,27 @@ if [ "$DISTRO_NAME_SHORT" != "Easy" ];then
     cmp -s temp11/${BASENAME} rootfs-complete/${BASEPATH}
     if [ $? -ne 0 ];then
      echo "rootfs-complete/${BASEPATH}" >> Easy-2-Wary-files.log
-     #change the TEXTDOMAIN name, preppend "wary_"...
-     echo -n "${BASENAME}"
-     if ! grep -q "^export TEXTDOMAIN=${DISTRO_NAME_SHORT,,}_" rootfs-complete/${BASEPATH}; then
-      sed -i -e 's%^export TEXTDOMAIN=\([^ ]*\)%export TEXTDOMAIN='"${DISTRO_NAME_SHORT,,}_"'\1%' rootfs-complete/${BASEPATH}
+     
+     #20230308 instead of change textdomain, edit .mo files...
+     ##change the TEXTDOMAIN name, preppend "wary_"...
+     #echo -n "${BASENAME}"
+     #if ! grep -q "^export TEXTDOMAIN=${DISTRO_NAME_SHORT,,}_" rootfs-complete/${BASEPATH}; then
+     # sed -i -e 's%^export TEXTDOMAIN=\([^ ]*\)%export TEXTDOMAIN='"${DISTRO_NAME_SHORT,,}_"'\1%' rootfs-complete/${BASEPATH}
+     #fi
+     aaTEXTDOMAIN="$(grep '^export TEXTDOMAIN=' rootfs-complete/${BASEPATH} | cut -f 2 -d '=' | cut -f 1 -d ' ')"
+     grep -q -x "$aaTEXTDOMAIN" /tmp/3buildeasydistro-chg-td
+     if [ $? -ne 0 ];then
+      for aaMO in $(find rootfs-complete/usr/share/locale -type f -name "${aaTEXTDOMAIN}.mo")
+      do
+       [ "$aaMO" == "" ] && continue
+       msgunfmt --no-wrap ${aaMO} > /tmp/3buildeasydistro-tmp.po
+       sed -i -e "s%Easy%${DISTRO_NAME_SHORT}%g" /tmp/3buildeasydistro-tmp.po
+       rm -f ./${aaMO}
+       msgfmt --output-file=${aaMO} /tmp/3buildeasydistro-tmp.po
+      done
+      echo "$aaTEXTDOMAIN" >> /tmp/3buildeasydistro-chg-td
      fi
+     
     fi
     rm -f temp11/${BASENAME}
    fi
@@ -1544,6 +1562,7 @@ fi
 
 #20230305 replace "easy.sfs" with ${DISTRO_NAME_SHORT,,} (lowercase letters)
 #do this separate to the above code-block, in case change my mind...
+echo -n '' > /tmp/3buildeasydistro-chg-td #20230308
 if [ "$DISTRO_NAME_SHORT" != "Easy" ];then
  echo "replacing all \"easy.sfs\" text with \"${DISTRO_NAME_SHORT,,}.sfs\" ..."
  for aFILE in $(grep -rl 'easy\.sfs' ../rootfs-skeleton)
@@ -1564,11 +1583,27 @@ if [ "$DISTRO_NAME_SHORT" != "Easy" ];then
     cmp -s temp11/${BASENAME} rootfs-complete/${BASEPATH}
     if [ $? -ne 0 ];then
      echo "rootfs-complete/${BASEPATH}" >> Easy-2-Wary-files.log
-     #change the TEXTDOMAIN name, preppend "wary_"...
-     echo -n "${BASENAME}"
-     if ! grep -q "^export TEXTDOMAIN=${DISTRO_NAME_SHORT,,}_" rootfs-complete/${BASEPATH} ; then
-      sed -i -e 's%^export TEXTDOMAIN=\([^ ]*\)%export TEXTDOMAIN='"${DISTRO_NAME_SHORT,,}_"'\1%' rootfs-complete/${BASEPATH}
+     
+     #20230308 instead of change textdomain, edit .mo files...
+     ##change the TEXTDOMAIN name, preppend "wary_"...
+     #echo -n "${BASENAME}"
+     #if ! grep -q "^export TEXTDOMAIN=${DISTRO_NAME_SHORT,,}_" rootfs-complete/${BASEPATH} ; then
+     # sed -i -e 's%^export TEXTDOMAIN=\([^ ]*\)%export TEXTDOMAIN='"${DISTRO_NAME_SHORT,,}_"'\1%' rootfs-complete/${BASEPATH}
+     #fi
+     aaTEXTDOMAIN="$(grep '^export TEXTDOMAIN=' rootfs-complete/${BASEPATH} | cut -f 2 -d '=' | cut -f 1 -d ' ')"
+     grep -q -x "$aaTEXTDOMAIN" /tmp/3buildeasydistro-chg-td
+     if [ $? -ne 0 ];then
+      for aaMO in $(find rootfs-complete/usr/share/locale -type f -name "${aaTEXTDOMAIN}.mo")
+      do
+       [ "$aaMO" == "" ] && continue
+       msgunfmt --no-wrap ${aaMO} > /tmp/3buildeasydistro-tmp.po
+       sed -i -e "s%easy\.sfs%${DISTRO_NAME_SHORT,,}.sfs%g" /tmp/3buildeasydistro-tmp.po
+       rm -f ./${aaMO}
+       msgfmt --output-file=${aaMO} /tmp/3buildeasydistro-tmp.po
+      done
+      echo "$aaTEXTDOMAIN" >> /tmp/3buildeasydistro-chg-td
      fi
+     
     fi
     rm -f temp11/${BASENAME}
    fi
@@ -4807,9 +4842,9 @@ SMflg='no'
 #doing the pre-created ones here (refer initrd-tree). runtime-created, refer /usr/local/easy_containers/easy-containers
 #get pngoverlay from host, in case of cross-build...
 
-#20220416 fix...
+#20220416 fix... 20230307 fix
 if [ ! -f rootfs-complete/usr/local/lib/X11/pixmaps/easy48.png ];then
- cp -f rootfs-complete/usr/share/doc/logo48.png rootfs-complete/usr/local/lib/X11/pixmaps/easy48.png #180720 181122
+ cp -f -L rootfs-complete/usr/share/doc/logo48.png rootfs-complete/usr/local/lib/X11/pixmaps/easy48.png #180720 181122
 fi
 if [ "$PNGOVERLAYEXE" ];then #20210409 new pngoverlay-cairo
  cd rootfs-complete/usr/local/lib/X11/pixmaps
