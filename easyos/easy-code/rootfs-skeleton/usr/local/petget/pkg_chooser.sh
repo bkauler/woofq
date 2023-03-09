@@ -42,7 +42,7 @@
 #190813 aborted update of db's resulted in *pre files getting left behind.
 #20220903 optional dpkg|apt sync.  20220905
 #20221023 may be running as zeus super-user. 20221031 think still need to bump to root.
-#20230309 have removed /usr/local/debget
+#20230309 have removed /usr/local/debget. make repo radiobuttons shorter, remove "debian-"
 
 #/usr/local/petget/service_pack.sh & #121125 offer download Service Pack.
 
@@ -244,6 +244,7 @@ do
  REPOCUT="`echo -n "$ONEREPO" | cut -f 2-4 -d '-'`"
  [ "$REPOS_RADIO" = "" ] && FIRST_DB="$REPOCUT"
  xREPOCUT="$(echo -n "$REPOCUT" | sed -e 's%\-official$%%')" #120905 window too wide.
+ xREPOCUT="$(echo -n "$xREPOCUT" | sed -e 's%^debian\-%%')" #20230309
  REPOS_RADIO="${REPOS_RADIO}<radiobutton><label>${xREPOCUT}</label><action>/tmp/filterversion.sh ${REPOCUT}</action><action>/usr/local/petget/filterpkgs.sh</action><action>refresh:TREE1</action></radiobutton>"
  echo "$REPOCUT" >> /tmp/petget_active_repo_list #120903 needed in findnames.sh
  repocnt=`expr $repocnt + 1`
