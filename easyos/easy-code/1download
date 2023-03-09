@@ -37,6 +37,7 @@
 #170825 checking ibiblio pets, wget needs  --no-check-certificate
 #20220119 arch linux fix.
 #20220120 support compat:dunfell pkgs.
+#20230309 support compat:kirkstone
 
 export LANG=C #faster.
 
@@ -464,6 +465,11 @@ do
    if [ "$DBFILE" == "Packages-oe-dunfell-official" ];then
     xPACKAGES='packages-oe-dunfell'
     xBIN_URLS="https://distro.ibiblio.org/easyos/${DISTRO_TARGETARCH}/packages/oe" #db has "dunfell" path.
+    xDISTRO_BINARY_COMPAT='oe'
+   fi
+   if [ "$DBFILE" == "Packages-oe-kirkstone-official" ];then #20230309
+    xPACKAGES='packages-oe-kirkstone'
+    xBIN_URLS="https://distro.ibiblio.org/easyos/${DISTRO_TARGETARCH}/packages/oe" #db has "kirkstone" path.
     xDISTRO_BINARY_COMPAT='oe'
    fi
   fi

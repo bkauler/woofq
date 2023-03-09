@@ -97,6 +97,7 @@
 #20230213 check if .mo files in rootfs-skeleton/usr/share/locale.in
 #20230221 improve finding .mo files in usr/share/locale.in. fix find .desktop files.
 #20230222 major rethink /usr/share/locale.in only exist in rootfs-skeleton  20230224 fix sort.
+#20230309 support compat:kirkstone
 
 export LANG=C #faster.
 
@@ -651,6 +652,11 @@ Do it, then rerun this script and choose to build $GENERICNAME." >> ERROR-2CREAT
     xPACKAGES='packages-oe-dunfell'
     xDISTRO_BINARY_COMPAT='oe'
     xDISTRO_COMPAT_VERSION='dunfell'
+   fi
+   if [ "$DBFILE" == "Packages-oe-kirkstone-official" ];then #20230309
+    xPACKAGES='packages-oe-kirkstone'
+    xDISTRO_BINARY_COMPAT='oe'
+    xDISTRO_COMPAT_VERSION='kirkstone'
    fi
   fi
   

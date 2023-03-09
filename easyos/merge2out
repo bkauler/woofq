@@ -38,6 +38,7 @@
 #20220119 arch linux fix.
 #20220120 want to use oe dunfell pkgs in arch linux builds.
 #20220131 new build path. separate PKGSPATH from PROJECTPATH
+#20230309 use oe kirkstone pkgs in non-oe builds.
 
 [ ! -d ./easy-arch ] && exit
 [ ! -d ./easy-code ] && exit
@@ -370,6 +371,12 @@ mkdir -p ${PKGSPATH}/local-repositories/${TARGETARCH}/packages-oe-dunfell
 [ -f easy-distro/${TARGETARCH}/oe/dunfell/Packages-oe-dunfell-official ] && cp -af easy-distro/${TARGETARCH}/oe/dunfell/Packages-oe-dunfell-official ${BUILDSPATH}/easy-out_${HOSTARCH}_${TARGETARCH}_${COMPATDISTRO}_${COMPATVERSION}/
 [ -f easy-distro/${TARGETARCH}/oe/Packages-oe-dunfell-official ] && cp -af easy-distro/${TARGETARCH}/oe/Packages-oe-dunfell-official ${BUILDSPATH}/easy-out_${HOSTARCH}_${TARGETARCH}_${COMPATDISTRO}_${COMPATVERSION}/
 [ ! -e ${BUILDSPATH}/easy-out_${HOSTARCH}_${TARGETARCH}_${COMPATDISTRO}_${COMPATVERSION}/packages-oe-dunfell ] && ln -sr ${PKGSPATH}/local-repositories/${TARGETARCH}/packages-oe-dunfell ${BUILDSPATH}/easy-out_${HOSTARCH}_${TARGETARCH}_${COMPATDISTRO}_${COMPATVERSION}/packages-oe-dunfell
+
+#20230309 want to use oe kirkstone pkgs in non-oe builds...
+mkdir -p ${PKGSPATH}/local-repositories/${TARGETARCH}/packages-oe-kirkstone
+[ -f easy-distro/${TARGETARCH}/oe/kirkstone/Packages-oe-kirkstone-official ] && cp -af easy-distro/${TARGETARCH}/oe/kirkstone/Packages-oe-kirkstone-official ${BUILDSPATH}/easy-out_${HOSTARCH}_${TARGETARCH}_${COMPATDISTRO}_${COMPATVERSION}/
+[ -f easy-distro/${TARGETARCH}/oe/Packages-oe-kirkstone-official ] && cp -af easy-distro/${TARGETARCH}/oe/Packages-oe-kirkstone-official ${BUILDSPATH}/easy-out_${HOSTARCH}_${TARGETARCH}_${COMPATDISTRO}_${COMPATVERSION}/
+[ ! -e ${BUILDSPATH}/easy-out_${HOSTARCH}_${TARGETARCH}_${COMPATDISTRO}_${COMPATVERSION}/packages-oe-kirkstone ] && ln -sr ${PKGSPATH}/local-repositories/${TARGETARCH}/packages-oe-kirkstone ${BUILDSPATH}/easy-out_${HOSTARCH}_${TARGETARCH}_${COMPATDISTRO}_${COMPATVERSION}/packages-oe-kirkstone
 
 #151104
 mkdir -p ${BUILDSPATH}/easy-out_${HOSTARCH}_${TARGETARCH}_${COMPATDISTRO}_${COMPATVERSION}/puppy

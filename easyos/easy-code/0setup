@@ -51,6 +51,7 @@
 #20220120 compat:dunfell to get pkg from oe dunfell repo, for non-oe builds.
 #20220120 arch linux: remove fraction from size. fix db arch|20211231
 #20220829 debdb2pupdb rewritten in nim. now in /usr/local/debget
+#20230309 support compat:kirkstone
 
 LANGORG="$(locale | grep '^LANG=' | cut -d '=' -f 2)" #121116
 export LANG=C #faster.
@@ -895,6 +896,9 @@ do
   REPOSPEC2="$(echo -n "$AFIELD2345" | cut -f 4 -d '|' | cut -f 2 -d ':')" #compat:dunfell, extract 'dunfell'.
   if [ "$REPOSPEC2" == "dunfell" ];then
    xPKGNAMES="$(cat Packages-oe-dunfell-official | cut -f 1,2,3 -d '|')"
+  fi
+  if [ "$REPOSPEC2" == "kirkstone" ];then #20230309
+   xPKGNAMES="$(cat Packages-oe-kirkstone-official | cut -f 1,2,3 -d '|')"
   fi
  fi
  ASSIGNFIELD="`echo -n "$AFIELD2345" | cut -f 3 -d '|'`" #120804 ex: exe>dev,dev,doc,nls
