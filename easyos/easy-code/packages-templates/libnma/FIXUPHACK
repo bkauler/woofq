@@ -1,0 +1,9 @@
+
+#20230309 debian bookworm
+#pkg network-manager-gnome has /usr/share/glib-2.0/schemas/org.gnome.nm-applet.gschema.xml
+#which works. libnma has org.gnome.nm-applet.eap.gschema.xml which clashes and
+#nm-applet tray applet won't start.
+if [ -e usr/share/glib-2.0/schemas/org.gnome.nm-applet.eap.gschema.xml ];then
+ rm -f usr/share/glib-2.0/schemas/org.gnome.nm-applet.eap.gschema.xml
+fi
+

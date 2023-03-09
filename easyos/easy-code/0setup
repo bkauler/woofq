@@ -51,7 +51,7 @@
 #20220120 compat:dunfell to get pkg from oe dunfell repo, for non-oe builds.
 #20220120 arch linux: remove fraction from size. fix db arch|20211231
 #20220829 debdb2pupdb rewritten in nim. now in /usr/local/debget
-#20230309 support compat:kirkstone
+#20230309 support compat:kirkstone. missing pkg, limit number of alternatives.
 
 LANGORG="$(locale | grep '^LANG=' | cut -d '=' -f 2)" #121116
 export LANG=C #faster.
@@ -957,6 +957,7 @@ do
    do
     echo "$CNT  $zONE"
     CNT=$(($CNT + 1))
+    [ $CNT -gt 60 ] && break #20230309
    done
    echo -n 'Type number of choice, else ENTER only to fail: '
    read zNUM
