@@ -36,6 +36,7 @@
 #20230207 removed some code that deletes firefox when installed via ff update. 20230208 fix.
 #20230210 always load .str.en, in case non-english is incomplete.
 #20230211 .str files folder hierarchy reorganized.
+#20230309 have removed /usr/local/debget
 
 WKG_DRV=$1 #ex: sda
 WKG_DEV=$2 #ex: sda2
@@ -305,17 +306,18 @@ do
   [ -e ${onelayer}/usr/local/petget/${onefile} ] && cp -a --remove-destination /easy_ro/easy_sfs/usr/local/petget/${onefile} /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/petget/ 2>/dev/null
  done
 done
-#20220829 /usr/local/debget
-mkdir -p /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/debget
-for onefile in apt-setup apt-update debdb2pupdb files-pup2dpkg-single get-keys missing-deps2dpkg pupdb2debdb-single.sh sync-dpkg2pupdb sync-new2dpkg sync-remove2dpkg sync-woof2dpkg
-do
- [ -e /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/debget/${onefile} ] && rm -f /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/debget/${onefile}
- #however, if on a ro layer (not easy.sfs), copy it up from easy.sfs to top...
- for onelayer in ${EXTRASFSDIRS}
- do
-  [ -e ${onelayer}/usr/local/debget/${onefile} ] && cp -a --remove-destination /easy_ro/easy_sfs/usr/local/debget/${onefile} /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/debget/ 2>/dev/null
- done
-done
+#20230309 have removed /usr/local/debget ...
+##20220829 /usr/local/debget
+#mkdir -p /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/debget
+#for onefile in apt-setup apt-update debdb2pupdb files-pup2dpkg-single get-keys missing-deps2dpkg pupdb2debdb-single.sh sync-dpkg2pupdb sync-new2dpkg sync-remove2dpkg sync-woof2dpkg
+#do
+# [ -e /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/debget/${onefile} ] && rm -f /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/debget/${onefile}
+# #however, if on a ro layer (not easy.sfs), copy it up from easy.sfs to top...
+# for onelayer in ${EXTRASFSDIRS}
+# do
+#  [ -e ${onelayer}/usr/local/debget/${onefile} ] && cp -a --remove-destination /easy_ro/easy_sfs/usr/local/debget/${onefile} /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/debget/ 2>/dev/null
+# done
+#done
 #200729 /usr/local/pgprs...
 mkdir -p /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/pgprs
 for onefile in pgprs-connect pgprs-setup

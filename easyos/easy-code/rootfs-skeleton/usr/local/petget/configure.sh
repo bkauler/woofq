@@ -16,6 +16,7 @@
 #170107 remove /root/.packages/PACKAGES.TXT* after update db, so fetchinfo.sh will re-download.
 #170815 now PKGget. 180208 now PETget 20220126 now PKGget
 #20220903 optional dpkg|apt sync
+#20230309 have removed /usr/local/debget
 
 export TEXTDOMAIN=petget___configure.sh
 export OUTPUT_CHARSET=UTF-8
@@ -79,14 +80,15 @@ done
 #151105 removed...
 #<text use-markup=\"true\"><label>\"<b>$(gettext 'Requires restart of PPM to see changes')</b>\"</label></text>
 
-#20220903 optional dpkg|apt sync
+#20230309 have removed /usr/local/debget
+##20220903 optional dpkg|apt sync
 DEBDLxml=''
-which apt-get >/dev/null
-if [ $? -eq 0 ];then
- if [ -s /var/local/pkgget/deb_compat_specs ];then #created by apt-setup (called from pkg_chooser.sh)
-  DEBDLxml="<action>rxvt -bg yellow -title 'download debian databases' -e /usr/local/debget/apt-update</action>"
- fi
-fi
+#which apt-get >/dev/null
+#if [ $? -eq 0 ];then
+# if [ -s /var/local/pkgget/deb_compat_specs ];then #created by apt-setup (called from pkg_chooser.sh)
+#  DEBDLxml="<action>rxvt -bg yellow -title 'download debian databases' -e /usr/local/debget/apt-update</action>"
+# fi
+#fi
 
 export CONFIG_DIALOG="<window title=\"$(gettext 'PKGget Package Manager: configure')\" icon-name=\"gtk-about\">
 <hbox>

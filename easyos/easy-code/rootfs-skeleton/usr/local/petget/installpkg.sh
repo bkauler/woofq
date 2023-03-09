@@ -84,6 +84,7 @@
 #20230215 remove duplicates in /usr/share/applicatins|applications.in & locale|locale.in (see also 3buildeasydistro)
 # ***TODO*** restore them if uninstall pkg.
 #20230222 major rethink /usr/share/locale.in only exist in rootfs-skeleton
+#20230309 have removed /usr/local/debget
 
 #information from 'labrador', to expand a .pet directly to '/':
 #NAME="a52dec-0.7.4"
@@ -822,10 +823,11 @@ fi
 
 echo "$DB_ENTRY" >> /root/.packages/user-installed-packages
 
-#20220903 sync with dpkg|apt
-if [ -s /var/local/pkgget/deb_compat_specs ];then #created by apt-setup
- /usr/local/debget/sync-new2dpkg
-fi
+#20230309 have removed /usr/local/debget
+##20220903 sync with dpkg|apt
+#if [ -s /var/local/pkgget/deb_compat_specs ];then #created by apt-setup
+# /usr/local/debget/sync-new2dpkg
+#fi
 
 if [ "$NUMDESKFILE" != "0" ];then #171109
  update-desktop-database #creates creates /usr/share/applications/mimeinfo.cache
