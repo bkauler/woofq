@@ -9,3 +9,11 @@
 #190331 do this hack...
 mkdir -p usr/lib/plugins
 cp -a usr/lib/planner/plugins/* usr/lib/plugins/
+
+#20230310 debian bookworm
+if [ usr/share/icons/hicolor/48x48/apps/gnome-planner.png ];then
+ if [ ! -e usr/share/pixmaps/gnome-planner.png ];then
+  mkdir -p usr/share/pixmaps
+  ln -s ../icons/hicolor/48x48/apps/gnome-planner.png usr/share/pixmaps/gnome-planner.png
+ fi
+fi
