@@ -6,8 +6,8 @@ OPTDIR=''
 
 FFEXE="$(find usr/lib -mindepth 2 -maxdepth 2 -type f -name firefox)"
 if [ "$FFEXE" ];then
- FFFOLDER="$(echo -n "$FFEXE" | cut -f 3 -d '/')" #ex: firefox-33.1.1
- ln -s $FFFOLDER usr/lib/firefox
+ #FFFOLDER="$(echo -n "$FFEXE" | cut -f 3 -d '/')" #ex: firefox-33.1.1
+ #ln -s $FFFOLDER usr/lib/firefox
  if [ ! -e usr/bin/firefox ];then
   mkdir -p usr/bin
   ln -s ../lib/firefox/firefox usr/bin/firefox
@@ -49,3 +49,11 @@ fi
 
 #170511 oe build
 rm -f usr/share/applications/mozilla-firefox.desktop 2>/dev/null
+
+#20230310
+rm -rf usr/share/doc 2>/dev/null
+
+#20230310 debian bookworm
+if [ -f usr/share/applications/firefox-esr.desktop ];then
+ rm -f usr/share/applications/firefox-esr.desktop
+fi

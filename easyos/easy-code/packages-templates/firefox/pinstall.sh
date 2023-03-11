@@ -20,3 +20,36 @@
  [ -f ./usr/lib/mozilla/plugins/libmozsvgdec.so ] && rm -f ./usr/lib/mozilla/plugins/libmozsvgdec.so
 
 #fi
+
+#20230310 debian bookworm, have all translations in pkg-list, cutdown...
+if [ -d usr/lib/firefox/browser/extensions ];then
+ FFext='usr/lib/firefox/browser/extensions'
+else
+ if [ -d usr/lib/firefox-esr/browser/extensions ];then
+  FFext='usr/lib/firefox-esr/browser/extensions'
+ else
+  FFext=''
+ fi
+fi
+if [ "$FFext" ];then
+ mkdir -p /tmp/3buildeasydistro-pinstall-ff
+ cp -a ${FFext}/langpack* /tmp/3buildeasydistro-pinstall-ff/
+ rm -f ${FFext}/langpack*
+ BUILD_SUPPORT_LANGS='de:German en:English fr:French'
+ #um, no, build-choice copied into rootfs-complete later in 3buildeasydistro...
+ #. ./root/.packages/build-choices
+. ../../build-choices
+ for aFFlang in $(echo "$BUILD_SUPPORT_LANGS" | tr ' ' '\n' | cut -f 1 -d ':' | tr '\n' ' ')
+ do
+  cp -a -f /tmp/3buildeasydistro-pinstall-ff/langpack-${aFFlang}* ${FFext}/ 2>/dev/null
+ done
+ rm -rf /tmp/3buildeasydistro-pinstall-ff
+fi
+
+#20230310 rootfs-skeleton/usr/sbin/ec-chroot-www has this content:
+#empty -f ec-chroot www seamonkey
+#replace with firefox...
+sed -i -e 's%^empty .*%empty -f ec-chroot www firefox%' usr/sbin/ec-chroot-www
+#also fix rootfs-skeleton/usr/share/applications/ec-www.desktop ...
+sed -i -e 's%Chromium%Firefox%' usr/share/applications/ec-www.desktop
+
