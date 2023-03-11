@@ -70,8 +70,8 @@ yes|atkmm|libatkmm-1.6-1v5,libatkmm-1.6-dev|exe,dev,doc,nls| #needed by gparted 
 yes|at-spi2-atk|libatspi2.0-0,libatk-bridge2.0-0,libatk-adaptor,libatk-bridge2.0-dev|exe,dev,doc,nls| #needed by gtk+3. GTK3
 yes|at-spi2-core|libatspi2.0-0,libatspi2.0-dev|exe,dev,doc,nls|
 yes|attr|libattr1,libattr1-dev|exe,dev,doc,nls|
-yes|audacious|audacious|exe,dev,doc,nls|compat:kirkstone| #20220507
-yes|audacious-plugins|audacious-plugins|exe,dev,doc,nls|compat:kirkstone| #20220507
+no|audacious|audacious|exe,dev,doc,nls|compat:kirkstone| #20220507 wants libQt5Core.so.5
+no|audacious-plugins|audacious-plugins|exe,dev,doc,nls|compat:kirkstone| #20220507
 yes|audiofile|libaudiofile1,libaudiofile-dev|exe,dev,doc,nls|
 yes|audit|libaudit1,libaudit-common,libauparse0,libaudit-dev,libauparse-dev|exe,dev,doc,nls| #20190730 added libauparse0
 yes|aufs-util|aufs-util|exe,dev,doc,nls|compat:kirkstone| #20220507
@@ -99,7 +99,7 @@ yes|bdftopcf|bdftopcf|exe,dev,doc,nls|compat:kirkstone| #20220507
 yes|bin86|bin86|exe>dev,dev,doc,nls
 yes|binutils|binutils,binutils-common,binutils-x86-64-linux-gnu,libbinutils,libctf0,binutils-dev|exe>dev,dev,doc,nls| #20180513 20210802
 yes|bison|bison|exe>dev,dev,doc,nls
-yes|bluegriffon||exe,dev,doc,nls|pet:bookworm| #20220512 html editor.
+no|bluegriffon||exe,dev,doc,nls|pet:bookworm| #20220512 html editor. 20230309 removed.
 no|bluepup||exe|pet:noarch| #20190814 now using blueman. 20201111 now builtin to woofq.
 yes|bluepup_tray|bluepup-tray|exe,dev,doc,nls|compat:kirkstone| #20220507
 yes|bluez|bluez,bluez-cups,libbluetooth3,libbluetooth-dev|exe,dev,doc,nls| #it seems bluez-obexd needed for file transfer. 20190730 removed bluez-obexd, as it needs evolution-data-server.
@@ -110,7 +110,7 @@ yes|bluetoothctl||exe|pet:bookworm| #20201117 utility internationalized. must in
 yes|boehm-gc|libgc1,libgc-dev|exe,dev,doc,nls
 yes|bones||exe|pet:noarch|
 yes|boost|libboost-atomic1.74-dev,libboost-atomic1.74.0,libboost-chrono1.74-dev,libboost-chrono1.74.0,libboost-date-time1.74-dev,libboost-date-time1.74.0,libboost-filesystem1.74-dev,libboost-filesystem1.74.0,libboost-iostreams1.74-dev,libboost-iostreams1.74.0,libboost-locale1.74-dev,libboost-locale1.74.0,libboost-program-options1.74-dev,libboost-program-options1.74.0,libboost-serialization1.74-dev,libboost-serialization1.74.0,libboost-system1.74-dev,libboost-system1.74.0,libboost-thread1.74-dev,libboost-thread1.74.0,libboost1.74-dev,libboost1.74-tools-dev|exe>dev,dev,doc,nls|
-yes|boost-xruntime|libboost-system1.74.0,libboost-filesystem1.74.0,libboost-date-time1.74.0,libboost-iostreams1.74.0,libboost-locale1.74.0,libboost-thread1.74.0,libboost-chrono1.74.0,libboost-atomic1.74.0,libboost-regex1.74.0|exe,dev,doc,nls| #20210801
+yes|boost-xruntime|libboost-system1.74.0,libboost-filesystem1.74.0,libboost-date-time1.74.0,libboost-iostreams1.74.0,libboost-locale1.74.0,libboost-thread1.74.0,libboost-chrono1.74.0,libboost-atomic1.74.0|exe,dev,doc,nls| #20210801  20230310 removed ,libboost-regex1.74.0
 yes|bridge-utils|bridge-utils|exe,dev,doc,nls| #170223 added for container support.
 no|brightness-control||exe|pet:noarch| #needs sct and yad. now using rshift_tray.
 yes|bsdmainutils|bsdmainutils|exe,dev,doc,nls|
@@ -123,7 +123,7 @@ yes|ca-certificates|ca-certificates|exe,dev,doc,nls| #20170709
 yes|cairo|libcairo2,libcairo2-dev,libcairo-gobject2,libcairo-script-interpreter2|exe,dev,doc,nls|
 yes|cairomm|libcairomm-1.0-1v5,libcairomm-1.0-dev|exe,dev,doc,nls| #needed by inkscape and gparted.
 no|calcoo|calcoo|exe,dev,doc,nls| #20200818
-yes|capnproto|libcapnp-0.9.2|exe,dev,doc,nls|
+no|capnproto|libcapnp-0.9.2|exe,dev,doc,nls| #20230310 no
 yes|caps|caps|exe,dev,doc,nls| #needed by zigberts pequalizer, refer t=31206&start=1290
 yes|ccrypt|ccrypt|exe,dev,doc,nls| #20200624 replaces bcrypt. note, ccrypt_gui in woofq is frontend.
 yes|cddetect|cddetect|exe,dev>null,doc,nls|compat:kirkstone| #20220507
@@ -180,7 +180,7 @@ yes|d-conf|dconf-gsettings-backend,dconf-service,libdconf1,libdconf-dev|exe,dev,
 yes|debian-archive-keyring|debian-archive-keyring|exe,dev,doc,nls| #20220911 needed by apt
 yes|debianutils|debianutils|exe,dev,doc,nls|
 yes|defaults-chooser||exe|pet:noarch|
-no|desk_background_black||exe|pet:noarch| #20220510
+yes|desk_background_black||exe|pet:noarch| #20220510
 yes|desk_background_easyblack2||exe|pet:noarch| #20190818
 no|desk_background_easypup_argolance||exe|pet:noarch| #20200304 ***EasyPup ONLY***
 yes|desk_background_night-stars-tree-grass||exe|pet:noarch| #20220512
@@ -207,7 +207,7 @@ no|dietlibc|dietlibc-dev|exe>dev,dev,doc,nls
 no|diffpdf|diffpdf|exe,dev,doc,nls| #20190730 needs qt5
 yes|diffstat|diffstat|exe,dev>null,doc,nls
 yes|diffutils|diffutils|exe,dev,doc,nls|
-yes|directfb|libdirectfb-1.7-7,libdirectfb-dev,libdirectfb-extra|exe,dev,doc,nls|
+yes|directfb|libdirectfb-1.7-7,libdirectfb-dev|exe,dev,doc,nls| #20230310 removed ,libdirectfb-extra
 no|discount|libmarkdown2,libmarkdown2-dev|exe,dev,doc,nls| #20170823 needed by geany-plugin-markdown
 yes|disktype|disktype|exe,dev,doc,nls|compat:kirkstone| #20220507
 yes|dmidecode|dmidecode|exe,dev>null,doc,nls
@@ -253,15 +253,15 @@ no|farstream|libfarstream-0.2-5,libfarstream-0.2-dev|exe,dev,doc,nls| #20190730 
 yes|fbset|fbset|exe,dev,doc,nls| #needed by omxplayer
 yes|ffconvert||exe,dev,doc,nls|pet:noarch| #20180103
 yes|ffplay-gtk||exe|pet:noarch| #20200208 by plinej, needs ffmpeg xdotool
-yes|ffmpeg|ffmpeg,libavcodec-dev,libavcodec-extra,libavcodec-extra59,libavdevice-dev,libavfilter-dev,libavformat-dev,libavutil-dev,libpostproc-dev,libswresample-dev,libswscale-dev,libavcodec59,libavdevice59,libavfilter8,libavformat59,libavutil57,libpostproc56,libswresample4,libswscale6|exe,dev,doc,nls| #
+yes|ffmpeg|ffmpeg,libavcodec-dev,libavdevice-dev,libavfilter-dev,libavformat-dev,libavutil-dev,libpostproc-dev,libswresample-dev,libswscale-dev,libavcodec59,libavdevice59,libavfilter8,libavformat59,libavutil57,libpostproc56,libswresample4,libswscale6|exe,dev,doc,nls| #20230310 removed ,libavcodec-extra,libavcodec-extra59
 yes|fftag||exe|pet:noarch| #20200303 replaces pmetatagger.
 yes|fftw3|libfftw3-double3,libfftw3-dev|exe,dev,doc,nls| #cutdown.
 yes|file|file,libmagic1,libmagic-dev,libmagic-mgc|exe,dev,doc,nls| #20210801
 no|file-sharing-curlftpfs-mpscan-noarch||exe| #20180103
 yes|findutils|findutils|exe,dev>null,doc,nls
 no|firefox|firefox,firefox-locale-en,firefox-dev|exe,dev,doc,nls
-no|firefox|firefox-esr,firefox-esr-l10n-de,firefox-esr,firefox-esr-l10n-fr,firefox-esr,firefox-esr-l10n-en-gb|exe,dev,doc,nls|compat:bookworm| #20210801
-yes|firefox-skeleton||exe|pet:noarch| #20220206
+yes|firefox|firefox-esr,firefox-esr-l10n-*|exe,dev,doc,nls|compat:bookworm| #20210801
+no|firefox-skeleton||exe|pet:noarch| #20220206
 no|firmware|atmel-firmware,linux-firmware,linux-firmware-nonfree,nouveau-firmware,prism2-usb-firmware-installer|exe,dev,doc,nls|
 yes|firmware_asus_e200ha||exe|pet:noarch| #needed for my asus e200ha notebook. #PC 20190824  20210803
 yes|firmware_linux_acer_aspire1||exe|pet:noarch| #20190813 for my acer aspire1 laptop. note has regulatory.db useful all wifi. 20190824  20210803
@@ -289,7 +289,7 @@ yes|fossil|fossil|exe>dev,dev,doc>dev,nls
 yes|fpm2|fpm2|exe,dev,doc,nls|compat:kirkstone| #20220507
 yes|freeglut|libglut3.12,libglut-dev|exe,dev,doc,nls|
 yes|freememapplet_tray|freememapplet-tray|exe,dev,doc,nls|compat:kirkstone| #20220507
-yes|freeoffice||exe|pet:bookworm| #20220911
+no|freeoffice||exe|pet:bookworm| #20220911  20230309 removed.
 no|freerdp|libfreerdp-cache1.1,libfreerdp-client1.1,libfreerdp-codec1.1,libfreerdp-common1.1.0,libfreerdp-core1.1,libfreerdp-crypto1.1,libfreerdp-gdi1.1,libfreerdp-locale1.1,libfreerdp-primitives1.1,libfreerdp-utils1.1,libwinpr-crt0.1,libwinpr-dsparse0.1,libwinpr-environment0.1,libwinpr-file0.1,libwinpr-handle0.1,libwinpr-heap0.1,libwinpr-input0.1,libwinpr-interlocked0.1,libwinpr-library0.1,libwinpr-path0.1,libwinpr-pool0.1,libwinpr-registry0.1,libwinpr-rpc0.1,libwinpr-sspi0.1,libwinpr-synch0.1,libwinpr-sysinfo0.1,libwinpr-thread0.1,libwinpr-utils0.1,libfreerdp-dev,libwinpr-dev|exe,dev,doc,nls| #needed by vlc
 yes|freetds|libsybdb5,freetds-dev|exe,dev,doc,nls|
 yes|freetds-common|freetds-common|exe,dev,doc,nls| #20220206
@@ -311,7 +311,7 @@ no|gcc-7|cpp,cpp-7,gcc,gcc-7,gcc-7-base,gcc-8-base,libasan4,libatomic1,libcc1-0,
 no|gcc-8|gcc,g++,cpp,gcc-8-base,gcc-8,cpp-8,g++-8,libasan5,libatomic1,libcc1-0,libgcc1,libgccjit-8-dev,libgccjit0,libgomp1,libgphobos-8-dev,libgphobos76,libhsail-rt0,libitm1,liblsan0,libmpx2,libobjc4,libquadmath0,libstdc++6,libtsan0,libgcc-8-dev,libgfortran5,libstdc++-8-dev|exe>dev,dev,doc,nls| #20190730 20190731  20190816 added gcc,g++,cpp, have symlinks. 20190907 added libstdc++-8-dev
 no|gcc-10|gcc,g++,cpp,gcc-10-base,gcc-10,cpp-10,g++-10,libasan6,libatomic1,libcc1-0,libgcc-s1,libgccjit-10-dev,libgccjit0,libgomp1,libgphobos-10-dev,libgphobos1,libhsail-rt0,libitm1,liblsan0,libobjc4,libquadmath0,libstdc++6,libtsan0,libgcc-10-dev,libgfortran5,libgfortran-10-dev,libstdc++-10-dev|exe>dev,dev,doc,nls| #20190730 20190731  20190816 added gcc,g++,cpp, have symlinks. 20190907 added libstdc++-8-dev
 yes|gcc-12|cpp-12,g++-12,gcc-12-base,gcc-12-locales,gcc-12-plugin-dev,gcc-12,gdc-12,gm2-12,libasan8,libatomic1,libcc1-0,libgcc-12-dev,libgm2-12-dev,libgm2-17,libgomp1,libquadmath0,libstdc++-12-dev,libstdc++6|exe>dev,dev,doc,nls|
-yes|gcc_lib|libasan6,libgcc-s1,libgomp1,libatomic1,gcc-12-base,libc6,libquadmath0,libgfortran5|exe,dev,doc,nls| #runtime libs. 20220515 added libquadmath0 libgfortran5
+yes|gcc_lib|libasan8,libgcc-s1,libgomp1,libatomic1,gcc-12-base,libc6,libquadmath0,libgfortran5|exe,dev,doc,nls| #runtime libs. 20220515 added libquadmath0 libgfortran5
 yes|gcolorsel|gcolorsel|exe,dev,doc,nls|compat:kirkstone| #20220507
 yes|gconf|gconf2-common,gconf2,libgconf-2-4,libgconf2-dev,libgconf-2-4,gconf-service|exe,dev,doc>null,nls>null
 yes|gcr|gcr,libgck-1-0,libgcr-base-3-1,libgcr-ui-3-1,libgcr-3-dev,libgck-1-dev,gir1.2-gck-1,gir1.2-gcr-3|exe,dev,doc,nls| #20190805 dep of gnome-keyring
@@ -369,7 +369,7 @@ yes|gir1.2-qmi-1.0|gir1.2-qmi-1.0|exe,dev,doc,nls| #20220206
 yes|gir1.2-rest-1.0|gir1.2-rest-1.0|exe,dev,doc,nls| #20220206
 yes|gir1.2-secret-1|gir1.2-secret-1|exe,dev,doc,nls| #20220206
 yes|git|git,git-doc,git-man,gitweb|exe>dev,dev,doc>dev,nls>dev|
-yes|glade2|libgladeui-common,libgladeui-2-13,libgladeui-dev|exe,dev,doc,nls| #20190730 20210801
+no|glade2|libgladeui-common,libgladeui-2-13,libgladeui-dev|exe,dev,doc,nls| #20190730 20210801  20230310 no
 yes|glew|libglew-dev,libglew2.2|exe,dev,doc,nls| #20180103 20180511
 no|glfw3|libglfw3,libglfw3-dev|exe,dev,doc,nls| #20170705
 yes|glib|gir1.2-glib-2.0,libglib2.0-0,libglib2.0-bin,libglib2.0-data,libglib2.0-dev,libglib2.0-dev-bin|exe,dev,doc,nls| #20180104 20190801 added libglib2.0-dev-bin
@@ -381,6 +381,7 @@ yes|glib-networking-common|glib-networking-common|exe,dev,doc,nls| #20220206
 yes|glib-networking-services|glib-networking-services|exe,dev,doc,nls| #20220206
 yes|glide|libglide3,libglide3-dev|exe,dev,doc,nls| #20190730 needed by xorg video glide driver.
 yes|glipper-lite|glipper-lite|exe,dev>null,doc,nls|compat:kirkstone| #20220507
+yes|Global_IP_TV_Panel_Any_Pup_using_mpv||exe|pet:noarch| #20230310
 yes|gmeasures|gmeasures|exe,dev>null,doc,nls|compat:kirkstone| #20220507
 yes|gmp|libgmp10,libgmp3-dev,libgmp-dev,libgmpxx4ldbl|exe,dev,doc,nls|
 yes|gnet|gnet|exe,dev,doc,nls|compat:kirkstone| #needed by helpsurfer #20220507
@@ -476,7 +477,7 @@ yes|helpsurfer|helpsurfer|exe,dev,doc,nls|compat:kirkstone| #needs gnet, libsyst
 yes|hiawatha|hiawatha|exe,dev,doc,nls|compat:kirkstone| #20220507
 yes|hicolor-icon-theme|hicolor-icon-theme|exe,dev>null,doc,nls
 yes|highlight|highlight,highlight-common|exe>dev,dev,doc,nls| #20190816
-yes|homebank|homebank,homebank-data|exe,dev,doc,nls| #20220911
+no|homebank|homebank,homebank-data|exe,dev,doc,nls| #20220911  20230310 removed.
 no|hostap-utils|hostap-utils|exe,dev,doc,nls| #20180103
 yes|hostname|hostname|exe,dev,doc,nls| #20180207 20180511
 yes|hotplug2stdout|hotplug2stdout|exe,dev,doc,nls|compat:kirkstone| #20220507
@@ -494,8 +495,9 @@ yes|ieee-data|ieee-data|exe,dev,doc,nls| #20220206
 yes|ifplugd|ifplugd|exe,dev,doc,nls|compat:kirkstone| #20220507
 yes|ifplugd_old|ifplugd-old|exe,dev,doc,nls|compat:kirkstone| #20220507
 yes|ijs|libijs-0.35,libijs-dev|exe,dev,doc,nls|
-yes|imagemagick_cut1|imagemagick-6-common,imagemagick-6-common,libmagickcore-6.q16-6,libmagickwand-6.q16-6,libmagick++-6.q16-8|exe,dev,doc,nls| #20220511 needed by inkscape.
+yes|imagemagick_cut1|imagemagick-6-common,imagemagick-6-common,libmagickcore-6.q16-6,libmagickwand-6.q16-6|exe,dev,doc,nls| #20220511 needed by inkscape. 20230310 removed ,libmagick++-6.q16-8
 yes|imake|xutils-dev|exe>dev,dev,doc,nls
+yes|imath|libimath-3-1-29|exe,dev,doc,nls| #20230310
 no|indicator-messages|libmessaging-menu0,libmessaging-menu-dev|exe,dev,doc,nls|
 yes|init-system-helpers|init-system-helpers|exe,dev,doc,nls|
 no|inkscape|inkscape|exe,dev,doc,nls|compat:kirkstone| #20220507
@@ -504,6 +506,7 @@ no|inotail||exe,dev,doc,nls| #coreutils tail now supports inotify.
 yes|inotify-tools|inotify-tools,libinotifytools0,libinotifytools0-dev|exe,dev,doc,nls|
 yes|installwatch|checkinstall|exe>dev,dev,doc,nls|compat:bookworm| #20210801
 yes|install-info|install-info|exe,dev,doc,nls| #20220206
+yes|intel-gmmlib|libigdgmm12|exe,dev,doc,nls| #20230310
 yes|intel-mediasdk|libmfx1,libmfx-dev|exe,dev,doc,nls| #20220515 needed by celluloid.
 yes|intel-media-va-driver|intel-media-va-driver|exe,dev,doc,nls| #20220206
 yes|intel-vaapi-driver|i965-va-driver|exe,dev,doc,nls| #170320 needed for vlc #PC
@@ -527,8 +530,9 @@ yes|jbigkit|libjbig0,libjbig-dev|exe,dev,doc,nls|
 yes|jigit|libjte2,libjte-dev|exe,dev,doc,nls| #needed by xorriso
 yes|jimtcl|jimtcl|exe,dev,doc,nls|compat:kirkstone| #needed by usb-modeswitch. 20220507
 yes|jimtcl-lib|libjim0.81|exe,dev,doc,nls|
+yes|jpeg-xl|libjxl0.7,libhwy1|exe,dev,doc,nls| #20230310 needed by mpv.
 yes|jq|jq,libjq1,libjq-dev|exe,dev,doc,nls|compat:bookworm| #20210801
-yes|jquery|libjs-jquery|exe,dev,doc,nls|
+no|jquery|libjs-jquery|exe,dev,doc,nls| #20230310 no
 yes|json-c|libjson-c5,libjson-c-dev|exe,dev,doc,nls|
 yes|json-glib|libjson-glib-1.0-0,libjson-glib-1.0-common,libjson-glib-dev|exe,dev,doc,nls| #needed by abiword. 20190730 added libjson-glib-dev
 yes|jwm|jwm|exe,dev,doc,nls|compat:kirkstone| #20220507
@@ -541,7 +545,8 @@ yes|jwm3_theme_slate||exe|pet:noarch| #20190806
 no|jwmthememaker||exe
 yes|keyutils|keyutils,libkeyutils1,libkeyutils-dev|exe,dev>null,doc,nls| #20220511
 yes|kmod|kmod,libkmod2,libkmod-dev|exe,dev,doc,nls|
-yes|krb5|krb5-multidev,libgssapi-krb5-2,libk5crypto3,libkrad-dev,libkrb5-3,libkrb5-dev,libkrb5support0|exe,dev,doc,nls|
+no|krb5|libkdb5-10,krb5-multidev,libgssapi-krb5-2,libk5crypto3,libkrad-dev,libkrb5-3,libkrb5-dev,libkrb5support0|exe,dev,doc,nls|  #20230310 no
+yes|krb5-cut|libgssapi-krb5-2,libk5crypto3,libkrb5-3,libkrb5support0|exe,dev,doc,nls|  #20230310 needed by NetworkManager and cupsd
 yes|ktsuss|ktsuss|exe,dev,doc,nls|compat:kirkstone| #20220507
 yes|lame|lame,libmp3lame0,libmp3lame-dev|exe,dev,doc,nls|
 yes|lapack|libblas-dev,libblas3,liblapack-dev,liblapack3,liblapacke,liblapacke-dev,libtmglib-dev,libtmglib3|exe,dev,doc,nls| #20180512
@@ -553,13 +558,14 @@ yes|lerc|liblerc4,liblerc-dev|exe,dev,doc,nls| #20220912
 yes|less|less|exe,dev>null,doc,nls
 yes|libaacs|libaacs0,libaacs-dev|exe,dev,doc,nls| #mplayer needs this.
 no|libabw-0.1-1|libabw-0.1-1|exe,dev,doc,nls|compat:bookworm| #20220527 reqd by libreoffice-writer
-yes|libadplug-2.3.3-0|libadplug-2.3.3-0|exe,dev,doc,nls| #20220206
+no|libadplug-2.3.3-0|libadplug-2.3.3-0|exe,dev,doc,nls| #20220206 20230310 no
 yes|libaec|libsz2,libaec0,libaec-dev|exe,dev,doc,nls|
 yes|libaio|libaio1,libaio-dev|exe,dev,doc,nls|
 yes|libao|libao4,libao-common,libao-dev|exe,dev,doc,nls|
 yes|libaom3|libaom3|exe,dev,doc,nls| #20220206
 no|libappindicator|libappindicator3-0.1-cil,libappindicator3-0.1-cil-dev|exe,dev,doc,nls| #20220510 needed by modem-manager-gui
 yes|libavc1394|libavc1394-0,libavc1394-dev|exe,dev,doc,nls|
+yes|libavif|libavif15,libdav1d6,libgav1-1,libsvtav1enc1,libyuv0|exe,dev,doc,nls| #20230310
 yes|libarchive|libarchive13,libarchive-dev|exe,dev,doc,nls| #needed by cmake. 20160406 and smbclient
 yes|libaribb24-0|libaribb24-0|exe,dev,doc,nls| #20220206
 yes|libart|libart-2.0-2,libart-2.0-dev|exe,dev,doc,nls
@@ -567,10 +573,10 @@ yes|libass|libass9,libass-dev|exe,dev,doc,nls|
 yes|libassuan|libassuan0,libassuan-dev|exe,dev,doc,nls| #20180512
 yes|libasyncns|libasyncns0,libasyncns-dev|exe,dev,doc,nls|
 yes|libatopology2|libatopology2|exe,dev,doc,nls| #20220206
-yes|libaudcore5|libaudcore5|exe,dev,doc,nls| #20220206
-yes|libaudgui5|libaudgui5|exe,dev,doc,nls| #20220206
-yes|libaudqt2|libaudqt2|exe,dev,doc,nls| #20220206
-yes|libaudtag3|libaudtag3|exe,dev,doc,nls| #20220206
+no|libaudcore5|libaudcore5|exe,dev,doc,nls| #20220206 20230310 removed.
+no|libaudgui5|libaudgui5|exe,dev,doc,nls| #20220206 ditto
+no|libaudqt2|libaudqt2|exe,dev,doc,nls| #20220206   ditto
+no|libaudtag3|libaudtag3|exe,dev,doc,nls| #20220206 ditto
 no|libayatana-indicator|libayatana-appindicator3-1,libayatana-indicator3-7,libayatana-ido3-0.4-0|exe,dev,doc,nls| #20220510 needed by transmission-gtk and modem-manager-gui
 yes|libb2|libb2-1,libb2-dev|exe,dev,doc,nls| #20180512
 yes|libbluray|libbluray2,libbluray-dev|exe,dev,doc,nls|
@@ -588,6 +594,7 @@ no|libcap|libcap2-bin,libcap2,libcap-dev|exe,dev,doc,nls| #utilities for linux k
 yes|libcap|libcap|exe,dev,doc,nls|compat:kirkstone| #20220508 has cap_sys_mnt patch.
 no|libcap-ng|libcap-ng0|exe,dev,doc,nls| #alternative libcap, leave out dev.
 yes|libcap-ng|libcap-ng|exe,dev,doc,nls|compat:kirkstone| #needed by pflask. 20220507
+yes|libcbor|libcbor0.8|exe,dev,doc,nls| #20230310
 yes|libcddb|libcddb2,libcddb2-dev|exe,dev,doc,nls| #debian/ubuntu pkg missing cddb_query, also very old version (warning: .deb cddb package has nothing to do with libcddb pkg). 120907 yes.
 yes|libcdio|libcdio19,libcdio19,libcdio-cdda2,libcdio-cdda-dev,libcdio-dev,libcdio-paranoia2,libcdio-paranoia-dev,libcdio-utils,libiso9660-11,libiso9660-dev,libudf0,libudf-dev|exe,dev,doc,nls| #20200810 added libcdio18
 yes|libcdk5|libcdk5nc6,libcdk5-dev|exe,dev,doc,nls|
@@ -596,10 +603,10 @@ yes|libcgi-pm-perl|libcgi-pm-perl|exe,dev,doc,nls| #20200308 needed by pplog.
 no|libchamplain|libchamplain-0.12-0,libchamplain-gtk-0.12-0|exe,dev,doc,nls| #needed by abiword. REMOVED 20160920c
 no|libclucene-contribs1v5|libclucene-contribs1v5|exe,dev,doc,nls|compat:bookworm| #20220527 reqd by libreoffice-writer
 no|libclucene-core1v5|libclucene-core1v5|exe,dev,doc,nls|compat:bookworm| #20220527 reqd by libreoffice-writer
-yes|libcolamd2|libcolamd2|exe,dev,doc,nls| #20210804 part of suitesparse pkg. needed by lp-solve
+no|libcolamd2|libcolamd2|exe,dev,doc,nls| #20210804 part of suitesparse pkg. needed by lp-solve. 20230310 no
 no|libcroco|libcroco3,libcroco3-dev|exe,dev,doc,nls| #20210801
 yes|libct4|libct4|exe,dev,doc,nls| #20220206
-yes|libcue2|libcue2|exe,dev,doc,nls| #20220206
+no|libcue2|libcue2|exe,dev,doc,nls| #20220206  20230310 no
 yes|libcurl3-gnutls|libcurl3-gnutls|exe,dev,doc>null,nls>null| #this is needed by git in the devx sfs file. update: conky needs it in the main f.s.
 yes|libcurl3-nss|libcurl3-nss|exe,dev,doc,nls| #20220206
 yes|libcurl4|libcurl4,libcurl4-openssl-dev|exe,dev,doc,nls| #20180918
@@ -609,18 +616,18 @@ yes|libdb5.3++|libdb5.3++|exe,dev,doc,nls| #20220206
 yes|libdb5.3-java|libdb5.3-java|exe,dev,doc,nls| #20220206
 yes|libdb5.3-sql|libdb5.3-sql|exe,dev,doc,nls| #20220206
 yes|libdb5.3-stl|libdb5.3-stl|exe,dev,doc,nls| #20220206
-yes|libdbusmenu|libdbusmenu-glib4,libdbusmenu-glib-dev,libdbusmenu-gtk4,libdbusmenu-gtk-dev,libdbusmenu-jsonloader-dev,libdbusmenu-gtk3-4|exe,dev,doc,nls| #20151204 removed ,libdbusmenu-gtk3-dev GTK3
+yes|libdbusmenu|libdbusmenu-glib4,libdbusmenu-glib-dev,libdbusmenu-gtk4,libdbusmenu-gtk-dev,libdbusmenu-jsonloader-dev|exe,dev,doc,nls| #20151204 removed ,libdbusmenu-gtk3-dev GTK3  20230310 removed ,libdbusmenu-gtk3-4
 yes|libdbusmenu-jsonloader4|libdbusmenu-jsonloader4|exe,dev,doc,nls| #20220206
 yes|libdc1394|libdc1394-25,libdc1394-dev|exe,dev,doc,nls| #ffmpeg3 compiled in luci needs this
 yes|libdc1394-dev|libdc1394-dev|exe,dev,doc,nls| #20220206
 yes|libdca|libdca0,libdca-dev|exe,dev,doc,nls|
 yes|libde265|libde265-0,libde265-dev|exe,dev,doc,nls|
-yes|libdecor-0|libdecor-0-0,libdecor-0-plugin-1-cairo,libdecor-0-dev|exe,dev,doc,nls|
+yes|libdecor-0|libdecor-0-0,libdecor-0-dev|exe,dev,doc,nls| #20230310 removed ,libdecor-0-plugin-1-cairo
 yes|libdeflate|libdeflate0,libdeflate-dev|exe,dev,doc,nls|compat:bookworm| #20210801
-yes|lib++dfb-1.7-7|lib++dfb-1.7-7|exe,dev,doc,nls| #20220206
+no|lib++dfb-1.7-7|lib++dfb-1.7-7|exe,dev,doc,nls| #20220206  20230310 removed
 yes|libdmx|libdmx1,libdmx-dev|exe,dev,doc,nls|
 yes|libdouble-conversion3|libdouble-conversion3|exe,dev,doc,nls| #20220206
-yes|libdrm|libdrm2,libdrm-*|exe,dev,doc,nls|
+yes|libdrm|libdrm2,libdrm-common,libdrm-amdgpu1,libdrm-intel1,libdrm-nouveau2,libdrm-radeon1,libdrm-dev|exe,dev,doc,nls|
 yes|libdrm-amdgpu1|libdrm-amdgpu1|exe,dev,doc,nls| #20220206
 yes|libdrm-common|libdrm-common|exe,dev,doc,nls| #20220206
 yes|libdrm-dev|libdrm-dev|exe,dev,doc,nls| #20220206
@@ -668,13 +675,14 @@ yes|libgcrypt11||exe,dev,doc,nls|pet:bookworm| #for older pkgs. #PC
 yes|libgcrypt20|libgcrypt20,libgcrypt20-dev|exe,dev,doc,nls|
 yes|libgd2|libgd3,libgd-dev|exe,dev,doc,nls|
 no|libgdata|gir1.2-gdata-0.0,libgdata-common,libgdata22,libgdata-dev|exe,dev,doc,nls| #20180512 20190802 removed.
+yes|libdecaf|libdecaf0|exe,dev,doc,nls| #20230310
 yes|libgdk-pixbuf2.0-0|libgdk-pixbuf2.0-0|exe,dev,doc,nls| #20220206
-yes|libgdl-3-5|libgdl-3-5|exe,dev,doc,nls| #20220206
+no|libgdl-3-5|libgdl-3-5|exe,dev,doc,nls| #20220206  20230310 no
 yes|libgee|gir1.2-gee-0.8,libgee-0.8-2,libgee-0.8-dev|exe,dev,doc,nls|
-yes|libgegl-common|libgegl-common|exe,dev,doc,nls| #20220206
+no|libgegl-common|libgegl-common|exe,dev,doc,nls| #20220206  20230310 no
 yes|libgif|libgif7,libgif-dev|exe,dev,doc,nls
 yes|libgit2|libgit2|exe,dev,doc,nls|compat:kirkstone| #20220817 needed by geany-plugins
-yes|libgjs0g|libgjs0g|exe,dev,doc,nls| #20220206
+no|libgjs0g|libgjs0g|exe,dev,doc,nls| #20220206  20230310 no
 yes|libglade2|libglade2-0,libglade2-dev|exe,dev,doc,nls|
 yes|libgles-dev|libgles-dev|exe,dev,doc,nls| #20220206
 yes|libglib3.0-cil|libglib3.0-cil|exe,dev,doc,nls| #20220206
@@ -682,13 +690,13 @@ yes|libglu|libglu1-mesa|exe,dev,doc,nls|
 yes|libglvnd|libegl1,libgl1,libgles1,libgles2,libglvnd-core-dev,libglvnd-dev,libglvnd0,libglx0,libopengl0,libgl-dev,libglx-dev,libegl-dev|exe,dev,doc,nls| #20180512 20190730 added libgles1  20210804
 no|libgnome|libgnome-2-0,libgnome2-0,libgnome2-bin,libgnome2-common,libgnome2-dev|exe,dev,doc,nls|
 yes|libgnomecanvas|libgnomecanvas2-common,libgnomecanvas2-0,libgnomecanvas2-dev|exe,dev,doc,nls|
-yes|libgnome-desktop-3-20|libgnome-desktop-3-20|exe,dev,doc,nls| #20220206
+no|libgnome-desktop-3-20|libgnome-desktop-3-20|exe,dev,doc,nls| #20220206 20230310 no
 yes|libgpg-error|libgpg-error0,libgpg-error-dev|exe,dev,doc,nls|
 yes|libgphoto2|libgphoto2-6,libgphoto2-dev,libgphoto2-port12|exe,dev,doc,nls|
 yes|libgringotts|libgringotts2,libgringotts-dev|exe,dev,doc,nls
 yes|libgsf|gir1.2-gsf-1,libgsf-1-114,libgsf-1-common,libgsf-1-dev|exe,dev,doc,nls|
 yes|libgssrpc4|libgssrpc4|exe,dev,doc,nls| #20220206
-yes|libgtk3.0-cil|libgtk3.0-cil|exe,dev,doc,nls| #20220206
+no|libgtk3.0-cil|libgtk3.0-cil|exe,dev,doc,nls| #20220206 20230310 no
 yes|libgtkhtml|libgtkhtml|exe,dev,doc,nls|compat:kirkstone| #needed by osmo and helpsurfer 20220507
 yes|libgudev|libgudev-1.0-0,libgudev-1.0-dev|exe,dev,doc,nls|
 yes|libgupnp-igd-1.0-dev|libgupnp-igd-1.0-dev|exe,dev,doc,nls| #20220206
@@ -723,31 +731,31 @@ yes|libjpeg8||exe,dev>null,doc,nls|pet:bookworm| #for old apps.
 no|libjpeg_old7||exe,dev>null,doc,nls
 yes|libjsoncpp|libjsoncpp-dev,libjsoncpp25|exe,dev,doc,nls| #20210801
 yes|libkate|libkate1,libkate-dev,liboggkate-dev|exe,dev,doc,nls|
-yes|libkadm5clnt-mit12|libkadm5clnt-mit12|exe,dev,doc,nls| #20220206
-yes|libkadm5srv-mit12|libkadm5srv-mit12|exe,dev,doc,nls| #20220206
-yes|libkrad0|libkrad0|exe,dev,doc,nls| #20220206
+no|libkadm5clnt-mit12|libkadm5clnt-mit12|exe,dev,doc,nls| #20220206 20230310 no
+no|libkadm5srv-mit12|libkadm5srv-mit12|exe,dev,doc,nls| #20220206 20230310 no
+no|libkrad0|libkrad0|exe,dev,doc,nls| #20220206 20230310 no
 no|liblangtag1|liblangtag1|exe,dev,doc,nls|compat:bookworm| #20220527 reqd by libreoffice-writer
 no|liblangtag-common|liblangtag-common|exe,dev,doc,nls|compat:bookworm| #20220527 reqd by libreoffice-writer
 yes|liblavfile|liblavfile-2.1-0|exe,dev,doc,nls| #20220206
 yes|liblavjpeg|liblavjpeg-2.1-0|exe,dev,doc,nls| #20220206
-yes|liblavplay|liblavplay-2.1-0|exe,dev,doc,nls| #20220206
+no|liblavplay|liblavplay-2.1-0|exe,dev,doc,nls| #20220206 20230310 no
 yes|liblirc-client0|liblirc-client0|exe,dev,doc,nls| #20220206
 yes|liblirc-dev|liblirc-dev|exe,dev,doc,nls| #20220206
 yes|liblqr|liblqr-1-0,liblqr-1-0-dev|exe,dev,doc,nls| #20220511 needed by imagemagick_cut1
 yes|liblwp-mediatypes-perl|liblwp-mediatypes-perl|exe,dev,doc,nls| #20220206
 yes|liblwp-protocol-https-perl|liblwp-protocol-https-perl|exe,dev,doc,nls| #20220206
 no|libmjpegutils|libmjpegutils-2.1-0|exe,dev,doc,nls| #20220206 20220510
-yes|libmms0|libmms0|exe,dev,doc,nls| #20220206
+no|libmms0|libmms0|exe,dev,doc,nls| #20220206 20230310 no
 yes|libmono-corlib4.5-cil|libmono-corlib4.5-cil|exe,dev,doc,nls| #20220206
 no|libmpeg2encpp|libmpeg2encpp-2.1-0|exe,dev,doc,nls| #20220206 20220510
 yes|libmpeg3-dev|libmpeg3-dev|exe,dev,doc,nls| #20220206
-yes|libmplex2|libmplex2-2.1-0|exe,dev,doc,nls| #20220206
+no|libmplex2|libmplex2-2.1-0|exe,dev,doc,nls| #20220206 20230310 no
 no|libmspub-0.1-1|libmspub-0.1-1|exe,dev,doc,nls|compat:bookworm| #20220527 reqd by libreoffice-draw
 yes|libmujs2|libmujs2|exe,dev,doc,nls| #20220206
 no|libmwaw-0.3-3|libmwaw-0.3-3|exe,dev,doc,nls|compat:bookworm| #20220527 reqd by libreoffice-writer
 no|libmythes-1.2-0|libmythes-1.2-0|exe,dev,doc,nls|compat:bookworm| #20220527 reqd by libreoffice-writer
-yes|libnautilus-extension4|libnautilus-extension4|exe,dev,doc,nls| #20220206
-yes|libnet1|libnet1|exe,dev,doc,nls| #20220206
+no|libnautilus-extension4|libnautilus-extension4|exe,dev,doc,nls| #20220206  20230310 no
+no|libnet1|libnet1|exe,dev,doc,nls| #20220206 20230310 no
 yes|libnet-http-perl|libnet-http-perl|exe,dev,doc,nls| #20220206
 yes|libnetpbm11|libnetpbm11|exe,dev,doc,nls| #20220206
 yes|libnetsnmptrapd40|libnetsnmptrapd40|exe,dev,doc,nls| #20220206
@@ -757,13 +765,14 @@ yes|libnsl-dev|libnsl-dev|exe,dev,doc,nls| #20220206
 no|libodfgen-0.1-1|libodfgen-0.1-1|exe,dev,doc,nls|compat:bookworm| #20220527 reqd by libreoffice-writer
 yes|liboggkate1|liboggkate1|exe,dev,doc,nls| #20220206
 yes|libopengl-dev|libopengl-dev|exe,dev,doc,nls| #20220206
-yes|libopenh264-7|libopenh264-7|exe,dev,doc,nls| #20220206
+no|libopenh264-7|libopenh264-7|exe,dev,doc,nls| #20220206 20230310 no
 no|liborcus-0.17-0|liborcus-0.17-0|exe,dev,doc,nls|compat:bookworm| #20220527 reqd by libreoffice-writer
 yes|libout123-0|libout123-0|exe,dev,doc,nls| #20220206
 no|libpagemaker-0.0-0|libpagemaker-0.0-0|exe,dev,doc,nls|compat:bookworm| #20220527 reqd by libreoffice-draw
 no|libpangox-1.0-dev|libpangox-1.0-dev|exe,dev,doc,nls| #20220206
 yes|libpcre2-32-0|libpcre2-32-0|exe,dev,doc,nls| #20220206
 yes|libpcre2-posix3|libpcre2-posix3|exe,dev,doc,nls| #20220206
+yes|libpipewire|libpipewire-0.3-0,libspa-0.2-modules,libwebrtc-audio-processing1|exe,dev,doc,nls| #20230310 part of pipewire pkg. needed by mpv
 yes|libplacebo|libplacebo208|exe,dev,doc,nls| #20220206
 yes|libpocketsphinx3|libpocketsphinx3|exe,dev,doc,nls| #20220206
 yes|libpoppler-cpp0v5|libpoppler-cpp0v5|exe,dev,doc,nls| #20220206
@@ -805,7 +814,7 @@ yes|libonig|libonig5,libonig-dev|exe,dev,doc,nls|compat:bookworm| #20210801
 yes|libopencore|libopencore-amrnb0,libopencore-amrnb-dev,libopencore-amrwb0,libopencore-amrwb-dev|exe,dev,doc,nls| #was libopencore dep for ffmpeg3 or mplayer2--can delete if mplayer2
 yes|libopenmpt|libopenmpt-modplug1,libopenmpt0,openmpt123,libopenmpt-dev,libopenmpt-modplug-dev|exe,dev,doc,nls| #20180512
 yes|libopenobex|libopenobex2,libopenobex2-dev|exe,dev,doc,nls| #needed by a udev rule in /lib/udev/rules.d
-yes|liborcus|liborcus-parser-0.17-0|exe,dev,doc,nls| #20210802 dev pkgs left out. needed by chromium. 20220206
+no|liborcus|liborcus-parser-0.17-0|exe,dev,doc,nls| #20210802 dev pkgs left out. needed by chromium. 20220206  20230310 no
 yes|libisofs|libisofs6,libisofs-dev|exe,dev,doc,nls| #needed by xorriso.
 yes|libpaper|libpaper1,libpaper-dev,libpaper-utils|exe,dev,doc,nls|
 yes|libpcap|libpcap0.8,libpcap0.8-dev,libpcap-dev|exe,dev,doc,nls|
@@ -867,6 +876,7 @@ no|libslvs1|libslvs1|exe,dev,doc,nls| #20191117 optional dep of solvespace.
 yes|libsndfile|libsndfile1,libsndfile1-dev,sndfile-programs|exe,dev,doc,nls|
 yes|libsodium|libsodium23,libsodium-dev|exe,dev,doc,nls|
 yes|libsoup2.4|gir1.2-soup-2.4,libsoup2.4-1,libsoup2.4-dev,libsoup-gnome2.4-1,libsoup-gnome2.4-dev|exe,dev,doc,nls|
+yes|libsoup3|libsoup-3.0-0,libsoup-3.0-common|exe,dev,doc,nls| #20230310
 yes|libsoxr|libsoxr0,libsoxr-dev|exe,dev,doc,nls|
 yes|libsoxr-lsr0|libsoxr-lsr0|exe,dev,doc,nls| #20220206
 yes|libsphinxbase3|libsphinxbase3|exe,dev,doc,nls| #20220206
@@ -895,12 +905,12 @@ yes|libtool_runtime|libtool,libltdl7,libtool-bin|exe,dev,doc,nls| #20190731
 yes|libtry-tiny-perl|libtry-tiny-perl|exe,dev,doc,nls| #20220206
 yes|libtubo|libtubo|exe,dev,doc,nls|compat:kirkstone| #needed by xfdiff.
 yes|libudfread|libudfread0,libudfread-dev|exe,dev,doc,nls| #20210802 needed by chromium. 20220206
-yes|libumfpack5|libumfpack5|exe,dev,doc,nls| #20210804 part of suitesparse pkg. needed by gegl
+no|libumfpack5|libumfpack5|exe,dev,doc,nls| #20210804 part of suitesparse pkg. needed by gegl
 no|libunique|libunique-1.0-0,libunique-dev|exe,dev,doc,nls| #20210801
 yes|libunistring|libunistring2,libunistring-dev|exe,dev,doc,nls|
 no|libuno-cppu3|libuno-cppu3|exe,dev,doc,nls|compat:bookworm| #20220527 reqd by libreoffice-writer
 no|libuno-cppuhelpergcc3-3|libuno-cppuhelpergcc3-3|exe,dev,doc,nls|compat:bookworm| #20220527 reqd by libreoffice-writer
-yes|libuno-purpenvhelpergcc3-3|libuno-purpenvhelpergcc3-3|exe,dev,doc,nls| #20220206
+no|libuno-purpenvhelpergcc3-3|libuno-purpenvhelpergcc3-3|exe,dev,doc,nls| #20220206 reqd by libreoffice. 20230310 removed.
 no|libuno-sal3|libuno-sal3|exe,dev,doc,nls|compat:bookworm| #20220527 reqd by libreoffice-writer
 no|libuno-salhelpergcc3-3|libuno-salhelpergcc3-3|exe,dev,doc,nls|compat:bookworm| #20220527 reqd by libreoffice-writer
 yes|libunwind|libunwind8,libunwind-dev|exe,dev,doc,nls|
@@ -914,7 +924,7 @@ yes|libva|libva-dev,libva-drm2,libva-glx2,libva-wayland2,libva-x11-2,libva2,va-d
 yes|libva-utils|vainfo|exe,dev,doc,nls| #20190823
 yes|libvdpau|libvdpau1,libvdpau-dev|exe,dev,doc,nls| #PC
 yes|libvdpau-va-gl1|libvdpau-va-gl1|exe,dev,doc,nls| #PC
-yes|libverto-dev|libverto-dev|exe,dev,doc,nls| #20220206
+yes|libverto|libverto1,libverto-glib1,libverto-dev|exe,dev,doc,nls| #20220206 20230310
 no|libvisio|libvisio-0.1-1,libvisio-dev|exe,dev,doc,nls| #20190730 visio import, needed by libreoffice-draw and scribus
 yes|libvisual|libvisual-0.4-0,libvisual-0.4-dev|exe,dev,doc,nls|
 yes|libvncserver1|libvncserver1|exe,dev,doc,nls| #20220206
@@ -925,6 +935,7 @@ yes|libvpx|libvpx7,libvpx-dev|exe,dev,doc,nls|
 yes|libvte-2.91-0|libvte-2.91-0|exe,dev,doc,nls| #20220206
 yes|libwacom|libwacom9,libwacom-common,libwacom-bin,libwacom-dev|exe,dev,doc,nls| #needed by abiword. 20190730 added libwacom-dev
 yes|libwayland-bin|libwayland-bin|exe,dev,doc,nls| #20220206
+yes|libwbclient0|libwbclient0|exe,dev,doc,nls| #20230310 part of samba, but needed by cifs-utils
 yes|libwebp|libwebp7,libwebpdemux2,libwebpmux3,libwebp-dev|exe,dev,doc,nls| #20180512
 yes|libwmf|libwmf0.2-7,libwmf-dev|exe,dev,doc,nls
 yes|libwpd|libwpd-0.10-10,libwpd-dev|exe,dev,doc,nls|
@@ -960,6 +971,7 @@ yes|libxml-sax-perl|libxml-sax-perl|exe,dev,doc,nls|
 yes|libxmu|libxmuu1,libxmu-headers,libxmu6|exe,dev,doc,nls|
 yes|libxplc0.3.13-dev|libxplc0.3.13-dev|exe,dev,doc,nls| #20220206
 yes|libxpm|libxpm4|exe,dev,doc,nls|
+yes|libxpresent|libxpresent1|exe,dev,doc,nls| #20230310 needed by mpv
 yes|libxrandr|libxrandr2|exe,dev,doc,nls|
 yes|libxrender|libxrender1|exe,dev,doc,nls|
 yes|libxres|libxres1|exe,dev,doc,nls|
@@ -981,7 +993,7 @@ no|linux_firewall||exe| #20161016 now using firewall_ng, in rootfs-skeleton
 no|linux_firmware_dvb||exe| #REMOVED 20160329
 yes|linux-header|linux-libc-dev|exe>dev,dev,doc,nls
 yes|linux_headers|linux_headers-5.15.43*|exe>dev,dev,doc,nls|pet:bookworm| #20230309
-yes|lirc|liblircclient0,liblircclient-dev|exe,dev,doc,nls|
+no|lirc|liblircclient0,liblircclient-dev|exe,dev,doc,nls| #20230310 no
 yes|libvidstab|libvidstab1.1,libvidstab-dev|exe,dev,doc,nls|
 no|llvm11-runtime|llvm-11-runtime,libllvm11|exe,dev,doc,nls| #20210801 20210804 mesa needs this but plan to recompile mesa without it.
 yes|llvm-runtime|llvm-15-runtime,libllvm15|exe,dev,doc,nls|
@@ -1030,6 +1042,7 @@ no|minizip|libminizip1,libminizip-dev|exe,dev,doc,nls| #20210802 needed by chrom
 no|mir|libmircore1,libmircommon7,libmirclient9,libmirprotobuf3,libmircommon-dev,libmirclient-dev|exe,dev,doc,nls|
 yes|mirdir|mirdir|exe,dev,doc,nls|compat:kirkstone| #20220507
 no|mjpegtools|mjpegtools,mjpegtools-gtk,libmplex2-2.1-0,libmjpegutils-2.1-0,libmpeg2encpp-2.1-0,libmjpegtools-dev,liblavfile-2.1-0,liblavjpeg-2.1-0,liblavplay-2.1-0|exe,dev,doc,nls| #20220510
+yes|mjpegtools|libmjpegutils-2.1-0|exe,dev,doc,nls| #20230310
 no|mmarchitect||exe,dev,doc,nls| #needs vala, and libgee 1.0 --deb is older.
 yes|mobile-broadband-provider-info|mobile-broadband-provider-info|exe,dev,doc,nls| #20180103
 no|modemmanager|libmm-glib0|exe,dev,doc,nls| #20190801 libmm-glib0 is needed by network-manager.
@@ -1065,7 +1078,7 @@ yes|ncal|ncal|exe,dev,doc,nls| #20220206
 no|ncurses|libncurses5,libncurses5-dev,libncursesw5,libncursesw5-dev,libtinfo5,libtinfo6,libtinfo-dev,ncurses-base,ncurses-bin|exe,dev,doc,nls|
 yes|ncurses|libncurses5,libncursesw5,libncurses6,libncursesw6,libncursesw5-dev,libncurses-dev,libtinfo5,libtinfo6,libtinfo-dev,ncurses-base,ncurses-bin|exe,dev,doc,nls|
 yes|nenscript|nenscript|exe,dev,doc,nls|compat:kirkstone| #20220507
-no|neon27|libneon27,libneon27-gnutls,libneon27-dev,libneon27-gnutls-dev|exe,dev,doc,nls| #20170713 needed by libreoffice. 20190803
+no|neon27|libneon27,libneon27-gnutls,libneon27-dev,libneon27-gnutls-dev|exe,dev,doc,nls| #20170713 needed by libreoffice. 20190803 20230310 audacious needs.
 yes|netbase|netbase|exe,dev,doc,nls| #20220206
 yes|netpbm|netpbm|exe,dev,doc,nls|compat:kirkstone| #recent version. 20220507
 no|net_setup||exe
@@ -1107,7 +1120,7 @@ yes|openal-soft|libopenal1,libopenal-data,libopenal-dev|exe,dev,doc,nls|
 yes|opencore-amr|libopencore-amrwb0,libopencore-amrnb0|exe,dev,doc,nls|
 no|opencv|libopencv-calib3d-dev,libopencv-calib3d3.2,libopencv-contrib-dev,libopencv-contrib3.2,libopencv-core-dev,libopencv-core3.2,libopencv-dev,libopencv-features2d-dev,libopencv-features2d3.2,libopencv-flann-dev,libopencv-flann3.2,libopencv-highgui-dev,libopencv-highgui3.2,libopencv-imgcodecs-dev,libopencv-imgcodecs3.2,libopencv-imgproc-dev,libopencv-imgproc3.2,libopencv-ml-dev,libopencv-ml3.2,libopencv-objdetect-dev,libopencv-objdetect3.2,libopencv-photo-dev,libopencv-photo3.2,libopencv-shape-dev,libopencv-shape3.2,libopencv-stitching-dev,libopencv-stitching3.2,libopencv-superres-dev,libopencv-superres3.2,libopencv-ts-dev,libopencv-video-dev,libopencv-video3.2,libopencv-videoio-dev,libopencv-videoio3.2,libopencv-videostab-dev,libopencv-videostab3.2,libopencv-viz-dev,libopencv-viz3.2,libopencv3.2-java,libopencv3.2-jni|exe,dev,doc,nls| #20180511 20180916
 yes|openexr|libopenexr-3-1-30,libopenexr-dev|exe,dev,doc,nls| #needed by opencv
-yes|openjpeg2|libopenjp2-7,libopenjp2-7-dev,libopenjpip7|exe,dev,doc,nls| #20180511
+yes|openjpeg2|libopenjp2-7,libopenjp2-7-dev|exe,dev,doc,nls| #20180511  20230310 removed ,libopenjpip7
 yes|openldap|libldap-2.5-0,libldap2-dev|exe,dev,doc,nls|
 yes|opensp|libosp5,libosp-dev,opensp|exe>dev,dev,doc,nls|
 yes|opensp-runtime|libosp5|exe,dev,doc,nls| #needed by libofx and homebank.
@@ -1192,7 +1205,7 @@ yes|pmcputemp||exe,dev,doc,nls|pet:bookworm| #by 01micko. oe one does not work 2
 no|pmetatagger||exe|pet:noarch| #20200303 replaced with fftag
 yes|pmirror||exe|pet:noarch|
 yes|pmirrorget||exe|pet:noarch|
-no|pmusic||exe,dev,doc,nls|pet:noarch| #aqualung is an alternative. 20190803 using audacious instead.
+yes|pmusic||exe,dev,doc,nls|pet:noarch| #aqualung is an alternative. 20190803 using audacious instead. 20230310 yes
 yes|pm-utils|pm-utils,powermgmt-base|exe,dev,doc,nls| #20180103 needed by acpid scripts.
 no|pnethood||exe| #using network_roxapp and YASSM instead. leave it in, some users want it.
 yes|pngoverlay-cairo|pngoverlay-cairo|exe|compat:kirkstone| #replaces pngoverlay from pup-tools. 20220507
@@ -1265,7 +1278,7 @@ yes|python3-pkg-resources|python3-pkg-resources|exe,dev,doc,nls| #20190816 neede
 yes|pci.ids|pci.ids|exe,dev,doc,nls| #20220206
 yes|python3-dnspython|python3-dnspython|exe,dev,doc,nls| #20220206
 yes|python3-ldb|python3-ldb|exe,dev,doc,nls| #20220206
-yes|python3-samba|python3-samba|exe,dev,doc,nls| #20220206
+no|python3-samba|python3-samba|exe,dev,doc,nls| #20220206  20230310 no
 yes|qpdf|qpdf,libqpdf29,libqpdf-dev|exe,dev,doc,nls|
 no|qtbase-opensource-src|libqt5concurrent5,libqt5core5a,libqt5dbus5,libqt5gui5,libqt5libqgtk2,libqt5network5,libqt5opengl5,libqt5opengl5-dev,libqt5printsupport5,libqt5sql5,libqt5sql5-mysql,libqt5sql5-odbc,libqt5sql5-psql,libqt5sql5-sqlite,libqt5sql5-tds,libqt5test5,libqt5widgets5,libqt5xml5,qt5-default,qt5-qmake,qt5-qmake-arm-linux-gnueabihf,qtbase5-dev,qtbase5-dev-tools,qtbase5-private-dev|exe,dev,doc,nls|
 no|qt5-cutdown|libqt5core5a,libqt5dbus5,libqt5gui5,libqt5network5,libqt5widgets5,libqt5x11extras5|exe,dev,doc,nls| #just enough for vlc.
@@ -1308,12 +1321,13 @@ yes|rsync_devxonly|rsync|exe>dev,dev,doc,nls
 yes|rtmpdump|librtmp1,librtmp-dev|exe,dev,doc,nls
 yes|rubberband|librubberband2,rubberband-cli,rubberband-ladspa,rubberband-vamp,librubberband-dev|exe,dev,doc,nls| #20180512
 yes|rubix|rubix|exe,dev,doc,nls|compat:kirkstone| #20220507
+yes|rust-rav1e|librav1e0|exe,dev,doc,nls| #20230310 needed by mpv
 yes|rxvt-unicode|rxvt-unicode|exe,dev>null,doc,nls|compat:kirkstone| #20220507
 no|rxvt-unicode|rxvt-unicode-256color|exe,dev>null,doc,nls| #removed, missing perl modules.
 no|rxvt-unicode|rxvt-unicode-lite|exe,dev,doc,nls
 no|sakura|sakura|exe,dev,doc,nls| #20180104 needs vte and gtk3.
 yes|sakura|sakura|exe,dev,doc,nls|compat:kirkstone| #needs vte. 20220507
-no|samba|samba,samba-common-bin,samba-common,smbclient,samba-libs,samba-dsdb-modules,samba-vfs-modules,libwbclient0,libsmbclient,libsmbclient-dev|exe,dev,doc,nls| #20151123 added libsmbclient, libsmbclient-dev. 20160406 added smbclient. 20220611 removed.
+no|samba|samba,samba-common-bin,samba-common,smbclient,samba-libs,samba-dsdb-modules,samba-vfs-modules,libwbclient0,libsmbclient,libsmbclient-dev|exe,dev,doc,nls| #20151123 added libsmbclient, libsmbclient-dev. 20160406 added smbclient. 20220611 removed. 2-230310 libwbclient0 elsewhere.
 no|sane-backends|libsane-common,libsane-dev,libsane,sane-utils|exe,dev,doc,nls| #20220911 removed.
 yes|sbc|libsbc1,libsbc-dev|exe,dev,doc,nls|
 yes|scale2x|scale2x|exe,dev,doc,nls|compat:kirkstone| #20220507
@@ -1392,7 +1406,7 @@ yes|tesseract|libtesseract5,tesseract-ocr,tesseract-ocr-eng,libtesseract-dev|exe
 yes|tevent|libtevent0,libtevent-dev|exe,dev,doc,nls|
 yes|tex-common|tex-common|exe,dev,doc,nls|
 yes|texinfo|texinfo|exe>dev,dev,doc,nls
-yes|three-js|libjs-three|exe,dev,doc,nls| #20210801 needed by solvespace.
+no|three-js|libjs-three|exe,dev,doc,nls| #20210801 needed by solvespace. 20230310 no
 no|tile||exe| #what is this. an old game from puppy4.
 yes|time|time|exe,dev>null,doc,nls
 yes|transmission|transmission,transmission-gtk,transmission-common,transmission-cli|exe,dev,doc,nls|
