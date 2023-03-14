@@ -1,0 +1,322 @@
+#!/bin/bash
+#20230313 first release.
+
+export TEXTDOMAIN=appimages
+export TEXTDOMAINDIR=/usr/share/locale
+export OUTPUT_CHARSET=UTF-8
+
+CR='
+'
+mkdir -p /tmp/appimage
+
+H_appimg="$(gettext 'AppImages are applications that contain all dependencies built-in, so they will run on almost any Linux distribution, without having to install any other packages.')
+$(gettext 'Consequently, they are large, typically 50MB to 300MB, so you do need reasonably fast Internet and adequate data allowance with your telco.')
+
+$(gettext 'The Appimages are installed so that each runs as its own user, which maximizes isolation and hence security. However, there is the option of running them as the root user.')
+
+$(gettext 'Upon installation, a menu-entry is created, and you are good-to-go.')
+$(gettext 'If you entered a password at first bootup of EasyOS, then all working folders are encrypted, and this includes files created by the AppImage while you are using it. If your USB-stick, or on whatever media EasyOS is installed, is stolen, your data is safe.')
+
+<b>$(gettext 'Notes')</b>
+$(gettext 'A tick in the second column means that the AppImage is already installed. You may then have the opportunity of updating or deleting it.')
+$(gettext 'After an AppImage is installed, the file-manager will recognize the file types handled by that app. Right-click on an appropriate file and the AppImage will be offered to open it.')"
+export DLG_HELP_APPIMG="<window resizable=\"false\" title=\"$(gettext 'Help: AppImage Installer')\" icon-name=\"gtk-index\" window_position=\"1\"><vbox><text use-markup=\"true\"><label>\"${H_appimg}\"</label><variable>DLG_HELP_APPIMG</variable></text><hbox><button><label>$(gettext 'Close')</label><action type=\"closewindow\">DLG_HELP_APPIMG</action></button></hbox></vbox></window>"
+
+#does not work:
+#        <item icon-name=\"cozydrive\">CozyDrive|$(gettext 'Synchronize files with laptop and desktop PC')</item>
+
+#find out what already installed...
+for aAI in $(find /mnt/wkg/appimage -mindepth 1 -maxdepth 1 -type d)
+do
+ [ "$aAI" == "" ] && continue
+ AIfile="$(find ${aAI} -mindepth 1 -maxdepth 1 -type f -name '*.AppImage')"
+ if [ "$AIfile" ];then
+  eval "FLG${aAI##*/}='√'" #ex: sets FLGaudacity=√
+ fi
+done
+
+PACKAGE="AppImage"
+DESCRIPTION="$(gettext 'Description')"
+export APPIMG_DLG1="<window title=\"$(gettext 'AppImage Installer')\">
+  <vbox>
+    <text use-markup=\"true\"><label>\"$(gettext 'AppImages are applications with all dependencies builtin.')${CR}$(gettext 'They may be downloaded and installed in EasyOS.')${CR}$(gettext 'An existing installation may be updated or deleted.')\"</label></text>
+    <notebook labels=\"$(gettext 'Audio')|$(gettext 'Developer')|$(gettext 'Games')|$(gettext 'Graphics')|$(gettext 'Network')|$(gettext 'Office')|$(gettext 'Productivity')|$(gettext 'System')|$(gettext 'Video')\">
+      <tree column-resizeable=\"0\">
+        <label>${PACKAGE}||${DESCRIPTION}</label>
+        <height>280</height>
+        <variable>TREEaudio</variable>
+        <item icon-name=\"audacity\">Audacity|${FLGaudacity}|$(gettext 'A free, easy-to-use, multi-track audio editor and recorder')</item>
+      </tree>
+      <tree column-resizeable=\"0\">
+        <label>${PACKAGE}||${DESCRIPTION}</label>
+        <height>280</height>
+        <variable>TREEdeveloper</variable>
+        <item icon-name=\"gitqlient\">GitQlient|${FLGgitqlient}|$(gettext 'Multiplatform Git client written with Qt')</item>
+      </tree>
+      <tree column-resizeable=\"0\">
+        <label>${PACKAGE}||${DESCRIPTION}</label>
+        <height>280</height>
+        <variable>TREEgames</variable>
+        <item icon-name=\"planetblupi\">PlanetBlupi|${FLGplanetblupi}|$(gettext 'Strategy and adventure game')</item>
+      </tree>
+      <tree column-resizeable=\"0\">
+        <label>${PACKAGE}||${DESCRIPTION}</label>
+        <height>280</height>
+        <variable>TREEgraphics</variable>
+        <item icon-name=\"phototool\">PhotoTool|${FLGphototool}|$(gettext 'Photo editor')</item>
+      </tree>
+      <tree column-resizeable=\"0\">
+        <label>${PACKAGE}||${DESCRIPTION}</label>
+        <height>280</height>
+        <variable>TREEnetwork</variable>
+        <item icon-name=\"electorrent\">Electorrent|${FLGelectorrent}|$(gettext 'A client for uTorrent, rTorrent, Transmission, etc.')</item>
+      </tree>
+      <tree column-resizeable=\"0\">
+        <label>${PACKAGE}||${DESCRIPTION}</label>
+        <height>280</height>
+        <variable>TREEoffice</variable>
+        <item icon-name=\"onlyoffice\">ONLYOFFICE|${FLGonlyoffice}|$(gettext 'Word-processing, spreadsheet, presentations office suite')</item>
+      </tree>
+      <tree column-resizeable=\"0\">
+        <label>${PACKAGE}||${DESCRIPTION}</label>
+        <height>280</height>
+        <variable>TREEproductivity</variable>
+        <item icon-name=\"goldendict\">GoldenDict|${FLGgoldendict}|$(gettext 'Feature-rich dictionary lookup')</item>
+        <item icon-name=\"onenote\">OneNote|${FLGonenote}|$(gettext 'A Linux version of Microsoft OneNote')</item>
+      </tree>
+      <vbox>
+        <text><label>System, nothing here yet</label></text>
+      </vbox>
+      <tree column-resizeable=\"0\">
+        <label>${PACKAGE}||${DESCRIPTION}</label>
+        <height>280</height>
+        <variable>TREEvideo</variable>
+        <item icon-name=\"openshot\">OpenShot|${FLGopenshot}|$(gettext 'Easy and powerful video editor')</item>
+      </tree>
+
+
+    </notebook>
+    <hbox>
+      <text><label>$(gettext 'Highlight an AppImage then click a button:')</label></text>
+      <text><label>\"  \"</label></text>
+    </hbox>
+    <hbox>
+      <button space-expand=\"false\" space-fill=\"false\"><input file>/usr/local/lib/X11/mini-icons/mini-question.xpm</input><action type=\"launch\">DLG_HELP_APPIMG</action></button>
+      <button space-expand=\"false\" space-fill=\"false\"><label>$(gettext 'Exit')</label><action>exit:QUIT</action></button>
+      <text space-expand=\"true\" space-fill=\"true\"><label>\"  \"</label></text>
+      <button><label>$(gettext 'Install/Update/Delete')</label><action>exit:BUTinstall</action></button>
+      <button><label>$(gettext 'Online Information')</label><action>/usr/local/appimage/online-info \"\$TREEaudio\" \"\$TREEdeveloper\" \"\$TREEgames\" \"\$TREEgraphics\" \"\$TREEnetwork\" \"\$TREEoffice\" \"\$TREEproductivity\" \"\$TREEsystem\" \"\$TREEvideo\" </action></button>
+    </hbox>
+  </vbox>
+</window>
+"
+
+RETVALS="$(gtkdialog --center --program=APPIMG_DLG1)"
+
+#echo "$RETVALS"
+eval "$RETVALS"
+if [ "$EXIT" != "BUTinstall" ];then
+ exit
+fi
+
+#there could be multiple choices, but let's just do one...
+for aAPP in "$TREEaudio" "$TREEdeveloper" "$TREEgames" "$TREEgraphics" "$TREEnetwork" "$TREEoffice" "$TREEproductivity" "$TREEsystem" "$TREEvideo"
+do
+ if [ "$aAPP" != "" ];then
+  break
+ fi
+done
+if [ "$aAPP" == "" ];then
+ M1="$(gettext 'No AppImage selected. Aborting.')"
+ popup "terminate=ok background=#ff8080 level=top process=wait|<big>${M1}</big>"
+ exit 1
+fi
+
+if [ -d /mnt/wkg/appimage/${aAPP,,} ];then
+ rmdir /mnt/wkg/appimage/${aAPP,,} 2>/dev/null #this will fail if any files.
+ if [ $? -ne 0 ];then
+  #already installed.
+  
+  exit
+ fi
+fi
+
+###new install###
+
+#need internet connection...
+if [ ! -s /tmp/pup_event_backend/network_ ];then
+ M5="$(gettext 'An Internet connection is required to download an AppImage.')"
+ popup "terminate=ok background=#ff8080 level=top process=wait|<big>${M5}</big>"
+ exec appimage
+fi
+
+#GoldenDict is a continuous build. don't really know how to handle them.
+#for now, ask. see github-find-latest-ver script.
+#the URL format is: https://github.com/$MEMBER/$PROJECT/
+
+case "${aAPP}" in
+ Audacity) MEMBER=audacity; PROJECT=audacity; APPIMG='audacity-linux-VERSION-x64.AppImage'; MENUcat='X-Multimedia-sound'; MENUtop='Multimedia'; MENUname='Audacity audio editor'; ;;
+ GitQlient) MEMBER=francescmm; PROJECT=GitQlient; APPIMG='GitQlient-VERSION-x86_64.AppImage'; MENUcat='X-Utility-development'; MENUtop='Utility'; MENUname='GitQlient git client'; ;;
+ GoldenDict) MEMBER=Abs62; PROJECT=goldendict; APPIMG='GoldenDict-VERSION-x86_64.AppImage'; MENUcat='X-Document-catalog'; MENUtop='Document'; MENUname='GoldenDict dictionary lookup'; ;;
+ PlanetBlupi) MEMBER='blupi-games'; PROJECT='planetblupi-dev'; APPIMG='planetblupi.AppImage'; MENUcat='X-Fun-adventure'; MENUtop='Fun'; MENUname='PlanetBlupi adventure game'; ;;
+ PhotoTool) MEMBER='aphototool'; PROJECT='A-Photo-Tool-Libre'; APPIMG='aphototoollibre_VERSION_x86_64.AppImage'; MENUcat='X-Graphic-paint'; MENUtop='Graphic'; MENUname='PhotoTool photo editor'; ;;
+ CozyDrive) MEMBER='cozy-labs'; PROJECT='cozy-desktop'; APPIMG='Cozy-Drive-VERSION-x86_64.AppImage'; MENUcat='X-Network-transfer'; MENUtop='Network'; MENUname='CozyDrive sync laptop and desktop PC'; ;;
+ Electorrent) MEMBER='Tympanix'; PROJECT='Electorrent'; APPIMG='Electorrent-VERSION.AppImage'; MENUcat='X-Network-transfer'; MENUtop='Network'; MENUname='Electorrent multiprotocol torrent client'; ;;
+ ONLYOFFICE) MEMBER='ONLYOFFICE'; PROJECT='appimage-desktopeditors'; APPIMG='DesktopEditors-x86_64.AppImage'; MENUcat='X-Business'; MENUtop='Business'; MENUname='ONLYOFFICE office suite'; ;;
+ OneNote) MEMBER='patrikx3'; PROJECT='onenote'; APPIMG='P3X-OneNote-VERSION.AppImage'; MENUcat='X-Personal-organizer'; MENUtop='Personal'; MENUname='OneNote online note taking'; ;;
+ OpenShot) MEMBER='OpenShot'; PROJECT='openshot-qt'; APPIMG='OpenShot-vVERSION-x86_64.AppImage'; MENUcat='X-Multimedia-video'; MENUtop='Multimedia'; MENUname='OpenShot video editor'; ;;
+ ZZZ) MEMBER=''; PROJECT=''; APPIMG=''; MENUcat=''; MENUtop=''; MENUname=''; ;;
+ *)
+  exit
+ ;;
+esac
+
+/usr/local/appimage/github-find-latest-ver ${MEMBER} ${PROJECT}
+if [ $? -ne 0 ];then
+ exec appimage
+fi
+URLtag="$(cat /tmp/appimage/URLtag)" #ex: https://github.com/amanharwara/altus/releases/tag/4.8.5
+APPver="$(cat /tmp/appimage/URLver)" #ex: 3.2.5
+APPimg="$(echo -n "$APPIMG" | sed -e "s%VERSION%${APPver}%")"
+
+#this is what we have to download: ${URLtag}/${APPimg}
+mkdir -p /mnt/wkg/appimage/${aAPP,,}
+cd /mnt/wkg/appimage/${aAPP,,}
+
+echo -n "${URLtag}/${APPimg}" > /tmp/appimage/URLdl #for debugging.
+URLdl="$(echo -n "$URLtag" | sed -e 's%/tag/%/download/%')"
+download_file ${URLdl}/${APPimg}
+if [ $? -ne 0 ];then
+ M2="$(gettext 'AppImage download failed. Aborting.')"
+ popup "terminate=ok background=#ff8080 level=top process=wait|<big>${M2}</big>"
+ if [ -e ./${APPimg} ];then
+  rm -f ./${APPimg}
+ fi
+ exit 1
+fi
+
+sync
+chmod 755 ${APPimg}
+OFFSET="$(./${APPimg} --appimage-offset 2>/dev/null)"
+if [ "$OFFSET" == "" ];then
+ M3="$(gettext 'The downloaded AppImage seems to be corrupted. Aborting.')"
+ popup "terminate=ok background=#ff8080 level=top process=wait|<big>${M3}</big>"
+ if [ -e ./${APPimg} ];then
+  rm -f ./${APPimg}
+ fi
+ exit 2
+fi
+
+#mkdir -p /mnt/wkg/appimage/${aAPP,,}/mntpt
+#busybox mount -o loop,offset=${OFFSET} ${APPimg} mntpt
+#if [ $? -ne 0 ];then
+# M4="$(gettext 'The downloaded AppImage seems to be corrupted. Aborting.')"
+# popup "terminate=ok background=#ff8080 level=top process=wait|<big>${M4}</big>"
+# rm -f ./${APPimg}
+# exit 3
+#fi
+
+
+ln -s /mnt/wkg/appimage/${aAPP,,}/${APPimg} /usr/bin/${aAPP,,}
+
+if [ "${LANG:0:2}" == "en" ];then
+ NLSname=''
+else
+ NLStxt="$(gettext "${MENUname}")"
+ NLSname="Name[${LANG:0:2}]=${NLStxt}
+"
+fi
+
+echo "[Desktop Entry]
+Version=1.0
+Type=Application
+${NLSname}Name=${MENUname}
+GenericName=${aAPP}
+Icon=${aAPP,,}.png
+Categories=${MENUcat}
+Exec=${aAPP,,}" > /usr/share/applications/${aAPP,,}.desktop
+
+if [ -d /usr/local/appimage/skeletons/${aAPP,,}/usr ];then
+ cp -a -f /usr/local/appimage/skeletons/${aAPP,,}/usr/* /usr/
+fi
+
+#create /usr/bin/${aAPP,,} script to run as user ${aAPP,,} ...
+setup-client "${aAPP,,}=true"
+
+if [ -d /usr/local/appimage/skeletons/audacity/home/${aAPP,,} ];then
+ chown -R ${aAPP,,}:${aAPP,,} /usr/local/appimage/skeletons/${aAPP,,}/home/${aAPP,,}
+ cp -a -f /usr/local/appimage/skeletons/${aAPP,,}/home/${aAPP,,}/* /home/${aAPP,,}/ 2>/dev/null
+ cp -a -f /usr/local/appimage/skeletons/${aAPP,,}/home/${aAPP,,}/.[a-zA-Z0-9]* /home/${aAPP,,}/ 2>/dev/null
+fi
+
+#update jwm menu...
+fixmenus
+jwm -reload
+
+#update the right-click menu...
+build-rox-sendto /usr/share/applications/${aAPP,,}.desktop
+
+#create a path for optional open/save files for this app
+mkdir -p /files/apps/${aAPP,,}
+
+export APPIMG_DLG2="<window title=\"$(gettext 'AppImage Installer: success')\">
+  <vbox>
+    <text><label>\"$(gettext 'Success, this AppImage has been installed:')
+  ${APPimg}
+$(gettext 'It was downloaded here:')
+  /mnt/wkg/appimage/${aAPP,,}
+$(gettext 'This script has been created to run it:')
+  /usr/bin/${aAPP,,}
+$(gettext 'And a menu entry has been created in this category:')
+  ${MENUtop}
+$(gettext 'The AppImage will run as this user:')
+  ${aAPP,,}
+$(gettext 'With user home directory:')
+  /home/${aAPP,,}
+
+$(gettext 'This means that the app will only be able to save files in the home directory or anywhere in the /files folder.')
+$(gettext 'For your convenience, this folder has been created:')
+  /files/apps/${aAPP,,}
+$(gettext 'You may, if you wish, configure the app to open/save in this folder.')
+
+$(gettext 'Click the OK button for some final useful information...')\"</label></text>
+    <hbox>
+     <button ok></button>
+    </hbox>
+  </vbox>
+</window>
+"
+gtkdialog --center --program=APPIMG_DLG2
+
+export APPIMG_DLG3="<window title=\"$(gettext 'AppImage Installer: security notes')\">
+  <vbox>
+    <text use-markup=\"true\"><label>\"<b>$(gettext 'Security notes')</b>\"</label></text>
+    <text usr-markup=\"true\"><label>\"$(gettext 'As has been stated in the previous window, the AppImage has been installed to run as a non-root user. In fact, each AppImage runs as its own separate user. This provides isolation, in other words, security.')
+$(gettext 'However, you may prefer to run some apps as the root user, a file-manager for example, where you want unfettered access to the entire filesystem, able to open, edit and save anywhere.')
+
+$(gettext 'The installation has created two executables:')
+  /usr/bin/${aAPP,,}
+  /usr/bin/${aAPP,,}.bin
+$(gettext '...the first will run the AppImage non-root, the second as the root user.')
+$(gettext 'The installation also created a .desktop file, that specifies an entry in the menu. This is where it is located:')
+  /usr/share/applications/${aAPP,,}.desktop
+$(gettext 'And this is one line in the file:')
+  Exec=${aAPP,,}
+$(gettext 'To change to run the AppImage as the root user, edit that line:')
+  Exec=${aAPP,,}<b>.bin</b>
+$(gettext 'Then in a terminal, run these two commands to update the menu:')
+  # fixmenus
+  # jwm -reload
+$(gettext 'In the future, this might be automated by the AppImage Installer, but for now, it is easy enough to do manually.')
+
+<b>$(gettext 'A final warning')</b>
+$(gettext 'Some AppImages will not run as root, and some may require the Exec line in the .desktop file to have this appended:')
+ Exec=${aAPP,,}.bin <b>--no-sandbox</b>
+$(gettext '...which disables the AppImages own security mechanisms.')\"</label></text>
+  </vbox>
+</window>
+"
+gtkdialog --center --program=APPIMG_DLG3
+
+sync
+###end###

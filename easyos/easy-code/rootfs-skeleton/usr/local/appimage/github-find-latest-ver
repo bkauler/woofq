@@ -1,0 +1,83 @@
+#!/bin/bash
+#return latest version number.
+#pass in MEMBER=$1 PROJECT=$2
+#20230313 first release.
+
+#example url:
+# https://github.com/amanharwara/altus/releases/latest/
+#where MEMBER=amanharwara PROJECT=altus
+
+export TEXTDOMAIN=appimages
+export TEXTDOMAINDIR=/usr/share/locale
+export OUTPUT_CHARSET=UTF-8
+
+MEMBER="$1"
+PROJECT="$2"
+
+mkdir -p /tmp/appimage
+echo -n '' > /tmp/appimage/URLtag
+echo -n '' > /tmp/appimage/URLver
+
+M1="$(gettext 'Unable to obtain information about latest version from github.com, aborting')"
+
+wget -4 --spider --tries=2 --timeout=20 https://github.com/${MEMBER}/${PROJECT}/releases/latest/ > /tmp/appimage/spider-latest.log 2>&1
+if [ $? -ne 0 -o ! -s /tmp/appimage/spider-latest.log ];then
+ popup "terminate=ok background=#ff8080 level=top process=wait|<big>${M1}</big>"
+ exit 1
+fi
+
+URLtag="$(grep '^\-\-.*https://github.com.*/tag/' /tmp/appimage/spider-latest.log | sed -e 's%.*https%https%' | tail -n 1)"
+# ex: https://github.com/amanharwara/altus/releases/tag/4.8.5
+# ex: https://github.com/audacity/audacity/releases/tag/Audacity-3.2.5
+# ex: https://github.com/kremalicious/blowfish/releases/tag/v1.6.0
+#goldendict is a continous release:
+# https://github.com/Abs62/goldendict/releases/tag/continuous
+# ex: https://github.com/blupi-games/planetblupi-dev/releases/tag/v1.14.2
+#this one is awkward as has "-3" on the end:
+# https://github.com/aphototool/A-Photo-Tool-Libre/releases/tag/v1.0.5-3
+
+if [ "$URLtag" ];then
+ echo -n "$URLtag" > /tmp/appimage/URLtag
+ #need to reliably extract the version number...
+ URLver0="${URLtag##*/}"
+ URLver1=''
+ if [ "$URLver0" == "continuous" ];then
+  defaultbrowser ${URLtag} &
+  sleep 2
+  export APPIMG_DLGv1="<window title=\"AppImage: ask version\">
+  <vbox>
+   <text use-markup=\"true\"><label>\"$(gettext 'The github repository does not have release versions. It is what is know as continuous build, and unable to automatically determine the build number.')
+$(gettext 'The github site should have popped up in a browser. The AppImage has this format: ')
+  name-<b>build number</b>-architecture.AppImage
+  ex: GoldenDict-<b>661dd4d</b>-x86_64.AppImage
+$(gettext 'Please type the build-number into the entry box, then click OK button:')
+$(gettext '(Click Cancel button if unable to determine build number)')\"</label></text>
+   <entry>
+    <variable>ENTRY</variable>
+   </entry>
+   <hbox>
+    <button ok></button>
+    <button cancel></button>
+   </hbox>
+  </vbox></window>"
+  RETVALS="$(gtkdialog --center --program=APPIMG_DLGv1)"
+  eval "$RETVALS"
+  if [ "$EXIT" == "OK" ];then
+   URLver1="$ENTRY"
+  fi
+ else
+  #URLver1="${URLver0/*[a-z-]/}"
+  URLver1="${URLver0/*[a-zA-Z]/}"
+  URLver1="$(echo -n "${URLver1}" | sed -e 's%^\-%%')"
+ fi
+ if [ "$URLver1" == "" ];then
+  exit 3
+ fi
+ echo -n "$URLver1" > /tmp/appimage/URLver #ex: 3.2.5
+ exit 0
+else
+ popup "terminate=ok background=#ff8080 level=top process=wait|<big>${M1}</big>"
+ exit 2
+fi
+###end###
+

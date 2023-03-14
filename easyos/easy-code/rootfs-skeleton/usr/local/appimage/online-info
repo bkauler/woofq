@@ -1,0 +1,45 @@
+#!/bin/sh
+#called from /usr/local/appimages/appimages
+#up to nine variables passed in:
+#$TREEaudio, $TREEbusiness, $TREEdeveloper, $TREEgames, $TREEgraphics, $TREEnetwork, $TREEproductivity, $TREEsystem, $TREEvideo, $TREEother
+
+#only one of them will have a content:
+for aPARAM in $@
+do
+ if [ "$aPARAM" ];then
+  break
+ fi
+done
+
+if [ ! "$aPARAM" ];then
+ M1="$(gettext 'You need to select an AppImage first')"
+ popup "terminate=ok background=#ff8080 level=top process=wait|<big>${M1}</big>"
+ exit 1
+fi
+
+#need internet connection...
+if [ ! -s /tmp/pup_event_backend/network_ ];then
+ M5="$(gettext 'An Internet connection is required to view online information.')"
+ popup "terminate=ok background=#ff8080 level=top process=wait|<big>${M5}</big>"
+ exit
+fi
+
+case "$aPARAM" in
+ Audacity) URL='https://www.audacityteam.org/' ;;
+ GitQlient) URL='https://github.com/francescmm/GitQlient' ;;
+ GoldenDict) URL='http://goldendict.org/' ;;
+ PlanetBlupi) URL='https://github.com/blupi-games/planetblupi-dev' ;;
+ PhotoTool) URL='https://www.ahola.me/aphototoollibre.html' ;;
+ CozyDrive) URL='https://cozy.io/en/' ;;
+ Electorrent) URL='https://github.com/Tympanix/Electorrent' ;;
+ ONLYOFFICE) URL='https://www.onlyoffice.com/desktop.aspx' ;;
+ OneNote) URL='https://www.corifeus.com/onenote' ;;
+ OpenShot) URL='https://www.openshot.org/' ;;
+ *)
+  pman ${aPARAM} &
+  exit
+ ;;
+esac
+
+defaultbrowser ${URL} &
+###end###

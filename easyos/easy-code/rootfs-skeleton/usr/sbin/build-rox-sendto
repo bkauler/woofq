@@ -15,6 +15,7 @@
 #20220613 mount-img is now handler for application_easy-disk-image, not filemnt. 20220622 fix.
 #20220629 add application/xhtml+xml
 #20221115 add pfind inode_directory. 20221123 need pass "-d" cmd when run pfind.
+#20230313 add audacity, phototool
 
 #may call this in woofQ, when current dir is sandbox3/rootfs-complete, so test...
 CWD="`pwd`"
@@ -62,6 +63,7 @@ do
  case $aEXE in
 #  AppRun) MIMEDIR='' ;;
   audacious) MIMEDIR='audio' ;;
+  audacity) MIMEDIR='audio'; aNAME='Audacity' ;;
 #  aumix) MIMEDIR='' ;;
   bacongui-gtk)   MIMEDIR='text' ;;
   bcrypt_gui) MIMEDIR='ALL' ;;
@@ -161,6 +163,7 @@ do
 #  Multiple-Sound-Card-Wizard) MIMEDIR='' ;;
   notecase)       MIMEDIR='application_x-notecase application_x-notecase-enc' ;;
 #  osmo) MIMEDIR='' ;;
+  openshot)       MIMEDIR='video'; aNAME='OpenShot'; ;;
   packit)         MIMEDIR='ALL' ;;
 #  partview) MIMEDIR='' ;;
 #  pbackup) MIMEDIR='' ;;
@@ -181,6 +184,7 @@ do
 #  peasyscan) MIMEDIR='' ;;
   petget)         MIMEDIR='application_pet application_vnd.debian.binary-package application_x-deb application_x-bzip-compressed-tar application_x-xz-compressed-tar application_x-rpm application_zstd' ;;
   pfind) MIMEDIR='inode_directory'; aNAME='pFind'; aCMD='pfind -d $1' ;;
+  phototool) MIMEDIR='image'; aNAME='PhotoTool' ;;
 #  picpuz-wrapper) MIMEDIR='' ;;
 #  pidginshell) MIMEDIR='' ;;
 #  pkg_chooser.sh) MIMEDIR='' ;;
@@ -231,6 +235,7 @@ do
 #  set-xftdpi) MIMEDIR='' ;;
 #  sfsget) MIMEDIR='' ;;
 #  sh) MIMEDIR='' ;;
+  shotcut)      MIMEDIR='video'; aNAME='ShotCut'; ;;
   simpress|loimpress) MIMEDIR='application_vnd.oasis.opendocument.presentation application_vnd.oasis.opendocument.presentation-template application_vnd.ms-powerpoint application_vnd.openxmlformats-officedocument.presentationml.presentation application_vnd.openxmlformats-officedocument.presentationml.template application_vnd.openxmlformats-officedocument.presentationml.slideshow'; aNAME='LibreOffice-Impress' ;;
 #  sscontrol) MIMEDIR='' ;;
 #  ssh-gui) MIMEDIR='' ;;
