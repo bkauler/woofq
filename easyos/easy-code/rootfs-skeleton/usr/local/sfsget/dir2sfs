@@ -44,6 +44,7 @@
 #20220914 DB_dependencies just 'easy' not 'easy_<version>'
 #20220915 zoom, blender, shotcut menu text. 20220917 openshot, vscode, astudio, flutter
 #20220927 add smartgit. 20221006 add supertuxkart
+#20230316 mksquashfs zstd compression.
 
 . /etc/rc.d/PUPSTATE
 . /etc/DISTRO_SPECS
@@ -956,7 +957,8 @@ else
  cp -f ${PATH1}/${DIR}/usr/share/pixmaps/${SFS_DB_icons/,*/}.png ${SFS_DB_nameonly}.png
 fi
 cp -f ${PATH1}/${DIR}/.control/${SFS_DB_nameonly}.specs ${DIR}.specs
-mksquashfs ${PATH1}/${DIR} ${DIR}.sfs -comp lz4 -Xhc #20220604
+#mksquashfs ${PATH1}/${DIR} ${DIR}.sfs -comp lz4 -Xhc #20220604
+mksquashfs ${PATH1}/${DIR} ${DIR}.sfs -comp zstd -Xcompression-level 15 #20230316
 sync
 SFS_DB_hash="$(sha256sum ${DIR}.sfs | cut -f 1 -d ' ')"
 sed -i -e "s%^SFS_DB_hash=.*%SFS_DB_hash='${SFS_DB_hash}'%" ${DIR}.specs
