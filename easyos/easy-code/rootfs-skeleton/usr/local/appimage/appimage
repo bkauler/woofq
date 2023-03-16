@@ -1,5 +1,6 @@
 #!/bin/bash
-#20230313 first release.
+#20230313 first release. only via github
+#20230316 optional hardcode d/l and version.
 
 export TEXTDOMAIN=appimages
 export TEXTDOMAINDIR=/usr/share/locale
@@ -15,15 +16,36 @@ $(gettext 'Consequently, they are large, typically 50MB to 300MB, so you do need
 $(gettext 'The Appimages are installed so that each runs as its own user, which maximizes isolation and hence security. However, there is the option of running them as the root user.')
 
 $(gettext 'Upon installation, a menu-entry is created, and you are good-to-go.')
-$(gettext 'If you entered a password at first bootup of EasyOS, then all working folders are encrypted, and this includes files created by the AppImage while you are using it. If your USB-stick, or on whatever media EasyOS is installed, is stolen, your data is safe.')
 
 <b>$(gettext 'Notes')</b>
 $(gettext 'A tick in the second column means that the AppImage is already installed. You may then have the opportunity of updating or deleting it.')
-$(gettext 'After an AppImage is installed, the file-manager will recognize the file types handled by that app. Right-click on an appropriate file and the AppImage will be offered to open it.')"
+$(gettext 'After an AppImage is installed, the file-manager will recognize the file types handled by that app. Right-click on an appropriate file and the AppImage will be offered to open it.')
+$(gettext 'If you entered a password at first bootup of EasyOS, then all working folders are encrypted, and this includes files created by the AppImage while you are using it. If your USB-stick, or on whatever media EasyOS is installed, is stolen, your data is safe.')"
 export DLG_HELP_APPIMG="<window resizable=\"false\" title=\"$(gettext 'Help: AppImage Installer')\" icon-name=\"gtk-index\" window_position=\"1\"><vbox><text use-markup=\"true\"><label>\"${H_appimg}\"</label><variable>DLG_HELP_APPIMG</variable></text><hbox><button><label>$(gettext 'Close')</label><action type=\"closewindow\">DLG_HELP_APPIMG</action></button></hbox></vbox></window>"
 
-#does not work:
+#does not work, due to internal libs requiring a later glibc:
 #        <item icon-name=\"cozydrive\">CozyDrive|$(gettext 'Synchronize files with laptop and desktop PC')</item>
+#        <item icon-name=\"openshot\">OpenShot|${FLGopenshot}|$(gettext 'Easy and powerful video editor')</item>
+#get splash window, then aborts:
+#        <item icon-name=\"shotcut\">ShotCut|${FLGshotcut}|$(gettext 'Easy and powerful video editor')</item>
+#missing python module:
+#        <item icon-name=\"vidcutter\">VidCutter|${FLGvidcutter}|$(gettext 'A simple video cutter and joiner')</item>
+#/usr/lib/libgio-2.0.so.0: undefined symbol: g_module_open_full :
+#        <item icon-name=\"emacs\">Emacs|${FLGemacs}|$(gettext 'GNU Emacs text editor')</item>
+#FATAL:gpu_data_manager_impl_private.cc(986)] The display compositor is frequently crashing. Goodbye.:
+#        <item icon-name=\"circuitblocks\">CircuitBlocks|${FLGcircuitblocks}|$(gettext 'Graphical coding for Arduino using Google Blockly')</item>
+#terminate called after throwing an instance of 'std::logic_error'
+#  what():  basic_string: construction from null is not valid :
+#        <item icon-name=\"imhex\">ImHex|${FLGimhex}|$(gettext 'Hex editor for reverse engineers')</item>
+#./bin/kicad: /usr/lib/libcrypt.so.1: version `GLIBC_2.2.5' not found (required by /tmp/.mount_kicad.Ru9zq7/usr/lib/x86_64-linux-gnu/libkrb5.so.26)
+#./bin/kicad: /usr/lib/libcrypt.so.1: version `GLIBC_2.2.5' not found (required by /tmp/.mount_kicad.Ru9zq7/usr/lib/x86_64-linux-gnu/libroken.so.18)
+#        <item icon-name=\"kicad\">KiCad|${FLGkicad}|$(gettext 'Schematic-capture and PCB layout designer')</item>
+#/usr/bin/endlesssky.bin: error while loading shared libraries: libOpenGL.so.0: cannot open shared object file: No such file or directory
+#        <item icon-name=\"endlesssky\">EndlessSky|${FLGendlesssky}|$(gettext 'Outer-space adventure game')</item>
+
+#took this out of System tab, as these are untested, over half don't work:
+#        <item icon-name=\"appimagepool\">AppImagePool|${FLGappimagepool}|$(gettext 'AppImageHub AppImage installer')</item>
+
 
 #find out what already installed...
 for aAI in $(find /mnt/wkg/appimage -mindepth 1 -maxdepth 1 -type d)
@@ -32,6 +54,9 @@ do
  AIfile="$(find ${aAI} -mindepth 1 -maxdepth 1 -type f -name '*.AppImage')"
  if [ "$AIfile" ];then
   eval "FLG${aAI##*/}='√'" #ex: sets FLGaudacity=√
+ else
+  #remove .spec file, if it exists...
+  rm -f ${aAI}/${aAI##*/}.spec 2>/dev/null
  fi
 done
 
@@ -45,55 +70,73 @@ export APPIMG_DLG1="<window title=\"$(gettext 'AppImage Installer')\">
         <label>${PACKAGE}||${DESCRIPTION}</label>
         <height>280</height>
         <variable>TREEaudio</variable>
+        <action signal=\"enter-notify-event\" type=\"refresh\">TREEaudio</action>
         <item icon-name=\"audacity\">Audacity|${FLGaudacity}|$(gettext 'A free, easy-to-use, multi-track audio editor and recorder')</item>
       </tree>
       <tree column-resizeable=\"0\">
         <label>${PACKAGE}||${DESCRIPTION}</label>
         <height>280</height>
         <variable>TREEdeveloper</variable>
-        <item icon-name=\"gitqlient\">GitQlient|${FLGgitqlient}|$(gettext 'Multiplatform Git client written with Qt')</item>
+        <action signal=\"enter-notify-event\" type=\"refresh\">TREEdeveloper</action>
+        <item icon-name=\"gitqlient\">GitQlient|${FLGgitqlient}|$(gettext 'Multi-platform GIT client written with Qt')</item>
+        <item icon-name=\"antares\">Antares|${FLGantares}|$(gettext 'SQL client')</item>
+        <item icon-name=\"gdevelop\">GDevelop|${FLGgdevelop}|$(gettext 'No-code game creation')</item>
+        <item icon-name=\"guitar\">Guitar|${FLGguitar}|$(gettext 'GIT GUI client')</item>
       </tree>
       <tree column-resizeable=\"0\">
         <label>${PACKAGE}||${DESCRIPTION}</label>
         <height>280</height>
         <variable>TREEgames</variable>
+        <action signal=\"enter-notify-event\" type=\"refresh\">TREEgames</action>
         <item icon-name=\"planetblupi\">PlanetBlupi|${FLGplanetblupi}|$(gettext 'Strategy and adventure game')</item>
       </tree>
       <tree column-resizeable=\"0\">
         <label>${PACKAGE}||${DESCRIPTION}</label>
         <height>280</height>
         <variable>TREEgraphics</variable>
+        <action signal=\"enter-notify-event\" type=\"refresh\">TREEgraphics</action>
         <item icon-name=\"phototool\">PhotoTool|${FLGphototool}|$(gettext 'Photo editor')</item>
+        <item icon-name=\"krita\">Krita|${FLGkrita}|$(gettext 'Vector and raster painting program')</item>
       </tree>
       <tree column-resizeable=\"0\">
         <label>${PACKAGE}||${DESCRIPTION}</label>
         <height>280</height>
         <variable>TREEnetwork</variable>
+        <action signal=\"enter-notify-event\" type=\"refresh\">TREEnetwork</action>
         <item icon-name=\"electorrent\">Electorrent|${FLGelectorrent}|$(gettext 'A client for uTorrent, rTorrent, Transmission, etc.')</item>
       </tree>
       <tree column-resizeable=\"0\">
         <label>${PACKAGE}||${DESCRIPTION}</label>
         <height>280</height>
         <variable>TREEoffice</variable>
+        <action signal=\"enter-notify-event\" type=\"refresh\">TREEoffice</action>
         <item icon-name=\"onlyoffice\">ONLYOFFICE|${FLGonlyoffice}|$(gettext 'Word-processing, spreadsheet, presentations office suite')</item>
       </tree>
       <tree column-resizeable=\"0\">
         <label>${PACKAGE}||${DESCRIPTION}</label>
         <height>280</height>
         <variable>TREEproductivity</variable>
+        <action signal=\"enter-notify-event\" type=\"refresh\">TREEproductivity</action>
         <item icon-name=\"goldendict\">GoldenDict|${FLGgoldendict}|$(gettext 'Feature-rich dictionary lookup')</item>
         <item icon-name=\"onenote\">OneNote|${FLGonenote}|$(gettext 'A Linux version of Microsoft OneNote')</item>
+        <item icon-name=\"groot\">Groot|${FLGgroot}|$(gettext 'BehaviorTree diagram creator')</item>
       </tree>
-      <vbox>
-        <text><label>System, nothing here yet</label></text>
-      </vbox>
+      <tree column-resizeable=\"0\">
+        <label>${PACKAGE}||${DESCRIPTION}</label>
+        <height>280</height>
+        <variable>TREEsystem</variable>
+        <action signal=\"enter-notify-event\" type=\"refresh\">TREEvideo</action>
+        <item icon-name=\"etcher\">Etcher|${FLGetcher}|$(gettext 'Flash OS images to SD and USB drives')</item>
+      </tree>
+
       <tree column-resizeable=\"0\">
         <label>${PACKAGE}||${DESCRIPTION}</label>
         <height>280</height>
         <variable>TREEvideo</variable>
-        <item icon-name=\"openshot\">OpenShot|${FLGopenshot}|$(gettext 'Easy and powerful video editor')</item>
+        <action signal=\"enter-notify-event\" type=\"refresh\">TREEvideo</action>
+        <item icon-name=\"webcamoid\">Webcamoid|${FLGwebcamoid}|$(gettext 'A full-featured webcam suite')</item>
+        <item icon-name=\"kdenlive\">Kdenlive|${FLGkdenlive}|$(gettext 'Video editor')</item>
       </tree>
-
 
     </notebook>
     <hbox>
@@ -136,12 +179,52 @@ if [ -d /mnt/wkg/appimage/${aAPP,,} ];then
  rmdir /mnt/wkg/appimage/${aAPP,,} 2>/dev/null #this will fail if any files.
  if [ $? -ne 0 ];then
   #already installed.
-  
+  export APPIMG_DLG6="<window title=\"$(gettext 'AppImage Installer')\">
+  <vbox>
+    <text use-markup=\"true\"><label>\"$(gettext 'Please make a choice for this installed AppImage:')
+  <b>${aAPP}</b>
+
+$(gettext 'Updating currently not supported.')
+$(gettext 'To delete the AppImage installation completely, click the DELETE button...')
+$(gettext 'Otherwise, click the EXIT button to exit from AppImage Installer...')
+    \"</label></text>
+    <hbox>
+     <button><label>$(gettext 'DELETE')</label><action>EXIT:delete</action></button>
+     <button><label>$(gettext 'EXIT')</label><action>EXIT:quit</action></button>
+    </hbox>
+  </vbox></window>"
+  RET2="$(gtkdialog --center --program=APPIMG_DLG6)"
+  eval "${RET2}"
+  if [ "$EXIT" == "delete" ];then
+   rm -rf /mnt/wkg/appimage/${aAPP,,}
+   rm -rf /home/${aAPP,,}
+   rm -f /usr/share/applications/${aAPP,,}.desktop
+   rm -f /usr/bin/${aAPP,,}
+   rm -f /usr/bin/${aAPP,,}.bin
+   fixmenus
+   jwm -reload
+   Md="$(gettext 'AppImage deleted') "
+   popup "process=wait terminate=ok background=#80ff80 level=top|<big>${Md}</big>"
+  fi
   exit
  fi
 fi
 
 ###new install###
+export APPIMG_DLG5="<window title=\"$(gettext 'AppImage Installer')\">
+  <vbox>
+   <text use-markup=\"true\"><label>\"$(gettext 'Please confirm that you want to download and install this AppImage:')
+  <b>${aAPP}</b>\"</label></text>
+  <hbox>
+   <button ok></button>
+   <button cancel></button>
+  </hbox>
+  </vbox></window>"
+RET1="$(gtkdialog --center --program=APPIMG_DLG5)"
+eval "$RET1"
+if [ "$EXIT" != "OK" ];then
+ exit 0
+fi
 
 #need internet connection...
 if [ ! -s /tmp/pup_event_backend/network_ ];then
@@ -150,10 +233,14 @@ if [ ! -s /tmp/pup_event_backend/network_ ];then
  exec appimage
 fi
 
+
 #GoldenDict is a continuous build. don't really know how to handle them.
 #for now, ask. see github-find-latest-ver script.
 #the URL format is: https://github.com/$MEMBER/$PROJECT/
 
+VERASK='no' #yes if manual entry of version number required.
+MEMBER=''; PROJECT=''; APPIMG=''
+DIRECTDL=''; DIRECTVER='' #20230316
 case "${aAPP}" in
  Audacity) MEMBER=audacity; PROJECT=audacity; APPIMG='audacity-linux-VERSION-x64.AppImage'; MENUcat='X-Multimedia-sound'; MENUtop='Multimedia'; MENUname='Audacity audio editor'; ;;
  GitQlient) MEMBER=francescmm; PROJECT=GitQlient; APPIMG='GitQlient-VERSION-x86_64.AppImage'; MENUcat='X-Utility-development'; MENUtop='Utility'; MENUname='GitQlient git client'; ;;
@@ -165,27 +252,65 @@ case "${aAPP}" in
  ONLYOFFICE) MEMBER='ONLYOFFICE'; PROJECT='appimage-desktopeditors'; APPIMG='DesktopEditors-x86_64.AppImage'; MENUcat='X-Business'; MENUtop='Business'; MENUname='ONLYOFFICE office suite'; ;;
  OneNote) MEMBER='patrikx3'; PROJECT='onenote'; APPIMG='P3X-OneNote-VERSION.AppImage'; MENUcat='X-Personal-organizer'; MENUtop='Personal'; MENUname='OneNote online note taking'; ;;
  OpenShot) MEMBER='OpenShot'; PROJECT='openshot-qt'; APPIMG='OpenShot-vVERSION-x86_64.AppImage'; MENUcat='X-Multimedia-video'; MENUtop='Multimedia'; MENUname='OpenShot video editor'; ;;
+ ShotCut) MEMBER='mltframework'; PROJECT='shotcut'; APPIMG='shotcut-linux-x86_64-VERNODOTS.AppImage'; MENUcat='X-Multimedia-video'; MENUtop='Multimedia'; MENUname='ShotCut video editor'; ;;
+ VidCutter) MEMBER='ozmartian'; PROJECT='vidcutter'; APPIMG='VidCutter-VERSION-x86_64.AppImage'; MENUcat='X-Multimedia-video'; MENUtop='Multimedia'; MENUname='VidCutter video cutter and joiner'; ;;
+ Webcamoid) MEMBER='webcamoid'; PROJECT='webcamoid'; APPIMG='webcamoid-portable-linux-VERSION-x86_64.AppImage'; MENUcat='X-Multimedia-video'; MENUtop='Multimedia'; MENUname='Webcamoid webcam suite'; ;;
+ AppImagePool) MEMBER='prateekmedia'; PROJECT='appimagepool'; APPIMG='appimagepool-VERSION-x86_64.AppImage'; MENUcat='X-Setup'; MENUtop='Setup'; MENUname='AppImagePool install from AppImageHub'; ;;
+ Emacs) MEMBER='probonopd'; PROJECT='Emacs.AppImage'; APPIMG='Emacs-VERSION-x86_64.AppImage'; MENUcat='X-Document-edit'; MENUtop='Document'; MENUname='Emacs text editor'; ;;
+ CircuitBlocks) MEMBER='CircuitMess'; PROJECT='CircuitBlocks'; APPIMG='CircuitBlocks-VERSION-Linux.AppImage'; MENUcat='X-Utility-development'; MENUtop='Utility'; MENUname='CircuitBlocks graphical coding for Arduino'; ;;
+ Antares) MEMBER='antares-sql'; PROJECT='antares'; APPIMG='Antares-VERSION-linux_x86_64.AppImage'; MENUcat='X-Utility-development'; MENUtop='Utility'; MENUname='Antares SQL client'; ;;
+ GDevelop) MEMBER='4ian'; PROJECT='GDevelop'; APPIMG='GDevelop-5-VERSION.AppImage'; MENUcat='X-Utility-development'; MENUtop='Utility'; MENUname='GDevelop no-code game creation'; ;;
+ Groot) MEMBER='BehaviorTree'; PROJECT='Groot'; APPIMG='Groot-VERSION-x86_64.AppImage'; MENUcat='X-Graphic-flow'; MENUtop='Graphic'; MENUname='Groot BehaviorTree diagram creator'; ;;
+ Guitar) MEMBER='soramimi'; PROJECT='Guitar'; APPIMG='Guitar-VERSION-x86_64.AppImage'; MENUcat='X-Utility-development'; MENUtop='Utility'; MENUname='Guitar GIT GUI client'; VERASK='yes'; ;;
+ ImHex) MEMBER='WerWolv'; PROJECT='ImHex'; APPIMG='imhex-VERSION-x86_64.AppImage'; MENUcat='X-Utility-development'; MENUtop='Utility'; MENUname='ImHex hex editor for reverse engineers'; ;;
+ KiCad) MEMBER='KarlZeilhofer'; PROJECT='kicad-appimage'; APPIMG='KiCad-VERSION-x86_64.AppImage'; MENUcat='X-Graphic'; MENUtop='Graphic'; MENUname='KiCad schematic-capture and PCB layout'; VERASK='yes'; ;;
+ EndlessSky) MEMBER='endless-sky'; PROJECT='endless-sky'; APPIMG='Endless_Sky-vVERSION-x86_64.AppImage'; MENUcat='X-Fun-adventure'; MENUtop='Fun'; MENUname='EndlessSky outer-space adventure'; ;;
+ Etcher) MEMBER='balena-io'; PROJECT='etcher'; APPIMG='balenaEtcher-VERSION-x64.AppImage'; MENUcat='X-Setup-installation'; MENUtop='Setup'; MENUname='Etcher write OS to SD and USB drive'; ;;
+ Krita) DIRECTDL='https://download.kde.org/stable/krita/5.1.5/krita-5.1.5-x86_64.appimage'; DIRECTVER='5.1.5'; MENUcat='X-Graphic'; MENUtop='Graphic'; MENUname='Krita vector and raster editor'; ;;
+ Kdenlive) DIRECTDL='https://download.kde.org/stable/kdenlive/22.12/linux/kdenlive-22.12.3-x86_64.AppImage'; DIRECTVER='22.12.3'; MENUcat='X-Multimedia-video'; MENUtop='Multimedia'; MENUname='Kdenlive video editor'; ;;
  ZZZ) MEMBER=''; PROJECT=''; APPIMG=''; MENUcat=''; MENUtop=''; MENUname=''; ;;
  *)
   exit
  ;;
 esac
+export VERASK
 
-/usr/local/appimage/github-find-latest-ver ${MEMBER} ${PROJECT}
-if [ $? -ne 0 ];then
- exec appimage
-fi
-URLtag="$(cat /tmp/appimage/URLtag)" #ex: https://github.com/amanharwara/altus/releases/tag/4.8.5
-APPver="$(cat /tmp/appimage/URLver)" #ex: 3.2.5
-APPimg="$(echo -n "$APPIMG" | sed -e "s%VERSION%${APPver}%")"
+if [ "$DIRECTDL" ];then #20230316
+ APPimg="${DIRECTDL##*/}"
+ APPver="${DIRECTVER}"
+ echo -n "$APPver" > /tmp/appimage/URLver
+ echo -n '' > /tmp/appimage/URLtag
+ echo -n "$DIRECTDL" > /tmp/appimage/URLdl
+ mkdir -p /mnt/wkg/appimage/${aAPP,,}
+ cd /mnt/wkg/appimage/${aAPP,,}
+ download_file "${DIRECTDL}"
+else
+ /usr/local/appimage/github-find-latest-ver ${MEMBER} ${PROJECT}
+ if [ $? -ne 0 ];then
+  exec appimage
+ fi
+ URLtag="$(cat /tmp/appimage/URLtag)" #ex: https://github.com/amanharwara/altus/releases/tag/4.8.5
+ APPver="$(cat /tmp/appimage/URLver)" #ex: 3.2.5
+ APPimg="$(echo -n "$APPIMG" | sed -e "s%VERSION%${APPver}%")"
+ 
+ #fix for this:
+ # https://github.com/mltframework/shotcut/releases/tag/v22.12.21
+ # shotcut-linux-x86_64-221221.AppImage
+ grep -q 'VERNODOTS' <<<$APPIMG
+ if [ $? -eq 0 ];then
+  VERnodots="$(echo -n "$APPver" | tr -d '.')"
+  APPimg="$(echo -n "$APPIMG" | sed -e "s%VERNODOTS%${VERnodots}%")"
+ fi
+ 
+ #this is what we have to download: ${URLtag}/${APPimg}
+ mkdir -p /mnt/wkg/appimage/${aAPP,,}
+ cd /mnt/wkg/appimage/${aAPP,,}
+ 
+ echo -n "${URLtag}/${APPimg}" > /tmp/appimage/URLdl #for debugging.
+ URLdl="$(echo -n "$URLtag" | sed -e 's%/tag/%/download/%')"
+ download_file ${URLdl}/${APPimg}
+fi #20230316
 
-#this is what we have to download: ${URLtag}/${APPimg}
-mkdir -p /mnt/wkg/appimage/${aAPP,,}
-cd /mnt/wkg/appimage/${aAPP,,}
-
-echo -n "${URLtag}/${APPimg}" > /tmp/appimage/URLdl #for debugging.
-URLdl="$(echo -n "$URLtag" | sed -e 's%/tag/%/download/%')"
-download_file ${URLdl}/${APPimg}
 if [ $? -ne 0 ];then
  M2="$(gettext 'AppImage download failed. Aborting.')"
  popup "terminate=ok background=#ff8080 level=top process=wait|<big>${M2}</big>"
@@ -207,16 +332,39 @@ if [ "$OFFSET" == "" ];then
  exit 2
 fi
 
-#mkdir -p /mnt/wkg/appimage/${aAPP,,}/mntpt
-#busybox mount -o loop,offset=${OFFSET} ${APPimg} mntpt
-#if [ $? -ne 0 ];then
-# M4="$(gettext 'The downloaded AppImage seems to be corrupted. Aborting.')"
-# popup "terminate=ok background=#ff8080 level=top process=wait|<big>${M4}</big>"
-# rm -f ./${APPimg}
-# exit 3
+#open up appimage, need to find out a few things...
+mkdir -p /mnt/wkg/appimage/${aAPP,,}/mntpt
+busybox mount -o loop,offset=${OFFSET} ${APPimg} mntpt
+if [ $? -ne 0 ];then
+ M4="$(gettext 'The downloaded AppImage seems to be corrupted. Aborting.')"
+ popup "terminate=ok background=#ff8080 level=top process=wait|<big>${M4}</big>"
+ rm -f ./${APPimg}
+ exit 3
+fi
+#extract MimeType from .desktop...
+echo -n '' > /tmp/appimage/mimetype
+DT1="$(find ./ ./usr/share/applications -maxdepth 1 -type f -name '*.desktop' 2>/dev/null | tail -n 1)"
+if [ "$DT1" ];then
+ grep '^MimeType=' ${DT1} > /tmp/appimage/mimetype
+fi
+#does it have libc.so.6 builtin...
+#LIBC="$(find lib lib64 usr/lib usr/lib64 usr/bin -name 'libc.so.6' 2>/dev/null | head -n 1)"
+#if [ "$LIBC" == "" ];then
+ #this is where can run into problems, lib requiring later glibc than in host system...
+ #ref: https://www.lightofdawn.org/wiki/wiki.cgi/NewAppsOnOldGlibc
+ #find a few libs, test them...
+ #nah, don't know how to do it...
+ #for aLIB in $(find lib lib64 usr/lib usr/lib64 -type f -name 'lib*so*' 2>/dev/null | tail -n 6)
+ #do
+ #
+ #done
+# true
 #fi
+sync
+busybox umount mntpt
+rmdir mntpt
 
-
+#proceed with install...
 ln -s /mnt/wkg/appimage/${aAPP,,}/${APPimg} /usr/bin/${aAPP,,}
 
 if [ "${LANG:0:2}" == "en" ];then
@@ -235,6 +383,9 @@ GenericName=${aAPP}
 Icon=${aAPP,,}.png
 Categories=${MENUcat}
 Exec=${aAPP,,}" > /usr/share/applications/${aAPP,,}.desktop
+if [ -s /tmp/appimage/mimetype ];then
+ cat /tmp/appimage/mimetype >> /usr/share/applications/${aAPP,,}.desktop
+fi
 
 if [ -d /usr/local/appimage/skeletons/${aAPP,,}/usr ];then
  cp -a -f /usr/local/appimage/skeletons/${aAPP,,}/usr/* /usr/
@@ -258,6 +409,20 @@ build-rox-sendto /usr/share/applications/${aAPP,,}.desktop
 
 #create a path for optional open/save files for this app
 mkdir -p /files/apps/${aAPP,,}
+
+#.spec file...
+echo -n 'SPEC_AI_dl=' > /mnt/wkg/appimage/${aAPP,,}/${aAPP,,}.spec
+cat /tmp/appimage/URLdl >> /mnt/wkg/appimage/${aAPP,,}/${aAPP,,}.spec
+# ex: https://github.com/webcamoid/webcamoid/releases/tag/9.0.0/webcamoid-portable-linux-9.0.0-x86_64.AppImage
+echo '' >> /mnt/wkg/appimage/${aAPP,,}/${aAPP,,}.spec
+echo -n 'SPEC_AI_tag=' >> /mnt/wkg/appimage/${aAPP,,}/${aAPP,,}.spec
+cat /tmp/appimage/URLtag >> /mnt/wkg/appimage/${aAPP,,}/${aAPP,,}.spec
+# ex: https://github.com/webcamoid/webcamoid/releases/tag/9.0.0
+echo '' >> /mnt/wkg/appimage/${aAPP,,}/${aAPP,,}.spec
+echo -n 'SPEC_AI_ver=' >> /mnt/wkg/appimage/${aAPP,,}/${aAPP,,}.spec
+cat /tmp/appimage/URLver >> /mnt/wkg/appimage/${aAPP,,}/${aAPP,,}.spec
+# ex: 9.0.0
+echo '' >> /mnt/wkg/appimage/${aAPP,,}/${aAPP,,}.spec
 
 export APPIMG_DLG2="<window title=\"$(gettext 'AppImage Installer: success')\">
   <vbox>
@@ -291,7 +456,7 @@ gtkdialog --center --program=APPIMG_DLG2
 export APPIMG_DLG3="<window title=\"$(gettext 'AppImage Installer: security notes')\">
   <vbox>
     <text use-markup=\"true\"><label>\"<b>$(gettext 'Security notes')</b>\"</label></text>
-    <text usr-markup=\"true\"><label>\"$(gettext 'As has been stated in the previous window, the AppImage has been installed to run as a non-root user. In fact, each AppImage runs as its own separate user. This provides isolation, in other words, security.')
+    <text use-markup=\"true\"><label>\"$(gettext 'As has been stated in the previous window, the AppImage has been installed to run as a non-root user. In fact, each AppImage runs as its own separate user. This provides isolation, in other words, security.')
 $(gettext 'However, you may prefer to run some apps as the root user, a file-manager for example, where you want unfettered access to the entire filesystem, able to open, edit and save anywhere.')
 
 $(gettext 'The installation has created two executables:')
@@ -313,6 +478,9 @@ $(gettext 'In the future, this might be automated by the AppImage Installer, but
 $(gettext 'Some AppImages will not run as root, and some may require the Exec line in the .desktop file to have this appended:')
  Exec=${aAPP,,}.bin <b>--no-sandbox</b>
 $(gettext '...which disables the AppImages own security mechanisms.')\"</label></text>
+    <hbox>
+     <button ok></button>
+    </hbox>
   </vbox>
 </window>
 "

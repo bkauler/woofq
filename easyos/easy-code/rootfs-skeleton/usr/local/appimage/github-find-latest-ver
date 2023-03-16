@@ -41,15 +41,23 @@ if [ "$URLtag" ];then
  #need to reliably extract the version number...
  URLver0="${URLtag##*/}"
  URLver1=''
- if [ "$URLver0" == "continuous" ];then
+ if [ "$URLver0" == "continuous" -o "$VERASK" == "yes" ];then
   defaultbrowser ${URLtag} &
   sleep 2
+  if [ "$URLver0" == "continuous" ];then
+   M_1="$(gettext 'The github repository does not have release versions. It is what is know as continuous build, and unable to automatically determine the build number.')"
+  else
+   M_1="$(gettext 'Unable to determine the latest build-number automatically. You will need to enter it manually.')"
+  fi
   export APPIMG_DLGv1="<window title=\"AppImage: ask version\">
   <vbox>
-   <text use-markup=\"true\"><label>\"$(gettext 'The github repository does not have release versions. It is what is know as continuous build, and unable to automatically determine the build number.')
+   <text use-markup=\"true\"><label>\"${M_1}
 $(gettext 'The github site should have popped up in a browser. The AppImage has this format: ')
-  name-<b>build number</b>-architecture.AppImage
+  name-<b>$(gettext 'build-number')</b>-architecture.AppImage
   ex: GoldenDict-<b>661dd4d</b>-x86_64.AppImage
+  ex: Emacs-<b>27.2.glibc2.16</b>-x86_64.AppImage
+  ex: Guitar-<b>1001631</b>-x86_64.AppImage
+  ex: KiCad-<b>5.1.4.glibc2.27</b>-x86_64.AppImage
 $(gettext 'Please type the build-number into the entry box, then click OK button:')
 $(gettext '(Click Cancel button if unable to determine build number)')\"</label></text>
    <entry>
