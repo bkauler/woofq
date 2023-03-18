@@ -1,6 +1,7 @@
 #!/bin/bash
 #20230313 first release. only via github
 #20230316 optional hardcode d/l and version.
+#20230317 support manual d/l .AppImage file.
 
 export TEXTDOMAIN=appimages
 export TEXTDOMAINDIR=/usr/share/locale
@@ -53,7 +54,10 @@ do
  [ "$aAI" == "" ] && continue
  AIfile="$(find ${aAI} -mindepth 1 -maxdepth 1 -type f -name '*.AppImage')"
  if [ "$AIfile" ];then
-  eval "FLG${aAI##*/}='√'" #ex: sets FLGaudacity=√
+  #20230317 .AppImage may have been manually downloaded, so check if actually installed...
+  if [ -x /usr/bin/${aAI##*/} ];then
+   eval "FLG${aAI##*/}='√'" #ex: sets FLGaudacity=√
+  fi
  else
   #remove .spec file, if it exists...
   rm -f ${aAI}/${aAI##*/}.spec 2>/dev/null
@@ -82,6 +86,8 @@ export APPIMG_DLG1="<window title=\"$(gettext 'AppImage Installer')\">
         <item icon-name=\"antares\">Antares|${FLGantares}|$(gettext 'SQL client')</item>
         <item icon-name=\"gdevelop\">GDevelop|${FLGgdevelop}|$(gettext 'No-code game creation')</item>
         <item icon-name=\"guitar\">Guitar|${FLGguitar}|$(gettext 'GIT GUI client')</item>
+        <item icon-name=\"figma\">Figma|${FLGfigma}|$(gettext 'User Interface design tool')</item>
+        <item icon-name=\"insight\">Insight|${FLGinsight}|$(gettext 'GUI frontend for GNU Debugger')</item>
       </tree>
       <tree column-resizeable=\"0\">
         <label>${PACKAGE}||${DESCRIPTION}</label>
@@ -97,6 +103,10 @@ export APPIMG_DLG1="<window title=\"$(gettext 'AppImage Installer')\">
         <action signal=\"enter-notify-event\" type=\"refresh\">TREEgraphics</action>
         <item icon-name=\"phototool\">PhotoTool|${FLGphototool}|$(gettext 'Photo editor')</item>
         <item icon-name=\"krita\">Krita|${FLGkrita}|$(gettext 'Vector and raster painting program')</item>
+        <item icon-name=\"dust3d\">Dust3D|${FLGdust3d}|$(gettext '3D modeling')</item>
+        <item icon-name=\"freecad\">FreeCAD|${FLGfreecad}|$(gettext '3D parametric modeling')</item>
+        <item icon-name=\"glyphr\">Glyphr|${FLGglyphr}|$(gettext 'Web-based font designer')</item>
+        <item icon-name=\"openscad\">OpenSCAD|${FLGopenscad}|$(gettext 'Solid 3D CAD modeller')</item>
       </tree>
       <tree column-resizeable=\"0\">
         <label>${PACKAGE}||${DESCRIPTION}</label>
@@ -104,6 +114,7 @@ export APPIMG_DLG1="<window title=\"$(gettext 'AppImage Installer')\">
         <variable>TREEnetwork</variable>
         <action signal=\"enter-notify-event\" type=\"refresh\">TREEnetwork</action>
         <item icon-name=\"electorrent\">Electorrent|${FLGelectorrent}|$(gettext 'A client for uTorrent, rTorrent, Transmission, etc.')</item>
+        <item icon-name=\"keepassxc\">KeePassXC|${FLGkeepassxc}|$(gettext 'Password manager')</item>
       </tree>
       <tree column-resizeable=\"0\">
         <label>${PACKAGE}||${DESCRIPTION}</label>
@@ -111,6 +122,9 @@ export APPIMG_DLG1="<window title=\"$(gettext 'AppImage Installer')\">
         <variable>TREEoffice</variable>
         <action signal=\"enter-notify-event\" type=\"refresh\">TREEoffice</action>
         <item icon-name=\"onlyoffice\">ONLYOFFICE|${FLGonlyoffice}|$(gettext 'Word-processing, spreadsheet, presentations office suite')</item>
+        <item icon-name=\"dbgate\">DbGate|${FLGdbgate}|$(gettext 'Multi-protocol SQL+noSQL database client')</item>
+        <item icon-name=\"koreader\">KOReader|${FLGkoreader}|$(gettext 'Multi-format e-book reader')</item>
+        <item icon-name=\"koodoreader\">KoodoReader|${FLGkoodoreader}|$(gettext 'Multi-format e-book reader')</item>
       </tree>
       <tree column-resizeable=\"0\">
         <label>${PACKAGE}||${DESCRIPTION}</label>
@@ -120,6 +134,7 @@ export APPIMG_DLG1="<window title=\"$(gettext 'AppImage Installer')\">
         <item icon-name=\"goldendict\">GoldenDict|${FLGgoldendict}|$(gettext 'Feature-rich dictionary lookup')</item>
         <item icon-name=\"onenote\">OneNote|${FLGonenote}|$(gettext 'A Linux version of Microsoft OneNote')</item>
         <item icon-name=\"groot\">Groot|${FLGgroot}|$(gettext 'BehaviorTree diagram creator')</item>
+        <item icon-name=\"heimer\">Heimer|${FLGheimer}|$(gettext 'Mind mapping diagrammer tool')</item>
       </tree>
       <tree column-resizeable=\"0\">
         <label>${PACKAGE}||${DESCRIPTION}</label>
@@ -136,6 +151,7 @@ export APPIMG_DLG1="<window title=\"$(gettext 'AppImage Installer')\">
         <action signal=\"enter-notify-event\" type=\"refresh\">TREEvideo</action>
         <item icon-name=\"webcamoid\">Webcamoid|${FLGwebcamoid}|$(gettext 'A full-featured webcam suite')</item>
         <item icon-name=\"kdenlive\">Kdenlive|${FLGkdenlive}|$(gettext 'Video editor')</item>
+        <item icon-name=\"losslesscut\">LosslessCut|${FLGlosslesscut}|$(gettext 'Video editor')</item>
       </tree>
 
     </notebook>
@@ -178,8 +194,9 @@ fi
 if [ -d /mnt/wkg/appimage/${aAPP,,} ];then
  rmdir /mnt/wkg/appimage/${aAPP,,} 2>/dev/null #this will fail if any files.
  if [ $? -ne 0 ];then
-  #already installed.
-  export APPIMG_DLG6="<window title=\"$(gettext 'AppImage Installer')\">
+  if [ -f /usr/bin/${aAPP,,} ];then #20230317
+   #already installed.
+   export APPIMG_DLG6="<window title=\"$(gettext 'AppImage Installer')\">
   <vbox>
     <text use-markup=\"true\"><label>\"$(gettext 'Please make a choice for this installed AppImage:')
   <b>${aAPP}</b>
@@ -193,20 +210,21 @@ $(gettext 'Otherwise, click the EXIT button to exit from AppImage Installer...')
      <button><label>$(gettext 'EXIT')</label><action>EXIT:quit</action></button>
     </hbox>
   </vbox></window>"
-  RET2="$(gtkdialog --center --program=APPIMG_DLG6)"
-  eval "${RET2}"
-  if [ "$EXIT" == "delete" ];then
-   rm -rf /mnt/wkg/appimage/${aAPP,,}
-   rm -rf /home/${aAPP,,}
-   rm -f /usr/share/applications/${aAPP,,}.desktop
-   rm -f /usr/bin/${aAPP,,}
-   rm -f /usr/bin/${aAPP,,}.bin
-   fixmenus
-   jwm -reload
-   Md="$(gettext 'AppImage deleted') "
-   popup "process=wait terminate=ok background=#80ff80 level=top|<big>${Md}</big>"
+   RET2="$(gtkdialog --center --program=APPIMG_DLG6)"
+   eval "${RET2}"
+   if [ "$EXIT" == "delete" ];then
+    rm -rf /mnt/wkg/appimage/${aAPP,,}
+    rm -rf /home/${aAPP,,}
+    rm -f /usr/share/applications/${aAPP,,}.desktop
+    rm -f /usr/bin/${aAPP,,}
+    rm -f /usr/bin/${aAPP,,}.bin
+    fixmenus
+    jwm -reload
+    Md="$(gettext 'AppImage deleted') "
+    popup "process=wait terminate=ok background=#80ff80 level=top|<big>${Md}</big>"
+   fi
+   exit
   fi
-  exit
  fi
 fi
 
@@ -268,6 +286,18 @@ case "${aAPP}" in
  Etcher) MEMBER='balena-io'; PROJECT='etcher'; APPIMG='balenaEtcher-VERSION-x64.AppImage'; MENUcat='X-Setup-installation'; MENUtop='Setup'; MENUname='Etcher write OS to SD and USB drive'; ;;
  Krita) DIRECTDL='https://download.kde.org/stable/krita/5.1.5/krita-5.1.5-x86_64.appimage'; DIRECTVER='5.1.5'; MENUcat='X-Graphic'; MENUtop='Graphic'; MENUname='Krita vector and raster editor'; ;;
  Kdenlive) DIRECTDL='https://download.kde.org/stable/kdenlive/22.12/linux/kdenlive-22.12.3-x86_64.AppImage'; DIRECTVER='22.12.3'; MENUcat='X-Multimedia-video'; MENUtop='Multimedia'; MENUname='Kdenlive video editor'; ;;
+ Dust3D) MEMBER='huxingyi'; PROJECT='dust3d'; APPIMG='dust3d-VERSION.AppImage'; MENUcat='X-Graphic'; MENUtop='Graphic'; MENUname='Dust3D 3D modeler'; VERASK='yes'; ;;
+ DbGate) MEMBER='dbgate'; PROJECT='dbgate'; APPIMG='dbgate-VERSION-linux_x86_64.AppImage'; MENUcat='X-Business'; MENUtop='Business'; MENUname='DbGate SQL and noSQL client'; ;;
+ Figma) MEMBER='Figma-Linux'; PROJECT='figma-linux'; APPIMG='figma-linux_VERSION_linux_x86_64.AppImage'; MENUcat='X-Utility-development'; MENUtop='Utility'; MENUname='Figma User Interface design tool'; ;;
+ FreeCAD) DIRECTDL='https://github.com/FreeCAD/FreeCAD/releases/download/0.20.2/FreeCAD_0.20.2-2022-12-27-conda-Linux-x86_64-py310.AppImage'; DIRECTVER='0.20.2' MENUcat='X-Graphic'; MENUtop='Graphic'; MENUname='FreeCAD 3D parametric modeler'; ;;
+ Glyphr) MEMBER='glyphr-studio'; PROJECT='Glyphr-Studio-Desktop'; APPIMG='Glyphr.Studio-VERSION.AppImage'; MENUcat='X-Graphic'; MENUtop='Graphic'; MENUname='Glyphr Studio font designer'; ;;
+ Heimer) MEMBER='juzzlin'; PROJECT='Heimer'; APPIMG='Heimer-VERSION-x86_64.AppImage'; MENUcat='X-Graphic-flow'; MENUtop='Graphic'; MENUname='Heimer mind mapping tool'; ;;
+ Insight) DIRECTDL='https://github.com/antony-jr/insight/releases/download/5afb39f/Insight-x86_64-pc-linux-gnu-5afb39f-x86_64.AppImage'; DIRECTVER='5afb39f' MENUcat='X-Utility-development'; MENUtop='Utility'; MENUname='Insight frontend for GNU Debugger'; ;;
+ KOReader) MEMBER='koreader'; PROJECT='koreader'; APPIMG='koreader-appimage-x86_64-linux-gnu-vVERSION.AppImage'; MENUcat='X-Document-viewer'; MENUtop='Document'; MENUname='KOReader multi-format e-boot reader'; ;;
+ KeePassXC) MEMBER='keepassxreboot'; PROJECT='keepassxc'; APPIMG='KeePassXC-VERSION-x86_64.AppImage'; MENUcat='X-Personal-security'; MENUtop='Personal'; MENUname='KeePassXC password manager'; ;;
+ LosslessCut) MEMBER='mifi'; PROJECT='lossless-cut'; APPIMG='LosslessCut-linux-x86_64.AppImage'; MENUcat='X-Multimedia-video'; MENUtop='Multimedia'; MENUname='LosslessCut video editor'; ;;
+ OpenSCAD) DIRECTDL='https://files.openscad.org/OpenSCAD-2021.01-x86_64.AppImage'; DIRECTVER='2021.01'; MENUcat='X-Graphic'; MENUtop='Graphic'; MENUname='OpenSCAD solid 3D modeller'; ;;
+ KoodoReader) DIRECTDL='https://github.com/troyeguo/koodo-reader/releases/download/v1.5.1/Koodo-Reader-1.5.1.AppImage'; DIRECTVER='1.5.1'; MENUcat='X-Document-viewer'; MENUtop='Document'; MENUname='KoodoReader multi-format e-book reader'; ;;
  ZZZ) MEMBER=''; PROJECT=''; APPIMG=''; MENUcat=''; MENUtop=''; MENUname=''; ;;
  *)
   exit
@@ -283,7 +313,9 @@ if [ "$DIRECTDL" ];then #20230316
  echo -n "$DIRECTDL" > /tmp/appimage/URLdl
  mkdir -p /mnt/wkg/appimage/${aAPP,,}
  cd /mnt/wkg/appimage/${aAPP,,}
- download_file "${DIRECTDL}"
+ if [ ! -f "$APPimg" ];then #20230317 support manual download.
+  download_file "${DIRECTDL}"
+ fi
 else
  /usr/local/appimage/github-find-latest-ver ${MEMBER} ${PROJECT}
  if [ $? -ne 0 ];then
@@ -308,7 +340,9 @@ else
  
  echo -n "${URLtag}/${APPimg}" > /tmp/appimage/URLdl #for debugging.
  URLdl="$(echo -n "$URLtag" | sed -e 's%/tag/%/download/%')"
- download_file ${URLdl}/${APPimg}
+ if [ ! -f "$APPimg" ];then #20230317 support manual download.
+  download_file ${URLdl}/${APPimg}
+ fi
 fi #20230316
 
 if [ $? -ne 0 ];then
@@ -318,6 +352,13 @@ if [ $? -ne 0 ];then
   rm -f ./${APPimg}
  fi
  exit 1
+fi
+
+grep -q 'appimage' <<<${APPimg} #20230317 krita
+if [ $? -eq 0 ];then
+ APPnew="${APPimg/appimage/AppImage}"
+ mv -f ${APPimg} ${APPnew}
+ APPimg="${APPnew}"
 fi
 
 sync
