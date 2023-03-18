@@ -290,7 +290,7 @@
 #20230224 merge applications.in into applications  20230225 fix. 20230226 fix.
 #20230304 support distro name other than "EasyOS" and "Easy". 
 #20230305 tweaks. support rename "easy.sfs". support "easy-*.img" rename.
-#20230309 have removed /usr/local/debget
+#20230309 have removed /usr/local/debget  20230317 fix.
 
 export LANG=C #faster.
 
@@ -6069,8 +6069,8 @@ echo "Creating delta files:"
 rm -rf deltas 2>/dev/null
 mkdir -p deltas
 xDISTRO_VERSION="$(echo -n "$DISTRO_VERSION" | sed -e 's%\.%\\.%g')"
-NEWIMGS="$(find . -mindepth 1 -maxdepth 1 -type f -name '${DISTRO_NAME_SHORT,,}-*.img' | grep "\-${xDISTRO_VERSION}\-" | tr '\n' ' ')"
-OLDIMGS="$(find . -mindepth 1 -maxdepth 1 -type f -name '${DISTRO_NAME_SHORT,,}-*.img' -o -name 'easy-*.img' | grep -v "\-${xDISTRO_VERSION}\-" | tr '\n' ' ')"
+NEWIMGS="$(find . -mindepth 1 -maxdepth 1 -type f -name "${DISTRO_NAME_SHORT,,}-*.img" | grep "\-${xDISTRO_VERSION}\-" | tr '\n' ' ')"
+OLDIMGS="$(find . -mindepth 1 -maxdepth 1 -type f -name "${DISTRO_NAME_SHORT,,}-*.img" -o -name 'easy-*.img' | grep -v "\-${xDISTRO_VERSION}\-" | tr '\n' ' ')"
 for aNEW in $NEWIMGS
 do
  aNEW="${aNEW#./}"
