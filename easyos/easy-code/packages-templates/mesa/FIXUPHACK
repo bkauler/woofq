@@ -36,3 +36,10 @@ if [ "$FNDSWRAST" ];then
   ln -s --relative usr/lib${xARCHDIR}/dri ${FNDSRPATH}
  fi
 fi
+
+#20230318 nanosaur appimage game wants libOpenGL.so.0
+if [ -e usr/lib/libGL.so.1 ];then
+ if [ ! -e usr/lib/libOpenGL.so.0 ];then
+  cp -a usr/lib/libGL.so.1 usr/lib/libOpenGL.so.0
+ fi
+fi
