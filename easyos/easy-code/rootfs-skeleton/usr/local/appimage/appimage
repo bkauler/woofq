@@ -12,7 +12,7 @@ CR='
 mkdir -p /tmp/appimage
 
 H_appimg="$(gettext 'AppImages are applications that contain all dependencies built-in, so they will run on almost any Linux distribution, without having to install any other packages.')
-$(gettext 'Consequently, they are large, typically 50MB to 300MB, so you do need reasonably fast Internet and adequate data allowance with your telco.')
+$(gettext 'Consequently, they are large, typically 50MB to 900MB, so you do need reasonably fast Internet and adequate data allowance with your telco.')
 
 $(gettext 'The Appimages are installed so that each runs as its own user, which maximizes isolation and hence security. However, there is the option of running them as the root user.')
 
@@ -118,7 +118,9 @@ export APPIMG_DLG1="<window title=\"$(gettext 'AppImage Installer')\">
         <variable>TREEnetwork</variable>
         <action signal=\"enter-notify-event\" type=\"refresh\">TREEnetwork</action>
         <item icon-name=\"electorrent\">Electorrent|${FLGelectorrent}|82M|$(gettext 'A client for uTorrent, rTorrent, Transmission, etc.')</item>
+        <item icon-name=\"jitsimeet\">JitsiMeet|${FLGjitsimeet}|90M|$(gettext 'Online video conferencing')</item>
         <item icon-name=\"keepassxc\">KeePassXC|${FLGkeepassxc}|40M|$(gettext 'Password manager')</item>
+        <item icon-name=\"thunderbird\">Thunderbird|${FLGthunderbird}|82M|$(gettext 'Mozilla mail client')</item>
         <item icon-name=\"ungoogledchromium\">UngoogledChromium|${FLGungoogledchromium}|149M|$(gettext 'Chromium browser without Google Services')</item>
       </tree>
       <tree column-resizeable=\"0\">
@@ -128,8 +130,8 @@ export APPIMG_DLG1="<window title=\"$(gettext 'AppImage Installer')\">
         <action signal=\"enter-notify-event\" type=\"refresh\">TREEoffice</action>
         <item icon-name=\"antares\">Antares|${FLGantares}|126M|$(gettext 'SQL client')</item>
         <item icon-name=\"dbgate\">DbGate|${FLGdbgate}|93M|$(gettext 'Multi-protocol SQL+noSQL database client')</item>
-        <item icon-name=\"koreader\">KOReader|${FLGkoreader}|42M|$(gettext 'Multi-format e-book reader')</item>
         <item icon-name=\"koodoreader\">KoodoReader|${FLGkoodoreader}|-|$(gettext 'Multi-format e-book reader')</item>
+        <item icon-name=\"koreader\">KOReader|${FLGkoreader}|42M|$(gettext 'Multi-format e-book reader')</item>
         <item icon-name=\"onlyoffice\">ONLYOFFICE|${FLGonlyoffice}|299M|$(gettext 'Word-processing, spreadsheet, presentations office suite')</item>
       </tree>
       <tree column-resizeable=\"0\">
@@ -320,6 +322,8 @@ case "${aAPP}" in
  eXeLearning) MEMBER='exelearning'; PROJECT='iteexe'; APPIMG='eXe-VERSION.glibc2.28-x86_64.AppImage'; MENUcat='X-Document'; MENUtop='Document'; MENUname='eXeLearning create education resources'; ;;
  Nanosaur) MEMBER='jorio'; PROJECT='Nanosaur'; APPIMG='Nanosaur-VERSION-linux-x86_64.AppImage'; MENUcat='X-Fun-adventure'; MENUtop='Fun'; MENUname='Nanosaur 3D strategy game'; ;;
  OttoMatic) MEMBER='jorio'; PROJECT='OttoMatic'; APPIMG='OttoMatic-VERSION-linux-x86_64.AppImage'; MENUcat='X-Fun-adventure'; MENUtop='Fun'; MENUname='Nanosaur 3D strategy game'; ;;
+ Thunderbird) DIRECTDL='https://github.com/srevinsaju/Thunderbird-AppImage/releases/download/stable/Thunderbird-102.8_20230214184313.AppImage'; DIRECTVER='102.8'; MENUcat='X-Internet-mailnews'; MENUtop='Internet'; MENUname='Thunderbird mail client'; ;;
+ JitsiMeet) MEMBER='jitsi'; PROJECT='jitsi-meet-electron'; APPIMG='jitsi-meet-x86_64.AppImage'; MENUcat='X-Internet-chat'; MENUtop='Internet'; MENUname='JitsiMeet video conferencing'; ;;
  ZZZ) MEMBER=''; PROJECT=''; APPIMG=''; MENUcat=''; MENUtop=''; MENUname=''; ;;
  *)
   exit
@@ -473,6 +477,8 @@ build-rox-sendto /usr/share/applications/${aAPP,,}.desktop
 #create a path for optional open/save files for this app
 mkdir -p /files/apps/${aAPP,,}
 chown -R ${aAPP,,}:${aAPP,,} /files/apps/${aAPP,,} #20230318
+#20230319 for extra security...
+chmod 700 /files/apps/${aAPP,,}
 
 #.spec file...
 echo -n 'SPEC_AI_dl=' > /mnt/wkg/appimage/${aAPP,,}/${aAPP,,}.spec
@@ -517,31 +523,35 @@ $(gettext 'Click the OK button for some final useful information...')\"</label><
 "
 gtkdialog --center --program=APPIMG_DLG2
 
-export APPIMG_DLG3="<window title=\"$(gettext 'AppImage Installer: security notes')\">
+export APPIMG_DLG3="<window title=\"$(gettext 'AppImage Installer: notes')\">
   <vbox>
-    <text use-markup=\"true\"><label>\"<b>$(gettext 'Security notes')</b>\"</label></text>
-    <text use-markup=\"true\"><label>\"$(gettext 'As has been stated in the previous window, the AppImage has been installed to run as a non-root user. In fact, each AppImage runs as its own separate user. This provides isolation, in other words, security.')
-$(gettext 'However, you may prefer to run some apps as the root user, a file-manager for example, where you want unfettered access to the entire filesystem, able to open, edit and save anywhere.')
-
-$(gettext 'The installation has created two executables:')
-  /usr/bin/${aAPP,,}
-  /usr/bin/${aAPP,,}.bin
-$(gettext '...the first will run the AppImage non-root, the second as the root user.')
-$(gettext 'The installation also created a .desktop file, that specifies an entry in the menu. This is where it is located:')
-  /usr/share/applications/${aAPP,,}.desktop
-$(gettext 'And this is one line in the file:')
-  Exec=${aAPP,,}
-$(gettext 'To change to run the AppImage as the root user, edit that line:')
-  Exec=${aAPP,,}<b>.bin</b>
-$(gettext 'Then in a terminal, run these two commands to update the menu:')
-  # fixmenus
-  # jwm -reload
-$(gettext 'In the future, this might be automated by the AppImage Installer, but for now, it is easy enough to do manually.')
-
-<b>$(gettext 'A final warning')</b>
-$(gettext 'Some AppImages will not run as root, and some may require the Exec line in the .desktop file to have this appended:')
- Exec=${aAPP,,}.bin <b>--no-sandbox</b>
-$(gettext '...which disables the AppImages own security mechanisms.')\"</label></text>
+    <frame>
+      <text use-markup=\"true\"><label>\"<b>$(gettext 'Security notes')</b>\"</label></text>
+      <text use-markup=\"true\"><label>\"$(gettext 'As has been stated in the previous window, the AppImage has been installed to run as a non-root user. In fact, each AppImage runs as its own separate user. This provides isolation, in other words, security.')
+$(gettext 'However, you may prefer to run some apps as the root user, a file-manager for example, where you want unfettered access to the entire filesystem, able to open, edit and save anywhere.')\"</label></text>
+      <hbox>
+       <text><label>$(gettext 'Click for more information:')</label></text>
+       <button>
+         <label>root</label>
+         <action>/usr/local/appimage/notes-security & </action>
+       </button>
+      </hbox>
+    </frame>
+    
+    <frame>
+      <text use-markup=\"true\"><label>\"<b>$(gettext 'Desktop icon')</b>\"</label></text>
+      <text use-markup=\"true\"><label>\"$(gettext 'An entry has been created in the menu; however, you can also create a desktop icon.')
+$(gettext 'All that you need to do is drag the icon from ROX-Filer, onto the desktop, that is it.')
+$(gettext 'You can do it any time in the future, and also can delete the desktop icon by right-click and choose Remove.')\"</label></text>
+      <hbox>
+       <text><label>$(gettext 'Click for ROX-Filer window:')</label></text>
+       <button>
+        <label>ROX-Filer</label>
+        <action>rox -d /home/${aAPP,,} & </action>
+       </button>
+      </hbox>
+    </frame>
+    
     <hbox>
      <button ok></button>
     </hbox>
