@@ -66,92 +66,107 @@ done
 
 PACKAGE="AppImage"
 DESCRIPTION="$(gettext 'Description')"
+SIZE="$(gettext 'Size')"
 export APPIMG_DLG1="<window title=\"$(gettext 'AppImage Installer')\">
   <vbox>
     <text use-markup=\"true\"><label>\"$(gettext 'AppImages are applications with all dependencies builtin.')${CR}$(gettext 'They may be downloaded and installed in EasyOS.')${CR}$(gettext 'An existing installation may be updated or deleted.')\"</label></text>
-    <notebook labels=\"$(gettext 'Audio')|$(gettext 'Developer')|$(gettext 'Games')|$(gettext 'Graphics')|$(gettext 'Network')|$(gettext 'Office')|$(gettext 'Productivity')|$(gettext 'System')|$(gettext 'Video')\">
+    <notebook labels=\"$(gettext 'Audio')|$(gettext 'Developer')|$(gettext 'Games')|$(gettext 'Graphics')|$(gettext 'Network')|$(gettext 'Office')|$(gettext 'Productivity')|$(gettext 'System')|$(gettext 'Video')|$(gettext 'Other')\">
       <tree column-resizeable=\"0\">
-        <label>${PACKAGE}||${DESCRIPTION}</label>
+        <label>${PACKAGE}||${SIZE}|${DESCRIPTION}</label>
         <height>280</height>
         <variable>TREEaudio</variable>
         <action signal=\"enter-notify-event\" type=\"refresh\">TREEaudio</action>
-        <item icon-name=\"audacity\">Audacity|${FLGaudacity}|$(gettext 'A free, easy-to-use, multi-track audio editor and recorder')</item>
+        <item icon-name=\"audacity\">Audacity|${FLGaudacity}|44M|$(gettext 'A free, easy-to-use, multi-track audio editor and recorder')</item>
       </tree>
       <tree column-resizeable=\"0\">
-        <label>${PACKAGE}||${DESCRIPTION}</label>
+        <label>${PACKAGE}||${SIZE}|${DESCRIPTION}</label>
         <height>280</height>
         <variable>TREEdeveloper</variable>
         <action signal=\"enter-notify-event\" type=\"refresh\">TREEdeveloper</action>
-        <item icon-name=\"gitqlient\">GitQlient|${FLGgitqlient}|$(gettext 'Multi-platform GIT client written with Qt')</item>
-        <item icon-name=\"antares\">Antares|${FLGantares}|$(gettext 'SQL client')</item>
-        <item icon-name=\"gdevelop\">GDevelop|${FLGgdevelop}|$(gettext 'No-code game creation')</item>
-        <item icon-name=\"guitar\">Guitar|${FLGguitar}|$(gettext 'GIT GUI client')</item>
-        <item icon-name=\"figma\">Figma|${FLGfigma}|$(gettext 'User Interface design tool')</item>
-        <item icon-name=\"insight\">Insight|${FLGinsight}|$(gettext 'GUI frontend for GNU Debugger')</item>
+        <item icon-name=\"figma\">Figma|${FLGfigma}|102M|$(gettext 'User Interface design tool')</item>
+        <item icon-name=\"gdevelop\">GDevelop|${FLGgdevelop}|128M|$(gettext 'No-code game creation')</item>
+        <item icon-name=\"gitqlient\">GitQlient|${FLGgitqlient}|28M|$(gettext 'Multi-platform GIT client written with Qt')</item>
+        <item icon-name=\"guitar\">Guitar|${FLGguitar}|21M|$(gettext 'GIT GUI client')</item>
+        <item icon-name=\"insight\">Insight|${FLGinsight}|110M|$(gettext 'GUI frontend for GNU Debugger')</item>
       </tree>
       <tree column-resizeable=\"0\">
-        <label>${PACKAGE}||${DESCRIPTION}</label>
+        <label>${PACKAGE}||${SIZE}|${DESCRIPTION}</label>
         <height>280</height>
         <variable>TREEgames</variable>
         <action signal=\"enter-notify-event\" type=\"refresh\">TREEgames</action>
-        <item icon-name=\"planetblupi\">PlanetBlupi|${FLGplanetblupi}|$(gettext 'Strategy and adventure game')</item>
+        <item icon-name=\"nanosaur\">Nanosaur|${FLGnanosaur}|17M|$(gettext 'Strategy 3D game')</item>
+        <item icon-name=\"ottomatic\">OttoMatic|${FLGottomatic}|141M|$(gettext 'Strategy 3D game')</item>
+        <item icon-name=\"planetblupi\">PlanetBlupi|${FLGplanetblupi}|105M|$(gettext 'Strategy and adventure game')</item>
       </tree>
       <tree column-resizeable=\"0\">
-        <label>${PACKAGE}||${DESCRIPTION}</label>
+        <label>${PACKAGE}||${SIZE}|${DESCRIPTION}</label>
         <height>280</height>
         <variable>TREEgraphics</variable>
         <action signal=\"enter-notify-event\" type=\"refresh\">TREEgraphics</action>
-        <item icon-name=\"phototool\">PhotoTool|${FLGphototool}|$(gettext 'Photo editor')</item>
-        <item icon-name=\"krita\">Krita|${FLGkrita}|$(gettext 'Vector and raster painting program')</item>
-        <item icon-name=\"dust3d\">Dust3D|${FLGdust3d}|$(gettext '3D modeling')</item>
-        <item icon-name=\"freecad\">FreeCAD|${FLGfreecad}|$(gettext '3D parametric modeling')</item>
-        <item icon-name=\"glyphr\">Glyphr|${FLGglyphr}|$(gettext 'Web-based font designer')</item>
-        <item icon-name=\"openscad\">OpenSCAD|${FLGopenscad}|$(gettext 'Solid 3D CAD modeller')</item>
+        <item icon-name=\"digikam\">digiKam|${FLGdigikam}|240M|$(gettext 'Professional photo manager')</item>
+        <item icon-name=\"dust3d\">Dust3D|${FLGdust3d}|25M|$(gettext '3D modeling')</item>
+        <item icon-name=\"freecad\">FreeCAD|${FLGfreecad}|944M|$(gettext '3D parametric modeling')</item>
+        <item icon-name=\"glyphr\">Glyphr|${FLGglyphr}|110M|$(gettext 'Web-based font designer')</item>
+        <item icon-name=\"krita\">Krita|${FLGkrita}|334M|$(gettext 'Vector and raster painting program')</item>
+        <item icon-name=\"openscad\">OpenSCAD|${FLGopenscad}|39M|$(gettext 'Solid 3D CAD modeller')</item>
+        <item icon-name=\"pdfquirk\">PDFQuirk|${FLGpdfquirk}|18M|$(gettext 'Convert images to PDF')</item>
+        <item icon-name=\"phototool\">PhotoTool|${FLGphototool}|30M|$(gettext 'Photo editor')</item>
       </tree>
       <tree column-resizeable=\"0\">
-        <label>${PACKAGE}||${DESCRIPTION}</label>
+        <label>${PACKAGE}||${SIZE}|${DESCRIPTION}</label>
         <height>280</height>
         <variable>TREEnetwork</variable>
         <action signal=\"enter-notify-event\" type=\"refresh\">TREEnetwork</action>
-        <item icon-name=\"electorrent\">Electorrent|${FLGelectorrent}|$(gettext 'A client for uTorrent, rTorrent, Transmission, etc.')</item>
-        <item icon-name=\"keepassxc\">KeePassXC|${FLGkeepassxc}|$(gettext 'Password manager')</item>
+        <item icon-name=\"electorrent\">Electorrent|${FLGelectorrent}|82M|$(gettext 'A client for uTorrent, rTorrent, Transmission, etc.')</item>
+        <item icon-name=\"keepassxc\">KeePassXC|${FLGkeepassxc}|40M|$(gettext 'Password manager')</item>
+        <item icon-name=\"ungoogledchromium\">UngoogledChromium|${FLGungoogledchromium}|149M|$(gettext 'Chromium browser without Google Services')</item>
       </tree>
       <tree column-resizeable=\"0\">
-        <label>${PACKAGE}||${DESCRIPTION}</label>
+        <label>${PACKAGE}||${SIZE}|${DESCRIPTION}</label>
         <height>280</height>
         <variable>TREEoffice</variable>
         <action signal=\"enter-notify-event\" type=\"refresh\">TREEoffice</action>
-        <item icon-name=\"onlyoffice\">ONLYOFFICE|${FLGonlyoffice}|$(gettext 'Word-processing, spreadsheet, presentations office suite')</item>
-        <item icon-name=\"dbgate\">DbGate|${FLGdbgate}|$(gettext 'Multi-protocol SQL+noSQL database client')</item>
-        <item icon-name=\"koreader\">KOReader|${FLGkoreader}|$(gettext 'Multi-format e-book reader')</item>
-        <item icon-name=\"koodoreader\">KoodoReader|${FLGkoodoreader}|$(gettext 'Multi-format e-book reader')</item>
+        <item icon-name=\"antares\">Antares|${FLGantares}|126M|$(gettext 'SQL client')</item>
+        <item icon-name=\"dbgate\">DbGate|${FLGdbgate}|93M|$(gettext 'Multi-protocol SQL+noSQL database client')</item>
+        <item icon-name=\"koreader\">KOReader|${FLGkoreader}|42M|$(gettext 'Multi-format e-book reader')</item>
+        <item icon-name=\"koodoreader\">KoodoReader|${FLGkoodoreader}|-|$(gettext 'Multi-format e-book reader')</item>
+        <item icon-name=\"onlyoffice\">ONLYOFFICE|${FLGonlyoffice}|299M|$(gettext 'Word-processing, spreadsheet, presentations office suite')</item>
       </tree>
       <tree column-resizeable=\"0\">
-        <label>${PACKAGE}||${DESCRIPTION}</label>
+        <label>${PACKAGE}||${SIZE}|${DESCRIPTION}</label>
         <height>280</height>
         <variable>TREEproductivity</variable>
         <action signal=\"enter-notify-event\" type=\"refresh\">TREEproductivity</action>
-        <item icon-name=\"goldendict\">GoldenDict|${FLGgoldendict}|$(gettext 'Feature-rich dictionary lookup')</item>
-        <item icon-name=\"onenote\">OneNote|${FLGonenote}|$(gettext 'A Linux version of Microsoft OneNote')</item>
-        <item icon-name=\"groot\">Groot|${FLGgroot}|$(gettext 'BehaviorTree diagram creator')</item>
-        <item icon-name=\"heimer\">Heimer|${FLGheimer}|$(gettext 'Mind mapping diagrammer tool')</item>
+        <item icon-name=\"deltachat\">DeltaChat|${FLGdeltachat}|143M|$(gettext 'Desktop and phone messaging app')</item>
+        <item icon-name=\"goldendict\">GoldenDict|${FLGgoldendict}|56M|$(gettext 'Feature-rich dictionary lookup')</item>
+        <item icon-name=\"groot\">Groot|${FLGgroot}|42M|$(gettext 'BehaviorTree diagram creator')</item>
+        <item icon-name=\"heimer\">Heimer|${FLGheimer}|25M|$(gettext 'Mind mapping diagrammer tool')</item>
+        <item icon-name=\"onenote\">OneNote|${FLGonenote}|93M|$(gettext 'A Linux version of Microsoft OneNote')</item>
       </tree>
       <tree column-resizeable=\"0\">
-        <label>${PACKAGE}||${DESCRIPTION}</label>
+        <label>${PACKAGE}||${SIZE}|${DESCRIPTION}</label>
         <height>280</height>
         <variable>TREEsystem</variable>
         <action signal=\"enter-notify-event\" type=\"refresh\">TREEvideo</action>
-        <item icon-name=\"etcher\">Etcher|${FLGetcher}|$(gettext 'Flash OS images to SD and USB drives')</item>
+        <item icon-name=\"etcher\">Etcher|${FLGetcher}|98M|$(gettext 'Flash OS images to SD and USB drives')</item>
       </tree>
 
       <tree column-resizeable=\"0\">
-        <label>${PACKAGE}||${DESCRIPTION}</label>
+        <label>${PACKAGE}||${SIZE}|${DESCRIPTION}</label>
         <height>280</height>
         <variable>TREEvideo</variable>
         <action signal=\"enter-notify-event\" type=\"refresh\">TREEvideo</action>
-        <item icon-name=\"webcamoid\">Webcamoid|${FLGwebcamoid}|$(gettext 'A full-featured webcam suite')</item>
-        <item icon-name=\"kdenlive\">Kdenlive|${FLGkdenlive}|$(gettext 'Video editor')</item>
-        <item icon-name=\"losslesscut\">LosslessCut|${FLGlosslesscut}|$(gettext 'Video editor')</item>
+        <item icon-name=\"kdenlive\">Kdenlive|${FLGkdenlive}|175M|$(gettext 'Video editor')</item>
+        <item icon-name=\"losslesscut\">LosslessCut|${FLGlosslesscut}|153M|$(gettext 'Video editor')</item>
+        <item icon-name=\"webcamoid\">Webcamoid|${FLGwebcamoid}|-|$(gettext 'A full-featured webcam suite')</item>
+      </tree>
+
+      <tree column-resizeable=\"0\">
+        <label>${PACKAGE}||${SIZE}|${DESCRIPTION}</label>
+        <height>280</height>
+        <variable>TREEother</variable>
+        <action signal=\"enter-notify-event\" type=\"refresh\">TREEother</action>
+        <item icon-name=\"exelearning\">eXeLearning|${FLGexelearning}|97M|$(gettext 'Create educational resources')</item>
       </tree>
 
     </notebook>
@@ -298,6 +313,13 @@ case "${aAPP}" in
  LosslessCut) MEMBER='mifi'; PROJECT='lossless-cut'; APPIMG='LosslessCut-linux-x86_64.AppImage'; MENUcat='X-Multimedia-video'; MENUtop='Multimedia'; MENUname='LosslessCut video editor'; ;;
  OpenSCAD) DIRECTDL='https://files.openscad.org/OpenSCAD-2021.01-x86_64.AppImage'; DIRECTVER='2021.01'; MENUcat='X-Graphic'; MENUtop='Graphic'; MENUname='OpenSCAD solid 3D modeller'; ;;
  KoodoReader) DIRECTDL='https://github.com/troyeguo/koodo-reader/releases/download/v1.5.1/Koodo-Reader-1.5.1.AppImage'; DIRECTVER='1.5.1'; MENUcat='X-Document-viewer'; MENUtop='Document'; MENUname='KoodoReader multi-format e-book reader'; ;;
+ DeltaChat) MEMBER='deltachat'; PROJECT='deltachat-desktop'; APPIMG='DeltaChat-VERSION.AppImage'; MENUcat='X-Personal'; MENUtop='Personal'; MENUname='DeltaChat PC and phone messaging app'; ;;
+ PDFQuirk) MEMBER='dragotin'; PROJECT='pdfquirk'; APPIMG='PDFQuirk-continuous-x86_64.AppImage'; MENUcat='X-Graphic-utility'; MENUtop='Graphic'; MENUname='PDFQuirk image to PDF converter'; ;;
+ UngoogledChromium) DIRECTDL='https://github.com/clickot/ungoogled-chromium-binaries/releases/download/111.0.5563.65-1/ungoogled-chromium_111.0.5563.65-1.1.AppImage'; DIRECTVER='111.0.5563.65-1'; MENUcat='X-Internet-browser'; MENUtop='Internet'; MENUname='UngoogledChromium browser sans Google Services'; ;;
+ digiKam) DIRECTDL='https://download.kde.org/stable/digikam/7.10.0/digiKam-7.10.0-x86-64.appimage'; DIRECTVER='7.10.0'; MENUcat='X-Graphic'; MENUtop='Graphic'; MENUname='digiKam professional photo manager'; ;;
+ eXeLearning) MEMBER='exelearning'; PROJECT='iteexe'; APPIMG='eXe-VERSION.glibc2.28-x86_64.AppImage'; MENUcat='X-Document'; MENUtop='Document'; MENUname='eXeLearning create education resources'; ;;
+ Nanosaur) MEMBER='jorio'; PROJECT='Nanosaur'; APPIMG='Nanosaur-VERSION-linux-x86_64.AppImage'; MENUcat='X-Fun-adventure'; MENUtop='Fun'; MENUname='Nanosaur 3D strategy game'; ;;
+ OttoMatic) MEMBER='jorio'; PROJECT='OttoMatic'; APPIMG='OttoMatic-VERSION-linux-x86_64.AppImage'; MENUcat='X-Fun-adventure'; MENUtop='Fun'; MENUname='Nanosaur 3D strategy game'; ;;
  ZZZ) MEMBER=''; PROJECT=''; APPIMG=''; MENUcat=''; MENUtop=''; MENUname=''; ;;
  *)
   exit
@@ -435,7 +457,7 @@ fi
 #create /usr/bin/${aAPP,,} script to run as user ${aAPP,,} ...
 setup-client "${aAPP,,}=true"
 
-if [ -d /usr/local/appimage/skeletons/audacity/home/${aAPP,,} ];then
+if [ -d /usr/local/appimage/skeletons/${aAPP,,}/home/${aAPP,,} ];then
  chown -R ${aAPP,,}:${aAPP,,} /usr/local/appimage/skeletons/${aAPP,,}/home/${aAPP,,}
  cp -a -f /usr/local/appimage/skeletons/${aAPP,,}/home/${aAPP,,}/* /home/${aAPP,,}/ 2>/dev/null
  cp -a -f /usr/local/appimage/skeletons/${aAPP,,}/home/${aAPP,,}/.[a-zA-Z0-9]* /home/${aAPP,,}/ 2>/dev/null
@@ -450,6 +472,7 @@ build-rox-sendto /usr/share/applications/${aAPP,,}.desktop
 
 #create a path for optional open/save files for this app
 mkdir -p /files/apps/${aAPP,,}
+chown -R ${aAPP,,}:${aAPP,,} /files/apps/${aAPP,,} #20230318
 
 #.spec file...
 echo -n 'SPEC_AI_dl=' > /mnt/wkg/appimage/${aAPP,,}/${aAPP,,}.spec
