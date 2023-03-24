@@ -1,7 +1,5 @@
 #!/bin/bash
-#20230313 first release. only via github
-#20230316 optional hardcode d/l and version.
-#20230317 support manual d/l .AppImage file.
+#d/l and install an appimage.
 
 export TEXTDOMAIN=appimages
 export TEXTDOMAINDIR=/usr/share/locale
@@ -26,7 +24,6 @@ export DLG_HELP_APPIMG="<window resizable=\"false\" title=\"$(gettext 'Help: App
 
 #does not work, due to internal libs requiring a later glibc:
 #        <item icon-name=\"cozydrive\">CozyDrive|$(gettext 'Synchronize files with laptop and desktop PC')</item>
-#        <item icon-name=\"openshot\">OpenShot|${FLGopenshot}|$(gettext 'Easy and powerful video editor')</item>
 #get splash window, then aborts:
 #        <item icon-name=\"shotcut\">ShotCut|${FLGshotcut}|$(gettext 'Easy and powerful video editor')</item>
 #missing python module:
@@ -41,8 +38,6 @@ export DLG_HELP_APPIMG="<window resizable=\"false\" title=\"$(gettext 'Help: App
 #./bin/kicad: /usr/lib/libcrypt.so.1: version `GLIBC_2.2.5' not found (required by /tmp/.mount_kicad.Ru9zq7/usr/lib/x86_64-linux-gnu/libkrb5.so.26)
 #./bin/kicad: /usr/lib/libcrypt.so.1: version `GLIBC_2.2.5' not found (required by /tmp/.mount_kicad.Ru9zq7/usr/lib/x86_64-linux-gnu/libroken.so.18)
 #        <item icon-name=\"kicad\">KiCad|${FLGkicad}|$(gettext 'Schematic-capture and PCB layout designer')</item>
-#/usr/bin/endlesssky.bin: error while loading shared libraries: libOpenGL.so.0: cannot open shared object file: No such file or directory
-#        <item icon-name=\"endlesssky\">EndlessSky|${FLGendlesssky}|$(gettext 'Outer-space adventure game')</item>
 
 #took this out of System tab, as these are untested, over half don't work:
 #        <item icon-name=\"appimagepool\">AppImagePool|${FLGappimagepool}|$(gettext 'AppImageHub AppImage installer')</item>
@@ -52,9 +47,9 @@ export DLG_HELP_APPIMG="<window resizable=\"false\" title=\"$(gettext 'Help: App
 for aAI in $(find /mnt/wkg/appimage -mindepth 1 -maxdepth 1 -type d)
 do
  [ "$aAI" == "" ] && continue
- AIfile="$(find ${aAI} -mindepth 1 -maxdepth 1 -type f -name '*.AppImage')"
+ AIfile="$(find ${aAI} -mindepth 1 -maxdepth 1 -type f -name '*.AppImage' | tail -n 1)"
  if [ "$AIfile" ];then
-  #20230317 .AppImage may have been manually downloaded, so check if actually installed...
+  #.AppImage may have been manually downloaded, so check if actually installed...
   if [ -x /usr/bin/${aAI##*/} ];then
    eval "FLG${aAI##*/}='√'" #ex: sets FLGaudacity=√
   fi
@@ -94,6 +89,7 @@ export APPIMG_DLG1="<window title=\"$(gettext 'AppImage Installer')\">
         <height>280</height>
         <variable>TREEgames</variable>
         <action signal=\"enter-notify-event\" type=\"refresh\">TREEgames</action>
+        <item icon-name=\"endlesssky\">EndlessSky|${FLGendlesssky}|232M|$(gettext 'Outer-space adventure game')</item>
         <item icon-name=\"nanosaur\">Nanosaur|${FLGnanosaur}|17M|$(gettext 'Strategy 3D game')</item>
         <item icon-name=\"ottomatic\">OttoMatic|${FLGottomatic}|141M|$(gettext 'Strategy 3D game')</item>
         <item icon-name=\"planetblupi\">PlanetBlupi|${FLGplanetblupi}|105M|$(gettext 'Strategy and adventure game')</item>
@@ -122,6 +118,7 @@ export APPIMG_DLG1="<window title=\"$(gettext 'AppImage Installer')\">
         <item icon-name=\"keepassxc\">KeePassXC|${FLGkeepassxc}|40M|$(gettext 'Password manager')</item>
         <item icon-name=\"thunderbird\">Thunderbird|${FLGthunderbird}|82M|$(gettext 'Mozilla mail client')</item>
         <item icon-name=\"ungoogledchromium\">UngoogledChromium|${FLGungoogledchromium}|149M|$(gettext 'Chromium browser without Google Services')</item>
+        <item icon-name=\"zoom\">Zoom|${FLGzoom}|227M|$(gettext 'Online video conferencing')</item>
       </tree>
       <tree column-resizeable=\"0\">
         <label>${PACKAGE}||${SIZE}|${DESCRIPTION}</label>
@@ -139,6 +136,7 @@ export APPIMG_DLG1="<window title=\"$(gettext 'AppImage Installer')\">
         <height>280</height>
         <variable>TREEproductivity</variable>
         <action signal=\"enter-notify-event\" type=\"refresh\">TREEproductivity</action>
+        <item icon-name=\"acreom\">Acreom|${FLGacreom}|174M|$(gettext 'Private knowledge base')</item>
         <item icon-name=\"deltachat\">DeltaChat|${FLGdeltachat}|143M|$(gettext 'Desktop and phone messaging app')</item>
         <item icon-name=\"goldendict\">GoldenDict|${FLGgoldendict}|56M|$(gettext 'Feature-rich dictionary lookup')</item>
         <item icon-name=\"groot\">Groot|${FLGgroot}|42M|$(gettext 'BehaviorTree diagram creator')</item>
@@ -160,6 +158,7 @@ export APPIMG_DLG1="<window title=\"$(gettext 'AppImage Installer')\">
         <action signal=\"enter-notify-event\" type=\"refresh\">TREEvideo</action>
         <item icon-name=\"kdenlive\">Kdenlive|${FLGkdenlive}|175M|$(gettext 'Video editor')</item>
         <item icon-name=\"losslesscut\">LosslessCut|${FLGlosslesscut}|153M|$(gettext 'Video editor')</item>
+        <item icon-name=\"openshot\">OpenShot|${FLGopenshot}|$(gettext 'Easy and powerful video editor')</item>
         <item icon-name=\"webcamoid\">Webcamoid|${FLGwebcamoid}|-|$(gettext 'A full-featured webcam suite')</item>
       </tree>
 
@@ -189,8 +188,8 @@ export APPIMG_DLG1="<window title=\"$(gettext 'AppImage Installer')\">
 
 RETVALS="$(gtkdialog --center --program=APPIMG_DLG1)"
 
-#echo "$RETVALS"
-eval "$RETVALS"
+xRETVALS="$(echo "$RETVALS" | grep -E '^TREE|^EXIT')"
+eval "$xRETVALS"
 if [ "$EXIT" != "BUTinstall" ];then
  exit
 fi
@@ -208,71 +207,9 @@ if [ "$aAPP" == "" ];then
  exit 1
 fi
 
-if [ -d /mnt/wkg/appimage/${aAPP,,} ];then
- rmdir /mnt/wkg/appimage/${aAPP,,} 2>/dev/null #this will fail if any files.
- if [ $? -ne 0 ];then
-  if [ -f /usr/bin/${aAPP,,} ];then #20230317
-   #already installed.
-   export APPIMG_DLG6="<window title=\"$(gettext 'AppImage Installer')\">
-  <vbox>
-    <text use-markup=\"true\"><label>\"$(gettext 'Please make a choice for this installed AppImage:')
-  <b>${aAPP}</b>
-
-$(gettext 'Updating currently not supported.')
-$(gettext 'To delete the AppImage installation completely, click the DELETE button...')
-$(gettext 'Otherwise, click the EXIT button to exit from AppImage Installer...')
-    \"</label></text>
-    <hbox>
-     <button><label>$(gettext 'DELETE')</label><action>EXIT:delete</action></button>
-     <button><label>$(gettext 'EXIT')</label><action>EXIT:quit</action></button>
-    </hbox>
-  </vbox></window>"
-   RET2="$(gtkdialog --center --program=APPIMG_DLG6)"
-   eval "${RET2}"
-   if [ "$EXIT" == "delete" ];then
-    rm -rf /mnt/wkg/appimage/${aAPP,,}
-    rm -rf /home/${aAPP,,}
-    rm -f /usr/share/applications/${aAPP,,}.desktop
-    rm -f /usr/bin/${aAPP,,}
-    rm -f /usr/bin/${aAPP,,}.bin
-    fixmenus
-    jwm -reload
-    Md="$(gettext 'AppImage deleted') "
-    popup "process=wait terminate=ok background=#80ff80 level=top|<big>${Md}</big>"
-   fi
-   exit
-  fi
- fi
-fi
-
-###new install###
-export APPIMG_DLG5="<window title=\"$(gettext 'AppImage Installer')\">
-  <vbox>
-   <text use-markup=\"true\"><label>\"$(gettext 'Please confirm that you want to download and install this AppImage:')
-  <b>${aAPP}</b>\"</label></text>
-  <hbox>
-   <button ok></button>
-   <button cancel></button>
-  </hbox>
-  </vbox></window>"
-RET1="$(gtkdialog --center --program=APPIMG_DLG5)"
-eval "$RET1"
-if [ "$EXIT" != "OK" ];then
- exit 0
-fi
-
-#need internet connection...
-if [ ! -s /tmp/pup_event_backend/network_ ];then
- M5="$(gettext 'An Internet connection is required to download an AppImage.')"
- popup "terminate=ok background=#ff8080 level=top process=wait|<big>${M5}</big>"
- exec appimage
-fi
-
-
 #GoldenDict is a continuous build. don't really know how to handle them.
 #for now, ask. see github-find-latest-ver script.
 #the URL format is: https://github.com/$MEMBER/$PROJECT/
-
 VERASK='no' #yes if manual entry of version number required.
 MEMBER=''; PROJECT=''; APPIMG=''
 DIRECTDL=''; DIRECTVER='' #20230316
@@ -286,7 +223,6 @@ case "${aAPP}" in
  Electorrent) MEMBER='Tympanix'; PROJECT='Electorrent'; APPIMG='Electorrent-VERSION.AppImage'; MENUcat='X-Network-transfer'; MENUtop='Network'; MENUname='Electorrent multiprotocol torrent client'; ;;
  ONLYOFFICE) MEMBER='ONLYOFFICE'; PROJECT='appimage-desktopeditors'; APPIMG='DesktopEditors-x86_64.AppImage'; MENUcat='X-Business'; MENUtop='Business'; MENUname='ONLYOFFICE office suite'; ;;
  OneNote) MEMBER='patrikx3'; PROJECT='onenote'; APPIMG='P3X-OneNote-VERSION.AppImage'; MENUcat='X-Personal-organizer'; MENUtop='Personal'; MENUname='OneNote online note taking'; ;;
- OpenShot) MEMBER='OpenShot'; PROJECT='openshot-qt'; APPIMG='OpenShot-vVERSION-x86_64.AppImage'; MENUcat='X-Multimedia-video'; MENUtop='Multimedia'; MENUname='OpenShot video editor'; ;;
  ShotCut) MEMBER='mltframework'; PROJECT='shotcut'; APPIMG='shotcut-linux-x86_64-VERNODOTS.AppImage'; MENUcat='X-Multimedia-video'; MENUtop='Multimedia'; MENUname='ShotCut video editor'; ;;
  VidCutter) MEMBER='ozmartian'; PROJECT='vidcutter'; APPIMG='VidCutter-VERSION-x86_64.AppImage'; MENUcat='X-Multimedia-video'; MENUtop='Multimedia'; MENUname='VidCutter video cutter and joiner'; ;;
  Webcamoid) MEMBER='webcamoid'; PROJECT='webcamoid'; APPIMG='webcamoid-portable-linux-VERSION-x86_64.AppImage'; MENUcat='X-Multimedia-video'; MENUtop='Multimedia'; MENUname='Webcamoid webcam suite'; ;;
@@ -324,6 +260,9 @@ case "${aAPP}" in
  OttoMatic) MEMBER='jorio'; PROJECT='OttoMatic'; APPIMG='OttoMatic-VERSION-linux-x86_64.AppImage'; MENUcat='X-Fun-adventure'; MENUtop='Fun'; MENUname='Nanosaur 3D strategy game'; ;;
  Thunderbird) DIRECTDL='https://github.com/srevinsaju/Thunderbird-AppImage/releases/download/stable/Thunderbird-102.8_20230214184313.AppImage'; DIRECTVER='102.8'; MENUcat='X-Internet-mailnews'; MENUtop='Internet'; MENUname='Thunderbird mail client'; ;;
  JitsiMeet) MEMBER='jitsi'; PROJECT='jitsi-meet-electron'; APPIMG='jitsi-meet-x86_64.AppImage'; MENUcat='X-Internet-chat'; MENUtop='Internet'; MENUname='JitsiMeet video conferencing'; ;;
+ Acreom) MEMBER='Acreom'; PROJECT='releases'; APPIMG='acreom-VERSION.AppImage'; MENUcat='X-Personal'; MENUtop='Personal'; MENUname='Acreom private knowledge base'; ;;
+ Zoom) MEMBER='probonopd'; PROJECT='Zoom.AppImage'; APPIMG='Zoom-VERSION-x86_64.AppImage'; MENUcat='VideoConference'; MENUtop='Internet'; MENUname='Zoom video conferencing'; VERASK='yes'; ;;
+ OpenShot) DIRECTDL='https://github.com/OpenShot/openshot-qt/releases/download/daily/OpenShot-v3.0.0-daily-11120-f0b44c51-b5bbab66-x86_64.AppImage'; DIRECTVER='3.0.0'; MENUcat='X-Multimedia-video'; MENUtop='Multimedia'; MENUname='OpenShot video editor'; ;;
  ZZZ) MEMBER=''; PROJECT=''; APPIMG=''; MENUcat=''; MENUtop=''; MENUname=''; ;;
  *)
   exit
@@ -331,7 +270,123 @@ case "${aAPP}" in
 esac
 export VERASK
 
-if [ "$DIRECTDL" ];then #20230316
+#test if already installed...
+UPDATEflg='no'
+if [ -d /mnt/wkg/appimage/${aAPP,,} ];then
+ rmdir /mnt/wkg/appimage/${aAPP,,} 2>/dev/null #this will fail if any files.
+ if [ $? -ne 0 ];then
+  if [ -f /usr/bin/${aAPP,,} ];then
+   #already installed.
+   SPEC_AI_ver=''
+   if [ -s /mnt/wkg/appimage/${aAPP,,}/${aAPP,,}.spec ];then
+    . /mnt/wkg/appimage/${aAPP,,}/${aAPP,,}.spec #has SPEC_AI_ver
+   fi
+   if [ "$DIRECTDL" != "" -o "$SPEC_AI_ver" == "" ];then
+    UPDATExml="<text><label>$(gettext 'Updating currently not supported for this AppImage.')</label></text>"
+   else
+    UPDATExml="<text><label>$(gettext 'To probe online if there is a later version and update to it, click the UPDATE button:')</label></text>
+        <vbox>
+          <button><label>$(gettext 'UPDATE')</label><action>EXIT:update</action></button>
+        </vbox>"
+   fi
+   export APPIMG_DLG6="<window title=\"$(gettext 'AppImage Installer')\">
+  <vbox>
+    <text use-markup=\"true\">
+      <label>\"$(gettext 'Please make a choice for this installed AppImage:')
+  <b>${aAPP}</b>
+    \"</label></text>
+    <frame>
+      <hbox>
+        ${UPDATExml}
+      </hbox>
+    </frame>
+    <frame>
+      <hbox>
+        <text><label>$(gettext 'To delete the AppImage installation completely, click the DELETE button:')</label></text>
+        <vbox>
+          <button><label>$(gettext 'DELETE')</label><action>EXIT:delete</action></button>
+        </vbox>
+      </hbox>
+    </frame>
+    <text><label>\"  \"</label></text>
+    <hbox>
+      <text><label>$(gettext 'Otherwise, click the EXIT button to exit from AppImage Installer:')</label></text>
+      <vbox>
+        <button><label>$(gettext 'EXIT')</label><action>EXIT:quit</action></button>
+      </vbox>
+    </hbox>
+  </vbox></window>"
+   RET2="$(gtkdialog --center --program=APPIMG_DLG6)"
+   eval "${RET2}"
+   
+   case "$EXIT" in
+    delete)
+     rm -rf /mnt/wkg/appimage/${aAPP,,}
+     rm -rf /home/${aAPP,,}
+     rm -f /usr/share/applications/${aAPP,,}.desktop
+     rm -f /usr/bin/${aAPP,,}
+     rm -f /usr/bin/${aAPP,,}.bin
+     grep -q "/home/${aAPP,,}/${aAPP,,}" /root/Choices/ROX-Filer/PuppyPin
+     if [ $? -eq 0 ];then
+      #remove desktop icon...
+      echo "<?xml version=\"1.0\"?>
+<env:Envelope xmlns:env=\"http://www.w3.org/2001/12/soap-envelope\">
+ <env:Body xmlns=\"http://rox.sourceforge.net/SOAP/ROX-Filer\">
+  <UnsetIcon>
+   <Path>/home/${aAPP,,}/${aAPP,,}</Path>
+  </UnsetIcon>
+ </env:Body>
+</env:Envelope>" | rox -R
+     fi
+     fixmenus
+     jwm -reload
+     Md="$(gettext 'AppImage deleted') "
+     popup "process=wait terminate=ok background=#80ff80 level=top|<big>${Md}</big>"
+     exit
+    ;;
+    update)
+     UPDATEflg='yes'
+    ;;
+    *)
+     exit
+    ;;
+   esac
+  fi
+ fi
+fi
+
+###new install or update###
+if [ "$UPDATEflg" == "yes" ];then
+ Mup="$(gettext 'Please confirm that you want to probe online for a later version of this AppImage:')"
+else
+ Mup="$(gettext 'Please confirm that you want to download and install this AppImage:')"
+fi
+export APPIMG_DLG5="<window title=\"$(gettext 'AppImage Installer')\">
+  <vbox>
+   <text use-markup=\"true\"><label>\"${Mup}
+  <b>${aAPP}</b>\"</label></text>
+  <hbox>
+   <button ok></button>
+   <button cancel></button>
+  </hbox>
+  </vbox></window>"
+RET1="$(gtkdialog --center --program=APPIMG_DLG5)"
+eval "$RET1"
+if [ "$EXIT" != "OK" ];then
+ exit 0
+fi
+
+#need internet connection...
+if [ ! -s /tmp/pup_event_backend/network_ ];then
+ M5="$(gettext 'An Internet connection is required to download an AppImage.')"
+ popup "terminate=ok background=#ff8080 level=top process=wait|<big>${M5}</big>"
+ exec appimage
+fi
+
+if [ "$DIRECTDL" != "" ];then
+ if [ "$UPDATEflg" == "yes" ];then #precaution.
+  exit
+ fi
  APPimg="${DIRECTDL##*/}"
  APPver="${DIRECTVER}"
  echo -n "$APPver" > /tmp/appimage/URLver
@@ -360,16 +415,49 @@ else
   APPimg="$(echo -n "$APPIMG" | sed -e "s%VERNODOTS%${VERnodots}%")"
  fi
  
- #this is what we have to download: ${URLtag}/${APPimg}
- mkdir -p /mnt/wkg/appimage/${aAPP,,}
- cd /mnt/wkg/appimage/${aAPP,,}
- 
- echo -n "${URLtag}/${APPimg}" > /tmp/appimage/URLdl #for debugging.
- URLdl="$(echo -n "$URLtag" | sed -e 's%/tag/%/download/%')"
- if [ ! -f "$APPimg" ];then #20230317 support manual download.
-  download_file ${URLdl}/${APPimg}
+ EXIT='download'
+ if [ "$UPDATEflg" == "yes" ];then
+  export APPIMG_DLG10="<window title=\"$(gettext 'AppImage Installer:') ${aAPP}\">
+  <vbox>
+    <text use-markup=\"true\">
+      <label>\"$(gettext 'This is the currently installed version of the AppImage:')
+  <b>${SPEC_AI_ver}</b>
+$(gettext 'This is the latest version found online:')
+  <b>${APPver}</b>
+
+$(gettext 'If the latest version is later than the current version, and you want to update, click the UPDATE button. Otherwise, click CANCEL to quit:')\"</label>
+    </text>
+    <hbox>
+     <button>
+       <label>$(gettext 'UPDATE')</label>
+       <action>EXIT:download</action>
+     </button>
+     <button>
+      <label>$(gettext 'CANCEL')</label>
+      <action>EXIT:cancel</action>
+     </button>
+    </hbox>
+  </vbox></window>"
+  RET2="$(gtkdialog --center --program=APPIMG_DLG10)"
+  eval "$RET2" 
  fi
-fi #20230316
+ 
+ if [ "$EXIT" == "download" ];then
+  if [ "$UPDATEflg" == "yes" ];then
+   UPDATEflg='yesyes'
+  fi
+  #this is what we have to download: ${URLtag}/${APPimg}
+  mkdir -p /mnt/wkg/appimage/${aAPP,,}
+  cd /mnt/wkg/appimage/${aAPP,,}
+  echo -n "${URLtag}/${APPimg}" > /tmp/appimage/URLdl #for debugging.
+  URLdl="$(echo -n "$URLtag" | sed -e 's%/tag/%/download/%')"
+  if [ ! -f "$APPimg" ];then #20230317 support manual download.
+   download_file ${URLdl}/${APPimg}
+  fi
+ else
+  exit 0
+ fi
+fi
 
 if [ $? -ne 0 ];then
  M2="$(gettext 'AppImage download failed. Aborting.')"
@@ -414,25 +502,19 @@ DT1="$(find ./ ./usr/share/applications -maxdepth 1 -type f -name '*.desktop' 2>
 if [ "$DT1" ];then
  grep '^MimeType=' ${DT1} > /tmp/appimage/mimetype
 fi
-#does it have libc.so.6 builtin...
-#LIBC="$(find lib lib64 usr/lib usr/lib64 usr/bin -name 'libc.so.6' 2>/dev/null | head -n 1)"
-#if [ "$LIBC" == "" ];then
- #this is where can run into problems, lib requiring later glibc than in host system...
- #ref: https://www.lightofdawn.org/wiki/wiki.cgi/NewAppsOnOldGlibc
- #find a few libs, test them...
- #nah, don't know how to do it...
- #for aLIB in $(find lib lib64 usr/lib usr/lib64 -type f -name 'lib*so*' 2>/dev/null | tail -n 6)
- #do
- #
- #done
-# true
-#fi
 sync
 busybox umount mntpt
 rmdir mntpt
 
 #proceed with install...
-ln -s /mnt/wkg/appimage/${aAPP,,}/${APPimg} /usr/bin/${aAPP,,}
+if [ "$UPDATEflg" == "yesyes" ];then
+ #just redirect symlink to the new appimage...
+ cp -a -f /usr/bin/${aAPP,,}.bin /usr/bin/${aAPP,,}.binOLD
+ cp -a -f /mnt/wkg/appimage/${aAPP,,}/${aAPP,,}.spec /mnt/wkg/appimage/${aAPP,,}/${aAPP,,}.specOLD
+ ln -snf /mnt/wkg/appimage/${aAPP,,}/${APPimg} /usr/bin/${aAPP,,}.bin
+else
+ ln -snf /mnt/wkg/appimage/${aAPP,,}/${APPimg} /usr/bin/${aAPP,,}
+fi
 
 if [ "${LANG:0:2}" == "en" ];then
  NLSname=''
@@ -442,7 +524,8 @@ else
 "
 fi
 
-echo "[Desktop Entry]
+if [ "$UPDATEflg" != "yesyes" ];then
+ echo "[Desktop Entry]
 Version=1.0
 Type=Application
 ${NLSname}Name=${MENUname}
@@ -450,35 +533,36 @@ GenericName=${aAPP}
 Icon=${aAPP,,}.png
 Categories=${MENUcat}
 Exec=${aAPP,,}" > /usr/share/applications/${aAPP,,}.desktop
-if [ -s /tmp/appimage/mimetype ];then
- cat /tmp/appimage/mimetype >> /usr/share/applications/${aAPP,,}.desktop
+ if [ -s /tmp/appimage/mimetype ];then
+  cat /tmp/appimage/mimetype >> /usr/share/applications/${aAPP,,}.desktop
+ fi
+
+ if [ -d /usr/local/appimage/skeletons/${aAPP,,}/usr ];then
+  cp -a -f /usr/local/appimage/skeletons/${aAPP,,}/usr/* /usr/
+ fi
+
+ #create /usr/bin/${aAPP,,} script to run as user ${aAPP,,} ...
+ setup-client "${aAPP,,}=true"
+
+ if [ -d /usr/local/appimage/skeletons/${aAPP,,}/home/${aAPP,,} ];then
+  chown -R ${aAPP,,}:${aAPP,,} /usr/local/appimage/skeletons/${aAPP,,}/home/${aAPP,,}
+  cp -a -f /usr/local/appimage/skeletons/${aAPP,,}/home/${aAPP,,}/* /home/${aAPP,,}/ 2>/dev/null
+  cp -a -f /usr/local/appimage/skeletons/${aAPP,,}/home/${aAPP,,}/.[a-zA-Z0-9]* /home/${aAPP,,}/ 2>/dev/null
+ fi
+
+ #update jwm menu...
+ fixmenus
+ jwm -reload
+
+ #update the right-click menu...
+ build-rox-sendto /usr/share/applications/${aAPP,,}.desktop
+
+ #create a path for optional open/save files for this app
+ mkdir -p /files/apps/${aAPP,,}
+ chown -R ${aAPP,,}:${aAPP,,} /files/apps/${aAPP,,} #20230318
+ #20230319 for extra security...
+ chmod 700 /files/apps/${aAPP,,}
 fi
-
-if [ -d /usr/local/appimage/skeletons/${aAPP,,}/usr ];then
- cp -a -f /usr/local/appimage/skeletons/${aAPP,,}/usr/* /usr/
-fi
-
-#create /usr/bin/${aAPP,,} script to run as user ${aAPP,,} ...
-setup-client "${aAPP,,}=true"
-
-if [ -d /usr/local/appimage/skeletons/${aAPP,,}/home/${aAPP,,} ];then
- chown -R ${aAPP,,}:${aAPP,,} /usr/local/appimage/skeletons/${aAPP,,}/home/${aAPP,,}
- cp -a -f /usr/local/appimage/skeletons/${aAPP,,}/home/${aAPP,,}/* /home/${aAPP,,}/ 2>/dev/null
- cp -a -f /usr/local/appimage/skeletons/${aAPP,,}/home/${aAPP,,}/.[a-zA-Z0-9]* /home/${aAPP,,}/ 2>/dev/null
-fi
-
-#update jwm menu...
-fixmenus
-jwm -reload
-
-#update the right-click menu...
-build-rox-sendto /usr/share/applications/${aAPP,,}.desktop
-
-#create a path for optional open/save files for this app
-mkdir -p /files/apps/${aAPP,,}
-chown -R ${aAPP,,}:${aAPP,,} /files/apps/${aAPP,,} #20230318
-#20230319 for extra security...
-chmod 700 /files/apps/${aAPP,,}
 
 #.spec file...
 echo -n 'SPEC_AI_dl=' > /mnt/wkg/appimage/${aAPP,,}/${aAPP,,}.spec
@@ -493,6 +577,33 @@ echo -n 'SPEC_AI_ver=' >> /mnt/wkg/appimage/${aAPP,,}/${aAPP,,}.spec
 cat /tmp/appimage/URLver >> /mnt/wkg/appimage/${aAPP,,}/${aAPP,,}.spec
 # ex: 9.0.0
 echo '' >> /mnt/wkg/appimage/${aAPP,,}/${aAPP,,}.spec
+
+if [ "$UPDATEflg" == "yesyes" ];then
+export APPIMG_DLG11="<window title=\"$(gettext 'AppImage Installer: success')\">
+  <vbox>
+    <text use-markup=\"true\"><label>\"$(gettext 'Success, this is the updated AppImage:')
+  <b>${APPimg}</b>
+
+$(gettext 'It was downloaded here:')
+  /mnt/wkg/appimage/${aAPP,,}
+$(gettext 'This symlink points to the new AppImage file:')  
+  /usr/bin/${aAPP,,}.bin
+$(gettext 'This symlink points to the previous AppImage file:')
+  /usr/bin/${aAPP,,}.binOLD
+
+<b>$(gettext 'Notice')</b>
+$(gettext 'if you find that the new AppImage does not work, rename the .binOLD symlink to .bin')
+\"</label></text>
+    <hbox>
+     <button ok></button>
+    </hbox>
+  </vbox>
+</window>
+"
+ gtkdialog --center --program=APPIMG_DLG11
+ sync
+ exit 0
+fi
 
 export APPIMG_DLG2="<window title=\"$(gettext 'AppImage Installer: success')\">
   <vbox>
