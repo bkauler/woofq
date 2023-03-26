@@ -36,6 +36,7 @@
 #20220924 ec-run fail if running as user spot.
 #20230326 remove all reference to file EASYPAK, not used anymore.
 #20230326 file base-load-list has a list of .sfs files, but allow a folder name.
+#20230326 layer may be folder (abs. path) not a sfs, so doesn't require unmounting.
 
 export TEXTDOMAIN=easy-containers #190813
 export OUTPUT_CHARSET=UTF-8
@@ -324,7 +325,10 @@ if [ $? -ne 0 ];then #181101
  #busybox umount .ro0
  for ONEEXTRA in `echo -n "${EXTRASFS}${BASESFS}" | tr ':' ' ' | sed -e 's%=ro%%g'` #170523
  do
-  busybox umount ${ONEEXTRA}
+  #20230326 layer may be folder (abs. path) not a sfs, so doesn't require unmounting...
+  if [ "${ONEEXTRA:0:1}" != "/" ];then
+   busybox umount ${ONEEXTRA}
+  fi
  done
  exit 4
 fi
