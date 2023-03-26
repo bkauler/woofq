@@ -17,6 +17,8 @@
 #181122 q*.sfs renamed to easy*.sfs
 #181123 fix unmounting extra sfss.
 #190220 minibase network utilities.
+#20230326 remove all reference to file EASYPAK, not used anymore.
+#20230326 file base-load-list has a list of .sfs files, but allow a folder name.
 
 [ ! $1 ] && exit 1
 EXE="$1"
@@ -144,34 +146,37 @@ if [ $? -ne 0 ];then #180627
  busybox umount /mnt/${WKG_DEV}/${WKG_DIR}containers/${EXE}/container #unmount overlay.
 fi
 
-if [ ! -f ./EASYPAK ];then #180627
- if [ ! -f base-load-list ];then #181101 see /usr/local/sfsget/sfsget  181108
-  echo "Unmounting: /mnt/${WKG_DEV}/${WKG_DIR}containers/${EXE}/.ro0" #180929
-  busybox umount /mnt/${WKG_DEV}/${WKG_DIR}containers/${EXE}/.ro0 #unmount ro layer.
- else
-  for aSFS in `cat base-load-list`
-  do
-   [ "$aSFS" == "" ] && continue
+if [ ! -f base-load-list ];then #181101 see /usr/local/sfsget/sfsget  181108
+ echo "Unmounting: /mnt/${WKG_DEV}/${WKG_DIR}containers/${EXE}/.ro0" #180929
+ busybox umount /mnt/${WKG_DEV}/${WKG_DIR}containers/${EXE}/.ro0 #unmount ro layer.
+else
+ for aSFS in `cat base-load-list`
+ do
+  [ "$aSFS" == "" ] && continue
+  if [ -d $aSFS ];then #20230326 it is a folder, not a .sfs
+   #nothing to unmount.
+   true
+  else
    [ ! -f $aSFS ] && continue
    ANAME="$(basename $aSFS .sfs)" #ex: easy
    echo "Unmounting: ${aSFS}"
    busybox umount .${ANAME}
-  done 
- fi
- #unmount any extra sfs files...
- for NUM in 4 3 2 1
- do
-  eval "ROsfs=\$EASY_LAYER_RO${NUM}" #implements indirection. EASY_LAYER_RO1='devx.sfs' in configuration file, will assign 'devx.sfs' to ROsfs
-  if [ "$ROsfs" ];then
-   #181123 sfs name is now a symlink, ex: devx.sfs
-   if [ -f "$ROsfs" ];then
-    echo "Unmounting: ${ROsfs}"
-    ANAME="${ROsfs/.sfs/}"
-    busybox umount .${ANAME}
-   fi
   fi
- done
+ done 
 fi
+#unmount any extra sfs files...
+for NUM in 4 3 2 1
+do
+ eval "ROsfs=\$EASY_LAYER_RO${NUM}" #implements indirection. EASY_LAYER_RO1='devx.sfs' in configuration file, will assign 'devx.sfs' to ROsfs
+ if [ "$ROsfs" ];then
+  #181123 sfs name is now a symlink, ex: devx.sfs
+  if [ -f "$ROsfs" ];then
+   echo "Unmounting: ${ROsfs}"
+   ANAME="${ROsfs/.sfs/}"
+   busybox umount .${ANAME}
+  fi
+ fi
+done
 
 #181107 if running xephyr, kill it...
 if [ -s /tmp/easy_containers/xephyr-windows ];then

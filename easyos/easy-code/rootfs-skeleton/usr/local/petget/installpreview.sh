@@ -32,6 +32,7 @@
 #200405 no deps, add button to download only.
 #20210612 replaced all yaf-splash with gtkdialog-splash. note, still ok to kill yaf-splash, see gtkdialog-splash script.
 #20220126 PETget now named PKGget
+#20230326 remove all reference to file EASYPAK, not used anymore.
 
 export TEXTDOMAIN=petget___installpreview.sh
 export OUTPUT_CHARSET=UTF-8
@@ -451,38 +452,6 @@ if [ "$PASSEDPRM" = "DOWNLOADONLY" ];then
  echo "terminate=now|" > /tmp/popup_petgetinstall
  exit
 fi
-
-#180627  181109 not used anymore...
-#if [ "$INSIDE_easypak0" == "yes" ];then #set by /usr/local/Easypak/ep_pkg_chooser
-# DEBS_PATH="/mnt/${WKG_DEV}/${WKG_DIR}containers/easypak0/.session/debs-installed-here"
-# mkdir -p ${DEBS_PATH}/usr/share/icons/hicolor
-# /usr/local/easy_containers/setup-container ${TREE1} #$TREE1 is name of app
-# #like a normal container, except ro layer is folder 'debs-installed-here' in easypak0 container, not easy.sfs
-# #container path: /mnt/${WKG_DEV}/${WKG_DIR}containers/${TREE1}
-# touch /mnt/${WKG_DEV}/${WKG_DIR}containers/${TREE1}/EASYPAK #flag read by start-container and stop-container
-# #EasyPak Package Manager runs in container 'easypak0' and installs debs to 'debs-installed-here'
-# #script /usr/local/EasyPak/ep_pkg_chooser also sets up 'debs-installed-here' as chrootable.
-# rmdir /mnt/${WKG_DEV}/${WKG_DIR}containers/${TREE1}/.ro0 2>/dev/null
-# ln -snf ../easypak0/.session/debs-installed-here /mnt/${WKG_DEV}/${WKG_DIR}containers/${TREE1}/.ro0
-# #need to create an icon on desktop and update jwm menu...
-# /usr/local/easy_containers/ec-create-desktop-icon ${TREE1}
-# #do some fixups, then exit...
-# echo '/lib
-#/usr/lib
-#/usr/local/lib
-#include /etc/ld.so.conf.d/*.conf
-#' > ${DEBS_PATH}/etc/ld.so.conf #note: ld.so.conf.d/*.conf has the multiarch paths.
-# ldconfig -r ${DEBS_PATH}
-# #ubuntu precise puppy must have the schemas compiled (otherwise seamonkey crashed)...
-# [ -d ${DEBS_PATH}/usr/share/glib-2.0/schemas ] && [ -e /usr/bin/glib-compile-schemas ] && /usr/bin/glib-compile-schemas ${DEBS_PATH}/usr/share/glib-2.0/schemas
-# #GIOMODS="$(find ${DEBS_PATH}/usr/lib/*/gio -maxdepth 1 -type d -name 'modules' | head -n 1)"
-# #[ "$GIOMODS" ] && [ -e /usr/bin/gio-querymodules ] && /usr/bin/gio-querymodules ${GIOMODS}
-# gtk-update-icon-cache -f ${DEBS_PATH}/usr/share/icons/hicolor/
-# gtk-update-icon-cache -f ${DEBS_PATH}/usr/share/icons/Adwaita/
-# [ -f /tmp/petget/current-repo-triad.previous ] && mv -f /tmp/petget/current-repo-triad.previous /tmp/petget/current-repo-triad #don't remember what this does.
-# echo "terminate=now|" > /tmp/popup_petgetinstall #don't remember what this does.
-# exit
-#fi
 
 #w482 adjust msg as appropriate, restart jwm and update menu if required...
 #popadd "name=petgetinstall background='#FF8000' writemode=replace|<big>$(gettext 'Package Manager: please wait, post-install')</big>"

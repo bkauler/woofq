@@ -34,6 +34,8 @@
 #20220607 replaced DB_* with SFS_DB_* in sfs .specs files.
 #20220913 fix ec-run is running as user zeus (or other non-root). 20220922 now spot.
 #20220924 ec-run fail if running as user spot.
+#20230326 remove all reference to file EASYPAK, not used anymore.
+#20230326 file base-load-list has a list of .sfs files, but allow a folder name.
 
 export TEXTDOMAIN=easy-containers #190813
 export OUTPUT_CHARSET=UTF-8
@@ -226,63 +228,65 @@ else
  RO=''
 fi
 
-#bottom ro layer
+#bottom ro layer(s)
 #note, path to easy.sfs may change, if booting off usb stick.
+#20230326 support a layer a folder instead of a .sfs...
 mkdir -p .ro0
 BASESFS=""
 if [ -f base-load-list ];then #181101 see /usr/local/sfsget/sfsget  181108
  for aSFS in `tac base-load-list`
  do
   [ "$aSFS" == "" ] && continue
-  [ ! -f $aSFS ] && continue
-  ANAME="$(basename $aSFS .sfs)" #ex: q
-  mkdir -p ./.${ANAME}
-  if [ "$(grep "containers/${EXE}/\.${ANAME} " /proc/mounts)" == "" ];then #181108 may not have unmounted before.
-   busybox mount -r -t squashfs -o noatime,loop ${ANAME}.sfs .${ANAME} #181103
-   [ $? -ne 0 ] && exit 3
-  fi
-  if [ "$BASESFS" == "" ];then
-   BASESFS=".${ANAME}${RO}"
+  if [ -d $aSFS ];then #it is a folder, not a .sfs
+   #let's insist that it be an absolute path.
+   aDIR="$aSFS"
+   if [ "$BASESFS" == "" ];then
+    BASESFS="${aDIR}${RO}"
+   else
+    BASESFS="${aDIR}${RO}:${BASESFS}"
+   fi
   else
-   BASESFS=".${ANAME}${RO}:${BASESFS}"
+   [ ! -f $aSFS ] && continue
+   ANAME="$(basename $aSFS .sfs)" #ex: q
+   mkdir -p ./.${ANAME}
+   if [ "$(grep "containers/${EXE}/\.${ANAME} " /proc/mounts)" == "" ];then #181108 may not have unmounted before.
+    busybox mount -r -t squashfs -o noatime,loop ${ANAME}.sfs .${ANAME} #181103
+    [ $? -ne 0 ] && exit 3
+   fi
+   if [ "$BASESFS" == "" ];then
+    BASESFS=".${ANAME}${RO}"
+   else
+    BASESFS=".${ANAME}${RO}:${BASESFS}"
+   fi
   fi
  done 
 else
- #old code...
-# if [ -f ./EASYPAK ];then #180627
-#  #EasyPak Package Manager runs in container 'easypak0' and installs debs to 'debs-installed-here'
-#  #script /usr/local/EasyPak/ep_pkg_chooser also sets up 'debs-installed-here' as chrootable.
-#  ln -snf ../easypak0/.session/debs-installed-here .ro0
-# else
-  #181014 have a situation where .ro0 did not unmount last time "Resource Busy", attempt to re-use...
-  if [ "$(grep "containers/${EXE}/\.ro0" /proc/mounts)" == "" ];then
-   busybox mount -t squashfs -o loop,noatime ${QSFS_PATH}easy.sfs .ro0
-   [ $? -ne 0 ] && exit 3
-  fi
-# fi
+ #181014 have a situation where .ro0 did not unmount last time "Resource Busy", attempt to re-use...
+ if [ "$(grep "containers/${EXE}/\.ro0" /proc/mounts)" == "" ];then
+  busybox mount -t squashfs -o loop,noatime ${QSFS_PATH}easy.sfs .ro0
+  [ $? -ne 0 ] && exit 3
+ fi
  BASESFS=".ro0${RO}" #181101
 fi
 
 #configuration file may specify extra sfs files to load... 170523
 EXTRASFS=''
-if [ ! -f ./EASYPAK ];then #180627
- for NUM in 4 3 2 1
- do
-  eval "ROsfs=\$EASY_LAYER_RO${NUM}" #implements indirection. EASY_LAYER_RO1='devx-*.sfs' in configuration file, will assign 'devx.sfs' to ROsfs
-  if [ "$ROsfs" ];then
-   #181123 sfs name is now a symlink, ex: devx.sfs
-   if [ -f "$ROsfs" ];then
-    ANAME="${ROsfs/.sfs/}"
-    mkdir -p ./.${ANAME}
-    if [ "$(grep "containers/${EXE}/\.${ANAME} " /proc/mounts)" == "" ];then #may not have unmounted before.
-     busybox mount -r -t squashfs -o noatime,loop ${ANAME}.sfs .${ANAME}
-     [ $? -ne 0 ] && exit 3
-    fi
-    EXTRASFS=".${ANAME}${RO}:${EXTRASFS}"
+for NUM in 4 3 2 1
+do
+ eval "ROsfs=\$EASY_LAYER_RO${NUM}" #implements indirection. EASY_LAYER_RO1='devx-*.sfs' in configuration file, will assign 'devx.sfs' to ROsfs
+ if [ "$ROsfs" ];then
+  #181123 sfs name is now a symlink, ex: devx.sfs
+  if [ -f "$ROsfs" ];then
+   ANAME="${ROsfs/.sfs/}"
+   mkdir -p ./.${ANAME}
+   if [ "$(grep "containers/${EXE}/\.${ANAME} " /proc/mounts)" == "" ];then #may not have unmounted before.
+    busybox mount -r -t squashfs -o noatime,loop ${ANAME}.sfs .${ANAME}
+    [ $? -ne 0 ] && exit 3
    fi
+   EXTRASFS=".${ANAME}${RO}:${EXTRASFS}"
   fi
- done
-fi
+ fi
+done
 
 #181118 ec-chroot calls run-once scripts, but do some prelimiary checking here for changed layers...
 #if layers have changed, rerun everything...
