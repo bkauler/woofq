@@ -56,6 +56,8 @@ do
  else
   #remove .spec file, if it exists...
   rm -f ${aAI}/${aAI##*/}.spec 2>/dev/null
+  #remove symlink to appimage, if it exists...
+  rm -f /mnt/wkg/appimage/${aAPP,,}/${aAPP,,}.bin 2>/dev/null
  fi
 done
 
@@ -113,6 +115,7 @@ export APPIMG_DLG1="<window title=\"$(gettext 'AppImage Installer')\">
         <height>280</height>
         <variable>TREEnetwork</variable>
         <action signal=\"enter-notify-event\" type=\"refresh\">TREEnetwork</action>
+        <item icon-name=\"altus\">Altus|${FLGaltus}|95M|$(gettext 'WhatsApp messaging and calls')</item>
         <item icon-name=\"electorrent\">Electorrent|${FLGelectorrent}|82M|$(gettext 'A client for uTorrent, rTorrent, Transmission, etc.')</item>
         <item icon-name=\"jitsimeet\">JitsiMeet|${FLGjitsimeet}|90M|$(gettext 'Online video conferencing')</item>
         <item icon-name=\"keepassxc\">KeePassXC|${FLGkeepassxc}|40M|$(gettext 'Password manager')</item>
@@ -126,6 +129,7 @@ export APPIMG_DLG1="<window title=\"$(gettext 'AppImage Installer')\">
         <variable>TREEoffice</variable>
         <action signal=\"enter-notify-event\" type=\"refresh\">TREEoffice</action>
         <item icon-name=\"antares\">Antares|${FLGantares}|126M|$(gettext 'SQL client')</item>
+        <item icon-name=\"dbbrowser\">DBBrowser|${FLGdbbrowser}|37M|$(gettext 'Create and edit SQLITE databases')</item>
         <item icon-name=\"dbgate\">DbGate|${FLGdbgate}|93M|$(gettext 'Multi-protocol SQL+noSQL database client')</item>
         <item icon-name=\"koodoreader\">KoodoReader|${FLGkoodoreader}|-|$(gettext 'Multi-format e-book reader')</item>
         <item icon-name=\"koreader\">KOReader|${FLGkoreader}|42M|$(gettext 'Multi-format e-book reader')</item>
@@ -158,8 +162,8 @@ export APPIMG_DLG1="<window title=\"$(gettext 'AppImage Installer')\">
         <action signal=\"enter-notify-event\" type=\"refresh\">TREEvideo</action>
         <item icon-name=\"kdenlive\">Kdenlive|${FLGkdenlive}|175M|$(gettext 'Video editor')</item>
         <item icon-name=\"losslesscut\">LosslessCut|${FLGlosslesscut}|153M|$(gettext 'Video editor')</item>
-        <item icon-name=\"openshot\">OpenShot|${FLGopenshot}|$(gettext 'Easy and powerful video editor')</item>
-        <item icon-name=\"webcamoid\">Webcamoid|${FLGwebcamoid}|-|$(gettext 'A full-featured webcam suite')</item>
+        <item icon-name=\"openshot\">OpenShot|${FLGopenshot}|229M|$(gettext 'Easy and powerful video editor')</item>
+        <item icon-name=\"webcamoid\">Webcamoid|${FLGwebcamoid}|86M|$(gettext 'A full-featured webcam suite')</item>
       </tree>
 
       <tree column-resizeable=\"0\">
@@ -263,6 +267,8 @@ case "${aAPP}" in
  Acreom) MEMBER='Acreom'; PROJECT='releases'; APPIMG='acreom-VERSION.AppImage'; MENUcat='X-Personal'; MENUtop='Personal'; MENUname='Acreom private knowledge base'; ;;
  Zoom) MEMBER='probonopd'; PROJECT='Zoom.AppImage'; APPIMG='Zoom-VERSION-x86_64.AppImage'; MENUcat='VideoConference'; MENUtop='Internet'; MENUname='Zoom video conferencing'; VERASK='yes'; ;;
  OpenShot) DIRECTDL='https://github.com/OpenShot/openshot-qt/releases/download/daily/OpenShot-v3.0.0-daily-11120-f0b44c51-b5bbab66-x86_64.AppImage'; DIRECTVER='3.0.0'; MENUcat='X-Multimedia-video'; MENUtop='Multimedia'; MENUname='OpenShot video editor'; ;;
+ Altus) MEMBER='amanharwara'; PROJECT='altus'; APPIMG='Altus-VERSION-x86_64.AppImage'; MENUcat='X-Internet-chat'; MENUtop='Internet'; MENUname='Altus WhatsApp messaging and calls'; ;;
+ DBBrowser) MEMBER='sqlitebrowser'; PROJECT='sqlitebrowser'; APPIMG='DB_Browser_for_SQLite-vVERSION-x86_64.AppImage'; MENUcat='X-Business'; MENUtop='Business'; MENUname='DBBrowser create and edit SQLITE databases'; ;;
  ZZZ) MEMBER=''; PROJECT=''; APPIMG=''; MENUcat=''; MENUtop=''; MENUname=''; ;;
  *)
   exit
@@ -512,8 +518,12 @@ if [ "$UPDATEflg" == "yesyes" ];then
  cp -a -f /usr/bin/${aAPP,,}.bin /usr/bin/${aAPP,,}.binOLD
  cp -a -f /mnt/wkg/appimage/${aAPP,,}/${aAPP,,}.spec /mnt/wkg/appimage/${aAPP,,}/${aAPP,,}.specOLD
  ln -snf /mnt/wkg/appimage/${aAPP,,}/${APPimg} /usr/bin/${aAPP,,}.bin
+ #also a symlink in same folder as the appimage...
+ ln -snf ${APPimg} /mnt/wkg/appimage/${aAPP,,}/${aAPP,,}.bin
 else
  ln -snf /mnt/wkg/appimage/${aAPP,,}/${APPimg} /usr/bin/${aAPP,,}
+ #also a symlink in same folder as the appimage...
+ ln -snf ${APPimg} /mnt/wkg/appimage/${aAPP,,}/${aAPP,,}.bin
 fi
 
 if [ "${LANG:0:2}" == "en" ];then
