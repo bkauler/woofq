@@ -1,0 +1,100 @@
+#!/bin/bash
+#decided to do this outside of /usr/local/easy_containers
+#similar code to /usr/local/easy_containers/setup-container
+#pass in name of appimage (with any capitalization).
+
+aAPP="$1"
+[ "$aAPP" == "" ] && exit 1
+EXE="${aAPP,,}"
+[ ! -d /mnt/wkg/appimage/${EXE} ] && exit 1
+#this is a symlink to the real .AppImage file...
+[ ! -f /mnt/wkg/appimage/${EXE}/${EXE}.bin ] && exit 1
+
+#check if already a container with this name...
+[ -d /mnt/wkg/containers/${EXE} ] && exit 2
+
+. /etc/uimanager #has UI_DESK_MANAGER='jwm' or 'rox'
+
+mkdir /mnt/wkg/containers/${EXE}
+
+#specify layers, may be sfs or folders...
+echo "/mnt/wkg/appimage/${EXE}
+/mnt/.easy_ro/easy_sfs" > /mnt/wkg/containers/${EXE}/base-load-list
+
+mkdir /mnt/wkg/containers/${EXE}/.session #rw layer
+mkdir /mnt/wkg/containers/${EXE}/.ro0 #not using this.
+mkdir /mnt/wkg/containers/${EXE}/.work
+mkdir /mnt/wkg/containers/${EXE}/container
+if [ -f /usr/local/easy_containers/templates/${EXE}/configuration ];then
+ cp -f /usr/local/easy_containers/templates/${EXE}/configuration /mnt/wkg/containers/${EXE}/
+else
+ cp -f /usr/local/easy_containers/templates/defaults/configuration /mnt/wkg/containers/${EXE}/
+fi
+echo "#When a snapshot is made, a comment may optionally be created here." > /mnt/wkg/containers/${EXE}/snapshot-comments
+
+#get some code out of /usr/local/easy_containers/ec-create-desktop-icons-menu...
+
+echo "EC_LABEL=${EXE}
+EC_PATH=/usr/sbin/ec-chroot-${EXE}
+EC_ICON=/usr/share/pixmaps/ec-${EXE}48.png" > /mnt/wkg/containers/${EXE}/desktop
+
+#/${EXE}.bin is in top layer, is a symlink to the actual .AppImage file...
+echo "#!/bin/sh
+empty -f ec-chroot ${EXE} ${EXE}.bin" > /usr/sbin/ec-chroot-${EXE}
+chmod 755 /usr/sbin/ec-chroot-${EXE}
+
+#create ec-${EXE}48.png
+pngoverlay-cairo /usr/share/pixmaps/${EXE}.png /usr/local/lib/X11/pixmaps/closebox_outline48.png /usr/share/pixmaps/ec-${EXE}48.png
+
+#find a free space on desktop...
+#  note, there is free_coord() in /usr/local/easy_containers/frontend_funcs, but just do it roughly here...
+for aY in 128 224 320
+do
+ for aX in 672 736
+ do
+  aPTN="x=\"${aX:0:2}[0-9]\" y=\"${aY:0:2}[0-9]\""
+  grep "$aPTN" /root/Choices/ROX-Filer/PuppyPin > /dev/null
+  [ $? -ne 0 ] && break 2
+ done
+done
+#...aX and aY are free coordinates.
+
+if [ "$UI_DESK_MANAGER" == "rox" ];then
+ #rox-filer, icon on desktop...
+ #globicons, note, got code from /etc/rc.d/functions4puppy4...
+ echo "<?xml version=\"1.0\"?>
+<env:Envelope xmlns:env=\"http://www.w3.org/2001/12/soap-envelope\">
+ <env:Body xmlns=\"http://rox.sourceforge.net/SOAP/ROX-Filer\">
+  <SetIcon>
+   <Path>/usr/sbin/ec-chroot-${EXE}</Path>
+   <Icon>/usr/share/pixmaps/ec-${EXE}48.png</Icon>
+  </SetIcon>
+ </env:Body>
+</env:Envelope>"  | rox -R
+ #now create an icon on desktop...
+ #  note, frontend_funcs has add_pinboard_func(), use code from it...
+ echo "<?xml version=\"1.0\"?>
+<env:Envelope xmlns:env=\"http://www.w3.org/2001/12/soap-envelope\">
+ <env:Body xmlns=\"http://rox.sourceforge.net/SOAP/ROX-Filer\">
+  <PinboardAdd>
+   <Path>/usr/sbin/ec-chroot-${EXE}</Path>
+   <X>${aX}</X>
+   <Y>${aY}</Y>
+   <Label>${xLABEL}</Label>
+   <Args></Args>
+  </PinboardAdd>
+ </env:Body>
+</env:Envelope>"  | rox -R
+else
+ /usr/local/ui/jwm/generate-containers-menu #> /root/.jwmrc-containers
+fi
+  
+if [ "$UI_DESK_MANAGER" == "jwm" ];then
+ #now update the jwm menu...
+ cd /
+ fixmenus
+ jwm -reload
+ /usr/local/ui/jwm/popup-containers-menu
+fi
+
+###end###
