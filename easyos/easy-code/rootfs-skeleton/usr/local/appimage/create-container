@@ -2,13 +2,21 @@
 #decided to do this outside of /usr/local/easy_containers
 #similar code to /usr/local/easy_containers/setup-container
 #pass in name of appimage (with any capitalization).
+#20230326 first release.
 
 aAPP="$1"
 [ "$aAPP" == "" ] && exit 1
 EXE="${aAPP,,}"
 [ ! -d /mnt/wkg/appimage/${EXE} ] && exit 1
 #this is a symlink to the real .AppImage file...
-[ ! -f /mnt/wkg/appimage/${EXE}/${EXE}.bin ] && exit 1
+if [ ! -f /mnt/wkg/appimage/${EXE}/${EXE}.bin ];then
+ AIfnd="$(find /mnt/wkg/appimage/${EXE} -mindepth 1 -maxdepth 1 -type f -name '*.AppImage' | tail -n 1)"
+ if [ "$AIfnd" ];then
+  ln -sr ${AIfnd} /mnt/wkg/appimage/${EXE}/${EXE}.bin
+ else
+  exit 1
+ fi
+fi
 
 #check if already a container with this name...
 [ -d /mnt/wkg/containers/${EXE} ] && exit 2
@@ -25,11 +33,53 @@ mkdir /mnt/wkg/containers/${EXE}/.session #rw layer
 mkdir /mnt/wkg/containers/${EXE}/.ro0 #not using this.
 mkdir /mnt/wkg/containers/${EXE}/.work
 mkdir /mnt/wkg/containers/${EXE}/container
-if [ -f /usr/local/easy_containers/templates/${EXE}/configuration ];then
- cp -f /usr/local/easy_containers/templates/${EXE}/configuration /mnt/wkg/containers/${EXE}/
-else
- cp -f /usr/local/easy_containers/templates/defaults/configuration /mnt/wkg/containers/${EXE}/
-fi
+
+#if [ -f /usr/local/easy_containers/templates/${EXE}/configuration ];then
+# cp -f /usr/local/easy_containers/templates/${EXE}/configuration /mnt/wkg/containers/${EXE}/
+#else
+# cp -f /usr/local/easy_containers/templates/defaults/configuration /mnt/wkg/containers/${EXE}/
+#fi
+cat << 'EOF1' >> /mnt/wkg/containers/${EXE}/configuration
+#Connect to X by abstract socket, pipe or unix domain socket (abstract|pipe|unix)...
+EC_XSOCKET='unix'
+#Use Xorg or Xephyr server (xorg|xephyr)...
+EC_XSERVER='xorg'
+
+#For security, unshare these namespaces:
+EC_NS_UNSHARE_MOUNT='true'
+EC_NS_UNSHARE_UTS='true'
+EC_NS_UNSHARE_IPC='false'
+EC_NS_UNSHARE_NETWORK='true'
+EC_NS_UNSHARE_PID='true'
+
+#Clear environment variables, except some such as TERM and DISPLAY:
+EC_UNSHARE_ENV_VARS='false'
+#Tick to run as user spot in container:
+EC_ENV_SPOT='true'
+
+#Specify what you are allowed to access outside the container:
+EC_ACCESS_NET='true'
+EC_ACCESS_SND='true'
+EC_ACCESS_DRI='true'
+EC_ACCESS_FOLDER='true'
+EC_ACCESS_FOLDER_PATH='/files/shared'
+
+#Drop these Linux capabilities:
+EC_CAP_system='true'
+EC_CAP_file='true'
+EC_CAP_network='true'
+EC_CAP_module='true'
+EC_CAP_resource='true'
+#20230327 tried false but cannot get fuse to work...
+EC_CAP_mount='true'
+
+#if you want to load another .sfs file, resident in the releases folder of the
+#current version of Easy, for example: releases/easy-0.1.6/devx.sfs
+#then uncomment this. Glob wildcard accepted, in fact is recommended
+#for automatic version updating:
+#EASY_LAYER_RO1='devx*.sfs'
+EOF1
+
 echo "#When a snapshot is made, a comment may optionally be created here." > /mnt/wkg/containers/${EXE}/snapshot-comments
 
 #get some code out of /usr/local/easy_containers/ec-create-desktop-icons-menu...
@@ -38,13 +88,15 @@ echo "EC_LABEL=${EXE}
 EC_PATH=/usr/sbin/ec-chroot-${EXE}
 EC_ICON=/usr/share/pixmaps/ec-${EXE}48.png" > /mnt/wkg/containers/${EXE}/desktop
 
-#/${EXE}.bin is in top layer, is a symlink to the actual .AppImage file...
+#/${EXE}.bin is in top layer, is a symlink to the actual .AppImage file.
+#/${EXE} is a script that runs first, see created below.
+# note: actual location is /mnt/wkg/appimage/${EXE}/${EXE}
 echo "#!/bin/sh
-empty -f ec-chroot ${EXE} ${EXE}.bin" > /usr/sbin/ec-chroot-${EXE}
+empty -f ec-chroot ${EXE}" > /usr/sbin/ec-chroot-${EXE}
 chmod 755 /usr/sbin/ec-chroot-${EXE}
 
 #create ec-${EXE}48.png
-pngoverlay-cairo /usr/share/pixmaps/${EXE}.png /usr/local/lib/X11/pixmaps/closebox_outline48.png /usr/share/pixmaps/ec-${EXE}48.png
+pngoverlay-cairo /usr/share/pixmaps/${EXE}.png /usr/local/lib/X11/pixmaps/ec-overlay48.png /usr/share/pixmaps/ec-${EXE}48.png
 
 #find a free space on desktop...
 #  note, there is free_coord() in /usr/local/easy_containers/frontend_funcs, but just do it roughly here...
@@ -96,5 +148,50 @@ if [ "$UI_DESK_MANAGER" == "jwm" ];then
  jwm -reload
  /usr/local/ui/jwm/popup-containers-menu
 fi
+
+#this file will exist at top-level in container...
+touch /mnt/wkg/appimage/${EXE}/INSIDE_${EXE}
+#and this folder, where appimage will be mounted...
+mkdir /mnt/wkg/appimage/${EXE}/.mntpt
+
+#code from /usr/local/clients/setup-client...
+#this is what will run after chroot into container...
+echo "#!/bin/sh
+#script created by /usr/local/appimage/create-container
+#kill any left-over processes from previous run of app...
+echo -n new${EXE} > /proc/\${$}/comm #change name of current process.
+killall ${EXE}
+killall ${EXE}.bin
+WHOIAM=\$(whoami)
+if [ \"\$WHOIAM\" == \"spot\" ];then
+ export XAUTHORITY=/home/spot/.Xauthority  
+ export XDG_CONFIG_HOME=/home/spot/.config
+ export XDG_CACHE_HOME=/home/spot/.cache
+ export XDG_DATA_HOME=/home/spot/.local/share
+ #code from run-client-indirect...
+ ID=\"\$(grep \" logon \" /proc/keys | head -n 1 | cut -f 1 -d \" \")\"
+ if [ \"\$ID\" ];then
+  #we can read files, but need to do this to be able to write...
+  KEYfnd=\"\$(keyctl list @us | grep -o \"logon:\")\"
+  if [ \"\$KEYfnd\" == \"\" ];then
+   keyctl link 0x\${ID} @us #link fscrypt key to user-session.
+   sleep 0.1
+  fi
+  KEYfnd=\"\$(keyctl list @us | grep -o \"logon:\")\"
+  if [ \"\$KEYfnd\" == \"\" ];then
+   sleep 0.2
+  fi
+ fi
+ #run it...
+ #no, start-container will now mount the .appimage on mntpt...
+ #exec /${EXE}.bin
+ exec /.mntpt/AppRun
+else
+ #run it...
+ #exec /${EXE}.bin --no-sandbox
+ exec /.mntpt/AppRun --no-sandbox
+fi
+" > /mnt/wkg/appimage/${EXE}/${EXE}
+chmod 755 /mnt/wkg/appimage/${EXE}/${EXE}
 
 ###end###
