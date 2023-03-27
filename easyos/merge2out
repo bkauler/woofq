@@ -39,6 +39,7 @@
 #20220120 want to use oe dunfell pkgs in arch linux builds.
 #20220131 new build path. separate PKGSPATH from PROJECTPATH
 #20230309 use oe kirkstone pkgs in non-oe builds.
+#20230326 fix paths now everything on 4TB ssd.
 
 [ ! -d ./easy-arch ] && exit
 [ ! -d ./easy-code ] && exit
@@ -46,13 +47,13 @@
 
 #200921 i have mounted /dev/nvme1n1p1 ssd on /mnt/sda1/nvme...
 #BUILDSPATH='/mnt/sda1/nvme/woof-builds' ###SET THIS###
-BUILDSPATH='/mnt/build/woof-builds' ###SET THIS### 20220131
+BUILDSPATH='/mnt/build/builds/woof' ###SET THIS### 20220131 20230326
 [ ! -d $BUILDSPATH ] && exit
 
 CURDIR="`pwd`"
 PROJECTPATH="$CURDIR" #200921
 
-PKGSPATH="/mnt/sda1/bk/projects/woof/woof-pkgs" #20221110 ###SET THIS###
+PKGSPATH="/mnt/build/bk/projects/woof/woof-pkgs" #20221110 ###SET THIS### 20230326
 
 echo
 echo "This script merges easy-arch, easy-code and easy-distro, to:
