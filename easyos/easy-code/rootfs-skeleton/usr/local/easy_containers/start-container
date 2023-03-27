@@ -37,6 +37,8 @@
 #20230326 remove all reference to file EASYPAK, not used anymore.
 #20230326 file base-load-list has a list of .sfs files, but allow a folder name.
 #20230326 layer may be folder (abs. path) not a sfs, so doesn't require unmounting.
+#20230326 appimage, exec script will be at top-level, modify $PATH add "/"
+#20230327 if top ro layer is an appimage, mount it.
 
 export TEXTDOMAIN=easy-containers #190813
 export OUTPUT_CHARSET=UTF-8
@@ -152,7 +154,8 @@ fi
 [ "$(echo "$MOUNTS" | grep '/pts ')" == "" ] && busybox mount -t devpts -o newinstance devpts /dev/pts
 [ "$(echo "$MOUNTS" | grep '/sys ')" == "" ] && busybox mount -t sysfs none /sys
 EXE="$1"; shift
-PATH="/.control:${PATH}" xEXE="$(which $EXE)" #so will fallback to executing $@ if $EXE not exist.
+#for appimage, insert "/" into PATH...
+PATH="/:/.control:${PATH}" xEXE="$(which $EXE)" #so will fallback to executing $@ if $EXE not exist.
 if [ "$EC_CAP_DROP" ];then #180427
  capsh --drop=${EC_CAP_DROP} -- -c "${xEXE} ${@}" > /tmp/xerrors-${EXE}.log 2>&1
 else
@@ -331,6 +334,22 @@ if [ $? -ne 0 ];then #181101
   fi
  done
  exit 4
+fi
+
+#20230327 could do this in ec-chroot
+#if top ro layer is an appimage, mount it....
+CONTAINER="/mnt/${WKG_DEV}/${WKG_DIR}containers/${EXE}/container"
+#APPIMG="/mnt/${WKG_DEV}/${WKG_DIR}appimage/${EXE}"
+#...this $APPIMG is the top rw layer in $CONTAINER
+if [ -d ${CONTAINER}/.mntpt ];then
+ #${EXE}.bin is a symlink to the actual .AppImage file...
+ if [ -e ${CONTAINER}/${EXE}.bin ];then
+  AIoff="$(${CONTAINER}/${EXE}.bin --appimage-offset)"
+  busybox mount -t squashfs -o loop,offset=${AIoff} endlesssky.bin .mntpt
+  if [ $? -ne 0 ];then
+   exit 5
+  fi
+ fi
 fi
 
 exit 0

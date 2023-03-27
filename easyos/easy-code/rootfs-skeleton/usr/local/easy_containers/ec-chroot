@@ -60,6 +60,7 @@
 #20230222 fix LANG in etc/profile
 #20230223 fix if PuppyPin is translated.
 #20230224 Caramel: export keyboard layout to Xephyr server.
+#20230326 restore EC_CAP_mount check.
 
 WHOIAM="$(whoami)"
 [ "${WHOIAM}" != "root" ] && exec sudo -A ${0} ${@} #20221031
@@ -465,7 +466,9 @@ if [ "$EC_GLOBAL_CHROOT" == "pflask" ];then #180928
  CSMopt=''
  capsh --supports=cap_sys_mount 2>/dev/null #note: this will also work with unpatched capsh, use "41"
  if [ $? -eq 0 ];then
-  CSMopt='-sys_mount,'
+  if [ "$EC_CAP_mount" == "true" -o "$EC_CAP_mount" == "" ];then #20230326
+   CSMopt='-sys_mount,'
+  fi
  fi
  CAPS="--caps=all"
  cOPTS=''
@@ -489,22 +492,20 @@ else
  [ "$EC_NS_UNSHARE_PID" == "true" ] && uOPTS="${uOPTS} -p --fork" # --mount-proc=${CONTAINER}/proc
  [ "$EC_NS_UNSHARE_USER" == "true" ] && uOPTS="${uOPTS} -U --setgroups=deny --map-root-user"
 
- #180427 capabilities
+ #180427 capabilities that will be dropped...
  cOPTS=''
  CAPSYSADMIN='cap_sys_admin,'
  
+ #20230326 restore EC_CAP_mount check...
  #20201215 5.10 kernel has cap_sys_mount patch, have also patched capsh...
- #20201217 ditto 5.4.84 kernel. has different patached capsh and pflask.
+ #20201217 ditto 5.4.84 kernel. has different patched capsh and pflask.
  capsh --supports=cap_sys_mount 2>/dev/null #note: this will also work with unpatched capsh, use "41"
  if [ $? -eq 0 ];then
-  CAPSYSADMIN='cap_sys_admin,cap_sys_mount,'
+  #most 'configure' files have this unset, so default to same as "true"...
+  if [ "$EC_CAP_mount" == "true" -o "$EC_CAP_mount" == "" ];then
+   CAPSYSADMIN='cap_sys_admin,cap_sys_mount,'
+  fi
  fi
- #180624 not using libcap patched for cap_sys_mount anymore...
- #if [ "$EC_CAP_mount" == "true" ];then #180524
- # #cOPTS="${cOPTS}cap_sys_admin,cap_sys_mount,"
- # #CAPSYSADMIN=''
- # cOPTS="${cOPTS}cap_sys_mount,"
- #fi
  
  [ "$EC_CAP_system" == "true" ] && cOPTS="${cOPTS}${CAPSYSADMIN}cap_sys_boot,cap_sys_chroot,cap_sys_ptrace,cap_sys_time,cap_sys_tty_config,"
  [ "$EC_CAP_file" == "true" ] && cOPTS="${cOPTS}cap_chown,cap_kill,cap_dac_override,cap_dac_read_search,cap_fowner,cap_setfcap,cap_setpcap,"
