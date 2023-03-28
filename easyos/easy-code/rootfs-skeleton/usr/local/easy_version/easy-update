@@ -30,6 +30,7 @@
 #20220728 remove .delta after update.
 #20230221 no longer have language-specific .img files.
 #20230305 easy-*.img may have a different name. note: "easy.sfs" changed in 3buildeasydistro
+#20230328 ask if current .img is elsewhere.
 
 export TEXTDOMAIN=easy-update
 export OUTPUT_CHARSET=UTF-8
@@ -209,9 +210,18 @@ else #20220623
  #sortedVERS="$(echo "$VERS" | sort -t. -k 1,1n -k 2,2n -k 3,3n -k 4,4n)" #lowest to highest. or, could use full sort "-V" option.
  #latestVER="$(echo "$sortedVERS" | tail -n 1)"
  # ...nah, using sort -V
- if [ "${DISTRO_NAME_SHORT}" == "Easy" ];then #20230305
-  LASTIMG="$(ls -1 easy-*.img 2>/dev/null | sort -V -t "-" | tail -n 1)"
- else
+ LASTIMG="$(ls -1 easy-*.img ${DISTRO_NAME_SHORT,,}-*.img 2>/dev/null | sort -V -t "-" -k 2,2 | tail -n 1)"
+ if [ "$LASTIMG" == "" ];then #20230328
+  echo -en '\033[1;31m' #bright red
+  echo "$(gettext 'There is no easy-*.img file at location /mnt/wkg') "
+  echo "$(gettext 'If you have the easy-*.img file, for the current version of EasyOS or recent, somewhere else, copy it right now to /mnt/wkg.')" | fold -s -w ${COLUMNS}
+  echo "$(gettext 'This will enable download of a small difference-file. Otherwise, the full latest .img file will have to be downloaded, which is about 800MB.')" | fold -s -w ${COLUMNS}
+  echo "$(gettext 'Move or copy the .img file right now, if you have it, then press the ENTER key.')" | fold -s -w ${COLUMNS}
+  echo -n "$(gettext 'Press ENTER to continue:') "
+  echo -en '\033[0;39m' #reset.
+  read awaitimg
+  sync
+  echo ''
   LASTIMG="$(ls -1 easy-*.img ${DISTRO_NAME_SHORT,,}-*.img 2>/dev/null | sort -V -t "-" -k 2,2 | tail -n 1)"
  fi
  if [ "$LASTIMG" ];then
