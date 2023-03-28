@@ -37,6 +37,7 @@
 #20230210 always load .str.en, in case non-english is incomplete.
 #20230211 .str files folder hierarchy reorganized.
 #20230309 have removed /usr/local/debget
+#20230327 /usr/local/appimage
 
 WKG_DRV=$1 #ex: sda
 WKG_DEV=$2 #ex: sda2
@@ -384,6 +385,19 @@ do
   [ -e ${onelayer}/usr/local/limine-installer/${onefile} ] && cp -a --remove-destination /easy_ro/easy_sfs/usr/local/limine-installer/${onefile} /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/limine-installer/ 2>/dev/null
  done
 done
+#20230327 /usr/local/appimage
+mkdir -p /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/appimage
+for onefile in skeletons appimage create-container github-find-latest-ver notes-security online-info
+do
+ if [ -e /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/appimage/${onefile} ];then
+  if [ "$onefile" == "skeletons" ];then
+   rm -rf /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/appimage/${onefile}
+  else
+   rm -f /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/appimage/${onefile}
+  fi
+ fi
+done
+
 
 #puppy fixes rox PuppyPin and globicons in rc.update, see if we can do similar here...
 #fix PuppyPin...
