@@ -1,7 +1,8 @@
 #!/bin/bash
 #return latest version number.
-#pass in MEMBER=$1 PROJECT=$2
+#pass in MEMBER=$1 PROJECT=$2 APPIMG=$3
 #20230313 first release.
+#20230329 rewritten, using xdotool.
 
 #example url:
 # https://github.com/amanharwara/altus/releases/latest/
@@ -13,13 +14,15 @@ export OUTPUT_CHARSET=UTF-8
 
 MEMBER="$1"
 PROJECT="$2"
+APPIMG="$3" #ex: Altus-VERSION-x86_64.AppImage
 
 mkdir -p /tmp/appimage
 echo -n '' > /tmp/appimage/URLtag
-echo -n '' > /tmp/appimage/URLver
+echo -n '' > /tmp/appimage/APPver
+echo -n '' > /tmp/appimage/APPname
+echo -n '' > /tmp/appimage/window-text.txt
 
 M1="$(gettext 'Unable to obtain information about latest version from github.com, aborting')"
-
 wget -4 --spider --tries=2 --timeout=20 https://github.com/${MEMBER}/${PROJECT}/releases/latest/ > /tmp/appimage/spider-latest.log 2>&1
 if [ $? -ne 0 -o ! -s /tmp/appimage/spider-latest.log ];then
  popup "terminate=ok background=#ff8080 level=top process=wait|<big>${M1}</big>"
@@ -27,67 +30,228 @@ if [ $? -ne 0 -o ! -s /tmp/appimage/spider-latest.log ];then
 fi
 
 URLtag="$(grep '^\-\-.*https://github.com.*/tag/' /tmp/appimage/spider-latest.log | sed -e 's%.*https%https%' | tail -n 1)"
-# ex: https://github.com/amanharwara/altus/releases/tag/4.8.5
-# ex: https://github.com/audacity/audacity/releases/tag/Audacity-3.2.5
-# ex: https://github.com/kremalicious/blowfish/releases/tag/v1.6.0
+#ex: https://github.com/amanharwara/altus/releases/tag/4.8.5
+#ex: https://github.com/audacity/audacity/releases/tag/Audacity-3.2.5
+#ex: https://github.com/kremalicious/blowfish/releases/tag/v1.6.0
 #goldendict is a continous release:
 # https://github.com/Abs62/goldendict/releases/tag/continuous
-# ex: https://github.com/blupi-games/planetblupi-dev/releases/tag/v1.14.2
+#ex: https://github.com/blupi-games/planetblupi-dev/releases/tag/v1.14.2
 #this one is awkward as has "-3" on the end:
 # https://github.com/aphototool/A-Photo-Tool-Libre/releases/tag/v1.0.5-3
 #has "stable" on the end:
 # https://github.com/probonopd/Zoom.AppImage/releases/tag/stable
+#ex: https://github.com/clickot/ungoogled-chromium-binaries/releases/tag/111.0.5563.111-1
 
-if [ "$URLtag" ];then
- echo -n "$URLtag" > /tmp/appimage/URLtag
- #need to reliably extract the version number...
- URLver0="${URLtag##*/}"
- URLver1=''
- if [ "$URLver0" == "continuous" -o "$VERASK" == "yes" ];then
-  defaultbrowser ${URLtag} &
+if [ "$URLtag" == "" ];then
+ popup "terminate=ok background=#ff8080 level=top process=wait|<big>${M1}</big>"
+ exit 2
+fi
+
+echo -n "$URLtag" > /tmp/appimage/URLtag
+
+#kill any prior mozbare...
+kill $(pgrep -f "mozbare") 2>/dev/null
+sleep 0.2
+
+#use xdotool to extract .AppImage filename, size and release date...
+#firstly, bring up browser window...
+popup "level=top background=#ffd080|<big><big>$(gettext 'Please wait...')</big></big> "
+mozbare ${URLtag} &
+sleep 6
+if [ -x /usr/bin/chromium.bin ];then
+ if [ ! -f "/tmp/chromiumbare/Local State" ];then
   sleep 2
-  if [ "$URLver0" == "continuous" ];then
-   M_1="$(gettext 'The github repository does not have release versions. It is what is know as continuous build, and unable to automatically determine the build number.')"
-  else
-   M_1="$(gettext 'Unable to determine the latest build-number automatically. You will need to enter it manually.')"
-  fi
-  export APPIMG_DLGv1="<window title=\"AppImage: ask version\">
+ fi
+fi
+WID="$(xdotool search --onlyvisible --title "${MEMBER}/${PROJECT}" | tail -n 1)"
+if [ ! "$WID" ];then
+ sleep 2
+ WID="$(xdotool search --onlyvisible --title "${MEMBER}/${PROJECT}" | tail -n 1)"
+fi
+sleep 3
+killall popup
+if [ ! "$WID" ];then
+ M2="$(gettext 'ERROR: unable to obtain ID of browser window.')"
+ popup "terminate=ok background=#ff8080 level=top process=wait|<big>${M2}</big>"
+ kill $(pgrep -f "mozbare") 2>/dev/null
+ exit 4
+fi
+while [ true ];do ###big while loop###
+while [ true ];do
+ echo -n '' > /tmp/appimage/APPname
+ #secondly, copy text to clipboard and to a file...
+ xclip -selection clipboard -in </dev/null #empty clipboard
+ xdotool windowfocus $WID
+ sleep 0.5
+ xdotool key --window $WID ctrl+a ctrl+c
+ xclip -selection clipboard -o > /tmp/appimage/window-text.txt
+ if [ ! -s /tmp/appimage/window-text.txt ];then
+  M3="$(gettext 'ERROR: unable to extract text from browser window')"
+  popup "terminate=ok background=#ff8080 level=top process=wait|<big>${M3}</big>"
+  kill $(pgrep -f "mozbare") 2>/dev/null
+  exit 5
+ fi
+ #these are lines we expect in window-text.txt...
+ #Zoom-5.14.0.1720.glibc2.17-x86_64.AppImage
+ #227 MB
+ #3 days ago
+ while read aLINE
+ do
+  case "$aLINE" in
+   *.AppImage|*.appimage)
+    #some repos have other architectures, for example:
+    # Nanosaur-1.4.4-linux-aarch64.AppImage
+    case "$aLINE" in
+     *aarch64*|*x32*|*386*|*486*|*686*|*armv*)
+      continue
+     ;;
+    esac
+    echo -n "${aLINE##* }" > /tmp/appimage/APPname #ex: Zoom-5.14.0.1720.glibc2.17-x86_64.AppImage
+    break
+   ;;
+  esac
+ done <<EOF4
+$(cat /tmp/appimage/window-text.txt)
+EOF4
+ if [ ! -s /tmp/appimage/APPname ];then
+  export APPIMG_VER1="<window title=\"AppImage: find latest\">
   <vbox>
-   <text use-markup=\"true\"><label>\"${M_1}
-$(gettext 'The github site should have popped up in a browser. The AppImage has this format: ')
-  name-<b>$(gettext 'build-number')</b>-architecture.AppImage
-  ex: GoldenDict-<b>661dd4d</b>-x86_64.AppImage
-  ex: Emacs-<b>27.2.glibc2.16</b>-x86_64.AppImage
-  ex: Guitar-<b>1001631</b>-x86_64.AppImage
-  ex: KiCad-<b>5.1.4.glibc2.27</b>-x86_64.AppImage
-$(gettext 'Please type the build-number into the entry box, then click OK button:')
-$(gettext '(Click Cancel button if unable to determine build number)')\"</label></text>
-   <entry>
-    <variable>ENTRY</variable>
-   </entry>
+   <text use-markup=\"true\"><label>\"$(gettext 'Cannot find the .AppImage file in the browser window. You may need to scroll down and click on the <b>Assets</b> tag to bring it into view. Try that and press the OK button. Otherwise, press Cancel button to abort.')\"</label></text>
    <hbox>
     <button ok></button>
     <button cancel></button>
    </hbox>
   </vbox></window>"
-  RETVALS="$(gtkdialog --center --program=APPIMG_DLGv1)"
+  RETVALS="$(gtkdialog --center --program=APPIMG_VER1)"
   eval "$RETVALS"
   if [ "$EXIT" == "OK" ];then
-   URLver1="$ENTRY"
+   continue
+  else
+   M4="$(gettext 'ERROR: unable to extract .AppImage filename from browser window')"
+   popup "terminate=ok background=#ff8080 level=top process=wait|<big>${M4}</big>"
+   kill $(pgrep -f "mozbare") 2>/dev/null
+   exit 6
   fi
- else
-  #URLver1="${URLver0/*[a-z-]/}"
-  URLver1="${URLver0/*[a-zA-Z]/}"
-  URLver1="$(echo -n "${URLver1}" | sed -e 's%^\-%%')"
  fi
- if [ "$URLver1" == "" ];then
-  exit 3
- fi
- echo -n "$URLver1" > /tmp/appimage/URLver #ex: 3.2.5
- exit 0
+ break
+done
+
+#need to sift thru, find version...
+#firstly, is it in URLtag?...
+URLver0="${URLtag##*/}"
+#a tag may be a hex code, without any decimal points, or a name...
+grep -q '\.' <<<$URLver0
+if [ $? -eq 0 ];then
+ URLver1="${URLver0/*[a-zA-Z]/}"
+ APPver="$(echo -n "${URLver1}" | sed -e 's%^\-%%')"
 else
- popup "terminate=ok background=#ff8080 level=top process=wait|<big>${M1}</big>"
- exit 2
+ grep -q '[0-9]' <<<$URLver0
+ if [ $? -eq 0 ];then
+  APPver="$URLver0" #ex: 5afb39f
+ else
+  APPver='' #exs: stable continuous
+ fi
 fi
+if [ "$APPver" == "" ];then
+ #extract version from appimage name...
+ # ex: APPIMG='Altus-VERSION-x86_64.AppImage'
+ grep -q 'VERSION' <<<$APPIMG
+ if [ $? -eq 0 ];then
+  Namepre="${APPIMG/VERSION*/}"
+  Namepost="${APPIMG/*VERSION/}"
+  APPver="$(sed -e "s%${Namepre}%%" -e "s%${Namepost}%%" /tmp/appimage/APPname)"
+ fi
+fi
+if [ "$APPver" == "" ];then
+ M4a="$(gettext 'Unable to determine version of .AppImage file shown in browser window. If you want to install it, click OK button, otherwise click Cancel button to abort.')"
+ export APPIMG_VER2="<window title=\"AppImage: find latest\">
+  <vbox>
+   <text use-markup=\"true\"><label>\"${M4a}\"</label></text>
+   <hbox>
+    <button ok></button>
+    <button cancel></button>
+   </hbox>
+  </vbox></window>"
+ RETVALS="$(gtkdialog --center --program=APPIMG_VER2)"
+ eval "$RETVALS"
+ if [ "$EXIT" != "OK" ];then
+  kill $(pgrep -f "mozbare") 2>/dev/null
+  exit 7
+ fi
+ APPver="$(date +%Y%m%d)" #ex: 20230329
+fi
+
+#have taken this out, as would need to recompute the url...
+#   <frame>
+#    <text use-markup=\"true\"><label>\"<b>$(gettext 'OR...')</b>
+#$(gettext 'If you would prefer to download a different version, perhaps an older release, find it in the browser window. When your preferred .AppImage file is showing in the browser window, click the EXTRACT button:')\"</label></text>
+#    <button>
+#     <label>$(gettext 'EXTRACT')</label>
+#     <action>EXIT:extract</action>
+#    </button>
+#   </frame>
+
+#version sanity check...
+M5a="$(gettext 'The box below has the automatically-detected version number of this AppImage file.')"
+M5b="$(gettext 'If this does not look correct, enter a more correct version number into the text-entry box:')"
+M5c="$(gettext '(If you cannot see a version number anywhere in the browser window, a date will be ok, but enter it without spaces)')"
+M5d="$(gettext 'This is the latest AppImage file:')"
+xAPPname="$(cat /tmp/appimage/APPname)"
+if [ "$UPDATEflg" == "yes" ];then #UPDATEflg exported from appimage
+ M5e="$(gettext 'Click OK button, the next window will ask if you want to update from the current installed version:')"
+else
+ M5e="$(gettext 'Click OK button to download the AppImage file:')"
+fi
+while [ true ];do
+ export APPIMG_VER3="<window title=\"AppImage: version\">
+  <vbox>
+   <text use-markup=\"true\"><label>\"${M5d}
+  <b>${xAPPname}</b>
+
+${M5a}
+${M5b}
+${M5c}\"</label></text>
+   <hbox>
+    <text><label>\"                            \"</label></text>
+    <entry>
+     <variable>ENTRY</variable>
+     <default>${APPver}</default>
+    </entry>
+   </hbox>
+   <text><label>\"
+${M5e}\"</label></text>
+   <hbox>
+    <button ok></button>
+    <button cancel></button>
+   </hbox>
+  </vbox></window>"
+ RETVALS="$(gtkdialog --center --program=APPIMG_VER3)"
+ eval "$RETVALS"
+ if [ "$EXIT" == "extract" ];then
+  continue ###big while loop###
+ fi
+ if [ "$EXIT" != "OK" ];then
+  kill $(pgrep -f "mozbare") 2>/dev/null
+  exit 8
+ fi
+ grep -q '[0-9]' <<<$ENTRY
+ if [ $? -ne 0 ];then
+  M5c="<b>$(gettext 'Sorry, you must enter a version-number or a date! (and without spaces)')</b>"
+  continue
+ fi
+ break
+done
+
+break
+done ###big while loop###
+
+if [ "$ENTRY" ];then
+ APPver="$(echo -n "$ENTRY" | tr -d ' ')"
+fi
+
+#kill browser...
+kill $(pgrep -f "mozbare") 2>/dev/null
+echo -n "$APPver" > /tmp/appimage/APPver
+exit 0
 ###end###
 

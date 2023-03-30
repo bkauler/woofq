@@ -54,10 +54,10 @@ do
    eval "FLG${aAI##*/}='√'" #ex: sets FLGaudacity=√
   fi
  else
-  #remove .spec file, if it exists...
-  rm -f ${aAI}/${aAI##*/}.spec 2>/dev/null
+  #remove .specs file, if it exists...
+  rm -f ${aAI}/${aAI##*/}.specs 2>/dev/null
   #remove symlink to appimage, if it exists...
-  rm -f /mnt/wkg/appimage/${aAPP,,}/${aAPP,,}.bin 2>/dev/null
+  rm -f ${aAI}/${aAI##*/}.bin 2>/dev/null
  fi
 done
 
@@ -92,6 +92,7 @@ export APPIMG_DLG1="<window title=\"$(gettext 'AppImage Installer')\">
         <height>300</height>
         <variable>TREEgames</variable>
         <action signal=\"enter-notify-event\" type=\"refresh\">TREEgames</action>
+        <item icon-name=\"cromagrally\">CroMagRally|${FLGcromagrally}|129M|$(gettext 'Cro-Magnon car racing game')</item>
         <item icon-name=\"endlesssky\">EndlessSky|${FLGendlesssky}|232M|$(gettext 'Outer-space adventure game')</item>
         <item icon-name=\"nanosaur\">Nanosaur|${FLGnanosaur}|17M|$(gettext 'Strategy 3D game')</item>
         <item icon-name=\"ottomatic\">OttoMatic|${FLGottomatic}|141M|$(gettext 'Strategy 3D game')</item>
@@ -133,7 +134,7 @@ export APPIMG_DLG1="<window title=\"$(gettext 'AppImage Installer')\">
         <item icon-name=\"antares\">Antares|${FLGantares}|126M|$(gettext 'SQL client')</item>
         <item icon-name=\"dbbrowser\">DBBrowser|${FLGdbbrowser}|37M|$(gettext 'Create and edit SQLITE databases')</item>
         <item icon-name=\"dbgate\">DbGate|${FLGdbgate}|93M|$(gettext 'Multi-protocol SQL+noSQL database client')</item>
-        <item icon-name=\"koodoreader\">KoodoReader|${FLGkoodoreader}|-|$(gettext 'Multi-format e-book reader')</item>
+        <item icon-name=\"koodoreader\">KoodoReader|${FLGkoodoreader}|87M|$(gettext 'Multi-format e-book reader')</item>
         <item icon-name=\"koreader\">KOReader|${FLGkoreader}|42M|$(gettext 'Multi-format e-book reader')</item>
         <item icon-name=\"onlyoffice\">ONLYOFFICE|${FLGonlyoffice}|299M|$(gettext 'Word-processing, spreadsheet, presentations office suite')</item>
       </tree>
@@ -187,7 +188,7 @@ export APPIMG_DLG1="<window title=\"$(gettext 'AppImage Installer')\">
       <button space-expand=\"false\" space-fill=\"false\"><label>$(gettext 'Exit')</label><action>exit:QUIT</action></button>
       <text space-expand=\"true\" space-fill=\"true\"><label>\"  \"</label></text>
       <button><label>$(gettext 'Install/Update/Delete')</label><action>exit:BUTinstall</action></button>
-      <button><label>$(gettext 'Online Information')</label><action>/usr/local/appimage/online-info \"\$TREEaudio\" \"\$TREEdeveloper\" \"\$TREEgames\" \"\$TREEgraphics\" \"\$TREEnetwork\" \"\$TREEoffice\" \"\$TREEproductivity\" \"\$TREEsystem\" \"\$TREEvideo\" </action></button>
+      <button><label>$(gettext 'Online Information')</label><action>/usr/local/appimage/online-info \"\$TREEaudio\" \"\$TREEdeveloper\" \"\$TREEgames\" \"\$TREEgraphics\" \"\$TREEnetwork\" \"\$TREEoffice\" \"\$TREEproductivity\" \"\$TREEsystem\" \"\$TREEvideo\" \"\$TREEother\" </action></button>
     </hbox>
   </vbox>
 </window>
@@ -217,7 +218,6 @@ fi
 #GoldenDict is a continuous build. don't really know how to handle them.
 #for now, ask. see github-find-latest-ver script.
 #the URL format is: https://github.com/$MEMBER/$PROJECT/
-VERASK='no' #yes if manual entry of version number required.
 MEMBER=''; PROJECT=''; APPIMG=''
 DIRECTDL=''; DIRECTVER='' #20230316
 case "${aAPP}" in
@@ -230,7 +230,7 @@ case "${aAPP}" in
  Electorrent) MEMBER='Tympanix'; PROJECT='Electorrent'; APPIMG='Electorrent-VERSION.AppImage'; MENUcat='X-Network-transfer'; MENUtop='Network'; MENUname='Electorrent multiprotocol torrent client'; ;;
  ONLYOFFICE) MEMBER='ONLYOFFICE'; PROJECT='appimage-desktopeditors'; APPIMG='DesktopEditors-x86_64.AppImage'; MENUcat='X-Business'; MENUtop='Business'; MENUname='ONLYOFFICE office suite'; ;;
  OneNote) MEMBER='patrikx3'; PROJECT='onenote'; APPIMG='P3X-OneNote-VERSION.AppImage'; MENUcat='X-Personal-organizer'; MENUtop='Personal'; MENUname='OneNote online note taking'; ;;
- ShotCut) MEMBER='mltframework'; PROJECT='shotcut'; APPIMG='shotcut-linux-x86_64-VERNODOTS.AppImage'; MENUcat='X-Multimedia-video'; MENUtop='Multimedia'; MENUname='ShotCut video editor'; ;;
+ ShotCut) MEMBER='mltframework'; PROJECT='shotcut'; APPIMG='shotcut-linux-x86_64-VERSION.AppImage'; MENUcat='X-Multimedia-video'; MENUtop='Multimedia'; MENUname='ShotCut video editor'; ;;
  VidCutter) MEMBER='ozmartian'; PROJECT='vidcutter'; APPIMG='VidCutter-VERSION-x86_64.AppImage'; MENUcat='X-Multimedia-video'; MENUtop='Multimedia'; MENUname='VidCutter video cutter and joiner'; ;;
  Webcamoid) MEMBER='webcamoid'; PROJECT='webcamoid'; APPIMG='webcamoid-portable-linux-VERSION-x86_64.AppImage'; MENUcat='X-Multimedia-video'; MENUtop='Multimedia'; MENUname='Webcamoid webcam suite'; ;;
  AppImagePool) MEMBER='prateekmedia'; PROJECT='appimagepool'; APPIMG='appimagepool-VERSION-x86_64.AppImage'; MENUcat='X-Setup'; MENUtop='Setup'; MENUname='AppImagePool install from AppImageHub'; ;;
@@ -239,48 +239,49 @@ case "${aAPP}" in
  Antares) MEMBER='antares-sql'; PROJECT='antares'; APPIMG='Antares-VERSION-linux_x86_64.AppImage'; MENUcat='X-Utility-development'; MENUtop='Utility'; MENUname='Antares SQL client'; ;;
  GDevelop) MEMBER='4ian'; PROJECT='GDevelop'; APPIMG='GDevelop-5-VERSION.AppImage'; MENUcat='X-Utility-development'; MENUtop='Utility'; MENUname='GDevelop no-code game creation'; ;;
  Groot) MEMBER='BehaviorTree'; PROJECT='Groot'; APPIMG='Groot-VERSION-x86_64.AppImage'; MENUcat='X-Graphic-flow'; MENUtop='Graphic'; MENUname='Groot BehaviorTree diagram creator'; ;;
- Guitar) MEMBER='soramimi'; PROJECT='Guitar'; APPIMG='Guitar-VERSION-x86_64.AppImage'; MENUcat='X-Utility-development'; MENUtop='Utility'; MENUname='Guitar GIT GUI client'; VERASK='yes'; ;;
+ Guitar) MEMBER='soramimi'; PROJECT='Guitar'; APPIMG='Guitar-VERSION-x86_64.AppImage'; MENUcat='X-Utility-development'; MENUtop='Utility'; MENUname='Guitar GIT GUI client'; ;;
  ImHex) MEMBER='WerWolv'; PROJECT='ImHex'; APPIMG='imhex-VERSION-x86_64.AppImage'; MENUcat='X-Utility-development'; MENUtop='Utility'; MENUname='ImHex hex editor for reverse engineers'; ;;
- KiCad) MEMBER='KarlZeilhofer'; PROJECT='kicad-appimage'; APPIMG='KiCad-VERSION-x86_64.AppImage'; MENUcat='X-Graphic'; MENUtop='Graphic'; MENUname='KiCad schematic-capture and PCB layout'; VERASK='yes'; ;;
+ KiCad) MEMBER='KarlZeilhofer'; PROJECT='kicad-appimage'; APPIMG='KiCad-VERSION-x86_64.AppImage'; MENUcat='X-Graphic'; MENUtop='Graphic'; MENUname='KiCad schematic-capture and PCB layout'; ;;
  EndlessSky) MEMBER='endless-sky'; PROJECT='endless-sky'; APPIMG='Endless_Sky-vVERSION-x86_64.AppImage'; MENUcat='X-Fun-adventure'; MENUtop='Fun'; MENUname='EndlessSky outer-space adventure'; ;;
  Etcher) MEMBER='balena-io'; PROJECT='etcher'; APPIMG='balenaEtcher-VERSION-x64.AppImage'; MENUcat='X-Setup-installation'; MENUtop='Setup'; MENUname='Etcher write OS to SD and USB drive'; ;;
  Krita) DIRECTDL='https://download.kde.org/stable/krita/5.1.5/krita-5.1.5-x86_64.appimage'; DIRECTVER='5.1.5'; MENUcat='X-Graphic'; MENUtop='Graphic'; MENUname='Krita vector and raster editor'; ;;
  Kdenlive) DIRECTDL='https://download.kde.org/stable/kdenlive/22.12/linux/kdenlive-22.12.3-x86_64.AppImage'; DIRECTVER='22.12.3'; MENUcat='X-Multimedia-video'; MENUtop='Multimedia'; MENUname='Kdenlive video editor'; ;;
- Dust3D) MEMBER='huxingyi'; PROJECT='dust3d'; APPIMG='dust3d-VERSION.AppImage'; MENUcat='X-Graphic'; MENUtop='Graphic'; MENUname='Dust3D 3D modeler'; VERASK='yes'; ;;
+ Dust3D) MEMBER='huxingyi'; PROJECT='dust3d'; APPIMG='dust3d-VERSION.AppImage'; MENUcat='X-Graphic'; MENUtop='Graphic'; MENUname='Dust3D 3D modeler'; ;;
  DbGate) MEMBER='dbgate'; PROJECT='dbgate'; APPIMG='dbgate-VERSION-linux_x86_64.AppImage'; MENUcat='X-Business'; MENUtop='Business'; MENUname='DbGate SQL and noSQL client'; ;;
  Figma) MEMBER='Figma-Linux'; PROJECT='figma-linux'; APPIMG='figma-linux_VERSION_linux_x86_64.AppImage'; MENUcat='X-Utility-development'; MENUtop='Utility'; MENUname='Figma User Interface design tool'; ;;
- FreeCAD) DIRECTDL='https://github.com/FreeCAD/FreeCAD/releases/download/0.20.2/FreeCAD_0.20.2-2022-12-27-conda-Linux-x86_64-py310.AppImage'; DIRECTVER='0.20.2' MENUcat='X-Graphic'; MENUtop='Graphic'; MENUname='FreeCAD 3D parametric modeler'; ;;
+ FreeCAD) MEMBER='FreeCAD'; PROJECT='FreeCAD'; APPIMG='FreeCAD_VERSION-conda-Linux-x86_64-py310.AppImage'; MENUcat='X-Graphic'; MENUtop='Graphic'; MENUname='FreeCAD 3D parametric modeler'; ;;
  Glyphr) MEMBER='glyphr-studio'; PROJECT='Glyphr-Studio-Desktop'; APPIMG='Glyphr.Studio-VERSION.AppImage'; MENUcat='X-Graphic'; MENUtop='Graphic'; MENUname='Glyphr Studio font designer'; ;;
  Heimer) MEMBER='juzzlin'; PROJECT='Heimer'; APPIMG='Heimer-VERSION-x86_64.AppImage'; MENUcat='X-Graphic-flow'; MENUtop='Graphic'; MENUname='Heimer mind mapping tool'; ;;
- Insight) DIRECTDL='https://github.com/antony-jr/insight/releases/download/5afb39f/Insight-x86_64-pc-linux-gnu-5afb39f-x86_64.AppImage'; DIRECTVER='5afb39f' MENUcat='X-Utility-development'; MENUtop='Utility'; MENUname='Insight frontend for GNU Debugger'; ;;
+ Insight) MEMBER='antony-jr'; PROJECT='insight'; APPIMG='Insight-x86_64-pc-linux-gnu-VERSION-x86_64.AppImage'; MENUcat='X-Utility-development'; MENUtop='Utility'; MENUname='Insight frontend for GNU Debugger'; ;;
  KOReader) MEMBER='koreader'; PROJECT='koreader'; APPIMG='koreader-appimage-x86_64-linux-gnu-vVERSION.AppImage'; MENUcat='X-Document-viewer'; MENUtop='Document'; MENUname='KOReader multi-format e-boot reader'; ;;
  KeePassXC) MEMBER='keepassxreboot'; PROJECT='keepassxc'; APPIMG='KeePassXC-VERSION-x86_64.AppImage'; MENUcat='X-Personal-security'; MENUtop='Personal'; MENUname='KeePassXC password manager'; ;;
  LosslessCut) MEMBER='mifi'; PROJECT='lossless-cut'; APPIMG='LosslessCut-linux-x86_64.AppImage'; MENUcat='X-Multimedia-video'; MENUtop='Multimedia'; MENUname='LosslessCut video editor'; ;;
  OpenSCAD) DIRECTDL='https://files.openscad.org/OpenSCAD-2021.01-x86_64.AppImage'; DIRECTVER='2021.01'; MENUcat='X-Graphic'; MENUtop='Graphic'; MENUname='OpenSCAD solid 3D modeller'; ;;
- KoodoReader) DIRECTDL='https://github.com/troyeguo/koodo-reader/releases/download/v1.5.1/Koodo-Reader-1.5.1.AppImage'; DIRECTVER='1.5.1'; MENUcat='X-Document-viewer'; MENUtop='Document'; MENUname='KoodoReader multi-format e-book reader'; ;;
+ KoodoReader) MEMBER='troyeguo'; PROJECT='koodo-reader'; APPIMG='Koodo-Reader-VERSION-x86_64.AppImage'; MENUcat='X-Document-viewer'; MENUtop='Document'; MENUname='KoodoReader multi-format e-book reader'; ;;
  DeltaChat) MEMBER='deltachat'; PROJECT='deltachat-desktop'; APPIMG='DeltaChat-VERSION.AppImage'; MENUcat='X-Personal'; MENUtop='Personal'; MENUname='DeltaChat PC and phone messaging app'; ;;
  PDFQuirk) MEMBER='dragotin'; PROJECT='pdfquirk'; APPIMG='PDFQuirk-continuous-x86_64.AppImage'; MENUcat='X-Graphic-utility'; MENUtop='Graphic'; MENUname='PDFQuirk image to PDF converter'; ;;
- UngoogledChromium) DIRECTDL='https://github.com/clickot/ungoogled-chromium-binaries/releases/download/111.0.5563.65-1/ungoogled-chromium_111.0.5563.65-1.1.AppImage'; DIRECTVER='111.0.5563.65-1'; MENUcat='X-Internet-browser'; MENUtop='Internet'; MENUname='UngoogledChromium browser sans Google Services'; ;;
+ #UngoogledChromium) DIRECTDL='https://github.com/clickot/ungoogled-chromium-binaries/releases/download/111.0.5563.65-1/ungoogled-chromium_111.0.5563.65-1.1.AppImage'; DIRECTVER='111.0.5563.65-1'; MENUcat='X-Internet-browser'; MENUtop='Internet'; MENUname='UngoogledChromium browser sans Google Services'; ;;
+ UngoogledChromium) MEMBER='clickot'; PROJECT='ungoogled-chromium-binaries'; APPIMG='ungoogled-chromium_VERSION.1.AppImage'; MENUcat='X-Internet-browser'; MENUtop='Internet'; MENUname='UngoogledChromium browser sans Google Services'; ;;
  digiKam) DIRECTDL='https://download.kde.org/stable/digikam/7.10.0/digiKam-7.10.0-x86-64.appimage'; DIRECTVER='7.10.0'; MENUcat='X-Graphic'; MENUtop='Graphic'; MENUname='digiKam professional photo manager'; ;;
  eXeLearning) MEMBER='exelearning'; PROJECT='iteexe'; APPIMG='eXe-VERSION.glibc2.28-x86_64.AppImage'; MENUcat='X-Document'; MENUtop='Document'; MENUname='eXeLearning create education resources'; ;;
  Nanosaur) MEMBER='jorio'; PROJECT='Nanosaur'; APPIMG='Nanosaur-VERSION-linux-x86_64.AppImage'; MENUcat='X-Fun-adventure'; MENUtop='Fun'; MENUname='Nanosaur 3D strategy game'; ;;
  OttoMatic) MEMBER='jorio'; PROJECT='OttoMatic'; APPIMG='OttoMatic-VERSION-linux-x86_64.AppImage'; MENUcat='X-Fun-adventure'; MENUtop='Fun'; MENUname='Nanosaur 3D strategy game'; ;;
- Thunderbird) DIRECTDL='https://github.com/srevinsaju/Thunderbird-AppImage/releases/download/stable/Thunderbird-102.8_20230214184313.AppImage'; DIRECTVER='102.8'; MENUcat='X-Internet-mailnews'; MENUtop='Internet'; MENUname='Thunderbird mail client'; ;;
+ Thunderbird) MEMBER='srevinsaju'; PROJECT='Thunderbird-AppImage'; APPIMG='Thunderbird-VERSION.AppImage'; MENUcat='X-Internet-mailnews'; MENUtop='Internet'; MENUname='Thunderbird mail client'; ;;
  JitsiMeet) MEMBER='jitsi'; PROJECT='jitsi-meet-electron'; APPIMG='jitsi-meet-x86_64.AppImage'; MENUcat='X-Internet-chat'; MENUtop='Internet'; MENUname='JitsiMeet video conferencing'; ;;
  Acreom) MEMBER='Acreom'; PROJECT='releases'; APPIMG='acreom-VERSION.AppImage'; MENUcat='X-Personal'; MENUtop='Personal'; MENUname='Acreom private knowledge base'; ;;
- Zoom) MEMBER='probonopd'; PROJECT='Zoom.AppImage'; APPIMG='Zoom-VERSION-x86_64.AppImage'; MENUcat='VideoConference'; MENUtop='Internet'; MENUname='Zoom video conferencing'; VERASK='yes'; ;;
+ Zoom) MEMBER='probonopd'; PROJECT='Zoom.AppImage'; APPIMG='Zoom-VERSION-x86_64.AppImage'; MENUcat='VideoConference'; MENUtop='Internet'; MENUname='Zoom video conferencing'; ;;
  OpenShot) DIRECTDL='https://github.com/OpenShot/openshot-qt/releases/download/daily/OpenShot-v3.0.0-daily-11120-f0b44c51-b5bbab66-x86_64.AppImage'; DIRECTVER='3.0.0'; MENUcat='X-Multimedia-video'; MENUtop='Multimedia'; MENUname='OpenShot video editor'; ;;
  Altus) MEMBER='amanharwara'; PROJECT='altus'; APPIMG='Altus-VERSION-x86_64.AppImage'; MENUcat='X-Internet-chat'; MENUtop='Internet'; MENUname='Altus WhatsApp messaging and calls'; ;;
  DBBrowser) MEMBER='sqlitebrowser'; PROJECT='sqlitebrowser'; APPIMG='DB_Browser_for_SQLite-vVERSION-x86_64.AppImage'; MENUcat='X-Business'; MENUtop='Business'; MENUname='DBBrowser create and edit SQLITE databases'; ;;
  Telegram) MEMBER='srevinsaju'; PROJECT='Telegram-AppImage'; APPIMG='Telegram_Desktop-x86_64.AppImage'; MENUcat='X-Internet-chat'; MENUtop='Internet'; MENUname='Telegram messaging'; ;;
  LibreCAD) MEMBER='LibreCAD'; PROJECT='LibreCAD'; APPIMG='LibreCAD-VERSION-x86_64.AppImage'; MENUcat='X-Graphic'; MENUtop='Graphic'; MENUname='LibreCAD 2D CAD'; ;;
  LeoCAD) MEMBER='leozide'; PROJECT='leocad'; APPIMG='LeoCAD-Linux-VERSION-x86_64.AppImage'; MENUcat='X-Graphic'; MENUtop='Graphic'; MENUname='LeoCAD build with lego bricks'; ;;
+ CroMagRally) MEMBER='jorio'; PROJECT='CroMagRally'; APPIMG='CroMagRally-VERSION-linux-x86_64.AppImage'; MENUcat='X-Fun-adventure'; MENUtop='Fun'; MENUname='CroMagRally car racing'; ;;
  ZZZ) MEMBER=''; PROJECT=''; APPIMG=''; MENUcat=''; MENUtop=''; MENUname=''; ;;
  *)
   exit
  ;;
 esac
-export VERASK
 
 #test if already installed...
 UPDATEflg='no'
@@ -289,11 +290,16 @@ if [ -d /mnt/wkg/appimage/${aAPP,,} ];then
  if [ $? -ne 0 ];then
   if [ -f /usr/bin/${aAPP,,} ];then
    #already installed.
-   SPEC_AI_ver=''
-   if [ -s /mnt/wkg/appimage/${aAPP,,}/${aAPP,,}.spec ];then
-    . /mnt/wkg/appimage/${aAPP,,}/${aAPP,,}.spec #has SPEC_AI_ver
+   SPEC_APPI_ver=''
+   if [ -s /mnt/wkg/appimage/${aAPP,,}/${aAPP,,}.specs ];then
+    . /mnt/wkg/appimage/${aAPP,,}/${aAPP,,}.specs #has SPEC_APPI_ver
    fi
-   if [ "$DIRECTDL" != "" -o "$SPEC_AI_ver" == "" ];then
+   #handle the old name, as in easy 5.1.1 and 5.2...
+   if [ -s /mnt/wkg/appimage/${aAPP,,}/${aAPP,,}.spec ];then
+    . /mnt/wkg/appimage/${aAPP,,}/${aAPP,,}.specs #has SPEC_AI_ver
+    SPEC_APPI_ver="$SPEC_AI_ver"
+   fi
+   if [ "$DIRECTDL" != "" -o "$SPEC_APPI_ver" == "" ];then
     UPDATExml="<text><label>$(gettext 'Updating currently not supported for this AppImage.')</label></text>"
    else
     UPDATExml="<text><label>$(gettext 'To probe online if there is a later version and update to it, click the UPDATE button:')</label></text>
@@ -366,6 +372,7 @@ if [ -d /mnt/wkg/appimage/${aAPP,,} ];then
   fi
  fi
 fi
+export UPDATEflg
 
 ###new install or update###
 if [ "$UPDATEflg" == "yes" ];then
@@ -395,45 +402,42 @@ if [ ! -s /tmp/pup_event_backend/network_ ];then
  exec appimage
 fi
 
+FLG1=0
 if [ "$DIRECTDL" != "" ];then
  if [ "$UPDATEflg" == "yes" ];then #precaution.
   exit
  fi
- APPimg="${DIRECTDL##*/}"
+ APPname="${DIRECTDL##*/}"
  APPver="${DIRECTVER}"
- echo -n "$APPver" > /tmp/appimage/URLver
+ echo -n "$APPname" > /tmp/appimage/APPname
+ echo -n "$APPver" > /tmp/appimage/APPver
  echo -n '' > /tmp/appimage/URLtag
  echo -n "$DIRECTDL" > /tmp/appimage/URLdl
  mkdir -p /mnt/wkg/appimage/${aAPP,,}
  cd /mnt/wkg/appimage/${aAPP,,}
- if [ ! -f "$APPimg" ];then #20230317 support manual download.
-  download_file "${DIRECTDL}"
+ APPnew="${aAPP,,}-${APPver}.AppImage" #this is what renamed to after d/l.
+ if [ ! -f "$APPname" ];then #20230317 support manual download.
+  if [ ! -f "$APPnew" ];then
+   download_file "${DIRECTDL}"
+   FLG1=$?
+  fi
  fi
 else
- /usr/local/appimage/github-find-latest-ver ${MEMBER} ${PROJECT}
+ /usr/local/appimage/github-find-latest-ver ${MEMBER} ${PROJECT} ${APPIMG}
+ #...creates /tmp/appimage/URLtag, APPver, APPname
  if [ $? -ne 0 ];then
   exec appimage
  fi
  URLtag="$(cat /tmp/appimage/URLtag)" #ex: https://github.com/amanharwara/altus/releases/tag/4.8.5
- APPver="$(cat /tmp/appimage/URLver)" #ex: 3.2.5
- APPimg="$(echo -n "$APPIMG" | sed -e "s%VERSION%${APPver}%")"
- 
- #fix for this:
- # https://github.com/mltframework/shotcut/releases/tag/v22.12.21
- # shotcut-linux-x86_64-221221.AppImage
- grep -q 'VERNODOTS' <<<$APPIMG
- if [ $? -eq 0 ];then
-  VERnodots="$(echo -n "$APPver" | tr -d '.')"
-  APPimg="$(echo -n "$APPIMG" | sed -e "s%VERNODOTS%${VERnodots}%")"
- fi
- 
+ APPver="$(cat /tmp/appimage/APPver)" #ex: 3.2.5
+ APPname="$(cat /tmp/appimage/APPname)" #ex: Zoom-5.14.0.1720.glibc2.17-x86_64.AppImage
  EXIT='download'
  if [ "$UPDATEflg" == "yes" ];then
   export APPIMG_DLG10="<window title=\"$(gettext 'AppImage Installer:') ${aAPP}\">
   <vbox>
     <text use-markup=\"true\">
       <label>\"$(gettext 'This is the currently installed version of the AppImage:')
-  <b>${SPEC_AI_ver}</b>
+  <b>${SPEC_APPI_ver}</b>
 $(gettext 'This is the latest version found online:')
   <b>${APPver}</b>
 
@@ -458,59 +462,63 @@ $(gettext 'If the latest version is later than the current version, and you want
   if [ "$UPDATEflg" == "yes" ];then
    UPDATEflg='yesyes'
   fi
-  #this is what we have to download: ${URLtag}/${APPimg}
+  #this is what we have to download: ${URLtag}/${APPname}
   mkdir -p /mnt/wkg/appimage/${aAPP,,}
   cd /mnt/wkg/appimage/${aAPP,,}
-  echo -n "${URLtag}/${APPimg}" > /tmp/appimage/URLdl #for debugging.
+  echo -n "${URLtag}/${APPname}" > /tmp/appimage/URLdl #for debugging.
   URLdl="$(echo -n "$URLtag" | sed -e 's%/tag/%/download/%')"
-  if [ ! -f "$APPimg" ];then #20230317 support manual download.
-   download_file ${URLdl}/${APPimg}
+  APPnew="${aAPP,,}-${APPver}.AppImage" #this is what renamed to after d/l.
+  if [ ! -f "$APPname" ];then #support manual download.
+   if [ ! -f "$APPnew" ];then
+    download_file ${URLdl}/${APPname}
+    FLG1=$?
+   fi
   fi
  else
   exit 0
  fi
 fi
 
-if [ $? -ne 0 ];then
+if [ $FLG1 -ne 0 ];then
  M2="$(gettext 'AppImage download failed. Aborting.')"
  popup "terminate=ok background=#ff8080 level=top process=wait|<big>${M2}</big>"
- if [ -e ./${APPimg} ];then
-  rm -f ./${APPimg}
+ if [ -e ./${APPname} ];then
+  rm -f ./${APPname}
  fi
  exit 1
 fi
 
-grep -q 'appimage' <<<${APPimg} #20230317 krita
-if [ $? -eq 0 ];then
- APPnew="${APPimg/appimage/AppImage}"
- mv -f ${APPimg} ${APPnew}
- APPimg="${APPnew}"
+#want a consistent name...
+APPnew="${aAPP,,}-${APPver}.AppImage"
+if [ ! -f $APPnew ];then
+ mv -f $APPname  $APPnew
 fi
+APPname="${APPnew}"
 
 sync
-chmod 755 ${APPimg}
-OFFSET="$(./${APPimg} --appimage-offset 2>/dev/null)"
+chmod 755 ${APPname}
+OFFSET="$(./${APPname} --appimage-offset 2>/dev/null)"
 if [ "$OFFSET" == "" ];then
  M3="$(gettext 'The downloaded AppImage seems to be corrupted. Aborting.')"
  popup "terminate=ok background=#ff8080 level=top process=wait|<big>${M3}</big>"
- if [ -e ./${APPimg} ];then
-  rm -f ./${APPimg}
+ if [ -e ./${APPname} ];then
+  rm -f ./${APPname}
  fi
  exit 2
 fi
 
 #open up appimage, need to find out a few things...
 mkdir -p /mnt/wkg/appimage/${aAPP,,}/mntpt
-busybox mount -o loop,offset=${OFFSET} ${APPimg} mntpt
+busybox mount -o loop,offset=${OFFSET} ${APPname} mntpt
 if [ $? -ne 0 ];then
  M4="$(gettext 'The downloaded AppImage seems to be corrupted. Aborting.')"
  popup "terminate=ok background=#ff8080 level=top process=wait|<big>${M4}</big>"
- rm -f ./${APPimg}
+ rm -f ./${APPname}
  exit 3
 fi
 #extract MimeType from .desktop...
 echo -n '' > /tmp/appimage/mimetype
-DT1="$(find ./ ./usr/share/applications -maxdepth 1 -type f -name '*.desktop' 2>/dev/null | tail -n 1)"
+DT1="$(find mntpt mntpt/usr/share/applications -maxdepth 1 -type f -name '*.desktop' 2>/dev/null | tail -n 1)"
 if [ "$DT1" ];then
  grep '^MimeType=' ${DT1} > /tmp/appimage/mimetype
 fi
@@ -522,14 +530,15 @@ rmdir mntpt
 if [ "$UPDATEflg" == "yesyes" ];then
  #just redirect symlink to the new appimage...
  cp -a -f /usr/bin/${aAPP,,}.bin /usr/bin/${aAPP,,}.binOLD
- cp -a -f /mnt/wkg/appimage/${aAPP,,}/${aAPP,,}.spec /mnt/wkg/appimage/${aAPP,,}/${aAPP,,}.specOLD
- ln -snf /mnt/wkg/appimage/${aAPP,,}/${APPimg} /usr/bin/${aAPP,,}.bin
- #also a symlink in same folder as the appimage...
- ln -snf ${APPimg} /mnt/wkg/appimage/${aAPP,,}/${aAPP,,}.bin
+ cp -a -f /mnt/wkg/appimage/${aAPP,,}/${aAPP,,}.specs /mnt/wkg/appimage/${aAPP,,}/${aAPP,,}.specsOLD
+ ln -snf /mnt/wkg/appimage/${aAPP,,}/${APPname} /usr/bin/${aAPP,,}.bin
+ #also a symlink in same folder as the appimage... no...
+ #ln -snf ${APPname} /mnt/wkg/appimage/${aAPP,,}/${aAPP,,}.bin
 else
- ln -snf /mnt/wkg/appimage/${aAPP,,}/${APPimg} /usr/bin/${aAPP,,}
- #also a symlink in same folder as the appimage...
- ln -snf ${APPimg} /mnt/wkg/appimage/${aAPP,,}/${aAPP,,}.bin
+ #this symlink is correct, later setup-client will rename to .bin ...
+ ln -snf /mnt/wkg/appimage/${aAPP,,}/${APPname} /usr/bin/${aAPP,,}
+ #also a symlink in same folder as the appimage... no...
+ #ln -snf ${APPname} /mnt/wkg/appimage/${aAPP,,}/${aAPP,,}.bin
 fi
 
 if [ "${LANG:0:2}" == "en" ];then
@@ -580,25 +589,27 @@ Exec=${aAPP,,}" > /usr/share/applications/${aAPP,,}.desktop
  chmod 700 /files/apps/${aAPP,,}
 fi
 
-#.spec file...
-echo -n 'SPEC_AI_dl=' > /mnt/wkg/appimage/${aAPP,,}/${aAPP,,}.spec
-cat /tmp/appimage/URLdl >> /mnt/wkg/appimage/${aAPP,,}/${aAPP,,}.spec
+#.specs file...
+rm -f /mnt/wkg/appimage/${aAPP,,}/${aAPP,,}.spec 2>/dev/null #easy 5.1.1 and 5.2
+echo -n 'SPEC_APPI_dl=' > /mnt/wkg/appimage/${aAPP,,}/${aAPP,,}.specs
+cat /tmp/appimage/URLdl >> /mnt/wkg/appimage/${aAPP,,}/${aAPP,,}.specs
 # ex: https://github.com/webcamoid/webcamoid/releases/tag/9.0.0/webcamoid-portable-linux-9.0.0-x86_64.AppImage
-echo '' >> /mnt/wkg/appimage/${aAPP,,}/${aAPP,,}.spec
-echo -n 'SPEC_AI_tag=' >> /mnt/wkg/appimage/${aAPP,,}/${aAPP,,}.spec
-cat /tmp/appimage/URLtag >> /mnt/wkg/appimage/${aAPP,,}/${aAPP,,}.spec
+echo '' >> /mnt/wkg/appimage/${aAPP,,}/${aAPP,,}.specs
+echo -n 'SPEC_APPI_tag=' >> /mnt/wkg/appimage/${aAPP,,}/${aAPP,,}.specs
+cat /tmp/appimage/URLtag >> /mnt/wkg/appimage/${aAPP,,}/${aAPP,,}.specs
 # ex: https://github.com/webcamoid/webcamoid/releases/tag/9.0.0
-echo '' >> /mnt/wkg/appimage/${aAPP,,}/${aAPP,,}.spec
-echo -n 'SPEC_AI_ver=' >> /mnt/wkg/appimage/${aAPP,,}/${aAPP,,}.spec
-cat /tmp/appimage/URLver >> /mnt/wkg/appimage/${aAPP,,}/${aAPP,,}.spec
-# ex: 9.0.0
-echo '' >> /mnt/wkg/appimage/${aAPP,,}/${aAPP,,}.spec
+echo '' >> /mnt/wkg/appimage/${aAPP,,}/${aAPP,,}.specs
+echo -n 'SPEC_APPI_name=' >> /mnt/wkg/appimage/${aAPP,,}/${aAPP,,}.specs
+echo "$APPname" >> /mnt/wkg/appimage/${aAPP,,}/${aAPP,,}.specs #ex: webcamoid-9.0.0.AppImage
+echo -n 'SPEC_APPI_ver=' >> /mnt/wkg/appimage/${aAPP,,}/${aAPP,,}.specs
+cat /tmp/appimage/APPver >> /mnt/wkg/appimage/${aAPP,,}/${aAPP,,}.specs # ex: 9.0.0
+echo '' >> /mnt/wkg/appimage/${aAPP,,}/${aAPP,,}.specs
 
 if [ "$UPDATEflg" == "yesyes" ];then
 export APPIMG_DLG11="<window title=\"$(gettext 'AppImage Installer: success')\">
   <vbox>
     <text use-markup=\"true\"><label>\"$(gettext 'Success, this is the updated AppImage:')
-  <b>${APPimg}</b>
+  <b>${APPname}</b>
 
 $(gettext 'It was downloaded here:')
   /mnt/wkg/appimage/${aAPP,,}
@@ -624,7 +635,7 @@ fi
 export APPIMG_DLG2="<window title=\"$(gettext 'AppImage Installer: success')\">
   <vbox>
     <text><label>\"$(gettext 'Success, this AppImage has been installed:')
-  ${APPimg}
+  ${APPname}
 $(gettext 'It was downloaded here:')
   /mnt/wkg/appimage/${aAPP,,}
 $(gettext 'This script has been created to run it:')
