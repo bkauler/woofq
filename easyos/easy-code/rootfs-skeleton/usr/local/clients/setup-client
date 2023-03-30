@@ -46,6 +46,7 @@
 #20220916 blender.
 #20220923 setup for spot in container.
 #20230302 support vivaldi --no-sandbox for crippled-root in container.
+#20230330 prevent other apps from seeing in home folder.
 
 APPname="${1/=*/}"  #ex: seamonkey
 APPflag="${1/*=/}" #ex: true
@@ -107,6 +108,8 @@ CHGflg=0 #20210916  20210918 revert 20210917...
    #click on this folder will run the app...
    echo -e "#!/bin/sh\nexec ${APPname}" > ${PREFIXDIR1}/home/${APPname}/${APPname}/AppRun
    chmod 755 ${PREFIXDIR1}/home/${APPname}/${APPname}/AppRun
+   #20230330 prevent other apps from seeing in here...
+   chmod 700 ${PREFIXDIR1}/home/${APPname}
   fi
   if [ ! -d ${PREFIXDIR1}/home/${APPname}/.config/gtk-3.0 ];then #20210927
    CHGflg=1 #20211103
