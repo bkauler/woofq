@@ -1,0 +1,170 @@
+#!/bin/bash
+#return latest version number.
+#pass in MEMBER=$1 PROJECT=$2 APPIMG=$3
+#20230313 first release.
+#20230331 rewritten, using api json.
+
+#example url:
+# https://github.com/amanharwara/altus/releases/latest/
+#where MEMBER=amanharwara PROJECT=altus
+
+export TEXTDOMAIN=appimages
+export TEXTDOMAINDIR=/usr/share/locale
+export OUTPUT_CHARSET=UTF-8
+
+MEMBER="$1"
+PROJECT="$2"
+APPIMG="$3" #ex: Altus-VERSION-x86_64.AppImage
+
+mkdir -p /tmp/appimage
+echo -n '' > /tmp/appimage/URLtag
+echo -n '' > /tmp/appimage/APPver
+echo -n '' > /tmp/appimage/APPname
+
+#kill any prior mozbare...
+kill $(pgrep -f "mozbare") 2>/dev/null
+sleep 0.2
+
+#20230331 parse json to find latest .AppImage file...
+echo -n '' > /tmp/appimage/APPlist
+curl -s https://api.github.com/repos/${MEMBER}/${PROJECT}/releases/latest > /tmp/appimage/github-api-json.txt
+URLdls="$(grep '"browser_download_url": .*\.AppImage"$' /tmp/appimage/github-api-json.txt | cut -f 4 -d '"' | grep -vE 'aarch64|x32|386|486|686|armv')"
+#ex: https://github.com/FreeCAD/FreeCAD/releases/download/0.20.2/FreeCAD_0.20.2-2022-12-27-conda-Linux-x86_64-py310.AppImage
+
+URLdl1="$(echo "$URLdls" | head -n 1)"
+URLtag0="${URLdl1%/*}"
+URLtag="$(echo -n "$URLtag0" | sed -e 's%/download/%/tag/%')"
+#ex: https://github.com/FreeCAD/FreeCAD/releases/download/0.20.2
+#ex: https://github.com/amanharwara/altus/releases/tag/4.8.5
+#ex: https://github.com/audacity/audacity/releases/tag/Audacity-3.2.5
+#ex: https://github.com/kremalicious/blowfish/releases/tag/v1.6.0
+#goldendict is a continous release:
+# https://github.com/Abs62/goldendict/releases/tag/continuous
+#ex: https://github.com/blupi-games/planetblupi-dev/releases/tag/v1.14.2
+#this one is awkward as has "-3" on the end:
+# https://github.com/aphototool/A-Photo-Tool-Libre/releases/tag/v1.0.5-3
+#has "stable" on the end:
+# https://github.com/probonopd/Zoom.AppImage/releases/tag/stable
+#ex: https://github.com/clickot/ungoogled-chromium-binaries/releases/tag/111.0.5563.111-1
+if [ "$URLtag" == "" ];then
+ M1="$(gettext 'Unable to obtain information about latest version from github.com, aborting')"
+ popup "terminate=ok background=#ff8080 level=top process=wait|<big>${M1}</big>"
+ exit 2
+fi
+echo -n "$URLtag" > /tmp/appimage/URLtag
+
+#there may be more than one, in that case present as a list...
+DLnum="$(echo "$URLdls" | wc -l)"
+if [ "$DLnum" == "1" ];then
+ DLxml="<text use-markup=\"true\"><label>\"<b>${URLdls##*/}</b>\"</label></text>"
+ LIST="${URLdls##*/}"
+else
+ for aDL in $URLdls
+ do
+  [ "$aDL" == "" ] && continue
+  echo "${aDL##*/}" > /tmp/appimage/APPlist
+ done
+ DLxml='<list>
+ <variable>LIST</variable>
+ <input file>/tmp/appimage/APPlist</input>
+</list>'
+fi
+
+#need to sift thru, find version...
+APPver=''
+#firstly, is it in URLtag?...
+URLver0="${URLtag##*/}"
+#a tag may be a hex code, without any decimal points, or a name...
+grep -q '\.' <<<$URLver0
+if [ $? -eq 0 ];then
+ URLver1="${URLver0/*[a-zA-Z]/}"
+ APPver="$(echo -n "${URLver1}" | sed -e 's%^\-%%')"
+else
+ grep -q '[0-9]' <<<$URLver0
+ if [ $? -eq 0 ];then
+  APPver="$URLver0" #ex: 5afb39f
+ else
+  APPver='' #exs: stable continuous
+ fi
+fi
+if [ "$APPver" == "" ];then
+ #extract version from appimage name...
+ # ex: APPIMG='Altus-VERSION-x86_64.AppImage'
+ grep -q 'VERSION' <<<$APPIMG
+ if [ $? -eq 0 ];then
+  Namepre="${APPIMG/VERSION*/}"
+  Namepost="${APPIMG/*VERSION/}"
+  APPver="$(sed -e "s%${Namepre}%%" -e "s%${Namepost}%%" <<<$APPIMG)"
+ fi
+fi
+if [ "$APPver" == "" ];then
+ APPver="$(date +%Y%m%d)"
+fi
+
+#cannot determine version, so ask user to look in browser...
+#or, there may be more than one appimage file to choose from...
+mozbare ${URLtag} &
+sleep 3
+
+#version sanity check...
+M5a="$(gettext 'The box below has the automatically-detected version number of this AppImage file.')"
+M5b="$(gettext 'The browser window has been brought up. Look there to see if there is a more correct version number. If necessary, edit the version number in the text-entry box:')"
+M5c="$(gettext '(If you cannot see a version number anywhere in the browser window, a date will be ok, but enter it without spaces)')"
+if [ "$DLnum" == "1" ];then
+ M5d="$(gettext 'This is the latest AppImage file:')"
+else
+ M5d="$(gettext 'More than one AppImage file is found. Select the one you want to download (the browser window has been brought up to help you to decide):')"
+fi
+if [ "$UPDATEflg" == "yes" ];then #UPDATEflg exported from appimage
+ M5e="$(gettext 'Click OK button, the next window will ask if you want to update from the current installed version:')"
+else
+ M5e="$(gettext 'Click OK button to download the AppImage file:')"
+fi
+while [ true ];do
+ export APPIMG_VER3="<window title=\"AppImage: version\">
+  <vbox>
+   <text use-markup=\"true\"><label>\"${M5d}\"</label></text>
+${DLxml}
+<text use-markup=\"true\"><label>\"
+${M5a}
+${M5b}
+${M5c}\"</label></text>
+   <hbox>
+    <text><label>\"                            \"</label></text>
+    <entry>
+     <variable>ENTRY</variable>
+     <default>${APPver}</default>
+    </entry>
+   </hbox>
+   <text><label>\"
+${M5e}\"</label></text>
+   <hbox>
+    <button ok></button>
+    <button cancel></button>
+   </hbox>
+  </vbox></window>"
+ RETVALS="$(gtkdialog --center --program=APPIMG_VER3)"
+ eval "$RETVALS"
+ if [ "$EXIT" != "OK" ];then
+  kill $(pgrep -f "mozbare") 2>/dev/null
+  exit 8
+ fi
+ grep -q '[0-9]' <<<$ENTRY
+ if [ $? -ne 0 ];then
+  M5c="<span fgcolor='red'><b>$(gettext 'Sorry, you must enter a version-number or a date! (and without spaces)')</b></span>"
+  continue
+ fi
+ echo -n "${LIST}" > /tmp/appimage/APPname
+ break
+done
+
+if [ "$ENTRY" ];then
+ APPver="$(echo -n "$ENTRY" | tr -d ' ')"
+fi
+
+#kill browser...
+kill $(pgrep -f "mozbare") 2>/dev/null
+echo -n "$APPver" > /tmp/appimage/APPver
+exit 0
+###end###
+
