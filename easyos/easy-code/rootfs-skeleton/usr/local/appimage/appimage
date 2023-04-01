@@ -5,6 +5,7 @@ export TEXTDOMAIN=appimages
 export TEXTDOMAINDIR=/usr/share/locale
 export OUTPUT_CHARSET=UTF-8
 
+. /etc/DISTRO_SPECS
 CR='
 '
 mkdir -p /tmp/appimage
@@ -27,8 +28,6 @@ export DLG_HELP_APPIMG="<window resizable=\"false\" title=\"$(gettext 'Help: App
 #        <item icon-name=\"cozydrive\">CozyDrive|$(gettext 'Synchronize files with laptop and desktop PC')</item>
 #get splash window, then aborts:
 #        <item icon-name=\"shotcut\">ShotCut|${FLGshotcut}|$(gettext 'Easy and powerful video editor')</item>
-#missing python module:
-#        <item icon-name=\"vidcutter\">VidCutter|${FLGvidcutter}|$(gettext 'A simple video cutter and joiner')</item>
 #/usr/lib/libgio-2.0.so.0: undefined symbol: g_module_open_full :
 #        <item icon-name=\"emacs\">Emacs|${FLGemacs}|$(gettext 'GNU Emacs text editor')</item>
 #FATAL:gpu_data_manager_impl_private.cc(986)] The display compositor is frequently crashing. Goodbye.:
@@ -75,6 +74,7 @@ export APPIMG_DLG1="<window title=\"$(gettext 'AppImage Installer')\">
         <variable>TREEaudio</variable>
         <action signal=\"enter-notify-event\" type=\"refresh\">TREEaudio</action>
         <item icon-name=\"audacity\">Audacity|${FLGaudacity}|44M|$(gettext 'A free, easy-to-use, multi-track audio editor and recorder')</item>
+        <item icon-name=\"lmms\">LMMS|${FLGlmms}|92M|$(gettext 'Synthesize and mix music')</item>
       </tree>
       <tree column-resizeable=\"0\">
         <label>${PACKAGE}||${SIZE}|${DESCRIPTION}</label>
@@ -120,9 +120,10 @@ export APPIMG_DLG1="<window title=\"$(gettext 'AppImage Installer')\">
         <variable>TREEnetwork</variable>
         <action signal=\"enter-notify-event\" type=\"refresh\">TREEnetwork</action>
         <item icon-name=\"altus\">Altus|${FLGaltus}|95M|$(gettext 'WhatsApp messaging and calls')</item>
+        <item icon-name=\"deltachat\">DeltaChat|${FLGdeltachat}|143M|$(gettext 'Desktop and phone messaging app')</item>
+        <item icon-name=\"discord\">Discord|${FLGdiscord}|90M|$(gettext 'Message and video sharing')</item>
         <item icon-name=\"electorrent\">Electorrent|${FLGelectorrent}|82M|$(gettext 'A client for uTorrent, rTorrent, Transmission, etc.')</item>
         <item icon-name=\"jitsimeet\">JitsiMeet|${FLGjitsimeet}|90M|$(gettext 'Online video conferencing')</item>
-        <item icon-name=\"keepassxc\">KeePassXC|${FLGkeepassxc}|40M|$(gettext 'Password manager')</item>
         <item icon-name=\"telegram\">Telegram|${FLGtelegram}|50M|$(gettext 'Simple, fast, secure messaging')</item>
         <item icon-name=\"thunderbird\">Thunderbird|${FLGthunderbird}|82M|$(gettext 'Mozilla mail client')</item>
         <item icon-name=\"ungoogledchromium\">UngoogledChromium|${FLGungoogledchromium}|149M|$(gettext 'Chromium browser without Google Services')</item>
@@ -147,10 +148,10 @@ export APPIMG_DLG1="<window title=\"$(gettext 'AppImage Installer')\">
         <variable>TREEproductivity</variable>
         <action signal=\"enter-notify-event\" type=\"refresh\">TREEproductivity</action>
         <item icon-name=\"acreom\">Acreom|${FLGacreom}|174M|$(gettext 'Private knowledge base')</item>
-        <item icon-name=\"deltachat\">DeltaChat|${FLGdeltachat}|143M|$(gettext 'Desktop and phone messaging app')</item>
         <item icon-name=\"goldendict\">GoldenDict|${FLGgoldendict}|56M|$(gettext 'Feature-rich dictionary lookup')</item>
         <item icon-name=\"groot\">Groot|${FLGgroot}|42M|$(gettext 'BehaviorTree diagram creator')</item>
         <item icon-name=\"heimer\">Heimer|${FLGheimer}|25M|$(gettext 'Mind mapping diagrammer tool')</item>
+        <item icon-name=\"keepassxc\">KeePassXC|${FLGkeepassxc}|40M|$(gettext 'Password manager')</item>
         <item icon-name=\"onenote\">OneNote|${FLGonenote}|93M|$(gettext 'A Linux version of Microsoft OneNote')</item>
       </tree>
       <tree column-resizeable=\"0\">
@@ -179,6 +180,7 @@ export APPIMG_DLG1="<window title=\"$(gettext 'AppImage Installer')\">
         <action signal=\"enter-notify-event\" type=\"refresh\">TREEother</action>
         <item icon-name=\"exelearning\">eXeLearning|${FLGexelearning}|97M|$(gettext 'Create educational resources')</item>
         <item icon-name=\"leocad\">LeoCAD|${FLGleocad}|125M|$(gettext 'Build models with lego bricks')</item>
+        <item icon-name=\"musicblocks\">Musicblocks|${FLGmusicblocks}|122M|$(gettext 'Explore fundamental music concepts graphically')</item>
       </tree>
 
     </notebook>
@@ -222,67 +224,71 @@ fi
 #for now, ask. see github-find-latest-ver script.
 #the URL format is: https://github.com/$MEMBER/$PROJECT/
 MEMBER=''; PROJECT=''; APPIMG=''
-DIRECTDL=''; DIRECTVER='' #20230316
+DIRECTDL=''; DIRECTVER=''
+DEFDL=''; DEFVER='' #default first d/l
 case "${aAPP}" in
- Audacity) MEMBER=audacity; PROJECT=audacity; APPIMG='audacity-linux-VERSION-x64.AppImage'; MENUcat='X-Multimedia-sound'; MENUtop='Multimedia'; MENUname='Audacity audio editor'; ;;
- GitQlient) MEMBER=francescmm; PROJECT=GitQlient; APPIMG='GitQlient-VERSION-x86_64.AppImage'; MENUcat='X-Utility-development'; MENUtop='Utility'; MENUname='GitQlient git client'; ;;
- GoldenDict) MEMBER=Abs62; PROJECT=goldendict; APPIMG='GoldenDict-VERSION-x86_64.AppImage'; MENUcat='X-Document-catalog'; MENUtop='Document'; MENUname='GoldenDict dictionary lookup'; ;;
- PlanetBlupi) MEMBER='blupi-games'; PROJECT='planetblupi-dev'; APPIMG='planetblupi.AppImage'; MENUcat='X-Fun-adventure'; MENUtop='Fun'; MENUname='PlanetBlupi adventure game'; ;;
- PhotoTool) MEMBER='aphototool'; PROJECT='A-Photo-Tool-Libre'; APPIMG='aphototoollibre_VERSION_x86_64.AppImage'; MENUcat='X-Graphic-paint'; MENUtop='Graphic'; MENUname='PhotoTool photo editor'; ;;
- CozyDrive) MEMBER='cozy-labs'; PROJECT='cozy-desktop'; APPIMG='Cozy-Drive-VERSION-x86_64.AppImage'; MENUcat='X-Network-transfer'; MENUtop='Network'; MENUname='CozyDrive sync laptop and desktop PC'; ;;
- Electorrent) MEMBER='Tympanix'; PROJECT='Electorrent'; APPIMG='Electorrent-VERSION.AppImage'; MENUcat='X-Network-transfer'; MENUtop='Network'; MENUname='Electorrent multiprotocol torrent client'; ;;
- ONLYOFFICE) MEMBER='ONLYOFFICE'; PROJECT='appimage-desktopeditors'; APPIMG='DesktopEditors-x86_64.AppImage'; MENUcat='X-Business'; MENUtop='Business'; MENUname='ONLYOFFICE office suite'; ;;
- OneNote) MEMBER='patrikx3'; PROJECT='onenote'; APPIMG='P3X-OneNote-VERSION.AppImage'; MENUcat='X-Personal-organizer'; MENUtop='Personal'; MENUname='OneNote online note taking'; ;;
- ShotCut) MEMBER='mltframework'; PROJECT='shotcut'; APPIMG='shotcut-linux-x86_64-VERSION.AppImage'; MENUcat='X-Multimedia-video'; MENUtop='Multimedia'; MENUname='ShotCut video editor'; ;;
- VidCutter) MEMBER='ozmartian'; PROJECT='vidcutter'; APPIMG='VidCutter-VERSION-x86_64.AppImage'; MENUcat='X-Multimedia-video'; MENUtop='Multimedia'; MENUname='VidCutter video cutter and joiner'; ;;
- Webcamoid) MEMBER='webcamoid'; PROJECT='webcamoid'; APPIMG='webcamoid-portable-linux-VERSION-x86_64.AppImage'; MENUcat='X-Multimedia-video'; MENUtop='Multimedia'; MENUname='Webcamoid webcam suite'; ;;
- AppImagePool) MEMBER='prateekmedia'; PROJECT='appimagepool'; APPIMG='appimagepool-VERSION-x86_64.AppImage'; MENUcat='X-Setup'; MENUtop='Setup'; MENUname='AppImagePool install from AppImageHub'; ;;
- Emacs) MEMBER='probonopd'; PROJECT='Emacs.AppImage'; APPIMG='Emacs-VERSION-x86_64.AppImage'; MENUcat='X-Document-edit'; MENUtop='Document'; MENUname='Emacs text editor'; ;;
- CircuitBlocks) MEMBER='CircuitMess'; PROJECT='CircuitBlocks'; APPIMG='CircuitBlocks-VERSION-Linux.AppImage'; MENUcat='X-Utility-development'; MENUtop='Utility'; MENUname='CircuitBlocks graphical coding for Arduino'; ;;
- Antares) MEMBER='antares-sql'; PROJECT='antares'; APPIMG='Antares-VERSION-linux_x86_64.AppImage'; MENUcat='X-Utility-development'; MENUtop='Utility'; MENUname='Antares SQL client'; ;;
- GDevelop) MEMBER='4ian'; PROJECT='GDevelop'; APPIMG='GDevelop-5-VERSION.AppImage'; MENUcat='X-Utility-development'; MENUtop='Utility'; MENUname='GDevelop no-code game creation'; ;;
- Groot) MEMBER='BehaviorTree'; PROJECT='Groot'; APPIMG='Groot-VERSION-x86_64.AppImage'; MENUcat='X-Graphic-flow'; MENUtop='Graphic'; MENUname='Groot BehaviorTree diagram creator'; ;;
- Guitar) MEMBER='soramimi'; PROJECT='Guitar'; APPIMG='Guitar-VERSION-x86_64.AppImage'; MENUcat='X-Utility-development'; MENUtop='Utility'; MENUname='Guitar GIT GUI client'; ;;
- ImHex) MEMBER='WerWolv'; PROJECT='ImHex'; APPIMG='imhex-VERSION-x86_64.AppImage'; MENUcat='X-Utility-development'; MENUtop='Utility'; MENUname='ImHex hex editor for reverse engineers'; ;;
- KiCad) MEMBER='KarlZeilhofer'; PROJECT='kicad-appimage'; APPIMG='KiCad-VERSION-x86_64.AppImage'; MENUcat='X-Graphic'; MENUtop='Graphic'; MENUname='KiCad schematic-capture and PCB layout'; ;;
- EndlessSky) MEMBER='endless-sky'; PROJECT='endless-sky'; APPIMG='Endless_Sky-vVERSION-x86_64.AppImage'; MENUcat='X-Fun-adventure'; MENUtop='Fun'; MENUname='EndlessSky outer-space adventure'; ;;
- Etcher) MEMBER='balena-io'; PROJECT='etcher'; APPIMG='balenaEtcher-VERSION-x64.AppImage'; MENUcat='X-Setup-installation'; MENUtop='Setup'; MENUname='Etcher write OS to SD and USB drive'; ;;
+ Audacity) DEFDL='https://github.com/audacity/audacity/releases/download/Audacity-3.2.5/audacity-linux-3.2.5-x64.AppImage'; DEFVER='3.2.5'; MEMBER=audacity; PROJECT=audacity; APPIMG='audacity-linux-VERSION-x64.AppImage'; MENUcat='X-Multimedia-sound'; MENUtop='Multimedia'; MENUname='Audacity audio editor'; ;;
+ GitQlient) DEFDL='https://github.com/francescmm/GitQlient/releases/download/v1.6.1/GitQlient-1.6.1-x86_64.AppImage'; DEFVER='1.6.1'; MEMBER=francescmm; PROJECT=GitQlient; APPIMG='GitQlient-VERSION-x86_64.AppImage'; MENUcat='X-Utility-development'; MENUtop='Utility'; MENUname='GitQlient git client'; ;;
+ GoldenDict) DEFDL='http://distro.ibiblio.org/easyos/amd64/packages/appimage/easyos/oe/kirkstone/GoldenDict-661dd4d-x86_64.AppImage'; DEFVER='661dd4d'; MEMBER='Abs62'; PROJECT='goldendict'; APPIMG='GoldenDict-VERSION-x86_64.AppImage'; MENUcat='X-Document-catalog'; MENUtop='Document'; MENUname='GoldenDict dictionary lookup'; ;;
+ PlanetBlupi) DEFDL='https://github.com/blupi-games/planetblupi-dev/releases/download/v1.14.2/planetblupi.AppImage'; DEFVER='1.14.2'; MEMBER='blupi-games'; PROJECT='planetblupi-dev'; APPIMG='planetblupi.AppImage'; MENUcat='X-Fun-adventure'; MENUtop='Fun'; MENUname='PlanetBlupi adventure game'; ;;
+ PhotoTool) DEFDL='https://github.com/aphototool/A-Photo-Tool-Libre/releases/download/v1.0.5-3/aphototoollibre_1.0.5-3_x86_64.AppImage'; DEFVER='1.0.5-3'; MEMBER='aphototool'; PROJECT='A-Photo-Tool-Libre'; APPIMG='aphototoollibre_VERSION_x86_64.AppImage'; MENUcat='X-Graphic-paint'; MENUtop='Graphic'; MENUname='PhotoTool photo editor'; ;;
+ CozyDrive) DEFDL=''; DEFVER=''; MEMBER='cozy-labs'; PROJECT='cozy-desktop'; APPIMG='Cozy-Drive-VERSION-x86_64.AppImage'; MENUcat='X-Network-transfer'; MENUtop='Network'; MENUname='CozyDrive sync laptop and desktop PC'; ;;
+ Electorrent) DEFDL='https://github.com/tympanix/Electorrent/releases/download/v2.8.3/Electorrent-2.8.3.AppImage'; DEFVER='2.8.3'; MEMBER='Tympanix'; PROJECT='Electorrent'; APPIMG='Electorrent-VERSION.AppImage'; MENUcat='X-Network-transfer'; MENUtop='Network'; MENUname='Electorrent multiprotocol torrent client'; ;;
+ ONLYOFFICE) DEFDL='https://github.com/ONLYOFFICE/appimage-desktopeditors/releases/download/v7.3.0/DesktopEditors-x86_64.AppImage'; DEFVER='7.3.0'; MEMBER='ONLYOFFICE'; PROJECT='appimage-desktopeditors'; APPIMG='DesktopEditors-x86_64.AppImage'; MENUcat='X-Business'; MENUtop='Business'; MENUname='ONLYOFFICE office suite'; ;;
+ OneNote) DEFDL='https://github.com/patrikx3/onenote/releases/download/v2023.4.117/P3X-OneNote-2023.4.117.AppImage'; DEFVER='2023.4.117'; MEMBER='patrikx3'; PROJECT='onenote'; APPIMG='P3X-OneNote-VERSION.AppImage'; MENUcat='X-Personal-organizer'; MENUtop='Personal'; MENUname='OneNote online note taking'; ;;
+ ShotCut) DEFDL=''; DEFVER=''; MEMBER='mltframework'; PROJECT='shotcut'; APPIMG='shotcut-linux-x86_64-VERSION.AppImage'; MENUcat='X-Multimedia-video'; MENUtop='Multimedia'; MENUname='ShotCut video editor'; ;;
+ VidCutter) DEFDL='https://github.com/ozmartian/vidcutter/releases/download/6.0.5.1/VidCutter-6.0.5.1-x86_64.AppImage'; DEFVER='6.0.5.1'; MEMBER='ozmartian'; PROJECT='vidcutter'; APPIMG='VidCutter-VERSION-x86_64.AppImage'; MENUcat='X-Multimedia-video'; MENUtop='Multimedia'; MENUname='VidCutter video cutter and joiner'; ;;
+ Webcamoid) DEFDL='https://github.com/webcamoid/webcamoid/releases/download/9.0.0/webcamoid-portable-linux-9.0.0-x86_64.AppImage'; DEFVER='9.0.0'; MEMBER='webcamoid'; PROJECT='webcamoid'; APPIMG='webcamoid-portable-linux-VERSION-x86_64.AppImage'; MENUcat='X-Multimedia-video'; MENUtop='Multimedia'; MENUname='Webcamoid webcam suite'; ;;
+ AppImagePool) DEFDL=''; DEFVER=''; MEMBER='prateekmedia'; PROJECT='appimagepool'; APPIMG='appimagepool-VERSION-x86_64.AppImage'; MENUcat='X-Setup'; MENUtop='Setup'; MENUname='AppImagePool install from AppImageHub'; ;;
+ Emacs) DEFDL=''; DEFVER=''; MEMBER='probonopd'; PROJECT='Emacs.AppImage'; APPIMG='Emacs-VERSION-x86_64.AppImage'; MENUcat='X-Document-edit'; MENUtop='Document'; MENUname='Emacs text editor'; ;;
+ CircuitBlocks) DEFDL=''; DEFVER=''; MEMBER='CircuitMess'; PROJECT='CircuitBlocks'; APPIMG='CircuitBlocks-VERSION-Linux.AppImage'; MENUcat='X-Utility-development'; MENUtop='Utility'; MENUname='CircuitBlocks graphical coding for Arduino'; ;;
+ Antares) DEFDL='https://github.com/antares-sql/antares/releases/download/v0.7.7/Antares-0.7.7-linux_x86_64.AppImage'; DEFVER='0.7.7'; MEMBER='antares-sql'; PROJECT='antares'; APPIMG='Antares-VERSION-linux_x86_64.AppImage'; MENUcat='X-Utility-development'; MENUtop='Utility'; MENUname='Antares SQL client'; ;;
+ GDevelop) DEFDL='https://github.com/4ian/GDevelop/releases/download/v5.1.158/GDevelop-5-5.1.158.AppImage'; DEFVER='5.1.158'; MEMBER='4ian'; PROJECT='GDevelop'; APPIMG='GDevelop-5-VERSION.AppImage'; MENUcat='X-Utility-development'; MENUtop='Utility'; MENUname='GDevelop no-code game creation'; ;;
+ Groot) DEFDL='https://github.com/BehaviorTree/Groot/releases/download/1.0.0/Groot-1.0.0-x86_64.AppImage'; DEFVER='1.0.0'; MEMBER='BehaviorTree'; PROJECT='Groot'; APPIMG='Groot-VERSION-x86_64.AppImage'; MENUcat='X-Graphic-flow'; MENUtop='Graphic'; MENUname='Groot BehaviorTree diagram creator'; ;;
+ Guitar) DEFDL='https://github.com/soramimi/Guitar/releases/download/v1.2.0/Guitar-1001631-x86_64.AppImage'; DEFVER='1.2.0'; MEMBER='soramimi'; PROJECT='Guitar'; APPIMG='Guitar-VERSION-x86_64.AppImage'; MENUcat='X-Utility-development'; MENUtop='Utility'; MENUname='Guitar GIT GUI client'; ;;
+ ImHex) DEFDL=''; DEFVER=''; MEMBER='WerWolv'; PROJECT='ImHex'; APPIMG='imhex-VERSION-x86_64.AppImage'; MENUcat='X-Utility-development'; MENUtop='Utility'; MENUname='ImHex hex editor for reverse engineers'; ;;
+ KiCad) DEFDL=''; DEFVER=''; MEMBER='KarlZeilhofer'; PROJECT='kicad-appimage'; APPIMG='KiCad-VERSION-x86_64.AppImage'; MENUcat='X-Graphic'; MENUtop='Graphic'; MENUname='KiCad schematic-capture and PCB layout'; ;;
+ EndlessSky) DEFDL='https://github.com/endless-sky/endless-sky/releases/download/v0.10.0/Endless_Sky-v0.10.0-x86_64.AppImage'; DEFVER='0.10.0'; MEMBER='endless-sky'; PROJECT='endless-sky'; APPIMG='Endless_Sky-vVERSION-x86_64.AppImage'; MENUcat='X-Fun-adventure'; MENUtop='Fun'; MENUname='EndlessSky outer-space adventure'; ;;
+ Etcher) DEFDL='https://github.com/balena-io/etcher/releases/download/v1.18.4/balenaEtcher-1.18.4-x64.AppImage'; DEFVER='1.18.4'; MEMBER='balena-io'; PROJECT='etcher'; APPIMG='balenaEtcher-VERSION-x64.AppImage'; MENUcat='X-Setup-installation'; MENUtop='Setup'; MENUname='Etcher write OS to SD and USB drive'; ;;
  Krita) DIRECTDL='https://download.kde.org/stable/krita/5.1.5/krita-5.1.5-x86_64.appimage'; DIRECTVER='5.1.5'; MENUcat='X-Graphic'; MENUtop='Graphic'; MENUname='Krita vector and raster editor'; ;;
  Kdenlive) DIRECTDL='https://download.kde.org/stable/kdenlive/22.12/linux/kdenlive-22.12.3-x86_64.AppImage'; DIRECTVER='22.12.3'; MENUcat='X-Multimedia-video'; MENUtop='Multimedia'; MENUname='Kdenlive video editor'; ;;
- Dust3D) MEMBER='huxingyi'; PROJECT='dust3d'; APPIMG='dust3d-VERSION.AppImage'; MENUcat='X-Graphic'; MENUtop='Graphic'; MENUname='Dust3D 3D modeler'; ;;
- DbGate) MEMBER='dbgate'; PROJECT='dbgate'; APPIMG='dbgate-VERSION-linux_x86_64.AppImage'; MENUcat='X-Business'; MENUtop='Business'; MENUname='DbGate SQL and noSQL client'; ;;
- Figma) MEMBER='Figma-Linux'; PROJECT='figma-linux'; APPIMG='figma-linux_VERSION_linux_x86_64.AppImage'; MENUcat='X-Utility-development'; MENUtop='Utility'; MENUname='Figma User Interface design tool'; ;;
- FreeCAD) MEMBER='FreeCAD'; PROJECT='FreeCAD'; APPIMG='FreeCAD_VERSION-conda-Linux-x86_64-py310.AppImage'; MENUcat='X-Graphic'; MENUtop='Graphic'; MENUname='FreeCAD 3D parametric modeler'; ;;
- Glyphr) MEMBER='glyphr-studio'; PROJECT='Glyphr-Studio-Desktop'; APPIMG='Glyphr.Studio-VERSION.AppImage'; MENUcat='X-Graphic'; MENUtop='Graphic'; MENUname='Glyphr Studio font designer'; ;;
- Heimer) MEMBER='juzzlin'; PROJECT='Heimer'; APPIMG='Heimer-VERSION-x86_64.AppImage'; MENUcat='X-Graphic-flow'; MENUtop='Graphic'; MENUname='Heimer mind mapping tool'; ;;
- Insight) MEMBER='antony-jr'; PROJECT='insight'; APPIMG='Insight-x86_64-pc-linux-gnu-VERSION-x86_64.AppImage'; MENUcat='X-Utility-development'; MENUtop='Utility'; MENUname='Insight frontend for GNU Debugger'; ;;
- KOReader) MEMBER='koreader'; PROJECT='koreader'; APPIMG='koreader-appimage-x86_64-linux-gnu-vVERSION.AppImage'; MENUcat='X-Document-viewer'; MENUtop='Document'; MENUname='KOReader multi-format e-boot reader'; ;;
- KeePassXC) MEMBER='keepassxreboot'; PROJECT='keepassxc'; APPIMG='KeePassXC-VERSION-x86_64.AppImage'; MENUcat='X-Personal-security'; MENUtop='Personal'; MENUname='KeePassXC password manager'; ;;
- LosslessCut) MEMBER='mifi'; PROJECT='lossless-cut'; APPIMG='LosslessCut-linux-x86_64.AppImage'; MENUcat='X-Multimedia-video'; MENUtop='Multimedia'; MENUname='LosslessCut video editor'; ;;
+ Dust3D) DEFDL='https://github.com/huxingyi/dust3d/releases/download/1.0.0-rc.7/dust3d-1.0.0-rc.7.AppImage'; DEFVER='1.0.0-rc.7'; MEMBER='huxingyi'; PROJECT='dust3d'; APPIMG='dust3d-VERSION.AppImage'; MENUcat='X-Graphic'; MENUtop='Graphic'; MENUname='Dust3D 3D modeler'; ;;
+ DbGate) DEFDL='https://github.com/dbgate/dbgate/releases/download/v5.2.4/dbgate-5.2.4-linux_x86_64.AppImage'; DEFVER='5.2.4'; MEMBER='dbgate'; PROJECT='dbgate'; APPIMG='dbgate-VERSION-linux_x86_64.AppImage'; MENUcat='X-Business'; MENUtop='Business'; MENUname='DbGate SQL and noSQL client'; ;;
+ Figma) DEFDL='https://github.com/Figma-Linux/figma-linux/releases/download/v0.10.0/figma-linux_0.10.0_linux_x86_64.AppImage'; DEFVER='0.10.0'; MEMBER='Figma-Linux'; PROJECT='figma-linux'; APPIMG='figma-linux_VERSION_linux_x86_64.AppImage'; MENUcat='X-Utility-development'; MENUtop='Utility'; MENUname='Figma User Interface design tool'; ;;
+ FreeCAD) DEFDL='https://github.com/FreeCAD/FreeCAD/releases/download/0.20.2/FreeCAD_0.20.2-2022-12-27-conda-Linux-x86_64-py310.AppImage'; DEFVER='0.20.2'; MEMBER='FreeCAD'; PROJECT='FreeCAD'; APPIMG='FreeCAD_VERSION-conda-Linux-x86_64-py310.AppImage'; MENUcat='X-Graphic'; MENUtop='Graphic'; MENUname='FreeCAD 3D parametric modeler'; ;;
+ Glyphr) DEFDL='https://github.com/glyphr-studio/Glyphr-Studio-Desktop/releases/download/v0.5.6/Glyphr.Studio-0.5.6.AppImage'; DEFVER='0.5.6'; MEMBER='glyphr-studio'; PROJECT='Glyphr-Studio-Desktop'; APPIMG='Glyphr.Studio-VERSION.AppImage'; MENUcat='X-Graphic'; MENUtop='Graphic'; MENUname='Glyphr Studio font designer'; ;;
+ Heimer) DEFDL='https://github.com/juzzlin/Heimer/releases/download/4.0.0/Heimer-4.0.0-x86_64.AppImage'; DEFVER='4.0.0'; MEMBER='juzzlin'; PROJECT='Heimer'; APPIMG='Heimer-VERSION-x86_64.AppImage'; MENUcat='X-Graphic-flow'; MENUtop='Graphic'; MENUname='Heimer mind mapping tool'; ;;
+ Insight) DEFDL='https://github.com/antony-jr/insight/releases/download/5afb39f/Insight-x86_64-pc-linux-gnu-5afb39f-x86_64.AppImage'; DEFVER='5afb39f'; MEMBER='antony-jr'; PROJECT='insight'; APPIMG='Insight-x86_64-pc-linux-gnu-VERSION-x86_64.AppImage'; MENUcat='X-Utility-development'; MENUtop='Utility'; MENUname='Insight frontend for GNU Debugger'; ;;
+ KOReader) DEFDL='https://github.com/koreader/koreader/releases/download/v2023.01/koreader-appimage-x86_64-linux-gnu-v2023.01.AppImage'; DEFVER='2023.01'; MEMBER='koreader'; PROJECT='koreader'; APPIMG='koreader-appimage-x86_64-linux-gnu-vVERSION.AppImage'; MENUcat='X-Document-viewer'; MENUtop='Document'; MENUname='KOReader multi-format e-boot reader'; ;;
+ KeePassXC) DEFDL='https://github.com/keepassxreboot/keepassxc/releases/download/2.7.4/KeePassXC-2.7.4-x86_64.AppImage'; DEFVER='2.7.4'; MEMBER='keepassxreboot'; PROJECT='keepassxc'; APPIMG='KeePassXC-VERSION-x86_64.AppImage'; MENUcat='X-Personal-security'; MENUtop='Personal'; MENUname='KeePassXC password manager'; ;;
+ LosslessCut) DEFDL='https://github.com/mifi/lossless-cut/releases/download/v3.53.0/LosslessCut-linux-x86_64.AppImage'; DEFVER='3.53.0'; MEMBER='mifi'; PROJECT='lossless-cut'; APPIMG='LosslessCut-linux-x86_64.AppImage'; MENUcat='X-Multimedia-video'; MENUtop='Multimedia'; MENUname='LosslessCut video editor'; ;;
  OpenSCAD) DIRECTDL='https://files.openscad.org/OpenSCAD-2021.01-x86_64.AppImage'; DIRECTVER='2021.01'; MENUcat='X-Graphic'; MENUtop='Graphic'; MENUname='OpenSCAD solid 3D modeller'; ;;
- KoodoReader) MEMBER='troyeguo'; PROJECT='koodo-reader'; APPIMG='Koodo-Reader-VERSION-x86_64.AppImage'; MENUcat='X-Document-viewer'; MENUtop='Document'; MENUname='KoodoReader multi-format e-book reader'; ;;
- DeltaChat) MEMBER='deltachat'; PROJECT='deltachat-desktop'; APPIMG='DeltaChat-VERSION.AppImage'; MENUcat='X-Personal'; MENUtop='Personal'; MENUname='DeltaChat PC and phone messaging app'; ;;
- PDFQuirk) MEMBER='dragotin'; PROJECT='pdfquirk'; APPIMG='PDFQuirk-continuous-x86_64.AppImage'; MENUcat='X-Graphic-utility'; MENUtop='Graphic'; MENUname='PDFQuirk image to PDF converter'; ;;
+ KoodoReader) DEFDL='https://github.com/troyeguo/koodo-reader/releases/download/v1.5.1/Koodo-Reader-1.5.1.AppImage'; DEFVER='1.5.1'; MEMBER='troyeguo'; PROJECT='koodo-reader'; APPIMG='Koodo-Reader-VERSION-x86_64.AppImage'; MENUcat='X-Document-viewer'; MENUtop='Document'; MENUname='KoodoReader multi-format e-book reader'; ;;
+ DeltaChat) DEFDL='https://github.com/deltachat/deltachat-desktop/releases/download/v1.34.4/DeltaChat-1.34.4.AppImage'; DEFVER='1.34.4'; MEMBER='deltachat'; PROJECT='deltachat-desktop'; APPIMG='DeltaChat-VERSION.AppImage'; MENUcat='X-Personal'; MENUtop='Personal'; MENUname='DeltaChat PC and phone messaging app'; ;;
+ PDFQuirk) DEFDL='https://github.com/dragotin/pdfquirk/releases/download/v0.95/PDFQuirk-continuous-x86_64.AppImage'; DEFVER='0.95'; MEMBER='dragotin'; PROJECT='pdfquirk'; APPIMG='PDFQuirk-continuous-x86_64.AppImage'; MENUcat='X-Graphic-utility'; MENUtop='Graphic'; MENUname='PDFQuirk image to PDF converter'; ;;
  #UngoogledChromium) DIRECTDL='https://github.com/clickot/ungoogled-chromium-binaries/releases/download/111.0.5563.65-1/ungoogled-chromium_111.0.5563.65-1.1.AppImage'; DIRECTVER='111.0.5563.65-1'; MENUcat='X-Internet-browser'; MENUtop='Internet'; MENUname='UngoogledChromium browser sans Google Services'; ;;
- UngoogledChromium) MEMBER='clickot'; PROJECT='ungoogled-chromium-binaries'; APPIMG='ungoogled-chromium_VERSION.1.AppImage'; MENUcat='X-Internet-browser'; MENUtop='Internet'; MENUname='UngoogledChromium browser sans Google Services'; ;;
+ UngoogledChromium) DEFDL='https://github.com/clickot/ungoogled-chromium-binaries/releases/download/111.0.5563.65-1/ungoogled-chromium_111.0.5563.65-1.1.AppImage'; DEFVER='111.0.5563.65-1'; MEMBER='clickot'; PROJECT='ungoogled-chromium-binaries'; APPIMG='ungoogled-chromium_VERSION.1.AppImage'; MENUcat='X-Internet-browser'; MENUtop='Internet'; MENUname='UngoogledChromium browser sans Google Services'; ;;
  digiKam) DIRECTDL='https://download.kde.org/stable/digikam/7.10.0/digiKam-7.10.0-x86-64.appimage'; DIRECTVER='7.10.0'; MENUcat='X-Graphic'; MENUtop='Graphic'; MENUname='digiKam professional photo manager'; ;;
- eXeLearning) MEMBER='exelearning'; PROJECT='iteexe'; APPIMG='eXe-VERSION.glibc2.28-x86_64.AppImage'; MENUcat='X-Document'; MENUtop='Document'; MENUname='eXeLearning create education resources'; ;;
- Nanosaur) MEMBER='jorio'; PROJECT='Nanosaur'; APPIMG='Nanosaur-VERSION-linux-x86_64.AppImage'; MENUcat='X-Fun-adventure'; MENUtop='Fun'; MENUname='Nanosaur 3D strategy game'; ;;
- OttoMatic) MEMBER='jorio'; PROJECT='OttoMatic'; APPIMG='OttoMatic-VERSION-linux-x86_64.AppImage'; MENUcat='X-Fun-adventure'; MENUtop='Fun'; MENUname='Nanosaur 3D strategy game'; ;;
- Thunderbird) MEMBER='srevinsaju'; PROJECT='Thunderbird-AppImage'; APPIMG='Thunderbird-VERSION.AppImage'; MENUcat='X-Internet-mailnews'; MENUtop='Internet'; MENUname='Thunderbird mail client'; ;;
- JitsiMeet) MEMBER='jitsi'; PROJECT='jitsi-meet-electron'; APPIMG='jitsi-meet-x86_64.AppImage'; MENUcat='X-Internet-chat'; MENUtop='Internet'; MENUname='JitsiMeet video conferencing'; ;;
- Acreom) MEMBER='Acreom'; PROJECT='releases'; APPIMG='acreom-VERSION.AppImage'; MENUcat='X-Personal'; MENUtop='Personal'; MENUname='Acreom private knowledge base'; ;;
- Zoom) MEMBER='probonopd'; PROJECT='Zoom.AppImage'; APPIMG='Zoom-VERSION-x86_64.AppImage'; MENUcat='VideoConference'; MENUtop='Internet'; MENUname='Zoom video conferencing'; ;;
+ eXeLearning) DEFDL=''; DEFVER=''; MEMBER='exelearning'; PROJECT='iteexe'; APPIMG='eXe-VERSION.glibc2.28-x86_64.AppImage'; MENUcat='X-Document'; MENUtop='Document'; MENUname='eXeLearning create education resources'; ;;
+ Nanosaur) DEFDL='https://github.com/jorio/Nanosaur/releases/download/v1.4.4/Nanosaur-1.4.4-linux-x86_64.AppImage'; DEFVER='1.4.4'; MEMBER='jorio'; PROJECT='Nanosaur'; APPIMG='Nanosaur-VERSION-linux-x86_64.AppImage'; MENUcat='X-Fun-adventure'; MENUtop='Fun'; MENUname='Nanosaur 3D strategy game'; ;;
+ OttoMatic) DEFDL='https://github.com/jorio/OttoMatic/releases/download/4.0.1/OttoMatic-4.0.1-linux-x86_64.AppImage'; DEFVER='4.0.1'; MEMBER='jorio'; PROJECT='OttoMatic'; APPIMG='OttoMatic-VERSION-linux-x86_64.AppImage'; MENUcat='X-Fun-adventure'; MENUtop='Fun'; MENUname='Nanosaur 3D strategy game'; ;;
+ Thunderbird) DEFDL='https://github.com/srevinsaju/Thunderbird-AppImage/releases/download/stable/Thunderbird-102.8_20230214184313.AppImage'; DEFVER='102.8'; MEMBER='srevinsaju'; PROJECT='Thunderbird-AppImage'; APPIMG='Thunderbird-VERSION.AppImage'; MENUcat='X-Internet-mailnews'; MENUtop='Internet'; MENUname='Thunderbird mail client'; ;;
+ JitsiMeet) DEFDL='https://github.com/jitsi/jitsi-meet-electron/releases/download/v2023.2.0/jitsi-meet-x86_64.AppImage'; DEFVER='2023.2.0'; MEMBER='jitsi'; PROJECT='jitsi-meet-electron'; APPIMG='jitsi-meet-x86_64.AppImage'; MENUcat='X-Internet-chat'; MENUtop='Internet'; MENUname='JitsiMeet video conferencing'; ;;
+ Acreom) DEFDL='https://github.com/Acreom/releases/releases/download/v1.5.7/acreom-1.5.7.AppImage'; DEFVER='1.5.7'; MEMBER='Acreom'; PROJECT='releases'; APPIMG='acreom-VERSION.AppImage'; MENUcat='X-Personal'; MENUtop='Personal'; MENUname='Acreom private knowledge base'; ;;
+ Zoom) DEFDL='http://distro.ibiblio.org/easyos/amd64/packages/appimage/easyos/oe/kirkstone/Zoom-5.13.11.1288.glibc2.17-x86_64.AppImage'; DEFVER='5.13.11.1288'; MEMBER='probonopd'; PROJECT='Zoom.AppImage'; APPIMG='Zoom-VERSION-x86_64.AppImage'; MENUcat='VideoConference'; MENUtop='Internet'; MENUname='Zoom video conferencing'; ;;
  OpenShot) DIRECTDL='https://github.com/OpenShot/openshot-qt/releases/download/daily/OpenShot-v3.0.0-daily-11120-f0b44c51-b5bbab66-x86_64.AppImage'; DIRECTVER='3.0.0'; MENUcat='X-Multimedia-video'; MENUtop='Multimedia'; MENUname='OpenShot video editor'; ;;
- Altus) MEMBER='amanharwara'; PROJECT='altus'; APPIMG='Altus-VERSION-x86_64.AppImage'; MENUcat='X-Internet-chat'; MENUtop='Internet'; MENUname='Altus WhatsApp messaging and calls'; ;;
- DBBrowser) MEMBER='sqlitebrowser'; PROJECT='sqlitebrowser'; APPIMG='DB_Browser_for_SQLite-vVERSION-x86_64.AppImage'; MENUcat='X-Business'; MENUtop='Business'; MENUname='DBBrowser create and edit SQLITE databases'; ;;
- Telegram) MEMBER='srevinsaju'; PROJECT='Telegram-AppImage'; APPIMG='Telegram_Desktop-x86_64.AppImage'; MENUcat='X-Internet-chat'; MENUtop='Internet'; MENUname='Telegram messaging'; ;;
- LibreCAD) MEMBER='LibreCAD'; PROJECT='LibreCAD'; APPIMG='LibreCAD-VERSION-x86_64.AppImage'; MENUcat='X-Graphic'; MENUtop='Graphic'; MENUname='LibreCAD 2D CAD'; ;;
- LeoCAD) MEMBER='leozide'; PROJECT='leocad'; APPIMG='LeoCAD-Linux-VERSION-x86_64.AppImage'; MENUcat='X-Graphic'; MENUtop='Graphic'; MENUname='LeoCAD build with lego bricks'; ;;
- CroMagRally) MEMBER='jorio'; PROJECT='CroMagRally'; APPIMG='CroMagRally-VERSION-linux-x86_64.AppImage'; MENUcat='X-Fun-adventure'; MENUtop='Fun'; MENUname='CroMagRally car racing'; ;;
+ Altus) DEFDL='https://github.com/amanharwara/altus/releases/download/4.8.5/Altus-4.8.5-x86_64.AppImage'; DEFVER='4.8.5'; MEMBER='amanharwara'; PROJECT='altus'; APPIMG='Altus-VERSION-x86_64.AppImage'; MENUcat='X-Internet-chat'; MENUtop='Internet'; MENUname='Altus WhatsApp messaging and calls'; ;;
+ DBBrowser) DEFDL='https://github.com/sqlitebrowser/sqlitebrowser/releases/download/v3.12.2/DB_Browser_for_SQLite-v3.12.2-x86_64.AppImage'; DEFVER='3.12.2'; MEMBER='sqlitebrowser'; PROJECT='sqlitebrowser'; APPIMG='DB_Browser_for_SQLite-vVERSION-x86_64.AppImage'; MENUcat='X-Business'; MENUtop='Business'; MENUname='DBBrowser create and edit SQLITE databases'; ;;
+ Telegram) DEFDL='https://github.com/srevinsaju/Telegram-AppImage/releases/download/v3.2.5/Telegram_Desktop-x86_64.AppImage'; DEFVER='3.2.5'; MEMBER='srevinsaju'; PROJECT='Telegram-AppImage'; APPIMG='Telegram_Desktop-x86_64.AppImage'; MENUcat='X-Internet-chat'; MENUtop='Internet'; MENUname='Telegram messaging'; ;;
+ LibreCAD) DEFDL='https://github.com/LibreCAD/LibreCAD/releases/download/2.2.0/LibreCAD-2.2.0-x86_64.AppImage'; DEFVER='2.2.0'; MEMBER='LibreCAD'; PROJECT='LibreCAD'; APPIMG='LibreCAD-VERSION-x86_64.AppImage'; MENUcat='X-Graphic'; MENUtop='Graphic'; MENUname='LibreCAD 2D CAD'; ;;
+ LeoCAD) DEFDL='https://github.com/leozide/leocad/releases/download/v23.03/LeoCAD-Linux-23.03-x86_64.AppImage'; DEFVER='23.03'; MEMBER='leozide'; PROJECT='leocad'; APPIMG='LeoCAD-Linux-VERSION-x86_64.AppImage'; MENUcat='X-Graphic'; MENUtop='Graphic'; MENUname='LeoCAD build with lego bricks'; ;;
+ CroMagRally) DEFDL=''; DEFVER=''; MEMBER='jorio'; PROJECT='CroMagRally'; APPIMG='CroMagRally-VERSION-linux-x86_64.AppImage'; MENUcat='X-Fun-adventure'; MENUtop='Fun'; MENUname='CroMagRally car racing'; ;;
  MyPaint) DIRECTDL='https://github.com/mypaint/mypaint/releases/download/v2.0.1/MyPaint-v2.0.1-alt.AppImage'; DIRECTVER='2.0.1'; MENUcat='X-Graphic-paint'; MENUtop='Graphic'; MENUname='MyPaint paint program'; ;;
  Calibre) DIRECTDL='https://distro.ibiblio.org/easyos/amd64/packages/appimage/easyos/oe/kirkstone/calibre-5.44.0-x86-64.AppImage'; DIRECTVER='5.44.0'; MENUcat='X-Document-viewer'; MENUtop='Document'; MENUname='Calibre e-book reader'; ;;
- ZZZ) MEMBER=''; PROJECT=''; APPIMG=''; MENUcat=''; MENUtop=''; MENUname=''; ;;
+ LMMS) DIRECTDL='https://github.com/LMMS/lmms/releases/download/v1.2.2/lmms-1.2.2-linux-x86_64.AppImage'; DIRECTVER='1.2.2'; MENUcat='X-Multimedia-sound'; MENUtop='Multimedia'; MENUname='LMMS synthesize and mix music'; ;;
+ Musicblocks) DIRECTDL='https://github.com/srevinsaju/musicblocks-app/releases/download/v3.1.0/Musicblocks-3.1.0.AppImage'; DIRECTVER='3.1.0'; MENUcat='X-Personal-education'; MENUtop='Personal'; MENUname='Musicblocks explore music concepts'; ;;
+ Discord) DEFDL='https://github.com/srevinsaju/discord-appimage/releases/download/stable/Discord-0.0.26-x86_64.AppImage'; DEFVER='0.0.26'; MEMBER='srevinsaju'; PROJECT='discord-appimage'; APPIMG='Discord-VERSION-x86_64.AppImage'; MENUcat='X-Internet-chat'; MENUtop='Internet'; MENUname='Discord message and video sharing'; ;;
+ ZZZ) DEFDL=''; DEFVER=''; MEMBER=''; PROJECT=''; APPIMG=''; MENUcat=''; MENUtop=''; MENUname=''; ;;
  *)
   exit
  ;;
@@ -408,26 +414,49 @@ if [ ! -s /tmp/pup_event_backend/network_ ];then
 fi
 
 FLG1=0
+CHOOSEDL=''; CHOOSEVER=''
 if [ "$DIRECTDL" != "" ];then
+ #hardcoded d/l cannot be updated...
  if [ "$UPDATEflg" == "yes" ];then #precaution.
   exit
  fi
- APPname="${DIRECTDL##*/}"
- APPver="${DIRECTVER}"
+ CHOOSEDL="$DIRECTDL"
+ CHOOSEVER="$DIRECTVER"
+fi
+if [ "$UPDATEflg" != "yes" ];then
+ if [ "$DEFDL" != "" ];then
+  #first install, want a known working appimage...
+  CHOOSEDL="$DEFDL"
+  CHOOSEVER="$DEFVER"
+ fi
+fi
+
+if [ "$CHOOSEDL" != "" ];then
+ APPname="${CHOOSEDL##*/}"
+ APPver="${CHOOSEVER}"
  echo -n "$APPname" > /tmp/appimage/APPname
  echo -n "$APPver" > /tmp/appimage/APPver
  echo -n '' > /tmp/appimage/URLtag
- echo -n "$DIRECTDL" > /tmp/appimage/URLdl
+ echo -n "$CHOOSEDL" > /tmp/appimage/URLdl
  mkdir -p /mnt/wkg/appimage/${aAPP,,}
  cd /mnt/wkg/appimage/${aAPP,,}
  APPnew="${aAPP,,}-${APPver}.AppImage" #this is what renamed to after d/l.
  if [ ! -f "$APPname" ];then #20230317 support manual download.
   if [ ! -f "$APPnew" ];then
-   download_file "${DIRECTDL}"
+   download_file "${CHOOSEDL}"
    FLG1=$?
+   if [ $FLG1 -ne 0 ];then
+    M9="$(gettext 'Download failed, trying a mirror site')"
+    popup "level=top background=#ff8080|<big><big>${M9}</big></big> "
+    CHOOSEname="${CHOOSEDL##*/}"
+    download_file https://distro.ibiblio.org/easyos/${DISTRO_TARGETARCH}/packages/appimage/easyos/${DISTRO_BINARY_COMPAT}/${DISTRO_COMPAT_VERSION}/${CHOOSEname}
+    FLG1=$?
+    killall popup
+   fi
   fi
  fi
 else
+ #this is an update.
  /usr/local/appimage/github-find-latest-ver-api ${MEMBER} ${PROJECT} ${APPIMG}
  #...creates /tmp/appimage/URLtag, APPver, APPname
  if [ $? -ne 0 ];then
