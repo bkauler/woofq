@@ -19,7 +19,8 @@ $(gettext 'Upon installation, a menu-entry is created, and you are good-to-go.')
 <b>$(gettext 'Notes')</b>
 $(gettext 'A tick in the second column means that the AppImage is already installed. You may then have the opportunity of updating or deleting it.')
 $(gettext 'After an AppImage is installed, the file-manager will recognize the file types handled by that app. Right-click on an appropriate file and the AppImage will be offered to open it.')
-$(gettext 'If you entered a password at first bootup of EasyOS, then all working folders are encrypted, and this includes files created by the AppImage while you are using it. If your USB-stick, or on whatever media EasyOS is installed, is stolen, your data is safe.')"
+$(gettext 'If you entered a password at first bootup of EasyOS, then all working folders are encrypted, and this includes files created by the AppImage while you are using it. If your USB-stick, or on whatever media EasyOS is installed, is stolen, your data is safe.')
+$(gettext 'If an app offers to update to latest version, decline. An app running in an AppImage is usually unable to update, as it is a squashfs read-only filesystem. Instead, use this AppImage Installer to probe for a later AppImage file.')"
 export DLG_HELP_APPIMG="<window resizable=\"false\" title=\"$(gettext 'Help: AppImage Installer')\" icon-name=\"gtk-index\" window_position=\"1\"><vbox><text use-markup=\"true\"><label>\"${H_appimg}\"</label><variable>DLG_HELP_APPIMG</variable></text><hbox><button><label>$(gettext 'Close')</label><action type=\"closewindow\">DLG_HELP_APPIMG</action></button></hbox></vbox></window>"
 
 #does not work, due to internal libs requiring a later glibc:
@@ -133,6 +134,7 @@ export APPIMG_DLG1="<window title=\"$(gettext 'AppImage Installer')\">
         <variable>TREEoffice</variable>
         <action signal=\"enter-notify-event\" type=\"refresh\">TREEoffice</action>
         <item icon-name=\"antares\">Antares|${FLGantares}|126M|$(gettext 'SQL client')</item>
+        <item icon-name=\"calibre\">Calibre|${FLGcalibre}|175M|$(gettext 'E-book reader')</item>
         <item icon-name=\"dbbrowser\">DBBrowser|${FLGdbbrowser}|37M|$(gettext 'Create and edit SQLITE databases')</item>
         <item icon-name=\"dbgate\">DbGate|${FLGdbgate}|93M|$(gettext 'Multi-protocol SQL+noSQL database client')</item>
         <item icon-name=\"koodoreader\">KoodoReader|${FLGkoodoreader}|87M|$(gettext 'Multi-format e-book reader')</item>
@@ -279,6 +281,7 @@ case "${aAPP}" in
  LeoCAD) MEMBER='leozide'; PROJECT='leocad'; APPIMG='LeoCAD-Linux-VERSION-x86_64.AppImage'; MENUcat='X-Graphic'; MENUtop='Graphic'; MENUname='LeoCAD build with lego bricks'; ;;
  CroMagRally) MEMBER='jorio'; PROJECT='CroMagRally'; APPIMG='CroMagRally-VERSION-linux-x86_64.AppImage'; MENUcat='X-Fun-adventure'; MENUtop='Fun'; MENUname='CroMagRally car racing'; ;;
  MyPaint) DIRECTDL='https://github.com/mypaint/mypaint/releases/download/v2.0.1/MyPaint-v2.0.1-alt.AppImage'; DIRECTVER='2.0.1'; MENUcat='X-Graphic-paint'; MENUtop='Graphic'; MENUname='MyPaint paint program'; ;;
+ Calibre) DIRECTDL='https://distro.ibiblio.org/easyos/amd64/packages/appimage/easyos/oe/kirkstone/calibre-5.44.0-x86-64.AppImage'; DIRECTVER='5.44.0'; MENUcat='X-Document-viewer'; MENUtop='Document'; MENUname='Calibre e-book reader'; ;;
  ZZZ) MEMBER=''; PROJECT=''; APPIMG=''; MENUcat=''; MENUtop=''; MENUname=''; ;;
  *)
   exit
