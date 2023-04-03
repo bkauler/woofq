@@ -45,6 +45,7 @@
 #20220915 zoom, blender, shotcut menu text. 20220917 openshot, vscode, astudio, flutter
 #20220927 add smartgit. 20221006 add supertuxkart
 #20230316 mksquashfs zstd compression.
+#20230403 *.run-once-top: remove appimage.desktop in container.
 
 . /etc/rc.d/PUPSTATE
 . /etc/DISTRO_SPECS
@@ -680,7 +681,7 @@ fi
  [ -f /root/.jwm/jwmrc-personal ] && sed -i '/defaultscreenshot/d' /root/.jwm/jwmrc-personal #181116 up-arrow launches screeny.
  [ -f /root/.jwm/jwmrc-personal2 ] && sed -i '/defaultscreenshot/d' /root/.jwm/jwmrc-personal2 #181116 up-arrow launches screeny.
  #have to run fixmenus, but firstly, delete some .desktop files...
- for aDT in BootManagerSTAR easy-STAR ec-STAR childproof cups Desktop-STAR easydd firewall-STAR floppy-STAR Internet-STAR loginmanager MoManagerSTAR MouseSTAR Multiple-Sound-Card-Wizard Partview Pdisk-STAR Pmount-STAR printer-STAR PuddSTAR qsync QuickSetup remove-builtin Set-STAR TopSTAR video-STAR
+ for aDT in appimage BootManagerSTAR easy-STAR ec-STAR childproof cups Desktop-STAR easydd firewall-STAR floppy-STAR Internet-STAR loginmanager MoManagerSTAR MouseSTAR Multiple-Sound-Card-Wizard Partview Pdisk-STAR Pmount-STAR printer-STAR PuddSTAR qsync QuickSetup remove-builtin Set-STAR TopSTAR video-STAR
  do
   rm -f /usr/share/applications/${aDT/STAR/*}.desktop 2>/dev/null
  done

@@ -291,6 +291,7 @@
 #20230304 support distro name other than "EasyOS" and "Easy". 
 #20230305 tweaks. support rename "easy.sfs". support "easy-*.img" rename.
 #20230309 have removed /usr/local/debget  20230317 fix.
+#20230403 easy.run-once-top: remove appimage.desktop in container.
 
 export LANG=C #faster.
 
@@ -5775,7 +5776,7 @@ cat << 'EOF3' >> rootfs-complete/.control/${DISTRO_NAME_SHORT,,}.run-once-top
  [ -f /root/.jwm/jwmrc-personal ] && sed -i '/defaultscreenshot/d' /root/.jwm/jwmrc-personal #181116 up-arrow launches screeny.
  [ -f /root/.jwm/jwmrc-personal2 ] && sed -i '/defaultscreenshot/d' /root/.jwm/jwmrc-personal2 #181116 up-arrow launches screeny.
  #have to run fixmenus, but firstly, delete some .desktop files...
- for aDT in BootManagerSTAR easy-STAR ec-STAR childproof cups Desktop-STAR easydd firewall-STAR floppy-STAR Internet-STAR loginmanager MoManagerSTAR MouseSTAR Multiple-Sound-Card-Wizard Partview Pdisk-STAR Pmount-STAR printer-STAR PuddSTAR qsync QuickSetup remove-builtin Set-STAR TopSTAR video-STAR
+ for aDT in appimage BootManagerSTAR easy-STAR ec-STAR childproof cups Desktop-STAR easydd firewall-STAR floppy-STAR Internet-STAR loginmanager MoManagerSTAR MouseSTAR Multiple-Sound-Card-Wizard Partview Pdisk-STAR Pmount-STAR printer-STAR PuddSTAR qsync QuickSetup remove-builtin Set-STAR TopSTAR video-STAR
  do
   rm -f /usr/share/applications/${aDT/STAR/*}.desktop 2>/dev/null
  done
