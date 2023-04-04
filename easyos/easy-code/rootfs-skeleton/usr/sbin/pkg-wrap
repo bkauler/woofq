@@ -1,0 +1,72 @@
+#!/bin/bash
+#frontend for the package managers in EasyOS.
+#called via "pkg" desktop icon.
+
+export TEXTDOMAIN=pkg-wrap
+export TEXTDOMAINDIR=/usr/share/locale
+export OUTPUT_CHARSET=UTF-8
+
+export PKG_DLG1="<window title=\"$(gettext 'Package Managers')\">
+  <vbox>
+   <hbox>
+    <text><label>\"$(gettext 'EasyOS has three package managers.')
+$(gettext 'To understand the differences between them, click the button for an online tutorial:')\"</label></text>
+    <vbox>
+     <text><label>\"  \"</label></text>
+     <button>
+      <label>$(gettext 'TUTORIAL')</label>
+      <action>defaultbrowser https://easyos.org/user/package-manager-concepts.html & </action>
+     </button>
+    </vbox>
+   </hbox>
+   
+   <frame>
+    <text use-markup=\"true\"><label>\"<b>PKGget</b>\"</label></text>
+    <hbox>
+     <text><label>$(gettext 'This is the traditional package manager:')</label></text>
+     <button>
+      <input file>/usr/local/lib/X11/pixmaps/pet48.png</input>
+      <action>EXIT:pkgget</action>
+     </button>
+    </hbox>
+   </frame>
+   
+   <frame>
+    <text use-markup=\"true\"><label>\"<b>SFSget</b>\"</label></text>
+    <hbox>
+     <text><label>$(gettext 'This is for installing SFS packages, either in the main filesystem or a container:')</label></text>
+     <button>
+      <input file>/usr/local/lib/X11/pixmaps/sfs48.png</input>
+      <action>EXIT:sfsget</action>
+     </button>
+    </hbox>
+   </frame>
+   
+   <frame>
+    <text use-markup=\"true\"><label>\"<b>Appi</b>\"</label></text>
+    <hbox>
+     <text><label>$(gettext 'This is the AppImage Installer:')</label></text>
+     <button>
+      <input file>/usr/share/pixmaps/appimage.png</input>
+      <action>EXIT:appi</action>
+     </button>
+    </hbox>
+   </frame>
+   
+   <hbox>
+    <button cancel></button>
+   </hbox>
+  </vbox>
+</window>
+"
+
+RETVALS="$(gtkdialog --center --program=PKG_DLG1)"
+xRETVALS="$(echo "$RETVALS" | grep '^EXIT')"
+eval "$xRETVALS"
+
+case "$EXIT" in
+ pkgget) exec /usr/sbin/dotpup ;;
+ sfsget) exec /usr/sbin/sfsget ;;
+ appi)   exec /usr/bin/appimage ;;
+esac
+###end###
