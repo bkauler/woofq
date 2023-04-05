@@ -1745,6 +1745,28 @@ root:${ePW}:17693:0:99999:7:::" >> /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/shadow
  fi
 fi
 
+#20230405
+if [ ! -f /mnt/${WKG_DEV}/${WKG_DIR}.session/root/.gnupg/pubring.gpg ];then
+ echo
+ echo "${S304}" #'Creating gnupg signed key pair, at /root/.gnupg'
+ mkdir -p /mnt/${WKG_DEV}/${WKG_DIR}.session/root/.gnupg
+ chmod 700 /mnt/${WKG_DEV}/${WKG_DIR}.session/root/.gnupg
+ cat >foo <<EOF
+Key-Type: RSA
+Key-Length: 2048
+Subkey-Type: RSA
+Subkey-Length: 2048
+Name-Real: EasyOS user ${RANDOM}
+Name-Comment: WoofWoof1-root-password is passphrase
+Name-Email: noone@nowhere.com
+Expire-Date: 0
+Passphrase: WoofWoof1${rootPW}
+%commit
+%echo done
+EOF
+ GNUPGHOME="/mnt/${WKG_DEV}/${WKG_DIR}.session/root/.gnupg" gpg --batch --gen-key foo
+fi
+
 ###fix layers change###
 OLDEXTRASFSLIST="$(grep '^EXTRASFSLIST=' /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/rc.d/PUPSTATE 2>/dev/null | cut -f 2 -d "'")"
 [ -s /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/rc.d/PUPSTATE ] && [ "$NEWEXTRASFSLIST" != "$OLDEXTRASFSLIST" -o "$prevVER" != "" ] && /sbin/fixlayers "${WKG_DRV}" "${WKG_DEV}" "${NEWEXTRASFSLIST}" "${prevVER}" "${WKG_DIR}"
