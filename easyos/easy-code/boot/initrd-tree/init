@@ -149,6 +149,7 @@
 #20230221 oh, busybox ash does not support ${QLANG^^} capitalization
 #20230302 new wallpaper logo.
 #20230304 support distro name other than "EasyOS" and "Easy".
+#20230405 always change root pw. create signed-key-pair.
 
 #20220525 3buildeasydistro will substitute values here...
 EOS_TOP_LEVEL_ZRAM=EOSTOPLEVELZRAM #20220521 1=yes, anything else no.
@@ -173,6 +174,8 @@ export TZ='XXX-23' #20201201 imaginary place right around the world east of Gree
 #ref: http://www.gnu.org/s/libc/manual/html_node/TZ-Variable.html
 
 KERNVER="$(uname -r)" #20210524
+CR='
+'
 
 cat /sys/class/zram-control/hot_add >/dev/null #20220517 creates /dev/zram1
 cat /sys/class/zram-control/hot_add >/dev/null #20220517 creates /dev/zram2
@@ -415,6 +418,30 @@ menu_delay_func() {
  esac
 }
 
+ask_root_pw() { #20230405
+ #'You chose not to enter a password to encrypt folders in the working-partition; however, you should, at least, enter a password for the root user.'
+ #'Note1: at future bootups, the password will not be required to login.'
+ #'Note2: if the keyboard does not work this early in bootup, there will be a timeout in 300 seconds.'
+ #'Please type a password, with characters a-z, A-Z, 0-9, minimum 6 characters, that you will remember:'
+ echo -en "\\033[1;31m" #red foreground.
+ echo -n "${S300}${CR}${S301}${CR}${S302}${CR}${S303}" | fold -s -w 69
+ echo -e "\\033[0;39m"
+ rootPW=''
+ while [ 1 ];do
+  echo -n " ${S037} " #'Password:'
+  read -r -t 300 rootPW
+  [ $? -ne 0 ] && echo #timed out
+  if [ "$rootPW" != "" ];then
+   xPW="$(echo -n "$rootPW" | sed -e 's%[^a-zA-Z0-9]%%g')"
+   if [ "$rootPW" != "$xPW" ];then
+    echo "\\033[1;31m ${S038} \\033[0;39m" #'Sorry, only a-z, A-Z, 0-9 characters allowed, try again' red text.
+    continue
+   fi
+  fi
+  break
+ done
+}
+
 ask_pw() { #180604
  if [ "$1" == "0" ];then
   
@@ -430,17 +457,15 @@ $(echo "${S034}" | fold -s -w 69)
 $(echo " ${S035}")
 EOT
   echo -n -e '\033[0;;m'
-
-  echo -e " \\033[1;31m${S036}\\033[0;39m" #35=purple, 31=red 20220528
-  
+  echo -e " \\033[1;31m${S036}\\033[0;39m" #'For your security, a password is strongly recommended' 35=purple, 31=red 20220528
   while [ 1 ];do #181109
-   echo -n " ${S037} "
+   echo -n " ${S037} " #'Password:'
    read -r -t 300 PW
    [ $? -ne 0 ] && echo #timed out
    if [ "$PW" != "" ];then
     xPW="$(echo -n "$PW" | sed -e 's%[^a-zA-Z0-9]%%g')"
     if [ "$PW" != "$xPW" ];then
-     echo "\\033[1;31m ${S038} \\033[0;39m" #red text.
+     echo "\\033[1;31m ${S038} \\033[0;39m" #'Sorry, only a-z, A-Z, 0-9 characters allowed, try again' red text.
      continue
     fi
    fi
@@ -455,9 +480,9 @@ EOT
  else
   #20220622 no longer have menu choices in the boot-manager, so offer some choices here...
   while [ 1 ];do
-   echo -e "\\e[1;;44m ${S039} \\e[0;;m"
-   echo -e "\\e[1;;43m ${S040} \\e[0;;m" #43=yellow background.
-   echo -n " ${S041} "
+   echo -e "\\e[1;;44m ${S039} \\e[0;;m" #'Please enter password to decrypt the working-partition'
+   echo -e "\\e[1;;43m ${S040} \\e[0;;m" #'OR just press ENTER to bring up a menu of boot options' 43=yellow background.
+   echo -n " ${S041} "                   #'Password:'
    #read PW
    PW=''
    while [ 1 ];do #echo * for each char entered...
@@ -1695,12 +1720,19 @@ EXTRASFS=""; sessionSFS=""; NEWEXTRASFSLIST=""
  done
 #fi
 
-if [ "$PW" ];then
- #180612 set password for zeus... 180811 also root... 20220922 fix...
- if [ ! -f /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/shadow ];then
-  echo -e "\\033[1;35m${S201}\\033[0;39m" #purple
-  echo "  ${S202}"
-  ePW="$(cryptpw -m SHA512 ${PW})" #note: busybox mkpasswd is an alias for cryptpw
+#20230405
+if [ ! -f /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/shadow ];then
+ rootPW=''
+ if [ "$PW" ];then
+  rootPW="$PW"
+ else
+  ask_root_pw
+ fi
+ if [ "$rootPW" ];then
+  #180612 set password for zeus... 180811 also root... 20220922 fix...
+  echo -e "\\033[1;35m${S201}\\033[0;39m" #'First-bootup security setup...' purple
+  echo "  ${S202}" # 'Setting same password for users zeus and root'
+  ePW="$(cryptpw -m SHA512 ${rootPW})" #note: busybox mkpasswd is an alias for cryptpw
   grep -v -E '^zeus|^root' /easy_ro/easy_sfs/etc/shadow > /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/shadow
   echo "zeus:${ePW}:17693:0:99999:7:::
 root:${ePW}:17693:0:99999:7:::" >> /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/shadow
