@@ -3,6 +3,7 @@
 #pass in MEMBER=$1 PROJECT=$2 APPIMG=$3
 #20230313 first release.
 #20230331 rewritten, using api json.
+#20230408 fix finding choices to d/l
 
 #example url:
 # https://github.com/amanharwara/altus/releases/latest/
@@ -28,7 +29,7 @@ sleep 0.2
 #20230331 parse json to find latest .AppImage file...
 echo -n '' > /tmp/appimage/APPlist
 curl -s https://api.github.com/repos/${MEMBER}/${PROJECT}/releases/latest > /tmp/appimage/github-api-json.txt
-URLdls="$(grep '"browser_download_url": .*\.AppImage"$' /tmp/appimage/github-api-json.txt | cut -f 4 -d '"' | grep -vE 'aarch64|x32|386|486|686|armv')"
+URLdls="$(grep '"browser_download_url": .*\.AppImage"$' /tmp/appimage/github-api-json.txt | cut -f 4 -d '"' | grep -vE 'aarch64|x32|386|486|686|armv|arm64')"
 #ex: https://github.com/FreeCAD/FreeCAD/releases/download/0.20.2/FreeCAD_0.20.2-2022-12-27-conda-Linux-x86_64-py310.AppImage
 
 URLdl1="$(echo "$URLdls" | head -n 1)"
@@ -62,7 +63,7 @@ else
  for aDL in $URLdls
  do
   [ "$aDL" == "" ] && continue
-  echo "${aDL##*/}" > /tmp/appimage/APPlist
+  echo "${aDL##*/}" >> /tmp/appimage/APPlist
  done
  DLxml='<list>
  <variable>LIST</variable>
