@@ -1,15 +1,48 @@
 #!/bin/bash
 #frontend for the package managers in EasyOS.
 #called via "pkg" desktop icon.
+#20230408 add Flatpak Installer. 
+#20230408 inside container, only offer PKGget
 
 export TEXTDOMAIN=pkg-wrap
 export TEXTDOMAINDIR=/usr/share/locale
 export OUTPUT_CHARSET=UTF-8
 
+#20230408
+ls /INSIDE_* >/dev/null 2>&1
+if [ $? -eq 0 ];then
+ #running inside a container.
+ SFSxml="<text><label>$(gettext 'The SFSget package installer is not available inside a container')</label></text>"
+ APPIxml="<text><label>$(gettext 'The AppImage Installer is not available inside a container')</label></text>"
+ FLAPIxml="<text><label>$(gettext 'The Flatpak Installer is not available inside a container')</label></text>"
+else
+ SFSxml="    <hbox>
+     <text><label>$(gettext 'This is for installing SFS packages. The application will run in the main filesystem or a container:')</label></text>
+     <button>
+      <input file>/usr/local/lib/X11/pixmaps/sfs48.png</input>
+      <action>EXIT:sfsget</action>
+     </button>
+    </hbox>"
+ APPIxml="    <hbox>
+     <text><label>$(gettext 'This is the AppImage Installer. The application will run in the main filesystem, as a unique user:')</label></text>
+     <button>
+      <input file>/usr/share/pixmaps/appimage.png</input>
+      <action>EXIT:appi</action>
+     </button>
+    </hbox>"
+ FLAPIxml="    <hbox>
+     <text><label>$(gettext 'This is the Flatpak Installer. The application will run in the main filesystem, as a unique user:')</label></text>
+     <button>
+      <input file>/usr/share/pixmaps/flatpak.png</input>
+      <action>EXIT:flapi</action>
+     </button>
+    </hbox>"
+fi
+
 export PKG_DLG1="<window title=\"$(gettext 'Package Managers')\">
   <vbox>
    <hbox>
-    <text><label>\"$(gettext 'EasyOS has three package managers.')
+    <text><label>\"$(gettext 'EasyOS has four package managers.')
 $(gettext 'To understand the differences between them, click the button for an online tutorial:')\"</label></text>
     <vbox>
      <text><label>\"  \"</label></text>
@@ -23,7 +56,8 @@ $(gettext 'To understand the differences between them, click the button for an o
    <frame>
     <text use-markup=\"true\"><label>\"<b>PKGget</b>\"</label></text>
     <hbox>
-     <text><label>$(gettext 'This is the traditional package manager:')</label></text>
+     <text><label>\"$(gettext 'This is the traditional package manager.')
+$(gettext 'Packages are installed in the main filesystem:')\"</label></text>
      <button>
       <input file>/usr/local/lib/X11/pixmaps/pet48.png</input>
       <action>EXIT:pkgget</action>
@@ -33,24 +67,17 @@ $(gettext 'To understand the differences between them, click the button for an o
    
    <frame>
     <text use-markup=\"true\"><label>\"<b>SFSget</b>\"</label></text>
-    <hbox>
-     <text><label>$(gettext 'This is for installing SFS packages, either in the main filesystem or a container:')</label></text>
-     <button>
-      <input file>/usr/local/lib/X11/pixmaps/sfs48.png</input>
-      <action>EXIT:sfsget</action>
-     </button>
-    </hbox>
+    ${SFSxml}
    </frame>
    
    <frame>
     <text use-markup=\"true\"><label>\"<b>Appi</b>\"</label></text>
-    <hbox>
-     <text><label>$(gettext 'This is the AppImage Installer:')</label></text>
-     <button>
-      <input file>/usr/share/pixmaps/appimage.png</input>
-      <action>EXIT:appi</action>
-     </button>
-    </hbox>
+    ${APPIxml}
+   </frame>
+   
+   <frame>
+    <text use-markup=\"true\"><label>\"<b>Flapi</b>\"</label></text>
+    ${FLAPIxml}
    </frame>
    
    <hbox>
@@ -67,6 +94,7 @@ eval "$xRETVALS"
 case "$EXIT" in
  pkgget) exec /usr/sbin/dotpup ;;
  sfsget) exec /usr/sbin/sfsget ;;
- appi)   exec /usr/bin/appimage ;;
+ appi)   exec /usr/bin/appi ;;
+ flapi)  exec /usr/bin/flapi ;;
 esac
 ###end###
