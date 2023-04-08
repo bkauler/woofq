@@ -1111,7 +1111,7 @@ if [ ! -d /mnt/${WKG_DEV}/${WKG_DIR}.session ];then
  for aDIR in containers releases files sfs .tempwork data #sanity check  20210919 20211212
  do
   [ "$EOS_SUPPORT_CONTAINERS" == "0" ] && continue #20220525
-  [ -e /mnt/${WKG_DEV}/${WKG_DIR}${aDIR} ] && err_exit "/mnt/${WKG_DEV}/${WKG_DIR}${aDIR} ${S130}"
+  [ -e /mnt/${WKG_DEV}/${WKG_DIR}${aDIR} ] && err_exit "/mnt/${WKG_DEV}/${WKG_DIR}${aDIR} ${S130}" #'already exists'
  done
  [ "$EOS_SUPPORT_CONTAINERS" != "0" ] && mkdir /mnt/${WKG_DEV}/${WKG_DIR}containers
  mkdir /mnt/${WKG_DEV}/${WKG_DIR}releases
