@@ -150,7 +150,7 @@
 #20230302 new wallpaper logo.
 #20230304 support distro name other than "EasyOS" and "Easy".
 #20230405 always change root pw. create signed-key-pair.
-#20230406 WKG_DIR must be root:filesgrp and 770 (flatpak save)
+#20230406 WKG_DIR must be root:filesgrp and 770 (flatpak save). 20230407 revert.
 
 #20220525 3buildeasydistro will substitute values here...
 EOS_TOP_LEVEL_ZRAM=EOSTOPLEVELZRAM #20220521 1=yes, anything else no.
@@ -1513,9 +1513,9 @@ SFS_DB_hash='${ESUM}'" > /mnt/${WKG_DEV}/${WKG_DIR}sfs/easyos/${INIT_DISTRO_BINA
   chmod 770 /mnt/${WKG_DEV}/${WKG_DIR}files
   chmod 770 $(find /mnt/${WKG_DEV}/${WKG_DIR}files -mindepth 1 -type d | tr '\n' ' ')
  fi
- #20230406 testing openshot flatpak, needs this to save here...
- chgrp 122 /mnt/${WKG_DEV}/${WKG_DIR}
- chmod 770 /mnt/${WKG_DEV}/${WKG_DIR}
+ ##20230406 testing openshot flatpak, needs this to save here... 20230407 revert.
+ #chgrp 122 /mnt/${WKG_DEV}/${WKG_DIR}
+ #chmod 770 /mnt/${WKG_DEV}/${WKG_DIR}
  #these must be symlinks... 20211207 no, delete Downloads folders. create user-dirs.dirs
  for aDL in $(find /mnt/${WKG_DEV}/${WKG_DIR}.session/home -mindepth 2 -maxdepth 2 -type d -name Downloads 2>/dev/null | tr '\n' ' ')
  do
