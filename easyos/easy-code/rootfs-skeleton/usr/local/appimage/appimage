@@ -9,6 +9,7 @@ export OUTPUT_CHARSET=UTF-8
 CR='
 '
 mkdir -p /tmp/appimage
+mkdir -p /mnt/wkg/appimage
 
 H_appimg="$(gettext 'AppImages are applications that contain all dependencies built-in, so they will run on almost any Linux distribution, without having to install any other packages.')
 $(gettext 'Consequently, they are large, typically 50MB to 900MB, so you do need reasonably fast Internet and adequate data allowance with your telco.')
@@ -208,7 +209,7 @@ if [ "$EXIT" != "BUTinstall" ];then
 fi
 
 #there could be multiple choices, but let's just do one...
-for aAPP in "$TREEaudio" "$TREEdeveloper" "$TREEgames" "$TREEgraphics" "$TREEnetwork" "$TREEoffice" "$TREEproductivity" "$TREEsystem" "$TREEvideo"
+for aAPP in "$TREEaudio" "$TREEdeveloper" "$TREEgames" "$TREEgraphics" "$TREEnetwork" "$TREEoffice" "$TREEproductivity" "$TREEsystem" "$TREEvideo" "$TREEother"
 do
  if [ "$aAPP" != "" ];then
   break
