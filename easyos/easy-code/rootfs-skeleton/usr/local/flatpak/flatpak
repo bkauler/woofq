@@ -1,0 +1,425 @@
+#!/bin/bash
+#want a gui like /usr/local/appimage/appimage
+#also launched via /usr/bin/flapi
+
+export TEXTDOMAIN=flatpaks
+export TEXTDOMAINDIR=/usr/share/locale
+export OUTPUT_CHARSET=UTF-8
+
+. /etc/DISTRO_SPECS
+CR='
+'
+mkdir -p /tmp/flatpak
+mkdir -p /mnt/wkg/flatpak
+
+Hfp1="$(gettext 'Flatpaks are applications that contain all dependencies built-in, so they will run on almost any Linux distribution, without having to install any other packages.')
+$(gettext 'Consequently, they are large, typically 500MB to 900MB, so you do need reasonably fast Internet and adequate data allowance with your telco.')
+
+$(gettext 'The Flatpaks are installed so that each runs as its own user, which maximizes isolation and hence security.')
+
+$(gettext 'Upon installation, a menu-entry is created, and you are good-to-go.')
+
+<b>$(gettext 'Notes')</b>
+$(gettext 'A tick in the second column means that the Flatpak is already installed. You may then have the opportunity of updating or deleting it.')
+$(gettext 'After a Flatpak is installed, the file-manager will recognize the file types handled by that app. Right-click on an appropriate file and the Flatpak will be offered to open it.')
+$(gettext 'If you entered a password at first bootup of EasyOS, then all working folders are encrypted, and this includes files created by the Flatpak while you are using it. If your USB-stick, or on whatever media EasyOS is installed, is stolen, your data is safe.')"
+export DLG_HELP_FP="<window resizable=\"false\" title=\"$(gettext 'Help: Flatpak Installer')\" icon-name=\"gtk-index\" window_position=\"1\"><vbox><text use-markup=\"true\"><label>\"${Hfp1}\"</label><variable>DLG_HELP_FP</variable></text><hbox><button><label>$(gettext 'Close')</label><action type=\"closewindow\">DLG_HELP_FP</action></button></hbox></vbox></window>"
+
+#find out what already installed...
+for aFP in $(find /mnt/wkg/flatpak/exports/bin -mindepth 1 -maxdepth 1 -type l 2>/dev/null)
+do
+ [ "$aFP" == "" ] && continue
+ #ex: org.kde.Krita
+ case "${aFP}" in
+  *-*) continue ;;
+ esac
+ aFP="${aFP##*.}"
+ eval "FLG${aFP,,}='√'" #ex: sets FLGaudacity=√
+done
+
+###main gui###
+PACKAGE="Flatpak"
+DESCRIPTION="$(gettext 'Description')"
+SIZE="$(gettext 'Size')"
+export FP_DLG1="<window title=\"$(gettext 'Flatpak Installer')\">
+  <vbox>
+    <text use-markup=\"true\"><label>\"$(gettext 'Flatpaks are applications with all dependencies builtin.')${CR}$(gettext 'They may be downloaded and installed in EasyOS.')${CR}$(gettext 'An existing installation may be updated or deleted.')\"</label></text>
+    <notebook labels=\"$(gettext 'Audio')|$(gettext 'Developer')|$(gettext 'Games')|$(gettext 'Graphics')|$(gettext 'Network')|$(gettext 'Office')|$(gettext 'Productivity')|$(gettext 'System')|$(gettext 'Video')|$(gettext 'Other')\">
+      <tree column-resizeable=\"0\">
+        <label>${PACKAGE}||${DESCRIPTION}</label>
+        <height>300</height>
+        <variable>TREEaudio</variable>
+        <action signal=\"enter-notify-event\" type=\"refresh\">TREEaudio</action>
+        <item icon-name=\"audacity\">Audacity|${FLGaudacity}|$(gettext 'A free, easy-to-use, multi-track audio editor and recorder')</item>
+      </tree>
+      <tree column-resizeable=\"0\">
+        <label>${PACKAGE}||${DESCRIPTION}</label>
+        <height>300</height>
+        <variable>TREEdeveloper</variable>
+        <action signal=\"enter-notify-event\" type=\"refresh\">TREEdeveloper</action>
+      </tree>
+      <tree column-resizeable=\"0\">
+        <label>${PACKAGE}||${DESCRIPTION}</label>
+        <height>300</height>
+        <variable>TREEgames</variable>
+        <action signal=\"enter-notify-event\" type=\"refresh\">TREEgames</action>
+      </tree>
+      <tree column-resizeable=\"0\">
+        <label>${PACKAGE}||${DESCRIPTION}</label>
+        <height>300</height>
+        <variable>TREEgraphics</variable>
+        <action signal=\"enter-notify-event\" type=\"refresh\">TREEgraphics</action>
+        <item icon-name=\"krita\">Krita|${FLGkrita}|$(gettext 'Vector and raster painting program')</item>
+      </tree>
+      <tree column-resizeable=\"0\">
+        <label>${PACKAGE}||${DESCRIPTION}</label>
+        <height>300</height>
+        <variable>TREEnetwork</variable>
+        <action signal=\"enter-notify-event\" type=\"refresh\">TREEnetwork</action>
+      </tree>
+      <tree column-resizeable=\"0\">
+        <label>${PACKAGE}||${DESCRIPTION}</label>
+        <height>300</height>
+        <variable>TREEoffice</variable>
+        <action signal=\"enter-notify-event\" type=\"refresh\">TREEoffice</action>
+      </tree>
+      <tree column-resizeable=\"0\">
+        <label>${PACKAGE}||${DESCRIPTION}</label>
+        <height>300</height>
+        <variable>TREEproductivity</variable>
+        <action signal=\"enter-notify-event\" type=\"refresh\">TREEproductivity</action>
+      </tree>
+      <tree column-resizeable=\"0\">
+        <label>${PACKAGE}||${DESCRIPTION}</label>
+        <height>300</height>
+        <variable>TREEsystem</variable>
+        <action signal=\"enter-notify-event\" type=\"refresh\">TREEvideo</action>
+      </tree>
+      <tree column-resizeable=\"0\">
+        <label>${PACKAGE}||${DESCRIPTION}</label>
+        <height>300</height>
+        <variable>TREEvideo</variable>
+        <action signal=\"enter-notify-event\" type=\"refresh\">TREEvideo</action>
+        <item icon-name=\"openshot\">OpenShot|${FLGopenshot}|$(gettext 'Easy and powerful video editor')</item>
+      </tree>
+      <tree column-resizeable=\"0\">
+        <label>${PACKAGE}||${DESCRIPTION}</label>
+        <height>300</height>
+        <variable>TREEother</variable>
+        <action signal=\"enter-notify-event\" type=\"refresh\">TREEother</action>
+      </tree>
+
+    </notebook>
+    <hbox>
+      <text><label>$(gettext 'Highlight a Flatpak then click a button:')</label></text>
+      <text><label>\"  \"</label></text>
+    </hbox>
+    <hbox>
+      <button space-expand=\"false\" space-fill=\"false\"><input file>/usr/local/lib/X11/mini-icons/mini-question.xpm</input><action type=\"launch\">DLG_HELP_FP</action></button>
+      <button space-expand=\"false\" space-fill=\"false\"><label>$(gettext 'Exit')</label><action>exit:QUIT</action></button>
+      <text space-expand=\"true\" space-fill=\"true\"><label>\"  \"</label></text>
+      <button><label>$(gettext 'Install/Update/Delete')</label><action>exit:BUTinstall</action></button>
+      <button><label>$(gettext 'Online Information')</label><action>/usr/local/flatpak/online-info \"\$TREEaudio\" \"\$TREEdeveloper\" \"\$TREEgames\" \"\$TREEgraphics\" \"\$TREEnetwork\" \"\$TREEoffice\" \"\$TREEproductivity\" \"\$TREEsystem\" \"\$TREEvideo\" \"\$TREEother\" </action></button>
+    </hbox>
+  </vbox>
+</window>
+"
+
+RETVALS="$(gtkdialog --center --program=FP_DLG1)"
+xRETVALS="$(echo "$RETVALS" | grep -E '^TREE|^EXIT')"
+eval "$xRETVALS"
+if [ "$EXIT" != "BUTinstall" ];then
+ exit
+fi
+
+#there could be multiple choices, but let's just do one...
+for aAPP in "$TREEaudio" "$TREEdeveloper" "$TREEgames" "$TREEgraphics" "$TREEnetwork" "$TREEoffice" "$TREEproductivity" "$TREEsystem" "$TREEvideo"
+do
+ if [ "$aAPP" != "" ];then
+  break
+ fi
+done
+if [ "$aAPP" == "" ];then
+ M1="$(gettext 'No Flatpak selected. Aborting.')"
+ popup "terminate=ok background=#ff8080 level=top process=wait|<big>${M1}</big>"
+ exit 1
+fi
+
+case "${aAPP}" in
+ Audacity) TRIPLET='org.audacityteam.Audacity'; MENUcat='X-Multimedia-sound'; MENUtop='Multimedia'; MENUname='Audacity audio editor'; ;;
+ Krita)    TRIPLET='org.kde.Krita'; MENUcat='X-Graphic'; MENUtop='Graphic'; MENUname='Krita vector and raster editor'; ;;
+ OpenShot) TRIPLET='org.openshot.OpenShot'; MENUcat='X-Multimedia-video'; MENUtop='Multimedia'; MENUname='OpenShot video editor'; ;;
+ *) exit ;; #precaution.
+esac
+
+#register with flathub...
+if [ ! -d /mnt/wkg/flatpak/repo ];then
+ #need internet connection...
+ if [ ! -s /tmp/pup_event_backend/network_ ];then
+  M3="$(gettext 'An Internet connection is required to register with Flathub repository.')"
+  popup "terminate=ok background=#ff8080 level=top process=wait|<big>${M3}</big>"
+  exec flapi
+ fi
+ flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+fi
+
+#test if already installed...
+UPDATEflg='no'; FPver=''
+if [ -e /mnt/wkg/flatpak/exports/bin/${TRIPLET} ];then
+ if [ -f /usr/bin/${aAPP,,} ];then
+  #already installed.
+  FPver="$(flatpak list --app --columns=name,version | tr '\t' ' ' | tr -s ' ' | grep "^${aAPP} " | cut -f 2 -d ' ')"
+  UPDATExml="<text><label>$(gettext 'To probe online if there is a later version and update to it, click the UPDATE button:')</label></text>
+   <vbox>
+    <button><label>$(gettext 'UPDATE')</label><action>EXIT:update</action></button>
+   </vbox>"
+  export FP_DLG2="<window title=\"$(gettext 'Flatpak Installer')\">
+  <vbox>
+    <text use-markup=\"true\">
+      <label>\"$(gettext 'Please make a choice for this installed Flatpak:')
+  <b>${aAPP} ${FPver}</b>
+    \"</label></text>
+    <frame>
+      <hbox>
+        ${UPDATExml}
+      </hbox>
+    </frame>
+    <frame>
+      <hbox>
+        <text><label>$(gettext 'To delete the Flatpak installation completely, click the DELETE button:')</label></text>
+        <vbox>
+          <button><label>$(gettext 'DELETE')</label><action>EXIT:delete</action></button>
+        </vbox>
+      </hbox>
+    </frame>
+    <text><label>\"  \"</label></text>
+    <hbox>
+      <text><label>$(gettext 'Otherwise, click the EXIT button to exit from Flatpak Installer:')</label></text>
+      <vbox>
+        <button><label>$(gettext 'EXIT')</label><action>EXIT:quit</action></button>
+      </vbox>
+    </hbox>
+  </vbox></window>"
+  RET2="$(gtkdialog --center --program=FP_DLG2)"
+  eval "${RET2}"
+  
+  case "$EXIT" in
+   delete)
+    flatpak uninstall ${TRIPLET}
+    rm -rf /home/${aAPP,,}
+    rm -f /usr/share/applications/${aAPP,,}.desktop
+    rm -f /usr/bin/${aAPP,,}
+    rm -f /usr/bin/${aAPP,,}.bin
+    grep -q "/home/${aAPP,,}/${aAPP,,}" /root/Choices/ROX-Filer/PuppyPin
+    if [ $? -eq 0 ];then
+     #remove desktop icon...
+     echo "<?xml version=\"1.0\"?>
+<env:Envelope xmlns:env=\"http://www.w3.org/2001/12/soap-envelope\">
+ <env:Body xmlns=\"http://rox.sourceforge.net/SOAP/ROX-Filer\">
+  <UnsetIcon>
+   <Path>/home/${aAPP,,}/${aAPP,,}</Path>
+  </UnsetIcon>
+ </env:Body>
+</env:Envelope>" | rox -R
+    fi
+    fixmenus
+    jwm -reload
+    Md="$(gettext 'Flatpak deleted') "
+    popup "process=wait terminate=ok background=#80ff80 level=top|<big>${Md}</big>"
+    exit
+   ;;
+   update)
+    UPDATEflg='yes'
+   ;;
+   *)
+    exit
+   ;;
+  esac
+ fi
+else
+ if [ -f /usr/bin/${aAPP,,} ];then
+  M7="$(gettext 'This app is installed, but it is not a Flatpak. Aborting') "
+  popup "process=wait terminate=ok background=#ff8080 level=top|<big>${M7}</big>"
+  exec flapi
+ fi
+fi
+
+###new install or update###
+if [ "$UPDATEflg" == "yes" ];then
+ Mup="$(gettext 'Please confirm that you want to probe online for a later version of this Flatpak:')"
+else
+ Mup="$(gettext 'Please confirm that you want to download and install this Flatpak:')"
+fi
+export FP_DLG3="<window title=\"$(gettext 'Flatpak Installer')\">
+  <vbox>
+   <text use-markup=\"true\"><label>\"${Mup}
+  <b>${aAPP}</b>\"</label></text>
+  <hbox>
+   <button ok></button>
+   <button cancel></button>
+  </hbox>
+  </vbox></window>"
+RET3="$(gtkdialog --center --program=FP_DLG3)"
+eval "$RET3"
+if [ "$EXIT" != "OK" ];then
+ exit 0
+fi
+
+#need internet connection...
+if [ ! -s /tmp/pup_event_backend/network_ ];then
+ M4="$(gettext 'An Internet connection is required to download a Flatpak.')"
+ popup "terminate=ok background=#ff8080 level=top process=wait|<big>${M4}</big>"
+ exec flapi
+fi
+
+if [ "$UPDATEflg" == "yes" ];then
+ NEWver="$(flatpak search --columns=version ${TRIPLET})"
+ export FP_DLG4="<window title=\"$(gettext 'Flatpak Installer:') ${aAPP}\">
+  <vbox>
+    <text use-markup=\"true\">
+      <label>\"$(gettext 'This is the currently installed version of the Flatpak:')
+  <b>${FPver}</b>
+$(gettext 'This is the latest version found online:')
+  <b>${NEWver}</b>
+
+$(gettext 'If the latest version is later than the current version, and you want to update, click the UPDATE button. Otherwise, click CANCEL to quit:')\"</label>
+    </text>
+    <hbox>
+     <button>
+       <label>$(gettext 'UPDATE')</label>
+       <action>EXIT:download</action>
+     </button>
+     <button>
+      <label>$(gettext 'CANCEL')</label>
+      <action>EXIT:cancel</action>
+     </button>
+    </hbox>
+  </vbox></window>"
+ RET4="$(gtkdialog --center --program=FP_DLG4)"
+ eval "$RET4" 
+ 
+ if [ "$EXIT" != "download" ];then
+  exit 0
+ fi
+
+ urxvt -bg '#FFE0A0' -geometry '100x25' -e flatpak update ${TRIPLET}
+ exit 0
+fi
+
+###install###
+urxvt -bg '#FFE0A0' -geometry '100x25' -e flatpak install flathub ${TRIPLET}
+if [ ! -e /mnt/wkg/flatpak/exports/bin/${TRIPLET} ];then
+ M5="$(gettext 'The Flatpak was not installed.')"
+ popup "terminate=ok background=#ff8080 level=top process=wait|<big>${M5}</big>"
+ exit 0
+fi
+
+#extract MimeType from .desktop...
+echo -n '' > /tmp/flatpak/mimetype
+DT1="$(find /mnt/wkg/flatpak/exports/share/applications -maxdepth 1 -name "${TRIPLET}.desktop" 2>/dev/null)"
+if [ "$DT1" ];then
+ grep '^MimeType=' ${DT1} > /tmp/flatpak/mimetype
+fi
+
+#script to run app...
+#this causes an error msg:  --file-forwarding
+echo "#!/bin/sh
+flatpak run --filesystem=host ${TRIPLET}" > /usr/bin/${aAPP,,}
+chmod 755 /usr/bin/${aAPP,,}
+
+if [ "${LANG:0:2}" == "en" ];then
+ NLSname=''
+else
+ NLStxt="$(gettext "${MENUname}")"
+ NLSname="Name[${LANG:0:2}]=${NLStxt}
+"
+fi
+
+echo "[Desktop Entry]
+Version=1.0
+Type=Application
+${NLSname}Name=${MENUname}
+GenericName=${aAPP}
+Icon=${aAPP,,}.png
+Categories=${MENUcat}
+Exec=${aAPP,,}" > /usr/share/applications/${aAPP,,}.desktop
+if [ -s /tmp/flatpak/mimetype ];then
+ cat /tmp/flatpak/mimetype >> /usr/share/applications/${aAPP,,}.desktop
+fi
+
+#create /usr/bin/${aAPP,,} script to run as user ${aAPP,,} ...
+setup-client "${aAPP,,}=true"
+
+#update jwm menu...
+fixmenus
+jwm -reload
+
+#update the right-click menu...
+build-rox-sendto /usr/share/applications/${aAPP,,}.desktop
+
+#create a path for optional open/save files for this app
+mkdir -p /files/apps/${aAPP,,}
+chown -R ${aAPP,,}:${aAPP,,} /files/apps/${aAPP,,}
+#for extra security...
+chmod 700 /files/apps/${aAPP,,}
+
+export FP_DLG5="<window title=\"$(gettext 'Flatpak Installer: success')\">
+  <vbox>
+    <text><label>\"$(gettext 'Success, this Flatpak has been installed:')
+  ${aAPP}
+$(gettext 'This script has been created to run it:')
+  /usr/bin/${aAPP,,}
+$(gettext 'And a menu entry has been created in this category:')
+  ${MENUtop}
+$(gettext 'The AppImage will run as this user:')
+  ${aAPP,,}
+$(gettext 'With user home directory:')
+  /home/${aAPP,,}
+
+$(gettext 'This means that the app will only be able to save files in the home directory or anywhere in the /files folder.')
+$(gettext 'For your convenience, this folder has been created:')
+  /files/apps/${aAPP,,}
+$(gettext 'You may, if you wish, configure the app to open/save in this folder.')
+
+$(gettext 'Click the OK button for some final useful information...')\"</label></text>
+    <hbox>
+     <button ok></button>
+    </hbox>
+  </vbox>
+</window>
+"
+gtkdialog --center --program=FP_DLG5
+
+export FP_DLG6="<window title=\"$(gettext 'Flatpak Installer: notes')\">
+  <vbox>
+    <frame>
+      <text use-markup=\"true\"><label>\"<b>$(gettext 'Security notes')</b>\"</label></text>
+      <text use-markup=\"true\"><label>\"$(gettext 'As has been stated in the previous window, the Flatpak has been installed to run as a non-root user. In fact, each Flatpak runs as its own separate user. This provides isolation, in other words, security.')\"</label></text>
+    </frame>
+    
+    <frame>
+      <text use-markup=\"true\"><label>\"<b>$(gettext 'Desktop icon')</b>\"</label></text>
+      <text use-markup=\"true\"><label>\"$(gettext 'An entry has been created in the menu; however, you can also create a desktop icon.')
+$(gettext 'All that you need to do is drag the icon from ROX-Filer, onto the desktop, that is it.')
+$(gettext 'You can do it any time in the future, and also can delete the desktop icon by right-click and choose Remove.')\"</label></text>
+      <hbox>
+       <text><label>$(gettext 'Click for ROX-Filer window:')</label></text>
+       <button>
+        <label>ROX-Filer</label>
+        <action>rox -d /home/${aAPP,,} & </action>
+       </button>
+      </hbox>
+    </frame>
+    
+    <hbox>
+     <button ok></button>
+    </hbox>
+  </vbox>
+</window>
+"
+gtkdialog --center --program=FP_DLG6
+
+sync
+###end###
+
+

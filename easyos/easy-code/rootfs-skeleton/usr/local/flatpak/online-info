@@ -1,0 +1,100 @@
+#!/bin/sh
+#called from /usr/local/appimages/appimages
+#up to nine variables passed in:
+#$TREEaudio, $TREEbusiness, $TREEdeveloper, $TREEgames, $TREEgraphics, $TREEnetwork, $TREEproductivity, $TREEsystem, $TREEvideo, $TREEother
+
+export TEXTDOMAIN=flatpaks
+export TEXTDOMAINDIR=/usr/share/locale
+export OUTPUT_CHARSET=UTF-8
+
+#only one of them will have a content:
+for aPARAM in $@
+do
+ if [ "$aPARAM" ];then
+  break
+ fi
+done
+
+if [ ! "$aPARAM" ];then
+ M1="$(gettext 'You need to select a Flatpak first')"
+ popup "terminate=ok background=#ff8080 level=top process=wait|<big>${M1}</big>"
+ exit 1
+fi
+
+#need internet connection...
+if [ ! -s /tmp/pup_event_backend/network_ ];then
+ M5="$(gettext 'An Internet connection is required to view online information.')"
+ popup "terminate=ok background=#ff8080 level=top process=wait|<big>${M5}</big>"
+ exit
+fi
+
+case "$aPARAM" in
+ Audacity) URL='https://www.audacityteam.org/' ;;
+ GitQlient) URL='https://github.com/francescmm/GitQlient' ;;
+ GoldenDict) URL='http://goldendict.org/' ;;
+ PlanetBlupi) URL='https://github.com/blupi-games/planetblupi-dev' ;;
+ PhotoTool) URL='https://www.ahola.me/aphototoollibre.html' ;;
+ CozyDrive) URL='https://cozy.io/en/' ;;
+ Electorrent) URL='https://github.com/Tympanix/Electorrent' ;;
+ ONLYOFFICE) URL='https://www.onlyoffice.com/desktop.aspx' ;;
+ OneNote) URL='https://www.corifeus.com/onenote' ;;
+ OpenShot) URL='https://www.openshot.org/' ;;
+ ShotCut) URL='https://shotcut.org/' ;;
+ VidCutter) URL='https://github.com/ozmartian/vidcutter' ;;
+ Webcamoid) URL='https://webcamoid.github.io/' ;;
+ AppImagePool) URL='https://github.com/prateekmedia/appimagepool' ;;
+ Emacs) URL='https://www.gnu.org/software/emacs/' ;;
+ CircuitBlocks) URL='https://github.com/CircuitMess/CircuitBlocks' ;;
+ Antares) URL='https://antares-sql.app/' ;;
+ GDevelop) URL='https://gdevelop.io/' ;;
+ Groot) URL='https://github.com/BehaviorTree/Groot' ;;
+ Guitar) URL='https://github.com/soramimi/Guitar' ;;
+ ImHex) URL='https://imhex.werwolv.net/' ;;
+ KiCad) URL='https://www.kicad.org/' ;;
+ EndlessSky) URL='https://endless-sky.github.io/' ;;
+ Etcher) URL='https://www.balena.io/etcher' ;;
+ Krita) URL='https://krita.org/en/' ;;
+ Kdenlive) URL='https://kdenlive.org/en/' ;;
+ Dust3D) URL='https://dust3d.org/' ;;
+ DbGate) URL='https://dbgate.org/' ;;
+ Figma) URL='https://www.figma.com/ui-design-tool/' ;;
+ FreeCAD) URL='https://www.freecad.org/' ;;
+ Glyphr) URL='https://www.glyphrstudio.com/' ;;
+ Heimer) URL='https://github.com/juzzlin/Heimer' ;;
+ Insight) URL='https://github.com/antony-jr/insight' ;;
+ KOReader) URL='http://koreader.rocks/' ;;
+ KeePassXC) URL='https://keepassxc.org/' ;;
+ LosslessCut) URL='https://github.com/mifi/lossless-cut' ;;
+ OpenSCAD) URL='http://openscad.org/' ;;
+ KoodoReader) URL='https://koodo.960960.xyz/en' ;;
+ DeltaChat) URL='https://delta.chat/en/' ;;
+ PDFQuirk) URL='https://dragotin.github.io/quirksite/' ;;
+ UngoogledChromium) URL='https://ungoogled-software.github.io/' ;;
+ digiKam) URL='https://www.digikam.org/' ;;
+ eXeLearning) URL='https://exelearning.net/en/' ;;
+ Nanosaur) URL='https://pangeasoft.net/nano/' ;;
+ OttoMatic) URL='https://pangeasoft.net/otto/' ;;
+ Thunderbird) URL='https://www.thunderbird.net/en-US/' ;;
+ JitsiMeet) URL='https://jitsi.org/jitsi-meet/' ;;
+ EndlessSky) URL='https://endless-sky.github.io/' ;;
+ Acreom) URL='https://acreom.com/' ;;
+ Zoom) URL='https://zoom.us/' ;;
+ Altus) URL='https://www.whatsapp.com/' ;;
+ DBBrowser) URL='https://sqlitebrowser.org/' ;;
+ Telegram) URL='https://telegram.org/' ;;
+ LibreCAD) URL='https://librecad.org/' ;;
+ LeoCAD) URL='https://www.leocad.org/' ;;
+ CroMagRally) URL='https://pangeasoft.net/cromag/' ;;
+ MyPaint) URL='https://mypaint.app/about/' ;;
+ Calibre) URL='https://calibre-ebook.com/about' ;;
+ LMMS) URL='https://lmms.io/' ;;
+ Musicblocks) URL='https://musicblocks.sugarlabs.org/' ;;
+ Discord) URL='https://discord.com/' ;;
+ *)
+  pman ${aPARAM} &
+  exit
+ ;;
+esac
+
+defaultbrowser ${URL} &
+###end###
