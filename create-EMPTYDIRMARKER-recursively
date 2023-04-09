@@ -1,0 +1,12 @@
+#!/bin/bash
+#problem is git only recognises files, not folders.
+#empty folders need a file in them. EMPTYDIRMARKER will be removed by merge2out
+
+[ ! -d easyos/easy-code/rootfs-skeleton ] && exit
+
+#ref: https://unix.stackexchange.com/questions/463044/recursively-create-empty-file-in-empty-sub-directories
+find easyos/easy-code/rootfs-skeleton easyos/easy-code/packages-templates easyos/easy-code/boot -type d -empty -exec touch {}/EMPTYDIRMARKER \;
+
+find puppy quirky -type d -empty -exec touch {}/EMPTYDIRMARKER \;
+
+sync
