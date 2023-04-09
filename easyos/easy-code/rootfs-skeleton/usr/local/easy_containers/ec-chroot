@@ -61,6 +61,7 @@
 #20230223 fix if PuppyPin is translated.
 #20230224 Caramel: export keyboard layout to Xephyr server.
 #20230326 restore EC_CAP_mount check.
+#20340409 note: /files symlink has returned (ref: init in intrd, rc.sysinit)
 
 WHOIAM="$(whoami)"
 [ "${WHOIAM}" != "root" ] && exec sudo -A ${0} ${@} #20221031
@@ -184,6 +185,7 @@ if [ -f /etc/uimanager ];then
  fi
 fi
 
+#20340409 note: /files symlink has returned (ref: init in intrd, rc.sysinit)
 #20211205 no
 ##190829 now have /files symlink (as per main desktop)... 190903 fix
 #ln -snf /mnt/wkg/files /mnt/${WKG_DEV}/${WKG_DIR}containers/${EXE}/container/files

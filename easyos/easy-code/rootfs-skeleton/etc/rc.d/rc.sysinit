@@ -59,6 +59,7 @@
 #20221102 remove support EOS_LOGIN_ZEUS
 #20221102 fix /run and /var/run symlinks. fix /var/cache symlink.
 #20221123 top-level /.config and /.local were getting created at startup.
+#20230409 revert, /files now a symlink (ref: init in initrd)
 
 #unset TZ #100319 busybox hwclock gives priority to this (rather than /etc/localtime) and 'init' has set it wrong.
 #...comment-out for now. note, TZ now set in rc.country.
@@ -667,11 +668,12 @@ sed -i -e 's%\-\-dir=[^"]*%--dir=/files%' /root/Choices/ROX-Filer/PuppyPin
 ##190829 /files got renamed to /clients, so now can have it as a symlink... 190905 fix...
 #[ -d /files ] && [ ! -h /files ] && mv -f /files /clients #for older systems.
 
-#20211205 /files already exists in easy.sfs, but we overlay it, so no longer a symlink:
-# note, initrd removed a pre-existing /files symlink.
-#ln -snf ${PUP_HOME} /files
-#20220526 insert "-o noatime"
-busybox mount --bind -o noatime /mnt/${WKG_DEV}/${WKG_DIR}files /files
+#20230409 revert, /files now a symlink (ref: init in initrd)
+##20211205 /files already exists in easy.sfs, but we overlay it, so no longer a symlink:
+## note, initrd removed a pre-existing /files symlink.
+##ln -snf ${PUP_HOME} /files
+##20220526 insert "-o noatime"
+#busybox mount --bind -o noatime /mnt/${WKG_DEV}/${WKG_DIR}files /files
 
 ##############USER SELECTED MODULES##################
 echo "USER SELECTED MODULES"

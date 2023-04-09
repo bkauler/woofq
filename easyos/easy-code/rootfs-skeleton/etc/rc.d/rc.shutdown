@@ -302,7 +302,8 @@ if [ "$EOS_TOP_LEVEL_ZRAM" == "1" ];then
  sleep 0.1
  #attempt to remove .session layer...
  busybox mount -o remount,del:/mnt/${WKG_DEV}/${WKG_DIR}.session / 2>/dev/console
- busybox umount /files 2>/dev/console
+ #20230409 /files no longer a symlink (refs: init in initrd, rc.sysinit)...
+ #busybox umount /files 2>/dev/console
  #20220531 "save" saves into sub-folder mainrw...
  if [ -f /mnt/${WKG_DEV}/${WKG_DIR}.session-transit/mainrw/root/.XLOADED ];then #20220529
   #.XLOADED will cause an error msg at next bootup. it is intended when crash.

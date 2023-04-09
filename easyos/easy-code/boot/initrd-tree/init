@@ -151,6 +151,7 @@
 #20230304 support distro name other than "EasyOS" and "Easy".
 #20230405 always change root pw. create signed-key-pair.
 #20230406 WKG_DIR must be root:filesgrp and 770 (flatpak save). 20230407 revert.
+#20230409 /files reverts to a symlink to /mnt/wkg/files
 
 #20220525 3buildeasydistro will substitute values here...
 EOS_TOP_LEVEL_ZRAM=EOSTOPLEVELZRAM #20220521 1=yes, anything else no.
@@ -1496,12 +1497,14 @@ SFS_DB_hash='${ESUM}'" > /mnt/${WKG_DEV}/${WKG_DIR}sfs/easyos/${INIT_DISTRO_BINA
  #200830 this folder must always be pristine...
  [ -d /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/xdg ] && rm -rf /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/xdg
  
- #20211207 relocated here.
- #20211205 upgrading from easyos <3.1.13
- # no longer have /files symlink. rc.sysinit will do a "mount --bind" onto /files
- if [ -h /mnt/${WKG_DEV}/${WKG_DIR}.session/files ];then
-  rm -f /mnt/${WKG_DEV}/${WKG_DIR}.session/files
- fi
+ #20230409 /files reverted, now a symlink. see further down.
+ ##20211207 relocated here.
+ ##20211205 upgrading from easyos <3.1.13
+ ## no longer have /files symlink. rc.sysinit will do a "mount --bind" onto /files
+ #if [ -h /mnt/${WKG_DEV}/${WKG_DIR}.session/files ];then
+ # rm -f /mnt/${WKG_DEV}/${WKG_DIR}.session/files
+ #fi
+ 
  #files folder, everything must belong to 'fscryptgrp' group. 20211206 now 'filesgrp'
  FGRP="$(stat -c %g /mnt/${WKG_DEV}/${WKG_DIR}files)"
  if [ "$FGRP" != "122" ];then
@@ -1584,6 +1587,14 @@ else #20220613
   rm -f /mnt/${WKG_DEV}/${WKG_DIR}easy.sfs
  fi
 fi
+
+#20230409 from easy 5.2.2 onward...
+#note: easy.sfs still has /files with sub-directories, for containers.
+if [ -d /mnt/${WKG_DEV}/${WKG_DIR}.session/files ];then
+ rm -rf /mnt/${WKG_DEV}/${WKG_DIR}.session/files
+fi
+#could have symlinked to /mnt/wkg, but do this every bootup...
+ln -snf /mnt/${WKG_DEV}/${WKG_DIR}files /mnt/${WKG_DEV}/${WKG_DIR}.session/files
 
 ###recompress easy.sfs### improve operating speed, recompress easy.sfs (refer quicksetup)
 if [ -s /mnt/${WKG_DEV}/${WKG_DIR}.session/.qsfs.flg ];then #181029 now in sfs folder...
