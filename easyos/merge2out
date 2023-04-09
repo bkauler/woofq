@@ -40,6 +40,7 @@
 #20220131 new build path. separate PKGSPATH from PROJECTPATH
 #20230309 use oe kirkstone pkgs in non-oe builds.
 #20230326 fix paths now everything on 4TB ssd.
+#20230409 EMPTYDIRMARKER files will be in boot/initrd-tree
 
 [ ! -d ./easy-arch ] && exit
 [ ! -d ./easy-code ] && exit
@@ -289,6 +290,10 @@ echo "Fixing ${BUILDSPATH}/easy-out_${HOSTARCH}_${TARGETARCH}_${COMPATDISTRO}_${
 fossil_fixup_func rootfs-skeleton
 echo "Fixing ${BUILDSPATH}/easy-out_${HOSTARCH}_${TARGETARCH}_${COMPATDISTRO}_${COMPATVERSION}/packages-templates..."
 fossil_fixup_func packages-templates
+
+#20230409
+fossil_fixup_func boot
+fossil_fixup_func puppy
 
 #2: VCSMETADATA permissions/ownership...
 if [ -s VCSMETADATA ];then
