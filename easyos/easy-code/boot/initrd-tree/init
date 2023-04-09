@@ -152,6 +152,7 @@
 #20230405 always change root pw. create signed-key-pair.
 #20230406 WKG_DIR must be root:filesgrp and 770 (flatpak save). 20230407 revert.
 #20230409 /files reverts to a symlink to /mnt/wkg/files
+#20230409 /mnt/${WKG_DEV}/${WKG_DIR}data is no longer encrypted.
 
 #20220525 3buildeasydistro will substitute values here...
 EOS_TOP_LEVEL_ZRAM=EOSTOPLEVELZRAM #20220521 1=yes, anything else no.
@@ -1189,7 +1190,7 @@ ${S133}\\033[0;39m" #red.
    [ "$EOS_SUPPORT_CONTAINERS" != "0" ] && e4crypt set_policy ${POLICY} /mnt/${WKG_DEV}/${WKG_DIR}containers
    e4crypt set_policy ${POLICY} /mnt/${WKG_DEV}/${WKG_DIR}releases
    e4crypt set_policy ${POLICY} /mnt/${WKG_DEV}/${WKG_DIR}files
-   e4crypt set_policy ${POLICY} /mnt/${WKG_DEV}/${WKG_DIR}data #20211212
+   #e4crypt set_policy ${POLICY} /mnt/${WKG_DEV}/${WKG_DIR}data #20211212  20230409 no longer encrypted.
   else
    echo "${S145}"
   fi
@@ -1250,9 +1251,10 @@ else
  #20211212 problem if update from <3.1.14 data folder not exist...
  if [ ! -d /mnt/${WKG_DEV}/${WKG_DIR}data ];then
   mkdir /mnt/${WKG_DEV}/${WKG_DIR}data
-  if [ "$ALLOW_ASK_PW" == "yes" ];then
-   e4crypt set_policy ${POLICY} /mnt/${WKG_DEV}/${WKG_DIR}data
-  fi
+  #20230409 no longer encrypted...
+  #if [ "$ALLOW_ASK_PW" == "yes" ];then
+  # e4crypt set_policy ${POLICY} /mnt/${WKG_DEV}/${WKG_DIR}data
+  #fi
  fi
 fi
 
