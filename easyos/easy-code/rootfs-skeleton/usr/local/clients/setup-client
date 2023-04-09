@@ -1,5 +1,6 @@
 #!/bin/bash
 #20210906 based on support/setup-spot
+#20230409 also called from /usr/local/appimage/appimage, /usr/local/flatpak/flatpak
 #called from dir2sfs, 3buildeasydistro
 # intention is the following:
 # call from 3builddistro, current dir is inside 'sandbox3'.
@@ -47,6 +48,8 @@
 #20220923 setup for spot in container.
 #20230302 support vivaldi --no-sandbox for crippled-root in container.
 #20230330 prevent other apps from seeing in home folder.
+#20230409 /usr/local/flatpak/flatpak has already created /home/${APPname}, so test for .config
+#20230409 a bit tricky coz /home/<app> is symlink for flatpaks.
 
 APPname="${1/=*/}"  #ex: seamonkey
 APPflag="${1/*=/}" #ex: true
@@ -81,7 +84,8 @@ fi
 CHGflg=0 #20210916  20210918 revert 20210917...
 #if [ ! "$PREFIXDIR2" ];then #20210917 dir2sfs is creating an sfs, this code has to be delayed, see create-client-environment below.
  if [ "$APPflag" == "true" ];then #20210915
-  if [ ! -d ${PREFIXDIR1}/home/${APPname} ];then
+  #20230409 /usr/local/flatpak/flatpak has already created /home/${APPname}, so test for .config ...
+  if [ ! -d ${PREFIXDIR1}/home/${APPname}/.config ];then
    CHGflg=1 #20210916
    mkdir -p ${PREFIXDIR1}/home/${APPname}
    for aSUB in .cache .config .history .local/share ${APPname}
@@ -200,7 +204,10 @@ if [ ! "$PREFIXDIR2" ];then #20210915 dir2sfs is creating an sfs, this code has 
  #fi
  
  if [ $CHGflg -eq 1 ];then #20210916 20211103
-  chown -h -R ${APPname}:${APPname} ${PREFIXDIR1}/home/${APPname} #20211205 added -h
+  #20230409 handle /home/<app> a symlink...
+  #chown -h -R ${APPname}:${APPname} ${PREFIXDIR1}/home/${APPname} #20211205 added -h
+  chown -h ${APPname}:${APPname} ${PREFIXDIR1}/home/${APPname} #-h Affect symlinks instead of symlink targets
+  chown -H -R ${APPname}:${APPname} ${PREFIXDIR1}/home/${APPname} #-H Traverse symlinks on command line only
  fi
 fi
 
@@ -834,8 +841,11 @@ fi
 if [ ! "$PREFIXDIR2" ];then #20210918 if an sfs, need to delay this...
  if [ "$APPflag" == "true" ];then
   if [ -d ${PREFIXDIR1}/home/${APPname} ];then #20210918 precaution
-   chown -h -R ${APPname}:${APPname} ${PREFIXDIR1}/home/${APPname} #20211205 added -h
+   #20230409 handle /home/<app> a symlink...
+   #chown -h -R ${APPname}:${APPname} ${PREFIXDIR1}/home/${APPname} #20211205 added -h
+   chown -h ${APPname}:${APPname} ${PREFIXDIR1}/home/${APPname} #-h Affect symlinks instead of symlink targets
+   chown -H -R ${APPname}:${APPname} ${PREFIXDIR1}/home/${APPname} #-H Traverse symlinks on command line only
   fi
  fi
 fi
-###END###
+###end###

@@ -1,6 +1,7 @@
 #!/bin/bash
 #want a gui like /usr/local/appimage/appimage
 #also launched via /usr/bin/flapi
+#20230409 mount unencrypted folder on /home/<app> ...no, symlink.
 
 export TEXTDOMAIN=flatpaks
 export TEXTDOMAINDIR=/usr/share/locale
@@ -22,7 +23,7 @@ $(gettext 'Upon installation, a menu-entry is created, and you are good-to-go.')
 <b>$(gettext 'Notes')</b>
 $(gettext 'A tick in the second column means that the Flatpak is already installed. You may then have the opportunity of updating or deleting it.')
 $(gettext 'After a Flatpak is installed, the file-manager will recognize the file types handled by that app. Right-click on an appropriate file and the Flatpak will be offered to open it.')
-$(gettext 'If you entered a password at first bootup of EasyOS, then all working folders are encrypted, and this includes files created by the Flatpak while you are using it. If your USB-stick, or on whatever media EasyOS is installed, is stolen, your data is safe.')"
+$(gettext 'The Flatpak sandbox is good, but conflicts with ext4 folder encryption. Thus /home/<app> is a symlink to an unencrypted folder in the working-partition.')"
 export DLG_HELP_FP="<window resizable=\"false\" title=\"$(gettext 'Help: Flatpak Installer')\" icon-name=\"gtk-index\" window_position=\"1\"><vbox><text use-markup=\"true\"><label>\"${Hfp1}\"</label><variable>DLG_HELP_FP</variable></text><hbox><button><label>$(gettext 'Close')</label><action type=\"closewindow\">DLG_HELP_FP</action></button></hbox></vbox></window>"
 
 #find out what already installed...
@@ -133,7 +134,7 @@ if [ "$EXIT" != "BUTinstall" ];then
 fi
 
 #there could be multiple choices, but let's just do one...
-for aAPP in "$TREEaudio" "$TREEdeveloper" "$TREEgames" "$TREEgraphics" "$TREEnetwork" "$TREEoffice" "$TREEproductivity" "$TREEsystem" "$TREEvideo"
+for aAPP in "$TREEaudio" "$TREEdeveloper" "$TREEgames" "$TREEgraphics" "$TREEnetwork" "$TREEoffice" "$TREEproductivity" "$TREEsystem" "$TREEvideo" "$TREEother"
 do
  if [ "$aAPP" != "" ];then
   break
@@ -323,8 +324,11 @@ fi
 
 #script to run app...
 #this causes an error msg:  --file-forwarding
+#20230409 i think better to have a path, instead of "host"...
+#echo "#!/bin/sh
+#flatpak run --filesystem=host ${TRIPLET}" > /usr/bin/${aAPP,,}
 echo "#!/bin/sh
-flatpak run --filesystem=host ${TRIPLET}" > /usr/bin/${aAPP,,}
+flatpak run --filesystem=/mnt/wkg/data/flatpak/${aAPP,,} ${TRIPLET}" > /usr/bin/${aAPP,,}
 chmod 755 /usr/bin/${aAPP,,}
 
 if [ "${LANG:0:2}" == "en" ];then
@@ -347,6 +351,12 @@ if [ -s /tmp/flatpak/mimetype ];then
  cat /tmp/flatpak/mimetype >> /usr/share/applications/${aAPP,,}.desktop
 fi
 
+#20230409 mount unencrypted folder on /home/<app>... no, symlink...
+mkdir -p /mnt/wkg/data/flatpak/${aAPP,,}/data
+#mkdir -p /home/${aAPP,,}
+#busybox mount --bind -o noatime /mnt/wkg/data/flatpak/${aAPP,,} /home/${aAPP,,}
+ln -s /mnt/wkg/data/flatpak/${aAPP,,} /home/${aAPP,,}
+
 #create /usr/bin/${aAPP,,} script to run as user ${aAPP,,} ...
 setup-client "${aAPP,,}=true"
 
@@ -357,11 +367,15 @@ jwm -reload
 #update the right-click menu...
 build-rox-sendto /usr/share/applications/${aAPP,,}.desktop
 
+#20230409 flatpak sandbox doesn't work properly with ext4 fscrypt.
+# that is why created a symlink to unencrypted folder.
+# using /home/<app>/data for open/save. chown already done.
 #create a path for optional open/save files for this app
-mkdir -p /files/apps/${aAPP,,}
-chown -R ${aAPP,,}:${aAPP,,} /files/apps/${aAPP,,}
+#mkdir -p /files/apps/${aAPP,,}
+#chown -R ${aAPP,,}:${aAPP,,} /files/apps/${aAPP,,}
 #for extra security...
-chmod 700 /files/apps/${aAPP,,}
+#chmod 700 /files/apps/${aAPP,,}
+chmod 700 /home/${aAPP,,}/data
 
 export FP_DLG5="<window title=\"$(gettext 'Flatpak Installer: success')\">
   <vbox>
@@ -376,9 +390,9 @@ $(gettext 'The AppImage will run as this user:')
 $(gettext 'With user home directory:')
   /home/${aAPP,,}
 
-$(gettext 'This means that the app will only be able to save files in the home directory or anywhere in the /files folder.')
+$(gettext 'This means that the app will only be able to save files in the home directory.')
 $(gettext 'For your convenience, this folder has been created:')
-  /files/apps/${aAPP,,}
+  /home/${aAPP,,}/data
 $(gettext 'You may, if you wish, configure the app to open/save in this folder.')
 
 $(gettext 'Click the OK button for some final useful information...')\"</label></text>
@@ -394,7 +408,8 @@ export FP_DLG6="<window title=\"$(gettext 'Flatpak Installer: notes')\">
   <vbox>
     <frame>
       <text use-markup=\"true\"><label>\"<b>$(gettext 'Security notes')</b>\"</label></text>
-      <text use-markup=\"true\"><label>\"$(gettext 'As has been stated in the previous window, the Flatpak has been installed to run as a non-root user. In fact, each Flatpak runs as its own separate user. This provides isolation, in other words, security.')\"</label></text>
+      <text use-markup=\"true\"><label>\"$(gettext 'As has been stated in the previous window, the Flatpak has been installed to run as a non-root user. In fact, each Flatpak runs as its own separate user. This provides isolation, in other words, security.')
+      $(gettext 'Unfortunately, the Flatpak sandbox conflicts with ext4 folder encryption, so the home folder is not encrypted. It is actually a symlink to an unencrypted folder in the working-partition.')\"</label></text>
     </frame>
     
     <frame>
@@ -421,5 +436,3 @@ gtkdialog --center --program=FP_DLG6
 
 sync
 ###end###
-
-
