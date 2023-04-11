@@ -153,6 +153,7 @@
 #20230406 WKG_DIR must be root:filesgrp and 770 (flatpak save). 20230407 revert.
 #20230409 /files reverts to a symlink to /mnt/wkg/files
 #20230409 /mnt/${WKG_DEV}/${WKG_DIR}data is no longer encrypted.
+#20230411 remove 20230405 signed-key-pair now gen in rc.update
 
 #20220525 3buildeasydistro will substitute values here...
 EOS_TOP_LEVEL_ZRAM=EOSTOPLEVELZRAM #20220521 1=yes, anything else no.
@@ -1760,28 +1761,6 @@ root:${ePW}:17693:0:99999:7:::" >> /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/shadow
    done
   fi
  fi
-fi
-
-#20230405
-if [ ! -f /mnt/${WKG_DEV}/${WKG_DIR}.session/root/.gnupg/pubring.gpg ];then
- echo
- echo "${S304}" #'Creating gnupg signed key pair, at /root/.gnupg'
- mkdir -p /mnt/${WKG_DEV}/${WKG_DIR}.session/root/.gnupg
- chmod 700 /mnt/${WKG_DEV}/${WKG_DIR}.session/root/.gnupg
- cat >foo <<EOF
-Key-Type: RSA
-Key-Length: 2048
-Subkey-Type: RSA
-Subkey-Length: 2048
-Name-Real: EasyOS user ${RANDOM}
-Name-Comment: WoofWoof1-root-password is passphrase
-Name-Email: noone@nowhere.com
-Expire-Date: 0
-Passphrase: WoofWoof1${rootPW}
-%commit
-%echo done
-EOF
- GNUPGHOME="/mnt/${WKG_DEV}/${WKG_DIR}.session/root/.gnupg" gpg --batch --gen-key foo
 fi
 
 ###fix layers change###
