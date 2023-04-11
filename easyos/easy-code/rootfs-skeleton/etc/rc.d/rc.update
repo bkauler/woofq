@@ -8,7 +8,6 @@
 #200820 moved 200609 up, to be sure fixmenus run before jwm has started.
 #200827 200609: removing old .desktop files code moved to rc.sysinit
 #20211207 check that /root/.mozilla/seamonkey exists.
-#20230411 signed-key-pair was gen in initrd, moved to here.
 
 #131217 only do this on very first boot... 170920...
 if [ -f /.sfschg.flg -o ! -f /etc/networkmodules ];then
@@ -39,28 +38,6 @@ if [ -d /root/.mozilla/seamonkey ];then #20211207
   mv -f ${OLDPROFILE} ${OLDPROFILE}OLD
   sed -i -e "s%^Path=.*%Path=${NEWPROFILE##*/}%" ${HOMEDIR}/profiles.ini #200729 sanity check.
  fi
-fi
-
-#20230411 moved from initrd...
-if [ ! -f /root/.gnupg/pubring.gpg ];then
- #echo
- #echo "${S304}" #'Creating gnupg signed key pair, at /root/.gnupg'
- mkdir -p /root/.gnupg
- chmod 700 /root/.gnupg
- cat >/tmp/fooo <<EOF
-Key-Type: RSA
-Key-Length: 2048
-Subkey-Type: RSA
-Subkey-Length: 2048
-Name-Real: EasyOS user ${RANDOM}
-Name-Comment: WoofWoof1-root-password is passphrase
-Name-Email: noone@nowhere.com
-Expire-Date: 0
-Passphrase: WoofWoof1${rootPW}
-%commit
-%echo done
-EOF
- GNUPGHOME="/root/.gnupg" gpg1 --batch --gen-key /tmp/fooo
 fi
 
 ###end###
