@@ -1,0 +1,8 @@
+
+#20230413
+#oe kirkstone: flatpak has /etc/profile.d/flatpak.sh, that adds extra entries
+# onto XDG_DATA_DIRS which stuffs up 'fixmenus' script and hence jwm menu.
+# (easyos 'flapi' generates menu entries its own way).
+if [ -d etc/profile.d ];then
+ rm -rf etc/profile.d
+fi
