@@ -2,6 +2,7 @@
 #want a gui like /usr/local/appimage/appimage
 #also launched via /usr/bin/flapi
 #20230409 mount unencrypted folder on /home/<app> ...no, symlink.
+#20230412 confirm operation success.
 
 export TEXTDOMAIN=flatpaks
 export TEXTDOMAINDIR=/usr/share/locale
@@ -14,7 +15,7 @@ mkdir -p /tmp/flatpak
 mkdir -p /mnt/wkg/flatpak
 
 Hfp1="$(gettext 'Flatpaks are applications that contain all dependencies built-in, so they will run on almost any Linux distribution, without having to install any other packages.')
-$(gettext 'Consequently, they are large, typically 500MB to 900MB, so you do need reasonably fast Internet and adequate data allowance with your telco.')
+$(gettext 'Consequently, they are large, typically 100MB to 900MB, so you do need reasonably fast Internet and adequate data allowance with your telco.')
 
 $(gettext 'The Flatpaks are installed so that each runs as its own user, which maximizes isolation and hence security.')
 
@@ -23,7 +24,7 @@ $(gettext 'Upon installation, a menu-entry is created, and you are good-to-go.')
 <b>$(gettext 'Notes')</b>
 $(gettext 'A tick in the second column means that the Flatpak is already installed. You may then have the opportunity of updating or deleting it.')
 $(gettext 'After a Flatpak is installed, the file-manager will recognize the file types handled by that app. Right-click on an appropriate file and the Flatpak will be offered to open it.')
-$(gettext 'The Flatpak sandbox is good, but conflicts with ext4 folder encryption. Thus /home/<app> is a symlink to an unencrypted folder in the working-partition.')"
+$(gettext 'The Flatpak sandbox is good, but conflicts with ext4 folder encryption. Thus, the application-name in the /home folder is a symlink to an unencrypted folder in the working-partition.')"
 export DLG_HELP_FP="<window resizable=\"false\" title=\"$(gettext 'Help: Flatpak Installer')\" icon-name=\"gtk-index\" window_position=\"1\"><vbox><text use-markup=\"true\"><label>\"${Hfp1}\"</label><variable>DLG_HELP_FP</variable></text><hbox><button><label>$(gettext 'Close')</label><action type=\"closewindow\">DLG_HELP_FP</action></button></hbox></vbox></window>"
 
 #find out what already installed...
@@ -33,10 +34,19 @@ do
  #ex: org.kde.Krita
  case "${aFP}" in
   *-*) continue ;;
+  *DIYLayoutCreator) aFP='DIYLC' ;;
+  *visualstudio.code) aFP='VSCode' ;;
+  *gdevelop.ide) aFP='GDevelop' ;;
  esac
  aFP="${aFP##*.}"
  eval "FLG${aFP,,}='√'" #ex: sets FLGaudacity=√
 done
+
+###removed###
+#was in audio category. hangs after startup
+# <item icon-name=\"cozy\">Cozy|${FLGcozy}|$(gettext 'Audio book player')</item>
+
+
 
 ###main gui###
 PACKAGE="Flatpak"
@@ -52,12 +62,21 @@ export FP_DLG1="<window title=\"$(gettext 'Flatpak Installer')\">
         <variable>TREEaudio</variable>
         <action signal=\"enter-notify-event\" type=\"refresh\">TREEaudio</action>
         <item icon-name=\"audacity\">Audacity|${FLGaudacity}|$(gettext 'A free, easy-to-use, multi-track audio editor and recorder')</item>
+        <item icon-name=\"tuner\">Tuner|${FLGtuner}|$(gettext 'Listen to Internet radio stations')</item>
       </tree>
       <tree column-resizeable=\"0\">
         <label>${PACKAGE}||${DESCRIPTION}</label>
         <height>300</height>
         <variable>TREEdeveloper</variable>
         <action signal=\"enter-notify-event\" type=\"refresh\">TREEdeveloper</action>
+        <item icon-name=\"androidstudio\">AndroidStudio|${FLGandroidstudio}|$(gettext 'IDE for Android app development')</item>
+        <item icon-name=\"cambalache\">Cambalache|${FLGcambalache}|$(gettext 'GTK3 and GTK4 interface designer')</item>
+        <item icon-name=\"diylc\">DIYLC|${FLGdiylc}|$(gettext 'Electrical and electronic circuit board layout designer')</item>
+        <item icon-name=\"gdevelop\">GDevelop|${FLGgdevelop}|$(gettext 'No-code game development')</item>
+        <item icon-name=\"purrdata\">PurrData|${FLGpurrdata}|$(gettext 'Visual programming environment')</item>
+        <item icon-name=\"scratch\">Scratch|${FLGscratch}|$(gettext 'Simple GUI app creator')</item>
+        <item icon-name=\"smartgit\">SmartGit|${FLGsmartgit}|$(gettext 'Git and SVN client. No.1 rating at slant.co')</item>
+        <item icon-name=\"vscode\">VSCode|${FLGvscode}|$(gettext 'Visual Studio Code editor')</item>
       </tree>
       <tree column-resizeable=\"0\">
         <label>${PACKAGE}||${DESCRIPTION}</label>
@@ -77,18 +96,22 @@ export FP_DLG1="<window title=\"$(gettext 'Flatpak Installer')\">
         <height>300</height>
         <variable>TREEnetwork</variable>
         <action signal=\"enter-notify-event\" type=\"refresh\">TREEnetwork</action>
+        <item icon-name=\"fragments\">Fragments|${FLGfragments}|$(gettext 'A BitTorrent client')</item>
       </tree>
       <tree column-resizeable=\"0\">
         <label>${PACKAGE}||${DESCRIPTION}</label>
         <height>300</height>
         <variable>TREEoffice</variable>
         <action signal=\"enter-notify-event\" type=\"refresh\">TREEoffice</action>
+        <item icon-name=\"okular\">Okular|${FLGokular}|$(gettext 'Universal document viewer')</item>
       </tree>
       <tree column-resizeable=\"0\">
         <label>${PACKAGE}||${DESCRIPTION}</label>
         <height>300</height>
         <variable>TREEproductivity</variable>
         <action signal=\"enter-notify-event\" type=\"refresh\">TREEproductivity</action>
+        <item icon-name=\"identity\">Identity|${FLGidentity}|$(gettext 'Compare multiple versions of an image or video')</item>
+        <item icon-name=\"minder\">Minder|${FLGminder}|$(gettext 'Mind-mapping ideas visualization tool')</item>
       </tree>
       <tree column-resizeable=\"0\">
         <label>${PACKAGE}||${DESCRIPTION}</label>
@@ -101,6 +124,7 @@ export FP_DLG1="<window title=\"$(gettext 'Flatpak Installer')\">
         <height>300</height>
         <variable>TREEvideo</variable>
         <action signal=\"enter-notify-event\" type=\"refresh\">TREEvideo</action>
+        <item icon-name=\"kdenlive\">Kdenlive|${FLGkdenlive}|$(gettext 'Nonlinear video editor')</item>
         <item icon-name=\"openshot\">OpenShot|${FLGopenshot}|$(gettext 'Easy and powerful video editor')</item>
       </tree>
       <tree column-resizeable=\"0\">
@@ -148,8 +172,24 @@ fi
 
 case "${aAPP}" in
  Audacity) TRIPLET='org.audacityteam.Audacity'; MENUcat='X-Multimedia-sound'; MENUtop='Multimedia'; MENUname='Audacity audio editor'; ;;
- Krita)    TRIPLET='org.kde.Krita'; MENUcat='X-Graphic'; MENUtop='Graphic'; MENUname='Krita vector and raster editor'; ;;
+ Krita)    TRIPLET='org.kde.krita'; MENUcat='X-Graphic'; MENUtop='Graphic'; MENUname='Krita vector and raster editor'; ;;
  OpenShot) TRIPLET='org.openshot.OpenShot'; MENUcat='X-Multimedia-video'; MENUtop='Multimedia'; MENUname='OpenShot video editor'; ;;
+ Okular) TRIPLET='org.kde.okular'; MENUcat='X-Document-viewer'; MENUtop='Document'; MENUname='Okular document viewer'; ;;
+ Identity) TRIPLET='org.gnome.gitlab.YaLTeR.Identity'; MENUcat='X-Utility'; MENUtop='Utility'; MENUname='Identity compare images and videos'; ;;
+ Kdenlive) TRIPLET='org.kde.kdenlive'; MENUcat='X-Multimedia-video'; MENUtop='Multimedia'; MENUname='Kdenlive video editor'; ;;
+ Fragments) TRIPLET='de.haeckerfelix.Fragments'; MENUcat='X-Internet-transfer'; MENUtop='Internet'; MENUname='Fragments BitTorrent client'; ;;
+ Cambalache) TRIPLET='ar.xjuan.Cambalache'; MENUcat='X-Utility-development'; MENUtop='Utility'; MENUname='Cambalache GTK interface designer'; ;;
+ DIYLC) TRIPLET='com.diy_fever.DIYLayoutCreator'; MENUcat='X-Utility-development'; MENUtop='Utility'; MENUname='DIYLC circuit board layout'; ;;
+ Minder) TRIPLET='com.github.phase1geo.minder'; MENUcat='X-Personal'; MENUtop='Personal'; MENUname='Minder mind-mapper'; ;;
+ AndroidStudio) TRIPLET='com.google.AndroidStudio'; MENUcat='X-Utility-development'; MENUtop='Utility'; MENUname='Android Studio app development'; ;;
+ SmartGit) TRIPLET='com.syntevo.SmartGit'; MENUcat='X-Utility-development'; MENUtop='Utility'; MENUname='SmartGit Git client'; ;;
+ VSCode) TRIPLET='com.visualstudio.code'; MENUcat='X-Document-edit'; MENUtop='Document'; MENUname='VSCode Visual Studio Code editor'; ;;
+ Scratch) TRIPLET='edu.mit.Scratch'; MENUcat='X-Utility-development'; MENUtop='Utility'; MENUname='Scratch GUI app creator'; ;;
+ GDevelop) TRIPLET='io.gdevelop.ide'; MENUcat='X-Utility-development'; MENUtop='Utility'; MENUname='GDevelop no-code game creation'; ;;
+ PurrData) TRIPLET='net.purrdata.PurrData'; MENUcat='X-Utility-development'; MENUtop='Utility'; MENUname='PurrData visual programming'; ;;
+ Cozy) TRIPLET='com.github.geigi.cozy'; MENUcat='X-Personal'; MENUtop='Personal'; MENUname='Cozy audio book reader'; ;;
+ Tuner) TRIPLET='com.github.louis77.tuner'; MENUcat='X-Internet'; MENUtop='Internet'; MENUname='Tuner Internet radio stations'; ;;
+ ZZZ) TRIPLET=''; MENUcat=''; MENUtop=''; MENUname=''; ;;
  *) exit ;; #precaution.
 esac
 
@@ -206,7 +246,20 @@ if [ -e /mnt/wkg/flatpak/exports/bin/${TRIPLET} ];then
   
   case "$EXIT" in
    delete)
-    flatpak uninstall ${TRIPLET}
+    #20230412 kill, ps commands don't work...
+    #flatpak kill ${TRIPLET}
+    pidof ${aAPP,,}.bin >/dev/null
+    if [ $? -eq 0 ];then
+     M12="$(gettext 'The application is running. Please close it, then click OK button to uninstall:')"
+     popup "process=wait terminate=ok background=#ff8080 level=top|<big><big>${M12}</big></big>"
+    fi
+    urxvt -bg '#FFE0A0' -geometry '100x25' -e flatpak uninstall ${TRIPLET}
+    #20230412 confirm uninstall...
+    flatpak list --app --columns=application > /tmp/flatpak/list-installed
+    grep -q -x -F ${TRIPLET} /tmp/flatpak/list-installed
+    if [ $? -eq 0 ];then #20230412
+     exec flapi
+    fi
     rm -rf /home/${aAPP,,}
     rm -f /usr/share/applications/${aAPP,,}.desktop
     rm -f /usr/bin/${aAPP,,}
@@ -267,9 +320,12 @@ if [ "$EXIT" != "OK" ];then
 fi
 
 #need internet connection...
-if [ ! -s /tmp/pup_event_backend/network_ ];then
+#20230412 one person reported this file is empty even though have internet...
+#if [ ! -s /tmp/pup_event_backend/network_ ];then
+ping -4 -c 1 -W 5 -w 6 google.com >/dev/null
+if [ $? -ne 0 ];then
  M4="$(gettext 'An Internet connection is required to download a Flatpak.')"
- popup "terminate=ok background=#ff8080 level=top process=wait|<big>${M4}</big>"
+ popup "terminate=ok background=#ff8080 level=top process=wait|<big><big>${M4}</big></big>"
  exec flapi
 fi
 
@@ -303,12 +359,12 @@ $(gettext 'If the latest version is later than the current version, and you want
   exit 0
  fi
 
- urxvt -bg '#FFE0A0' -geometry '100x25' -e flatpak update ${TRIPLET}
+ urxvt -bg '#FFE0A0' -geometry '100x25' -e flatpak update app/${TRIPLET}
  exit 0
 fi
 
 ###install###
-urxvt -bg '#FFE0A0' -geometry '100x25' -e flatpak install flathub ${TRIPLET}
+urxvt -bg '#FFE0A0' -geometry '100x25' -e flatpak install flathub app/${TRIPLET}
 if [ ! -e /mnt/wkg/flatpak/exports/bin/${TRIPLET} ];then
  M5="$(gettext 'The Flatpak was not installed.')"
  popup "terminate=ok background=#ff8080 level=top process=wait|<big>${M5}</big>"
@@ -328,6 +384,7 @@ fi
 #echo "#!/bin/sh
 #flatpak run --filesystem=host ${TRIPLET}" > /usr/bin/${aAPP,,}
 echo "#!/bin/sh
+export \$(dbus-launch) #kdenlive needs to access dbus.
 flatpak run --filesystem=/mnt/wkg/data/flatpak/${aAPP,,} ${TRIPLET}" > /usr/bin/${aAPP,,}
 chmod 755 /usr/bin/${aAPP,,}
 
