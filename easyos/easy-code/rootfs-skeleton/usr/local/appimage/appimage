@@ -383,6 +383,12 @@ if [ -d /mnt/wkg/appimage/${aAPP,,} ];then
    esac
   fi
  fi
+else
+ if [ -f /usr/bin/${aAPP,,} ];then
+  M7="$(gettext 'This app is installed, but it is not a AppImage. Aborting') "
+  popup "process=wait terminate=ok background=#ff8080 level=top|<big>${M7}</big>"
+  exec appi
+ fi
 fi
 export UPDATEflg
 
@@ -411,7 +417,7 @@ fi
 if [ ! -s /tmp/pup_event_backend/network_ ];then
  M5="$(gettext 'An Internet connection is required to download an AppImage.')"
  popup "terminate=ok background=#ff8080 level=top process=wait|<big>${M5}</big>"
- exec appimage
+ exec appi
 fi
 
 FLG1=0
@@ -461,7 +467,7 @@ else
  /usr/local/appimage/github-find-latest-ver-api ${MEMBER} ${PROJECT} ${APPIMG}
  #...creates /tmp/appimage/URLtag, APPver, APPname
  if [ $? -ne 0 ];then
-  exec appimage
+  exec appi
  fi
  URLtag="$(cat /tmp/appimage/URLtag)" #ex: https://github.com/amanharwara/altus/releases/tag/4.8.5
  APPver="$(cat /tmp/appimage/APPver)" #ex: 3.2.5
