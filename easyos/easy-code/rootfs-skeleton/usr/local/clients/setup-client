@@ -50,6 +50,7 @@
 #20230330 prevent other apps from seeing in home folder.
 #20230409 /usr/local/flatpak/flatpak has already created /home/${APPname}, so test for .config
 #20230409 a bit tricky coz /home/<app> is symlink for flatpaks.
+#20230412 .DirIcon symlink and target of commandline-symlink must have same owner:group as parent folder.
 
 APPname="${1/=*/}"  #ex: seamonkey
 APPflag="${1/*=/}" #ex: true
@@ -206,8 +207,12 @@ if [ ! "$PREFIXDIR2" ];then #20210915 dir2sfs is creating an sfs, this code has 
  if [ $CHGflg -eq 1 ];then #20210916 20211103
   #20230409 handle /home/<app> a symlink...
   #chown -h -R ${APPname}:${APPname} ${PREFIXDIR1}/home/${APPname} #20211205 added -h
-  chown -h ${APPname}:${APPname} ${PREFIXDIR1}/home/${APPname} #-h Affect symlinks instead of symlink targets
-  chown -H -R ${APPname}:${APPname} ${PREFIXDIR1}/home/${APPname} #-H Traverse symlinks on command line only
+  #20230412 .DirIcon symlink and target of commandline-symlink must have same owner:group as parent folder, hence need -R ...
+  if [ -h ${PREFIXDIR1}/home/${APPname} ];then
+   chown ${APPname}:${APPname} $(readlink ${PREFIXDIR1}/home/${APPname})
+   chown -h ${APPname}:${APPname} ${PREFIXDIR1}/home/${APPname} #-h Affect symlinks instead of symlink targets
+  fi
+  chown -h -H -R ${APPname}:${APPname} ${PREFIXDIR1}/home/${APPname} #-H Traverse symlinks on command line only
  fi
 fi
 
@@ -752,11 +757,12 @@ chromium_true() {
   fi
  fi
  
+ #20230411 ALWAYSOPTS removed "--use-gl=desktop" doesn't work.
  rm -f ${PREFIXDIR1}${APPpath}/${APPname} #in case it is a symlink.
  echo "#!/bin/bash
 APPbin='${APPpath}/${APPname}.bin'
 APPname='${APPname}'
-ALWAYSOPTS='--no-default-browser-check --no-first-run --use-gl=desktop'
+ALWAYSOPTS='--no-default-browser-check --no-first-run'
 ROOTOPTS='--no-sandbox --test-type'
 #note, currently not using these two...
 CONTAINEROPTS='--no-sandbox --disable-features=AudioServiceSandbox' #20211007
@@ -843,8 +849,12 @@ if [ ! "$PREFIXDIR2" ];then #20210918 if an sfs, need to delay this...
   if [ -d ${PREFIXDIR1}/home/${APPname} ];then #20210918 precaution
    #20230409 handle /home/<app> a symlink...
    #chown -h -R ${APPname}:${APPname} ${PREFIXDIR1}/home/${APPname} #20211205 added -h
-   chown -h ${APPname}:${APPname} ${PREFIXDIR1}/home/${APPname} #-h Affect symlinks instead of symlink targets
-   chown -H -R ${APPname}:${APPname} ${PREFIXDIR1}/home/${APPname} #-H Traverse symlinks on command line only
+   #20230412 .DirIcon symlink and target of commandline-symlink must have same owner:group as parent folder, hence need -R ...
+   if [ -h ${PREFIXDIR1}/home/${APPname} ];then
+    chown ${APPname}:${APPname} $(readlink ${PREFIXDIR1}/home/${APPname})
+    chown -h ${APPname}:${APPname} ${PREFIXDIR1}/home/${APPname} #-h Affect symlinks instead of symlink targets
+   fi
+   chown -h -H -R ${APPname}:${APPname} ${PREFIXDIR1}/home/${APPname} #-H Traverse symlinks on command line only
   fi
  fi
 fi
