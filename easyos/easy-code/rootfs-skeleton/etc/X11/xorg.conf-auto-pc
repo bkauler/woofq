@@ -6,6 +6,8 @@
 #121013 change depth from 16 to 24. note, some arm boards need 16.
 #20220406 commented-out "HorizSync    35-81" line in "Monitor" section. ref:
 # https://bkhome.org/news/202204/attempting-fix-xorg-horiz-and-vert-sync-limits.html
+#20230415 VertRefresh  59-76 increase range to 56-96  ref:
+# https://forum.puppylinux.com/viewtopic.php?p=86417#p86417
 
 # **********************************************************************
 # Module section -- this  section  is used to specify
@@ -125,7 +127,7 @@ Section "Monitor"
 	VendorName   "Monitor Vendor"
 	ModelName    "Monitor Model"
 	#HorizSync    35-81 #monitor0horizsync
-	VertRefresh  59-76
+	VertRefresh  56-96
 	#UseModes     "Modes0" #monitor0usemodes
 #	Option      "PreferredMode" "1024x768" #monitor0prefmode
 EndSection
