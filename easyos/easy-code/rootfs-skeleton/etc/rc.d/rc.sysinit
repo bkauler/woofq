@@ -60,6 +60,7 @@
 #20221102 fix /run and /var/run symlinks. fix /var/cache symlink.
 #20221123 top-level /.config and /.local were getting created at startup.
 #20230409 revert, /files now a symlink (ref: init in initrd)
+#20230413 change path to swap file.
 
 #unset TZ #100319 busybox hwclock gives priority to this (rather than /etc/localtime) and 'init' has set it wrong.
 #...comment-out for now. note, TZ now set in rc.country.
@@ -105,7 +106,7 @@ loadswap_func() { #w481 made into a function.
  done
  #if no go, try for a swap file...
  if [ "$SWAPON" != "yes" ];then
-  SWAPFILE="/pupswap.swp"
+  SWAPFILE="/mnt/wkg/pupswap.swp" #20230413
   if [ -f $SWAPFILE ];then
    echo -n "Loading swap file ${SWAPFILE}..." >/dev/console
    swapon $SWAPFILE
