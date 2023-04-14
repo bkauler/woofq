@@ -3,6 +3,7 @@
 #also launched via /usr/bin/flapi
 #20230409 mount unencrypted folder on /home/<app> ...no, symlink.
 #20230412 confirm operation success.
+#20230414 extract entries to a separate file.
 
 export TEXTDOMAIN=flatpaks
 export TEXTDOMAINDIR=/usr/share/locale
@@ -37,16 +38,34 @@ do
   *DIYLayoutCreator) aFP='DIYLC' ;;
   *visualstudio.code) aFP='VSCode' ;;
   *gdevelop.ide) aFP='GDevelop' ;;
+  *obsproject.Studio) aFP='OBS' ;;
+  *jitsi-meet) aFP='JitsiMeet' ;;
+  *organicmaps.desktop) aFP='OrganicMaps' ;;
+  *teams_for_linux) aFP='Teams' ;;
  esac
  aFP="${aFP##*.}"
  eval "FLG${aFP,,}='√'" #ex: sets FLGaudacity=√
+ export FLG${aFP,,}
 done
 
 ###removed###
-#was in audio category. hangs after startup
+#was in audio category. hangs after startup...
 # <item icon-name=\"cozy\">Cozy|${FLGcozy}|$(gettext 'Audio book player')</item>
+#was in network category. blank window...
+#<item icon-name=\"teams\">Teams|${FLGteams}|$(gettext 'Microsoft Teams client')</item>
 
-
+ARCH='amd64'
+/usr/local/flatpak/entries/${ARCH}/entries #this evaluates each entry.
+ENTRIESaudio="$(cat /tmp/flatpak/ENTRIESaudio)"
+ENTRIESdeveloper="$(cat /tmp/flatpak/ENTRIESdeveloper)"
+ENTRIESgames="$(cat /tmp/flatpak/ENTRIESgames)"
+ENTRIESgraphics="$(cat /tmp/flatpak/ENTRIESgraphics)"
+ENTRIESnetwork="$(cat /tmp/flatpak/ENTRIESnetwork)"
+ENTRIESoffice="$(cat /tmp/flatpak/ENTRIESoffice)"
+ENTRIESproductivity="$(cat /tmp/flatpak/ENTRIESproductivity)"
+ENTRIESsystem="$(cat /tmp/flatpak/ENTRIESsystem)"
+ENTRIESvideo="$(cat /tmp/flatpak/ENTRIESvideo)"
+ENTRIESother="$(cat /tmp/flatpak/ENTRIESother)"
 
 ###main gui###
 PACKAGE="Flatpak"
@@ -61,77 +80,70 @@ export FP_DLG1="<window title=\"$(gettext 'Flatpak Installer')\">
         <height>300</height>
         <variable>TREEaudio</variable>
         <action signal=\"enter-notify-event\" type=\"refresh\">TREEaudio</action>
-        <item icon-name=\"audacity\">Audacity|${FLGaudacity}|$(gettext 'A free, easy-to-use, multi-track audio editor and recorder')</item>
-        <item icon-name=\"tuner\">Tuner|${FLGtuner}|$(gettext 'Listen to Internet radio stations')</item>
+        ${ENTRIESaudio}
       </tree>
       <tree column-resizeable=\"0\">
         <label>${PACKAGE}||${DESCRIPTION}</label>
         <height>300</height>
         <variable>TREEdeveloper</variable>
         <action signal=\"enter-notify-event\" type=\"refresh\">TREEdeveloper</action>
-        <item icon-name=\"androidstudio\">AndroidStudio|${FLGandroidstudio}|$(gettext 'IDE for Android app development')</item>
-        <item icon-name=\"cambalache\">Cambalache|${FLGcambalache}|$(gettext 'GTK3 and GTK4 interface designer')</item>
-        <item icon-name=\"diylc\">DIYLC|${FLGdiylc}|$(gettext 'Electrical and electronic circuit board layout designer')</item>
-        <item icon-name=\"gdevelop\">GDevelop|${FLGgdevelop}|$(gettext 'No-code game development')</item>
-        <item icon-name=\"purrdata\">PurrData|${FLGpurrdata}|$(gettext 'Visual programming environment')</item>
-        <item icon-name=\"scratch\">Scratch|${FLGscratch}|$(gettext 'Simple GUI app creator')</item>
-        <item icon-name=\"smartgit\">SmartGit|${FLGsmartgit}|$(gettext 'Git and SVN client. No.1 rating at slant.co')</item>
-        <item icon-name=\"vscode\">VSCode|${FLGvscode}|$(gettext 'Visual Studio Code editor')</item>
+        ${ENTRIESdeveloper}
       </tree>
       <tree column-resizeable=\"0\">
         <label>${PACKAGE}||${DESCRIPTION}</label>
         <height>300</height>
         <variable>TREEgames</variable>
         <action signal=\"enter-notify-event\" type=\"refresh\">TREEgames</action>
+        ${ENTRIESgames}
       </tree>
       <tree column-resizeable=\"0\">
         <label>${PACKAGE}||${DESCRIPTION}</label>
         <height>300</height>
         <variable>TREEgraphics</variable>
         <action signal=\"enter-notify-event\" type=\"refresh\">TREEgraphics</action>
-        <item icon-name=\"krita\">Krita|${FLGkrita}|$(gettext 'Vector and raster painting program')</item>
+        ${ENTRIESgraphics}
       </tree>
       <tree column-resizeable=\"0\">
         <label>${PACKAGE}||${DESCRIPTION}</label>
         <height>300</height>
         <variable>TREEnetwork</variable>
         <action signal=\"enter-notify-event\" type=\"refresh\">TREEnetwork</action>
-        <item icon-name=\"fragments\">Fragments|${FLGfragments}|$(gettext 'A BitTorrent client')</item>
+        ${ENTRIESnetwork}
       </tree>
       <tree column-resizeable=\"0\">
         <label>${PACKAGE}||${DESCRIPTION}</label>
         <height>300</height>
         <variable>TREEoffice</variable>
         <action signal=\"enter-notify-event\" type=\"refresh\">TREEoffice</action>
-        <item icon-name=\"okular\">Okular|${FLGokular}|$(gettext 'Universal document viewer')</item>
+        ${ENTRIESoffice}
       </tree>
       <tree column-resizeable=\"0\">
         <label>${PACKAGE}||${DESCRIPTION}</label>
         <height>300</height>
         <variable>TREEproductivity</variable>
         <action signal=\"enter-notify-event\" type=\"refresh\">TREEproductivity</action>
-        <item icon-name=\"identity\">Identity|${FLGidentity}|$(gettext 'Compare multiple versions of an image or video')</item>
-        <item icon-name=\"minder\">Minder|${FLGminder}|$(gettext 'Mind-mapping ideas visualization tool')</item>
+        ${ENTRIESproductivity}
       </tree>
       <tree column-resizeable=\"0\">
         <label>${PACKAGE}||${DESCRIPTION}</label>
         <height>300</height>
         <variable>TREEsystem</variable>
         <action signal=\"enter-notify-event\" type=\"refresh\">TREEvideo</action>
+        ${ENTRIESsystem}
       </tree>
       <tree column-resizeable=\"0\">
         <label>${PACKAGE}||${DESCRIPTION}</label>
         <height>300</height>
         <variable>TREEvideo</variable>
         <action signal=\"enter-notify-event\" type=\"refresh\">TREEvideo</action>
-        <item icon-name=\"kdenlive\">Kdenlive|${FLGkdenlive}|$(gettext 'Nonlinear video editor')</item>
-        <item icon-name=\"openshot\">OpenShot|${FLGopenshot}|$(gettext 'Easy and powerful video editor')</item>
+        ${ENTRIESvideo}
       </tree>
       <tree column-resizeable=\"0\">
         <label>${PACKAGE}||${DESCRIPTION}</label>
         <height>300</height>
         <variable>TREEother</variable>
         <action signal=\"enter-notify-event\" type=\"refresh\">TREEother</action>
+        ${ENTRIESother}
       </tree>
 
     </notebook>
@@ -189,6 +201,16 @@ case "${aAPP}" in
  PurrData) TRIPLET='net.purrdata.PurrData'; MENUcat='X-Utility-development'; MENUtop='Utility'; MENUname='PurrData visual programming'; ;;
  Cozy) TRIPLET='com.github.geigi.cozy'; MENUcat='X-Personal'; MENUtop='Personal'; MENUname='Cozy audio book reader'; ;;
  Tuner) TRIPLET='com.github.louis77.tuner'; MENUcat='X-Internet'; MENUtop='Internet'; MENUname='Tuner Internet radio stations'; ;;
+ OBS) TRIPLET='com.obsproject.Studio'; MENUcat='X-Multimedia'; MENUtop='Multimedia'; MENUname='OBS Studio video capture and stream'; ;;
+ JitsiMeet) TRIPLET='org.jitsi.jitsi-meet'; MENUcat='X-Internet-chat'; MENUtop='Internet'; MENUname='JitsiMeet video conferencing'; ;;
+ OrganicMaps) TRIPLET='app.organicmaps.desktop'; MENUcat='X-Personal'; MENUtop='Personal'; MENUname='OrganicMaps offline maps'; ;;
+ Frogatto) TRIPLET='com.frogatto.Frogatto'; MENUcat='X-Fun'; MENUtop='Fun'; MENUname='Frogatto 2D adventure game'; ;;
+ DOSBox) TRIPLET='com.dosbox.DOSBox'; MENUcat='X-System'; MENUtop='System'; MENUname='DOSBox Microsoft DOS emulator'; ;;
+ AuthPass) TRIPLET='flathub app.authpass.AuthPass'; MENUcat='X-Personal'; MENUtop='Personal'; MENUname='AuthPass password manager'; ;;
+ Calibre) TRIPLET='com.calibre_ebook.calibre'; MENUcat='X-Document-viewer'; MENUtop='Document'; MENUname='Calibre e-book reader'; ;;
+ Teams) TRIPLET='com.github.IsmaelMartinez.teams_for_linux'; MENUcat='X-Internet-chat'; MENUtop='Internet'; MENUname='Teams Microsoft Teams client'; ;;
+ Trilium) TRIPLET='com.github.zadam.trilium'; MENUcat='X-Personal'; MENUtop='Personal'; MENUname='Trilium hierarchical notes'; ;;
+ Betterbird) TRIPLET='eu.betterbird.Betterbird'; MENUcat='X-Internet'; MENUtop='Internet'; MENUname='Betterbird email client'; ;;
  ZZZ) TRIPLET=''; MENUcat=''; MENUtop=''; MENUname=''; ;;
  *) exit ;; #precaution.
 esac
@@ -383,9 +405,12 @@ fi
 #20230409 i think better to have a path, instead of "host"...
 #echo "#!/bin/sh
 #flatpak run --filesystem=host ${TRIPLET}" > /usr/bin/${aAPP,,}
+#flatpak run --filesystem=/mnt/wkg/data/flatpak/${aAPP,,} ${TRIPLET}
+#but want to be able to open with any file via right-click menu in rox...
 echo "#!/bin/sh
 export \$(dbus-launch) #kdenlive needs to access dbus.
-flatpak run --filesystem=/mnt/wkg/data/flatpak/${aAPP,,} ${TRIPLET}" > /usr/bin/${aAPP,,}
+export XDG_DATA_DIRS=/mnt/wkg/flatpak/exports/share:/home/${aAPP,,}/.local/share/flatpak/exports/share:${XDG_DATA_DIRS} #need to fool flatpak.
+flatpak run --filesystem=host ${TRIPLET}" > /usr/bin/${aAPP,,}
 chmod 755 /usr/bin/${aAPP,,}
 
 if [ "${LANG:0:2}" == "en" ];then
