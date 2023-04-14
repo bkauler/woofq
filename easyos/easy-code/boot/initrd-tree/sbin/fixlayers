@@ -398,13 +398,9 @@ do
  fi
 done
 #20230408 /usr/local/flatpak
-mkdir -p /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/flatpak
-for onefile in flatpak online-info
-do
- if [ -e /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/flatpak/${onefile} ];then
-  rm -f /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/flatpak/${onefile}
- fi
-done
+if [ -d /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/flatpak ];then
+ rm -rf /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/flatpak
+fi
 
 #puppy fixes rox PuppyPin and globicons in rc.update, see if we can do similar here...
 #fix PuppyPin...
