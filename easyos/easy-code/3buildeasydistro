@@ -292,6 +292,7 @@
 #20230305 tweaks. support rename "easy.sfs". support "easy-*.img" rename.
 #20230309 have removed /usr/local/debget  20230317 fix.
 #20230403 easy.run-once-top: remove appimage.desktop in container.
+#20230416 pre-populate initrd sfs .png and .specs files.
 
 export LANG=C #faster.
 
@@ -5319,6 +5320,27 @@ done
 
 #20230220 /sbin/ask-language in initrd wants this...
 cp -a -f ../../build-choices ./
+
+#20230416 pre-populate sfs .png and .specs files...
+SFSSPATH=''
+if [ -f ../../PROJECTPATH ];then
+. ../../PROJECTPATH #has PKGSPATH='/mnt/build/bk/projects/woof/woof-pkgs'
+ PPcut="$(echo -n "$PKGSPATH" | cut -f 1-4 -d '/')" #/mnt/build/bk
+ SFSSPATH="${PPcut}/www/ibiblio/easyos/${DISTRO_TARGETARCH}/packages/sfs"
+fi
+if [ "$SFSSPATH" ];then
+ #if [ -d /mnt/build/bk/www/ibiblio/easyos/${DISTRO_TARGETARCH}/packages/sfs ];then
+ if [ -d "$SFSSPATH" ];then
+  for aF in `find $SFSSPATH -type f -name '*.png' -o -name '*.specs'`
+  do
+   aD="$(dirname $aF)"
+   aT="${aD/*packages/}" #ex: /sfs/easyos/debian/buster
+   mkdir -p .${aT}
+   cp -f $aF .${aT}/
+  done
+ fi
+fi
+sync
 
 find . | cpio -o -H newc > ../initrd #181130
 sync
