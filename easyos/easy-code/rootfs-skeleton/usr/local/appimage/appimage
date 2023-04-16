@@ -1,5 +1,6 @@
 #!/bin/bash
 #d/l and install an appimage.
+#20230415 start and stop dbus-daemon for session.
 
 export TEXTDOMAIN=appimages
 export TEXTDOMAINDIR=/usr/share/locale
@@ -572,14 +573,22 @@ if [ "$UPDATEflg" == "yesyes" ];then
  #just redirect symlink to the new appimage...
  cp -a -f /usr/bin/${aAPP,,}.bin /usr/bin/${aAPP,,}.binOLD
  cp -a -f /mnt/wkg/appimage/${aAPP,,}/${aAPP,,}.specs /mnt/wkg/appimage/${aAPP,,}/${aAPP,,}.specsOLD
- ln -snf /mnt/wkg/appimage/${aAPP,,}/${APPname} /usr/bin/${aAPP,,}.bin
- #also a symlink in same folder as the appimage... no...
- #ln -snf ${APPname} /mnt/wkg/appimage/${aAPP,,}/${aAPP,,}.bin
+ #20230415 script instead of symlink...
+ #ln -snf /mnt/wkg/appimage/${aAPP,,}/${APPname} /usr/bin/${aAPP,,}.bin
+ echo "#!/bin/sh
+export \$(dbus-launch) #if app needs to access dbus.
+/mnt/wkg/appimage/${aAPP,,}/${APPname}
+kill \$DBUS_SESSION_BUS_PID" > /usr/bin/${aAPP,,}.bin
+ chmod 755 /usr/bin/${aAPP,,}.bin
 else
  #this symlink is correct, later setup-client will rename to .bin ...
- ln -snf /mnt/wkg/appimage/${aAPP,,}/${APPname} /usr/bin/${aAPP,,}
- #also a symlink in same folder as the appimage... no...
- #ln -snf ${APPname} /mnt/wkg/appimage/${aAPP,,}/${aAPP,,}.bin
+ #20230415 script instead of symlink...
+ #ln -snf /mnt/wkg/appimage/${aAPP,,}/${APPname} /usr/bin/${aAPP,,}
+ echo "#!/bin/sh
+export \$(dbus-launch) #if app needs to access dbus.
+/mnt/wkg/appimage/${aAPP,,}/${APPname}
+kill \$DBUS_SESSION_BUS_PID" > /usr/bin/${aAPP,,}
+ chmod 755 /usr/bin/${aAPP,,}
 fi
 
 if [ "${LANG:0:2}" == "en" ];then

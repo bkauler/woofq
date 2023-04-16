@@ -4,6 +4,7 @@
 #20230409 mount unencrypted folder on /home/<app> ...no, symlink.
 #20230412 confirm operation success.
 #20230414 extract entries to a separate file.
+#20230415 start dbus-daemon session and kill.
 
 export TEXTDOMAIN=flatpaks
 export TEXTDOMAINDIR=/usr/share/locale
@@ -400,7 +401,7 @@ if [ "$DT1" ];then
  grep '^MimeType=' ${DT1} > /tmp/flatpak/mimetype
 fi
 
-#script to run app...
+#script to run app... 20230415
 #this causes an error msg:  --file-forwarding
 #20230409 i think better to have a path, instead of "host"...
 #echo "#!/bin/sh
@@ -408,9 +409,10 @@ fi
 #flatpak run --filesystem=/mnt/wkg/data/flatpak/${aAPP,,} ${TRIPLET}
 #but want to be able to open with any file via right-click menu in rox...
 echo "#!/bin/sh
-export \$(dbus-launch) #kdenlive needs to access dbus.
+export \$(dbus-launch) #if app needs to access dbus.
 export XDG_DATA_DIRS=/mnt/wkg/flatpak/exports/share:/home/${aAPP,,}/.local/share/flatpak/exports/share:${XDG_DATA_DIRS} #need to fool flatpak.
-flatpak run --filesystem=host ${TRIPLET}" > /usr/bin/${aAPP,,}
+flatpak run --filesystem=host ${TRIPLET}
+kill \$DBUS_SESSION_BUS_PID" > /usr/bin/${aAPP,,}
 chmod 755 /usr/bin/${aAPP,,}
 
 if [ "${LANG:0:2}" == "en" ];then
