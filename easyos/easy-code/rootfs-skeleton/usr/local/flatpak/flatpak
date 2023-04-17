@@ -212,6 +212,7 @@ case "${aAPP}" in
  Teams) TRIPLET='com.github.IsmaelMartinez.teams_for_linux'; MENUcat='X-Internet-chat'; MENUtop='Internet'; MENUname='Teams Microsoft Teams client'; ;;
  Trilium) TRIPLET='com.github.zadam.trilium'; MENUcat='X-Personal'; MENUtop='Personal'; MENUname='Trilium hierarchical notes'; ;;
  Betterbird) TRIPLET='eu.betterbird.Betterbird'; MENUcat='X-Internet'; MENUtop='Internet'; MENUname='Betterbird email client'; ;;
+ QGIS) TRIPLET='org.qgis.qgis'; MENUcat='X-Personal'; MENUtop='Personal'; MENUname='QGIS Geographic Information System'; ;;
  ZZZ) TRIPLET=''; MENUcat=''; MENUtop=''; MENUname=''; ;;
  *) exit ;; #precaution.
 esac
@@ -401,7 +402,8 @@ if [ "$DT1" ];then
  grep '^MimeType=' ${DT1} > /tmp/flatpak/mimetype
 fi
 
-#script to run app... 20230415
+#script to run app... 20230415 
+#20230417 need "--socket=system-bus" for dbus connection.
 #this causes an error msg:  --file-forwarding
 #20230409 i think better to have a path, instead of "host"...
 #echo "#!/bin/sh
@@ -411,7 +413,7 @@ fi
 echo "#!/bin/sh
 export \$(dbus-launch) #if app needs to access dbus.
 export XDG_DATA_DIRS=/mnt/wkg/flatpak/exports/share:/home/${aAPP,,}/.local/share/flatpak/exports/share:${XDG_DATA_DIRS} #need to fool flatpak.
-flatpak run --filesystem=host ${TRIPLET}
+flatpak run --filesystem=host --socket=system-bus --socket=cups --socket=ssh-auth --socket=session-bus ${TRIPLET}
 kill \$DBUS_SESSION_BUS_PID" > /usr/bin/${aAPP,,}
 chmod 755 /usr/bin/${aAPP,,}
 
