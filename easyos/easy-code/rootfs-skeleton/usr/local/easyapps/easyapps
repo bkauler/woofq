@@ -1,0 +1,169 @@
+#!/bin/bash
+#inspired by Roger's superb PuppApps.
+
+export TEXTDOMAIN=easyapps
+export OUTPUT_CHARSET=UTF-8
+
+EAP="/usr/local/easyapps"
+MIP="/usr/local/lib/X11/mini-icons"
+
+###Business###
+#Calculator, Calendar, Database, Finance, Measure, Notebook, Schedule, Spreadsheet
+#Bicon='';Bsub='';Bname1='$(gettext '')';Bname2='$(gettext '')'
+Bparams="Bicon='mini-calc.xpm';Bsub='calculator';Bname1='$(gettext 'Calculator')';Bname2='$(gettext 'Basic or scientific calculations')'
+Bicon='mini-date.xpm';Bsub='calendar';Bname1=\"$(gettext 'Calendar')\";Bname2=\"$(gettext 'Browse dates in a calendar')\"
+Bicon='database20.png';Bsub='database';Bname1=\"$(gettext 'Database')\";Bname2=\"$(gettext 'Data collection and organization')\"
+Bicon='mini-dollar.xpm';Bsub='finance';Bname1=\"$(gettext 'Finance')\";Bname2=\"$(gettext 'Home office financial management')\"
+Bicon='measure20.png';Bsub='measure';Bname1=\"$(gettext 'Measure')\";Bname2=\"$(gettext 'Weights and measures conversion')\"
+Bicon='mini.text.xpm';Bsub='notebook';Bname1=\"$(gettext 'Notebook')\";Bname2=\"$(gettext 'Hierarchical notes organizer')\"
+Bicon='mini-clock.xpm';Bsub='schedule';Bname1='$(gettext 'Schedule')';Bname2='$(gettext 'Manage appointments and tasks')'
+Bicon='spreadsheet.xpm';Bsub='spreadsheet';Bname1='$(gettext 'Spreadsheet')';Bname2='$(gettext 'Business worksheet')'
+"
+###Document###
+Dparams="Bicon='mini-book2.xpm';Bsub='bookreader';Bname1='$(gettext 'Book Reader')';Bname2='$(gettext 'Electronic (E-Book) reader')'
+Bicon='html.xpm';Bsub='htmleditor';Bname1='$(gettext 'HTML Editor')';Bname2='$(gettext 'Create and edit web pages')'
+Bicon='mini-pdf.xpm';Bsub='pdfmanager';Bname1='$(gettext 'PDF Manager')';Bname2='$(gettext 'Edit and manage PDF docs')'
+Bicon='mini-pdf.xpm';Bsub='pdfreader';Bname1='$(gettext 'PDF Reader')';Bname2='$(gettext 'View PDF documents')'
+Bicon='scanner16.xpm';Bsub='scanner';Bname1='$(gettext 'Scanner')';Bname2='$(gettext 'Scan documents and images')'
+Bicon='mini-edit.xpm';Bsub='texteditor';Bname1='$(gettext 'Text Editor')';Bname2='$(gettext 'Edit plain text files')'
+Bicon='mini-edit.xpm';Bsub='wordprocessor';Bname1='$(gettext 'Word Processor')';Bname2='$(gettext 'Document preparation')'
+"
+###Graphic###
+Gparams="Bicon='3dcad20.png';Bsub='2d3dcad';Bname1='$(gettext '2D/3D CAD')';Bname2='$(gettext 'Computer Aided Drafting')'
+Bicon='bitmap20.png';Bsub='bitmapeditor';Bname1='$(gettext 'Bitmap Editor')';Bname2='$(gettext 'Bitmap/pixel image editor')'
+Bicon='mini-camera.xpm';Bsub='digitalcamera';Bname1='$(gettext 'Digital camera')';Bname2='$(gettext 'Manager camera images')'
+Bicon='mini-eye.xpm';Bsub='imageviewer';Bname1='$(gettext 'Image Viewer')';Bname2='$(gettext 'Basic graphics browser')'
+Bicon='mini-Graphic.xpm';Bsub='paint';Bname1='$(gettext 'Paint')';Bname2='$(gettext 'Image editor')'
+Bicon='mini-Graphic-print.xpm';Bsub='photoprinter';Bname1='$(gettext 'Photo Printer')';Bname2='$(gettext 'Print graphics and photos')'
+Bicon='onyx1616.xpm';Bsub='presentation';Bname1='$(gettext 'Presentation')';Bname2='$(gettext 'Presentation software')'
+Bicon='mini.window3d.xpm';Bsub='screenshot';Bname1='$(gettext 'ScreenShot')';Bname2='$(gettext 'Capture screen images')'
+Bicon='mini-draw.xpm';Bsub='vectoreditor';Bname1='$(gettext 'Vector Editor')';Bname2='$(gettext 'Vector/Ray graphics editor')'
+"
+###Internet###
+Iparams="Bicon='mini-world.xpm';Bsub='browser';Bname1='$(gettext 'Browser')';Bname2='$(gettext 'Browse the World Wide Web')'
+Bicon='mini-internet-chat.xpm';Bsub='chat';Bname1='$(gettext 'Chat')';Bname2='$(gettext 'Direct informal Internet conversation')'
+Bicon='go-down.png';Bsub='download';Bname1='$(gettext 'Download')';Bname2='$(gettext 'Manage Internet File transfers')'
+Bicon='youtube20.png';Bsub='downloadvideo';Bname1='$(gettext 'Download Video')';Bname2='$(gettext 'Download YouTube videos')'
+Bicon='mini-mail.xpm';Bsub='email';Bname1='$(gettext 'E-Mail')';Bname2='$(gettext 'Electronic mail (Internet/network)')'
+Bicon='mini-Internet-transfer.xpm';Bsub='filetransfer';Bname1='$(gettext 'File Transfer')';Bname2='$(gettext 'Transfer files over Internet/network')'
+Bicon='mini-firewall.xpm';Bsub='networksecurity';Bname1='$(gettext 'Security')';Bname2='$(gettext 'Block advertisements/malicious content')'
+Bicon='mini-Network.xpm';Bsub='p2p';Bname1='$(gettext 'P2P')';Bname2='$(gettext 'Peer-to-Peer networking (file sharing)')'
+Bicon='streaming20.png';Bsub='streaming';Bname1='$(gettext 'Streaming')';Bname2='$(gettext 'Stream Internet multimedia')'
+"
+###Media###
+Mparams="Bicon='mini-speaker.xpm';Bsub='audiomixer';Bname1='$(gettext 'Audio Mixer')';Bname2='$(gettext 'Adjust audio channel signals')'
+Bicon='mini-audiovol.xpm';Bsub='audioplayer';Bname1='$(gettext 'Audio Player')';Bname2='$(gettext 'Play digital audio media')'
+Bicon='mini-record.xpm';Bsub='audiorecorder';Bname1='$(gettext 'Audio Recorder')';Bname2='$(gettext 'Record/edit digital audio')'
+Bicon='mini-cd.xpm';Bsub='opticalripper';Bname1='$(gettext 'CD/DVD Ripper')';Bname2='$(gettext 'Extract songs/videos from CD/DVD')'
+Bicon='mini-cd.xpm';Bsub='opticalburner';Bname1='$(gettext 'CD/DVD Burner')';Bname2='$(gettext 'Write files to optical media')'
+Bicon='mini.window3d.xpm';Bsub='desktoprecorder';Bname1='$(gettext 'Desktop Recorder')';Bname2='$(gettext 'Save desktop actions')'
+Bicon='converter20.png';Bsub='mediaconverter';Bname1='$(gettext 'Media Converter')';Bname2='$(gettext 'Audio/video transcoder')'
+Bicon='Animation.xpm';Bsub='videoplayer';Bname1='$(gettext 'Video Player')';Bname2='$(gettext 'Play audio/video media')'
+"
+###Utility###
+Uparams="Bicon='mini-clipboard.xpm';Bsub='clipboard';Bname1='$(gettext 'Clipboard')';Bname2='$(gettext 'Manage the clipboard')'
+Bicon='mini.rainbow.xpm';Bsub='colorselector';Bname1='$(gettext 'Color Selector')';Bname2='$(gettext 'Basic RGB color selector')'
+Bicon='mini-filemgr.xpm';Bsub='diskmap';Bname1='$(gettext 'Disk Map')';Bname2='$(gettext 'View file sizes graphically')'
+Bicon='mini-hdisk.xpm';Bsub='drives';Bname1='$(gettext 'Drives')';Bname2='$(gettext 'Manage drives and partitions')'
+Bicon='mini-filemgr.xpm';Bsub='findfiles';Bname1='$(gettext 'Find Files')';Bname2='$(gettext 'Find/rename files')'
+Bicon='mini-font.xpm';Bsub='momanager';Bname1='$(gettext 'MoManager')';Bname2='$(gettext 'Non-English translation for EasyOS')'
+Bicon='Card.xpm';Bsub='systeminformation';Bname1='$(gettext 'System Information')';Bname2='$(gettext 'Hardware information')'
+Bicon='mini-sh.xpm';Bsub='terminalemulator';Bname1='$(gettext 'Terminal Emulator')';Bname2='$(gettext 'Commandline console')'
+Bicon='mini-lock.xpm';Bsub='encryption';Bname1='$(gettext 'Encryption')';Bname2='$(gettext 'Password/encryption management')'
+"
+
+for aCAT in Business Document Graphic Internet Media Utility
+do
+ case "$aCAT" in
+  Business) PARAMS="$Bparams" ;;
+  Document) PARAMS="$Dparams" ;;
+  Graphic) PARAMS="$Gparams" ;;
+  Internet) PARAMS="$Iparams" ;;
+  Media)    PARAMS="$Mparams" ;;
+  Utility)  PARAMS="$Uparams" ;;
+  *) exit ;;
+ esac
+ ENTRIES=''
+ while read aLINE
+ do
+  [ "$aLINE" == "" ] && continue
+  eval "$aLINE"
+  ENTRIES="${ENTRIES}
+<hbox>
+ <text space-expand=\"false\" space-fill=\"false\"><label>\"  \"</label></text>
+ <button space-expand=\"false\" space-fill=\"false\">
+  <height>24</height>
+  <width>24</width>
+  <input file>${MIP}/${Bicon}</input>
+  <action>${EAP}/sub-menu ${aCAT,} ${Bsub} & </action>
+ </button>
+ <text space-expand=\"false\" space-fill=\"false\" use-markup=\"true\"><label>\" <b>${Bname1}</b> - ${Bname2}\"</label></text>
+ <text space-expand=\"true\" space-fill=\"true\" use-markup=\"true\"><label>\" \"</label></text>
+</hbox>
+"
+ done <<EOF1
+$(echo "$PARAMS")
+EOF1
+
+ case "$aCAT" in
+  Business) BUSINESS="$ENTRIES" ;;
+  Document) DOCUMENT="$ENTRIES" ;;
+  Graphic)  GRAPHIC="$ENTRIES" ;;
+  Internet) INTERNET="$ENTRIES" ;;
+  Media)    MEDIA="$ENTRIES" ;;
+  Utility)  UTILITY="$ENTRIES" ;;
+ esac
+done
+
+
+EXIT_BTN="<hbox><button relief=\"2\" tooltip-text=\"$(gettext 'Close EasyApps')\"><input file>${MIP}/mini-cross.xpm</input><action>EXIT:quit</action></button></hbox>"
+
+GUIHEIGHT="495"
+GUIWIDTH="668"
+PAGE="0"
+export EA_MAIN_DLG1="<window title=\"EasyApps\" icon-name=\"apps48\" resizable=\"false\">
+ <vbox height-request=\"$GUIHEIGHT\" width-request=\"$GUIWIDTH\">
+  <text use-markup=\"true\"><label>\"<b><span size='"'x-large'"'>Easy</span><span size='"'x-large'"' color='"#3272C0"'>Apps</span></b>\"</label></text>
+  <text><label>$(gettext 'This is a selection of popular choices from the menu')</label></text>
+  
+  <notebook space-expand=\"true\" space-fill=\"true\" tab-pos=\"0\" tab-border=\"3\" page=\"$PAGE\" labels=\" $(gettext 'Business') | $(gettext 'Document') | $(gettext 'Graphic') | $(gettext 'Internet') | $(gettext 'Media') | $(gettext 'Utility') \">
+  
+   <vbox scrollable=\"true\">
+    ${EXIT_BTN}
+    ${BUSINESS}
+   </vbox>
+  
+   <vbox scrollable=\"true\">
+    ${EXIT_BTN}
+    ${DOCUMENT}
+   </vbox>
+  
+   <vbox scrollable=\"true\">
+    ${EXIT_BTN}
+    ${GRAPHIC}
+   </vbox>
+  
+   <vbox scrollable=\"true\">
+    ${EXIT_BTN}
+    ${INTERNET}
+   </vbox>
+  
+   <vbox scrollable=\"true\">
+    ${EXIT_BTN}
+    ${MEDIA}
+   </vbox>
+  
+   <vbox scrollable=\"true\">
+    ${EXIT_BTN}
+    ${UTILITY}
+   </vbox>
+
+  </notebook>
+
+ </vbox>
+</window>"
+
+gtkdialog -p EA_MAIN_DLG1 --center
+unset EA_MAIN_DLG1
+
+

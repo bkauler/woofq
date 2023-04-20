@@ -1,0 +1,164 @@
+#!/bin/bash
+#called from 'easyapps', 2 params passed in.
+
+export TEXTDOMAIN=easyapps
+export OUTPUT_CHARSET=UTF-8
+
+MAINCAT="$1"
+SUBCAT="$2"
+[ "$SUBCAT" == "" ] && exit
+
+EAP="/usr/local/easyapps"
+MIP="/usr/local/lib/X11/mini-icons"
+
+CATS='zzzzzz'; QUALIFIER='.*'; EXCLUDE='zzzzzzzz'
+if [ "$MAINCAT" == "business" ];then
+  case "$SUBCAT" in
+   calculator) CATS='^Categories.*Calculator|^Categories.*X-CalculateUtility'; EXCLUDE='gmeasures'; ;;
+   calendar)   CATS='^Categories.*X-Personal-date|^Categories.*Calendar' ;;
+   database)   CATS='^Categories.*X-Personal-database|^Categories.*ContactManagement' ;;
+   finance)    CATS='^Categories.*X-Business-finance|^Categories.*Finance' ;;
+   measure)    CATS='^Exec.*gmeasures' ;;
+   notebook)   CATS='^Categories.*X-Personal-organizer|^Categories.*PDA' ;;
+   schedule)   CATS='^Categories.*X-System-process|^Categories.*X-Business-planner|^Categories.*X-Personal-date'; EXCLUDE='Top-view|SeaMonkey'; ;;
+   spreadsheet) CATS='^Categories.*X-Business-spreadsheet|^Categories.*Spreadsheet' ;;
+  esac
+elif [ "$MAINCAT" == "document" ];then
+ case "$SUBCAT" in
+  bookreader) CATS='^Categories.*X-Document-viewer' ;;
+  htmleditor) CATS='^Exec.*bluegriffon|^Exec.*mozedit|^Exec.*swriter|^Categories.*WebDevelopment' ;;
+  pdfmanager) CATS='^Exec.*peasypdf'  ;;
+  pdfreader)  CATS='^Exec.*evince' ;;
+  scanner)    CATS='^Categories.*X-Graphic-scanner' ;;
+  texteditor) CATS='^Categories.*X-Document-edit|^Categories.*TextEditor'  ;;
+  wordprocessor) CATS='^Exec.*swriter|^Categories.*WordProcessor|^Exec.*abiword'  ;;
+ esac
+elif [ "$MAINCAT" == "graphic" ];then
+ case "$SUBCAT" in
+  2d3dcad)       CATS='^Exec.*solvespace|^Exec.*freecad|^Exec.*librecad' ;;
+  bitmapeditor)  CATS='^Categories.*X-Graphic-paint|^Categories.*RasterGraphics' ;;
+  digitalcamera) CATS='^Categories.*X-Graphic-camera|^Categories.*Photography' ;;
+  imageviewer)   CATS='^Categories.*X-Graphic-viewer' ;;
+  paint)         CATS='^Categories.*X-Graphic-paint' ;;
+  photoprinter)  CATS='^Categories.*X-Graphic-print' ;;
+  presentation)  CATS='^Categories.*X-Graphic-flow|^Categories.*Chart,FlowChart|^Categories.*Presentation' ;;
+  screenshot)    CATS='^Exec=tas|^Exec=mtpaintsnapshot|^Exec=screeny' ;;
+  vectoreditor)  CATS='^Categories.*X-Graphic-draw|^Categories.*VectorGraphics' ;;
+ esac
+elif [ "$MAINCAT" == "internet" ];then
+ case "$SUBCAT" in
+  browser)       CATS='^Categories.*X-Internet-browser|^Categories.*WebBrowser'; EXCLUDE='ec-'; ;;
+  chat)          CATS='^Categories.*X-Internet-chat|^Categories.*Chat|^Categories.*InstantMessaging|^Categories.*VideoConference' ;;
+  download)      CATS='^Exec=pwsget|^Categories.*X-Internet-transfer|^Categories.*FileTransfer' ;;
+  downloadvideo) CATS='^Exec.*youtube' ;;
+  email)         CATS='^Exec.*mozmail' ;;
+  filetransfer)  CATS='^Exec=gftp' ;;
+  networksecurity) CATS='^Categories.*X-Internet-block|^Exec.*firewall' ;;
+  p2p)           CATS='^Categories.*P2P' ;;
+  streaming)     CATS='^Exec.*pupradio|^Name.*streaming|^Name.*TV' ;;
+ esac
+elif [ "$MAINCAT" == "media" ];then
+ case "$SUBCAT" in
+  audiomixer)      CATS='^Categories.*Mixer|^Exec=mscw|^Exec=pavucontrol' ;;
+  audioplayer)     CATS='^Exec=audacious|^Exec.*pmusic' ;;
+  audiorecorder)   CATS='^Exec=audacity|^Exec=gwaveedit' ;;
+  opticalripper)   CATS='^Exec.*pcdripper|^Exec.*pdvdrip' ;;
+  opticalburner)   CATS='^Categories.*DiskBurning|^Exec=pburn' ;;
+  desktoprecorder) CATS='^Exec=easycast' ;;
+  mediaconverter)  CATS='^Exec=ffconvert' ;;
+  videoplayer)     CATS='^Categories.*X-Multimedia-mediaplayer' ;;
+ esac
+elif [ "$MAINCAT" == "utility" ];then
+ case "$SUBCAT" in
+  clipboard)     CATS='^Exec=glipper|^Exec=xclipboard' ;;
+  colorselector) CATS='^Exec=gcolorsel' ;;
+  diskmap)       CATS='^Exec=gdmap' ;;
+  drives)        CATS='^Exec=gparted|^Exec=easydd' ;;
+  findfiles)     CATS='^Categories.*X-Filesystem-find|^Exec=prename|^Exec=gfnrename'; EXCLUDE='gwhere'; ;;
+  momanager)     CATS='^Exec=momanager' ;;
+  systeminformation) CATS='^Exec=hardinfo|^Exec=ipinfo|^Exec=pprocess|^Exec=Pup-SysInfo|^Exec=pupscan|^Exec=usbviewshell'; EXCLUDE='pprocess'; ;;
+  terminalemulator) CATS='^Categories.*TerminalEmulator'; EXCLUDE='ec-console'; ;;
+  encryption) CATS='^Categories.*X-Personal-security|^Exec=gtkhash' ;;
+ esac
+else #precaution
+ exit
+fi
+
+FND="$(grep -l -E "${CATS}" /usr/share/applications/*.desktop | grep -vE "${EXCLUDE}")"
+#ex: business calculator
+#/usr/share/applications/cgtkcalc.desktop
+#/usr/share/applications/galculator.desktop
+#/usr/share/applications/gmeasures.desktop
+#/usr/share/applications/Xcalc-scientific-calculator.desktop
+SUBxml=''
+for aDT in $FND
+do
+ [ "$aDT" == "" ] && continue
+ Picon=$(grep '^Icon=' ${aDT} | cut -f 2 -d '=' | cut -f 1 -d ' ')
+ if [ "${Picon:0:1}" == "/" ];then
+  ICON="$Picon"
+ else
+  ICON="$(${EAP}/find-icon ${Picon/.*/})"
+ fi
+ if [ "$ICON" == "" ];then
+  ICON="${MIP}/Executable.xpm"
+ fi
+ 
+ Pname=$(grep "^Name\[${LANG:0:2}\]=" ${aDT} | cut -f 2 -d '=' | head -n 1)
+ if [ "$Pname" == "" ];then
+  Pname=$(grep '^Name=' ${aDT} | cut -f 2 -d '=' | head -n 1)
+ fi
+ if [ "$Pname" ];then
+  NAME="$Pname"
+ else
+  NAME="$(gettext 'no description')"
+ fi
+ 
+ EXEC="$(grep '^Exec=' ${aDT} | cut -f 2 -d '=' | cut -f 1 -d ' ' | head -n 1)"
+ 
+ SUBxml="${SUBxml}
+<hbox>
+ <text space-expand=\"false\" space-fill=\"false\"><label>\"  \"</label></text>
+ <button space-expand=\"false\" space-fill=\"false\">
+  <height>24</height>
+  <width>24</width>
+  <input file>${ICON}</input>
+  <action>EXIT:${EXEC}</action>
+ </button>
+ <text space-expand=\"false\" space-fill=\"false\" use-markup=\"true\"><label>\" <b>${NAME}</b>\"</label></text>
+ <text space-expand=\"true\" space-fill=\"true\" use-markup=\"true\"><label>\" \"</label></text>
+</hbox>
+"
+done
+
+if [ "$SUBxml" == "" ];then
+ SUBxml="<text><label>$(gettext 'No applications found')</label></text>"
+fi
+
+export EA_SUB_DLG="<window title=\"EasyApps\" icon-name=\"apps48\" resizable=\"false\" decorated=\"false\">
+ <vbox>
+  <frame>
+   <hbox>
+    <button relief=\"2\">
+     <input file>/usr/local/lib/X11/mini-icons/mini-cross.xpm</input>
+     <action>EXIT:abort</action>
+    </button>
+   </hbox>
+   ${SUBxml}
+  </frame>
+ </vbox>
+</window>"
+
+echo "$EA_SUB_DLG" > /tmp/EA_SUB_DLG #debug
+RETVALS="$(gtkdialog -p EA_SUB_DLG --center)"
+xRETVALS="$(echo "$RETVALS" | grep '^EXIT=')"
+eval "$xRETVALS"
+
+if [ "$EXIT" == "abort" ];then
+ exit
+fi
+if [ "$EXIT" ];then
+ kill `pgrep -f 'EA_MAIN_DLG1'` #kill main window.
+ exec ${EXIT}
+fi
+###end###
