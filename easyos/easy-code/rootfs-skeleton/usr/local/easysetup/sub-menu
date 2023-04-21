@@ -1,0 +1,141 @@
+#!/bin/bash
+#(c) Copyright Barry Kauler 2023, bkhome.org, license GPLv3 (/usr/share/doc/legal)
+#called from 'easyapps', 2 params passed in.
+
+export TEXTDOMAIN=easysetup
+export OUTPUT_CHARSET=UTF-8
+
+MAINCAT="$1"
+SUBCAT="$2"
+[ "$SUBCAT" == "" ] && exit
+
+EAP="/usr/local/easysetup"
+MIP="/usr/local/lib/X11/mini-icons"
+
+CATS='zzzzzz'; QUALIFIER='.*'; EXCLUDE='zzzzzzzz'
+if [ "$MAINCAT" == "desktop" ];then
+  case "$SUBCAT" in
+   desktopicons) CATS='^Exec=eventmanager desktop|^Exec=icon_switcher' ;;
+   themes)       CATS='^Exec=gtk_chtheme' ;;
+   wallpaper)    CATS='^Exec=qwallpaper' ;;
+   mousecursor)  CATS='^Exec=pcur' ;;
+   fontsize)     CATS='^Exec=set-xftdpi' ;;
+   jwm)          CATS='^Exec=jwmdesk' ;;
+  esac
+elif [ "$MAINCAT" == "easyos" ];then
+ case "$SUBCAT" in
+  bootup)         CATS='^Exec=easy-bootmanager' ;;
+  easydd)         CATS='^Exec=easydd' ;;
+  remaster)       CATS='^Exec.*easy-remaster' ;;
+  removebuiltin)  CATS='^Exec.*remove_builtin' ;;
+  versioncontrol) CATS='^Exec=easy-version-control' ;;
+  update)         CATS='Exec=easy-update' ;;
+ esac
+elif [ "$MAINCAT" == "hardware" ];then
+ case "$SUBCAT" in
+  bluetooth)        CATS='^Exec=bluepup' ;;
+  screenbrightness) CATS='^Exec.*dcontrol' ;;
+  hid)              CATS='^Exec=input-wizard' ;;
+  audio)            CATS='^Exec=mscw' ;;
+  cups)             CATS='^Categories.*X-System-print' ;;
+  clock)            CATS='^Exec=date-time-wizard' ;;
+  touchpad)         CATS='^Exec=flsynclient' ;;
+  multiplemonitors) CATS='^Exec=zarfy' ;;
+  cpufrequency)     CATS='^Exec=wcpufreq' ;;
+ esac
+elif [ "$MAINCAT" == "system" ];then
+ case "$SUBCAT" in
+  terminal)     CATS='^Exec=urxvtcontrol' ;;
+  locale)       CATS='^Exec=chooselocale' ;;
+  pupx)         CATS='^Exec=pupx' ;;
+  xlock)        CATS='^Exec.*Xlock' ;;
+  eventmanager) CATS='^Exec=eventmanager' ;;
+  videowizard)  CATS='^Exec=xorgwizard' ;;
+  defaultapps)  CATS='^Exec=defaults-chooser' ;;
+  partitions)   CATS='^Exec=gparted|^Exec=Pdisk|^Exec=partview' ;;
+  quicksetup)   CATS='^Exec=quicksetup' ;;
+ esac
+else #precaution
+ exit
+fi
+
+FND="$(grep -l -E "${CATS}" /usr/share/applications/*.desktop | grep -vE "${EXCLUDE}")"
+SUBxml=''
+SUBcnt=0
+for aDT in $FND
+do
+ [ "$aDT" == "" ] && continue
+ SUBcnt=$(($SUBcnt+1))
+ Picon=$(grep '^Icon=' ${aDT} | cut -f 2 -d '=' | cut -f 1 -d ' ')
+ if [ "${Picon:0:1}" == "/" ];then
+  ICON="$Picon"
+ else
+  ICON="$(/usr/sbin/find-icon ${Picon/.*/})"
+ fi
+ if [ "$ICON" == "" ];then
+  ICON="${MIP}/Executable.xpm"
+ fi
+ 
+ Pname=$(grep "^Name\[${LANG:0:2}\]=" ${aDT} | cut -f 2 -d '=' | head -n 1)
+ if [ "$Pname" == "" ];then
+  Pname=$(grep '^Name=' ${aDT} | cut -f 2 -d '=' | head -n 1)
+ fi
+ if [ "$Pname" ];then
+  NAME="$Pname"
+ else
+  NAME="$(gettext 'no description')"
+ fi
+ 
+ EXEC="$(grep '^Exec=' ${aDT} | cut -f 2 -d '=' | cut -f 1 -d ' ' | head -n 1)"
+ 
+ SUBxml="${SUBxml}
+<hbox>
+ <text space-expand=\"false\" space-fill=\"false\"><label>\"  \"</label></text>
+ <button space-expand=\"false\" space-fill=\"false\">
+  <height>24</height>
+  <width>24</width>
+  <input file>${ICON}</input>
+  <action>EXIT:${EXEC}</action>
+ </button>
+ <text space-expand=\"false\" space-fill=\"false\" use-markup=\"true\"><label>\" <b>${NAME}</b>\"</label></text>
+ <text space-expand=\"true\" space-fill=\"true\" use-markup=\"true\"><label>\" \"</label></text>
+</hbox>
+"
+done
+
+if [ "$SUBxml" == "" ];then
+ SUBxml="<text><label>$(gettext 'No applications found')</label></text>"
+fi
+
+if [ $SUBcnt -eq 1 ];then
+ #only one, run it immediately...
+ EXIT="$EXEC"
+else
+ export ES_SUB_DLG="<window title=\"EasySetup\" icon-name=\"apps48\" resizable=\"false\" decorated=\"false\">
+ <vbox>
+  <frame>
+   <hbox>
+    <button relief=\"2\">
+     <input file>/usr/local/lib/X11/mini-icons/mini-cross.xpm</input>
+     <action>EXIT:abort</action>
+    </button>
+   </hbox>
+   ${SUBxml}
+  </frame>
+ </vbox>
+</window>"
+
+ #echo "$ES_SUB_DLG" > /tmp/ES_SUB_DLG #debug
+ RETVALS="$(gtkdialog -p ES_SUB_DLG --center)"
+ xRETVALS="$(echo "$RETVALS" | grep '^EXIT=')"
+ eval "$xRETVALS"
+fi
+
+if [ "$EXIT" == "abort" ];then
+ exit
+fi
+if [ "$EXIT" ];then
+ kill `pgrep -f 'ES_MAIN_DLG1'` #kill main window.
+ exec ${EXIT}
+fi
+###end###

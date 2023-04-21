@@ -1,0 +1,132 @@
+#!/bin/bash
+#(c) Copyright Barry Kauler 2023, bkhome.org, license GPLv3 (/usr/share/doc/legal)
+#inspired by Roger's superb PupApps and PupControl.
+
+export TEXTDOMAIN=easysetup
+export OUTPUT_CHARSET=UTF-8
+
+EAP="/usr/local/easysetup"
+MIP="/usr/local/lib/X11/mini-icons"
+
+###Desktop###
+#Bicon='';Bsub='';Bname1='$(gettext '')';Bname2='$(gettext '')'
+Dparams="Bicon='mini-icons.xpm';Bsub='desktopicons';Bname1='$(gettext 'Desktop Icons')';Bname2='$(gettext 'Appearance/layout of the icons')'
+Bicon='mini-font.xpm';Bsub='fontsize';Bname1='$(gettext 'Font Size')';Bname2='$(gettext 'Adjust text size')'
+Bicon='jwm20.png';Bsub='jwm';Bname1='$(gettext 'JWM')';Bname2='$(gettext 'Configure JWM window manager')'
+Bicon='Mouse.xpm';Bsub='mousecursor';Bname1='$(gettext 'Mouse Cursor')';Bname2='$(gettext 'Modify appearance of pointer')'
+Bicon='mini-Desktop-appearance.xpm';Bsub='themes';Bname1='$(gettext 'Themes')';Bname2='$(gettext 'JWM/GTK/Qt/icon themes')'
+Bicon='mini-cave.xpm';Bsub='wallpaper';Bname1='$(gettext 'Wallpaper')';Bname2='$(gettext 'Choose a background')'
+"
+###EasyOS###
+Eparams="Bicon='boot20.png';Bsub='bootup';Bname1='$(gettext 'Bootup')';Bname2='$(gettext 'Configure next bootup')'
+Bicon='mini-Filesystem-audit.xpm';Bsub='easycontainers';Bname1='$(gettext 'Easy Containers')';Bname2='$(gettext 'Create and manage containers')'
+Bicon='mini-ray.xpm';Bsub='easydd';Bname1='$(gettext 'EasyDD')';Bname2='$(gettext 'Write image file to a drive')'
+Bicon='mini-ray.xpm';Bsub='remaster';Bname1='$(gettext 'Remaster')';Bname2='$(gettext 'Remaster EasyOS')'
+Bicon='mini-ray.xpm';Bsub='removebuiltin';Bname1='$(gettext 'Remove Builtin')';Bname2='$(gettext 'Remove packages in easy.sfs')'
+Bicon='mini-lower.xpm';Bsub='update';Bname1='$(gettext 'Update')';Bname2='$(gettext 'Update to latest version of EasyOS')'
+Bicon='mini-Filesystem-audit.xpm';Bsub='versioncontrol';Bname1='$(gettext 'Version Control')';Bname2='$(gettext 'Take snapshots, rollback/forward')'
+"
+###Hardware###
+Hparams="Bicon='mini-speaker.xpm';Bsub='audio';Bname1='$(gettext 'Audio')';Bname2='$(gettext 'Setup audio input and output')'
+Bicon='bluepup.xpm';Bsub='bluetooth';Bname1='$(gettext 'Bluetooth')';Bname2='$(gettext 'Setup Bluetooth devices')'
+Bicon='mini-clock.xpm';Bsub='clock';Bname1='$(gettext 'Clock')';Bname2='$(gettext 'Setup date and time')'
+Bicon='mini-cpu.png';Bsub='cpufrequency';Bname1='$(gettext 'CPU Frequency')';Bname2='$(gettext 'CPU frequency scaling tool')'
+Bicon='mini-System-print.xpm';Bsub='cups';Bname1='$(gettext 'CUPS')';Bname2='$(gettext 'Setup your printer/scanner')'
+Bicon='hid24.png';Bsub='hid';Bname1='$(gettext 'HID')';Bname2='$(gettext 'Setup mouse and keyboard')'
+Bicon='mini-display.xpm';Bsub='multiplemonitors';Bname1='$(gettext 'Multiple Monitors')';Bname2='$(gettext 'Manage multiple moniotrs')'
+Bicon='mini-display-bright.xpm';Bsub='screenbrightness';Bname1='$(gettext 'Screen Brightness')';Bname2='$(gettext 'Set screen tint and brightness')'
+Bicon='mini-touchpad.png';Bsub='touchpad';Bname1='$(gettext 'Touchpad')';Bname2='$(gettext 'Configure a touchpad')'
+"
+###System###
+Sparams="Bicon='Executable.xpm';Bsub='defaultapps';Bname1='$(gettext 'Default Apps')';Bname2='$(gettext 'Choose default applications')'
+Bicon='so.xpm';Bsub='eventmanager';Bname1='$(gettext 'Event Manager')';Bname2='$(gettext 'Configure desktop events')'
+Bicon='mini-font.xpm';Bsub='locale';Bname1='$(gettext 'Locale')';Bname2='$(gettext 'Country localization')'
+Bicon='mini-hdisk.xpm';Bsub='partitions';Bname1='$(gettext 'Partitions')';Bname2='$(gettext 'Create and manage drive partitions')'
+Bicon='mini-Desktop-settings.xpm';Bsub='pupx';Bname1='$(gettext 'pupX')';Bname2='$(gettext 'Set Xorg runtime properties')'
+Bicon='mini-ray.xpm';Bsub='quicksetup';Bname1='$(gettext 'QuickSetup')';Bname2='$(gettext 'Lots of settings in one big window')'
+Bicon='mini-sh.xpm';Bsub='terminal';Bname1='$(gettext 'Terminal')';Bname2='$(gettext 'Manage terminal emulators')'
+Bicon='wizard16.xpm';Bsub='videowizard';Bname1='$(gettext 'Video Wizard')';Bname2='$(gettext 'Configure all aspects of Xorg')'
+Bicon='mini-lock.xpm';Bsub='xlock';Bname1='$(gettext 'Xlock')';Bname2='$(gettext 'Configure screen locking')'
+"
+
+for aCAT in Desktop EasyOS Hardware System
+do
+ case "$aCAT" in
+  Desktop)  PARAMS="$Dparams" ;;
+  EasyOS)   PARAMS="$Eparams" ;;
+  Hardware) PARAMS="$Hparams" ;;
+  System)   PARAMS="$Sparams" ;;
+  *) exit ;;
+ esac
+ ENTRIES=''
+ while read aLINE
+ do
+  [ "$aLINE" == "" ] && continue
+  eval "$aLINE"
+  ENTRIES="${ENTRIES}
+<hbox>
+ <text space-expand=\"false\" space-fill=\"false\"><label>\"  \"</label></text>
+ <button space-expand=\"false\" space-fill=\"false\">
+  <height>24</height>
+  <width>24</width>
+  <input file>${MIP}/${Bicon}</input>
+  <action>${EAP}/sub-menu ${aCAT,,} ${Bsub} & </action>
+ </button>
+ <text space-expand=\"false\" space-fill=\"false\" use-markup=\"true\"><label>\" <b>${Bname1}</b> - ${Bname2}\"</label></text>
+ <text space-expand=\"true\" space-fill=\"true\" use-markup=\"true\"><label>\" \"</label></text>
+</hbox>
+"
+ done <<EOF1
+$(echo "$PARAMS")
+EOF1
+
+ case "$aCAT" in
+  Desktop)  DESKTOP="$ENTRIES" ;;
+  EasyOS)   EASYOS="$ENTRIES" ;;
+  Hardware) HARDWARE="$ENTRIES" ;;
+  System)   SYSTEM="$ENTRIES" ;;
+ esac
+done
+
+
+EXIT_BTN="<hbox><button relief=\"2\" tooltip-text=\"$(gettext 'Close EasyApps')\"><input file>${MIP}/mini-cross.xpm</input><action>EXIT:quit</action></button></hbox>"
+
+GUIHEIGHT="495"
+GUIWIDTH="668"
+PAGE="0"
+export ES_MAIN_DLG1="<window title=\"EasySetup\" icon-name=\"configuration48\" resizable=\"false\">
+ <vbox height-request=\"$GUIHEIGHT\" width-request=\"$GUIWIDTH\">
+  <text use-markup=\"true\"><label>\"<b><span size='"'x-large'"'>Easy</span><span size='"'x-large'"' color='"#3272C0"'>Setup</span></b>\"</label></text>
+  <text><label>$(gettext 'Configure appearance, hardware and system operations')</label></text>
+  
+  <notebook space-expand=\"true\" space-fill=\"true\" tab-pos=\"0\" tab-border=\"3\" page=\"$PAGE\" labels=\" $(gettext 'Desktop') | $(gettext 'EasyOS') | $(gettext 'Hardware') | $(gettext 'System') \">
+  
+   <vbox scrollable=\"true\">
+    ${EXIT_BTN}
+    ${DESKTOP}
+   </vbox>
+  
+   <vbox scrollable=\"true\">
+    ${EXIT_BTN}
+    ${EASYOS}
+   </vbox>
+  
+   <vbox scrollable=\"true\">
+    ${EXIT_BTN}
+    ${HARDWARE}
+   </vbox>
+  
+   <vbox scrollable=\"true\">
+    ${EXIT_BTN}
+    ${SYSTEM}
+   </vbox>
+  
+  </notebook>
+
+ </vbox>
+</window>"
+
+gtkdialog -p ES_MAIN_DLG1 --center
+unset ES_MAIN_DLG1
+###end###
+
