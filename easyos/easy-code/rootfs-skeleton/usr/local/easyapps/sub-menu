@@ -1,4 +1,5 @@
 #!/bin/bash
+#(c) Copyright Barry Kauler 2023, bkhome.org, license GPLv3 (/usr/share/doc/legal)
 #called from 'easyapps', 2 params passed in.
 
 export TEXTDOMAIN=easyapps
@@ -98,7 +99,7 @@ do
  if [ "${Picon:0:1}" == "/" ];then
   ICON="$Picon"
  else
-  ICON="$(${EAP}/find-icon ${Picon/.*/})"
+  ICON="$(/usr/sbin/find-icon ${Picon/.*/})"
  fi
  if [ "$ICON" == "" ];then
   ICON="${MIP}/Executable.xpm"
