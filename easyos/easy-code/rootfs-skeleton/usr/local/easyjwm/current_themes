@@ -1,0 +1,113 @@
+#!/bin/sh
+# JWMDesk - define current desktop themes in JWM environment
+
+export TEXTDOMAIN=jwmdesk
+export OUTPUT_CHARSET=UTF-8
+. gettext.sh
+
+[ "`which gtkdialog4 2>/dev/null`" ] && GTKDIALOG=gtkdialog4 || GTKDIALOG=gtkdialog
+
+# Background
+ CURRENT_WALLPAPER=$(cat $HOME/.config/wallpaper/bg_img 2>/dev/null | awk -F'/' '{print $NF}')
+ [ ! "$CURRENT_WALLPAPER" ] && CURRENT_WALLPAPER="NA"
+
+# GTK3 theme
+ if [ -e "$HOME/.config/gtk-3.0/settings.ini" ]; then
+  if [ "`grep 'gtk-theme-name' $HOME/.config/gtk-3.0/settings.ini 2>/dev/null`" ] ; then
+   THEME=$(grep 'gtk-theme-name' $HOME/.config/gtk-3.0/settings.ini | cut -d '=' -f2 | awk '{$1=$1};1')
+   [ "$THEME" ] && CURRENT_GTK3THEME=$THEME || CURRENT_GTK3THEME="NA"
+  else
+   CURRENT_GTK3THEME="NA"
+  fi
+ else
+  CURRENT_GTK3THEME="NA"
+ fi
+
+# GTK2 theme
+ if [[ $(grep -a '^include "/usr/share/themes' $HOME/.gtkrc-2.0 2>/dev/null) ]]; then
+  CURRENT_GTK2THEME=$(grep -a '^include "/usr/share/themes' $HOME/.gtkrc-2.0 2>/dev/null | sed -e 's/include \"\/usr\/share\/themes\///' -e 's/\/gtk-2.0\/gtkrc\"//')
+ elif [[ $(grep -a '^gtk-theme-name=' $HOME/.gtkrc-2.0 2>/dev/null) ]]; then
+  CURRENT_GTK2THEME=$(grep -a '^gtk-theme-name=' $HOME/.gtkrc-2.0 2>/dev/null | sed -e 's/gtk-theme-name\=//' -e 's/\"//g')
+ else
+  CURRENT_GTK2THEME="NA"
+ fi
+
+# JWM theme
+ if [ -d /usr/local/jwm_config* ]; then
+  CURRENT_JWMPRESET=$(cat $HOME/.jwm/tray_active_preset 2>/dev/null)
+  JWMTHEME="$(gettext 'Tray Theme'):"
+ else
+  CURRENT_JWMPRESET=$(cat $HOME/.jwm/theme 2>/dev/null)
+  JWMTHEME="$(gettext 'JWM Theme'):"
+ fi
+ [ ! "$CURRENT_JWMPRESET" ] && CURRENT_JWMPRESET="NA"
+
+# Desk icon theme
+ CURRENT_DESKICONS=$(cat /etc/desktop_icon_theme 2>/dev/null)
+ [ ! "$CURRENT_DESKICONS" ] && CURRENT_DESKICONS="NA"
+
+# GTK icon theme
+ if [[ $(grep -a 'gtk-icon-theme-name' $HOME/.gtkrc-2.0 2>/dev/null) ]]; then
+  IFS='"' read C1 GTK_ICON_THEME C <<< "$(grep -F 'gtk-icon-theme-name' $HOME/.gtkrc-2.0)"
+  if [ "$GTK_ICON_THEME" ]; then
+   CURRENT_GTKICONS="$GTK_ICON_THEME"
+  else
+   CURRENT_GTKICONS="NA"
+  fi
+ elif [[ $(grep -a 'gtk-icon-theme-name' $HOME/.config/gtk-3.0/settings.ini 2>/dev/null) ]]; then
+  GTK_ICON_THEME=$(grep -a 'gtk-icon-theme-name' $HOME/.config/gtk-3.0/settings.ini | cut -d '=' -f2 | awk '{$1=$1};1')
+  if [ "$GTK_ICON_THEME" ]; then
+   CURRENT_GTKICONS="$GTK_ICON_THEME"
+  else
+   CURRENT_GTKICONS="NA"
+  fi
+ else
+  CURRENT_GTKICONS="NA"
+ fi
+
+# Cursor theme
+ CURRENT_CURSOR=$(readlink $HOME/.icons/default | rev | cut -d '/' -f1 | rev)
+ [ ! "$CURRENT_CURSOR" ] && CURRENT_CURSOR="Default"
+
+# GUI
+ export CURRENT_THEMES="
+ <window title=\"$(gettext 'Themes')\" icon-name=\"jwmdesk64\" resizable=\"false\" window-position=\"2\">
+ <vbox>
+  <text height-request=\"3\"><label>\"\"</label></text>
+  <hbox>
+   <vbox>
+    <text xalign=\"0\" wrap=\"false\" use-markup=\"true\"><label>\"<b><span size='"'medium'"'>   $(gettext 'Background'):</span></b>\"</label></text>
+    <text xalign=\"0\" wrap=\"false\" use-markup=\"true\"><label>\"<b><span size='"'medium'"'>   $(gettext 'GTK3 Theme'):</span></b>\"</label></text>
+    <text xalign=\"0\" wrap=\"false\" use-markup=\"true\"><label>\"<b><span size='"'medium'"'>   $(gettext 'GTK2 Theme'):</span></b>\"</label></text>
+    <text xalign=\"0\" wrap=\"false\" use-markup=\"true\"><label>\"<b><span size='"'medium'"'>   $JWMTHEME</span></b>\"</label></text>
+    <text xalign=\"0\" wrap=\"false\" use-markup=\"true\"><label>\"<b><span size='"'medium'"'>   $(gettext 'Desk Icons'):</span></b>\"</label></text>
+    <text xalign=\"0\" wrap=\"false\" use-markup=\"true\"><label>\"<b><span size='"'medium'"'>   $(gettext 'GTK Icons'):</span></b>\"</label></text>
+    <text xalign=\"0\" wrap=\"false\" use-markup=\"true\"><label>\"<b><span size='"'medium'"'>   $(gettext 'Cursor'):</span></b>\"</label></text>
+   </vbox>
+   <vbox>
+    <text xalign=\"0\" wrap=\"false\"><label>\"  $CURRENT_WALLPAPER   \"</label></text>
+    <text xalign=\"0\" wrap=\"false\"><label>\"  $CURRENT_GTK3THEME   \"</label></text>
+    <text xalign=\"0\" wrap=\"false\"><label>\"  $CURRENT_GTK2THEME   \"</label></text>
+    <text xalign=\"0\" wrap=\"false\"><label>\"  $CURRENT_JWMPRESET   \"</label></text>
+    <text xalign=\"0\" wrap=\"false\"><label>\"  $CURRENT_DESKICONS   \"</label></text>
+    <text xalign=\"0\" wrap=\"false\"><label>\"  $CURRENT_GTKICONS   \"</label></text>
+    <text xalign=\"0\" wrap=\"false\"><label>\"  $CURRENT_CURSOR   \"</label></text>
+   </vbox>
+  </hbox>
+  <text height-request=\"3\"><label>\"\"</label></text>
+  <hseparator></hseparator>
+  <hbox homogeneous=\"true\">
+   <button width-request=\"120\">
+    <label>\"$(gettext 'Close')\"</label>
+    <action type=\"exit\">quit_now</action>
+   </button>
+  </hbox>
+ </vbox>
+ </window>"
+
+ $GTKDIALOG -p CURRENT_THEMES
+ unset CURRENT_THEMES
+
+exit 0
+
+###END###

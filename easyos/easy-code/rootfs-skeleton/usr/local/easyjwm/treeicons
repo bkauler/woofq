@@ -1,0 +1,20 @@
+#!/bin/sh
+#update gtkdialog path for treeicons
+
+DTDIR="/usr/share/applications"
+if [[ `ls /usr/local/share/applications/ 2>/dev/null` ]]; then 
+	DTDIR="${DTDIR} /usr/local/share/applications"
+fi
+grep -R "^Icon=" $DTDIR --include="*.desktop" 2>/dev/null | cut -d ':' -f1 | awk -F'/' '{print $NF}' | sort -fu > /tmp/tmp
+while read -r line
+ do
+	ICON=$(grep -a -m1 '^Icon=' "$DTDIR"/"$line" 2>/dev/null | cut -d'=' -f2-)
+	ICONNAME="${ICON##*/}" #with extension
+	[[ $(echo "$ICON" | grep -a '^/') ]] && [ ! -f /usr/share/pixmaps/"$ICONNAME" ] && ln -snf "$ICON" /usr/share/pixmaps/"$ICONNAME"
+ done < /tmp/tmp
+
+X11PIXMAPS=$(ls /usr/local/lib/X11/pixmaps | grep -E '\.[psx][npv][gm]')
+for i in $X11PIXMAPS
+ do
+	[ ! -f /usr/share/pixmaps/"$i"  ] && ln -snf /usr/local/lib/X11/pixmaps/"$i" /usr/share/pixmaps/"$i"
+ done

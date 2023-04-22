@@ -1,0 +1,101 @@
+#!/bin/bash
+#script called by $HOME/.jwmrc
+
+export TEXTDOMAIN=jwmdesk
+export OUTPUT_CHARSET=UTF-8
+
+menuheight=$(cat /root/.jwm/menuheights 2>/dev/null | cut -d "=" -f2)
+[ ! "$menuheight" ] && menuheight=24
+
+for c in galculator mate-calc cgtkcalc xcalc ycalc; do [ "`which $c 2>/dev/null`" ] && { calculator="$c"; break; } done
+
+[ "`which PupClockset 2>/dev/null`" ] && clock_cmd=PupClockset || clock_cmd=/usr/local/jwmdesk/clock
+
+sb_delay=$(cat /usr/local/jwmdesk/preferences/sb-delay 2>/dev/null)
+[ ! "$sb_delay" ] && sb_delay=2 && echo "$sb_delay" > /usr/local/jwmdesk/preferences/sb-delay
+
+if [ -f /sbin/puplock -a -f /bin/swaylock ] && [ -n "$WAYLAND_DISPLAY" ]; then
+	xlock_nocmd=''
+	xlock_cmd='<Program label="'$(gettext 'Configure screen locking')'" icon="/usr/local/jwmdesk/jwm_menu_icons/screen_lock.svg">puplock -configure</Program>
+<Separator/>'
+elif [ -f /usr/local/apps/Xlock/AppRun ]; then
+	xlock_nocmd=''
+	xlock_cmd='<Program label="'$(gettext 'Configure screen locking')'" icon="/usr/local/jwmdesk/jwm_menu_icons/screen_lock.svg">/usr/local/apps/Xlock/AppRun -configure</Program>
+<Separator/>'
+else
+	xlock_nocmd='<Program label="'$(gettext 'Xlock not installed')'" icon="/usr/local/jwmdesk/jwm_menu_icons/screen_lock.svg"> </Program>'
+	xlock_cmd=''
+fi
+
+logout=''
+preferences=''
+if [ -d /usr/lib/gtkdialog ]; then
+	logout_gui=`cat /usr/local/jwmdesk/preferences/logout_gui 2>/dev/null`
+	[ ! "$logout_gui" ] && logout_gui=true
+	logout_suspend=`cat /usr/local/jwmdesk/preferences/logout_suspend  2>/dev/null`
+	[ ! "$logout_suspend" ] && logout_suspend=false
+	if [ "$logout_gui" = "true" ]; then
+		logout=true
+		if [ "$logout_suspend" = "true" ]; then
+			preferences='
+			'$xlock_cmd'
+			<Program label="'$(gettext 'Logout menu: Disable')'" icon="/usr/local/jwmdesk/jwm_menu_icons/shutdown.svg">echo false > /usr/local/jwmdesk/preferences/logout_gui ; jwm -restart ; sleep .5</Program>
+			<Program label="'$(gettext 'Logout suspend: Disable')'" icon="/usr/local/jwmdesk/jwm_menu_icons/suspend.svg">echo false > /usr/local/jwmdesk/preferences/logout_suspend ; jwm -restart ; sleep .5 ; /usr/local/jwmdesk/logout_gui_jwm</Program>'
+		else
+			preferences='
+			'$xlock_cmd'
+			<Program label="'$(gettext 'Logout menu: Disable')'" icon="/usr/local/jwmdesk/jwm_menu_icons/shutdown.svg">echo false > /usr/local/jwmdesk/preferences/logout_gui ; jwm -restart ; sleep .5</Program>
+			<Program label="'$(gettext 'Logout suspend: Enable')'" icon="/usr/local/jwmdesk/jwm_menu_icons/suspend.svg">echo true > /usr/local/jwmdesk/preferences/logout_suspend ; jwm -restart ; sleep .5 ; /usr/local/jwmdesk/logout_gui_jwm</Program>'
+		fi
+	else
+		logout=false
+		preferences='
+		'$xlock_cmd'
+		<Program label="'$(gettext 'Logout menu: Enable')'" icon="/usr/local/jwmdesk/jwm_menu_icons/shutdown.svg">echo true > /usr/local/jwmdesk/preferences/logout_gui ; jwm -restart ; sleep .5 ; /usr/local/jwmdesk/logout_gui_jwm</Program></Program>'
+	fi
+fi
+
+echo '
+<JWM>'
+	[ "$calculator" ] && echo '<Program label="'$(gettext 'Calculator')'" icon="/usr/local/jwmdesk/jwm_menu_icons/calculator.png">"'${calculator}'"</Program>'
+	echo '<Program label="'$(gettext 'Calendar')'" icon="/usr/local/jwmdesk/jwm_menu_icons/calendar.png">xcalendar</Program>'
+	[ "`which osmo`" ] && echo '<Program label="'$(gettext 'Organizer')'" icon="/usr/local/jwmdesk/jwm_menu_icons/flowchart.svg">osmo-wrapper</Program>'
+	[ "`which pschedule`" ] && echo '<Program label="'$(gettext 'Scheduler')'" icon="/usr/local/jwmdesk/jwm_menu_icons/execute_interval.svg">pschedule</Program>'
+	[ "`which xvkbd`" -o "`which cellwriter`" ] && echo '<Program label="'$(gettext 'KeyBoard')'" icon="/usr/local/jwmdesk/jwm_menu_icons/keyboard.svg">xkeyboard-wrapper 2>/dev/null</Program>'
+	echo '<Separator/>
+	<Program label="'$(gettext 'Color tool')'" icon="/usr/local/jwmdesk/icons/color-picker.svg">/usr/local/jwmdesk/xcolor</Program>'
+	echo '<Separator/>
+	<Menu label="'$(gettext 'Country')'" icon="/usr/local/jwmdesk/jwm_menu_icons/country.svg" height="'${menuheight}'">'
+	[ "`which chooselocale`" ] && echo '<Program label="'$(gettext 'Choose locale')'" icon="/usr/local/jwmdesk/jwm_menu_icons/country_language.svg">chooselocale</Program>'
+	[ "`which timezone-set`" ] && echo '<Program label="'$(gettext 'Choose timezone')'" icon="/usr/local/jwmdesk/jwm_menu_icons/country_timezone.svg">timezone-set</Program>'
+	[ "`which keymap-set`" ] && echo '<Program label="'$(gettext 'Keyboard layout')'" icon="/usr/local/jwmdesk/jwm_menu_icons/country_keyboard.svg">keymap-set</Program>'
+	echo '</Menu>'
+	echo '<Menu label="'$(gettext 'Time')'" icon="/usr/local/jwmdesk/jwm_menu_icons/clock2.svg" height="'${menuheight}'">
+	<Program label="'$(gettext 'Set date and time')'" icon="/usr/local/jwmdesk/jwm_menu_icons/date_time.svg">set-time-for-puppy</Program>'
+	[ "`which set_hwclock_type`" ] && echo '<Program label="'$(gettext 'Set hardware clock')'" icon="/usr/local/jwmdesk/jwm_menu_icons/clock.svg">set_hwclock_type</Program>'
+	echo '<Program label="'$(gettext 'Set tray-clock format')'" icon="/usr/local/jwmdesk/jwm_menu_icons/clock_digital.svg">"'${clock_cmd}'"</Program>'
+	[ "`which qsync`" ] && echo '<Program label="'$(gettext 'Sync to time server')'" icon="/usr/local/jwmdesk/jwm_menu_icons/clock_countdown.svg">qsync</Program>'
+	[ "`which pclock`" ] && echo '<Program label="'$(gettext 'Time tools')'" icon="/usr/local/jwmdesk/jwm_menu_icons/clock_alarm.svg">pclock</Program>'
+	echo '</Menu>'
+	echo '<Separator/>'
+	echo '<Menu label="'$(gettext 'Preferences')'" icon="/usr/local/jwmdesk/jwm_menu_icons/setup.png" height="'${menuheight}'">'
+	[ -z "$WAYLAND_DISPLAY" ] && echo '<Program label="'$(gettext 'Screen blank delay')': '${sb_delay}s'" icon="/usr/local/jwmdesk/jwm_menu_icons/blankscreen.svg">/usr/local/jwmdesk/sb_delay</Program>'
+	echo "$preferences
+	$xlock_nocmd"
+	if [ -f /sbin/puplock -a -f /bin/swaylock ] && [ -n "$WAYLAND_DISPLAY" ]; then
+		[ "$logout" = "false" -o "$logout" = "" ] && echo '<Program label="'$(gettext 'Configure screen locking')'" icon="/usr/local/jwmdesk/jwm_menu_icons/screen_lock.svg">puplock -configure</Program>'
+	else
+		[ "$logout" = "false" -o "$logout" = "" ] && [ -f /usr/local/apps/Xlock/AppRun ] && echo '<Program label="'$(gettext 'Configure screen locking')'" icon="/usr/local/jwmdesk/jwm_menu_icons/screen_lock.svg">/usr/local/apps/Xlock/AppRun -configure</Program>'
+	fi
+	echo '</Menu>'
+	[ "`which wmctrl`" ] && echo '<Program label="'$(gettext 'Close all apps')'" icon="/usr/local/jwmdesk/jwm_menu_icons/cancel.svg">/usr/local/jwmdesk/xclose</Program>'
+	echo '<Program label="'$(gettext 'Display control')'" icon="/usr/local/dcontrol/icons/monitor.svg">/usr/local/dcontrol/dcontrol</Program>'
+	[ -z "$WAYLAND_DISPLAY" ] && echo '<Program label="'$(gettext 'Screen blank')'" icon="/usr/local/jwmdesk/jwm_menu_icons/blankscreen.svg">sleep "'${sb_delay}'" ; xset dpms force off</Program>'
+	if [ -f /sbin/puplock -a -f /bin/swaylock ] && [ -n "$WAYLAND_DISPLAY" ]; then
+		echo '<Program label="'$(gettext 'Screen lock')'" icon="/usr/local/jwmdesk/jwm_menu_icons/screen_lock.svg">puplock</Program>'
+	else
+		[ -f /usr/local/apps/Xlock/AppRun ] && echo '<Program label="'$(gettext 'Screen lock')'" icon="/usr/local/jwmdesk/jwm_menu_icons/screen_lock.svg">xlock-wrapper</Program>'
+	fi
+	[ "$logout" = "true" ] &&  echo '<Program label="'$(gettext 'Log out')'" icon="/usr/local/jwmdesk/jwm_menu_icons/shutdown.svg">/usr/local/jwmdesk/logout_gui_jwm</Program>'
+	echo '
+</JWM>'

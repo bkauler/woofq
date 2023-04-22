@@ -1,0 +1,152 @@
+#!/bin/bash
+export TEXTDOMAIN=jwmdesk
+export OUTPUT_CHARSET=UTF-8
+
+APPDIR=/usr/local/jwmdesk
+PREFDIR=$APPDIR/preferences
+
+if [ -d /usr/local/jwm_config* ]; then # Woof-CE desktop
+	if [[ ! $(grep -a -- '<?xml version="1.0"?>  ' $HOME/.jwm/jwmrc-tray1 2>/dev/null) ]]; then # Ptheme is current desk manager
+		[[ $(grep -aE -- '<Dock|Dock>' $HOME/.jwm/jwmrc-tray2 2>/dev/null) ]] && DOCKTRAY="$HOME/.jwm/jwmrc-tray2" || DOCKTRAY="$HOME/.jwm/jwmrc-tray1"
+		[[ $(grep -a -- 'valign="top"' $DOCKTRAY 2>/dev/null) ]] && VALIGN=top || VALIGN=bottom
+		[ -f /usr/local/lib/X11/pixmaps/question.xpm ] && ICON="/usr/local/lib/X11/pixmaps/question.xpm" || ICON=""
+		Xdialog --title "$(gettext 'Desk Manager')" --backtitle "$(gettext 'Desk Manager: Ptheme')" --beep --icon "$ICON" --cancel-label "Cancel" --ok-label "Continue " --yesno "\n  $(gettext 'Manage the current jwm desktop with JWMdesk ?')  \n\n  $(gettext 'This will activate JWMdesk and reset the desktop.')  \n" 0 0
+		if [[ $? == 0 ]]; then
+			gtkdialog-splash -close never -margin 2 -placement top-left -icon /usr/local/jwmdesk/icons/jwmdesk64.png -icon_width 48 -fontsize large -bg goldenrod -text " $(gettext 'Processing...') " &
+			XPID=$!
+			# switch to JWMdesk desktop
+			echo '<?xml version="1.0"?>  
+<JWM>
+	<Tray autohide="off" insert="right" layer="above" halign="left" valign="'$VALIGN'" height="28" layout="horizontal" >
+		<TrayButton label="Applications" icon="puppy.svg" border="false">root:9</TrayButton>
+		<TrayButton popup="Show desktop" icon="desktop.svg">showdesktop</TrayButton>
+		<Pager/>
+		<TaskList maxwidth="200"/>
+		<Dock/>
+		<Swallow name="xload" width="32">xload -nolabel -fg "#225F7C" -hl white -bg "#222"</Swallow>
+		<Clock format="%H:%M"></Clock>
+	</Tray>
+</JWM>' > $HOME/.jwm/jwmrc-tray1
+
+			rm -f $PREFDIR/*
+			[ -f $HOME/.jwm/jwmrc-tray*_hybrid ] && rm -f $HOME/.jwm/jwmrc-tray*_hybrid
+			echo -e '<JWM>\n\n</JWM>' > $HOME/.jwm/jwmrc-tray2
+			echo 'jwmrc-tray1' > $PREFDIR/default_tray
+			echo 'false' > $PREFDIR/window_geometry
+			echo 'false' > $PREFDIR/motif_style
+			echo 'false' > $PREFDIR/accessory_tray
+			echo 'false' > $PREFDIR/autohide_hybrid
+			echo 'true' > $PREFDIR/places_menu
+			echo 'false' > $PREFDIR/system_menu
+			echo 'true' > $PREFDIR/utilities_menu
+			echo '12' > $PREFDIR/launchbar_preset
+			echo '10' > $PREFDIR/max-files
+			touch /tmp/tray_menu_change
+			# define GTK font
+			if [ -e $HOME/.config/gtk-3.0/settings.ini ]; then
+				FONT=$(grep '^gtk-font-name' $HOME/.config/gtk-3.0/settings.ini 2>/dev/null | cut -d '=' -f2 | sed 's/\"//g' | awk '{$1=$1};1')
+				if [ -z "$FONT" ]; then
+					FONT="Sans 10"
+					if grep -q "^gtk-font-name" $HOME/.config/gtk-3.0/settings.ini; then
+						! grep -q "$FONT" $HOME/.config/gtk-3.0/settings.ini && \
+							sed -i "s/^gtk-font-name.*/gtk-font-name = $FONT/" $HOME/.config/gtk-3.0/settings.ini
+					else
+						echo "gtk-font-name = $FONT" >> $HOME/.config/gtk-3.0/settings.ini
+					fi
+					if [ $(which install 2>/dev/null) ]; then
+						install -D -m 644 $HOME/.config/gtk-3.0/settings.ini /etc/gtk-3.0/settings.ini
+						install -D -m 600 -o spot -g spot $HOME/.config/gtk-3.0/settings.ini /home/spot/.config/gtk-3.0/settings.ini
+					fi
+				fi
+			fi
+			if [ -e $HOME/.gtkrc-2.0 ]; then
+				FONT=$(grep 'font_name' $HOME/.gtkrc-2.0 2>/dev/null | cut -d '=' -f2 | sed 's/\"//g' | awk '{$1=$1};1')
+				if [ -z "$FONT" ]; then
+					FONT="Sans 10"
+					sed -i "s/font_name=.*$/font_name=\"$FONT\"/" $HOME/.gtkrc-2.0
+					[ $(which install 2>/dev/null) ] && install -D -m 644 $HOME/.gtkrc-2.0 /etc/gtk-2.0/gtkrc
+				fi
+			fi
+			# restart JWMdesk
+			$APPDIR/jwmdesk 2>/dev/null &
+			WAITCNT=0
+			while [ $WAITCNT -lt 30 ];do
+				JWMDPID=$(busybox ps | grep -Ea -- 'gtkdialog|gtk2dialog' | grep -a -- 'JWMDESK ' | awk '{print $1}')
+				[ -n "$JWMDPID" ] && break
+				WAITCNT=`expr $WAITCNT + 1`
+				sleep 1
+			done
+			sleep 4
+			kill $XPID 2>/dev/null
+			jwm -restart &
+		else
+			exit 0
+		fi
+	else # JWMdesk is current desk manager
+		[[ $(grep -a -- 'valign="top"' $HOME/.jwm/jwmrc-tray1 2>/dev/null) ]] && VALIGN=top || VALIGN=bottom
+		[ -f /usr/local/lib/X11/pixmaps/question.xpm ] && ICON="/usr/local/lib/X11/pixmaps/question.xpm" || ICON=""
+		Xdialog --title "$(gettext 'Desk Manager')" --backtitle "$(gettext 'Desk Manager: JWMdesk')" --beep --icon "$ICON" --cancel-label "Cancel" --ok-label "Continue " --yesno "\n  $(gettext 'Manage the current jwm desktop with Ptheme ?')  \n\n  $(gettext 'This will activate Ptheme and reset the desktop.')  \n" 0 0
+		if [[ $? == 0 ]]; then
+			gtkdialog-splash -close never -margin 2 -placement top-left -icon /usr/local/jwmdesk/icons/jwmdesk64.png -icon_width 48 -fontsize large -bg goldenrod -text " $(gettext 'Processing...') " &
+			XPID=$!
+			# switch to Ptheme desktop
+			mkdir -p /usr/share/jwm/tray_templates/Legacy
+			echo -e '<JWM>\n\n</JWM>' > /usr/share/jwm/tray_templates/Legacy/jwmrc-tray1
+			echo -e '<JWM>\n\n</JWM>' > /usr/share/jwm/tray_templates/Legacy/jwmrc-tray3
+			echo -e '<JWM>\n\n</JWM>' > /usr/share/jwm/tray_templates/Legacy/jwmrc-tray4
+			echo '<?xml version="1.0"?>
+<JWM>
+	<Tray autohide="off" insert="right" layer="above" halign="left" valign="'$VALIGN'" height="28" layout="horizontal" >
+		<TrayButton label="Applications" icon="puppy.svg" border="false">root:9</TrayButton>
+		<TrayButton label="Places">root:8</TrayButton>
+		<TrayButton popup="Show desktop" icon="desktop.svg">showdesktop</TrayButton>
+		<Spacer width="10" height="20"></Spacer>
+		<Pager></Pager>
+		<TaskList maxwidth="200"></TaskList>
+		<Spacer width="10" height="10"></Spacer>
+		<Dock></Dock>
+		<Spacer width="5" height="5"></Spacer>
+		<Swallow name="xload" width="32">xload -nolabel -fg "#56718A" -hl white -bg "#ccc"</Swallow>
+		<TrayButton popup="Leave Puppy" border="false" icon="/usr/local/lib/X11/pixmaps/shutdown48.png">exec:/usr/sbin/logout_gui</TrayButton>
+		<Clock format="%H:%M">root:7</Clock>
+	</Tray>
+</JWM>' > /usr/share/jwm/tray_templates/Legacy/jwmrc-tray2
+
+			# define global theme template
+			if [ -f "/usr/share/ptheme/globals/412" ]; then
+				global_theme="412"
+			elif [ -f "/usr/share/ptheme/globals/Bright Mouse" ]; then
+				global_theme="Bright Mouse"
+			else
+				global_theme=$(ls /usr/share/ptheme/globals | head -1)
+			fi
+			# define default wallpaper and tray preset
+			if [ -f /usr/share/backgrounds/default.svg ]; then
+				default_bg="default.svg"
+			elif [ -f /usr/share/backgrounds/default.jpg ]; then
+				default_bg="default.jpg"
+			else
+				default_bg=$(ls /usr/share/backgrounds | head -1)
+			fi
+			cp -f /usr/share/ptheme/globals/"$global_theme" /usr/share/ptheme/globals/tmpGLOBAL
+			sed -i "s/^PTHEME_WALL.*$/PTHEME_WALL=\"$default_bg\"/" /usr/share/ptheme/globals/tmpGLOBAL
+			sed -i "s/^PTHEME_JWM_TRAY.*$/PTHEME_JWM_TRAY=Legacy/" /usr/share/ptheme/globals/tmpGLOBAL
+			sleep 1
+			if pidof ROX-Filer >/dev/null 2>&1; then
+				[ -x /usr/local/bin/roxfiler ] && ROX=roxfiler || ROX=rox
+				killall ROX-Filer && $ROX -p /root/Choices/ROX-Filer/PuppyPin
+			fi
+			sleep 1
+			ptheme -p tmpGLOBAL
+			rm -rf /usr/share/jwm/tray_templates/Legacy
+			rm -f /usr/share/ptheme/globals/tmpGLOBAL
+			sleep 4
+			kill $XPID 2>/dev/null
+			[ "`which pdesktop 2>/dev/null`" ] && pdesktop &
+		else
+			$APPDIR/jwmdesk &
+		fi
+	fi
+else
+	Xdialog --title "$(gettext 'Alert')" --beep --icon /usr/local/jwmdesk/icons/error.xpm --msgbox "\n  $(gettext 'The ptheme desktop manager is not installed !')  \n" 0 0 && exit 0
+fi

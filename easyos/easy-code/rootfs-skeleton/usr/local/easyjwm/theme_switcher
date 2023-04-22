@@ -1,0 +1,57 @@
+#!/bin/sh
+#20230422 called from easyjwm, name of theme passed in.
+
+NEWTHEME="$1"
+[ "$NEWTHEME" = "" ] && exit
+[ ! -f /root/.jwm/themes/${NEWTHEME}-jwmrc ] && exit
+
+#select chosen theme...
+cp -f /root/.jwm/themes/${NEWTHEME}-jwmrc /root/.jwm/jwmrc-theme
+#set correct backgrounds for applets...
+cp -f /root/.jwm/themes/${NEWTHEME}-colors /root/.jwm/jwm_colors
+#...note, /root/.xinitrc reads this file to set background for absvolume.
+#...note, jwm_colors is written to by /usr/local/jwmconfig4/gtk2jwm script
+
+# Patriot Sep 2009
+# Attempting some robustness
+# Update only for known -bg option applets: blinky and xload
+
+. /root/.jwm/jwm_colors #Get MENU_BG, PAGER_BG
+
+JWMtrayfile="/root/.jwmrc-tray"
+ThemeFile="/root/.jwm/jwmrc-theme"
+
+if [ ! $MENU_BG ]; then
+ # if MENU_BG not found in jwm_colors
+ if [ -e $ThemeFile ]; then
+  # Get MENU_BG from newly selected theme
+  MENU_BG=$(awk -F: '/MenuStyle/,/<\/MenuStyle>/' ${ThemeFile} | grep '<Background>' | sed -e 's|</.*>||g' -e 's|.*<.*>||g')
+  # theme file could be borked, so hardcode a fallback
+  [ ! $MENU_BG ] && MENU_BG="#292D29"
+ else
+  # if theme file missing ...
+  MENU_BG="#292D29"
+ fi
+fi
+
+if [ ! $PAGER_BG ]; then
+ if [ -e $ThemeFile ]; then
+  PAGER_BG=$(awk -F: '/PagerStyle/,/<\/PagerStyle>/' ${ThemeFile} | grep '<Background>' | sed -e 's|</.*>||g' -e 's|.*<.*>||g')
+  [ ! $PAGER_BG ] && PAGER_BG="#292D29"
+ else
+  PAGER_BG="#292D29"
+ fi
+fi
+
+# Make a backup !
+cp -f $JWMtrayfile $JWMtrayfile.bak
+# Update applet -bg colors, catch-all method
+sed -e 's|\(.*blinky.*\) -bg ".*"|\1 -bg "'"$MENU_BG"'"|g' -e 's|\(.*xload.*\) -bg ".*"|\1 -bg "'"$PAGER_BG"'"|g' < $JWMtrayfile > $JWMtrayfile.new
+
+# Precaution: update to jwmrc-tray only if not empty
+[ -s $JWMtrayfile.new ] && cp -f $JWMtrayfile.new $JWMtrayfile
+
+sync
+rm -f $JWMtrayfile.new
+pidof jwm >/dev/null && jwm -restart
+###end###

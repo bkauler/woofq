@@ -1,0 +1,66 @@
+#!/bin/bash
+#xml_info by Sigmund Berglund, dec 2013
+#GPL
+#radky: cutdown version
+
+mkdir -p /tmp/jwmdesk
+
+#generate header/banner for Gtkdialog apps
+case $1 in
+	gtk)
+	#build background svg for info-widget 
+	export FLAT='<svg version="1.0"><rect width="100" height="100" style="fill:'${XML_INFO_COLOR}';fill-opacity:'${XML_INFO_OPACITY}';stroke:none"/></svg>'
+
+	BGSVG="$FLAT"
+	echo "$BGSVG" > /tmp/xml_info.svg
+
+	#redefine gtk-theme for GTK3 apps
+	if  ldd $(which gtkdialog) | grep -Fq 'gtk-3'; then
+		echo 'notebook#BgSVG {
+	background-image: url("/tmp/xml_info.svg");
+}' > /tmp/jwmdesk/gtkrc_xml_info.css
+	fi
+
+	#redefine gtk-theme for GTK2 apps
+	echo 'pixmap_path "/tmp/"
+	style "Bgsvg" { bg_pixmap[NORMAL] = "xml_info.svg" }
+	widget "*BgSVG" style "Bgsvg"
+	style "ScaleGrip" { GtkStatusbar::shadow_type = GTK_SHADOW_NONE }
+	widget "*ScaleGrip" style "ScaleGrip"' > /tmp/gtkrc_xml_info
+	#combine redefined GTK2 theme with system themes
+	if [ ! "$GTK2_RC_FILES" ]; then
+		export GTK2_RC_FILES=~/.gtkrc-2.0:/tmp/gtkrc_xml_info
+	else
+		export GTK2_RC_FILES="$GTK2_RC_FILES:/tmp/gtkrc_xml_info"
+	fi
+esac
+
+# align graphic/text center or left
+[ "$ALIGN" = "center" ] && ALIGN_CENTER='<text space-expand="true" space-fill="true"><label>""</label></text>' || ALIGN_CENTER=''
+
+#generate XML code
+echo '
+	<notebook name="BgSVG" show-tabs="false" space-expand="true" space-fill="true">
+	  <hbox space-expand="true" space-fill="true">
+		'${ALIGN_CENTER}'
+		<vbox homogeneous="true" space-expand="false" space-fill="false">
+		  <hbox border-width="10">
+			<vbox homogeneous="true"><pixmap><input file>'${ICON}'</input><height>'${ICON_HEIGHT}'</height></pixmap></vbox>
+			<text width-request="5"><label>""</label></text>
+			<vbox homogeneous="true" space-expand="false" space-fill="false">
+			<vbox space-expand="false" space-fill="false">'
+			  [ "$MSG_1" ] && echo '<text xalign="0" use-markup="true"><label>"'${MSG_1}'"</label></text>'
+			  [ "$MSG_2" ] && echo '<text xalign="0" use-markup="true"><label>"'${MSG_2}'"</label></text>'
+			  [ "$MSG_3" ] && echo '<text xalign="0" use-markup="true"><label>"'${MSG_3}'"</label></text>'
+			  [ "$MSG_4" ] && echo '<text xalign="0" use-markup="true"><label>"'${MSG_4}'"</label></text>'
+			  [ "$MSG_5" ] && echo '<text xalign="0" use-markup="true"><label>"'${MSG_5}'"</label></text>'
+			  [ "$MSG_6" ] && echo '<text xalign="0" use-markup="true"><label>"'${MSG_6}'"</label></text>'
+			  [ "$MSG_7" ] && echo '<text xalign="0" use-markup="true"><label>"'${MSG_7}'"</label></text>'
+			  [ "$MSG_8" ] && echo '<text xalign="0" use-markup="true"><label>"'${MSG_8}'"</label></text>'
+			echo '</vbox>
+			</vbox>
+		  </hbox>
+		</vbox>
+		<text space-expand="true" space-fill="true"><label>""</label></text>
+	  </hbox>
+	</notebook>'

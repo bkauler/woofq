@@ -1,0 +1,10 @@
+#!/bin/sh
+
+HOME_DIR=/root/.jwm
+#SCRIPT_DIR="/usr/local/jwmconfig2"
+SCRIPT_DIR="/usr/local/jwmdesk"
+
+##----lists shortcuts contained in the jwmrc-personal file---->>
+
+awk '/key/ {print $2 "_" $3}' $HOME_DIR/jwmrc-personal | awk -F\> '/key/ {print $1 " " $2}' | awk -F\< '/key/ {print $1}' > $SCRIPT_DIR/cuts
+

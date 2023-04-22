@@ -1,0 +1,320 @@
+#!/bin/bash
+
+# 131222 01micko, script to manage what .desktop files show in menu
+# must be run as root
+# 160101 radky: support .desktop files outside /usr/share/applications
+# 160111 radky: adjust GUI for JWMDesk (call if no default menumanager)
+# 160630 radky: adjust GUI, auto-sort menu items, add stock-id icons
+# 210515 radky: adjust GUI to 3-pane format & update tree icons to svg
+# 210930 radky: adjust GUI header; add 'Processing' notification
+
+[ "$UID" = 0 ]|| exec sudo -A ${0} ${@}
+
+export TEXTDOMAIN=pmenumanager
+export OUTPUT_CHARSET=UTF-8
+
+export APPDIR="/usr/local/easyjwm"
+
+# menu items in selected category
+export TMP1=/tmp/mm-items
+
+# define gtkdialog
+[ "`which gtkdialog4 2>/dev/null`" ] && GTKDIALOG=gtkdialog4 || GTKDIALOG=gtkdialog
+export GTKDIALOG
+
+# define location of .desktop files
+DTDIR="/usr/share/applications"
+export DTDIR
+
+# define gtkdialog icons
+ln -sf $APPDIR/icons/menu.svg /usr/share/icons/hicolor/48x48/apps
+ln -sf $APPDIR/icons/menushow.svg /usr/share/icons/hicolor/48x48/apps
+ln -sf $APPDIR/icons/menuhide.svg /usr/share/icons/hicolor/48x48/apps
+gtk-update-icon-cache -f -i /usr/share/icons/hicolor 2>/dev/null
+
+#Splash dlg...
+echo 0 > /tmp/mm-splash
+export MM_SPLASH='
+<window title="MM" icon-name="menu" resizable="false" decorated="true">'"
+<vbox>
+ <pixmap><input file>$APPDIR/icons/menu.svg</input><height>48</height><width>48</width></pixmap>
+ <text use-markup=\"true\"><label>\"<b><span size='"'x-large'"'>      Menu Manager      </span></b>\"</label></text>"'
+ <text><label>'$(gettext 'Loading...')'</label></text>
+ <progressbar visible="false">
+  <input>while [ "$M" != "100" ]; do M=`cat /tmp/mm-splash`; echo $M; usleep 500000; done</input>
+  <action type="exit">Ready</action>
+ </progressbar>
+</vbox></window>'
+$GTKDIALOG -p MM_SPLASH --center &
+
+########################################################################
+#                                                                      #
+# FUNCTIONS                                                            #
+#                                                                      #
+########################################################################
+
+# update menu and exit
+update_menu() {
+   gtkdialog-splash -close never -fontsize large -bg goldenrod -text "$(gettext 'Updating menu...')" &
+   pid=$!
+   fixmenus
+   ps -A | grep -q "jwm" && (jwm -reload || jwm -restart)
+   kill -9 $pid
+}
+export -f update_menu
+
+# manage menu files
+manage_files() {
+   for f in roxfiler rox defaultfilemanager; do [ "`which $f 2>/dev/null`" ] && { FILEMANAGER="$f"; break; } done
+   ${FILEMANAGER} ${DTDIR} &
+}
+export -f manage_files
+
+# hide menu item
+hide_menu_item() {
+   if [ "$VISIBLE" ]; then
+      sed -i "/|$VISIBLE$/d" /tmp/mm-visible
+      FILE="$VISIBLE"
+      ICON='menuhide'
+      NAME=$(grep -a -m1 '^Name=' ${DTDIR}/"${FILE}" | cut -d '=' -f2)
+      echo "${NAME}|${ICON}|${FILE}" >> /tmp/mm-hidden
+      if [ $(grep -a "^NoDisplay=false" ${DTDIR}/"${FILE}") ]; then
+        sed -i "s%NoDisplay=false%NoDisplay=true%" ${DTDIR}/"${FILE}"
+      elif [ ! $(grep -a "^NoDisplay=true" ${DTDIR}/"${FILE}") ]; then
+        echo "NoDisplay=true" >> ${DTDIR}/"${FILE}"
+      fi
+   fi
+}
+export -f hide_menu_item
+
+# show menu item
+show_menu_item() {
+   if [ "$HIDDEN" ]; then
+      sed -i "/|$HIDDEN$/d" /tmp/mm-hidden
+      FILE="$HIDDEN"
+      ICON='menushow'
+      NAME=$(grep -a -m1 '^Name=' ${DTDIR}/"${FILE}" | cut -d '=' -f2)
+      echo "${NAME}|${ICON}|${FILE}" >> /tmp/mm-visible
+      if [ $(grep -a "^NoDisplay=true" ${DTDIR}/"${FILE}") ]; then
+        sed -i "s%NoDisplay=true%NoDisplay=false%" ${DTDIR}/"${FILE}"
+      fi
+   fi
+}
+export -f show_menu_item
+
+# format menu items
+menu_item_format() {
+   rm -f /tmp/mm-visible /tmp/mm-hidden 2>/dev/null
+   ICONHIDE="menuhide" ICONSHOW="menushow"
+   while read FILE; do
+      NAME=$(grep -a -m1 '^Name=' ${DTDIR}/"$FILE" | cut -d '=' -f2)
+      if [ $(grep -a 'NoDisplay=true' ${DTDIR}/"$FILE") ]; then
+         echo "${NAME}|${ICONHIDE}|${FILE}" >> /tmp/mm-hidden
+      else
+         echo "${NAME}|${ICONSHOW}|${FILE}" >> /tmp/mm-visible
+      fi
+   done < $TMP1
+}
+export -f menu_item_format
+
+# build categories and contained menu items
+Desktop() {
+   LC_ALL=C grep -R '^Categories' $DTDIR --include="*.desktop" | LC_ALL=C grep -aE 'Accessibility|Clock|Desktop|Screensaver' | cut -d ':' -f1 | awk -F'applications/' '{print $NF}' | sed -e '/^$/d' > $TMP1  # menu items
+   menu_item_format
+}
+export -f Desktop
+
+System() {
+   LC_ALL=C grep -R '^Categories' $DTDIR --include="*.desktop" | LC_ALL=C grep -aE 'Core|HardwareSettings|Monitor|Security|System' | cut -d ':' -f1 | awk -F'applications/' '{print $NF}' | sed -e '/^$/d' > $TMP1
+   menu_item_format
+}
+export -f System
+
+Setup() {
+   LC_ALL=C grep -R '^Categories' $DTDIR --include="*.desktop" | LC_ALL=C grep -aE 'PackageManager|Setup' | cut -d ':' -f1 | awk -F'applications/' '{print $NF}' | sed -e '/^$/d' > $TMP1
+   menu_item_format
+}
+export -f Setup
+
+Utility() {
+   LC_ALL=C grep -R '^Categories' $DTDIR --include="*.desktop" | LC_ALL=C grep -aE 'Archiving|Compression|IDE|TerminalEmulator|Tools|Toplevel|Utility' | cut -d ':' -f1 | awk -F'applications/' '{print $NF}' | sed -e '/^$/d' > $TMP1
+   menu_item_format
+}
+export -f Utility
+
+Filesystem() {
+   LC_ALL=C grep -R '^Categories' $DTDIR --include="*.desktop" | LC_ALL=C grep -aE 'FileSystem|Filesystem|FileManager|FileTools' | cut -d ':' -f1 | awk -F'applications/' '{print $NF}' | sed -e '/^$/d' > $TMP1
+   menu_item_format
+}
+export -f Filesystem
+
+Graphic() {
+   LC_ALL=C grep -R '^Categories' $DTDIR --include="*.desktop" | LC_ALL=C grep -aE 'Graphic|OCR|Photography|Presentation|Scanning' | cut -d ':' -f1 | awk -F'applications/' '{print $NF}' | sed -e '/^$/d' > $TMP1
+   menu_item_format
+}
+export -f Graphic
+
+Document() {
+   LC_ALL=C grep -R '^Categories' $DTDIR --include="*.desktop" | LC_ALL=C grep -aE 'Dictionary|Document|Publishing|TextEditor|WebDevelopment|WordProcessor' | cut -d ':' -f1 | awk -F'applications/' '{print $NF}' | sed -e '/^$/d' > $TMP1
+   menu_item_format
+}
+export -f Document
+
+Business() {
+   LC_ALL=C grep -R '^Categories' $DTDIR --include="*.desktop" | LC_ALL=C grep -aE 'Calculat*|Database|Finance|ProjectManagement|Spreadsheet|X-Business' | cut -d ':' -f1 | awk -F'applications/' '{print $NF}' | sed -e '/^$/d' > $TMP1
+   menu_item_format
+}
+export -f Business
+
+Personal() {
+   LC_ALL=C grep -R '^Categories' $DTDIR --include="*.desktop" | LC_ALL=C grep -aE 'Calendar|ContactManagement|PDA|Personal' | cut -d ':' -f1 | awk -F'applications/' '{print $NF}' | sed -e '/^$/d' > $TMP1
+   menu_item_format
+}
+export -f Personal
+
+Network() {
+   LC_ALL=C grep -R '^Categories' $DTDIR --include="*.desktop" | LC_ALL=C grep -aE 'Dialup|HamRadio|Network|RemoteAccess' | cut -d ':' -f1 | awk -F'applications/' '{print $NF}' | sed -e '/^$/d' > $TMP1
+   menu_item_format
+}
+export -f Network
+
+Internet() {
+   LC_ALL=C grep -R '^Categories' $DTDIR --include="*.desktop" | LC_ALL=C grep -aE 'Chat|Email|FileTransfer|InstantMessaging|Internet|IRCClient|News|P2P|Telephony|VideoConference|WebBrowser' | cut -d ':' -f1 | awk -F'applications/' '{print $NF}' | sed -e '/^$/d' > $TMP1
+   menu_item_format
+}
+export -f Internet
+
+Multimedia() {
+   LC_ALL=C grep -R '^Categories' $DTDIR --include="*.desktop" | LC_ALL=C grep -aE 'Audio|AudioVideo|DiskBurning|Midi|Mixer|Multimedia|Music|Player|Recorder|Sequencer|Tuner|TV|=Video' | cut -d ':' -f1 | awk -F'applications/' '{print $NF}' | sed -e '/^$/d' > $TMP1
+   menu_item_format
+}
+export -f Multimedia
+
+Fun() {
+   LC_ALL=C grep -R '^Categories' $DTDIR --include="*.desktop" | LC_ALL=C grep -aE 'Amusement|Game|RolePlaying|Simulation|X-Fun' | cut -d ':' -f1 | awk -F'applications/' '{print $NF}' | sed -e '/^$/d' > $TMP1
+   menu_item_format
+}
+export -f Fun
+
+Desktop
+
+########################################################################
+#                                                                      #
+# MAIN DIALOG                                                          #
+#                                                                      #
+########################################################################
+
+# set GUI screen position 
+gui_width="672"
+read ROOTDIMS MX MY << EOF
+`xwininfo -root | grep -F ' -geometry ' | cut -f 1 -d '+' | tr 'x' ' '`
+EOF
+GEO=+$((($MX/2)-$((($gui_width)/2))))+$((($MY/2)-330))
+[ ! "$GEO" ] && GEO=+50+50
+export GEO
+
+# set header
+XML_INFO_COLOR='#EDEBD7' # background color
+XML_INFO_OPACITY=0.5 # background opacity
+. $APPDIR/xml_info_easyjwm gtk > /dev/null # build bg_pixmap for gtk-theme
+
+BOX_HEIGHT=90 # HEADER
+ICON=$APPDIR/icons/menu.svg
+ICON_HEIGHT=70
+MSG_1="<b><span size='"'x-large'"'>$(gettext "Menu Manager")</span></b>"
+MSG_2="<b>$(gettext "Click menu items to show or hide")</b>"
+ALIGN=center # center or left
+HEADER="
+   <hbox height-request="'"${BOX_HEIGHT}"'">
+   $(. $APPDIR/xml_info_easyjwm "$ICON" "$ICON_HEIGHT" "$MSG_1" "$MSG_2" "$ALIGN")
+   </hbox>"
+
+# set menu categories
+ echo "x48|$(gettext 'Desktop')|Desktop
+pc48|$(gettext 'System')|System
+configuration48|$(gettext 'Setup')|Setup
+utility48|$(gettext 'Utility')|Utility
+folder48|$(gettext 'Filesystem')|Filesystem
+paint48|$(gettext 'Graphic')|Graphic
+word48|$(gettext 'Document')|Document
+spread48|$(gettext 'Business')|Business
+date48|$(gettext 'Personal')|Personal
+connect48|$(gettext 'Network')|Network
+www48|$(gettext 'Internet')|Internet
+multimedia48|$(gettext 'Multimedia')|Multimedia
+games48|$(gettext 'Fun')|Fun" > /tmp/mm-categories
+
+# set GUI
+export menuManager='
+<window title="'$(gettext "Menu Manager")'" icon-name="menu" window-position="1">
+<vbox height-request="555" width-request="755" space-fill="false" space-expand="false">
+
+  '$HEADER'
+
+  <vbox space-fill="true" space-expand="true">
+      <hbox space-fill="true" space-expand="true">
+
+        <hbox space-fill="false" space-expand="false">
+          <tree hover-selection="false" headers-clickable="false" enable-search="false">
+            <variable>CATEGORY</variable>
+            <label>'$(gettext "Category")'</label>
+            <input file icon-column="0">/tmp/mm-categories</input>
+            <width>160</width>
+            <action signal="button-press-event">echo "'$(gettext 'Processing...')'||" > /tmp/mm-visible</action>
+            <action signal="button-press-event">refresh:VISIBLE</action>
+            <action signal="button-release-event">$CATEGORY</action>
+            <action signal="button-release-event">refresh:VISIBLE</action>
+            <action signal="button-release-event">refresh:HIDDEN</action>
+            <action signal="row-activated">$CATEGORY</action>
+            <action signal="row-activated">refresh:VISIBLE</action>
+            <action signal="row-activated">refresh:HIDDEN</action>
+          </tree>
+        </hbox>
+
+        <vbox space-fill="true" space-expand="true">
+          <tree rules-hint="false" hover-selection="true" exported_column="1" column-visible="true|false|false" headers-clickable="false" enable-search="false">
+            <variable>VISIBLE</variable>
+            <label>'$(gettext "Visible Menu Items")'|icon|file</label>
+            <input icon_column="1">sort /tmp/mm-visible 2>/dev/null</input>
+            <action signal="button-release-event">hide_menu_item</action>
+            <action signal="button-release-event">refresh:VISIBLE</action>
+            <action signal="button-release-event">refresh:HIDDEN</action>
+          </tree>
+        </vbox>
+
+        <vbox space-fill="true" space-expand="true">
+          <tree rules-hint="false" hover-selection="true" exported_column="1" column-visible="true|false|false" headers-clickable="false" enable-search="false">
+            <variable>HIDDEN</variable>
+            <label>'$(gettext "Hidden Menu Items")'|icon|file</label>
+            <input icon_column="1">sort /tmp/mm-hidden 2>/dev/null</input>
+            <action signal="button-release-event">show_menu_item</action>
+            <action signal="button-release-event">refresh:VISIBLE</action>
+            <action signal="button-release-event">refresh:HIDDEN</action>
+          </tree>
+        </vbox>
+
+      </hbox>
+  </vbox>
+
+  <hbox space-expand="false" space-fill="false">
+   <button space-expand="false" space-fill="false" tooltip-text=" '$(gettext 'Manage menu files')' ">
+     <label>'$(gettext ' Menu Files ')'</label>
+     <input file stock="gtk-edit"></input>
+     <action>manage_files</action>
+   </button>
+   <text space-expand="true" space-fill="true"><label>" "</label></text>
+   <button tooltip-text=" '$(gettext 'Exit and update menu')' ">
+     <label>'$(gettext ' OK ')'</label>
+     <input file stock="gtk-ok"></input>
+     <action>update_menu &</action>
+     <action>exit:quit_now</action>
+   </button>
+  </hbox>
+ </vbox>
+ <action signal="show">echo 100 > /tmp/mm-splash</action>
+</window>'
+
+$GTKDIALOG -p menuManager --geometry="$GEO" --styles=/tmp/easyjwm/gtkrc_xml_info.css
+
+# cleanup
+rm -f /tmp/mm-* 2>/dev/null

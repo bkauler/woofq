@@ -1,0 +1,386 @@
+#!/bin/sh
+# Window title bar options for JWM 2.4+
+
+export TEXTDOMAIN=easyjwm
+export OUTPUT_CHARSET=UTF-8
+
+export APPDIR=/usr/local/easyjwm
+export ICONDIR=$APPDIR/icons
+
+# support TitleButtonOrder in JWM >= 2.4
+Options=""
+TitleButtonOrder="false"
+JWM_VER=$(jwm -v | head -n1 | cut -d " " -f2- | cut -d " " -f1 | sed -e 's/[snvgit-]//g')
+if [ "`jwm -v | head -n1 | grep -aE 'vgit|vsvn' 2>/dev/null`" ]; then
+	if ((`bc <<< "$JWM_VER>=1628"`)); then # JWM >= snapshot 1628
+	 TitleButtonOrder="true"
+	fi
+else
+	if [ "`echo "$JWM_VER" | grep -aE '^2\.4\.[0-9]|^2\.[5-9]|^[3-9]' 2>/dev/null`" ]; then # JWM >= 2.4
+	 TitleButtonOrder="true"
+	fi
+fi
+
+if [ "$TitleButtonOrder" = "false" ]; then # exit and redirect to GUI for Title Bar Buttons
+	$APPDIR/window_buttons &
+	exit 0
+else
+	if [ ! "`grep -a '<TitleButtonOrder' $HOME/.jwm/jwmrc-personal`" ]; then
+	 sed -i -e '/<ResizeMode/a \\n<TitleButtonOrder>wtimx<\/TitleButtonOrder>\n' $HOME/.jwm/jwmrc-personal
+	 sed -i -e '$!N;/^\(.*\)\n\1$/!P;D' $HOME/.jwm/jwmrc-personal
+	fi
+fi
+
+# define gtkdialog
+[ "`which gtkdialog4 2>/dev/null`" ] && GTKDIALOG=gtkdialog4 || GTKDIALOG=gtkdialog
+[ "`which gtk2dialog 2>/dev/null`" ] && GTKDIALOG=gtk2dialog
+
+# set title bar icon
+[ ! -f /usr/share/icons/hicolor/48x48/apps/closebutton.svg ] && \
+ln -sf $ICONDIR/close.svg /usr/share/icons/hicolor/48x48/apps/closebutton.svg && gtk-update-icon-cache -f -i /usr/share/icons/hicolor 2>/dev/null
+
+
+# set header
+XML_INFO_COLOR='#EDEBD7' # background color
+XML_INFO_OPACITY=0.5 # background opacity
+. $APPDIR/xml_info_easyjwm gtk > /dev/null # build bg_pixmap for gtk-theme
+
+BOX_HEIGHT=90
+ICON=$ICONDIR/close.svg
+ICON_HEIGHT=70
+MSG_1="<b><span size='"'x-large'"'>$(gettext "Window Title Bar")</span></b>"
+MSG_2="<b>$(gettext "Change title bar theme")</b>"
+ALIGN=center # center or left
+HEADER="
+	<hbox height-request="'"${BOX_HEIGHT}"'" space-expand=\"false\" space-fill=\"true\">
+	$(. $APPDIR/xml_info_easyjwm "$ICON" "$ICON_HEIGHT" "$MSG_1" "$MSG_2" "$ALIGN")
+	</hbox>"
+
+# set gui position 
+if [ "`which xwininfo 2>/dev/null`" ]; then # X11
+   read ROOTDIMS MX MY << EOF
+`xwininfo -root | grep -F ' -geometry ' | cut -f 1 -d '+' | tr 'x' ' '`
+EOF
+
+elif [ "`which wlr-randr 2>/dev/null`" ]; then # Wayland
+   read MX MY << EOF
+`wlr-randr | grep -m1 'current' | awk '{print $1}' | tr 'x' ' '`
+EOF
+
+fi
+GEO=+$((($MX/2)-$((600/2))))+$((($MY/2)-360))
+[ ! "$GEO" ] && GEO=+50+50
+
+# apply title bar options
+title_bar_func()
+{
+	if [ "$titlebar_button_order" = "disable" ]; then
+		order="t"
+	elif [ "$titlebar_button_position" = "left" ]; then
+		if [ "$titlebar_button_order" = "default" ]; then
+			order="imxt"
+		elif [ "$titlebar_button_order" = "mirror" ]; then
+			order="xmit"
+		elif [ "$titlebar_button_order" = "macOS" ]; then
+			order="ximt"
+		elif [ "$titlebar_button_order" = "gnome" ]; then
+			order="xt"
+		fi
+	else
+		if [ "$titlebar_button_order" = "default" ]; then
+			order="timx"
+		elif [ "$titlebar_button_order" = "mirror" ]; then
+			order="txmi"
+		elif [ "$titlebar_button_order" = "macOS" ]; then
+			order="txim"
+		elif [ "$titlebar_button_order" = "gnome" ]; then
+			order="tx"
+		fi
+	fi
+
+	[ "$titlebar_menu_icon" = "true" ] && w="" || w="w"
+	sed -i "/<TitleButtonOrder/ s%<TitleButtonOrder>.*$%<TitleButtonOrder>$w$order<\/TitleButtonOrder>%" $HOME/.jwm/jwmrc-personal
+
+	if [ "$titlebar_scroll_shade" = "true" ]; then
+		if [ ! "`grep '<Mouse context="title" button="4">shade' $HOME/.jwm/jwmrc-personal 2>/dev/null`" ]; then
+			sed -i '/<\/JWM>/i \\n<Mouse context="title" button="4">shade</Mouse><Mouse context="title" button="5">shade</Mouse> \n' $HOME/.jwm/jwmrc-personal
+			sed -i -e '$!N;/^\(.*\)\n\1$/!P;D' $HOME/.jwm/jwmrc-personal
+		fi
+	else
+		if [ "`grep '<Mouse context="title" button="[45]">shade</Mouse>' $HOME/.jwm/jwmrc-personal 2>/dev/null`" ]; then
+			sed -i '/<Mouse context="title" button="[45]">shade<\/Mouse>/d' $HOME/.jwm/jwmrc-personal
+			sed -i '/<Mouse context="icon" button="[45]">shade<\/Mouse>/d' $HOME/.jwm/jwmrc-personal
+			sed -i -e '$!N;/^\(.*\)\n\1$/!P;D' $HOME/.jwm/jwmrc-personal
+		fi
+		if [ "`grep '<Mouse context="title" button="[45]">shade</Mouse>' /etc/xdg/templates/_root_.jwmrc 2>/dev/null`" ]; then
+			sed -i '/<Mouse context="title" button="[45]">shade<\/Mouse>/d' /etc/xdg/templates/_root_.jwmrc
+			sed -i '/<Mouse context="icon" button="[45]">shade<\/Mouse>/d' /etc/xdg/templates/_root_.jwmrc
+			sed -i -e '$!N;/^\(.*\)\n\1$/!P;D' /etc/xdg/templates/_root_.jwmrc
+			fixmenus
+		fi
+	fi
+
+	if [ ! "`grep -a '<WindowStyle' $HOME/.jwm/jwmrc-personal`" ]; then
+		if [ -d /usr/local/easy_version ]; then
+			if [ "`grep -aF -- 'STARTWINDOWSTYLE' $HOME/.jwm/jwmrc-personal 2>/dev/null`" ]; then
+				sed -i -e '/STARTWINDOWSTYLE/a <WindowStyle>\n<\/WindowStyle>' $HOME/.jwm/jwmrc-personal
+			else
+				sed -i -e '/<ResizeMode/a \\n<WindowStyle>\n<\/WindowStyle>' $HOME/.jwm/jwmrc-personal
+			fi
+		else
+			sed -i -e '/<ResizeMode/a \\n<WindowStyle>\n<\/WindowStyle>' $HOME/.jwm/jwmrc-personal
+		fi
+	fi
+	font_tag="$(sed -n '/<WindowStyle>/,/<\/WindowStyle>/p' $HOME/.jwm/jwmrc-personal | grep -FA 100 '<WindowStyle' | grep -Fm1 '<Font')"
+	if [ ! "$font_tag" ]; then
+		sed -i -e '/<WindowStyle/a \  <Font>Sans-10<\/Font>' $HOME/.jwm/jwmrc-personal
+	fi
+
+	titlebar_font_attributes=$(echo "$titlebar_font_attributes" | sed 's/ /:/g')
+	sed -i "/<WindowStyle/,/<Font/s/<Font.*$/<Font align=\"$titlebar_text_position\">$titlebar_font_name-$titlebar_font_size:$titlebar_font_attributes<\/Font>/" $HOME/.jwm/jwmrc-personal
+	$APPDIR/window_titlebar &
+	sleep 2
+	jwm -restart
+}
+export -f title_bar_func
+
+# title bar font name
+titlebar_font_name=$(cat $APPDIR/preferences/titlebar-font-name 2>/dev/null)
+[ ! "$titlebar_font_name" ] && titlebar_font_name="Sans" && echo "$titlebar_font_name" > $APPDIR/preferences/titlebar-font-name
+titlebar_font_name_bak="$titlebar_font_name"
+font_name_items=$(echo -e "Sans\n`fc-list : family | cut -d',' -f1 | sort -u`" | awk '{print "<item>"$1" "$2" "$3" "$4"</item>"}' | sed -e 's/ //g;s/\\//g')
+[ ! "$font_name_items" ] && font_name_items="<item>Sans</item>"
+
+# title bar font size
+titlebar_font_size=$(cat $APPDIR/preferences/titlebar-font-size 2>/dev/null)
+[ ! "$titlebar_font_size" ] && titlebar_font_size="10" && echo "$titlebar_font_size" > $APPDIR/preferences/titlebar-font-size
+titlebar_font_size_bak="$titlebar_font_size"
+
+# title bar font attributes
+titlebar_font_attributes=$(cat $APPDIR/preferences/titlebar-font-attributes 2>/dev/null)
+[ ! "$titlebar_font_attributes" ] && titlebar_font_attributes="normal" && echo "$titlebar_font_attributes" > $APPDIR/preferences/titlebar-font-attributes
+titlebar_font_attributes_bak="$titlebar_font_attributes"
+
+# title bar button order
+titlebar_button_order=$(cat $APPDIR/preferences/titlebar-button-order 2>/dev/null)
+[ ! "$titlebar_button_order" ] && titlebar_button_order="default" && echo "$titlebar_button_order" > $APPDIR/preferences/titlebar-button-order
+titlebar_button_order_bak="$titlebar_button_order"
+
+# title bar button position
+titlebar_button_position=$(cat $APPDIR/preferences/titlebar-button-position 2>/dev/null)
+[ ! "$titlebar_button_position" ] && titlebar_button_position="right" && echo "$titlebar_button_position" > $APPDIR/preferences/titlebar-button-position
+titlebar_button_position_bak="$titlebar_button_position"
+
+# title bar text position
+titlebar_text_position=$(cat $APPDIR/preferences/titlebar-text-position 2>/dev/null)
+[ ! "$titlebar_text_position" ] && titlebar_text_position="left" && echo "$titlebar_text_position" > $APPDIR/preferences/titlebar-text-position
+titlebar_text_position_bak="$titlebar_text_position"
+
+# title bar menu icon
+titlebar_menu_icon=$(cat $APPDIR/preferences/titlebar-menu-icon 2>/dev/null)
+[ ! "$titlebar_menu_icon" ] && titlebar_menu_icon="false" && echo "$titlebar_menu_icon" > $APPDIR/preferences/titlebar-menu-icon
+titlebar_menu_icon_bak="$titlebar_menu_icon"
+
+# title bar scroll shade
+titlebar_scroll_shade=$(cat $APPDIR/preferences/titlebar-scroll-shade 2>/dev/null)
+[ ! "$titlebar_scroll_shade" ] && titlebar_scroll_shade="false" && echo "$titlebar_scroll_shade" > $APPDIR/preferences/titlebar-scroll-shade
+titlebar_scroll_shade_bak="$titlebar_scroll_shade"
+
+export titlebar_font_name titlebar_font_size titlebar_font_attributes titlebar_button_order titlebar_button_position titlebar_text_position titlebar_menu_icon titlebar_scroll_shade
+
+# GUI
+export TBB="
+<window title=\"$(gettext 'Window Title Bar')\" icon-name=\"closebutton\" resizable=\"true\">
+	<vbox space-expand=\"true\" space-fill=\"true\">
+	${HEADER}
+
+	<pixmap><input file>/usr/local/easyjwm/icons/blank1.png</input></pixmap>
+
+	  <vbox width-request=\"600\" space-expand=\"false\" space-fill=\"true\">
+	   <vbox margin=\"5\" space-expand=\"true\" space-fill=\"true\">
+		<hbox homogeneous=\"true\" space-expand=\"true\" space-fill=\"true\">
+			<button height-request=\"38\" tooltip-text=\" $(gettext 'Select title bar button theme') \">
+				<label>$(gettext 'Button Theme')</label>
+				<action>'$APPDIR'/window_buttons &</action>
+			</button>
+		</hbox>
+
+		<pixmap><input file>/usr/local/easyjwm/icons/blank1.png</input></pixmap>
+		<pixmap><input file>/usr/local/easyjwm/icons/blank1.png</input></pixmap>
+
+		<hbox homogeneous=\"true\" space-expand=\"true\" space-fill=\"true\">
+		  <vbox space-expand=\"true\" space-fill=\"true\">
+			<vbox space-expand=\"true\" space-fill=\"true\">
+				<hbox homogeneous=\"true\" space-expand=\"true\" space-fill=\"true\" tooltip-text=\" $(gettext 'Select left-to-right order of title bar buttons') \">
+					<text homogeneous=\"true\"><label>\"$(gettext 'Button order')\"</label></text>
+				</hbox>
+				<hbox homogeneous=\"true\" space-expand=\"true\" space-fill=\"true\">
+					<comboboxtext wrap-width=\"1\" height-request=\"38\" space-expand=\"true\" space-fill=\"true\" tooltip-text=\" default:	min-max-close 
+ mirror:	close-max-min 
+ macOS:	close-min-max 
+ gnome:	close 
+ disable:	no buttons \">
+						<variable>titlebar_button_order</variable>
+						<default>$titlebar_button_order</default>
+						<item>default</item>
+						<item>mirror</item>
+						<item>macOS</item>
+						<item>gnome</item>
+						<item>disable</item>
+						<action>echo \$titlebar_button_order > $APPDIR/preferences/titlebar-button-order</action>
+					</comboboxtext>
+				</hbox>
+			</vbox>
+		  </vbox>
+		  <vbox space-expand=\"true\" space-fill=\"true\">
+			<vbox space-expand=\"true\" space-fill=\"true\">
+				<hbox homogeneous=\"true\" space-expand=\"true\" space-fill=\"true\" tooltip-text=\" $(gettext 'Select left or right position of title bar buttons') \">
+					<text homogeneous=\"true\"><label>\"$(gettext 'Button position')\"</label></text>
+				</hbox>
+				<hbox homogeneous=\"true\" space-expand=\"true\" space-fill=\"true\">
+					<comboboxtext wrap-width=\"1\" height-request=\"38\" space-expand=\"true\" space-fill=\"true\">
+						<variable>titlebar_button_position</variable>
+						<default>$titlebar_button_position</default>
+						<item>left</item>
+						<item>right</item>
+						<action>echo \$titlebar_button_position > $APPDIR/preferences/titlebar-button-position</action>
+					</comboboxtext>
+				</hbox>
+			</vbox>
+		  </vbox>
+		  <vbox space-expand=\"true\" space-fill=\"true\">
+			<vbox space-expand=\"true\" space-fill=\"true\">
+				<hbox homogeneous=\"true\" space-expand=\"true\" space-fill=\"true\" tooltip-text=\" $(gettext 'Select left or center position of title bar text') \">
+					<text homogeneous=\"true\"><label>\"$(gettext 'Text position')\"</label></text>
+				</hbox>
+				<hbox homogeneous=\"true\" space-expand=\"true\" space-fill=\"true\">
+					<comboboxtext wrap-width=\"1\" height-request=\"38\" space-expand=\"true\" space-fill=\"true\">
+						<variable>titlebar_text_position</variable>
+						<default>$titlebar_text_position</default>
+						<item>left</item>
+						<item>center</item>
+						<action>echo \$titlebar_text_position > $APPDIR/preferences/titlebar-text-position</action>
+					</comboboxtext>
+				</hbox>
+			</vbox>
+		  </vbox>
+		</hbox>
+	   </vbox>
+
+	   <vbox margin=\"5\" space-expand=\"true\" space-fill=\"true\">
+		<hbox space-expand=\"true\" space-fill=\"true\">
+		  <vbox space-expand=\"true\" space-fill=\"true\">
+			<vbox space-expand=\"true\" space-fill=\"true\">
+				<hbox homogeneous=\"true\" space-expand=\"true\" space-fill=\"true\">
+					<text homogeneous=\"true\"><label>\"$(gettext 'Font name')\"</label></text>
+				</hbox>
+				<hbox homogeneous=\"true\" space-expand=\"true\" space-fill=\"true\">
+					<comboboxtext wrap-width=\"1\" height-request=\"38\" space-expand=\"true\" space-fill=\"true\">
+						<variable>titlebar_font_name</variable>
+						<default>$titlebar_font_name</default>
+						$font_name_items
+						<action>echo \$titlebar_font_name > $APPDIR/preferences/titlebar-font-name</action>
+					</comboboxtext>
+				</hbox>
+			</vbox>
+		  </vbox>
+		  <vbox space-expand=\"true\" space-fill=\"true\">
+			<vbox space-expand=\"true\" space-fill=\"true\">
+				<hbox homogeneous=\"true\" space-expand=\"true\" space-fill=\"true\">
+					<text homogeneous=\"true\"><label>\"$(gettext 'Font size')\"</label></text>
+				</hbox>
+				<hbox homogeneous=\"true\" space-expand=\"true\" space-fill=\"true\">
+					<comboboxtext wrap-width=\"1\" height-request=\"38\" space-expand=\"true\" space-fill=\"true\">
+						<variable>titlebar_font_size</variable>
+						<default>$titlebar_font_size</default>
+						<item>10</item>
+						<item>11</item>
+						<item>12</item>
+						<item>13</item>
+						<item>14</item>
+						<item>16</item>
+						<item>18</item>
+						<action>echo \$titlebar_font_size > $APPDIR/preferences/titlebar-font-size</action>
+					</comboboxtext>
+				</hbox>
+			</vbox>
+		  </vbox>
+		  <vbox space-expand=\"true\" space-fill=\"true\">
+			<vbox space-expand=\"true\" space-fill=\"true\">
+				<hbox homogeneous=\"true\" space-expand=\"true\" space-fill=\"true\">
+					<text homogeneous=\"true\"><label>\"$(gettext 'Font style')\"</label></text>
+				</hbox>
+				<hbox homogeneous=\"true\" space-expand=\"true\" space-fill=\"true\">
+					<comboboxtext wrap-width=\"1\" height-request=\"38\" space-expand=\"true\" space-fill=\"true\">
+						<variable>titlebar_font_attributes</variable>
+						<default>$titlebar_font_attributes</default>
+						<item>normal</item>
+						<item>normal italic</item>
+						<item>bold</item>
+						<item>bold italic</item>
+						<action>echo \$titlebar_font_attributes > $APPDIR/preferences/titlebar-font-attributes</action>
+					</comboboxtext>
+				</hbox>
+			</vbox>
+		  </vbox>
+		</hbox>
+	   </vbox>
+
+	   <pixmap><input file>/usr/local/easyjwm/icons/blank1.png</input></pixmap>
+	   <pixmap><input file>/usr/local/easyjwm/icons/blank1.png</input></pixmap>
+
+	   <vbox space-expand=\"true\" space-fill=\"true\">
+		<hbox space-expand=\"true\" space-fill=\"true\" homogeneous=\"true\">
+		  <vbox space-expand=\"true\" space-fill=\"false\">
+			<checkbox tooltip-text=\" $(gettext 'Remove menu icon of title bar') \">
+				<label>$(gettext 'Disable menu icon')</label>
+				<variable>titlebar_menu_icon</variable>
+				<input file>$APPDIR/preferences/titlebar-menu-icon</input>
+				<action>if true echo true > $APPDIR/preferences/titlebar-menu-icon</action>
+				<action>if false echo false > $APPDIR/preferences/titlebar-menu-icon</action>
+			</checkbox>
+		  </vbox>
+		  <vbox space-expand=\"true\" space-fill=\"false\">
+			<checkbox tooltip-text=\" $(gettext 'Shade windows by scrolling title bar') \">
+				<label>$(gettext 'Enable scroll shade')</label>
+				<variable>titlebar_scroll_shade</variable>
+				<input file>$APPDIR/preferences/titlebar-scroll-shade</input>
+				<action>if true echo true > $APPDIR/preferences/titlebar-scroll-shade</action>
+				<action>if false echo false > $APPDIR/preferences/titlebar-scroll-shade</action>
+			</checkbox>
+		  </vbox>
+		</hbox>
+	   </vbox>
+	  </vbox>
+
+		<text space-expand=\"true\" space-fill=\"true\"><label>\" \"</label></text>
+		<hseparator space-expand=\"false\" space-fill=\"false\"></hseparator>
+
+		<hbox space-expand=\"false\" space-fill=\"true\">
+			<button space-expand=\"true\" space-fill=\"true\" tooltip-text=\" $(gettext 'Apply selected title bar theme') \">
+				<label>\"$(gettext 'Apply')\"</label>
+				<input file>$APPDIR/icons/apply.svg</input><height>20</height><width>20</width>
+				<action>title_bar_func &</action>
+				<action type=\"exit\">quit_now</action>
+			</button>
+			<button space-expand=\"true\" space-fill=\"true\">
+				<label>\"$(gettext 'Quit')\"</label>
+				<input file>$APPDIR/icons/quit.svg</input><height>20</height><width>20</width>
+				<action>echo "$titlebar_font_name_bak" > $APPDIR/preferences/titlebar-font-name</action>
+				<action>echo "$titlebar_font_size_bak" > $APPDIR/preferences/titlebar-font-size</action>
+				<action>echo "$titlebar_font_attributes_bak" > $APPDIR/preferences/titlebar-font-attributes</action>
+				<action>echo "$titlebar_button_order_bak" > $APPDIR/preferences/titlebar-button-order</action>
+				<action>echo "$titlebar_button_position_bak" > $APPDIR/preferences/titlebar-button-position</action>
+				<action>echo "$titlebar_text_position_bak" > $APPDIR/preferences/titlebar-text-position</action>
+				<action>echo "$titlebar_menu_icon_bak" > $APPDIR/preferences/titlebar-menu-icon</action>
+				<action>echo "$titlebar_scroll_shade_bak" > $APPDIR/preferences/titlebar-scroll-shade</action>
+				<action type=\"exit\">quit_now</action>
+			</button>
+		</hbox>
+	</vbox>
+</window>"
+
+$GTKDIALOG -p TBB --geometry="$GEO" --styles=/tmp/easyjwm/gtkrc_xml_info.css
+unset TBB
+
+exit 0

@@ -1,0 +1,33 @@
+#!/bin/sh
+# Xcolor: Basic GTK2 color picker for JWMdesk
+# Calls xclip to copy color name to clipboard
+
+CONFDIR=$HOME/.config/xcolor
+[ ! -d $CONFDIR ] && mkdir -p $CONFDIR
+
+CURRCOLOR=$(cat $CONFDIR/xcolor 2>/dev/null)
+[ -z "$CURRCOLOR" ] && CURRCOLOR="#FFFFFF"
+r=`printf '%d' 0x${CURRCOLOR:1:2}`
+g=`printf '%d' 0x${CURRCOLOR:3:2}`
+b=`printf '%d' 0x${CURRCOLOR:5:2}`
+
+if [ $(which xclip 2>/dev/null) ]; then
+	REPLY=$(Xdialog --title "Pick a color" --buttons-style text --ok-label " Copy to clipboard " --cancel-label " Quit " --stdout --colorsel " " 0 0 $r $g $b )
+	if [ "$REPLY" ]; then
+		NEWCOLOR=#$(printf "%02X%02X%02X\n" $REPLY)
+		echo "$NEWCOLOR" > $CONFDIR/xcolor
+		echo -n "$NEWCOLOR" | xclip -selection clipboard
+		sleep .5
+		/usr/local/jwmdesk/xcolor &
+	else
+		exit 0
+	fi
+else
+	REPLY=$(Xdialog --title "Pick a Color" --buttons-style text --ok-label " Save selected color " --cancel-label " Quit " --stdout --colorsel " " 0 0 $r $g $b )
+	if [ "$REPLY" ]; then
+		NEWCOLOR=#$(printf "%02X%02X%02X\n" $REPLY)
+		echo "$NEWCOLOR" > $CONFDIR/xcolor
+	else
+		exit 0
+	fi
+fi

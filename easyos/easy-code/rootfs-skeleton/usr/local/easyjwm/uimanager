@@ -1,0 +1,50 @@
+#!/bin/sh
+#20220321 BK: tray width changes. 20220323 tray orientation.
+#20220407 BK: take out all tray manipulation, it is done by /root/.xinitrc
+#20220419 BK: force redraw/realign of all partition icons.
+#  when switch between rox and jwm modes, tray height may change, and if drive
+#  icon gap is automatic (see ICON_PLACE_EDGE_GAP in /etc/eventmanager) then
+#  all icons need to be redrawn.
+
+export TEXTDOMAIN=jwmdesk
+export OUTPUT_CHARSET=UTF-8
+
+[ ! -f /etc/uimanager ] && gtkdialog-splash -close never -timeout 5 -margin 10 -placement center -fontsize large -bg goldenrod -text "   $(gettext 'This application requires EasyOS !')   " && exit 0
+
+. /etc/uimanager
+
+# uimanager gui. 20220407 BK...
+if [ "$UI_DESK_MANAGER" = "jwm" ]; then
+ REPLY=`Xdialog --stdout --title " $(gettext 'EasyOS Desktop') " --backtitle " $(gettext 'This will restart X, please close all apps now !') " --no-tags --cancel-label "$(gettext 'Cancel')" --ok-label "$(gettext 'Continue') " --radiolist "$(gettext 'JWM Desktop enabled')" 0 0 3  "1" "$(gettext 'JWM Desktop')" "on"  "2" "$(gettext 'ROX Desktop')" "off" `
+ if [ "$REPLY" = "1" ]; then
+  sed -i -e "s%^UI_DESK_MANAGER=.*%UI_DESK_MANAGER='jwm' #jwm or rox%" /etc/uimanager
+  sleep 0.2
+  exec restartwm
+ elif [ "$REPLY" = "2" ]; then
+  sed -i -e "s%^UI_DESK_MANAGER=.*%UI_DESK_MANAGER='rox' #jwm or rox%" /etc/uimanager
+  #20220419 BK: redraw partition icons... ref: clean_desk_icons, via /root/.xinitrc
+  echo "ICONWIPE" > /var/local/pup_event_icon_change_flag
+  sleep 0.2
+  exec restartwm
+ else
+  /usr/local/jwmdesk/jwmdesk &
+ fi
+else
+ REPLY=`Xdialog --stdout --title " $(gettext 'EasyOS Desktop') " --backtitle " $(gettext 'This will restart X, please close all apps now !') " --no-tags --cancel-label "$(gettext 'Cancel')" --ok-label "$(gettext 'Continue') " --radiolist "$(gettext 'ROX Desktop enabled')" 0 0 3  "1" "$(gettext 'ROX Desktop')" "on"  "2" "$(gettext 'JWM Desktop')" "off" `
+ if [ "$REPLY" = "1" ]; then
+  sed -i -e "s%^UI_DESK_MANAGER=.*%UI_DESK_MANAGER='rox' #jwm or rox%" /etc/uimanager
+  #20220419 BK: redraw partition icons... ref: clean_desk_icons, via /root/.xinitrc
+  echo "ICONWIPE" > /var/local/pup_event_icon_change_flag
+  sleep 0.2
+  exec restartwm
+ elif [ "$REPLY" = "2" ]; then
+  sed -i -e "s%^UI_DESK_MANAGER=.*%UI_DESK_MANAGER='jwm' #jwm or rox%" /etc/uimanager
+  sleep 0.2
+  exec restartwm
+ else
+  /usr/local/jwmdesk/jwmdesk &
+ fi
+fi
+
+exit 0
+###end###

@@ -1,0 +1,104 @@
+#!/bin/bash
+
+LANG=C
+
+[ -f /tmp/pup_event_frontend ] && PUP_EVENT="/tmp/pup_event_frontend" || PUP_EVENT="/root/.pup_event"
+
+probedisk -type > /tmp/.usb-drive-log-probedisk
+
+. /etc/eventmanager
+
+if [ "$ICONDESK" = "true" ] && [ "$ICONPARTITIONS" = "true" ]; then
+
+	echo '<JWM>'
+	while read a b c d
+	do
+			PARTITION=$d
+			DRIVE="${d%[0-9]}"
+			DRIVE="${DRIVE%[0-9]}"
+			DRIVE="${DRIVE%[0-9]}"
+			DRIVE=${DRIVE%p}
+		case $PARTITION in
+		sd[a-z]*|nvme[0-9]n[0-9]p[0-9]*)
+			[ $c -le 1 ] && continue # extd partition
+			[ "$(swapon -s | grep -o "$PARTITION " 2>/dev/null)" ] && continue # swap partition
+			[ "$(grep "$DRIVE" /tmp/.usb-drive-log-probedisk 2>/dev/null | grep 'usbdrv')" ] && MEDIA="usbdrv" || MEDIA="drive"
+			FILESYSTEM=$(grep 'Filesystem:' $HOME/.pup_event/drive_${PARTITION}/AppInfo.xml 2>/dev/null | awk '{print $2}')
+			[ "$FILESYSTEM" = "swap" -o "$FILESYSTEM" = "unknown" -o "$FILESYSTEM" = "none" -o "$FILESYSTEM" = "" ] && continue
+			INFO="`cat /sys/block/$DRIVE/device/model`"
+ 			;;
+		scd*|sr*)
+			if [ -d "/tmp/pup_event_frontend/drive_${PARTITION}" ];then
+				MEDIA="optical"
+				FILESYSTEM="iso9660"
+				INFO=""
+			else
+				continue
+			fi
+ 			;;
+		mmc*)
+			MEDIA="card"
+			FILESYSTEM=$(grep 'Filesystem:' $HOME/.pup_event/drive_${PARTITION}/AppInfo.xml 2>/dev/null | awk '{print $2}')
+			[ "$FILESYSTEM" = 'unknown' ] && continue
+			[ "$FILESYSTEM" = "swap" -o "$FILESYSTEM" = "unknown" -o "$FILESYSTEM" = "none" -o "$FILESYSTEM" = "" ] && continue
+			INFO="MMC/SD: `cat /sys/block/$DRIVE/device/name`"
+			;;
+		*)
+			continue
+ 			;;
+		esac
+		echo "<Program label=\"${PARTITION}   ${FILESYSTEM}   ${INFO}\" icon=\"/usr/local/lib/X11/pixmaps/${MEDIA}48.png\">${PUP_EVENT}/drive_${PARTITION}/AppRun</Program>"
+	done < /proc/partitions
+	if [ -f /usr/sbin/pmount ]; then
+		echo '<Separator/>'
+		echo '<Program label="Pmount" icon="/usr/local/jwmdesk/jwm_menu_icons/drive.png">pmount</Program>'
+	fi
+	echo '</JWM>'
+
+else
+
+	ls $HOME/.pup_event | tr ' ' '\n' | cut -d '_' -f2 | sed 's/^/a b c /g' > /tmp/.procpartitions
+
+	echo '<JWM>'
+	while read a b c d
+	do
+			PARTITION=$d
+			DRIVE=$d
+		case $PARTITION in
+		sd[a-z]*|nvme[0-9]n[0-9]*|drives)
+			[ "$(swapon -s | grep -o "$PARTITION " 2>/dev/null)" ] && continue # swap partition
+			[ "$(grep "$DRIVE" /tmp/.usb-drive-log-probedisk 2>/dev/null | grep 'usbdrv')" ] && MEDIA="usbdrv" || MEDIA="drive"
+			FILESYSTEM=$(grep 'Filesystem:' $HOME/.pup_event/drive_${PARTITION}/AppInfo.xml 2>/dev/null | awk '{print $2}')
+			[ "$FILESYSTEM" = "swap" -o "$FILESYSTEM" = "unknown" ] && continue
+			INFO="`cat /sys/block/$DRIVE/device/model`"
+			;;
+		scd*|sr*)
+			if [ -d "/tmp/pup_event_frontend/drive_${PARTITION}" ];then
+				MEDIA="optical"
+				FILESYSTEM="iso9660"
+				INFO=""
+			else
+				continue
+			fi
+			;;
+		mmc*)
+			MEDIA="card"
+			FILESYSTEM=$(grep 'Filesystem:' $HOME/.pup_event/drive_${PARTITION}/AppInfo.xml 2>/dev/null | awk '{print $2}')
+			[ "$FILESYSTEM" = "none" -o "$FILESYSTEM" = 'unknown' ] && continue
+			INFO="MMC/SD: `cat /sys/block/$DRIVE/device/name`"
+			;;
+		*)
+			continue
+			;;
+		esac
+		echo "<Program label=\"${PARTITION}   ${FILESYSTEM}   ${INFO}\" icon=\"/usr/local/lib/X11/pixmaps/${MEDIA}48.png\">${PUP_EVENT}/drive_${PARTITION}/AppRun</Program>"
+	done < /tmp/.procpartitions
+	if [ -f /usr/sbin/pmount ]; then
+		echo '<Separator/>'
+		echo '<Program label="Pmount" icon="/usr/local/jwmdesk/jwm_menu_icons/drive.png">pmount</Program>'
+	fi
+	echo '</JWM>'
+
+fi
+
+sleep 0.1

@@ -1,0 +1,13 @@
+#!/bin/sh
+export TEXTDOMAIN=jwmdesk
+export OUTPUT_CHARSET=UTF-8
+PREFDIR=/usr/local/jwmdesk/preferences
+sb_delay=$(cat ${PREFDIR}/sb-delay)
+REPLY=$(Xdialog --stdout --title "SBD" --under-mouse --no-cancel \
+--rangebox "$(gettext 'Screen Blank Delay')" 10 40 2 60 ${sb_delay} )
+if [ "$REPLY" = "" ]; then
+ exit 1
+else
+ echo "$REPLY" > ${PREFDIR}/sb-delay
+ jwm -restart &
+fi

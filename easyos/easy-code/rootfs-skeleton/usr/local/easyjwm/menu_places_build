@@ -1,0 +1,27 @@
+#!/bin/bash
+#script called by $HOME/.jwmrc
+
+export TEXTDOMAIN=jwmdesk
+export OUTPUT_CHARSET=UTF-8
+
+for r in prun gexec gmrun grun xfce4-appfinder krunner rxvt; do [ "`which $r 2>/dev/null`" ] && { run_dialog="$r"; break; } done
+
+echo '
+<JWM>
+	<Program label="'$(gettext 'Home')'" icon="/usr/local/jwmdesk/jwm_menu_icons/home.png">rox $HOME</Program>
+	<Program label="'$(gettext 'System')'" icon="/usr/local/jwmdesk/jwm_menu_icons/system.png">rox /</Program>'
+	[ -d $HOME/network ] && echo '<Program label="'$(gettext 'Network')'" icon="/usr/local/jwmdesk/jwm_menu_icons/network.png">rox $HOME/network</Program>'
+	[ -d $HOME/Desktop ] && echo '<Program label="'$(gettext 'Desktop')'" icon="/usr/local/jwmdesk/jwm_menu_icons/desktop.png">rox $HOME/Desktop</Program>'
+	[ -d $HOME/Downloads ] && echo '<Program label="'$(gettext 'Downloads')'" icon="/usr/local/jwmdesk/jwm_menu_icons/download.png">rox $HOME/Downloads</Program>'
+	echo '<Separator/>
+	<Dynamic label="'$(gettext 'Drives')'" icon="/usr/local/jwmdesk/jwm_menu_icons/drive.png">exec:/usr/local/jwmdesk/menu_places_drives</Dynamic>
+	<Dynamic label="'$(gettext 'Recently used')'" icon="/usr/local/jwmdesk/jwm_menu_icons/file.png">exec:/usr/local/jwmdesk/menu_places_recentfiles</Dynamic>'
+	[ "$run_dialog" ] && echo '<Program label="'$(gettext 'Run')'" icon="/usr/local/jwmdesk/jwm_menu_icons/run.svg">"'${run_dialog}'"</Program>'
+	echo '<Program label="'$(gettext 'Search')'" icon="/usr/local/jwmdesk/jwm_menu_icons/find.png">pfind</Program>
+	<Separator/>
+	<Program label="'$(gettext 'Web')'" icon="/usr/local/jwmdesk/jwm_menu_icons/internet.png">defaultbrowser</Program>
+	<Program label="'$(gettext 'FAQ')'" icon="/usr/local/jwmdesk/jwm_menu_icons/help.png">defaultbrowser https://forum.puppylinux.com/viewforum.php?f=184</Program>'
+	[ -f /usr/share/doc/index.html ] && echo '<Program label="'$(gettext 'Help')'" icon="/usr/local/jwmdesk/jwm_menu_icons/help.png">defaultbrowser /usr/share/doc/index.html</Program>'
+	[ -f /usr/share/doc/home.htm ] && echo '<Program label="'$(gettext 'News')'" icon="/usr/local/jwmdesk/jwm_menu_icons/help.png">defaultbrowser /usr/share/doc/home.htm</Program>'
+	echo '
+</JWM>'

@@ -1,0 +1,237 @@
+#!/bin/bash
+
+export TEXTDOMAIN=logout_gui_jwm
+
+[ ! $(pidof jwm 2>/dev/null) ] && Xdialog --title "$(gettext 'Alert')" --beep --msgbox "\n  $(gettext 'This application requires the JWM window manager !')  \n" 0 0 && exit 0
+
+APPDIR=/usr/local/easyjwm
+ICONDIR=$APPDIR/icons
+
+[ "`which gtkdialog4 2>/dev/null`" ] && GTKDIALOG=gtkdialog4 || GTKDIALOG=gtkdialog
+export GTKDIALOG
+
+export DIALOG="gtkdialog-splash -close never -margin 4 -placement center -fontsize large -bg goldenrod"
+
+[ ! -f /usr/share/icons/hicolor/48x48/apps/shutdown.svg ] && \
+ln -sf $ICONDIR/shutdown.svg /usr/share/icons/hicolor/48x48/apps && gtk-update-icon-cache -f -i /usr/share/icons/hicolor 2>/dev/null
+
+########################################################################
+#                                                                      #
+# HEADER CONFIGURATION                                                 #
+#                                                                      #
+########################################################################
+
+. /etc/DISTRO_SPECS
+DISTRO="$(gettext 'Distro'): <b>$DISTRO_NAME $DISTRO_VERSION</b>"
+WM="$(gettext 'Window manager'): <b>`jwm -v | grep JWM | cut -d " " -f1,2`</b>"
+LINUX="$(gettext 'Linux'): <b>`uname -r` (`uname -m`)</b>"
+UPTIME="$(gettext 'System uptime:') <b>`uptime | awk -F'( |,|:)+' '{if ($7=="min") m=$6; else {if ($7~/^day/) {d=$6;h=$8;m=$9} else {h=$6;m=$7}}} {print d+0"d",h+0"h",m+0"m"}'`</b>"
+
+XML_INFO_COLOR='#EDEBD7' # background color
+XML_INFO_OPACITY=0.5 # background opacity
+. $APPDIR/xml_info_easyjwm gtk > /dev/null # build bg_pixmap for gtk-theme
+
+BOX_HEIGHT=90
+ICON=$ICONDIR/puppy_config.svg
+ICON_HEIGHT=85
+MSG_1="$DISTRO"
+MSG_2="$WM"
+MSG_3="$LINUX"
+MSG_4="$UPTIME"
+ALIGN=left # center or left
+HEADER="
+    <hbox height-request="'"${BOX_HEIGHT}"'">
+    $(. $APPDIR/xml_info_easyjwm "$ICON" "$ICON_HEIGHT" "$MSG_1" "$MSG_2" "$MSG_3" "$MSG_4" "$ALIGN")
+    </hbox>"
+
+########################################################################
+#                                                                      #
+# GUI BUTTON PARAMETERS                                                #
+#                                                                      #
+########################################################################
+
+# define Backup option
+BTN7=true
+[ "`which grsync 2>/dev/null`" ] && backup_app="grsync"
+[ ! "$backup_app" ] && [ "`which snap2 2>/dev/null`" ] && backup_app="snap2"
+[ ! "$backup_app" ] && [ "`which gadmin-rsync 2>/dev/null`" ] && backup_app="gadmin-rsync"
+[ ! "$backup_app" ] && [ "`which pmirror 2>/dev/null`" ] && backup_app="pmirror"
+[ ! "$backup_app" ] && [ "`which Pudd 2>/dev/null`" ] && backup_app="Pudd"
+[ ! "$backup_app" ] && [ "`which pupsave-backup 2>/dev/null`" ] && backup_app="pupsave-backup"
+[ ! "$backup_app" ] &&  BTN7=false backup_app="NA"
+export backup_app
+
+# define Suspend option for laptops/notebooks (button-8)
+if [ ! -x /tmp/suspend2ram.sh ]; then
+    if [ -f /etc/acpi/actions/suspend.sh ]; then # override restrictions imposed by suspend.sh when usb media mounted
+        if [[ $(grep 'DISTRO_TARGETARCH' /etc/acpi/actions/suspend.sh 2>/dev/null) ]]; then
+            cat /etc/acpi/actions/suspend.sh > /tmp/suspend2ram.sh
+            sed -i '0,/DISTRO_TARGETARCH/s/x86//' /tmp/suspend2ram.sh
+        else
+            grep -Ev 'mount|^USB|^for|^do' /etc/acpi/actions/suspend.sh > /tmp/suspend2ram.sh
+        fi
+        chmod 755 /tmp/suspend2ram.sh
+    else
+        echo '#!/bin/sh
+        echo -n mem > /sys/power/state' > /tmp/suspend2ram.sh
+        chmod 755 /tmp/suspend2ram.sh
+    fi
+fi
+export suspend2ram="/tmp/suspend2ram.sh"
+
+func_suspend(){
+    usbmounted=""
+    USBS=$(probedisk2|grep '|usb' | cut -d'|' -f1 )
+    for USB in $USBS
+    do
+        mount | grep -q "^$USB" && usbmounted="true"
+    done
+    [ "$usbmounted" = "true" ] && $DIALOG -timeout 4 -text " $(gettext 'Do not remove USB flash drive !')" /
+    $DIALOG -timeout 2 -text " $(gettext 'Suspending to RAM...')" /
+    ${suspend2ram} 2>/dev/null &
+}
+export -f func_suspend
+
+SUSPEND='
+      <button image-position="2" tooltip-text=" '$(gettext 'Suspend to RAM')' ">
+        <label>'$(gettext 'Suspend')'</label>
+        <input file>'$ICONDIR'/suspend.svg</input><height>42</height><width>42</width>
+        <action>exit:suspend</action>
+      </button>'
+
+# define Screen-lock option (alternate button-8)
+func_screenlock(){
+    if [ -f /sbin/puplock -a -f /bin/swaylock ] && [ -n "$WAYLAND_DISPLAY" ]; then
+        [ "`pidof swaylock`" ] && killall swaylock
+        exec swaylock -F -f --indicator-idle-visible -i `cat ~/.config/wallpaper/bg_img` --scaling=stretch &
+    else
+        if [ ! -s $HOME/.xlockrc ]; then
+            rm -f $HOME/.xlockrc
+            /usr/local/apps/Xlock/AppRun &
+        else
+            sleep 2
+            /usr/local/apps/Xlock/AppRun &
+        fi
+    fi
+}
+export -f func_screenlock
+
+if [ "`which xlock 2>/dev/null`" ]; then
+    LOCK_CMD="XLOCK"
+elif [ -f /sbin/puplock -a -f /bin/swaylock ] && [ -n "$WAYLAND_DISPLAY" ]; then
+    LOCK_CMD="SWAYLOCK"
+else
+    LOCK_CMD=""
+fi
+
+[ "$LOCK_CMD" = "XLOCK" -o "$LOCK_CMD" = "SWAYLOCK" ] && SCREENLOCK='
+      <button image-position="2">
+        <label>'$(gettext 'Lock Screen')'</label>
+        <input file>'$ICONDIR'/screen_lock.svg</input><height>42</height><width>42</width>
+        <action>exit:lockscreen</action>
+      </button>'
+
+# toggle Suspend and Screenlock options (button-8)
+BTN8=$(cat /usr/local/easyjwm/preferences/logout_suspend 2>/dev/null)
+[ ! "$BTN8" ] && BTN8='false' && echo "$BTN8" > /usr/local/easyjwm/preferences/logout_suspend 
+[ "$BTN8" = "true" ] && BTN8="$SUSPEND" || BTN8="$SCREENLOCK"
+
+########################################################################
+#                                                                      #
+# MAIN DIALOG                                                          #
+#                                                                      #
+########################################################################
+
+[ -d /usr/local/easy_version ] && NAME="Easy" || NAME="Puppy"
+
+S='
+<window title="'$NAME' '$(gettext 'Log Out')'" icon-name="shutdown" window-position="1" resizable="false">
+<vbox space-expand="true" space-fill="true">
+  <vbox margin="2">
+  '${HEADER}'
+  </vbox>
+  <vbox margin="2" spacing="10" space-expand="true" space-fill="true">
+
+    <hbox spacing="10" homogeneous="true" space-expand="true" space-fill="true">
+      <button image-position="2">
+        <label>'$(gettext 'Reboot')'</label>
+        <input file>'$ICONDIR'/reboot.svg</input><height>42</height><width>42</width>
+        <action>exit:reboot</action>
+      </button>
+      <button image-position="2">
+        <label>'$(gettext 'Shut Down')'</label>
+        <input file>'$ICONDIR'/shutdown.svg</input><height>42</height><width>42</width>
+        <action>exit:poweroff</action>
+      </button>
+    </hbox>
+
+    <hbox spacing="10" homogeneous="true" space-expand="true" space-fill="true">
+      <button image-position="2">
+        <label>'$(gettext 'Restart X-server')'</label>
+        <input file>'$ICONDIR'/graphics_restart.svg</input><height>42</height><width>42</width>
+        <action>exit:restartx</action>
+      </button>
+      <button image-position="2">
+        <label>'$(gettext 'Exit to Prompt')'</label>
+        <input file>'$ICONDIR'/terminal.svg</input><height>42</height><width>42</width>
+        <action>exit:logout</action>
+      </button>
+    </hbox>
+
+    <hbox spacing="10" homogeneous="true" space-expand="true" space-fill="true">
+      <button image-position="2">
+        <label>'$(gettext 'Restart JWM')'</label>
+        <input file>'$ICONDIR'/jwm_restart.svg</input><height>42</height><width>42</width>
+        <action>exit:restartjwm</action>
+      </button>
+      <button image-position="2">
+        <label>'$(gettext 'Rebuild Menu')'</label>
+        <input file>'$ICONDIR'/menu.svg</input><height>42</height><width>42</width>
+        <action>exit:refreshjwm</action>
+      </button>
+    </hbox>
+
+    <hbox spacing="10" homogeneous="true" space-expand="true" space-fill="true">
+      <button sensitive="'"$BTN7"'" image-position="2" tooltip-text=" '${backup_app}' ">
+        <label>'$(gettext 'Backup')'</label>
+        <input file>'$ICONDIR'/backup.svg</input><height>42</height><width>42</width>
+        <action>exit:backup</action>
+      </button>
+      '${BTN8}'
+    </hbox>
+
+  </vbox>
+</vbox>
+<action signal="key-press-event" condition="command_is_true([ $KEY_SYM = Escape ] && echo true )">exit:EXIT</action>
+</window>'
+
+export logout="$S"
+
+retvals="`$GTKDIALOG -p logout --styles=/tmp/easyjwm/gtkrc_xml_info.css`"
+eval "$retvals"
+case $EXIT in
+  reboot) $DIALOG -timeout 2 -text " $(gettext 'Rebooting...')" /
+  exec wmreboot ;;
+
+  poweroff) $DIALOG -timeout 2 -text " $(gettext 'Closing session...')" /
+  exec wmpoweroff ;;
+
+  restartx) $DIALOG -timeout 2 -text " $(gettext 'Restarting X-server...')" /
+  exec restartwm ;;
+
+  logout) $DIALOG -timeout 2 -text " $(gettext 'Exiting to prompt...')" /
+  exec wmexit ;;
+
+  restartjwm) $DIALOG -timeout 2 -text " $(gettext 'Restarting JWM...')" /
+  jwm -restart & ;;
+
+  refreshjwm) $DIALOG -timeout 2 -text " $(gettext 'Rebuilding menu...')" /
+  fixmenus; jwm -reload & ;;
+
+  suspend) func_suspend ;;
+ 
+  lockscreen) func_screenlock ;;
+
+  backup) ${backup_app} & ;;
+  *)exit ;;
+esac

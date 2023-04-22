@@ -1,0 +1,209 @@
+#!/bin/bash
+# change clock format
+# radky 20 Oct 2015: adjust for JWMDesk; support parsing of l and r parameters in 12 hr clock, and R and T parameters in 24 hr clock
+# radky 25 Dec 2015: if jwm_config environment, find clock code in jwmrc-tray1-4
+# radky 30 Mar 2021: add support for day, date and year; adjust GUI
+
+export TEXTDOMAIN=jwmclock
+export OUTPUT_CHARSET=UTF-8
+. gettext.sh
+
+[ ! $(pidof jwm 2>/dev/null) ] && Xdialog --title "$(gettext 'Alert')" --beep --msgbox "\n  $(gettext 'This application requires the JWM window manager !')  \n" 0 0 && exit 0
+
+APPDIR=/usr/local/easyjwm
+ICONDIR=$APPDIR/icons
+ICONDIR2=$APPDIR/jwm_menu_icons
+
+[ "`which gtkdialog4 2>/dev/null`" ] && GTKDIALOG=gtkdialog4 || GTKDIALOG=gtkdialog
+export GTKDIALOG
+
+# set header
+XML_INFO_COLOR='#EDEBD7' # background color
+XML_INFO_OPACITY=0.5 # background opacity
+. $APPDIR/xml_info_easyjwm gtk > /dev/null # build bg_pixmap for gtk-theme
+
+BOX_HEIGHT=75
+ICON=$ICONDIR2/clock_digital.svg
+ICON_HEIGHT=50
+MSG_1="<b><span size='"'x-large'"'>$(gettext "JWMclock")</span></b>"
+MSG_2="<b>$(gettext "Set time format")</b>"
+ALIGN=center # center or left
+HEADER="
+	<hbox height-request="'"${BOX_HEIGHT}"'">
+	$(. $APPDIR/xml_info_easyjwm "$ICON" "$ICON_HEIGHT" "$MSG_1" "$MSG_2" "$ALIGN")
+	</hbox>"
+
+# set icon-name
+[ ! -f /usr/share/icons/hicolor/48x48/apps/clock_digital.svg ] && \
+ln -sf $APPDIR/jwm_menu_icons/clock_digital.svg /usr/share/icons/hicolor/48x48/apps && gtk-update-icon-cache -f -i /usr/share/icons/hicolor 2>/dev/null
+
+# find jwm tray with clock widget
+if [ -d /usr/local/jwm_config* ]; then #25 Dec 2015
+ JWM_HOME="/root/.jwm"
+ if [ "`grep '<Clock' $HOME/.jwm/jwmrc-tray1`" ]; then
+  jwmtray="jwmrc-tray1"
+ elif [ "`grep '<Clock' $HOME/.jwm/jwmrc-tray2`" ]; then
+  jwmtray="jwmrc-tray2"
+ elif [ "`grep '<Clock' $HOME/.jwm/jwmrc-tray3`" ]; then
+  jwmtray="jwmrc-tray3"
+ elif [ "`grep '<Clock' $HOME/.jwm/jwmrc-tray4`" ]; then
+  jwmtray="jwmrc-tray4"
+ fi
+else
+ JWM_HOME="/root"
+ jwmtray=".jwmrc-tray"
+fi
+
+# find current time format
+CURCLOCK=$(grep "Clock format=" $JWM_HOME/$jwmtray|tr '"' '#'|awk -F# '{print $2}')
+H24=`echo $CURCLOCK|grep -E 'H|R|T'` #20 Oct 2015
+[ "$H24" ] && HC24=true VIS1=disabled || HC24=false VIS1=enabled
+I24=`echo $CURCLOCK|grep -E 'I|l|r'` #20 Oct 2015
+[ "$I24" ] && IC24=true || IC24=false
+S24=`echo $CURCLOCK|grep S`
+[ "$S24" ] && SC24=true || SC24=false
+p24=`echo $CURCLOCK|grep p`
+[ "$p24" ] && pC24=true || pC24=false
+a24=`echo $CURCLOCK|grep a` #30 Mar 2021
+[ "$a24" ] && aC24=true || aC24=false
+d24=`echo $CURCLOCK|grep d` #30 Mar 2021
+[ "$d24" ] && dC24=true VIS2=enabled || dC24=false VIS2=disabled
+y24=`echo $CURCLOCK|grep Y` #30 Mar 2021
+[ "$y24" ] && yC24=true || yC24=false
+
+# apply new time format
+clock_func(){
+	
+	[ "$r0" = "true" ] && NCLOCK=%H:%M
+	[ "$r1" = "true" ] && NCLOCK=%l:%M
+	[ "$c0" = "true" ] && AMPM=:%p
+	[ "$c1" = "true" ] && SEC=:%S
+	[ "$d0" = "true" ] && DAY="%a "
+	[ "$d1" = "true" ] && DATE="%d %b "
+	[ "$y0" = "true" ] && YEAR="%Y "
+	NEWCLOCK=${DAY}${DATE}${YEAR}${NCLOCK}${SEC}${AMPM}
+	sed -i "s|$CURCLOCK|$NEWCLOCK|" $JWM_HOME/$jwmtray
+}
+
+# set buttons for external applications
+[ "`which minixcal 2>/dev/null`" ] && calendar=minixcal || calendar=xcalendar
+
+[ "`which set-time-for-puppy 2>/dev/null`" ] && timeset='
+		<button use-underline="true" tooltip-text=" '"$(gettext 'Set date and time')"' ">
+			<input file>'$ICONDIR2'/date_time.svg</input><height>24</height><width>24</width>
+			<action>set-time-for-puppy &</action>
+		</button>'
+
+[ "`which timezone-set 2>/dev/null`" ] && timezone='
+		<button use-underline="true" tooltip-text=" '"$(gettext 'Set timezone')"' ">
+			<input file>'$ICONDIR2'/country_timezone.svg</input><height>24</height><width>24</width>
+			<action>timezone-set &</action>
+		</button>'
+
+psync_cmd=qsync
+[ "$psync_cmd" ] && timesync='
+		<button use-underline="true" tooltip-text=" '"$(gettext 'Sync with time server')"' ">
+			<input file>'$ICONDIR2'/clock_countdown.svg</input><height>24</height><width>24</width>
+			<action>'${psync_cmd}' &</action>
+		</button>'
+
+# main dialog
+export GUI='<window title="'"$(gettext 'JWMclock')"'" icon-name="clock_digital" window-position="3" resizable="false" decorated="true">
+<hbox>
+	<vbox>
+	'$HEADER'
+	<pixmap><input file>'$ICONDIR'/blank1.png</input></pixmap>
+	<hbox>
+		<vbox width-request="122">
+		<text space-expand="true" space-fill="false"><label>" "</label></text>
+		<text space-expand="true" space-fill="false"><label>" "</label></text>
+		<hbox homogeneous="true">
+		<vbox>
+			<radiobutton>
+				<variable>r0</variable>
+				<default>'$HC24'</default>
+				<label>'$(gettext "24 h")'</label>
+				<action>if true disable:c0</action>
+				<action>if true clear:c0</action>
+			</radiobutton>
+			<radiobutton>
+				<variable>r1</variable>
+				<default>'$IC24'</default>
+				<label>'$(gettext "12 h")'</label>
+				<action>if true enable:c0</action>
+			</radiobutton>
+		</vbox>
+		</hbox>
+		<text space-expand="true" space-fill="false"><label>" "</label></text>
+		<text space-expand="true" space-fill="false"><label>" "</label></text>
+		</vbox>
+
+		<vbox width-request="122">
+			<checkbox>
+				<variable>c0</variable>
+				<default>'$pC24'</default>
+				<label>'$(gettext "am / pm")'</label>
+				<visible>'$VIS1'</visible>
+			</checkbox>
+			<checkbox>
+				<variable>c1</variable>
+				<default>'$SC24'</default>
+				<label>'$(gettext "seconds")'</label>
+			</checkbox>
+			<checkbox>
+				<variable>d0</variable>
+				<default>'$aC24'</default>
+				<label>'$(gettext "day")'</label>
+			</checkbox>
+			<checkbox>
+				<variable>d1</variable>
+				<default>'$dC24'</default>
+				<label>'$(gettext "date")'</label>
+				<action>if true enable:y0</action>
+				<action>if false disable:y0</action>
+				<action>if false clear:y0</action>
+			</checkbox>
+			<checkbox>
+				<variable>y0</variable>
+				<default>'$yC24'</default>
+				<label>'$(gettext "year")'</label>
+				<visible>'$VIS2'</visible>
+			</checkbox>
+		</vbox>
+	</hbox>
+
+	<hseparator></hseparator>
+
+	<hbox space-expand="true" space-fill="true">
+		<button has-focus="true" use-underline="true" tooltip-text=" '"$(gettext 'Calendar')"' ">
+			<input file>'$ICONDIR2'/calendar.png</input><height>25</height><width>25</width>
+			<action>'${calendar}' &</action>
+		</button>
+		'$timeset'
+		'$timezone'
+		'$timesync'
+	</hbox>
+
+	<hbox space-expand="true" space-fill="true" homogeneous="true">
+		<button use-underline="true" tooltip-text=" '"$(gettext 'Set time format')"' ">
+			<label>'$(gettext "_Set")'</label>
+			<input file>'$ICONDIR'/apply.svg</input><height>24</height><width>24</width>
+			<action>exit:OK</action>
+		</button>
+		<button use-underline="true">
+			<label>'$(gettext "_Quit")'</label>
+			<input file>'$ICONDIR'/quit.svg</input><height>24</height><width>24</width>
+			<action>exit:Cancel</action>
+		</button>
+	</hbox>
+	</vbox>
+</hbox>
+<action signal="key-press-event" condition="command_is_true([ $KEY_SYM = Escape ] && echo true )">exit:EXIT</action>
+</window>'
+eval `$GTKDIALOG -p GUI --styles=/tmp/easyjwm/gtkrc_xml_info.css`
+case $EXIT in
+OK|Ok) clock_func
+jwm -restart &
+exit ;;
+*)exit ;;
+esac

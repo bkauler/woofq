@@ -1,0 +1,118 @@
+#!/bin/bash
+# menu_places_recentfiles (module of JWMdesk)
+# Adds most-recently-used-files (MRUF) to the JWM menu
+# by parsing recently-used.xbel and creating a list of
+# the files recently opened by GTK open/save dialogs.
+
+export TEXTDOMAIN=jwmdesk
+export OUTPUT_CHARSET=UTF-8
+
+PREFDIR="/usr/local/jwmdesk/preferences"
+XBEL_PATH="${HOME}/.local/share/recently-used.xbel"
+
+if [[ -e ${XBEL_PATH} ]]; then
+
+  # define command which opens the directories of recently used files
+  if [ -x /usr/local/apps/ROX-Filer/AppRun ]; then
+    OPEN_CMD="/usr/local/apps/ROX-Filer/AppRun"
+  elif [ -x /usr/bin/pcmanfm ]; then
+    OPEN_CMD="pcmanfm"
+  elif [ -x /usr/local/bin/defaultfilemanager ]; then
+    OPEN_CMD="defaultfilemanager"
+  else
+    OPEN_CMD="xdg-open"
+  fi
+
+  # maximum number of files parsed in recently-used.xbel
+  PARSED_FILES="50"
+
+  # maximum number of recently-used files displayed in menu (range: 10-25)
+  MAX_FILES=$(cat ${PREFDIR}/max-files 2>/dev/null)
+  [ ! "${MAX_FILES}" ] && MAX_FILES="10" && echo "${MAX_FILES}" > ${PREFDIR}/max-files
+
+  # create JWM-compatible format (code base: MochiMoppel & BarryK)
+  echo -n > /tmp/jwm-MRUF
+  IFS=$'\n'
+  printf -v MRUF "$(sed -rn 's/%/\\x/g
+  s_^.*file://([^ "]*).*modified="([^"]*).*$_\2@\1_p
+  ' "${XBEL_PATH}" | tail -n "${PARSED_FILES}" | tac | sed 's/.*@//')"
+  for FILE in ${MRUF} ;do
+    DIR=$(echo "${FILE%/*}")
+    if [[ -e ${FILE} ]] && CNT=$((CNT+1)); then
+      if [ ${#FILE} -gt 70 ]; then 
+        echo -e "<Program label=\"• ...${FILE:(-70):70}\">${OPEN_CMD} \"${DIR}\"</Program>" >> /tmp/jwm-MRUF
+      else
+        echo -e "<Program label=\"• ${FILE}\">${OPEN_CMD} \"${DIR}\"</Program>" >> /tmp/jwm-MRUF
+      fi
+    fi
+    ((CNT==MAX_FILES)) && break
+  done
+  ITEMS=$(cat /tmp/jwm-MRUF)
+else
+  NOT_FOUND="$(gettext 'not found!')"
+  ITEMS="<Program label=\"${XBEL_PATH##*/} ${NOT_FOUND}\"></Program>"
+fi
+
+# create script to set maximum number of recently-used files in JWM menu
+if [ ! -x /tmp/recentfiles_max ]; then
+ recentfiles_max='#!/bin/sh
+ export TEXTDOMAIN=recentfiles
+ export OUTPUT_CHARSET=UTF-8
+ PREFDIR="/usr/local/jwmdesk/preferences"
+ MAX_FILES=$(cat ${PREFDIR}/max-files)
+ REPLY=$(Xdialog --stdout --title "$(gettext '"'Recent Files'"')" --no-cancel \
+ --rangebox "$(gettext '"'Maximum Number of Files'"')" 10 60 10 25 ${MAX_FILES} )
+ if [ "$REPLY" = "" ]; then
+  exit 1
+ else
+  echo "$REPLY" > ${PREFDIR}/max-files
+ fi'
+ printf '%s' "$recentfiles_max" > /tmp/recentfiles_max
+ chmod 755 /tmp/recentfiles_max
+fi
+
+# create script to clear recently-used.xbel
+if [ ! -x /tmp/recentfiles_clear ]; then
+ recentfiles_clear='#!/bin/sh
+ export TEXTDOMAIN=recentfiles
+ export OUTPUT_CHARSET=UTF-8
+ XBEL_PATH="${HOME}/.local/share/recently-used.xbel"
+ [ -f /usr/local/lib/X11/pixmaps/question.xpm ] && ICON="/usr/local/lib/X11/pixmaps/question.xpm" || ICON=""
+ Xdialog --title "$(gettext '"'Recent Files'"')" --icon "$ICON" --cancel-label "$(gettext '"'No'"')" \
+ --ok-label "$(gettext '"'Ok'"')" --yesno "\n $(gettext '"'Clear recent files ?'"') \
+ \n\n $(gettext '"'This will restart the list of recently-used files.'"') \
+ \n\n $(gettext '"'Close all desktop applications, then click Ok.'"') \n" 0 0
+ if [[ $? == 0 ]]; then
+ cat <<'"':EOF'"' > "${XBEL_PATH}"
+<?xml version="1.0" encoding="UTF-8"?>
+<xbel version="1.0"
+      xmlns:bookmark="http://www.freedesktop.org/standards/desktop-bookmarks"
+      xmlns:mime="http://www.freedesktop.org/standards/shared-mime-info"
+>
+</xbel>
+:EOF
+  if [ -e /root/.config/geany/geany.conf ]; then
+   sed -i '"'s/^.*recent_files=.*\$/recent_files=/'"' /root/.config/geany/geany.conf
+   sed -i '"'s/^.*current_page=.*\$/current_page=/'"' /root/.config/geany/geany.conf
+   sed -i '"'s/^.*FILE_NAME_.*\$/FILE_NAME_/'"' /root/.config/geany/geany.conf
+  fi
+ fi'
+ printf '%s' "$recentfiles_clear" > /tmp/recentfiles_clear
+ chmod 755 /tmp/recentfiles_clear
+fi
+
+# generate menu of recently-used files
+SET_MAX_FILES="$(gettext 'Set maximum files')"
+CLEAR_RECENT_FILES="$(gettext 'Clear recent files')"
+CURRENT_MAX_FILES=$(cat ${PREFDIR}/max-files 2>/dev/null)
+
+MRUF='<JWM>
+'"${ITEMS}"'
+<Separator/>
+<Program label="▸ '${SET_MAX_FILES}' ('${CURRENT_MAX_FILES}')">/tmp/recentfiles_max</Program>
+<Program label="✖ '${CLEAR_RECENT_FILES}'">/tmp/recentfiles_clear</Program>
+</JWM>
+'
+printf '%s' "${MRUF}"
+
+sleep 0.1

@@ -1,0 +1,307 @@
+#!/bin/bash
+
+# gui to customise JWM window buttons, again from the mind of technosaurus
+# new version for pixmap icons 140118, adjusted 140121
+# radky 151020: adjust for JWMDesk (based on code by zigbert)
+# radky 160115: adjust GUI; remove frame; adjust support for pixmap icons
+# radky 210315: adjust GUI for compatibility with GTK3
+# radky 210730: add color selector for customized buttons
+# radky 211031: adjust color option for customized buttons
+# radky 221015: add support for TitleButtonOrder in JWM >= 2.4
+# radky 221115: adjust color option for customized buttons
+
+export TEXTDOMAIN=easyjwm
+export OUTPUT_CHARSET=UTF-8
+. gettext.sh
+
+export APPDIR=/usr/local/easyjwm
+export ICONDIR=$APPDIR/icons
+
+# define gtkdialog
+GTKDIALOG=gtkdialog
+export GTKDIALOG
+
+# set title bar icon
+[ ! -f /usr/share/icons/hicolor/48x48/apps/closebutton.svg ] && \
+ln -sf $ICONDIR/close.svg /usr/share/icons/hicolor/48x48/apps/closebutton.svg && gtk-update-icon-cache -f -i /usr/share/icons/hicolor 2>/dev/null
+
+# set header
+XML_INFO_COLOR='#EDEBD7' # background color
+XML_INFO_OPACITY=0.5 # background opacity
+. $APPDIR/xml_info_easyjwm gtk > /dev/null # build bg_pixmap for gtk-theme
+
+BOX_HEIGHT=90
+ICON=$ICONDIR/close.svg
+ICON_HEIGHT=70
+MSG_1="<b><span size='"'x-large'"'>$(gettext "Title Bar Buttons")</span></b>"
+MSG_2="<b>$(gettext "Change icon theme")</b>"
+ALIGN=center # center or left
+HEADER="
+	<hbox height-request="'"${BOX_HEIGHT}"'">
+	$(. $APPDIR/xml_info_easyjwm "$ICON" "$ICON_HEIGHT" "$MSG_1" "$MSG_2" "$ALIGN")
+	</hbox>"
+
+# set gui position 
+if [ "`which xwininfo 2>/dev/null`" ]; then # X11
+   read ROOTDIMS MX MY << EOF
+`xwininfo -root | grep -F ' -geometry ' | cut -f 1 -d '+' | tr 'x' ' '`
+EOF
+
+elif [ "`which wlr-randr 2>/dev/null`" ]; then # Wayland
+   read MX MY << EOF
+`wlr-randr | grep -m1 'current' | awk '{print $1}' | tr 'x' ' '`
+EOF
+
+fi
+GEO=+$((($MX/2)-$((450/2))))+$((($MY/2)-360))
+[ ! "$GEO" ] && GEO=+50+50
+
+# define functions
+switchfunc()
+{
+	grep -q '<ButtonClose>/usr' $HOME/.jwm/jwmrc-personal
+	if [ $? -eq 1 ];then
+	sed -i -e '/^<\/JWM>/d' -e '/^<Button/d' $HOME/.jwm/jwmrc-personal #delete
+	echo '<ButtonClose>/usr/share/pixmaps/close.png</ButtonClose>
+<ButtonMax>/usr/share/pixmaps/max.png</ButtonMax>
+<ButtonMaxActive>/usr/share/pixmaps/maxact.png</ButtonMaxActive>
+<ButtonMin>/usr/share/pixmaps/min.png</ButtonMin>
+</JWM>' >> $HOME/.jwm/jwmrc-personal
+	cp -af $HOME/.jwm/jwmrc-personal $HOME/.jwm/jwmrc-personal2
+	fi
+	# rsvg-convert does not remove the symlink property (if present) of
+	# destination files, so remove current button files as a precaution
+	rm -f /usr/share/pixmaps/close.png \
+	/usr/share/pixmaps/max.png \
+	/usr/share/pixmaps/maxact.png \
+	/usr/share/pixmaps/min.png 2>/dev/null
+	# create buttons with png extension
+	Dir=/usr/local/easyjwm/jwm_button_themes/$1
+	for icon in $Dir/*
+	 do
+	  ipathnx="${icon%.*}" # icon path with no extension
+	  ifile="${icon##*/}" # file with extension
+	  ifilenx="${ifile%.*}" # file with no extension
+	  if [ -f "$ipathnx.svg" ] && [ "`which rsvg-convert`" ]; then
+	   rsvg-convert -w 48 -h 48 ${icon} > /usr/share/pixmaps/${ifilenx}.png
+	  else
+	   cp -f ${icon} /tmp/tmp
+	   mv -f /tmp/tmp /usr/share/pixmaps/${ifilenx}.png
+	  fi
+	 done
+	sync
+	# fixmenus
+	rm /tmp/jwm_button_themes.xml 2>/dev/null
+	jwm -restart
+}
+
+clear_func()
+{
+	grep -vE '<Button|</JWM' $HOME/.jwm/jwmrc-personal > /tmp/jwmrc-personal-btns
+	while read l;do echo $l >> /tmp/jwmrc-personal-btns2; done < /tmp/jwmrc-personal-btns 
+	echo '</JWM>' >> /tmp/jwmrc-personal-btns2
+	cat /tmp/jwmrc-personal-btns2 > $HOME/.jwm/jwmrc-personal
+	cp -af $HOME/.jwm/jwmrc-personal $HOME/.jwm/jwmrc-personal2
+	# fixmenus
+	rm /tmp/jwmrc-personal-btns* 2>/dev/null
+	jwm -restart
+}
+
+custom_button_func()
+{
+	[ ! "$custom_color" ] && custom_color="#C4C4C4"
+
+	[ ! $(echo "$custom_color" | grep -E '^#[[:xdigit:]]{6}$') ] && \
+	gtkdialog-splash -close never -timeout 5 -margin 10 -placement center -fontsize large -bg goldenrod -text " $(gettext 'Please enter color in hexadecimal format !') " && exit 0
+
+	# convert hexadecimal to rgb format
+	r=`printf '%d' 0x${custom_color:1:2}`
+	g=`printf '%d' 0x${custom_color:3:2}`
+	b=`printf '%d' 0x${custom_color:5:2}`
+	if [ "$r" -lt 60 ];then r=60;fi
+	if [ "$g" -lt 60 ];then g=60;fi
+	if [ "$b" -lt 60 ];then b=60;fi
+
+	# bright
+	r0=$(( r + 45 ))
+	g0=$(( g + 45 ))
+	b0=$(( b + 45 ))
+	if [ "$r0" -gt 255 ];then r0=255;fi
+	if [ "$g0" -gt 255 ];then g0=255;fi
+	if [ "$b0" -gt 255 ];then b0=255;fi
+	r0hex=`printf '%02x' $r0`
+	g0hex=`printf '%02x' $g0`
+	b0hex=`printf '%02x' $b0`
+	bright="#$r0hex$g0hex$b0hex"
+
+	# medium
+	r1=$(( r - 10 ))
+	g1=$(( g - 10 ))
+	b1=$(( b - 10 ))
+	r1hex=`printf '%02x' $r1`
+	g1hex=`printf '%02x' $g1`
+	b1hex=`printf '%02x' $b1`
+	medium="#$r1hex$g1hex$b1hex"
+
+	# dark
+	r2=$(( r - 60 ))
+	g2=$(( g - 60 ))
+	b2=$(( b - 60 ))
+	r2hex=`printf '%02x' $r2`
+	g2hex=`printf '%02x' $g2`
+	b2hex=`printf '%02x' $b2`
+	dark="#$r2hex$g2hex$b2hex"
+	yiq2=`echo "(($r2*299)+($g2*587)+($b2*114))/1000"|bc`
+	if [ "$yiq2" -gt 127 ];then
+		txtcolor="#2F2F2F"
+	else
+		txtcolor="#F6F6F6"
+	fi
+
+	# create custom color buttons
+	mkdir -p $APPDIR/jwm_button_themes/Custom
+	BUTTON_OPTION=$(cat $APPDIR/preferences/custom-option 2>/dev/null)
+	[ ! "$BUTTON_OPTION" ] && BUTTON_OPTION="Legacy"
+	if [ "$BUTTON_OPTION" = "Buntu" ]; then
+		cp -f $APPDIR/jwm_button_themes/Buntu_dark/*.svg $APPDIR/jwm_button_themes/Custom
+		sed -i "s/\#4D4D4D/$dark/g" $APPDIR/jwm_button_themes/Custom/close.svg
+		sed -i "s/\#FFFFFF/$txtcolor/g" $APPDIR/jwm_button_themes/Custom/close.svg
+		sed -i "s/\#4D4D4D/$medium/g" $APPDIR/jwm_button_themes/Custom/maxact.svg
+		sed -i "s/\#FFFFFF/$txtcolor/g" $APPDIR/jwm_button_themes/Custom/maxact.svg
+		sed -i "s/\#4D4D4D/$medium/g" $APPDIR/jwm_button_themes/Custom/max.svg
+		sed -i "s/\#FFFFFF/$txtcolor/g" $APPDIR/jwm_button_themes/Custom/max.svg
+		sed -i "s/\#4D4D4D/$medium/g" $APPDIR/jwm_button_themes/Custom/min.svg
+		sed -i "s/\#FFFFFF/$txtcolor/g" $APPDIR/jwm_button_themes/Custom/min.svg
+	elif [ "$BUTTON_OPTION" = "Maccish" ]; then
+		cp -f $APPDIR/jwm_button_themes/Neon/*.svg $APPDIR/jwm_button_themes/Custom
+		sed -i "s/\#F35B5A/$dark/g" $APPDIR/jwm_button_themes/Custom/close.svg
+		sed -i "s/\#9D3030/$dark/g" $APPDIR/jwm_button_themes/Custom/close.svg
+		sed -i "s/\#45D044/$medium/g" $APPDIR/jwm_button_themes/Custom/maxact.svg
+		sed -i "s/\#309D35/$dark/g" $APPDIR/jwm_button_themes/Custom/maxact.svg
+		sed -i "s/\#45D044/$medium/g" $APPDIR/jwm_button_themes/Custom/max.svg
+		sed -i "s/\#309D35/$dark/g" $APPDIR/jwm_button_themes/Custom/max.svg
+		sed -i "s/\#F1C141/$bright/g" $APPDIR/jwm_button_themes/Custom/min.svg
+		sed -i "s/\#C37A05/$dark/g" $APPDIR/jwm_button_themes/Custom/min.svg
+	else
+		cp -f $APPDIR/jwm_button_themes/Dark_Gray/*.svg $APPDIR/jwm_button_themes/Custom
+		for i in close maxact max min; do
+			sed -i "s/\#333333/$custom_color/g" $APPDIR/jwm_button_themes/Custom/$i.svg
+		done
+	fi
+
+	switchfunc "$(basename $APPDIR/jwm_button_themes/Custom)"
+}
+
+custom_options_func ()
+{
+	[ "`ldd $(which gtkdialog) | grep -Fi 'gtk-3' 2>/dev/null`" ] && gw="85" || gw="60"
+	BUTTON_OPTION=$(cat $APPDIR/preferences/custom-option 2>/dev/null)
+	[ ! "$BUTTON_OPTION" ] && BUTTON_OPTION="Legacy"
+	if [ "$BUTTON_OPTION" = "Buntu" ]; then
+		Xdialog --title "Custom Buttons" --radiolist "Custom Button Icons" 13 $gw 5 "Buntu" " Round with label" off "Maccish" " Round with no label" off "Legacy" " Label only" off 2>/tmp/radiolist.tmp.$$
+	elif [ "$BUTTON_OPTION" = "Maccish" ]; then
+		Xdialog --title "Custom Buttons" --radiolist "Custom Button Icons" 13 $gw 5 "Maccish" " Round with no label" off "Buntu" " Round with label" off "Legacy" " Label only" off 2>/tmp/radiolist.tmp.$$
+	else
+		Xdialog --title "Custom Buttons" --radiolist "Custom Button Icons" 13 $gw 5 "Legacy" " Label only" off "Buntu" " Round with label" off "Maccish" " Round with no label" off 2>/tmp/radiolist.tmp.$$
+	fi
+	retval=$?
+	choice=`cat /tmp/radiolist.tmp.$$`
+	rm -f /tmp/radiolist.tmp.$$
+
+	case $retval in
+	0)
+		echo "$choice" > $APPDIR/preferences/custom-option
+		custom_button_func
+	;;
+	1)
+		echo "Cancel"
+	;;
+	255)
+		echo "Abort"
+	;;
+	esac
+	exit 0
+}
+
+export -f switchfunc clear_func custom_button_func custom_options_func
+
+# define custom button color
+custom_color=$(cat $APPDIR/preferences/custom-color 2>/dev/null)
+[ ! "$custom_color" ] && custom_color="#C4C4C4" && echo "$custom_color" > $APPDIR/preferences/custom-color
+
+# precaution
+rm /tmp/jwm_button_themes.xml 2>/dev/null
+rm /tmp/jwmrc-personal-btns* 2>/dev/null
+
+# build gui in /tmp
+echo "
+<window title=\"$(gettext 'Title Bar Buttons')\" icon-name=\"closebutton\" resizable=\"true\">
+	<vbox width-request=\"450\">
+	${HEADER}
+		<hbox height-request=\"356\" space-expand=\"true\" space-fill=\"true\">
+		<vbox margin=\"5\" scrollable=\"true\">
+" > /tmp/jwm_button_themes.xml
+
+THEMES=$(ls -d /usr/local/easyjwm/jwm_button_themes/* | grep -v 'Custom')
+for theme in ${THEMES}
+  do
+     ifile=$(ls ${theme} | sort | grep close)
+     ext=${ifile##*.}
+     echo "
+			<pixmap><input file>/usr/local/easyjwm/icons/invisible96x8.png</input></pixmap>
+			<hbox space-expand=\"false\" space-fill=\"false\">
+			<vbox homogeneous=\"true\" space-expand=\"false\" space-fill=\"false\">
+				<hbox>
+					<pixmap><input file>${theme}/min.${ext}</input><height>28</height></pixmap>
+					<pixmap><input file>${theme}/max.${ext}</input><height>28</height></pixmap>
+					<pixmap><input file>${theme}/close.${ext}</input><height>28</height></pixmap>
+				</hbox>
+			</vbox>
+			<vbox space-expand=\"true\" space-fill=\"true\">
+				<button height-request=\"38\" space-expand=\"true\" space-fill=\"true\">
+					<label>\"$(basename $theme)\"</label>
+					<action>switchfunc "$(basename $theme)"</action>
+				</button>
+			</vbox>
+			<text width-request=\"10\" space-expand=\"false\" space-fill=\"false\"><label>\"\"</label></text>
+			</hbox>" >> /tmp/jwm_button_themes.xml
+  done
+echo "
+		</vbox>
+		</hbox>
+		<hbox space-expand=\"false\" space-fill=\"true\"> 
+			<button space-expand=\"true\" space-fill=\"true\" tooltip-text=\" $(gettext 'Reset stock standard icons') \">
+				<label>$(gettext 'Reset')</label>
+				<input file>$APPDIR/icons/clear.svg</input><height>20</height><width>20</width>
+				<action>clear_func</action>
+			</button>
+			<button width-request=\"80\" space-expand=\"false\" space-fill=\"false\" tooltip-text=\" $(gettext 'Custom button icons') \">
+				<input file>$APPDIR/icons/close.svg</input><height>26</height><width>26</width>
+				<action>custom_options_func &</action>
+			</button>
+			<colorbutton width-request=\"80\" space-expand=\"false\" space-fill=\"false\" title=\"$(gettext 'Button color')\" tooltip-text=\" $(gettext 'Custom button color')  \">
+				<input file>$APPDIR/preferences/custom-color</input>
+				<variable>custom_color</variable>
+				<action>echo \$custom_color > $APPDIR/preferences/custom-color</action>
+				<action>custom_button_func &</action>
+			</colorbutton>
+			<button space-expand=\"true\" space-fill=\"true\" tooltip-text=\" $(gettext 'Quit') \">
+				<label>$(gettext 'Quit')</label>
+				<input file>$APPDIR/icons/quit.svg</input><height>20</height><width>20</width>
+				<action>exit:quit_now</action>
+			</button>
+		</hbox>
+	</vbox>
+</window>
+" >> /tmp/jwm_button_themes.xml  
+
+eval $($GTKDIALOG -f /tmp/jwm_button_themes.xml --geometry="$GEO" --styles=/tmp/easyjwm/gtkrc_xml_info.css)
+
+if [ "`which busybox`" ]; then
+	WB=$(busybox ps | grep -Ea -- 'gtkdialog|gtk2dialog' | grep -a -- jwm_button_themes\.xml | awk '{print $1}')
+else
+	WB=$(ps ax | grep -Ea -- 'gtkdialog|gtk2dialog' | grep -a -- jwm_button_themes\.xml | awk '{print $1}')
+fi
+kill $WB 2>/dev/null
+
+exit 0

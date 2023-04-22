@@ -1,0 +1,33 @@
+#!/bin/bash
+#script called by $HOME/.jwmrc
+
+export TEXTDOMAIN=jwmdesk
+export OUTPUT_CHARSET=UTF-8
+
+menuheight=`cat /root/.jwm/menuheights 2>/dev/null | cut -d "=" -f2`
+[ ! "$menuheight" ] && menuheight=24
+
+[ "`which inxi`" ] && inxi_cmd=/usr/bin/inxi-wrapper || inxi_cmd=""
+
+echo '
+<JWM>'
+	echo '<Menu label="'$(gettext 'Administration')'" icon="/usr/local/jwmdesk/jwm_menu_icons/administration.png" height="'${menuheight}'">
+	<Program label="'$(gettext 'Events')'" icon="/usr/local/jwmdesk/jwm_menu_icons/events.svg">eventmanager</Program>
+	<Program label="'$(gettext 'Install')'" icon="/usr/local/jwmdesk/jwm_menu_icons/install.svg">dotpup</Program>
+	<Program label="'$(gettext 'Network')'" icon="/usr/local/jwmdesk/jwm_menu_icons/network.png">connectwizard</Program>
+	<Program label="'$(gettext 'Processes')'" icon="/usr/local/jwmdesk/jwm_menu_icons/processes.svg">defaultprocessmanager</Program>
+	<Program label="'$(gettext 'Security')'" icon="/usr/local/jwmdesk/jwm_menu_icons/security.svg">loginmanager</Program>
+	<Program label="'$(gettext 'Setup')'" icon="/usr/local/jwmdesk/jwm_menu_icons/setup.png">wizardwizard</Program>
+	<Program label="'$(gettext 'Startup')'" icon="/usr/local/jwmdesk/jwm_menu_icons/startup.svg">bootmanager</Program>'
+	echo '</Menu>'
+	echo '<Menu label="'$(gettext 'System profile')'" icon="/usr/local/jwmdesk/jwm_menu_icons/help.png" height="'${menuheight}'">'
+	[ "`which hardinfo`" ] && echo '<Program label="'$(gettext 'Hardinfo')'" icon="/usr/local/jwmdesk/jwm_menu_icons/memory.png">hardinfo</Program>'
+	[ "`which Pup-SysInfo`" ] && echo '<Program label="'$(gettext 'Sysinfo')'" icon="/usr/local/jwmdesk/jwm_menu_icons/find.png">Pup-SysInfo</Program>'
+	[ "$inxi_cmd" ] && echo '<Program label="'$(gettext 'Inxi-report')'" icon="/usr/local/jwmdesk/jwm_menu_icons/run.svg">"'${inxi_cmd}'"</Program>'
+	echo '<Separator/>'
+	[ "`which gdmap`" ] && echo '<Program label="'$(gettext 'Disk map')'" icon="/usr/local/jwmdesk/jwm_menu_icons/drive.png">gdmap -f /</Program>'
+	[ "`which partview`" ] && echo '<Program label="'$(gettext 'Drive space')'" icon="/usr/local/jwmdesk/jwm_menu_icons/partition.svg">partview</Program>'
+	echo '</Menu>
+	<Separator/>
+	<Program label="'$(gettext 'Desk manager')'" icon="/usr/local/jwmdesk/jwm_menu_icons/jwmdesk64.png">jwmdesk</Program>
+</JWM>'
