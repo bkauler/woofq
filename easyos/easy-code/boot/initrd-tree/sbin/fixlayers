@@ -37,7 +37,7 @@
 #20230210 always load .str.en, in case non-english is incomplete.
 #20230211 .str files folder hierarchy reorganized.
 #20230309 have removed /usr/local/debget
-#20230327 /usr/local/appimage  20230408 /usr/local/flatpak
+#20230327 /usr/local/appimage  20230408 /usr/local/flatpak  20230422 easyjwm easysetup
 
 WKG_DRV=$1 #ex: sda
 WKG_DEV=$2 #ex: sda2
@@ -400,6 +400,16 @@ done
 #20230408 /usr/local/flatpak
 if [ -d /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/flatpak ];then
  rm -rf /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/flatpak
+fi
+#20230422
+if [ -d /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/easysetup ];then
+ rm -rf /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/easysetup
+fi
+if [ -d /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/easyjwm ];then
+ rm -rf /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/easyjwm
+fi
+if [ -d /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/easyapps ];then
+ rm -rf /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/easyapps
 fi
 
 #puppy fixes rox PuppyPin and globicons in rc.update, see if we can do similar here...
