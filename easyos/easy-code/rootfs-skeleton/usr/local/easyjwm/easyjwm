@@ -2938,6 +2938,20 @@ do
 "
 done
 
+#20230423
+if [ -f /usr/share/applications/jwmthememaker.desktop ];then
+ JWMTHEMEMAKER="<hbox>
+  <text><label>$(gettext 'Alternative JWM theme creator:')</label></text>
+  <vbox>
+   <button tooltip-text=\" $(gettext 'Create JWM theme') \">
+    <input file>${ICONDIR}/jwm_themes.svg</input><height>56</height><width>56</width>
+    <action>jwmthememaker & </action>
+   </button>
+  </vbox>
+ </hbox>
+"
+fi
+
 export EASYJWM='
 <window title="EasyJWM" icon-name="'$window_title_icon'" resizable="true" default_height="'$WINDOW_HEIGHT'" default_width="'$WINDOW_WIDTH'">
  <vbox>
@@ -2954,11 +2968,11 @@ export EASYJWM='
    </vbox>
    <vbox>
     <text><label>" "</label></text>
+    '${JWMTHEMEMAKER}'
     <hbox>
      <text><label>'$(gettext 'Manage JWM keyboard shortcuts:')'</label></text>
      <vbox>
-      <button image-position="2" height-request="100" width-request="'$button_width_request'" tooltip-text=" '$(gettext 'Set keyboard shortcuts')' ">
-       <label>'$(gettext 'JWM Hotkey')'</label>
+      <button tooltip-text=" '$(gettext 'Set keyboard shortcuts')' ">
        <input file>'$ICONDIR'/keyboard_shortcut.svg</input><height>56</height><width>56</width>
        <action>'$APPDIR'/keyboard &</action>
       </button>

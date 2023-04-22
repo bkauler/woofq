@@ -16,11 +16,12 @@ CATS='zzzzzz'; QUALIFIER='.*'; EXCLUDE='zzzzzzzz'
 if [ "$MAINCAT" == "desktop" ];then
   case "$SUBCAT" in
    desktopicons) CATS='^Exec=eventmanager desktop|^Exec=icon_switcher' ;;
-   themes)       CATS='^Exec=gtk_chtheme' ;;
+   gtkthemes)    CATS='^Exec=gtk_chtheme' ;;
    wallpaper)    CATS='^Exec=qwallpaper' ;;
    mousecursor)  CATS='^Exec=pcur' ;;
    fontsize)     CATS='^Exec=set-xftdpi' ;;
-   jwm)          CATS='^Exec=jwmdesk' ;;
+   jwmconfig)    CATS='^Exec=easyjwm' ;;
+   jwmthemes)    CATS='^Exec=easyjwm|^Exec=jwmthememaker' ;;
   esac
 elif [ "$MAINCAT" == "easyos" ];then
  case "$SUBCAT" in
@@ -70,7 +71,7 @@ do
  if [ "${Picon:0:1}" == "/" ];then
   ICON="$Picon"
  else
-  ICON="$(/usr/sbin/find-icon ${Picon/.*/})"
+  ICON="$(/usr/sbin/find-icon ${Picon%.*})"
  fi
  if [ "$ICON" == "" ];then
   ICON="${MIP}/Executable.xpm"
