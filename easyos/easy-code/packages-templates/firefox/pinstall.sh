@@ -41,9 +41,9 @@ if [ "$FFext" ];then
 . ../../build-choices
  for aFFlang in $(echo "$BUILD_SUPPORT_LANGS" | tr ' ' '\n' | cut -f 1 -d ':' | tr '\n' ' ')
  do
-  if [ "$aFFlang" == "no" ];then #20230423
+  if [ "$aFFlang" == "no" ];then #20230423 20230424 remove nn
    cp -a -f /tmp/3buildeasydistro-pinstall-ff/langpack-nb* ${FFext}/ 2>/dev/null
-   cp -a -f /tmp/3buildeasydistro-pinstall-ff/langpack-nn* ${FFext}/ 2>/dev/null
+   #cp -a -f /tmp/3buildeasydistro-pinstall-ff/langpack-nn* ${FFext}/ 2>/dev/null
   fi
   cp -a -f /tmp/3buildeasydistro-pinstall-ff/langpack-${aFFlang}* ${FFext}/ 2>/dev/null
  done

@@ -5429,13 +5429,13 @@ if [ "$BUILD_SUPPORT_LANGS" ];then #see build-choices file.
  tr ' ' '\n' <<<$BUILD_SUPPORT_LANGS > /tmp/3bed-lang-codes
  sed -i -e 's%:.*%%' /tmp/3bed-lang-codes
 else
- CODES='bg Bulgarian cs Czech da Danish de German el Greek en English es Spanish et Estonian fi Finnish fr French hr Croatian hu Hungarian is Icelandic it Italian lt Lithuanian lv Latvian mk Macedonian no Norwegian nl Dutch pl Polish pt Portuguese ro Romanian ru Russian sk Slovak sl Slovenian sq Albanian sr Serbian sv Swedish tr Turkish uk Ukrainian uz Uzbek'
+ CODES='bg Bulgarian cs Czech da Danish de German el Greek en English es Spanish et Estonian fi Finnish fr French hr Croatian hu Hungarian is Icelandic it Italian lt Lithuanian lv Latvian mk Macedonian nl Dutch no Norwegian pl Polish pt Portuguese ro Romanian ru Russian sk Slovak sl Slovenian sq Albanian sr Serbian sv Swedish tr Turkish uk Ukrainian uz Uzbek'
  CODES2='bg cs da de el en es et fi fr hr hu is it lt lv mk nl no pl pt ro ru sk sl sq sr sv tr uk uz'
  tr ' ' '\n' <<<$CODES2 > /tmp/3bed-lang-codes
 fi
 # no (norway) may have nn and nb, so add those...
-# 20230423 um, norwegian is tricky...
-if ! grep -q -x nn /tmp/3bed-lang-codes;then echo -e 'nn' >> /tmp/3bed-lang-codes; fi
+# 20230423 um, norwegian is tricky... 20230424 leave out nn
+#if ! grep -q -x nn /tmp/3bed-lang-codes;then echo -e 'nn' >> /tmp/3bed-lang-codes; fi
 if ! grep -q -x nb /tmp/3bed-lang-codes;then echo -e 'nb' >> /tmp/3bed-lang-codes; fi
 if ! grep -q -x no /tmp/3bed-lang-codes;then echo -e 'no' >> /tmp/3bed-lang-codes; fi
 sed -i -e '/^$/d' /tmp/3bed-lang-codes
