@@ -154,6 +154,7 @@
 #20230409 /files reverts to a symlink to /mnt/wkg/files
 #20230409 /mnt/${WKG_DEV}/${WKG_DIR}data is no longer encrypted.
 #20230414 not sure if busybox hwclock accepts "--localtime" use "-l"
+#20230423 revert 20220601 do not delete PuppyPin.
 
 #20220525 3buildeasydistro will substitute values here...
 EOS_TOP_LEVEL_ZRAM=EOSTOPLEVELZRAM #20220521 1=yes, anything else no.
@@ -1488,15 +1489,16 @@ SFS_DB_hash='${ESUM}'" > /mnt/${WKG_DEV}/${WKG_DIR}sfs/easyos/${INIT_DISTRO_BINA
  ##200830 this may have invalid icons, delete it, will get copied from root/Choices/ROX-Filer/globicons ...
  #[ -f /mnt/${WKG_DEV}/${WKG_DIR}.session/root/.config/rox.sourceforge.net/ROX-Filer/globicons ] && rm -f /mnt/${WKG_DEV}/${WKG_DIR}.session/root/.config/rox.sourceforge.net/ROX-Filer/globicons
  
- #20220601 desktop icons have changed layout, so erase previous...
- # "update" icon is now on the second row (and for top-level-zram1 bootup have a "save" icon)...
- grep -q grep '"32".*easy\-update' /mnt/${WKG_DEV}/${WKG_DIR}.session/root/Choices/ROX-Filer/PuppyPin 2>/dev/null
- if [ $? -eq 0 ];then
-  rm -f /mnt/${WKG_DEV}/${WKG_DIR}.session/root/.config/rox.sourceforge.net/ROX-Filer/globicons 2>/dev/null
-  rm -f /mnt/${WKG_DEV}/${WKG_DIR}.session/root/Choices/ROX-Filer/globicons 2>/dev/null
-  rm -f /mnt/${WKG_DEV}/${WKG_DIR}.session/root/Choices/ROX-Filer/PuppyPin
-  rm -f /mnt/${WKG_DEV}/${WKG_DIR}.session/root/Choices/ROX-Filer/PuppyPinBACKUP 2>/dev/null
- fi
+ #20230423 remove...
+ ##20220601 desktop icons have changed layout, so erase previous...
+ ## "update" icon is now on the second row (and for top-level-zram1 bootup have a "save" icon)...
+ #grep -q grep '"32".*easy\-update' /mnt/${WKG_DEV}/${WKG_DIR}.session/root/Choices/ROX-Filer/PuppyPin 2>/dev/null
+ #if [ $? -eq 0 ];then
+ # rm -f /mnt/${WKG_DEV}/${WKG_DIR}.session/root/.config/rox.sourceforge.net/ROX-Filer/globicons 2>/dev/null
+ # rm -f /mnt/${WKG_DEV}/${WKG_DIR}.session/root/Choices/ROX-Filer/globicons 2>/dev/null
+ # rm -f /mnt/${WKG_DEV}/${WKG_DIR}.session/root/Choices/ROX-Filer/PuppyPin
+ # rm -f /mnt/${WKG_DEV}/${WKG_DIR}.session/root/Choices/ROX-Filer/PuppyPinBACKUP 2>/dev/null
+ #fi
  
  #200830 this folder must always be pristine...
  [ -d /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/xdg ] && rm -rf /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/xdg

@@ -38,6 +38,8 @@
 #20230211 .str files folder hierarchy reorganized.
 #20230309 have removed /usr/local/debget
 #20230327 /usr/local/appimage  20230408 /usr/local/flatpak  20230422 easyjwm easysetup
+#20230423 remove complicated code that may be removing desktop icons from PuppyPin
+#20230423 make sure "pkg" icon runs pkg-wrap (easy 5.2.2) --can remove this later, after everyone hass updated.
 
 WKG_DRV=$1 #ex: sda
 WKG_DEV=$2 #ex: sda2
@@ -412,78 +414,100 @@ if [ -d /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/easyapps ];then
  rm -rf /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/easyapps
 fi
 
-#puppy fixes rox PuppyPin and globicons in rc.update, see if we can do similar here...
-#fix PuppyPin...
-cntbak=0
-mkdir -p /mnt/${WKG_DEV}/${WKG_DIR}.session/root/Choices/ROX-Filer
-echo '<?xml version="1.0"?>
-<pinboard>' > newPuppyPin
-xxsfsdirs="$(echo -n "${EXTRASFSDIRS}" | tr ' ' '\n')"
-for onelayer in /mnt/${WKG_DEV}/${WKG_DIR}.session ${EXTRASFSDIRS} /easy_ro/easy_sfs
-do
- [ ! -f ${onelayer}/root/Choices/ROX-Filer/PuppyPin ] && continue
- while read oneline
- do
-  case "$oneline" in
-   *\<backdrop*)
-    [ $cntbak -ne 0 ] && continue
-    pathspec="$(echo -n "${oneline}" | cut -f 2 -d '>' | cut -f 1 -d '<')" #ex: /usr/share/backgrounds/default.jpg
-    xxspecs="$(echo -n "$xxsfsdirs" | sed -e "s%$%${pathspec}%" | tr '\n' ' ')"
-    fndfile="$(ls -1 /mnt/${WKG_DEV}/${WKG_DIR}.session${pathspec} ${xxspecs} /easy_ro/easy_sfs${pathspec} 2>/dev/null)"
-    [ ! "$fndfile" ] && continue
-    [ "$(grep "${pathspec}" newPuppyPin)" == "" ] && echo "$oneline" >> newPuppyPin
-    cntbak=1
-   ;;
-   *\<icon*)
-    pathspec="$(echo -n "${oneline}" | cut -f 2 -d '>' | cut -f 1 -d '<')" #ex: /usr/sbin/sfsget
-    xxspecs="$(echo -n "$xxsfsdirs" | sed -e "s%$%${pathspec}%" | tr '\n' ' ')"
-    fndfile="$(ls -1 /mnt/${WKG_DEV}/${WKG_DIR}.session${pathspec} ${xxspecs} /easy_ro/easy_sfs${pathspec} 2>/dev/null)"
-    [ ! "$fndfile" ] && continue
-    [ "$(grep "${pathspec}" newPuppyPin)" == "" ] && echo "$oneline" >> newPuppyPin
-   ;;
-  esac
- done <<_EOF
-$(cat ${onelayer}/root/Choices/ROX-Filer/PuppyPin)
-_EOF
-done
-echo '</pinboard>' >> newPuppyPin
-cp -a -f newPuppyPin /mnt/${WKG_DEV}/${WKG_DIR}.session/root/Choices/ROX-Filer/PuppyPin
+#20230423 suspicious this may be removing desktop icons when update...
+##puppy fixes rox PuppyPin and globicons in rc.update, see if we can do similar here...
+##fix PuppyPin...
+#cntbak=0
+#mkdir -p /mnt/${WKG_DEV}/${WKG_DIR}.session/root/Choices/ROX-Filer
+#echo '<?xml version="1.0"?>
+#<pinboard>' > newPuppyPin
+#xxsfsdirs="$(echo -n "${EXTRASFSDIRS}" | tr ' ' '\n')"
+#for onelayer in /mnt/${WKG_DEV}/${WKG_DIR}.session ${EXTRASFSDIRS} /easy_ro/easy_sfs
+#do
+# [ ! -f ${onelayer}/root/Choices/ROX-Filer/PuppyPin ] && continue
+# while read oneline
+# do
+#  case "$oneline" in
+#   *\<backdrop*)
+#    [ $cntbak -ne 0 ] && continue
+#    pathspec="$(echo -n "${oneline}" | cut -f 2 -d '>' | cut -f 1 -d '<')" #ex: /usr/share/backgrounds/default.jpg
+#    xxspecs="$(echo -n "$xxsfsdirs" | sed -e "s%$%${pathspec}%" | tr '\n' ' ')"
+#    fndfile="$(ls -1 /mnt/${WKG_DEV}/${WKG_DIR}.session${pathspec} ${xxspecs} /easy_ro/easy_sfs${pathspec} 2>/dev/null)"
+#    [ ! "$fndfile" ] && continue
+#    [ "$(grep "${pathspec}" newPuppyPin)" == "" ] && echo "$oneline" >> newPuppyPin
+#    cntbak=1
+#   ;;
+#   *\<icon*)
+#    pathspec="$(echo -n "${oneline}" | cut -f 2 -d '>' | cut -f 1 -d '<')" #ex: /usr/sbin/sfsget
+#    xxspecs="$(echo -n "$xxsfsdirs" | sed -e "s%$%${pathspec}%" | tr '\n' ' ')"
+#    fndfile="$(ls -1 /mnt/${WKG_DEV}/${WKG_DIR}.session${pathspec} ${xxspecs} /easy_ro/easy_sfs${pathspec} 2>/dev/null)"
+#    [ ! "$fndfile" ] && continue
+#    [ "$(grep "${pathspec}" newPuppyPin)" == "" ] && echo "$oneline" >> newPuppyPin
+#   ;;
+#  esac
+# done <<_EOF
+#$(cat ${onelayer}/root/Choices/ROX-Filer/PuppyPin)
+#_EOF
+#done
+#echo '</pinboard>' >> newPuppyPin
+#cp -a -f newPuppyPin /mnt/${WKG_DEV}/${WKG_DIR}.session/root/Choices/ROX-Filer/PuppyPin
 
-#20220204 easy 3.3, desktop "petget" is now "pkgget". check... 20220624 now "pkg"
-sed -i -e 's%label="petget"%label="pkg"%' /mnt/${WKG_DEV}/${WKG_DIR}.session/root/Choices/ROX-Filer/PuppyPin
+#20230423 remove...
+##20220204 easy 3.3, desktop "petget" is now "pkgget". check... 20220624 now "pkg"
+#sed -i -e 's%label="petget"%label="pkg"%' /mnt/${WKG_DEV}/${WKG_DIR}.session/root/Choices/ROX-Filer/PuppyPin
 
-#fix globicons...
-#an inconstency, user-mod to desktop, PuppyPin gets changed in
-#/root/Choices/ROX-Filer/, but globicons gets copied and updated in
-#/root/.config/rox.sourceforge.net/ROX-Filer/...
-mkdir -p /mnt/${WKG_DEV}/${WKG_DIR}.session/root/.config/rox.sourceforge.net/ROX-Filer
-echo '<?xml version="1.0"?>
-<special-files>' > newglobicons
-for onelayer in /mnt/${WKG_DEV}/${WKG_DIR}.session ${EXTRASFSDIRS} /easy_ro/easy_sfs
-do
- globspec=""
- [ -f ${onelayer}/root/Choices/ROX-Filer/globicons ] && globspec="${onelayer}/root/Choices/ROX-Filer/globicons"
- [ -f ${onelayer}/root/.config/rox.sourceforge.net/ROX-Filer/globicons ] && globspec="${onelayer}/root/.config/rox.sourceforge.net/ROX-Filer/globicons"
- [ ! "$globspec" ] && continue
- while read oneline
- do
-  case "$oneline" in
-   *\<rule*)
-    read oneicon #ex: <icon>/usr/local/lib/X11/pixmaps/chat48.png</icon>
-    read oneend  #</rule>
-    pathspec="$(echo -n "${oneline}" | cut -f 2 -d '"')" #ex: /usr/local/bin/defaultchat
-    [ "$(grep "${pathspec}" newglobicons)" != "" ] && continue
-    echo "${oneline}" >> newglobicons
-    echo "${oneicon}" >> newglobicons
-    echo "${oneend}" >> newglobicons
-   ;;
-  esac
- done <<_EOF
-$(cat ${globspec})
-_EOF
-done
-echo '</special-files>' >> newglobicons
-cp -a -f newglobicons /mnt/${WKG_DEV}/${WKG_DIR}.session/root/.config/rox.sourceforge.net/ROX-Filer/globicons
+#20230423 make sure "pkg" icon runs pkg-wrap (easy 5.2.2) --can remove this later, after everyone hass updated.
+if [ -s /mnt/${WKG_DEV}/${WKG_DIR}.session/root/Choices/ROX-Filer/PuppyPin ];then
+ grep -q '/usr/sbin/pkg-wrap' /mnt/${WKG_DEV}/${WKG_DIR}.session/root/Choices/ROX-Filer/PuppyPin
+ if [ $? -ne 0 ];then
+  sed -i -e 's%/usr/sbin/dotpup%/usr/sbin/pkg-wrap%' /mnt/${WKG_DEV}/${WKG_DIR}.session/root/Choices/ROX-Filer/PuppyPin
+ fi
+ grep -q 'sfsget' /mnt/${WKG_DEV}/${WKG_DIR}.session/root/Choices/ROX-Filer/PuppyPin
+ if [ $? -eq 0 ];then
+  sed -i '/sfsget/d' /mnt/${WKG_DEV}/${WKG_DIR}.session/root/Choices/ROX-Filer/PuppyPin
+ fi
+fi
+if [ -s /mnt/${WKG_DEV}/${WKG_DIR}.session/root/Choices/ROX-Filer/globicons ];then
+ grep -q '/usr/sbin/pkg-wrap' /mnt/${WKG_DEV}/${WKG_DIR}.session/root/Choices/ROX-Filer/globicons
+ if [ $? -ne 0 ];then
+  sed -i -e 's%dotpup%pkg-wrap%' /mnt/${WKG_DEV}/${WKG_DIR}.session/root/Choices/ROX-Filer/globicons
+  sed -i -e 's%dotpup%pkg-wrap%' /mnt/${WKG_DEV}/${WKG_DIR}.session/root/.config/rox.sourceforge.net/ROX-Filer/globicons 2>/dev/null
+ fi
+fi
+
+#20230423 remove...
+##fix globicons...
+##an inconstency, user-mod to desktop, PuppyPin gets changed in
+##/root/Choices/ROX-Filer/, but globicons gets copied and updated in
+##/root/.config/rox.sourceforge.net/ROX-Filer/...
+#mkdir -p /mnt/${WKG_DEV}/${WKG_DIR}.session/root/.config/rox.sourceforge.net/ROX-Filer
+#echo '<?xml version="1.0"?>
+#<special-files>' > newglobicons
+#for onelayer in /mnt/${WKG_DEV}/${WKG_DIR}.session ${EXTRASFSDIRS} /easy_ro/easy_sfs
+#do
+# globspec=""
+# [ -f ${onelayer}/root/Choices/ROX-Filer/globicons ] && globspec="${onelayer}/root/Choices/ROX-Filer/globicons"
+# [ -f ${onelayer}/root/.config/rox.sourceforge.net/ROX-Filer/globicons ] && globspec="${onelayer}/root/.config/rox.sourceforge.net/ROX-Filer/globicons"
+# [ ! "$globspec" ] && continue
+# while read oneline
+# do
+#  case "$oneline" in
+#   *\<rule*)
+#    read oneicon #ex: <icon>/usr/local/lib/X11/pixmaps/chat48.png</icon>
+#    read oneend  #</rule>
+#    pathspec="$(echo -n "${oneline}" | cut -f 2 -d '"')" #ex: /usr/local/bin/defaultchat
+#    [ "$(grep "${pathspec}" newglobicons)" != "" ] && continue
+#    echo "${oneline}" >> newglobicons
+#    echo "${oneicon}" >> newglobicons
+#    echo "${oneend}" >> newglobicons
+#   ;;
+#  esac
+# done <<_EOF
+#$(cat ${globspec})
+#_EOF
+#done
+#echo '</special-files>' >> newglobicons
+#cp -a -f newglobicons /mnt/${WKG_DEV}/${WKG_DIR}.session/root/.config/rox.sourceforge.net/ROX-Filer/globicons
 
 #200601 dir2sfs creates .desktop for main desktop, and .ec-desktop for container, so this section not needed, but keep for old sfs's...
 #181203 if user has installed an sfs that is really intended to be a new container,

@@ -47,7 +47,9 @@ done
 #160417 PuppyPin backup...
 if [ -f /root/Choices/ROX-Filer/PuppyPinBACKUP ];then
  touch /root/Choices/ROX-Filer/PuppyPin
- if [ "$(grep 'defaultbrowser' /root/Choices/ROX-Filer/PuppyPin)" == "" ];then
+ #if [ "$(grep 'defaultbrowser' /root/Choices/ROX-Filer/PuppyPin)" == "" ];then
+ grep -q 'www' /root/Choices/ROX-Filer/PuppyPin #20230423 change test.
+ if [ $? -ne 0 ];then
   cp -a -f /root/Choices/ROX-Filer/PuppyPinBACKUP /root/Choices/ROX-Filer/PuppyPin
  fi
 fi
