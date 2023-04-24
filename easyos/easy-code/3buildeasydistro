@@ -5336,11 +5336,22 @@ if [ "$SFSSPATH" ];then
   do
    aD="$(dirname $aF)"
    aT="${aD/*packages/}" #ex: /sfs/easyos/debian/buster
-   mkdir -p .${aT}
-   cp -f $aF .${aT}/
+   mkdir -p skeleton${aT}
+   cp -f $aF skeleton${aT}/
   done
  fi
 fi
+sync
+
+#20230425 compress some big executables...
+cd bin
+busybox gzip dialog
+busybox gzip e2fsck
+busybox gzip gpg
+busybox gzip mksquashfs
+#gzip tune2fs
+#gzip mp
+cd ..
 sync
 
 find . | cpio -o -H newc > ../initrd #181130

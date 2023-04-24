@@ -21,6 +21,7 @@
 #20230112 separate strings to file /nls/fscheck.str.en
 #20230210 always load .str.en, in case non-english is incomplete.
 #20230211 .str files folder hierarchy reorganized.
+#20230425 maybe compressed 'e2fsck'
 
 WKG_DRV=$1 #ex: sda
 WKG_DEV=$2 #ex: sda2
@@ -29,6 +30,13 @@ WKG_FS=$4  #20220622
 #180601 users may forget to put a trailing slash... a leading slash is not allowed...
 [ "$WKG_DIR" ] && [ "${WKG_DIR##*/}" ] && WKG_DIR="${WKG_DIR}/"
 [ "$WKG_DIR" ] && [ "${WKG_DIR:0:1}" == "/" ] && WKG_DIR="${WKG_DIR:1:99}"
+
+if [ -f /bin/e2fsck.gz ];then #20230425
+ cd /bin
+ gunzip e2fsck.gz
+ chmod 755 e2fsck
+ cd ..
+fi
 
 #20230112 QLANG exported from init. 20230211
 . /nls/en/fscheck.str #20230210

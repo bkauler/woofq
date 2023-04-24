@@ -155,6 +155,7 @@
 #20230409 /mnt/${WKG_DEV}/${WKG_DIR}data is no longer encrypted.
 #20230414 not sure if busybox hwclock accepts "--localtime" use "-l"
 #20230423 revert 20220601 do not delete PuppyPin.
+#20230425 maybe compressed 'gpg' 'mksquashfs'
 
 #20220525 3buildeasydistro will substitute values here...
 EOS_TOP_LEVEL_ZRAM=EOSTOPLEVELZRAM #20220521 1=yes, anything else no.
@@ -1572,6 +1573,12 @@ XDG_VIDEOS_DIR="/files/media"' > ${bDL}/.config/user-dirs.dirs
  do
   echo "$aDOTC" >> exclusions1
  done
+ if [ -f /bin/mksquashfs.gz ];then #20230425
+  cd /bin
+  gunzip mksquashfs.gz
+  chmod 755 mksquashfs
+  cd ..
+ fi
  mksquashfs /mnt/${WKG_DEV}/${WKG_DIR}.session /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${INIT_DISTRO_VERSION}/rw-${INIT_DISTRO_VERSION}.sfs -ef exclusions1 -comp lz4 -Xhc #>/dev/null
  
  if [ "$EOS_SUPPORT_CONTAINERS" != "0" ];then
@@ -1607,6 +1614,12 @@ if [ -s /mnt/${WKG_DEV}/${WKG_DIR}.session/.qsfs.flg ];then #181029 now in sfs f
  echo -e "\\033[1;35mRecompressing easy.sfs, xz to gz, please wait\\033[0;39m" #purple
  mkdir /mntsfs
  mount -r -t squashfs -o loop,noatime /mnt/${WKG_DEV}/${WKG_DIR}sfs/easyos/${INIT_DISTRO_BINARY_COMPAT}/${INIT_DISTRO_COMPAT_VERSION}/easy_${INIT_DISTRO_VERSION}_${INIT_DISTRO_TARGETARCH}.sfs /mntsfs
+ if [ -f /bin/mksquashfs.gz ];then #20230425
+  cd /bin
+  gunzip mksquashfs.gz
+  chmod 755 mksquashfs
+  cd ..
+ fi
  mksquashfs /mntsfs /mnt/${WKG_DEV}/${WKG_DIR}sfs/easyos/${INIT_DISTRO_BINARY_COMPAT}/${INIT_DISTRO_COMPAT_VERSION}/easy-gz.sfs -comp lz4 -Xhc #>/dev/null 180604
  sync
  umount /mntsfs
@@ -1768,6 +1781,12 @@ fi
 
 #20230405
 if [ ! -f /mnt/${WKG_DEV}/${WKG_DIR}.session/root/.gnupg/pubring.gpg ];then
+ if [ -f /bin/gpg.gz ];then #20230425
+  cd /bin
+  gunzip gpg.gz
+  chmod 755 gpg
+  cd ..
+ fi
  echo
  echo "${S304}" #'Creating gnupg signed key pair, at /root/.gnupg'
  mkdir -p /mnt/${WKG_DEV}/${WKG_DIR}.session/root/.gnupg
