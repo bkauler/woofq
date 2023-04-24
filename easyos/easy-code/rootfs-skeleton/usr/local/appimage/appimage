@@ -1,6 +1,7 @@
 #!/bin/bash
 #d/l and install an appimage.
 #20230415 start and stop dbus-daemon for session.
+#20230425 entries in external file.
 
 export TEXTDOMAIN=appimages
 export TEXTDOMAINDIR=/usr/share/locale
@@ -54,6 +55,7 @@ do
   #.AppImage may have been manually downloaded, so check if actually installed...
   if [ -x /usr/bin/${aAI##*/} ];then
    eval "FLG${aAI##*/}='√'" #ex: sets FLGaudacity=√
+   export FLG${aAI##*/}
   fi
  else
   #remove .specs file, if it exists...
@@ -62,6 +64,19 @@ do
   rm -f ${aAI}/${aAI##*/}.bin 2>/dev/null
  fi
 done
+
+ARCH='amd64'
+/usr/local/appimage/entries/${ARCH}/entries #this evaluates each entry.
+ENTRIESaudio="$(cat /tmp/appimage/ENTRIESaudio)"
+ENTRIESdeveloper="$(cat /tmp/appimage/ENTRIESdeveloper)"
+ENTRIESgames="$(cat /tmp/appimage/ENTRIESgames)"
+ENTRIESgraphics="$(cat /tmp/appimage/ENTRIESgraphics)"
+ENTRIESnetwork="$(cat /tmp/appimage/ENTRIESnetwork)"
+ENTRIESoffice="$(cat /tmp/appimage/ENTRIESoffice)"
+ENTRIESproductivity="$(cat /tmp/appimage/ENTRIESproductivity)"
+ENTRIESsystem="$(cat /tmp/appimage/ENTRIESsystem)"
+ENTRIESvideo="$(cat /tmp/appimage/ENTRIESvideo)"
+ENTRIESother="$(cat /tmp/appimage/ENTRIESother)"
 
 PACKAGE="AppImage"
 DESCRIPTION="$(gettext 'Description')"
@@ -75,93 +90,56 @@ export APPIMG_DLG1="<window title=\"$(gettext 'AppImage Installer')\">
         <height>300</height>
         <variable>TREEaudio</variable>
         <action signal=\"enter-notify-event\" type=\"refresh\">TREEaudio</action>
-        <item icon-name=\"audacity\">Audacity|${FLGaudacity}|44M|$(gettext 'A free, easy-to-use, multi-track audio editor and recorder')</item>
-        <item icon-name=\"lmms\">LMMS|${FLGlmms}|92M|$(gettext 'Synthesize and mix music')</item>
+        ${ENTRIESaudio}
       </tree>
       <tree column-resizeable=\"0\">
         <label>${PACKAGE}||${SIZE}|${DESCRIPTION}</label>
         <height>300</height>
         <variable>TREEdeveloper</variable>
         <action signal=\"enter-notify-event\" type=\"refresh\">TREEdeveloper</action>
-        <item icon-name=\"figma\">Figma|${FLGfigma}|102M|$(gettext 'User Interface design tool')</item>
-        <item icon-name=\"gdevelop\">GDevelop|${FLGgdevelop}|128M|$(gettext 'No-code game creation')</item>
-        <item icon-name=\"gitqlient\">GitQlient|${FLGgitqlient}|28M|$(gettext 'Multi-platform GIT client written with Qt')</item>
-        <item icon-name=\"glyphr\">Glyphr|${FLGglyphr}|110M|$(gettext 'Web-based font designer')</item>
-        <item icon-name=\"guitar\">Guitar|${FLGguitar}|21M|$(gettext 'GIT GUI client')</item>
-        <item icon-name=\"insight\">Insight|${FLGinsight}|110M|$(gettext 'GUI frontend for GNU Debugger')</item>
+        ${ENTRIESdeveloper}
       </tree>
       <tree column-resizeable=\"0\">
         <label>${PACKAGE}||${SIZE}|${DESCRIPTION}</label>
         <height>300</height>
         <variable>TREEgames</variable>
         <action signal=\"enter-notify-event\" type=\"refresh\">TREEgames</action>
-        <item icon-name=\"cromagrally\">CroMagRally|${FLGcromagrally}|129M|$(gettext 'Cro-Magnon car racing game')</item>
-        <item icon-name=\"endlesssky\">EndlessSky|${FLGendlesssky}|232M|$(gettext 'Outer-space adventure game')</item>
-        <item icon-name=\"nanosaur\">Nanosaur|${FLGnanosaur}|17M|$(gettext 'Strategy 3D game')</item>
-        <item icon-name=\"ottomatic\">OttoMatic|${FLGottomatic}|141M|$(gettext 'Strategy 3D game')</item>
-        <item icon-name=\"planetblupi\">PlanetBlupi|${FLGplanetblupi}|105M|$(gettext 'Strategy and adventure game')</item>
+        ${ENTRIESgames}
       </tree>
       <tree column-resizeable=\"0\">
         <label>${PACKAGE}||${SIZE}|${DESCRIPTION}</label>
         <height>300</height>
         <variable>TREEgraphics</variable>
         <action signal=\"enter-notify-event\" type=\"refresh\">TREEgraphics</action>
-        <item icon-name=\"digikam\">digiKam|${FLGdigikam}|240M|$(gettext 'Professional photo manager')</item>
-        <item icon-name=\"dust3d\">Dust3D|${FLGdust3d}|25M|$(gettext '3D modeling')</item>
-        <item icon-name=\"freecad\">FreeCAD|${FLGfreecad}|944M|$(gettext '3D parametric modeling')</item>
-        <item icon-name=\"krita\">Krita|${FLGkrita}|334M|$(gettext 'Vector and raster painting program')</item>
-        <item icon-name=\"librecad\">LibreCAD|${FLGlibrecad}|47M|$(gettext '2D CAD')</item>
-        <item icon-name=\"mypaint\">MyPaint|${FLGmypaint}|46M|$(gettext 'Paint program, excellent with graphics tablet')</item>
-        <item icon-name=\"openscad\">OpenSCAD|${FLGopenscad}|39M|$(gettext 'Solid 3D CAD modeller')</item>
-        <item icon-name=\"pdfquirk\">PDFQuirk|${FLGpdfquirk}|18M|$(gettext 'Convert images to PDF')</item>
-        <item icon-name=\"phototool\">PhotoTool|${FLGphototool}|30M|$(gettext 'Photo editor')</item>
+        ${ENTRIESgraphics}
       </tree>
       <tree column-resizeable=\"0\">
         <label>${PACKAGE}||${SIZE}|${DESCRIPTION}</label>
         <height>300</height>
         <variable>TREEnetwork</variable>
         <action signal=\"enter-notify-event\" type=\"refresh\">TREEnetwork</action>
-        <item icon-name=\"altus\">Altus|${FLGaltus}|95M|$(gettext 'WhatsApp messaging and calls')</item>
-        <item icon-name=\"deltachat\">DeltaChat|${FLGdeltachat}|143M|$(gettext 'Desktop and phone messaging app')</item>
-        <item icon-name=\"discord\">Discord|${FLGdiscord}|90M|$(gettext 'Message and video sharing')</item>
-        <item icon-name=\"electorrent\">Electorrent|${FLGelectorrent}|82M|$(gettext 'A client for uTorrent, rTorrent, Transmission, etc.')</item>
-        <item icon-name=\"jitsimeet\">JitsiMeet|${FLGjitsimeet}|90M|$(gettext 'Online video conferencing')</item>
-        <item icon-name=\"telegram\">Telegram|${FLGtelegram}|50M|$(gettext 'Simple, fast, secure messaging')</item>
-        <item icon-name=\"thunderbird\">Thunderbird|${FLGthunderbird}|82M|$(gettext 'Mozilla mail client')</item>
-        <item icon-name=\"ungoogledchromium\">UngoogledChromium|${FLGungoogledchromium}|149M|$(gettext 'Chromium browser without Google Services')</item>
-        <item icon-name=\"zoom\">Zoom|${FLGzoom}|227M|$(gettext 'Online video conferencing')</item>
+        ${ENTRIESnetwork}
       </tree>
       <tree column-resizeable=\"0\">
         <label>${PACKAGE}||${SIZE}|${DESCRIPTION}</label>
         <height>300</height>
         <variable>TREEoffice</variable>
         <action signal=\"enter-notify-event\" type=\"refresh\">TREEoffice</action>
-        <item icon-name=\"antares\">Antares|${FLGantares}|126M|$(gettext 'SQL client')</item>
-        <item icon-name=\"calibre\">Calibre|${FLGcalibre}|175M|$(gettext 'E-book reader')</item>
-        <item icon-name=\"dbbrowser\">DBBrowser|${FLGdbbrowser}|37M|$(gettext 'Create and edit SQLITE databases')</item>
-        <item icon-name=\"dbgate\">DbGate|${FLGdbgate}|93M|$(gettext 'Multi-protocol SQL+noSQL database client')</item>
-        <item icon-name=\"koodoreader\">KoodoReader|${FLGkoodoreader}|87M|$(gettext 'Multi-format e-book reader')</item>
-        <item icon-name=\"koreader\">KOReader|${FLGkoreader}|42M|$(gettext 'Multi-format e-book reader')</item>
-        <item icon-name=\"onlyoffice\">ONLYOFFICE|${FLGonlyoffice}|299M|$(gettext 'Word-processing, spreadsheet, presentations office suite')</item>
+        ${ENTRIESoffice}
       </tree>
       <tree column-resizeable=\"0\">
         <label>${PACKAGE}||${SIZE}|${DESCRIPTION}</label>
         <height>300</height>
         <variable>TREEproductivity</variable>
         <action signal=\"enter-notify-event\" type=\"refresh\">TREEproductivity</action>
-        <item icon-name=\"acreom\">Acreom|${FLGacreom}|174M|$(gettext 'Private knowledge base')</item>
-        <item icon-name=\"goldendict\">GoldenDict|${FLGgoldendict}|56M|$(gettext 'Feature-rich dictionary lookup')</item>
-        <item icon-name=\"groot\">Groot|${FLGgroot}|42M|$(gettext 'BehaviorTree diagram creator')</item>
-        <item icon-name=\"heimer\">Heimer|${FLGheimer}|25M|$(gettext 'Mind mapping diagrammer tool')</item>
-        <item icon-name=\"keepassxc\">KeePassXC|${FLGkeepassxc}|40M|$(gettext 'Password manager')</item>
-        <item icon-name=\"onenote\">OneNote|${FLGonenote}|93M|$(gettext 'A Linux version of Microsoft OneNote')</item>
+        ${ENTRIESproductivity}
       </tree>
       <tree column-resizeable=\"0\">
         <label>${PACKAGE}||${SIZE}|${DESCRIPTION}</label>
         <height>300</height>
         <variable>TREEsystem</variable>
         <action signal=\"enter-notify-event\" type=\"refresh\">TREEvideo</action>
-        <item icon-name=\"etcher\">Etcher|${FLGetcher}|98M|$(gettext 'Flash OS images to SD and USB drives')</item>
+        ${ENTRIESsystem}
       </tree>
 
       <tree column-resizeable=\"0\">
@@ -169,10 +147,7 @@ export APPIMG_DLG1="<window title=\"$(gettext 'AppImage Installer')\">
         <height>300</height>
         <variable>TREEvideo</variable>
         <action signal=\"enter-notify-event\" type=\"refresh\">TREEvideo</action>
-        <item icon-name=\"kdenlive\">Kdenlive|${FLGkdenlive}|175M|$(gettext 'Video editor')</item>
-        <item icon-name=\"losslesscut\">LosslessCut|${FLGlosslesscut}|153M|$(gettext 'Video editor')</item>
-        <item icon-name=\"openshot\">OpenShot|${FLGopenshot}|229M|$(gettext 'Easy and powerful video editor')</item>
-        <item icon-name=\"webcamoid\">Webcamoid|${FLGwebcamoid}|86M|$(gettext 'A full-featured webcam suite')</item>
+        ${ENTRIESvideo}
       </tree>
 
       <tree column-resizeable=\"0\">
@@ -180,9 +155,7 @@ export APPIMG_DLG1="<window title=\"$(gettext 'AppImage Installer')\">
         <height>300</height>
         <variable>TREEother</variable>
         <action signal=\"enter-notify-event\" type=\"refresh\">TREEother</action>
-        <item icon-name=\"exelearning\">eXeLearning|${FLGexelearning}|97M|$(gettext 'Create educational resources')</item>
-        <item icon-name=\"leocad\">LeoCAD|${FLGleocad}|125M|$(gettext 'Build models with lego bricks')</item>
-        <item icon-name=\"musicblocks\">Musicblocks|${FLGmusicblocks}|122M|$(gettext 'Explore fundamental music concepts graphically')</item>
+        ${ENTRIESother}
       </tree>
 
     </notebook>
