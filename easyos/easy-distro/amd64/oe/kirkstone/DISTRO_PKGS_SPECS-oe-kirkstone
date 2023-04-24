@@ -403,7 +403,7 @@ yes|libid3tag|libid3tag|exe,dev,doc,nls|compat:kirkstone
 no|libidl|libidl|exe,dev,doc,nls|compat:kirkstone| #needed by old versions of seamonkey. 20221223 oe compile fail.
 yes|libidn|libidn|exe,dev,doc,nls|compat:kirkstone
 yes|libidn2|libidn2|exe,dev,doc,nls|compat:kirkstone|
-yes|libinput|libinput|exe,dev,doc,nls|compat:kirkstone| #20221224 needed by xf86-input-libinput
+no|libinput|libinput|exe,dev,doc,nls|compat:kirkstone| #20221224 needed by xf86-input-libinput 20230425 leaving out.
 yes|libjpeg-turbo|libjpeg-turbo|exe,dev,doc,nls|compat:kirkstone
 yes|libksba|libksba|exe,dev,doc,nls|compat:kirkstone| #dep of gnupg
 yes|liblangtag|liblangtag|exe,dev,doc,nls|compat:kirkstone| #reqd by libreoffice.
@@ -860,7 +860,8 @@ yes|xrdb|xrdb|exe,dev,doc,nls|compat:kirkstone|
 yes|xsane|xsane|exe,dev>null,doc,nls|compat:kirkstone|
 no|xserver-fb||exe|pet:kirkstone| #20230122 to use in the initrd. 20230309 no longer using
 yes|xserver-xf86-config|xserver-xf86-config|exe,dev,doc,nls|compat:kirkstone
-yes|xserver_xorg|xserver-xorg,xf86-input-*,xf86-video-*|exe,dev,doc,nls|compat:kirkstone|
+no|xserver_xorg|xserver-xorg,xf86-input-*,xf86-video-*|exe,dev,doc,nls|compat:kirkstone|
+yes|xserver_xorg|xserver-xorg,xf86-input-evdev,xf86-input-keyboard,xf86-input-mouse,xf86-input-synaptics,xf86-input-wacom,xf86-video-*|exe,dev,doc,nls|compat:kirkstone| #20230424 exclude xf86-input-tslib and -libinput
 yes|xset|xset|exe,dev,doc,nls|compat:kirkstone
 yes|xsetmode|xsetmode|exe,dev,doc,nls|compat:kirkstone
 yes|xsetroot|xsetroot|exe,dev,doc,nls|compat:kirkstone|
