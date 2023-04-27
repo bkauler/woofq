@@ -286,13 +286,13 @@ if [ -e /mnt/wkg/flatpak/exports/bin/${TRIPLET} ];then
     rm -f /usr/bin/${aAPP,,}.bin
     grep -q "/home/${aAPP,,}/${aAPP,,}" /root/Choices/ROX-Filer/PuppyPin
     if [ $? -eq 0 ];then
-     #remove desktop icon...
+     #remove desktop icon... 20230427 fix
      echo "<?xml version=\"1.0\"?>
 <env:Envelope xmlns:env=\"http://www.w3.org/2001/12/soap-envelope\">
  <env:Body xmlns=\"http://rox.sourceforge.net/SOAP/ROX-Filer\">
-  <UnsetIcon>
+  <PinboardRemove>
    <Path>/home/${aAPP,,}/${aAPP,,}</Path>
-  </UnsetIcon>
+  </PinboardRemove>
  </env:Body>
 </env:Envelope>" | rox -R
     fi
