@@ -49,10 +49,6 @@ do
  export FLG${aFP,,}
 done
 
-###removed###
-#was in audio category. hangs after startup...
-# <item icon-name=\"cozy\">Cozy|${FLGcozy}|$(gettext 'Audio book player')</item>
-
 ARCH='amd64'
 /usr/local/flatpak/entries/${ARCH}/entries #this evaluates each entry.
 ENTRIESaudio="$(cat /tmp/flatpak/ENTRIESaudio)"
@@ -212,6 +208,7 @@ case "${aAPP}" in
  Betterbird) TRIPLET='eu.betterbird.Betterbird'; MENUcat='X-Internet'; MENUtop='Internet'; MENUname='Betterbird email client'; ;;
  QGIS) TRIPLET='org.qgis.qgis'; MENUcat='X-Personal'; MENUtop='Personal'; MENUname='QGIS Geographic Information System'; ;;
  Gramps) TRIPLET='org.gramps_project.Gramps'; MENUcat='X-Personal'; MENUtop='Personal'; MENUname='Gramps genealogy program'; ;;
+ PPSSPP) TRIPLET='org.ppsspp.PPSSPP'; MENUcat='X-Fun'; MENUtop='Fun'; MENUname='PPSSPP PlayStation emulator'; ;;
  ZZZ) TRIPLET=''; MENUcat=''; MENUtop=''; MENUname=''; ;;
  *) exit ;; #precaution.
 esac
