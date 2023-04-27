@@ -5509,6 +5509,8 @@ do
  fi
 done
 sync
+#20230425 dest rootfs-complete/usr/share/locale/no fail as it is a symlink to nb
+# ...hmmm, only GdMap.mo and notecase.mo fail, might move them in packages-templates.
 cp -a -f --remove-destination nls/* rootfs-complete/
 sync
 
