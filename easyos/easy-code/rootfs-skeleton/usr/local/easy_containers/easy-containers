@@ -41,6 +41,7 @@
 #20221006 new EC_ACCESS_DRI enable 3D graphics.
 #20221031 if running as zeus, think need to bump up to root.
 #20230302 delete a container, did not fully delete when have indirect save.
+#20230427 screen out apps running non-root in main filesystem.
 
 WHOIAM="$(whoami)"
 [ "${WHOIAM}" != "root" ] && exec sudo -A ${0} ${@} #20221031
@@ -81,7 +82,19 @@ echo "$APPSLIST2" > /tmp/easy_containers/apps-list
 SFS_EXE_LIST="$(grep -h -E '^SFS_DB_apps=|^DB_apps=' /mnt/wkg/sfs/easyos/${DISTRO_BINARY_COMPAT}/${DISTRO_COMPAT_VERSION}/*.specs | cut -f 2 -d "'" | tr ',' '\n' | sed '/^$/d')"
 echo "$SFS_EXE_LIST" > /tmp/easy_containers/sfs-exe-list
 APPSLIST3="$(echo "$APPSLIST2" | grep -v -w -f /tmp/easy_containers/sfs-exe-list | sort -u)"
-echo "$APPSLIST3" > /tmp/easy_containers/apps-list
+#echo "$APPSLIST3" > /tmp/easy_containers/apps-list
+
+#20230427 screen out apps running non-root in main filesystem.
+# for various reasons, these may be too difficult to copy into a container.
+# ex: firefox and vivaldi d/l via the menu, we don't have a file-list.
+echo -n '' > /tmp/easy_containers/apps-list
+for aAPP in ${APPSLIST3}
+do
+ [ "$aAPP" == "" ] && continue
+ if ! which ${aAPP}.bin >/dev/null;then
+  echo "$aAPP" >> /tmp/easy_containers/apps-list
+ fi
+done
 
 #180723 if xorg started with "-nolisten local" then cannot use abstract socket...
 XORG_ABSTRACT_ALLOW='true'
