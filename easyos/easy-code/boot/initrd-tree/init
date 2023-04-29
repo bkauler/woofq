@@ -157,12 +157,14 @@
 #20230423 revert 20220601 do not delete PuppyPin.
 #20230425 maybe compressed 'gpg' 'mksquashfs'
 #20230429 fix workingdir when mount overlay fs. /build-choices has EOS_ variables.
+#20230429 /build-choices has EOS_FSCRYPT_VER value 1 or 2
 
 #20230429
 . /build-choices #3buildeasydistro copies it here.
 [ ! "$EOS_TOP_LEVEL_ZRAM" ] && EOS_TOP_LEVEL_ZRAM='1'
 [ ! "$EOS_SUPPORT_CONTAINERS" ] && EOS_SUPPORT_CONTAINERS='1'
 EOS_LOGIN_ZEUS='0' #no longer supporting this.
+[ ! "$EOS_FSCRYPT_VER" ] && EOS_FSCRYPT_VER='1'
 
 export EOS_SUPPORT_CONTAINERS #20220529 read in /sbin/rw-merge
 
@@ -1175,26 +1177,42 @@ ${S133}\\033[0;39m" #red.
      sync
      mnt_wkg_ext4_func
      if [ $? -ne 0 ];then
-      err_exit "${S143}"
+      err_exit "${S143}" #'Mounting the working-partition has failed.'
      fi
     else
-     echo "${S144}"
+     echo "${S144}" #'Folder encrypt support not enabled.'
     fi
    fi
   fi
   
-  POLICY="$(echo "$PW" | e4crypt add_key -S "s:${SALT}" | tail -n 1 | cut -f 2 -d '[' | cut -f 1 -d ']')" #190308
-  #need to check that ext4 f.s. is able to have encrypted folders...
-  e4crypt set_policy ${POLICY} /mnt/${WKG_DEV}/${WKG_DIR}.session > e4crypt.log 2>&1
-  if ! grep '^Error ' e4crypt.log >/dev/null; then
-   ALLOW_ASK_PW='yes'
-   cat e4crypt.log
-   [ "$EOS_SUPPORT_CONTAINERS" != "0" ] && e4crypt set_policy ${POLICY} /mnt/${WKG_DEV}/${WKG_DIR}containers
-   e4crypt set_policy ${POLICY} /mnt/${WKG_DEV}/${WKG_DIR}releases
-   e4crypt set_policy ${POLICY} /mnt/${WKG_DEV}/${WKG_DIR}files
-   #e4crypt set_policy ${POLICY} /mnt/${WKG_DEV}/${WKG_DIR}data #20211212  20230409 no longer encrypted.
-  else
-   echo "${S145}"
+  if [ "$EOS_FSCRYPT_VER" == "1" ];then #20230429
+   POLICY="$(echo "$PW" | e4crypt add_key -S "s:${SALT}" | tail -n 1 | cut -f 2 -d '[' | cut -f 1 -d ']')" #190308
+   #need to check that ext4 f.s. is able to have encrypted folders...
+   e4crypt set_policy ${POLICY} /mnt/${WKG_DEV}/${WKG_DIR}.session > e4crypt.log 2>&1
+   if ! grep '^Error ' e4crypt.log >/dev/null; then
+    ALLOW_ASK_PW='yes'
+    cat e4crypt.log
+    [ "$EOS_SUPPORT_CONTAINERS" != "0" ] && e4crypt set_policy ${POLICY} /mnt/${WKG_DEV}/${WKG_DIR}containers
+    e4crypt set_policy ${POLICY} /mnt/${WKG_DEV}/${WKG_DIR}releases
+    e4crypt set_policy ${POLICY} /mnt/${WKG_DEV}/${WKG_DIR}files
+    #e4crypt set_policy ${POLICY} /mnt/${WKG_DEV}/${WKG_DIR}data #20211212  20230409 no longer encrypted.
+   else
+    echo "${S145}" #'Sorry, the folders in the working partition cannot be encrypted. The password will only be set for root login.'
+   fi
+  else #20230429 v2
+   PASSPHRASE="$(printf %64s ${PW} | tr ' ' 'X')" #password padded to 64 bytes.
+   echo -n "$PASSPHRASE" > /PASSPHRASE
+   fscryptctl add_key /mnt/${WKG_DEV} < /PASSPHRASE > /FSKEYID
+   if [ $? -eq 0 ];then
+    FSKEYID="$(cat /FSKEYID)"
+    if [ "$EOS_SUPPORT_CONTAINERS" != "0" ];then
+     fscryptctl set_policy ${FSKEYID} /mnt/${WKG_DEV}/${WKG_DIR}containers
+    fi
+    fscryptctl set_policy ${FSKEYID} /mnt/${WKG_DEV}/${WKG_DIR}releases
+    fscryptctl set_policy ${FSKEYID} /mnt/${WKG_DEV}/${WKG_DIR}files
+   else
+    echo "${S145}" #'Sorry, the folders in the working partition cannot be encrypted. The password will only be set for root login.'
+   fi
   fi
  fi
  
@@ -1214,7 +1232,16 @@ ${S133}\\033[0;39m" #red.
  echo "ALLOW_ASK_PW='${ALLOW_ASK_PW}'" >> /mnt/${WKG_DEV}/${WKG_DIR}sfs/settings/initrd/CONFIG
 else
  #20211006 crap, if updating to 3.0+, have 'home' folder, not 'files'. here test 'releases' instead...
- POLICYflg="$(e4crypt get_policy /mnt/${WKG_DEV}/${WKG_DIR}releases | grep -o '^Error')" #"Error" if no encryption.
+ if [ "$EOS_FSCRYPT_VER" == "1" ];then #20230429
+  POLICYflg="$(e4crypt get_policy /mnt/${WKG_DEV}/${WKG_DIR}releases | grep -o '^Error')" #"Error" if no encryption.
+ else
+  fscryptctl get_policy /mnt/${WKG_DEV}/${WKG_DIR}releases >/dev/null 2>&1
+  if [ $? -eq 0 ];then
+   POLICYflg=''
+  else
+   POLICYflg='xxx'
+  fi
+ fi
  if [ "$POLICYflg" == "" ];then
   #folder has fscrypt enabled.
   ###precaution stuff... upgrading from pre-1.0.12
@@ -1232,16 +1259,23 @@ else
   if [ "$ALLOW_ASK_PW" == "yes" ];then
    while [ 1 ];do
     ask_pw 1 #sets $PW
-    #190308 problem, earlier releases used a different salt, $WKG_DISKID...
-    POLICY="$(echo "$PW" | e4crypt add_key -S "s:${SALT}" | tail -n 1 | cut -f 2 -d '[' | cut -f 1 -d ']')"
-    [  -d /mnt/${WKG_DEV}/${WKG_DIR}home/downloads ] && break #20211006 fix
-    [  -d /mnt/${WKG_DEV}/${WKG_DIR}files/downloads ] && break
-    fdisk -l /dev/${WKG_DRV} > /fdisk.log 2>&1
-    WKG_DISKID="$(grep '^Disk identifier:' /fdisk.log | cut -f 3 -d ' ')"
-    POLICY="$(echo "$PW" | e4crypt add_key -S "s:${WKG_DISKID}" | tail -n 1 | cut -f 2 -d '[' | cut -f 1 -d ']')"
-    [  -d /mnt/${WKG_DEV}/${WKG_DIR}home/downloads ] && break #20211006 fix
-    [  -d /mnt/${WKG_DEV}/${WKG_DIR}files/downloads ] && break
-    echo -e "\n\\e[1;30;43m ${S146} \\e[0;;m"
+    if [ "$EOS_FSCRYPT_VER" == "1" ];then #20230429
+     POLICY="$(echo "$PW" | e4crypt add_key -S "s:${SALT}" | tail -n 1 | cut -f 2 -d '[' | cut -f 1 -d ']')"
+     if [  -d /mnt/${WKG_DEV}/${WKG_DIR}files/downloads ];then
+      break
+     fi
+    else #v2
+     PASSPHRASE="$(printf %64s ${PW} | tr ' ' 'X')" #password padded to 64 bytes.
+     echo -n "$PASSPHRASE" > /PASSPHRASE
+     fscryptctl add_key /mnt/${WKG_DEV} < /PASSPHRASE > /FSKEYID
+     if [  -d /mnt/${WKG_DEV}/${WKG_DIR}files/downloads ];then
+      break
+     else
+      FSKEYID="$(cat /FSKEYID)"
+      fscryptctl remove_key ${FSKEYID} /mnt/${WKG_DEV}
+     fi
+    fi
+    echo -e "\n\\e[1;30;43m ${S146} \\e[0;;m" #'Password incorrect. Try again'
    done
    menu_delay_func #20220623 ask_pw calls menu_func, but some operations have to be done after pw entry.
    echo
