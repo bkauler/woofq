@@ -294,6 +294,7 @@
 #20230403 easy.run-once-top: remove appimage.desktop in container.
 #20230416 pre-populate initrd sfs .png and .specs files.
 #20230423 trying to fix norwegian.
+#20230429 no need to substitute variable values in initrd.
 
 export LANG=C #faster.
 
@@ -387,11 +388,6 @@ EOS_LOGIN_ZEUS='0' #20221030 default login as root.
 if [ -f build-choices ];then
 . ./build-choices
 fi
-
-#20220525 insert value in init
-sed -i -e "s%EOSTOPLEVELZRAM%${EOS_TOP_LEVEL_ZRAM}%" boot/initrd-tree/init
-sed -i -e "s%EOSSUPPORTCONTAINERS%${EOS_SUPPORT_CONTAINERS}%" boot/initrd-tree/init
-#sed -i -e "s%EOSLOGINZEUS%${EOS_LOGIN_ZEUS}%" boot/initrd-tree/init #20221030 20221102 remove
 
 #120506. 160928. 161003. 170325
 case "$BUILD_CHOICE_BOARD" in #in file build-choices.

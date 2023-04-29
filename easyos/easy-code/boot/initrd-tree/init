@@ -156,15 +156,14 @@
 #20230414 not sure if busybox hwclock accepts "--localtime" use "-l"
 #20230423 revert 20220601 do not delete PuppyPin.
 #20230425 maybe compressed 'gpg' 'mksquashfs'
+#20230429 fix workingdir when mount overlay fs. /build-choices has EOS_ variables.
 
-#20220525 3buildeasydistro will substitute values here...
-EOS_TOP_LEVEL_ZRAM=EOSTOPLEVELZRAM #20220521 1=yes, anything else no.
-EOS_SUPPORT_CONTAINERS=EOSSUPPORTCONTAINERS #20220525 0=no, anything else yes.
-EOS_LOGIN_ZEUS=EOSLOGINZEUS #20221030 1=yes, 0 or anything else =no
-#20220623 precaution, in case put this original init script into initrd... 20220730 fix...
-[ "$EOS_TOP_LEVEL_ZRAM" != "1" -a "$EOS_TOP_LEVEL_ZRAM" != "0" ] && EOS_TOP_LEVEL_ZRAM=1
-[ "$EOS_SUPPORT_CONTAINERS" != "1" -a "$EOS_SUPPORT_CONTAINERS" != "0" ] && EOS_SUPPORT_CONTAINERS=1
-[ "$EOS_LOGIN_ZEUS" != "1" -a "$EOS_LOGIN_ZEUS" != "0" ] && EOS_LOGIN_ZEUS=0 #20221030
+#20230429
+. /build-choices #3buildeasydistro copies it here.
+[ ! "$EOS_TOP_LEVEL_ZRAM" ] && EOS_TOP_LEVEL_ZRAM='1'
+[ ! "$EOS_SUPPORT_CONTAINERS" ] && EOS_SUPPORT_CONTAINERS='1'
+EOS_LOGIN_ZEUS='0' #no longer supporting this.
+
 export EOS_SUPPORT_CONTAINERS #20220529 read in /sbin/rw-merge
 
 mount -o hidepid=1,gid=118 -t proc none /proc #20210407 20210912
@@ -1957,7 +1956,13 @@ if [ "$LAYERFS" == "aufs" ];then #170525 20220521
   mount -t aufs -o br=${SESSIONHOME}=rw:${sessionSFS}${EXTRASFS}/easy_ro/easy_sfs=ro aufs /easy_new
  fi
 else
- mount -t overlay -o lowerdir=${sessionSFS}${EXTRASFS}/easy_ro/easy_sfs,upperdir=${SESSIONHOME},workdir=/mnt/${WKG_DEV}/${WKG_DIR}.tempwork overlay /easy_new
+ if [ $EOS_TOP_LEVEL_ZRAM -eq 1 ];then #20230429
+  mkdir /easy_rw/tempwork
+  #not using $sessionSFS anymore. lowerdir=dir1:dir2:dri3 dir3 is lowest.
+  mount -t overlay -o lowerdir=${SESSIONHOME}:${EXTRASFS}/easy_ro/easy_sfs,upperdir=/easy_rw/mainrw,workdir=/easy_rw/tempwork overlay /easy_new
+ else
+  mount -t overlay -o lowerdir=${EXTRASFS}/easy_ro/easy_sfs,upperdir=${SESSIONHOME},workdir=/mnt/${WKG_DEV}/${WKG_DIR}.tempwork overlay /easy_new
+ fi
 fi
 [ $? -ne 0 ] && err_exit "${S221}"
 
