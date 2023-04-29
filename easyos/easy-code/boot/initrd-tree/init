@@ -158,6 +158,7 @@
 #20230425 maybe compressed 'gpg' 'mksquashfs'
 #20230429 fix workingdir when mount overlay fs. /build-choices has EOS_ variables.
 #20230429 /build-choices has EOS_FSCRYPT_VER value 1 or 2
+#20230430 64 byte hash generated from password.
 
 #20230429
 . /build-choices #3buildeasydistro copies it here.
@@ -1200,7 +1201,7 @@ ${S133}\\033[0;39m" #red.
     echo "${S145}" #'Sorry, the folders in the working partition cannot be encrypted. The password will only be set for root login.'
    fi
   else #20230429 v2
-   PASSPHRASE="$(printf %64s ${PW} | tr ' ' 'X')" #password padded to 64 bytes.
+   PASSPHRASE="$(echo -n ${PW}xxxx | argon2 ${SALT} -l 32 -r)" #20230430 64 byte hash generated from password.
    echo -n "$PASSPHRASE" > /PASSPHRASE
    fscryptctl add_key /mnt/${WKG_DEV} < /PASSPHRASE > /FSKEYID
    if [ $? -eq 0 ];then
@@ -1265,7 +1266,7 @@ else
       break
      fi
     else #v2
-     PASSPHRASE="$(printf %64s ${PW} | tr ' ' 'X')" #password padded to 64 bytes.
+     PASSPHRASE="$(echo -n ${PW}xxxx | argon2 ${SALT} -l 32 -r)" #20230430 64 byte hash generated from password.
      echo -n "$PASSPHRASE" > /PASSPHRASE
      fscryptctl add_key /mnt/${WKG_DEV} < /PASSPHRASE > /FSKEYID
      if [  -d /mnt/${WKG_DEV}/${WKG_DIR}files/downloads ];then

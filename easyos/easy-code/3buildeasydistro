@@ -295,6 +295,7 @@
 #20230416 pre-populate initrd sfs .png and .specs files.
 #20230423 trying to fix norwegian.
 #20230429 no need to substitute variable values in initrd.
+#20230429 copy fscryptctl from initrd to rootfs-complete. 20230430 and argon2
 
 export LANG=C #faster.
 
@@ -5317,6 +5318,14 @@ done
 
 #20230220 /sbin/ask-language in initrd wants this...
 cp -a -f ../../build-choices ./
+
+#20230429
+if [ -e bin/fscryptctl ];then
+ cp -a -f bin/fscryptctl ../../sandbox3/rootfs-complete/sbin/
+fi
+if [ -e bin/argon2 ];then #20230430
+ cp -a -f bin/argon2 ../../sandbox3/rootfs-complete/sbin/
+fi
 
 #20230416 pre-populate sfs .png and .specs files...
 SFSSPATH=''
