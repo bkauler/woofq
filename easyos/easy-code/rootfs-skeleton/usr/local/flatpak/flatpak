@@ -5,6 +5,7 @@
 #20230412 confirm operation success.
 #20230414 extract entries to a separate file.
 #20230415 start dbus-daemon session and kill.
+#20230502 support fscrypt v2
 
 export TEXTDOMAIN=flatpaks
 export TEXTDOMAINDIR=/usr/share/locale
@@ -15,6 +16,13 @@ CR='
 '
 mkdir -p /tmp/flatpak
 mkdir -p /mnt/wkg/flatpak
+. /root/.packages/build-choices #20230502 has EOS_FSCRYPT_VER
+
+if [ "$EOS_FSCRYPT_VER" == "1" ];then
+ M2="$(gettext 'The Flatpak sandbox is good, but conflicts with ext4 folder encryption. Thus, the application-name in the /home folder is a symlink to an unencrypted folder in the working-partition.')"
+else
+ M2="$(gettext 'If you entered a password at first bootup of EasyOS, then all working folders are encrypted, and this includes files created by the AppImage while you are using it. If your USB-stick, or on whatever media EasyOS is installed, is stolen, your data is safe.')"
+fi
 
 Hfp1="$(gettext 'Flatpaks are applications that contain all dependencies built-in, so they will run on almost any Linux distribution, without having to install any other packages.')
 $(gettext 'Consequently, they are large, typically 100MB to 900MB, so you do need reasonably fast Internet and adequate data allowance with your telco.')
@@ -26,7 +34,7 @@ $(gettext 'Upon installation, a menu-entry is created, and you are good-to-go.')
 <b>$(gettext 'Notes')</b>
 $(gettext 'A tick in the second column means that the Flatpak is already installed. You may then have the opportunity of updating or deleting it.')
 $(gettext 'After a Flatpak is installed, the file-manager will recognize the file types handled by that app. Right-click on an appropriate file and the Flatpak will be offered to open it.')
-$(gettext 'The Flatpak sandbox is good, but conflicts with ext4 folder encryption. Thus, the application-name in the /home folder is a symlink to an unencrypted folder in the working-partition.')"
+${M2}"
 export DLG_HELP_FP="<window resizable=\"false\" title=\"$(gettext 'Help: Flatpak Installer')\" icon-name=\"gtk-index\" window_position=\"1\"><vbox><text use-markup=\"true\"><label>\"${Hfp1}\"</label><variable>DLG_HELP_FP</variable></text><hbox><button><label>$(gettext 'Close')</label><action type=\"closewindow\">DLG_HELP_FP</action></button></hbox></vbox></window>"
 
 #find out what already installed...
@@ -433,11 +441,11 @@ if [ -s /tmp/flatpak/mimetype ];then
  cat /tmp/flatpak/mimetype >> /usr/share/applications/${aAPP,,}.desktop
 fi
 
-#20230409 mount unencrypted folder on /home/<app>... no, symlink...
-mkdir -p /mnt/wkg/data/flatpak/${aAPP,,}/data
-#mkdir -p /home/${aAPP,,}
-#busybox mount --bind -o noatime /mnt/wkg/data/flatpak/${aAPP,,} /home/${aAPP,,}
-ln -s /mnt/wkg/data/flatpak/${aAPP,,} /home/${aAPP,,}
+if [ "$EOS_FSCRYPT_VER" == "1" ];then #20230502
+ #20230409 mount unencrypted folder on /home/<app>... no, symlink...
+ mkdir -p /mnt/wkg/data/flatpak/${aAPP,,}/data
+ ln -s /mnt/wkg/data/flatpak/${aAPP,,} /home/${aAPP,,}
+fi
 
 #create /usr/bin/${aAPP,,} script to run as user ${aAPP,,} ...
 setup-client "${aAPP,,}=true"
@@ -449,15 +457,29 @@ jwm -reload
 #update the right-click menu...
 build-rox-sendto /usr/share/applications/${aAPP,,}.desktop
 
-#20230409 flatpak sandbox doesn't work properly with ext4 fscrypt.
-# that is why created a symlink to unencrypted folder.
-# using /home/<app>/data for open/save. chown already done.
-#create a path for optional open/save files for this app
-#mkdir -p /files/apps/${aAPP,,}
-#chown -R ${aAPP,,}:${aAPP,,} /files/apps/${aAPP,,}
-#for extra security...
-#chmod 700 /files/apps/${aAPP,,}
-chmod 700 /home/${aAPP,,}/data
+if [ "$EOS_FSCRYPT_VER" == "1" ];then #20230502
+ #20230409 flatpak sandbox doesn't work properly with ext4 fscrypt.
+ # that is why created a symlink to unencrypted folder.
+ # using /home/<app>/data for open/save. chown already done.
+ #create a path for optional open/save files for this app
+ #mkdir -p /files/apps/${aAPP,,}
+ #chown -R ${aAPP,,}:${aAPP,,} /files/apps/${aAPP,,}
+ #for extra security...
+ #chmod 700 /files/apps/${aAPP,,}
+ chmod 700 /home/${aAPP,,}/data
+ M1="$(gettext 'This means that the app will only be able to save files in the home directory.')
+$(gettext 'For your convenience, this folder has been created:')
+  /home/${aAPP,,}/data"
+else
+ #create a path for optional open/save files for this app
+ mkdir -p /files/apps/${aAPP,,}
+ chown -R ${aAPP,,}:${aAPP,,} /files/apps/${aAPP,,} #20230318
+ #20230319 for extra security...
+ chmod 700 /files/apps/${aAPP,,}
+ M1="$(gettext 'This means that the app will only be able to save files in the home directory or anywhere in the /files folder.')
+$(gettext 'For your convenience, this folder has been created:')
+  /files/apps/${aAPP,,}" 
+fi
 
 export FP_DLG5="<window title=\"$(gettext 'Flatpak Installer: success')\">
   <vbox>
@@ -472,9 +494,7 @@ $(gettext 'The AppImage will run as this user:')
 $(gettext 'With user home directory:')
   /home/${aAPP,,}
 
-$(gettext 'This means that the app will only be able to save files in the home directory.')
-$(gettext 'For your convenience, this folder has been created:')
-  /home/${aAPP,,}/data
+${M1}
 $(gettext 'You may, if you wish, configure the app to open/save in this folder.')
 
 $(gettext 'Click the OK button for some final useful information...')\"</label></text>
@@ -486,12 +506,19 @@ $(gettext 'Click the OK button for some final useful information...')\"</label><
 "
 gtkdialog --center --program=FP_DLG5
 
+
+if [ "$EOS_FSCRYPT_VER" == "1" ];then #20230502
+ M3="$(gettext 'Unfortunately, the Flatpak sandbox conflicts with ext4 folder encryption, so the home folder is not encrypted. It is actually a symlink to an unencrypted folder in the working-partition.')"
+else
+ M3="$(gettext 'However, you may prefer to run some apps as the root user, a file-manager for example, where you want unfettered access to the entire filesystem, able to open, edit and save anywhere.')"
+fi
+
 export FP_DLG6="<window title=\"$(gettext 'Flatpak Installer: notes')\">
   <vbox>
     <frame>
       <text use-markup=\"true\"><label>\"<b>$(gettext 'Security notes')</b>\"</label></text>
       <text use-markup=\"true\"><label>\"$(gettext 'As has been stated in the previous window, the Flatpak has been installed to run as a non-root user. In fact, each Flatpak runs as its own separate user. This provides isolation, in other words, security.')
-      $(gettext 'Unfortunately, the Flatpak sandbox conflicts with ext4 folder encryption, so the home folder is not encrypted. It is actually a symlink to an unencrypted folder in the working-partition.')\"</label></text>
+${M3}\"</label></text>
     </frame>
     
     <frame>
