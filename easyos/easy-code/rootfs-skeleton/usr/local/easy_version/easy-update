@@ -31,7 +31,7 @@
 #20230221 no longer have language-specific .img files.
 #20230305 easy-*.img may have a different name. note: "easy.sfs" changed in 3buildeasydistro
 #20230328 ask if current .img is elsewhere.
-#20230503 cannot update fscrypt v1 to v2
+#20230503 cannot update fscrypt v1 to v2.  20230504
 
 export TEXTDOMAIN=easy-update
 export OUTPUT_CHARSET=UTF-8
@@ -167,14 +167,14 @@ if [ "$ALLOW_ASK_PW" == "yes" ];then
    S2=$(du -m -s /mnt/wkg/files | tr '\t' ' ' | cut -f 1 -d ' ')
    S3=$(du -m -s /mnt/wkg/.session | tr '\t' ' ' | cut -f 1 -d ' ')
    St=$(($S1+$S2+$S3))
-   St=$(($St+3100))
+   St=$(($St+3300)) #plus extra 3.3GB coz of later d/l
    Sf=$(df -m /dev/${WKG_DEV} | grep '^/dev' | tr -s ' ' | cut -f 4 -d ' ')
    
    echo -en '\033[1;31m' #bright red.
    echo "$(gettext 'WARNING! WARNING! WARNING!')"
    echo "$(gettext 'Beyond version 5.2.4 the method used to encrypt the folders has changed. This means you cannot update in the normal way.')"
-   echo "$(gettext "Instead, the 'containers', 'files' and '.session' encrypted folders will be copied into /mnt/wkg/v1tov2. The four encrypted folders 'containers', 'files', '.sesssion' and 'releases' will then be deleted.")"
-   echo "$(gettext "The update may then continue. At next bootup, the four encrypted folders will be recreated with the new v2 encryption technique, and the contents of folder 'v1tov2' copied into them.")"
+   echo "$(gettext "Instead, the 'containers', 'files' and '.session' encrypted folders will be copied into /mnt/wkg/v1tov2.")"
+   echo "$(gettext "The update may then continue. At next bootup, the four encrypted folders 'containers', 'files', '.sesssion' and 'releases' will be deleted and recreated with the new v2 encryption technique, and the contents of folder 'v1tov2' copied into them.")"
    echo "$(gettext 'The most important consequence is that the history is wiped, no rollback to 5.2.4 and before.')"
    echo -e '\033[0;39m' #reset.
    echo "$(gettext 'There is one potential complication: there must be sufficient free space in the working-partition.')"
@@ -200,7 +200,7 @@ if [ "$ALLOW_ASK_PW" == "yes" ];then
     exit 9
    fi
    echo ''
-   echo "$(gettext 'Copying contents of encrypted folders to /mnt/wkg/v1tov2:')"
+   echo "$(gettext 'Copying contents of encrypted folders to /mnt/wkg/v1tov2...')"
    if [ -d /mnt/wkg/v1tov2 ];then
     rm -rf /mnt/wkg/v1tov2
    fi
@@ -211,6 +211,16 @@ if [ "$ALLOW_ASK_PW" == "yes" ];then
    cp -a /mnt/wkg/files/* /mnt/wkg/v1tov2/files/
    mkdir /mnt/wkg/v1tov2/session
    cp -a /mnt/wkg/.session/* /mnt/wkg/v1tov2/session/
+   sync
+   if [ -d /mnt/wkg/data/flatpak ];then #20230504
+    cp -a /mnt/wkg/data/flatpak /mnt/wkg/v1tov2/
+    sync
+   fi
+   #20230504 maybe symlink to flatpak home folders...
+   for aL in $(find /mnt/wkg/v1tov2/session/home -mindepth 1 -maxdepth 1 -type l | tr '\n' ' ')
+   do
+    rm -f /mnt/wkg/v1tov2/session/home/${aL##*/}
+   done
    sync
   fi
  fi

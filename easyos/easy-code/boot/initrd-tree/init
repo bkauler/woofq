@@ -1252,6 +1252,11 @@ ${S133}\\033[0;39m" #red.
   cp -a -f /mnt/${WKG_DEV}/${WKG_DIR}v1tov2/files/* /mnt/${WKG_DEV}/${WKG_DIR}files/
   cp -a -f /mnt/${WKG_DEV}/${WKG_DIR}v1tov2/session/* /mnt/${WKG_DEV}/${WKG_DIR}.session/
   sync
+  if [ -d /mnt/${WKG_DEV}/${WKG_DIR}v1tov2/flatpak ];then
+   mkdir -p /mnt/${WKG_DEV}/${WKG_DIR}.session/home
+   cp -a -f /mnt/${WKG_DEV}/${WKG_DIR}v1tov2/flatpak/* /mnt/${WKG_DEV}/${WKG_DIR}.session/home/
+   sync
+  fi
   rm -rf /mnt/${WKG_DEV}/${WKG_DIR}v1tov2
  fi
 else
