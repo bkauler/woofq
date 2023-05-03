@@ -31,6 +31,7 @@
 #20230221 no longer have language-specific .img files.
 #20230305 easy-*.img may have a different name. note: "easy.sfs" changed in 3buildeasydistro
 #20230328 ask if current .img is elsewhere.
+#20230503 cannot update fscrypt v1 to v2
 
 export TEXTDOMAIN=easy-update
 export OUTPUT_CHARSET=UTF-8
@@ -153,6 +154,66 @@ else
  echo "$(gettext 'The current installed version is:') ${DISTRO_VERSION}"
  echo "$(gettext 'Newer online version, so can update...')"
  echo -e '\033[0;39m' #reset.
+fi
+
+#20230503 cannot update fscrypt v1 to v2...
+. /mnt/wkg/sfs/settings/initrd/CONFIg
+if [ "$ALLOW_ASK_PW" == "yes" ];then
+ vercmp ${latestVER} gt 5.2.4
+ if [ $? -eq 0 ];then
+  vercmp ${DISTRO_VERSION} le 5.2.4
+  if [ $? -eq 0 ];then
+   S1=$(du -m -s /mnt/wkg/containers | tr '\t' ' ' | cut -f 1 -d ' ')
+   S2=$(du -m -s /mnt/wkg/files | tr '\t' ' ' | cut -f 1 -d ' ')
+   S3=$(du -m -s /mnt/wkg/.session | tr '\t' ' ' | cut -f 1 -d ' ')
+   St=$(($S1+$S2+$S3))
+   St=$(($St+3100))
+   Sf=$(df -m /dev/${WKG_DEV} | grep '^/dev' | tr -s ' ' | cut -f 4 -d ' ')
+   
+   echo -en '\033[1;31m' #bright red.
+   echo "$(gettext 'WARNING! WARNING! WARNING!')"
+   echo "$(gettext 'Beyond version 5.2.4 the method used to encrypt the folders has changed. This means you cannot update in the normal way.')"
+   echo "$(gettext "Instead, the 'containers', 'files' and '.session' encrypted folders will be copied into /mnt/wkg/v1tov2. The four encrypted folders 'containers', 'files', '.sesssion' and 'releases' will then be deleted.")"
+   echo "$(gettext "The update may then continue. At next bootup, the four encrypted folders will be recreated with the new v2 encryption technique, and the contents of folder 'v1tov2' copied into them.")"
+   echo "$(gettext 'The most important consequence is that the history is wiped, no rollback to 5.2.4 and before.')"
+   echo -e '\033[0;39m' #reset.
+   echo "$(gettext 'There is one potential complication: there must be sufficient free space in the working-partition.')"
+   echo -n "$(gettext 'Required space for v1tov2 folder and download:') "
+   echo "${St}M"
+   echo -n "$(gettext 'Free space available in working-partition:') "
+   echo "${Sf}M"
+   vercmp ${St} lt ${Sf}
+   if [ $? -eq 0 ];then
+    echo -en '\033[1;31m' #bright red.
+    echo "$(gettext 'NOT ENOUGH FREE SPACE! Aborting update')"
+    echo -e '\033[0;39m' #reset.
+    askabort='y'
+   else
+    echo "$(gettext 'Press the ENTER key to continue with update,')"
+    echo -n "$(gettext 'or any other key to abort:') "
+    read askabort
+   fi
+   if [ "$askabort" != "" ];then
+    echo ''
+    echo "$(gettext 'Update aborted')"
+    echo -e "\033[1;31m${MSGexit}\033[0;39m"
+    exit 9
+   fi
+   echo ''
+   echo "$(gettext 'Copying contents of encrypted folders to /mnt/wkg/v1tov2:')"
+   if [ -d /mnt/wkg/v1tov2 ];then
+    rm -rf /mnt/wkg/v1tov2
+   fi
+   mkdir /mnt/wkg/v1tov2
+   mkdir /mnt/wkg/v1tov2/containers
+   cp -a /mnt/wkg/containers/* /mnt/wkg/v1tov2/containers/
+   mkdir /mnt/wkg/v1tov2/files
+   cp -a /mnt/wkg/files/* /mnt/wkg/v1tov2/files/
+   mkdir /mnt/wkg/v1tov2/session
+   cp -a /mnt/wkg/.session/* /mnt/wkg/v1tov2/session/
+   sync
+  fi
+ fi
 fi
 
 #ask for a download location, must have 3GB free space... 20220629 bump from 2GB

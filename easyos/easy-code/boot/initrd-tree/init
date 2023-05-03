@@ -159,6 +159,7 @@
 #20230429 fix workingdir when mount overlay fs. /build-choices has EOS_ variables.
 #20230429 /build-choices has EOS_FSCRYPT_VER value 1 or 2
 #20230430 64 byte hash generated from password.
+#20230503 fscrypt v1 to v2 update.
 
 #20230429
 . /build-choices #3buildeasydistro copies it here.
@@ -1114,6 +1115,18 @@ if [ $SFchk -eq 1 ];then #20210524 20210526
   fi
  fi
 fi
+
+#20230503 fscrypt v1 to v2 update...
+if [ -d /mnt/${WKG_DEV}/${WKG_DIR}v1tov2 ];then #created by easy-update script.
+ rm -rf /mnt/${WKG_DEV}/${WKG_DIR}containers
+ rm -rf /mnt/${WKG_DEV}/${WKG_DIR}files
+ rm -rf /mnt/${WKG_DEV}/${WKG_DIR}releases
+ rm -rf /mnt/${WKG_DEV}/${WKG_DIR}.session
+ rm -rf /mnt/${WKG_DEV}/${WKG_DIR}data
+ rm -rf /mnt/${WKG_DEV}/${WKG_DIR}.tempwork
+ sync
+fi
+
 if [ ! -d /mnt/${WKG_DEV}/${WKG_DIR}.session ];then
  for aDIR in containers releases files sfs .tempwork data #sanity check  20210919 20211212
  do
@@ -1123,7 +1136,7 @@ if [ ! -d /mnt/${WKG_DEV}/${WKG_DIR}.session ];then
  [ "$EOS_SUPPORT_CONTAINERS" != "0" ] && mkdir /mnt/${WKG_DEV}/${WKG_DIR}containers
  mkdir /mnt/${WKG_DEV}/${WKG_DIR}releases
  mkdir /mnt/${WKG_DEV}/${WKG_DIR}files
- mkdir /mnt/${WKG_DEV}/${WKG_DIR}sfs
+ mkdir -p /mnt/${WKG_DEV}/${WKG_DIR}sfs
  mkdir /mnt/${WKG_DEV}/${WKG_DIR}.session
  mkdir /mnt/${WKG_DEV}/${WKG_DIR}.tempwork
  mkdir /mnt/${WKG_DEV}/${WKG_DIR}data #20211212
@@ -1233,6 +1246,14 @@ ${S133}\\033[0;39m" #red.
  cp -a -f /skeleton/sfs /mnt/${WKG_DEV}/${WKG_DIR}
  echo "KEYMAP='${KEYMAP}'" > /mnt/${WKG_DEV}/${WKG_DIR}sfs/settings/initrd/CONFIG
  echo "ALLOW_ASK_PW='${ALLOW_ASK_PW}'" >> /mnt/${WKG_DEV}/${WKG_DIR}sfs/settings/initrd/CONFIG
+
+ if [ -d /mnt/${WKG_DEV}/${WKG_DIR}v1tov2 ];then #20230503
+  cp -a -f /mnt/${WKG_DEV}/${WKG_DIR}v1tov2/containers/* /mnt/${WKG_DEV}/${WKG_DIR}containers/
+  cp -a -f /mnt/${WKG_DEV}/${WKG_DIR}v1tov2/files/* /mnt/${WKG_DEV}/${WKG_DIR}files/
+  cp -a -f /mnt/${WKG_DEV}/${WKG_DIR}v1tov2/session/* /mnt/${WKG_DEV}/${WKG_DIR}.session/
+  sync
+  rm -rf /mnt/${WKG_DEV}/${WKG_DIR}v1tov2
+ fi
 else
  #20211006 crap, if updating to 3.0+, have 'home' folder, not 'files'. here test 'releases' instead...
  if [ "$EOS_FSCRYPT_VER" == "1" ];then #20230429
