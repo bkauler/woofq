@@ -283,6 +283,7 @@ ln -snf /tmp/run /var/run
 #redirect all output to a log file (must do after remount rw)... 11214 moved down.
 [ ! "$LOGLEVEL" ] && exec 1>/tmp/bootsysinit.log 2>&1
 
+#20230502 do not need to test EOS_FSCRYPT_VER, as v2 will not have " logon "...
 #20210912 make fscrypt work in non-root clients...
 which keyctl >/dev/null
 if [ $? -eq 0 ];then

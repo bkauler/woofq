@@ -51,6 +51,7 @@
 #20230409 /usr/local/flatpak/flatpak has already created /home/${APPname}, so test for .config
 #20230409 a bit tricky coz /home/<app> is symlink for flatpaks.
 #20230412 .DirIcon symlink and target of commandline-symlink must have same owner:group as parent folder.
+#20230502 support fscrypt v2
 
 APPname="${1/=*/}"  #ex: seamonkey
 APPflag="${1/*=/}" #ex: true
@@ -351,6 +352,7 @@ if [ $Cflg -eq 0 ];then #running on main desktop.
   #run-client-indirect. complicated, but need to do this
   #to allow write inside encrypted fs...
   IDflg=""
+  #20230502 do not need to test EOS_FSCRYPT_VER, as v2 will not have " logon "...
   which keyctl >/dev/null #precaution. easyos 3.0+ will have this!
   if [ $? -eq 0 ];then
    IDflg="$(grep -o " logon " /proc/keys)"

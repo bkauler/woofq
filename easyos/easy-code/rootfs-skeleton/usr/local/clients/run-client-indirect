@@ -3,6 +3,7 @@
 #to enable write-permission when logged into a non-root client.
 #ref: /usr/bin/chromium in chromium sfs, /usr/sbin/run-as-spot, support/setup-client
 #20211004 keyctl link ... seems sometime not working.
+#20230502 fscrypt v2, this script should not get called.
 
 APP="$1"; shift
 ARGS=""
@@ -20,6 +21,7 @@ if [ $1 ];then
  done
 fi
 
+#20230502 EOS_FSCRYPT_VER test not needed, as v2 will not have " logon "...
 ID="$(grep " logon " /proc/keys | head -n 1 | cut -f 1 -d " ")"
 if [ "$ID" ];then
  #we can read files, but need to do this to be able to write...

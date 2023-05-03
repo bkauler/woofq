@@ -6,6 +6,7 @@
 #20210906 /root/spot moved to /clients/spot
 #20210912 need to allow write inside encrypted fs. see also rc.sysinit.
 #20210919 now /home/spot
+#20230502 support fscrypt v2 -- don't have to do anything, as keyctl won't have "logon"
 
 [ ! $1 ] && exit
 CWD=$(pwd)
@@ -28,7 +29,7 @@ fi
 if [ $(id -u) -ne 0 ]; then
  exec "$APP" "$ARGS"
 fi
- 
+
 #this is a method to authorize x server to run by user spot. works when server running.
 #note: this setting does not seem to be stored in a file. it affects the currently running
 #      x server and will be lost when x quits.
@@ -48,6 +49,7 @@ export XDG_CONFIG_HOME=/home/spot/.config
 export XDG_CACHE_HOME=/home/spot/.cache
 export XDG_DATA_HOME=/home/spot/.local/share
  
+#20230502 do not need to test EOS_FSCRYPT_VER, as v2 will not have " logon "...
 #20210912 need to allow write inside encrypted fs...
 which keyctl >/dev/null
 if [ $? -eq 0 ];then

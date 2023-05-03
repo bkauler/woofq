@@ -18,6 +18,7 @@
 #20210912 need to allow write inside encrypted fs. see also rc.sysinit, run-as-spot, support/setup-client
 #20210914 ${APPpath} fix for appended ${PREFIXDIR}
 #20210919 /clients now /home
+#20230502 support fscrypt v2. no need to test EOS_FSCRYPT_VER
 
 SPOTAPPS="$@"
 RUNNINGPUP=0
@@ -84,6 +85,7 @@ if [ ! "$ALLOWflg" ];then
  xhost +SI:localuser:spot
 fi
 
+#20230502 do not need to test EOS_FSCRYPT_VER, as v2 will not have " logon "...
 #20210912 need to allow write inside encrypted fs...
 which keyctl >/dev/null
 if [ $? -eq 0 ];then

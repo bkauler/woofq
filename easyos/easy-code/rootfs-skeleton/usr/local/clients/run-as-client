@@ -4,6 +4,7 @@
 #a requirement of this script is that $1 is the name of app to run,
 # and it will be run as user of same name.
 #20210916 remove /INSIDE_* test.
+#20230502 support fscrypt v2
 
 [ ! $1 ] && exit
 CWD=$(pwd)
@@ -52,6 +53,7 @@ export XDG_CONFIG_HOME=/home/${APP}/.config
 export XDG_CACHE_HOME=/home/${APP}/.cache
 export XDG_DATA_HOME=/home/${APP}/.local/share
  
+#20230502 do not need to test EOS_FSCRYPT_VER, as v2 will not have " logon "...
 #20210912 need to allow write inside encrypted fs...
 which keyctl >/dev/null
 if [ $? -eq 0 ];then

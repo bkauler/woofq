@@ -5,6 +5,8 @@
 # fscrypt work in that user. however, for cupsd, it switches into spot without
 # that fix. this little hack fixes...
 # ref: https://bkhome.org/news/202212/required-key-not-available-fix-for-cups.html
+#20230502 EOS_FSCRYPT_VER test not needed, as v2 will not have " logon "...
+
 
 echo "/root/Startup/cups_spot_fix:"
 FSCRYPTID="$(grep ' logon ' /proc/keys | head -n 1 | cut -f 1 -d ' ')"
