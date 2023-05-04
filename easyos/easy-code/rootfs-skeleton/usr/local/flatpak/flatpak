@@ -54,6 +54,10 @@ do
   *telegram.desktop) aFP='Telegram' ;;
   *mimbrero.WhatsAppDesktop) aFP='WhatsApp' ;;
   *skype.Client) aFP='Skype' ;;
+  *bitwarden.desktop) aFP='Bitwarden' ;;
+  *sqlitebrowser.sqlitebrowser) aFP='DBBrowser' ;;
+  *sweethome3d.Sweethome3d) aFP='SweetHome' ;;
+  *diy_fever.DIYLayoutCreator) aFP='DIYLC' ;;
  esac
  aFP="${aFP##*.}"
  eval "FLG${aFP,,}='√'" #ex: sets FLGaudacity=√
@@ -83,70 +87,70 @@ export FP_DLG1="<window title=\"$(gettext 'Flatpak Installer')\">
     <notebook labels=\"$(gettext 'Audio')|$(gettext 'Developer')|$(gettext 'Games')|$(gettext 'Graphics')|$(gettext 'Network')|$(gettext 'Office')|$(gettext 'Productivity')|$(gettext 'System')|$(gettext 'Video')|$(gettext 'Other')\">
       <tree column-resizeable=\"0\">
         <label>${PACKAGE}||${DESCRIPTION}</label>
-        <height>300</height>
+        <height>340</height>
         <variable>TREEaudio</variable>
         <action signal=\"enter-notify-event\" type=\"refresh\">TREEaudio</action>
         ${ENTRIESaudio}
       </tree>
       <tree column-resizeable=\"0\">
         <label>${PACKAGE}||${DESCRIPTION}</label>
-        <height>300</height>
+        <height>340</height>
         <variable>TREEdeveloper</variable>
         <action signal=\"enter-notify-event\" type=\"refresh\">TREEdeveloper</action>
         ${ENTRIESdeveloper}
       </tree>
       <tree column-resizeable=\"0\">
         <label>${PACKAGE}||${DESCRIPTION}</label>
-        <height>300</height>
+        <height>340</height>
         <variable>TREEgames</variable>
         <action signal=\"enter-notify-event\" type=\"refresh\">TREEgames</action>
         ${ENTRIESgames}
       </tree>
       <tree column-resizeable=\"0\">
         <label>${PACKAGE}||${DESCRIPTION}</label>
-        <height>300</height>
+        <height>340</height>
         <variable>TREEgraphics</variable>
         <action signal=\"enter-notify-event\" type=\"refresh\">TREEgraphics</action>
         ${ENTRIESgraphics}
       </tree>
       <tree column-resizeable=\"0\">
         <label>${PACKAGE}||${DESCRIPTION}</label>
-        <height>300</height>
+        <height>340</height>
         <variable>TREEnetwork</variable>
         <action signal=\"enter-notify-event\" type=\"refresh\">TREEnetwork</action>
         ${ENTRIESnetwork}
       </tree>
       <tree column-resizeable=\"0\">
         <label>${PACKAGE}||${DESCRIPTION}</label>
-        <height>300</height>
+        <height>340</height>
         <variable>TREEoffice</variable>
         <action signal=\"enter-notify-event\" type=\"refresh\">TREEoffice</action>
         ${ENTRIESoffice}
       </tree>
       <tree column-resizeable=\"0\">
         <label>${PACKAGE}||${DESCRIPTION}</label>
-        <height>300</height>
+        <height>340</height>
         <variable>TREEproductivity</variable>
         <action signal=\"enter-notify-event\" type=\"refresh\">TREEproductivity</action>
         ${ENTRIESproductivity}
       </tree>
       <tree column-resizeable=\"0\">
         <label>${PACKAGE}||${DESCRIPTION}</label>
-        <height>300</height>
+        <height>340</height>
         <variable>TREEsystem</variable>
         <action signal=\"enter-notify-event\" type=\"refresh\">TREEvideo</action>
         ${ENTRIESsystem}
       </tree>
       <tree column-resizeable=\"0\">
         <label>${PACKAGE}||${DESCRIPTION}</label>
-        <height>300</height>
+        <height>340</height>
         <variable>TREEvideo</variable>
         <action signal=\"enter-notify-event\" type=\"refresh\">TREEvideo</action>
         ${ENTRIESvideo}
       </tree>
       <tree column-resizeable=\"0\">
         <label>${PACKAGE}||${DESCRIPTION}</label>
-        <height>300</height>
+        <height>340</height>
         <variable>TREEother</variable>
         <action signal=\"enter-notify-event\" type=\"refresh\">TREEother</action>
         ${ENTRIESother}
@@ -221,7 +225,7 @@ case "${aAPP}" in
  Gramps) TRIPLET='org.gramps_project.Gramps'; MENUcat='X-Personal'; MENUtop='Personal'; MENUname='Gramps genealogy program'; ;;
  PPSSPP) TRIPLET='org.ppsspp.PPSSPP'; MENUcat='X-Fun'; MENUtop='Fun'; MENUname='PPSSPP PlayStation emulator'; ;;
  MusicBlocks) TRIPLET='org.sugarlabs.MusicBlocks'; MENUcat='Music'; MENUtop='Multimedia'; MENUname='MusicBlocks graphical music discovery'; ;;
- FreeCAD) TRIPLET='org.freecadweb.FreeCAD'; MENUcat='X-Graphic'; MENUtop='Graphic'; MENUname='FreeCAD 3D parametric modeler'; ;;
+ FreeCAD) TRIPLET='org.freecadweb.FreeCAD'; MENUcat='X-Graphic-draw'; MENUtop='Graphic'; MENUname='FreeCAD 3D parametric modeler'; ;;
  Chrome) TRIPLET='com.google.Chrome'; MENUcat='X-Internet-browser'; MENUtop='Internet'; MENUname='Chrome web browser'; ;;
  Discord) TRIPLET='com.discordapp.Discord'; MENUcat='X-Internet-chat'; MENUtop='Internet'; MENUname='Discord message and video sharing'; ;;
  Telegram) TRIPLET='org.telegram.desktop'; MENUcat='X-Internet-chat'; MENUtop='Internet'; MENUname='Telegram secure messaging and video sharing'; ;;
@@ -230,6 +234,22 @@ case "${aAPP}" in
  Signal) TRIPLET='org.signal.Signal'; MENUcat='X-Internet-chat'; MENUtop='Internet'; MENUname='Signal private messaging'; ;;
  Thunderbird) TRIPLET='org.mozilla.Thunderbird'; MENUcat='X-Internet-mailnews'; MENUtop='Internet'; MENUname='Thunderbird mail and news client'; ;;
  Skype) TRIPLET='com.skype.Client'; MENUcat='X-Internet-chat'; MENUtop='Internet'; MENUname='Skype audio and video calls'; ;;
+ Bottles) TRIPLET='com.usebottles.bottles'; MENUcat='X-Setup-puppy'; MENUtop='Setup'; MENUname='Bottles run Windows apps'; ;;
+ Bitwarden) TRIPLET='com.bitwarden.desktop'; MENUcat='X-Personal-security'; MENUtop='Personal'; MENUname='Bitwarden password manager'; ;;
+ KeePassXC) TRIPLET='org.keepassxc.KeePassXC'; MENUcat='X-Personal-security'; MENUtop='Personal'; MENUname='KeePassXC password manager'; ;;
+ DBBrowser) TRIPLET='org.sqlitebrowser.sqlitebrowser'; MENUcat='X-Business'; MENUtop='Business'; MENUname='DBBrowser manage SQLITE db'; ;;
+ CherryTree) TRIPLET='net.giuspen.cherrytree'; MENUcat='X-Personal-organizer'; MENUtop='Personal'; MENUname='CherryTree hierarchical notes'; ;;
+ Blender) TRIPLET='org.blender.Blender'; MENUcat='X-Graphic'; MENUtop='Graphic'; MENUname='Blender 3D image creator'; ;;
+ SweetHome) TRIPLET='com.sweethome3d.Sweethome3d'; MENUcat='X-Graphic'; MENUtop='Graphic'; MENUname='SweetHome 3D home layout'; ;;
+ LibreCAD) TRIPLET='org.librecad.librecad'; MENUcat='X-Graphic-draw'; MENUtop='Graphic'; MENUname='LibreCAD 2D Computer Aided Drafting'; ;;
+ LeoCAD) TRIPLET='org.leocad.LeoCAD'; MENUcat='X-Fun'; MENUtop='Fun'; MENUname='LeoCAD build with Lego bricks'; ;;
+ gImageReader) TRIPLET='io.github.manisandro.gImageReader'; MENUcat='X-Graphic-scanner'; MENUtop='Graphic'; MENUname='gImageReader GUI for tesseract OCR'; ;;
+ DIYLC) TRIPLET='com.diy_fever.DIYLayoutCreator'; MENUcat='X-Graphic'; MENUtop='Graphic'; MENUname='DIYLC circuit board layout'; ;;
+ OpenToonz) TRIPLET='io.github.OpenToonz'; MENUcat='X-Graphic'; MENUtop='Graphic'; MENUname='OpenToonz 2D animation'; ;;
+ Pencil2D) TRIPLET='org.pencil2d.Pencil2D'; MENUcat='X-Graphic'; MENUtop='Graphic'; MENUname='Vector and raster 2D animation'; ;;
+ QElectroTech) TRIPLET='org.qelectrotech.QElectroTech'; MENUcat='X-Graphic'; MENUtop='Graphic'; MENUname='QElectroTech electrical circuit diagrams'; ;;
+ Kodi) TRIPLET='tv.kodi.Kodi'; MENUcat='X-Multimedia-mediaplayer'; MENUtop='Multimedia'; MENUname='Kodi multimedia player'; ;;
+ ShotCut) TRIPLET='org.shotcut.Shotcut'; MENUcat='X-Multimedia-video'; MENUtop='Multimedia'; MENUname='ShotCut video editor'; ;;
  ZZZ) TRIPLET=''; MENUcat=''; MENUtop=''; MENUname=''; ;;
  *) exit ;; #precaution.
 esac
