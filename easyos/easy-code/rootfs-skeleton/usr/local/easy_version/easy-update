@@ -157,7 +157,7 @@ else
 fi
 
 #20230503 cannot update fscrypt v1 to v2...
-. /mnt/wkg/sfs/settings/initrd/CONFIg
+. /mnt/wkg/sfs/settings/initrd/CONFIG
 if [ "$ALLOW_ASK_PW" == "yes" ];then
  vercmp ${latestVER} gt 5.2.4
  if [ $? -eq 0 ];then
@@ -182,7 +182,7 @@ if [ "$ALLOW_ASK_PW" == "yes" ];then
    echo "${St}M"
    echo -n "$(gettext 'Free space available in working-partition:') "
    echo "${Sf}M"
-   vercmp ${St} lt ${Sf}
+   vercmp ${St} gt ${Sf}
    if [ $? -eq 0 ];then
     echo -en '\033[1;31m' #bright red.
     echo "$(gettext 'NOT ENOUGH FREE SPACE! Aborting update')"
