@@ -160,6 +160,7 @@
 #20230429 /build-choices has EOS_FSCRYPT_VER value 1 or 2
 #20230430 64 byte hash generated from password.
 #20230503 fscrypt v1 to v2 update.
+#20230507 hash generated from password used for gpg.
 
 #20230429
 . /build-choices #3buildeasydistro copies it here.
@@ -1847,6 +1848,8 @@ if [ ! -f /mnt/${WKG_DEV}/${WKG_DIR}.session/root/.gnupg/pubring.gpg ];then
  fi
  echo
  echo "${S304}" #'Creating gnupg signed key pair, at /root/.gnupg'
+ #20230507 generate hash from password...
+ PASSPHRASE="$(echo -n ${rootPW}xxxx | argon2 ${SALT} -l 32 -r)" #64 byte hash.
  mkdir -p /mnt/${WKG_DEV}/${WKG_DIR}.session/root/.gnupg
  chmod 700 /mnt/${WKG_DEV}/${WKG_DIR}.session/root/.gnupg
  cat >foo <<EOF
@@ -1855,10 +1858,10 @@ Key-Length: 2048
 Subkey-Type: RSA
 Subkey-Length: 2048
 Name-Real: EasyOS user ${RANDOM}
-Name-Comment: WoofWoof1-root-password is passphrase
+Name-Comment: passphrase is hash from password
 Name-Email: noone@nowhere.com
 Expire-Date: 0
-Passphrase: ${rootPW}
+Passphrase: ${PASSPHRASE}
 %commit
 %echo done
 EOF
