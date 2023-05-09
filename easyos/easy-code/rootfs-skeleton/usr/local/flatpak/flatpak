@@ -58,6 +58,7 @@ do
   *sqlitebrowser.sqlitebrowser) aFP='DBBrowser' ;;
   *sweethome3d.Sweethome3d) aFP='SweetHome' ;;
   *diy_fever.DIYLayoutCreator) aFP='DIYLC' ;;
+  *spotify.Client) aFP='Spotify' ;;
  esac
  aFP="${aFP##*.}"
  eval "FLG${aFP,,}='√'" #ex: sets FLGaudacity=√
@@ -87,70 +88,70 @@ export FP_DLG1="<window title=\"$(gettext 'Flatpak Installer')\">
     <notebook labels=\"$(gettext 'Audio')|$(gettext 'Developer')|$(gettext 'Games')|$(gettext 'Graphics')|$(gettext 'Network')|$(gettext 'Office')|$(gettext 'Productivity')|$(gettext 'System')|$(gettext 'Video')|$(gettext 'Other')\">
       <tree column-resizeable=\"0\">
         <label>${PACKAGE}||${DESCRIPTION}</label>
-        <height>340</height>
+        <height>350</height>
         <variable>TREEaudio</variable>
         <action signal=\"enter-notify-event\" type=\"refresh\">TREEaudio</action>
         ${ENTRIESaudio}
       </tree>
       <tree column-resizeable=\"0\">
         <label>${PACKAGE}||${DESCRIPTION}</label>
-        <height>340</height>
+        <height>350</height>
         <variable>TREEdeveloper</variable>
         <action signal=\"enter-notify-event\" type=\"refresh\">TREEdeveloper</action>
         ${ENTRIESdeveloper}
       </tree>
       <tree column-resizeable=\"0\">
         <label>${PACKAGE}||${DESCRIPTION}</label>
-        <height>340</height>
+        <height>350</height>
         <variable>TREEgames</variable>
         <action signal=\"enter-notify-event\" type=\"refresh\">TREEgames</action>
         ${ENTRIESgames}
       </tree>
       <tree column-resizeable=\"0\">
         <label>${PACKAGE}||${DESCRIPTION}</label>
-        <height>340</height>
+        <height>350</height>
         <variable>TREEgraphics</variable>
         <action signal=\"enter-notify-event\" type=\"refresh\">TREEgraphics</action>
         ${ENTRIESgraphics}
       </tree>
       <tree column-resizeable=\"0\">
         <label>${PACKAGE}||${DESCRIPTION}</label>
-        <height>340</height>
+        <height>350</height>
         <variable>TREEnetwork</variable>
         <action signal=\"enter-notify-event\" type=\"refresh\">TREEnetwork</action>
         ${ENTRIESnetwork}
       </tree>
       <tree column-resizeable=\"0\">
         <label>${PACKAGE}||${DESCRIPTION}</label>
-        <height>340</height>
+        <height>350</height>
         <variable>TREEoffice</variable>
         <action signal=\"enter-notify-event\" type=\"refresh\">TREEoffice</action>
         ${ENTRIESoffice}
       </tree>
       <tree column-resizeable=\"0\">
         <label>${PACKAGE}||${DESCRIPTION}</label>
-        <height>340</height>
+        <height>350</height>
         <variable>TREEproductivity</variable>
         <action signal=\"enter-notify-event\" type=\"refresh\">TREEproductivity</action>
         ${ENTRIESproductivity}
       </tree>
       <tree column-resizeable=\"0\">
         <label>${PACKAGE}||${DESCRIPTION}</label>
-        <height>340</height>
+        <height>350</height>
         <variable>TREEsystem</variable>
         <action signal=\"enter-notify-event\" type=\"refresh\">TREEvideo</action>
         ${ENTRIESsystem}
       </tree>
       <tree column-resizeable=\"0\">
         <label>${PACKAGE}||${DESCRIPTION}</label>
-        <height>340</height>
+        <height>350</height>
         <variable>TREEvideo</variable>
         <action signal=\"enter-notify-event\" type=\"refresh\">TREEvideo</action>
         ${ENTRIESvideo}
       </tree>
       <tree column-resizeable=\"0\">
         <label>${PACKAGE}||${DESCRIPTION}</label>
-        <height>340</height>
+        <height>350</height>
         <variable>TREEother</variable>
         <action signal=\"enter-notify-event\" type=\"refresh\">TREEother</action>
         ${ENTRIESother}
@@ -250,6 +251,8 @@ case "${aAPP}" in
  QElectroTech) TRIPLET='org.qelectrotech.QElectroTech'; MENUcat='X-Graphic'; MENUtop='Graphic'; MENUname='QElectroTech electrical circuit diagrams'; ;;
  Kodi) TRIPLET='tv.kodi.Kodi'; MENUcat='X-Multimedia-mediaplayer'; MENUtop='Multimedia'; MENUname='Kodi multimedia player'; ;;
  ShotCut) TRIPLET='org.shotcut.Shotcut'; MENUcat='X-Multimedia-video'; MENUtop='Multimedia'; MENUname='ShotCut video editor'; ;;
+ LibrePCB) TRIPLET='org.librepcb.LibrePCB'; MENUcat='X-Graphic'; MENUtop='Graphic'; MENUname='LibrePCB printed circuit board design'; ;;
+ Spotify) TRIPLET='com.spotify.Client'; MENUcat='X-Multimedia-sound'; MENUtop='Multimedia'; MENUname='Spotify music streaming'; ;;
  ZZZ) TRIPLET=''; MENUcat=''; MENUtop=''; MENUname=''; ;;
  *) exit ;; #precaution.
 esac
@@ -484,6 +487,13 @@ fi
 
 #create /usr/bin/${aAPP,,} script to run as user ${aAPP,,} ...
 setup-client "${aAPP,,}=true"
+
+#20230509 need a hack for zoom...
+if [ -d /usr/local/flatpak/skeletons/${aAPP,,}/home/${aAPP,,} ];then
+ chown -R ${aAPP,,}:${aAPP,,} /usr/local/flatpak/skeletons/${aAPP,,}/home/${aAPP,,}
+ cp -a -f /usr/local/flatpak/skeletons/${aAPP,,}/home/${aAPP,,}/* /home/${aAPP,,}/ 2>/dev/null
+ cp -a -f /usr/local/flatpak/skeletons/${aAPP,,}/home/${aAPP,,}/.[a-zA-Z0-9]* /home/${aAPP,,}/ 2>/dev/null
+fi
 
 #update jwm menu...
 fixmenus
