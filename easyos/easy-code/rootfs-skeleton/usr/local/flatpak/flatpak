@@ -7,7 +7,7 @@
 #20230415 start dbus-daemon session and kill.
 #20230502 support fscrypt v2
 #20230509 need a hack for zoom.
-#20230510 support custom entries.
+#20230510 support custom entries. 20230511 check for duplicates.
 
 export TEXTDOMAIN=flatpaks
 export TEXTDOMAINDIR=/usr/share/locale
@@ -79,6 +79,20 @@ do
 done
 
 ARCH='amd64'
+
+#20230511 remove custom entry if already builtin...
+grep -v '^#' /usr/local/flatpak/entries/${ARCH}/entries > /tmp/flatpak/arch-entries
+for aCUST in $(find /usr/local/flatpak/custom -mindepth 1 -maxdepth 1 -type f | tr '\n' ' ')
+do
+ aNAME="${aCUST##*/}"
+ [ "${aNAME}" == "template" ] && continue
+ aPTN="=\\\"${aNAME}\\\""
+ grep -q -F "${aPTN}" /tmp/flatpak/arch-entries
+ if [ $? -eq 0 ];then
+  rm -f /usr/local/flatpak/custom/${aNAME}
+ fi
+done
+
 /usr/local/flatpak/entries/${ARCH}/entries #this evaluates each entry.
 ENTRIESaudio="$(cat /tmp/flatpak/ENTRIESaudio)"
 ENTRIESdeveloper="$(cat /tmp/flatpak/ENTRIESdeveloper)"
