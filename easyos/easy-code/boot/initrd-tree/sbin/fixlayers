@@ -40,6 +40,7 @@
 #20230327 /usr/local/appimage  20230408 /usr/local/flatpak  20230422 easyjwm easysetup
 #20230423 remove complicated code that may be removing desktop icons from PuppyPin
 #20230423 make sure "pkg" icon runs pkg-wrap (easy 5.2.2) --can remove this later, after everyone hass updated.
+#20230510 preserve flatpak user customizations.
 
 WKG_DRV=$1 #ex: sda
 WKG_DEV=$2 #ex: sda2
@@ -399,9 +400,21 @@ do
   fi
  fi
 done
-#20230408 /usr/local/flatpak
+#20230408 /usr/local/flatpak 20230510 need to preserve user customizations...
 if [ -d /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/flatpak ];then
- rm -rf /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/flatpak
+ #rm -rf /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/flatpak
+ for onefile in customize flatpak online-info
+ do
+  if [ -f /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/flatpak/${onefile} ];then
+   rm -f /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/flatpak/${onefile}
+  fi
+ done
+ if [ -d /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/flatpak/entries ];then
+  rm -rf /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/flatpak/entries
+ fi
+ if [ -d /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/flatpak/skeletons ];then
+  rm -rf /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/flatpak/skeletons
+ fi
 fi
 #20230422
 if [ -d /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/easysetup ];then

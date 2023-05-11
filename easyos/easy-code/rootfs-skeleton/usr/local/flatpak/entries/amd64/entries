@@ -29,6 +29,7 @@ ENTRIESgames="
 <item icon-name=\"frogatto\">Frogatto|${FLGfrogatto}|$(gettext '2D adventure game')</item>
 <item icon-name=\"leocad\">LeoCAD|${FLGleocad}|$(gettext '3D build with Lego bricks')</item>
 <item icon-name=\"ppsspp\">PPSSPP|${FLGppsspp}|$(gettext 'PlayStation PSP emulator')</item>
+<item icon-name=\"spacecadetpinball\">SpaceCadetPinball||3D pinball game</item>
 "
 echo "$ENTRIESgames" > /tmp/flatpak/ENTRIESgames
 
@@ -77,6 +78,7 @@ ENTRIESproductivity="
 <item icon-name=\"authpass\">AuthPass|${FLGauthpass}|$(gettext 'Password manager')</item>
 <item icon-name=\"bitwarden\">Bitwarden|${FLGbitwarden}|$(gettext 'Password manager')</item>
 <item icon-name=\"cherrytree\">CherryTree|${FLGcherrytree}|$(gettext 'Hierarchical note-taking and personal database')</item>
+<item icon-name=\"goldendict\">GoldenDict|${FLGgoldendict}|$(gettext 'Dictionary lookup program')</item>
 <item icon-name=\"identity\">Identity|${FLGidentity}|$(gettext 'Compare multiple versions of an image or video')</item>
 <item icon-name=\"keepassxc\">KeePassXC|${FLGkeepassxc}|$(gettext 'Password manager')</item>
 <item icon-name=\"minder\">Minder|${FLGminder}|$(gettext 'Mind-mapping ideas visualization tool')</item>
@@ -106,4 +108,14 @@ ENTRIESother="
 "
 echo "$ENTRIESother" > /tmp/flatpak/ENTRIESother
 
+#20230510 custom...
+for aCUST in $(find /usr/local/flatpak/custom -mindepth 1 -maxdepth 1 -type f | tr '\n' ' ')
+do
+ aNAME="${aCUST##*/}" #ex: goldendict
+ [ "$aNAME" == "template" ] && continue
+ . ${aCUST}
+ aDESC="$(gettext "${cAPPdesc}")" #ex: Dictionary lookup program
+ aFLG=FLG${cAPPname,,} #bash variable indirection.
+ echo "<item icon-name=\"${cAPPname,,}\">${cAPPname}|${!aFLG}|${aDESC}</item>" >> /tmp/flatpak/ENTRIES${cCATEGORY}
+done
 ###end###
