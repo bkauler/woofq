@@ -6,6 +6,8 @@
 #20230414 extract entries to a separate file.
 #20230415 start dbus-daemon session and kill.
 #20230502 support fscrypt v2
+#20230509 need a hack for zoom.
+#20230510 support custom entries.
 
 export TEXTDOMAIN=flatpaks
 export TEXTDOMAINDIR=/usr/share/locale
@@ -30,6 +32,9 @@ $(gettext 'Consequently, they are large, typically 100MB to 900MB, so you do nee
 $(gettext 'The Flatpaks are installed so that each runs as its own user, which maximizes isolation and hence security.')
 
 $(gettext 'Upon installation, a menu-entry is created, and you are good-to-go.')
+
+<b>$(gettext 'Customize')</b>
+$(gettext 'Add your own entries to the Installer.')
 
 <b>$(gettext 'Notes')</b>
 $(gettext 'A tick in the second column means that the Flatpak is already installed. You may then have the opportunity of updating or deleting it.')
@@ -60,6 +65,14 @@ do
   *diy_fever.DIYLayoutCreator) aFP='DIYLC' ;;
   *spotify.Client) aFP='Spotify' ;;
  esac
+ 
+ #20230510 custom
+ aCUST="$(grep -F -l "${aFP##*/}" /usr/local/flatpak/custom/* | head -n 1)"
+ if [ "$aCUST" ];then #ex: /usr/local/flatpak/custom/goldendict
+  . ${aCUST}
+  aFP="${cAPPname}"
+ fi
+ 
  aFP="${aFP##*.}"
  eval "FLG${aFP,,}='√'" #ex: sets FLGaudacity=√
  export FLG${aFP,,}
@@ -88,70 +101,70 @@ export FP_DLG1="<window title=\"$(gettext 'Flatpak Installer')\">
     <notebook labels=\"$(gettext 'Audio')|$(gettext 'Developer')|$(gettext 'Games')|$(gettext 'Graphics')|$(gettext 'Network')|$(gettext 'Office')|$(gettext 'Productivity')|$(gettext 'System')|$(gettext 'Video')|$(gettext 'Other')\">
       <tree column-resizeable=\"0\">
         <label>${PACKAGE}||${DESCRIPTION}</label>
-        <height>350</height>
+        <height>354</height>
         <variable>TREEaudio</variable>
         <action signal=\"enter-notify-event\" type=\"refresh\">TREEaudio</action>
         ${ENTRIESaudio}
       </tree>
       <tree column-resizeable=\"0\">
         <label>${PACKAGE}||${DESCRIPTION}</label>
-        <height>350</height>
+        <height>354</height>
         <variable>TREEdeveloper</variable>
         <action signal=\"enter-notify-event\" type=\"refresh\">TREEdeveloper</action>
         ${ENTRIESdeveloper}
       </tree>
       <tree column-resizeable=\"0\">
         <label>${PACKAGE}||${DESCRIPTION}</label>
-        <height>350</height>
+        <height>354</height>
         <variable>TREEgames</variable>
         <action signal=\"enter-notify-event\" type=\"refresh\">TREEgames</action>
         ${ENTRIESgames}
       </tree>
       <tree column-resizeable=\"0\">
         <label>${PACKAGE}||${DESCRIPTION}</label>
-        <height>350</height>
+        <height>354</height>
         <variable>TREEgraphics</variable>
         <action signal=\"enter-notify-event\" type=\"refresh\">TREEgraphics</action>
         ${ENTRIESgraphics}
       </tree>
       <tree column-resizeable=\"0\">
         <label>${PACKAGE}||${DESCRIPTION}</label>
-        <height>350</height>
+        <height>354</height>
         <variable>TREEnetwork</variable>
         <action signal=\"enter-notify-event\" type=\"refresh\">TREEnetwork</action>
         ${ENTRIESnetwork}
       </tree>
       <tree column-resizeable=\"0\">
         <label>${PACKAGE}||${DESCRIPTION}</label>
-        <height>350</height>
+        <height>354</height>
         <variable>TREEoffice</variable>
         <action signal=\"enter-notify-event\" type=\"refresh\">TREEoffice</action>
         ${ENTRIESoffice}
       </tree>
       <tree column-resizeable=\"0\">
         <label>${PACKAGE}||${DESCRIPTION}</label>
-        <height>350</height>
+        <height>354</height>
         <variable>TREEproductivity</variable>
         <action signal=\"enter-notify-event\" type=\"refresh\">TREEproductivity</action>
         ${ENTRIESproductivity}
       </tree>
       <tree column-resizeable=\"0\">
         <label>${PACKAGE}||${DESCRIPTION}</label>
-        <height>350</height>
+        <height>354</height>
         <variable>TREEsystem</variable>
         <action signal=\"enter-notify-event\" type=\"refresh\">TREEvideo</action>
         ${ENTRIESsystem}
       </tree>
       <tree column-resizeable=\"0\">
         <label>${PACKAGE}||${DESCRIPTION}</label>
-        <height>350</height>
+        <height>354</height>
         <variable>TREEvideo</variable>
         <action signal=\"enter-notify-event\" type=\"refresh\">TREEvideo</action>
         ${ENTRIESvideo}
       </tree>
       <tree column-resizeable=\"0\">
         <label>${PACKAGE}||${DESCRIPTION}</label>
-        <height>350</height>
+        <height>354</height>
         <variable>TREEother</variable>
         <action signal=\"enter-notify-event\" type=\"refresh\">TREEother</action>
         ${ENTRIESother}
@@ -165,6 +178,7 @@ export FP_DLG1="<window title=\"$(gettext 'Flatpak Installer')\">
     <hbox>
       <button space-expand=\"false\" space-fill=\"false\"><input file>/usr/local/lib/X11/mini-icons/mini-question.xpm</input><action type=\"launch\">DLG_HELP_FP</action></button>
       <button space-expand=\"false\" space-fill=\"false\"><label>$(gettext 'Exit')</label><action>exit:QUIT</action></button>
+      <button space-expand=\"false\" space-fill=\"false\"><label>$(gettext 'Customize')</label><action>exit:BUTcust</action></button>
       <text space-expand=\"true\" space-fill=\"true\"><label>\"  \"</label></text>
       <button><label>$(gettext 'Install/Update/Delete')</label><action>exit:BUTinstall</action></button>
       <button><label>$(gettext 'Online Information')</label><action>/usr/local/flatpak/online-info \"\$TREEaudio\" \"\$TREEdeveloper\" \"\$TREEgames\" \"\$TREEgraphics\" \"\$TREEnetwork\" \"\$TREEoffice\" \"\$TREEproductivity\" \"\$TREEsystem\" \"\$TREEvideo\" \"\$TREEother\" </action></button>
@@ -176,6 +190,11 @@ export FP_DLG1="<window title=\"$(gettext 'Flatpak Installer')\">
 RETVALS="$(gtkdialog --center --program=FP_DLG1)"
 xRETVALS="$(echo "$RETVALS" | grep -E '^TREE|^EXIT')"
 eval "$xRETVALS"
+
+if [ "$EXIT" == "BUTcust" ];then #20230510
+ exec /usr/local/flatpak/customize
+fi
+
 if [ "$EXIT" != "BUTinstall" ];then
  exit
 fi
@@ -193,6 +212,7 @@ if [ "$aAPP" == "" ];then
  exit 1
 fi
 
+TRIPLET=''
 case "${aAPP}" in
  Audacity) TRIPLET='org.audacityteam.Audacity'; MENUcat='X-Multimedia-sound'; MENUtop='Multimedia'; MENUname='Audacity audio editor'; ;;
  Krita)    TRIPLET='org.kde.krita'; MENUcat='X-Graphic'; MENUtop='Graphic'; MENUname='Krita vector and raster editor'; ;;
@@ -253,9 +273,33 @@ case "${aAPP}" in
  ShotCut) TRIPLET='org.shotcut.Shotcut'; MENUcat='X-Multimedia-video'; MENUtop='Multimedia'; MENUname='ShotCut video editor'; ;;
  LibrePCB) TRIPLET='org.librepcb.LibrePCB'; MENUcat='X-Graphic'; MENUtop='Graphic'; MENUname='LibrePCB printed circuit board design'; ;;
  Spotify) TRIPLET='com.spotify.Client'; MENUcat='X-Multimedia-sound'; MENUtop='Multimedia'; MENUname='Spotify music streaming'; ;;
+ GoldenDict) TRIPLET='org.goldendict.GoldenDict'; MENUcat='X-Personal'; MENUtop='Personal'; MENUname='GoldenDict dictionary lookup'; ;;
+ SpaceCadetPinball) TRIPLET='com.github.k4zmu2a.spacecadetpinball'; MENUcat='X-Fun'; MENUtop='Fun'; MENUname='SpaceCadetPinball 3D pinball game'; ;;
  ZZZ) TRIPLET=''; MENUcat=''; MENUtop=''; MENUname=''; ;;
- *) exit ;; #precaution.
 esac
+
+#20230510 custom
+if [ -f /usr/local/flatpak/custom/${aAPP,,} ];then
+ . /usr/local/flatpak/custom/${aAPP,,}
+ TRIPLET="${cTRIPLET}"
+ case "$cCATEGORY" in
+  audio)        MENUcat='X-Multimedia-sound'; MENUtop='Multimedia'; ;;
+  developer)    MENUcat='X-Utility-development'; MENUtop='Utility'; ;;
+  games)        MENUcat='X-Fun'; MENUtop='Fun'; ;;
+  graphics)     MENUcat='X-Graphic'; MENUtop='Graphic'; ;;
+  network)      MENUcat='X-Internet'; MENUtop='Internet'; ;;
+  office)       MENUcat='X-Business'; MENUtop='Business'; ;;
+  productivity) MENUcat='X-Personal'; MENUtop='Personal'; ;;
+  system)       MENUcat='X-System'; MENUtop='System'; ;;
+  video)        MENUcat='X-Multimedia-video'; MENUtop='Multimedia'; ;;
+  *)            MENUcat='X-Personal'; MENUtop='Personal'; ;; #other
+ esac
+ MENUname="${cAPPname} ${cAPPdesc,}"
+fi
+
+if [ "$TRIPLET" == "" ];then #precaution.
+ exit
+fi
 
 #register with flathub...
 if [ ! -d /mnt/wkg/flatpak/repo ];then

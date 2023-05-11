@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #called from /usr/local/appimages/appimages
 #up to nine variables passed in:
 #$TREEaudio, $TREEbusiness, $TREEdeveloper, $TREEgames, $TREEgraphics, $TREEnetwork, $TREEproductivity, $TREEsystem, $TREEvideo, $TREEother
@@ -28,6 +28,7 @@ if [ ! -s /tmp/pup_event_backend/network_ ];then
  exit
 fi
 
+URL=''
 case "$aPARAM" in
  Audacity) URL='https://www.audacityteam.org/' ;;
  GitQlient) URL='https://github.com/francescmm/GitQlient' ;;
@@ -130,11 +131,21 @@ case "$aPARAM" in
  Kodi) URL='https://kodi.tv/' ;;
  LibrePCB) URL='https://librepcb.org/' ;;
  Spotify) URL='https://newsroom.spotify.com/company-info/' ;;
- *)
-  pman ${aPARAM} &
-  exit
- ;;
+ SpaceCadetPinball) URL='https://github.com/k4zmu2a/SpaceCadetPinball' ;;
 esac
+
+#20230510 custom...
+if [ "$URL" == "" ];then
+ if [ -f /usr/local/flatpak/custom/${aPARAM,,} ];then
+  . /usr/local/flatpak/custom/${aPARAM,,}
+  URL="$cURL"
+ fi
+fi
+
+if [ "$URL" == "" ];then
+ pman ${aPARAM} &
+ exit
+fi
 
 defaultbrowser ${URL} &
 ###end###

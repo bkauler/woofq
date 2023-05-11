@@ -1,0 +1,211 @@
+#!/bin/bash
+#add and edit user-created entries.
+
+export TEXTDOMAIN=flatpaks
+export TEXTDOMAINDIR=/usr/share/locale
+export OUTPUT_CHARSET=UTF-8
+
+DEF_URL="https://goldendict.org/"
+DEF_TRIPLET="org.goldendict.GoldenDict"
+DEF_NAME="GoldenDict"
+DEF_DESCRIPTION="Dictionary lookup program"
+if [ "$1" == "preload" ];then
+ if [ -s /tmp/fp-customize-fields ];then
+  . /tmp/fp-customize-fields
+  DEF_URL="${ENTRY_URL}"
+  DEF_TRIPLET="${ENTRY_TRIPLET}"
+  DEF_NAME="${ENTRY_NAME}"
+  DEF_DESCRIPTION="${ENTRY_DESCRIPTION}"
+ fi
+fi
+
+HELPICON="gtk-index"
+M_close="$(gettext 'Close')"
+CR='
+'
+
+H_cust="$(gettext 'The user may add their own Flatpak entries in the Installer.')
+$(gettext 'The Flatpak must be available on flathub.org')
+
+<b>$(gettext 'App ID')</b>
+$(gettext 'This may be obtained from the app page on flathub.org, scroll down to <i>Manual Install</i>.')
+
+<b>$(gettext 'App name')</b>
+$(gettext 'This must be one word, with capitalization as required.')
+
+<b>$(gettext 'Description')</b>
+$(gettext 'This must be short, two or three words only.')
+
+<b>$(gettext 'Technical notes')</b>
+$(gettext 'Custom entries are in /usr/local/flatpak/custom. You may manually edit these files, and also delete them.')
+"
+export HELP_FP_CUST="
+<window resizable=\"false\" title=\"$(gettext 'Help: Flatpak add')\" icon-name=\"${HELPICON}\" window_position=\"1\">
+ <vbox>
+  <text use-markup=\"true\">
+   <label>\"${H_cust}\"</label>
+   <variable>HELP_FP_CUST</variable>
+  </text>
+  <hbox>
+   <button>
+    <label>${M_close}</label>
+    <action type=\"closewindow\">HELP_FP_CUST</action>
+   </button>
+  </hbox>
+ </vbox>
+</window>"
+
+
+CATaudio="audio:$(gettext 'Audio')"
+CATdeveloper="developer:$(gettext 'Developer')"
+CATgames="games:$(gettext 'Games')"
+CATgraphics="graphics:$(gettext 'Graphics')"
+CATnetwork="network:$(gettext 'Network')"
+CAToffice="office:$(gettext 'Office')"
+CATproductivity="productivity:$(gettext 'Productivity')"
+CATsystem="system:$(gettext 'System')"
+CATvideo="video:$(gettext 'Video')"
+CATother="other:$(gettext 'Other')"
+
+CATall="${CATaudio}
+${CATdeveloper}
+${CATgames}
+${CATgraphics}
+${CATnetwork}
+${CAToffice}
+${CATproductivity}
+${CATsystem}
+${CATvideo}
+${CATother}"
+
+export FP_CUST_DLG1="<window title=\"$(gettext 'Flatpak Installer: custom entry')\">
+  <vbox>
+   <text><label>\"$(gettext "A new Flatpak may be added. Fill in the fields, then click the 'Add' button.")
+$(gettext 'The fields are pre-filled with an example, as a guide to what is required.')\"</label></text>
+   <hbox>
+    <text><label>Installer category:</label></text>
+    <combobox>
+     <item>${CATaudio#*:}</item>
+     <item>${CATdeveloper#*:}</item>
+     <item>${CATgames#*:}</item>
+     <item>${CATgraphics#*:}</item>
+     <item>${CATnetwork#*:}</item>
+     <item>${CAToffice#*:}</item>
+     <item>${CATproductivity#*:}</item>
+     <item>${CATsystem#*:}</item>
+     <item>${CATvideo#*:}</item>
+     <item>${CATother#*:}</item>
+     <variable>COMBO_CAT</variable>
+    </combobox>
+   </hbox>
+   
+   <hbox>
+    <text><label>$(gettext 'Project URL:')</label></text>
+    <entry>
+     <default>${DEF_URL}</default>
+     <variable>ENTRY_URL</variable>
+    </entry>
+   </hbox>
+
+   <hbox>
+    <text><label>$(gettext 'App ID:')</label></text>
+    <entry>
+     <default>${DEF_TRIPLET}</default>
+     <variable>ENTRY_TRIPLET</variable>
+    </entry>
+   </hbox>
+
+   <hbox>
+    <text><label>$(gettext 'App name:')</label></text>
+    <entry>
+     <default>${DEF_NAME}</default>
+     <variable>ENTRY_NAME</variable>
+    </entry>
+   </hbox>
+
+   <hbox>
+    <text><label>$(gettext 'Description:')</label></text>
+    <entry>
+     <default>${DEF_DESCRIPTION}</default>
+     <variable>ENTRY_DESCRIPTION</variable>
+    </entry>
+   </hbox>
+   
+   <hbox>
+    <button>
+     <label>$(gettext 'Add')</label>
+     <action>EXIT:add</action>
+    </button>
+    <button>
+     <label>$(gettext 'Cancel')</label>
+     <action>EXIT:cancel</action>
+    </button>
+    <button>
+     <input file>/usr/local/lib/X11/mini-icons/mini-question.xpm</input>
+     <action type=\"launch\">HELP_FP_CUST</action>
+    </button>
+   </hbox>
+  </vbox>
+</window>
+"
+
+RETVALS="$(gtkdialog --center --program=FP_CUST_DLG1)"
+xRETVALS="$(echo "$RETVALS" | grep -E '^EXIT|^COMBO_CAT|^ENTRY_')"
+echo "$xRETVALS" > /tmp/fp-customize-fields
+eval "$xRETVALS"
+
+if [ "$EXIT" != "add" ];then
+ exit
+fi
+
+if [ "$ENTRY_URL" == "" -o "$ENTRY_TRIPLET" == "" -o "ENTRY_NAME" == "" ];then
+ M1="$(gettext 'Please fill in all fields.')"
+ popup "process=wait background=#ff8080 terminate=ok level=top|<big>${M1}</big>"
+ exec /usr/local/flatpak/customize preload
+fi
+if [ "${ENTRY_URL:0:4}" != "http" ];then
+ M2="$(gettext 'A complete URL is required, with https:// prefix.')"
+ popup "process=wait background=#ff8080 terminate=ok level=top|<big>${M2}</big>"
+ exec /usr/local/flatpak/customize preload
+fi
+if [ "$ENTRY_DESCRIPTION" == "" ];then
+ ENTRY_DESCRIPTION="$(gettext 'No description provided')"
+fi
+
+#verify url...
+mozbare https://flathub.org/apps/${ENTRY_TRIPLET} &
+sleep 4
+M5a="$(gettext 'Page OK')"
+M5b="$(gettext 'Page NOT OK')"
+M5c="$(gettext 'To verify the app ID, the flathub.org page has being brought up in the web browser. If this is wrong, then you will need to abort creation of the new entry.')"
+pupdialog --background '#ffd020' --yes-label "${M5a}" --no-label "${M5b}" --yesno "${M5c}" 0 0
+if [ $? -ne 0 ];then
+ kill `pgrep -f mozbare`
+ exec /usr/local/flatpak/customize preload
+fi
+kill `pgrep -f mozbare`
+
+#want an icon...
+wget https://dl.flathub.org/repo/appstream/x86_64/icons/128x128/${ENTRY_TRIPLET}.png -O /tmp/${ENTRY_NAME,,}128.png 2>/dev/null
+if [ -s /tmp/${ENTRY_NAME,,}128.png ];then
+ ffmpeg -i /tmp/${ENTRY_NAME,,}128.png -vf scale=48:-1 /tmp/${ENTRY_NAME,,}.png
+ file /tmp/${ENTRY_NAME,,}.png | grep -q PNG
+ if [ $? -eq 0 ];then
+  mv -f /tmp/${ENTRY_NAME,,}.png /usr/share/pixmaps/${ENTRY_NAME,,}.png
+ fi
+fi
+
+CATsel="$(grep ":${COMBO_CAT}$" <<<${CATall} | head -n 1 | cut -f 1 -d ':')" #ex: office
+
+echo "
+cCATEGORY='${CATsel}'
+cURL='${ENTRY_URL}'
+cTRIPLET='${ENTRY_TRIPLET}'
+cAPPname='${ENTRY_NAME/ /}'
+cAPPdesc='${ENTRY_DESCRIPTION^}'
+" > /usr/local/flatpak/custom/${ENTRY_NAME,,} #ex: goldendict
+
+M5="$(gettext 'New entry created. Flapi will now start.')"
+popup "process=wait background=#ffb000 terminate=ok level=top|<big>${M5}</big>"
+exec /usr/local/flatpak/flatpak
+###end###
