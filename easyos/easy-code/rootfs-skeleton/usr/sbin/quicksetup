@@ -133,6 +133,7 @@
 #20230218 if change locale, update /mnt/wkg/.qlang
 #20230224 if changed to en, fix symlinks.
 #20230423 trying to fix norwegian.
+#20230511 make sure /etc/clock.$PC_HARDWARE_PROFILE gets created.
 
 WHOIAM="$(whoami)"
 [ "${WHOIAM}" != "root" ] && exec sudo -A ${0} ${@} #20221023 20221031
@@ -1515,6 +1516,14 @@ HWCLOCKTIME=${NEW_HWCLOCKTIME}" > /etc/clock
    cp -a -f /etc/clock /etc/clock.${PC_HARDWARE_PROFILE} #20220715
   fi
  fi
+ 
+ #20230511 make sure this gets created...
+ if [ "$PC_HARDWARE_PROFILE" ];then
+  if [ ! -f /etc/clock.${PC_HARDWARE_PROFILE} ];then
+   cp -a -f /etc/clock /etc/clock.${PC_HARDWARE_PROFILE}
+  fi
+ fi
+
 fi #end SET_TIMEZONE
 
 if [ "$SET_XRES" ];then
