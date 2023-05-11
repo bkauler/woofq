@@ -12,6 +12,7 @@
 #20220612 put up please wait msg.
 #20220907 do not have /var symlink. do not have /root/.var or /root/.var0 see also: rc.sysinit, init, fixlayers
 #20221124 /root/.clients-status has flags for what apps are running non-root.
+#20230511 offer to preserve appimage and flatpak home folders.
 
 export TEXTDOMAIN=erase-exceptions
 export OUTPUT_CHARSET=UTF-8
@@ -58,6 +59,8 @@ export EVC_EXC_DLG="<window title=\"$(gettext 'Easy Version Control: erase excep
    ${EXC_FW_XML}
    ${BT_XML}
    ${CUPS_XML}
+   <checkbox><label>$(gettext 'Installed AppImages home-folder and run script')</label><variable>EXC20</variable></checkbox>
+   <checkbox><label>$(gettext 'Installed Flatpaks home-folder and run script')</label><variable>EXC21</variable></checkbox>
    <hbox>
     <text><label>$(gettext 'Click the OK button:')</label></text>
     <button><label>$(gettext 'OK')</label><action>exit:save</action></button>
@@ -181,6 +184,30 @@ if [ "$EXIT" == "save" ];then
  fi
  if [ "$EXC11" == "true" ];then #20220117 figaros password manager
   cp -a /root/.fpm /mnt/wkg/sfs/settings/erase-exceptions/root/
+ fi
+ if [ "$EXC20" == "true" ];then #20230511 appimages
+  mkdir -p /mnt/wkg/sfs/settings/erase-exceptions/home
+  mkdir -p /mnt/wkg/sfs/settings/erase-exceptions/usr/bin
+  for aA in $(grep -l '^/mnt/wkg/appimage' /usr/bin/*.bin | tr '\n' ' ')
+  do
+   bA="${aA/.bin/}"
+   cA="${bA##*/}"
+   cp -a -f /home/${cA} /mnt/wkg/sfs/settings/erase-exceptions/home/
+   cp -a -f /usr/bin/${cA} /mnt/wkg/sfs/settings/erase-exceptions/usr/bin/
+   cp -a -f /usr/bin/${cA}.bin /mnt/wkg/sfs/settings/erase-exceptions/usr/bin/
+  done
+ fi
+ if [ "$EXC21" == "true" ];then #20230511 flatpaks
+  mkdir -p /mnt/wkg/sfs/settings/erase-exceptions/home
+  mkdir -p /mnt/wkg/sfs/settings/erase-exceptions/usr/bin
+  for aA in $(grep -l '^flatpak run' /usr/bin/*.bin | tr '\n' ' ')
+  do
+   bA="${aA/.bin/}"
+   cA="${bA##*/}"
+   cp -a -f /home/${cA} /mnt/wkg/sfs/settings/erase-exceptions/home/
+   cp -a -f /usr/bin/${cA} /mnt/wkg/sfs/settings/erase-exceptions/usr/bin/
+   cp -a -f /usr/bin/${cA}.bin /mnt/wkg/sfs/settings/erase-exceptions/usr/bin/
+  done
  fi
  #i think always save these extra...
  [ -f /var/local/version-history-depth ] && cp -a /var/local/version-history-depth /mnt/wkg/sfs/settings/erase-exceptions/var/local/
