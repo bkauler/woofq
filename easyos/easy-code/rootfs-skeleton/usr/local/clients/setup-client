@@ -52,7 +52,7 @@
 #20230409 a bit tricky coz /home/<app> is symlink for flatpaks.
 #20230412 .DirIcon symlink and target of commandline-symlink must have same owner:group as parent folder.
 #20230502 support fscrypt v2
-#20230511 run dbus-launch in <app>.bin
+#20230511 run dbus-launch in <app>.bin  20230512 fix.
 
 APPname="${1/=*/}"  #ex: seamonkey
 APPflag="${1/*=/}" #ex: true
@@ -82,21 +82,29 @@ if [ "$APPflag" == "true" ];then #20210915
  fi
 fi
 
-#20230511
+#20230511 20230512
+#create .bin and .bin0 ...
 gen_bin_func() {
  local APPin
- #pass in path and name of executable that will become .bin0
- # ex: /usr/bin/chromium
- APPin="$1"
- [ ! "$APPin" ] && exit 1
- [ ! -x "$APPin" ] && exit 2
- [ -e ${APPin}.bin ] && exit
+ APPin="${PREFIXDIR1}${APPpath}/${APPname}"
+ [ ! "$APPin" ] && return 1
+ [ ! -x "$APPin" ] && return 2
+ if [ -e ${APPin}.bin ];then
+  return
+ fi
+ #20230512 only want .bin0 if not appimage or flatpak...
+ grep -q DBUS_SESSION_BUS_PID ${APPin}
+ if [ $? -eq 0 ];then
+  cp -a -f ${APPin} ${APPin}.bin
+  return
+ fi
  if [ ! -e ${APPin}.bin0 ];then
   mv -f ${APPin} ${APPin}.bin0
  fi
+ #hmmm, 3buildeasydistro creates chromium.bin with APPin=rootfs-complete/usr/bin/chromium
  echo "#!/bin/sh
 export \$(dbus-launch) #if app needs to access dbus.
-${APPin}.bin0 \$@
+${APPpath}/${APPname}.bin0 \$@
 kill \$DBUS_SESSION_BUS_PID
 " > ${APPin}.bin
  chmod 755 ${APPin}.bin
@@ -441,7 +449,7 @@ fi
 seamonkey_true() {
  #function to run seamonkey as a client.
  #[ ! -e ${PREFIXDIR1}${APPpath}/${APPname}.bin ] && cp -a -f ${PREFIXDIR1}${APPpath}/${APPname} ${PREFIXDIR1}${APPpath}/${APPname}.bin
- gen_bin_func ${PREFIXDIR1}${APPpath}/${APPname} #20230511
+ gen_bin_func #${PREFIXDIR1}${APPpath}/${APPname} #20230511 20230512
  rm -f ${PREFIXDIR1}${APPpath}/${APPname} #in case it is a symlink.
  echo "#!/bin/bash
 APPbin='${APPpath}/${APPname}.bin'
@@ -511,10 +519,16 @@ Path=${BASENAME}" > /home/${APPname}/.mozilla/seamonkey/profiles.ini
 
 seamonkey_false() {
  #function to run seamonkey as root.
- if [ -e ${PREFIXDIR1}${APPpath}/${APPname}.bin0 ];then #20230511
-  cp -a -f --remove-destination ${PREFIXDIR1}${APPpath}/${APPname}.bin0 ${PREFIXDIR1}${APPpath}/${APPname} #restore original.
-  rm -f ${PREFIXDIR1}${APPpath}/${APPname}.bin
-  rm -f ${PREFIXDIR1}${APPpath}/${APPname}.bin0
+ #20230511 20230512 fix...
+ if [ -e ${PREFIXDIR1}${APPpath}/${APPname}.bin0 -o -e ${PREFIXDIR1}${APPpath}/${APPname}.bin ];then
+  if [ -e ${PREFIXDIR1}${APPpath}/${APPname}.bin0 ];then
+   cp -a -f --remove-destination ${PREFIXDIR1}${APPpath}/${APPname}.bin0 ${PREFIXDIR1}${APPpath}/${APPname} #restore original.
+   rm -f ${PREFIXDIR1}${APPpath}/${APPname}.bin0
+   rm -f ${PREFIXDIR1}${APPpath}/${APPname}.bin
+  elif [ -e ${PREFIXDIR1}${APPpath}/${APPname}.bin ];then
+   cp -a -f --remove-destination ${PREFIXDIR1}${APPpath}/${APPname}.bin ${PREFIXDIR1}${APPpath}/${APPname} #restore original.
+   rm -f ${PREFIXDIR1}${APPpath}/${APPname}.bin
+  fi
  else #precaution. error.
   ln -snf /usr/lib${xARCHDIR}/seamonkey/seamonkey ${PREFIXDIR1}/usr/bin/seamonkey
  fi
@@ -531,7 +545,7 @@ generic_func() {
  case $APPflag in
   true)
    #[ ! -e ${PREFIXDIR1}${APPpath}/${APPname}.bin ] && cp -a -f ${PREFIXDIR1}${APPpath}/${APPname} ${PREFIXDIR1}${APPpath}/${APPname}.bin
-   gen_bin_func ${PREFIXDIR1}${APPpath}/${APPname} #20230511
+   gen_bin_func #${PREFIXDIR1}${APPpath}/${APPname} #20230511 20230511
    rm -f ${PREFIXDIR1}${APPpath}/${APPname} #in case it is a symlink.
    echo "#!/bin/bash
 APPbin='${APPpath}/${APPname}.bin'
@@ -540,10 +554,16 @@ APPname='${APPname}'" > ${PREFIXDIR1}${APPpath}/${APPname}
    chmod 755 ${PREFIXDIR1}${APPpath}/${APPname}
   ;;
   false)
-   if [ -e ${PREFIXDIR1}${APPpath}/${APPname}.bin0 ];then
-    cp -a -f --remove-destination ${PREFIXDIR1}${APPpath}/${APPname}.bin0 ${PREFIXDIR1}${APPpath}/${APPname} #restore original.
-    rm -f ${PREFIXDIR1}${APPpath}/${APPname}.bin
-    rm -f ${PREFIXDIR1}${APPpath}/${APPname}.bin0
+   #20230511 20230512 fix...
+   if [ -e ${PREFIXDIR1}${APPpath}/${APPname}.bin0 -o -e ${PREFIXDIR1}${APPpath}/${APPname}.bin ];then
+    if [ -e ${PREFIXDIR1}${APPpath}/${APPname}.bin0 ];then
+     cp -a -f --remove-destination ${PREFIXDIR1}${APPpath}/${APPname}.bin0 ${PREFIXDIR1}${APPpath}/${APPname} #restore original.
+     rm -f ${PREFIXDIR1}${APPpath}/${APPname}.bin0
+     rm -f ${PREFIXDIR1}${APPpath}/${APPname}.bin
+    elif [ -e ${PREFIXDIR1}${APPpath}/${APPname}.bin ];then
+     cp -a -f --remove-destination ${PREFIXDIR1}${APPpath}/${APPname}.bin ${PREFIXDIR1}${APPpath}/${APPname} #restore original.
+     rm -f ${PREFIXDIR1}${APPpath}/${APPname}.bin
+    fi
    fi
    #20210915 hide, so can bring back in future...
    if [ -d ${PREFIXDIR1}/home/.${APPname} ];then #precaution.
@@ -560,7 +580,7 @@ vivaldi_func() { #20230302
  case $APPflag in
   true)
    #[ ! -e ${PREFIXDIR1}${APPpath}/${APPname}.bin ] && cp -a -f ${PREFIXDIR1}${APPpath}/${APPname} ${PREFIXDIR1}${APPpath}/${APPname}.bin
-   gen_bin_func ${PREFIXDIR1}${APPpath}/${APPname} #20230511
+   gen_bin_func #${PREFIXDIR1}${APPpath}/${APPname} #20230511 20230512
    rm -f ${PREFIXDIR1}${APPpath}/${APPname} #in case it is a symlink.
    echo "#!/bin/bash
 APPbin='${APPpath}/${APPname}.bin'
@@ -571,10 +591,16 @@ ROOTOPTS='--no-sandbox'
    chmod 755 ${PREFIXDIR1}${APPpath}/${APPname}
   ;;
   false)
-   if [ -e ${PREFIXDIR1}${APPpath}/${APPname}.bin0 ];then #20230511
-    cp -a -f --remove-destination ${PREFIXDIR1}${APPpath}/${APPname}.bin0 ${PREFIXDIR1}${APPpath}/${APPname} #restore original.
-    rm -f ${PREFIXDIR1}${APPpath}/${APPname}.bin
-    rm -f ${PREFIXDIR1}${APPpath}/${APPname}.bin0
+   #20230511 20230512 fix...
+   if [ -e ${PREFIXDIR1}${APPpath}/${APPname}.bin0 -o -e ${PREFIXDIR1}${APPpath}/${APPname}.bin ];then
+    if [ -e ${PREFIXDIR1}${APPpath}/${APPname}.bin0 ];then
+     cp -a -f --remove-destination ${PREFIXDIR1}${APPpath}/${APPname}.bin0 ${PREFIXDIR1}${APPpath}/${APPname} #restore original.
+     rm -f ${PREFIXDIR1}${APPpath}/${APPname}.bin0
+     rm -f ${PREFIXDIR1}${APPpath}/${APPname}.bin
+    elif [ -e ${PREFIXDIR1}${APPpath}/${APPname}.bin ];then
+     cp -a -f --remove-destination ${PREFIXDIR1}${APPpath}/${APPname}.bin ${PREFIXDIR1}${APPpath}/${APPname} #restore original.
+     rm -f ${PREFIXDIR1}${APPpath}/${APPname}.bin
+    fi
    fi
    #20210915 hide, so can bring back in future...
    if [ -d ${PREFIXDIR1}/home/.${APPname} ];then #precaution.
@@ -592,7 +618,7 @@ blender_func() {
  case $APPflag in
   true)
    #[ ! -e ${PREFIXDIR1}${APPpath}/${APPname}.bin ] && cp -a -f ${PREFIXDIR1}${APPpath}/${APPname} ${PREFIXDIR1}${APPpath}/${APPname}.bin
-   gen_bin_func ${PREFIXDIR1}${APPpath}/${APPname} #20230511
+   gen_bin_func #${PREFIXDIR1}${APPpath}/${APPname} #20230511 20230512
    rm -f ${PREFIXDIR1}${APPpath}/${APPname} #in case it is a symlink.
    echo "#!/bin/bash
 APPbin='${APPpath}/${APPname}.bin'
@@ -608,10 +634,16 @@ fi
    chmod 755 ${PREFIXDIR1}${APPpath}/${APPname}
   ;;
   false)
-   if [ -e ${PREFIXDIR1}${APPpath}/${APPname}.bin0 ];then #20230511
-    cp -a -f --remove-destination ${PREFIXDIR1}${APPpath}/${APPname}.bin0 ${PREFIXDIR1}${APPpath}/${APPname} #restore original.
-    rm -f ${PREFIXDIR1}${APPpath}/${APPname}.bin
-    rm -f ${PREFIXDIR1}${APPpath}/${APPname}.bin0
+   #20230511 20230512 fix...
+   if [ -e ${PREFIXDIR1}${APPpath}/${APPname}.bin0 -o -e ${PREFIXDIR1}${APPpath}/${APPname}.bin ];then
+    if [ -e ${PREFIXDIR1}${APPpath}/${APPname}.bin0 ];then
+     cp -a -f --remove-destination ${PREFIXDIR1}${APPpath}/${APPname}.bin0 ${PREFIXDIR1}${APPpath}/${APPname} #restore original.
+     rm -f ${PREFIXDIR1}${APPpath}/${APPname}.bin0
+     rm -f ${PREFIXDIR1}${APPpath}/${APPname}.bin
+    elif [ -e ${PREFIXDIR1}${APPpath}/${APPname}.bin ];then
+     cp -a -f --remove-destination ${PREFIXDIR1}${APPpath}/${APPname}.bin ${PREFIXDIR1}${APPpath}/${APPname} #restore original.
+     rm -f ${PREFIXDIR1}${APPpath}/${APPname}.bin
+    fi
    fi
    #20210915 hide, so can bring back in future...
    if [ -d ${PREFIXDIR1}/home/.${APPname} ];then #precaution.
@@ -627,7 +659,7 @@ fi
 #20211107
 firefox_true() {
  #[ ! -e ${PREFIXDIR1}${APPpath}/${APPname}.bin ] && cp -a -f ${PREFIXDIR1}${APPpath}/${APPname} ${PREFIXDIR1}${APPpath}/${APPname}.bin
- gen_bin_func ${PREFIXDIR1}${APPpath}/${APPname} #20230511
+ gen_bin_func #${PREFIXDIR1}${APPpath}/${APPname} #20230511 20230512
  rm -f ${PREFIXDIR1}${APPpath}/${APPname} #in case it is a symlink.
  echo "#!/bin/bash
 APPbin='${APPpath}/${APPname}.bin'
@@ -710,10 +742,16 @@ EOF
 }
 
 firefox_false() {
- if [ -e ${PREFIXDIR1}${APPpath}/${APPname}.bin0 ];then
-  cp -a -f --remove-destination ${PREFIXDIR1}${APPpath}/${APPname}.bin ${PREFIXDIR1}${APPpath}/${APPname} #restore original.
-  rm -f ${PREFIXDIR1}${APPpath}/${APPname}.bin
-  rm -f ${PREFIXDIR1}${APPpath}/${APPname}.bin0
+ #20230511 20230512 fix...
+ if [ -e ${PREFIXDIR1}${APPpath}/${APPname}.bin0 -o -e ${PREFIXDIR1}${APPpath}/${APPname}.bin ];then
+  if [ -e ${PREFIXDIR1}${APPpath}/${APPname}.bin0 ];then
+   cp -a -f --remove-destination ${PREFIXDIR1}${APPpath}/${APPname}.bin0 ${PREFIXDIR1}${APPpath}/${APPname} #restore original.
+   rm -f ${PREFIXDIR1}${APPpath}/${APPname}.bin0
+   rm -f ${PREFIXDIR1}${APPpath}/${APPname}.bin
+  elif [ -e ${PREFIXDIR1}${APPpath}/${APPname}.bin ];then
+   cp -a -f --remove-destination ${PREFIXDIR1}${APPpath}/${APPname}.bin ${PREFIXDIR1}${APPpath}/${APPname} #restore original.
+   rm -f ${PREFIXDIR1}${APPpath}/${APPname}.bin
+  fi
  fi
  #hide, so can bring back in future...
  if [ -d ${PREFIXDIR1}/home/.${APPname} ];then #precaution.
@@ -726,7 +764,7 @@ firefox_false() {
 opera_true() {
  #function to run Opera as spot.
  #[ ! -e ${PREFIXDIR1}${APPpath}/${APPname}.bin ] && cp -a -f ${PREFIXDIR1}${APPpath}/${APPname} ${PREFIXDIR1}${APPpath}/${APPname}.bin
- gen_bin_func ${PREFIXDIR1}${APPpath}/${APPname} #20230511
+ gen_bin_func #${PREFIXDIR1}${APPpath}/${APPname} #20230511 20230512
  rm -f ${PREFIXDIR1}${APPpath}/${APPname} #in case it is a symlink.
  echo "#!/bin/bash
 APPbin='${APPpath}/${APPname}.bin'
@@ -760,10 +798,16 @@ PRE=14,4,0,0,0,0,Nimbus Mono L
  return 0
 }
 opera_false() {
- if [ -e ${PREFIXDIR1}${APPpath}/${APPname}.bin0 ];then #20230511
-  cp -a -f --remove-destination ${PREFIXDIR1}${APPpath}/${APPname}.bin0 ${PREFIXDIR1}${APPpath}/${APPname} #restore original.
-  rm -f ${PREFIXDIR1}${APPpath}/${APPname}.bin
-  rm -f ${PREFIXDIR1}${APPpath}/${APPname}.bin0
+ #20230511 20230512 fix...
+ if [ -e ${PREFIXDIR1}${APPpath}/${APPname}.bin0 -o -e ${PREFIXDIR1}${APPpath}/${APPname}.bin ];then
+  if [ -e ${PREFIXDIR1}${APPpath}/${APPname}.bin0 ];then
+   cp -a -f --remove-destination ${PREFIXDIR1}${APPpath}/${APPname}.bin0 ${PREFIXDIR1}${APPpath}/${APPname} #restore original.
+   rm -f ${PREFIXDIR1}${APPpath}/${APPname}.bin0
+   rm -f ${PREFIXDIR1}${APPpath}/${APPname}.bin
+  elif [ -e ${PREFIXDIR1}${APPpath}/${APPname}.bin ];then
+   cp -a -f --remove-destination ${PREFIXDIR1}${APPpath}/${APPname}.bin ${PREFIXDIR1}${APPpath}/${APPname} #restore original.
+   rm -f ${PREFIXDIR1}${APPpath}/${APPname}.bin
+  fi
  fi
  #20210915 hide, so can bring back in future...
  if [ -d ${PREFIXDIR1}/home/.${APPname} ];then #precaution.
@@ -779,7 +823,7 @@ chromium_true() {
  #20211022 fix if path has "/root/" and remove quotes around $@...
  if [ ! -e ${PREFIXDIR1}${APPpath}/${APPname}.bin ];then
   #cp -a -f ${PREFIXDIR1}${APPpath}/${APPname} ${PREFIXDIR1}${APPpath}/${APPname}.bin
-  gen_bin_func ${PREFIXDIR1}${APPpath}/${APPname} #20230511
+  gen_bin_func #${PREFIXDIR1}${APPpath}/${APPname} #20230511 20230512
   if [ ! -h ${PREFIXDIR1}${APPpath}/${APPname}.bin0 ];then #20230511
    sed -i -e 's%/root/%/$(whoami)/%' ${PREFIXDIR1}${APPpath}/${APPname}.bin0
    sed -i -e 's%"$@"%$@%' ${PREFIXDIR1}${APPpath}/${APPname}.bin0
@@ -828,11 +872,17 @@ NONROOTMAINOPTS='--disable-features=AudioServiceSandbox' #20211007
  return 0
 }
 chromium_false() {
-   if [ -e ${PREFIXDIR1}${APPpath}/${APPname}.bin0 ];then #20230511
-    cp -a -f --remove-destination ${PREFIXDIR1}${APPpath}/${APPname}.bin0 ${PREFIXDIR1}${APPpath}/${APPname} #restore original.
-    rm -f ${PREFIXDIR1}${APPpath}/${APPname}.bin
-    rm -f ${PREFIXDIR1}${APPpath}/${APPname}.bin0
-   fi
+ #20230511 20230512 fix...
+ if [ -e ${PREFIXDIR1}${APPpath}/${APPname}.bin0 -o -e ${PREFIXDIR1}${APPpath}/${APPname}.bin ];then
+  if [ -e ${PREFIXDIR1}${APPpath}/${APPname}.bin0 ];then
+   cp -a -f --remove-destination ${PREFIXDIR1}${APPpath}/${APPname}.bin0 ${PREFIXDIR1}${APPpath}/${APPname} #restore original.
+   rm -f ${PREFIXDIR1}${APPpath}/${APPname}.bin0
+   rm -f ${PREFIXDIR1}${APPpath}/${APPname}.bin
+  elif [ -e ${PREFIXDIR1}${APPpath}/${APPname}.bin ];then
+   cp -a -f --remove-destination ${PREFIXDIR1}${APPpath}/${APPname}.bin ${PREFIXDIR1}${APPpath}/${APPname} #restore original.
+   rm -f ${PREFIXDIR1}${APPpath}/${APPname}.bin
+  fi
+ fi
  #change path to profile...
  ctPTN='s%/home/${APPname}/chromium/profile%/file/portable/chromium/profile%'
  sed -i -e "$ctPTN" ${PREFIXDIR1}${APPpath}/${APPname} #huh?

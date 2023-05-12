@@ -17,7 +17,7 @@ if [ "$MAINCAT" == "business" ];then
   case "$SUBCAT" in
    calculator) CATS='^Categories.*Calculator|^Categories.*X-CalculateUtility'; EXCLUDE='gmeasures'; ;;
    calendar)   CATS='^Categories.*X-Personal-date|^Categories.*Calendar' ;;
-   database)   CATS='^Categories.*X-Personal-database|^Categories.*ContactManagement' ;;
+   database)   CATS='^Categories.*X-Personal-database|^Categories.*ContactManagement|^Categories.*Database' ;;
    finance)    CATS='^Categories.*X-Business-finance|^Categories.*Finance' ;;
    measure)    CATS='^Exec.*gmeasures' ;;
    notebook)   CATS='^Categories.*X-Personal-organizer|^Categories.*PDA' ;;
@@ -76,7 +76,7 @@ elif [ "$MAINCAT" == "utility" ];then
   diskmap)       CATS='^Exec=gdmap' ;;
   drives)        CATS='^Exec=gparted|^Exec=easydd' ;;
   findfiles)     CATS='^Categories.*X-Filesystem-find|^Exec=prename|^Exec=gfnrename'; EXCLUDE='gwhere'; ;;
-  momanager)     CATS='^Exec=momanager' ;;
+  international) CATS='^Exec=momanager|^Exec=gxlat|^Categories.*Languages' ;;
   systeminformation) CATS='^Exec=hardinfo|^Exec=ipinfo|^Exec=pprocess|^Exec=Pup-SysInfo|^Exec=pupscan|^Exec=usbviewshell'; EXCLUDE='pprocess'; ;;
   terminalemulator) CATS='^Categories.*TerminalEmulator'; EXCLUDE='ec-console'; ;;
   encryption) CATS='^Categories.*X-Personal-security|^Exec=gtkhash' ;;
@@ -95,6 +95,10 @@ SUBxml=''
 for aDT in $FND
 do
  [ "$aDT" == "" ] && continue
+ grep -q '^NoDisplay=true' ${aDT} #20230512
+ if [ $? -eq 0 ];then
+  continue
+ fi
  Picon=$(grep '^Icon=' ${aDT} | cut -f 2 -d '=' | cut -f 1 -d ' ')
  if [ "${Picon:0:1}" == "/" ];then
   ICON="$Picon"
