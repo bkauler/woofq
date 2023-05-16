@@ -8,6 +8,7 @@
 #20230502 support fscrypt v2
 #20230509 need a hack for zoom.
 #20230510 support custom entries. 20230511 check for duplicates.
+#20230516 ping to check internet. reduce scale fact 1.2 to 1.1. fix version detect.
 
 export TEXTDOMAIN=flatpaks
 export TEXTDOMAINDIR=/usr/share/locale
@@ -19,6 +20,24 @@ CR='
 mkdir -p /tmp/flatpak
 mkdir -p /mnt/wkg/flatpak
 . /root/.packages/build-choices #20230502 has EOS_FSCRYPT_VER
+
+start_func() { #20230516
+ ping -4 -c 1 -w 5 google.com > /dev/null 2>&1
+ if [ $? -ne 0 ];then
+  M3a="$(gettext 'ERROR: An Internet connection is required.')"
+  popup "terminate=ok background=#ff8080 level=top process=wait|<big>${M3a}</big>"
+  exec flapi
+ fi
+ if [ ! -d /mnt/wkg/flatpak/repo ];then
+  flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+  if [ $? -ne 0 ];then
+   rm -rf /mnt/wkg/flatpak 2>/dev/null
+   M3b="$(gettext 'ERROR: Failure registering with Flathub repository.')"
+   popup "terminate=ok background=#ff8080 level=top process=wait|<big>${M3b}</big>"
+   exec flapi
+  fi
+ fi
+}
 
 if [ "$EOS_FSCRYPT_VER" == "1" ];then
  M2="$(gettext 'The Flatpak sandbox is good, but conflicts with ext4 folder encryption. Thus, the application-name in the /home folder is a symlink to an unencrypted folder in the working-partition.')"
@@ -206,6 +225,7 @@ xRETVALS="$(echo "$RETVALS" | grep -E '^TREE|^EXIT')"
 eval "$xRETVALS"
 
 if [ "$EXIT" == "BUTcust" ];then #20230510
+ start_func #20230516
  exec /usr/local/flatpak/customize
 fi
 
@@ -315,23 +335,17 @@ if [ "$TRIPLET" == "" ];then #precaution.
  exit
 fi
 
-#register with flathub...
-if [ ! -d /mnt/wkg/flatpak/repo ];then
- #need internet connection...
- if [ ! -s /tmp/pup_event_backend/network_ ];then
-  M3="$(gettext 'An Internet connection is required to register with Flathub repository.')"
-  popup "terminate=ok background=#ff8080 level=top process=wait|<big>${M3}</big>"
-  exec flapi
- fi
- flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
-fi
+#check internet and register with flathub...
+start_func #20230516
 
 #test if already installed...
 UPDATEflg='no'; FPver=''
 if [ -e /mnt/wkg/flatpak/exports/bin/${TRIPLET} ];then
  if [ -f /usr/bin/${aAPP,,} ];then
-  #already installed.
-  FPver="$(flatpak list --app --columns=name,version | tr '\t' ' ' | tr -s ' ' | grep "^${aAPP} " | cut -f 2 -d ' ')"
+  #already installed. 20230516 fix FPver...
+  #FPver="$(flatpak list --app --columns=name,version | tr '\t' ' ' | tr -s ' ' | grep "^${aAPP} " | cut -f 2 -d ' ')"
+  #20230516 seems weird, but this is how specify tab delimiter for cut...
+  FPver="$(flatpak list --app --columns=name,version | grep "^${aAPP}" | tr -s '\t' | cut -f 2 -d$'\t')"
   UPDATExml="<text><label>$(gettext 'To probe online if there is a later version and update to it, click the UPDATE button:')</label></text>
    <vbox>
     <button><label>$(gettext 'UPDATE')</label><action>EXIT:update</action></button>
@@ -509,11 +523,11 @@ fi
 #flatpak run --filesystem=/mnt/wkg/data/flatpak/${aAPP,,} ${TRIPLET}
 #but want to be able to open with any file via right-click menu in rox...
 #20230505 make qt fonts bigger "--env=QT_SCALE_FACTOR=1.2"
-# same for gtk " --env=GDK_DPI_SCALE=1.2"
+# same for gtk " --env=GDK_DPI_SCALE=1.2"  20230516 reduce both to 1.1
 echo "#!/bin/sh
 export \$(dbus-launch) #if app needs to access dbus.
 export XDG_DATA_DIRS=/mnt/wkg/flatpak/exports/share:/home/${aAPP,,}/.local/share/flatpak/exports/share:${XDG_DATA_DIRS} #need to fool flatpak.
-flatpak run --env=GDK_DPI_SCALE=1.2 --env=QT_SCALE_FACTOR=1.2 --filesystem=host --socket=system-bus --socket=cups --socket=ssh-auth --socket=session-bus ${TRIPLET}
+flatpak run --env=GDK_DPI_SCALE=1.1 --env=QT_SCALE_FACTOR=1.1 --filesystem=host --socket=system-bus --socket=cups --socket=ssh-auth --socket=session-bus ${TRIPLET}
 kill \$DBUS_SESSION_BUS_PID" > /usr/bin/${aAPP,,}
 chmod 755 /usr/bin/${aAPP,,}
 
