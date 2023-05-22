@@ -13,6 +13,7 @@
 #20220907 do not have /var symlink. do not have /root/.var or /root/.var0 see also: rc.sysinit, init, fixlayers
 #20221124 /root/.clients-status has flags for what apps are running non-root.
 #20230511 offer to preserve appimage and flatpak home folders.
+#20230513 preserve gnupg keys.
 
 export TEXTDOMAIN=erase-exceptions
 export OUTPUT_CHARSET=UTF-8
@@ -55,6 +56,7 @@ export EVC_EXC_DLG="<window title=\"$(gettext 'Easy Version Control: erase excep
    <checkbox><label>$(gettext 'Video profiles (X drivers, acceleration, etc.)')</label><variable>EXC3</variable></checkbox>
    <checkbox><label>$(gettext 'Network connection (wifi password, etc.)')</label><variable>EXC4</variable></checkbox>
    <checkbox><label>$(gettext 'Network SSH login keys')</label><variable>EXC9</variable></checkbox>
+   <checkbox><label>$(gettext 'GPG secure keyrings')</label><variable>EXC22</variable></checkbox>
    <checkbox><label>$(gettext 'Kernel modules (blacklist, etc.)')</label><variable>EXC8</variable></checkbox>
    ${EXC_FW_XML}
    ${BT_XML}
@@ -210,6 +212,11 @@ if [ "$EXIT" == "save" ];then
    cp -a -f /usr/bin/${cA}.bin /mnt/wkg/sfs/settings/erase-exceptions/usr/bin/
    cp -a -f /usr/bin/${cA}.bin0 /mnt/wkg/sfs/settings/erase-exceptions/usr/bin/ 2>/dev/null
   done
+ fi
+ if [ "$EXC22" == "true" ];then #20230513 gnupg keys
+  if [ -d /root/.gnupg ];then
+   cp -a /root/.gnupg /mnt/wkg/sfs/settings/erase-exceptions/root/
+  fi
  fi
  #i think always save these extra...
  [ -f /var/local/version-history-depth ] && cp -a /var/local/version-history-depth /mnt/wkg/sfs/settings/erase-exceptions/var/local/
