@@ -1,6 +1,7 @@
 #!/bin/ash
 #20230423 no equivalent to nb
 #20230425 support compressed 'dialog'.
+#20230522 LANG=en_US.UTF-8 fixes dialog display psfu utf-8 text.
 
 #20230210
 . /build-choices #copied from easy.sfs, see init script. 202304 3buildeasydistro copies it here.
@@ -21,7 +22,7 @@ if [ -f /bin/dialog.gz ];then #20230425
  chmod 755 dialog
  cd ..
 fi
-dialog --no-cancel --timeout 240 --menu "Choose language" 0 0 0 $CODES 2>qlang
+LANG=en_US.UTF-8 dialog --no-cancel --timeout 240 --menu "Choose language" 0 0 0 $CODES 2>qlang
 
 grep -q -w -f qlang codes2
 if [ $? -ne 0 ];then #precaution.
