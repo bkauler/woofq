@@ -2,6 +2,7 @@
 #d/l and install an appimage.
 #20230415 start and stop dbus-daemon for session.
 #20230425 entries in external file.
+#20230517 fix check internet connection.
 
 export TEXTDOMAIN=appimages
 export TEXTDOMAINDIR=/usr/share/locale
@@ -387,8 +388,9 @@ if [ "$EXIT" != "OK" ];then
  exit 0
 fi
 
-#need internet connection...
-if [ ! -s /tmp/pup_event_backend/network_ ];then
+#need internet connection... 20230517 fix
+ping -4 -c 1 -w 5 google.com > /dev/null 2>&1
+if [ $? -ne 0 ];then
  M5="$(gettext 'An Internet connection is required to download an AppImage.')"
  popup "terminate=ok background=#ff8080 level=top process=wait|<big>${M5}</big>"
  exec appi
