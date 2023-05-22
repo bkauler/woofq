@@ -161,6 +161,7 @@
 #20230430 64 byte hash generated from password.
 #20230503 fscrypt v1 to v2 update.
 #20230507 hash generated from password used for gpg.
+#20230522 new zap psfu font, do not run load_font, load_font_country.
 
 #20230429
 . /build-choices #3buildeasydistro copies it here.
@@ -514,31 +515,31 @@ EOT
  return 0 #190713
 }
 
-load_font() {
- #2-char keymap is passed in
- case "$1" in
-  az|be|br|by|cr|de|dk|es|fi|fr|gr|hu|it|nl|no|pt|ro|ru|se|sk|sl) #all european languages
-   loadfont < /lib/consolefonts/LatGrkCyr-8x16.psfu
-  ;;
-  il) #arabic, hebrew. il=israel
-   loadfont < /lib/consolefonts/LatArCyrHeb-16.psfu
-  ;;
- esac 
-}
+#load_font() {  #20230522 no longer used.
+# #2-char keymap is passed in
+# case "$1" in
+#  az|be|br|by|cr|de|dk|es|fi|fr|gr|hu|it|nl|no|pt|ro|ru|se|sk|sl) #all european languages
+#   loadfont < /lib/consolefonts/LatGrkCyr-8x16.psfu
+#  ;;
+#  il) #arabic, hebrew. il=israel
+#   loadfont < /lib/consolefonts/LatArCyrHeb-16.psfu
+#  ;;
+# esac 
+#}
 
-#20230113 load font based on the 2-letter country code...
-load_font_country() {
- case "$1" in
-  az|be|br|by|cr|de|dk|es|fi|fr|gr|hu|it|nl|no|pt|ro|ru|se|sk|sl)
-   #all european languages
-   loadfont < /lib/consolefonts/LatGrkCyr-8x16.psfu
-  ;;
-  il|dz|bh|td|km|dj|eg|iq|jo|kw|lb|ly|mr|ma|om|qa|sa|so|sd|sy|tn|ae|ye)
-   #arabic, hebrew. il=israel arab countries: dz bh td km dj eg iq jo kw lb ly mr ma om qa sa so sd sy tn ae ye
-   loadfont < /lib/consolefonts/LatArCyrHeb-16.psfu
-  ;;
- esac
-}
+##20230113 load font based on the 2-letter country code...
+#load_font_country() {  #20230522 no longer used.
+# case "$1" in
+#  az|be|br|by|cr|de|dk|es|fi|fr|gr|hu|it|nl|no|pt|ro|ru|se|sk|sl)
+#   #all european languages
+#   loadfont < /lib/consolefonts/LatGrkCyr-8x16.psfu
+#  ;;
+#  il|dz|bh|td|km|dj|eg|iq|jo|kw|lb|ly|mr|ma|om|qa|sa|so|sd|sy|tn|ae|ye)
+#   #arabic, hebrew. il=israel arab countries: dz bh td km dj eg iq jo kw lb ly mr ma om qa sa so sd sy tn ae ye
+#   loadfont < /lib/consolefonts/LatArCyrHeb-16.psfu
+#  ;;
+# esac
+#}
 
 ###temporary mount easy.sfs###20230123
 mount_tnew() {
@@ -636,7 +637,7 @@ if [ "$QLANG" ];then
  if [ -e /nls/${QLANG}/init.str -a "$QLANG" != "en" ];then
 . /nls/${QLANG}/init.str
   export QLANG
-  load_font_country ${QLANG} #20230113
+  #load_font_country ${QLANG} #20230113  20230522
  fi
 fi
 
@@ -710,6 +711,7 @@ if [ ! "$INIT_DISTRO_NAME_SHORT" ];then
 fi
 
 ###display info### #20220629 20230304
+loadfont < /lib/consolefonts/zap-ext-light18.psfu #20230522
 echo -n -e "\\033[1;32m${INIT_DISTRO_NAME_LONG}, version ${INIT_DISTRO_VERSION}\\033[0;39m\n" #bright green
 echo
 
@@ -898,7 +900,7 @@ if [ "$LOCKDOWN" == "" -o "$DROPOUT" == "" ];then
    fi
    if [ -e /nls/${QLANG}/init.str -a "$QLANG" != "en" ];then #20230110
 .   /nls/${QLANG}/init.str
-    load_font_country ${QLANG}
+    #load_font_country ${QLANG}  #20230522
    fi
    export QLANG
   fi
@@ -1150,9 +1152,9 @@ if [ ! -d /mnt/${WKG_DEV}/${WKG_DIR}.session ];then
    ask_kb #sets $KEYMAP
   fi
   if [ $? -eq 0 ];then
-   if [ ! "$QLANG" ];then #20230113
-    load_font ${KEYMAP:0:2}
-   fi
+   #if [ ! "$QLANG" ];then #20230113 20230522
+   # load_font ${KEYMAP:0:2}
+   #fi
    gunzip -c /lib/keymaps/${KEYMAP}.gz | loadkmap
    if [ "$WKG_FS" == "ext4" -o "$WKG_LOOP" ];then #20210524 $WKG_LOOP set if have save-file
     ask_pw 0 #sets $PW
@@ -1277,9 +1279,9 @@ else
   touch /mnt/${WKG_DEV}/${WKG_DIR}sfs/settings/initrd/CONFIG
   . /mnt/${WKG_DEV}/${WKG_DIR}sfs/settings/initrd/CONFIG #has KEYMAP, ALLOW_ASK_PW
   #20211212 took out some "precaution stuff". cannot read .session folder yet anyway.
-  if [ ! "$QLANG" ];then #20230113
-   load_font ${KEYMAP:0:2}
-  fi
+  #if [ ! "$QLANG" ];then #20230113 20230522
+  # load_font ${KEYMAP:0:2}
+  #fi
   [ "$KEYMAP" != "us" ] && gunzip -c /lib/keymaps/${KEYMAP}.gz | loadkmap
   echo
   if [ "$ALLOW_ASK_PW" == "yes" ];then
