@@ -46,10 +46,14 @@
 #20220927 add smartgit. 20221006 add supertuxkart
 #20230316 mksquashfs zstd compression.
 #20230403 *.run-once-top: remove appimage.desktop in container.
+#20230522 remove old /tmp/sfsget
 
 . /etc/rc.d/PUPSTATE
 . /etc/DISTRO_SPECS
-mkdir -p /tmp/sfsget
+if [ -d /tmp/sfsget ];then #20230522
+ rm -rf /tmp/sfsget
+fi
+mkdir /tmp/sfsget
 xPWD="`pwd`"
 LANGORIG="$LANG" #20210915
 export LANG=C

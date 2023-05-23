@@ -14,6 +14,7 @@
 #20221124 /root/.clients-status has flags for what apps are running non-root.
 #20230511 offer to preserve appimage and flatpak home folders.
 #20230513 preserve gnupg keys.
+#20230523 fix preserve appimages and flatpaks.
 
 export TEXTDOMAIN=erase-exceptions
 export OUTPUT_CHARSET=UTF-8
@@ -212,6 +213,11 @@ if [ "$EXIT" == "save" ];then
    cp -a -f /usr/bin/${cA}.bin /mnt/wkg/sfs/settings/erase-exceptions/usr/bin/
    cp -a -f /usr/bin/${cA}.bin0 /mnt/wkg/sfs/settings/erase-exceptions/usr/bin/ 2>/dev/null
   done
+  #20230523 this also...
+  if [ -d /root/.local/share/flatpak ];then
+   mkdir -p /mnt/wkg/sfs/settings/erase-exceptions/root/.local/share
+   cp -a -f /root/.local/share/flatpak /mnt/wkg/sfs/settings/erase-exceptions/root/.local/share/
+  fi
  fi
  if [ "$EXC22" == "true" ];then #20230513 gnupg keys
   if [ -d /root/.gnupg ];then
@@ -233,6 +239,12 @@ if [ "$EXIT" == "save" ];then
   if [ $? -ne 0 ];then
    grep "^{aHD##*/}=" /root/.clients-status >> /mnt/wkg/sfs/settings/erase-exceptions/root/.clients-status
   fi
+ done
+ #20230523 preserve new users...
+ mkdir -p /mnt/wkg/sfs/settings/erase-exceptions/etc
+ for aF in group gshadow password shadow
+ do
+  cp -a -f /etc/${aF} /mnt/wkg/sfs/settings/erase-exceptions/etc/
  done
  killall popup #20220612
  exit 0

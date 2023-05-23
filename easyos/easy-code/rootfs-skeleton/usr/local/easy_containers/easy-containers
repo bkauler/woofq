@@ -41,7 +41,7 @@
 #20221006 new EC_ACCESS_DRI enable 3D graphics.
 #20221031 if running as zeus, think need to bump up to root.
 #20230302 delete a container, did not fully delete when have indirect save.
-#20230427 screen out apps running non-root in main filesystem.
+#20230427 screen out apps running non-root in main filesystem. 20230522 more.
 
 WHOIAM="$(whoami)"
 [ "${WHOIAM}" != "root" ] && exec sudo -A ${0} ${@} #20221031
@@ -91,6 +91,10 @@ echo -n '' > /tmp/easy_containers/apps-list
 for aAPP in ${APPSLIST3}
 do
  [ "$aAPP" == "" ] && continue
+ case "$aAPP" in #20230522 screen out more...
+  appi|flapi)     continue ;;
+  default*|easy*) continue ;;
+ esac
  if ! which ${aAPP}.bin >/dev/null;then
   echo "$aAPP" >> /tmp/easy_containers/apps-list
  fi

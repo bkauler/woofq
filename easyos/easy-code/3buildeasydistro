@@ -296,7 +296,6 @@
 #20230423 trying to fix norwegian.
 #20230429 no need to substitute variable values in initrd.
 #20230429 copy fscryptctl from initrd to rootfs-complete. 20230430 and argon2
-#20230522 change screen in initrd from 800x600 to 1024x768
 
 export LANG=C #faster.
 
@@ -6002,7 +6001,6 @@ sed -i -e "s%^SFS_DB_hash=.*%SFS_DB_hash='${HASH}'%" export-sfs-${DEFAULTLANG1}/
 
 if [ "$BOOTLOADER" == "limine" ];then #20221010
  #20230218  20230304
- #20230522 change 800x600 to 1024x768
  BRANDINGFIELD="${DISTRO_NAME_NORMAL} Limine Boot Manager"
  COMMENTFIELD="${DISTRO_NAME_NORMAL} ${DISTRO_COMPAT_VERSION^} bootup" #ex: Kirkstone
  OPTIONSFIELD="Options..."
@@ -6013,11 +6011,11 @@ if [ "$BOOTLOADER" == "limine" ];then #20221010
 TIMEOUT=10
 DEFAULT_ENTRY=1
 INTERFACE_BRANDING=${BRANDINGFIELD}
-INTERFACE_RESOLUTION=1024x768
+INTERFACE_RESOLUTION=800x600
 
 :${DISTRO_NAME_NORMAL} ${DISTRO_COMPAT_VERSION^}
     COMMENT=${COMMENTFIELD}
-    RESOLUTION=1024x768
+    RESOLUTION=800x600
     PROTOCOL=linux
     KERNEL_PATH=boot://2/easyos/vmlinuz
     MODULE_PATH=boot://2/easyos/initrd
@@ -6026,7 +6024,7 @@ INTERFACE_RESOLUTION=1024x768
 :  ${OPTIONSFIELD}
 ::${FBVFIELD}
     COMMENT=${FBVCOMMENTFIELD}
-    RESOLUTION=1024x768
+    RESOLUTION=800x600
     PROTOCOL=linux
     KERNEL_PATH=boot://2/easyos/vmlinuz
     MODULE_PATH=boot://2/easyos/initrd
