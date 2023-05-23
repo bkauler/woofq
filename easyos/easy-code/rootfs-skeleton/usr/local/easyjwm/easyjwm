@@ -3,6 +3,7 @@
 # JWM desk manager
 # Copyright 2015-2022 GPL3 http://www.gnu.org/licenses
 # Author: Roger D. Grider (radky)
+#20230523 fix show labels in tasklist when in rox mode. remove some woof-ce stuff.
 
 export TEXTDOMAIN=easyjwm
 export OUTPUT_CHARSET=UTF-8
@@ -20,13 +21,7 @@ if [ "$JWMDPID" ]; then
  exit 0
 fi
 
-#assure primary tray is jwmrc-tray1
-if [ -d /usr/local/jwm_config* ]; then
- if [[ ! $(grep -a -- '<?xml version="1.0"?>  ' $HOME/.jwm/jwmrc-tray1 2>/dev/null) ]]; then
-  /usr/local/easyjwm/easyjwm_reset &
-  exit 0
- fi
-fi
+#20230523 woof-ce code removed.
 
 VERSION="3.6"
 APPDIR="/usr/local/easyjwm"
@@ -86,9 +81,9 @@ if [ "$GTK3" = "true" ]; then
  cat $APPDIR/gtk.css >> $TMPDIR/gtkrc.css
 fi
 
-#define fixmenus
-[[ $(grep -aF -- 'for ONESRC in /etc/xdg/templates' /usr/sbin/fixmenus 2>/dev/null) ]] && FIXMENUS='/usr/sbin/fixmenus' || FIXMENUS='/usr/local/easyjwm/fixmenus'
-[ -d /usr/local/easy_version ] && FIXMENUS='/usr/sbin/fixmenus'
+#define fixmenus  20230523
+#FIXMENUS='/usr/local/easyjwm/fixmenus'
+FIXMENUS='/usr/sbin/fixmenus'
 export FIXMENUS
 
 #define alert icon
@@ -309,189 +304,11 @@ export -f func_menu_manager
 #define menu height
 MHT=$(grep -a "RootMenu label" /etc/xdg/templates/_root_.jwmrc | grep -a MENHEIGHT 2>/dev/null)
 [ "$MHT" = "" ] && MHT=$(grep -a "MH=" /usr/sbin/fixmenus 2>/dev/null)
-if [ "$MHT" ] && [ ! -d /usr/local/easy_version ]; then
- JWM_MENUHEIGHT=''
- NEWMENHEIGHT=''
- jwm_menuheight () {
- if [ "$NEWMENHEIGHT" != "$MENHEIGHT" ]; then
-   if [ "$NEWMENHEIGHT" = 16 ]; then
-     [ -f $HOME/.jwm/menuheights ] && rm -f $HOME/.jwm/menuheights
-   else
-     echo "MENHEIGHT=$NEWMENHEIGHT" > $HOME/.jwm/menuheights
-   fi
- fi
- gtkdialog-splash -close never -margin 8 -placement mouse -fontsize large -bg goldenrod -text " $(gettext 'Updating menu height, please wait...') " &
- XPID=$!
- if [ "`grep -a "MH=" /usr/sbin/fixmenus 2>/dev/null`" ]; then
-  if [ -d /usr/local/jwm_config* ]; then
-   sed -i "/<RootMenu label=/ s%height=".*" %height=""\"$NEWMENHEIGHT\""" %" /etc/xdg/templates/_root_.jwmrc
-  else
-   sed -i "/<RootMenu label=/ s%height=".*" %height=""\"$NEWMENHEIGHT\""" %" /etc/xdg/templates/_root_.jwmrc
-  fi
-  sed -i "/<RootMenu label=/ s%height=".*" %height=""\"$NEWMENHEIGHT\""" %" $APPDIR/menu_places_build
-  sed -i "/<RootMenu label=/ s%height=".*" %height=""\"$NEWMENHEIGHT\""" %" $APPDIR/menu_system_build
-  sed -i "/<RootMenu label=/ s%height=".*" %height=""\"$NEWMENHEIGHT\""" %" $APPDIR/menu_utilities_build
-  [ "`grep -a "MH=24" /usr/sbin/fixmenus 2>/dev/null`" ] && sed -i 's/MH=24/MH=16/' /usr/sbin/fixmenus
- fi
- $FIXMENUS
- kill $XPID 2>/dev/null
- jwm -restart &
- }
- export -f jwm_menuheight
- [ -f $HOME/.jwm/menuheights ] && MENHEIGHT=$(cat $HOME/.jwm/menuheights | cut -d '=' -f2 | sed 's/\"//g')
- [ ! "$MENHEIGHT" ] && MENHEIGHT="16"
- JWM_MENUHEIGHT=' <text space-expand="false" space-fill="false" use-markup="true"><label>"<b><big>'$(gettext 'Menu Height')'</big></b>"</label></text>
- <hbox space-expand="false" space-fill="false" homogeneous="true">
- <vbox>
-  <text><label>'$(gettext 'Item Size')'</label></text>
-  <comboboxtext width-request="151" tooltip-text=" '$(gettext 'Height of menu items in pixels')' ">
-   <variable>NEWMENHEIGHT</variable>
-   <default>'`echo $MENHEIGHT`'</default>
-   <item>16</item>
-   <item>24</item>
-   <item>32</item>
-   <item>40</item>
-   <item>48</item>
-   <action>jwm_menuheight && exit</action>
-  </comboboxtext>
- </vbox>
- </hbox>
- <text space-expand="true" space-fill="true" height-request="35"><label>""</label></text>'
-fi
+#20230523
 
 #define menu button and menu label options
-if [ -d /usr/local/easy_version ]; then #EasyOS (disable)
- MENUBUTTON=""
-else #Puppy (enable)
- MENUBUTTON=""
- [ -f /usr/share/doc/puppylogo48.png ] && ln -sf /usr/share/doc/puppylogo48.png $APPDIR/jwm_menubutton_icons/puppy-logo.png
- [ -f /usr/local/lib/X11/pixmaps/apps48.png ] && ln -sf /usr/local/lib/X11/pixmaps/apps48.png $APPDIR/jwm_menubutton_icons/apps48.png
- [ -f /tmp/menubutton.png ] && rm -f /tmp/menubutton.png
- MB=`ls $APPDIR/jwm_menubutton_icons | grep -vw hide | sort -u`
- MB_ITEMS="<item>"$i"</item>"
- SAVEIFS=$IFS
- IFS=$(echo -en "\n\b") #support filenames with spaces
- for i in $MB
-  do
-   ln -sf $APPDIR/jwm_menubutton_icons/"$i" $PIXMAPSDIR
-   MB_ITEMS=`echo "$MB_ITEMS<item>"$i"</item>"`
-  done
- IFS=$SAVEIFS
- MB_ITEMS=`echo -e "$MB_ITEMS\n<item>hide</item>" | sed 's/<item><\/item>//'`
-
- [ -d /usr/local/jwm_config* ] && mbtray="$HOME/.jwm/jwmrc-tray1" || mbtray="$HOME/.jwmrc-tray"
- export mbtray
-
- MENU_LABEL=$(grep -aFi -- '<TrayButton label=' $mbtray | grep -a "root:[39]" | grep -a -om1 -- " label=.* " | cut -d'"' -f2)
- if [ ! "$MENU_LABEL" ]; then
-  if [ -d /usr/local/jwm_config* ]; then
-   MENU_LABEL="Applications"
-  elif [ -d /usr/local/easy_version ]; then
-   MENU_LABEL="hide"
-  else
-   MENU_LABEL="Menu"
-  fi
- fi
- MENU_ICON=$(grep -aFi -- '<TrayButton label=' $mbtray | grep -a "root:[39]" | grep -a -om1 -- " icon=.* " | cut -d'"' -f2)
- if [ ! "$MENU_ICON" ]; then
-  if [ -d /usr/local/easy_version ]; then
-   if [ -f /usr/local/lib/X11/pixmaps/apps48.png ]; then
-    MENU_ICON="apps48.png"
-   else
-    MENU_ICON="puppy.svg"
-   fi
-  else
-   MENU_ICON="puppy.svg"
-  fi
- fi
- [ ! -f $PIXMAPSDIR/"$MENU_ICON" ] && MENU_ICON="hide"
- if [ "$MENU_ICON" = "hide" ]; then
-  cp -f $APPDIR/jwm_menubutton_icons/hide /tmp/tmp; mv -f /tmp/tmp /tmp/menubutton.png
- else
-  cp -f $PIXMAPSDIR/"$MENU_ICON" /tmp/tmp; mv -f /tmp/tmp /tmp/menubutton.png
- fi
- . /etc/DISTRO_SPECS
-
- MENUBUTTON='   <text space-expand="false" space-fill="false" use-markup="true"><label>"<b><big>'$(gettext 'Menu Button')'</big></b>"</label></text>
-   <hbox space-expand="false" space-fill="false" homogeneous="true">
-   <hbox margin="2" width-request="382" space-expand="true" space-fill="true">
-   <vbox space-expand="true" space-fill="true">
-   <text><label>'$(gettext 'Icon')'</label></text>
-    <comboboxentry wrap-width="2" width-request="171">
-     <variable>MENU_ICON</variable>
-     <default>'`echo $MENU_ICON`'</default>
-      <action signal="changed">menu_button_view</action>
-      <action signal="changed">refresh:MBVIEWER</action>
-     '$MB_ITEMS'
-    </comboboxentry>
-   </vbox>
-   <vbox space-expand="false" space-fill="false">
-   <hbox height-request="16" width-request="24">
-    <pixmap><input file>'$ICONDIR/blank1.png'</input></pixmap>
-   </hbox>
-   <hbox height-request="24" width-request="24">
-    <pixmap>
-     <variable>MBVIEWER</variable>
-     <input file>/tmp/menubutton.png</input>
-     <height>24</height><width>24</width>
-    </pixmap>
-   </hbox>
-   </vbox>
-   <vbox space-expand="true" space-fill="true">
-   <text><label>'$(gettext 'Label')'</label></text>
-    <comboboxentry wrap-width="1" width-request="171">
-     <variable>MENU_LABEL</variable>
-     <default>'`echo $MENU_LABEL`'</default>
-     <item>Apps</item>
-     <item>Applications</item>
-     <item>Menu</item>
-     <item>Start</item>
-     <item>'$DISTRO_FILE_PREFIX'</item>
-     <item>hide</item>
-    </comboboxentry>
-   </vbox>
-   </hbox>
-   </hbox>
-    <pixmap><input file>'$ICONDIR/blank1.png'</input></pixmap>
-   <hbox space-expand="false" space-fill="false" homogeneous="true">
-    <button width-request="151" tooltip-text=" '$(gettext 'Apply selected icon and label')' ">
-     <label>'$(gettext 'Apply')' </label>
-     <input file>'$ICONDIR'/apply.svg</input><height>20</height><width>20</width>
-     <action>menu_button_make</action>
-     <action>jwm -restart &</action>
-    </button>
-   </hbox>'
-
- menu_button_make()
-{
- if [ -d /usr/local/jwm_config* ]; then
-  SPACE="		" ROOT="root:9"
-  sed -i '/>root:9</s/<TrayButton popup=/<TrayButton label=/' $mbtray
- else
-  SPACE="		" ROOT="root:3"
-  sed -i '/>root:3</s/<TrayButton popup=/<TrayButton label=/' $mbtray
- fi
- [ "$MENU_LABEL" = "hide" ] && MENU_LABEL=""
- [ "$MENU_ICON" = "" ] && MENU_ICON="hide"
- if [ "$MENU_ICON" = "hide" ]; then
-  sed -i "s/^.*"$ROOT".*$/""$SPACE""<TrayButton label=\"Menu\" border=\"true\">"$ROOT"<\/TrayButton>/" $mbtray
-  sed -i "/"$ROOT"/ s%label=".*" border%label=""\"$MENU_LABEL\""" border%" $mbtray
- else
-  sed -i "s/^.*"$ROOT".*$/""$SPACE""<TrayButton label=\"Menu\" icon=\"puppy.svg\" border=\"true\">"$ROOT"<\/TrayButton>/" $mbtray
-  sed -i "/"$ROOT"/ s%icon=".*" border%icon=""\"$MENU_ICON\""" border%" $mbtray
-  sed -i "/"$ROOT"/ s%label=".*" icon%label=""\"$MENU_LABEL\""" icon%" $mbtray
- fi
- rm -f /tmp/menubutton.png 2>/dev/null
-}
- export -f menu_button_make
-
- menu_button_view()
-{
- cp -f $APPDIR/jwm_menubutton_icons/"$MENU_ICON" /tmp; mv -f /tmp/"$MENU_ICON" /tmp/menubutton.png
-}
- export -f menu_button_view
-
-fi
+#20230523
+MENUBUTTON=""
 
 MENU='
   <vbox space-expand="true" space-fill="true" margin="5">
@@ -798,12 +615,9 @@ if [ ! "`grep -aF -- '<Include>/root/.jwm/jwmrc-personal</Include>' /etc/xdg/tem
  sed -i -e '0,/<\/JWM>/ s/<\/JWM>/<Include>\/root\/\.jwm\/jwmrc-personal<\/Include>\n<\/JWM>/' /etc/xdg/templates/_root_.jwmrc
 fi
 if [ ! "`grep -a '<WindowStyle' $HOME/.jwm/jwmrc-personal`" ]; then
- if [ -d /usr/local/easy_version ]; then
-  if [ "`grep -aF -- 'STARTWINDOWSTYLE' $HOME/.jwm/jwmrc-personal 2>/dev/null`" ]; then
-   sed -i -e '/STARTWINDOWSTYLE/a <WindowStyle>\n<\/WindowStyle>' $HOME/.jwm/jwmrc-personal
-  else
-   sed -i -e '/<ResizeMode/a \\n<WindowStyle>\n<\/WindowStyle>' $HOME/.jwm/jwmrc-personal
-  fi
+ #20230523
+ if [ "`grep -aF -- 'STARTWINDOWSTYLE' $HOME/.jwm/jwmrc-personal 2>/dev/null`" ]; then
+  sed -i -e '/STARTWINDOWSTYLE/a <WindowStyle>\n<\/WindowStyle>' $HOME/.jwm/jwmrc-personal
  else
   sed -i -e '/<ResizeMode/a \\n<WindowStyle>\n<\/WindowStyle>' $HOME/.jwm/jwmrc-personal
  fi
@@ -943,101 +757,42 @@ fi
 ACCESSORY_PANEL=$(cat $PREFDIR/accessory_tray 2>/dev/null)
 [ ! "$ACCESSORY_PANEL" ] && ACCESSORY_PANEL="false" && echo "$ACCESSORY_PANEL" > $PREFDIR/accessory_tray
 
-if [ ! -d /usr/local/jwm_config* ]; then #legacy jwm desktop environment
- JWM_HOME="/root"
- jwmtray=".jwmrc-tray"
- main_tray='          '
- tasklist_tray='.jwmrc-tray'
- attributes_tray=''
- current_tray=' tray'
- profile_tray='jwmrc-tray'
- widget_tray=''
- hybrid_template=''
- BUTTON1=''
- BUTTON2=''
- DEFAULT_TRAY=$(cat $PREFDIR/default_tray 2>/dev/null)
- [ ! "$DEFAULT_TRAY" ] && DEFAULT_TRAY="jwmrc-tray1" && echo "$DEFAULT_TRAY" > $PREFDIR/default_tray
- if [ "$ACCESSORY_PANEL" = "true" ]; then #launchbar
-  if [ "$DEFAULT_TRAY" = "jwmrc-tray1" ]; then
-   jwmtray=".jwmrc-tray"
-   jwmtray_label="jwmrc-tray1"
-  elif [ "$DEFAULT_TRAY" = "jwmrc-tray2" ]; then
-   jwmtray=".jwmrc-tray2"
-   jwmtray_label="jwmrc-tray2"
-  else
-   jwmtray=".jwmrc-tray"
-   jwmtray_label="jwmrc-tray1"
-  fi
-  hybrid_template='.jwmrc-tray2'
-
-  #define proxy names for the selected tray
-  main_tray=" : `echo "$jwmtray_label" | cut -d "-" -f2 | sed 's/tray/tray-/'`"
-  tasklist_tray=".jwmrc-tray"
-  attributes_tray="$main_tray"
-  current_tray=$(echo "$main_tray" | cut -d ":" -f2)
-  profile_tray=$(echo "$jwmtray" | cut -d "." -f2)
-  widget_tray=" : tray-1"
-
-  #define tray-selection buttons
-  ACTIVE_TRAY=$(echo "$jwmtray_label" | cut -d "-" -f2)
-  [ ! "$ACTIVE_TRAY" ] && ACTIVE_TRAY="tray1"
-  if [ "$ACTIVE_TRAY" = "tray1" ]; then
-   ln -sf $ICONDIR/active_tray.svg $ICONDIR/tray1.svg
-   INPUT1='  <input file>'$ICONDIR'/tray1.svg</input><height>22</height><width>22</width>'
-   INPUT2=''
-   TOOLTIP1='tooltip-text=" '$(gettext 'Tray-1 is selected')' "'
-   TOOLTIP2='tooltip-text=" '$(gettext 'Select Tray-2')' "'
-  elif [ "$ACTIVE_TRAY" = "tray2" ]; then
-   ln -sf $ICONDIR/active_tray.svg $ICONDIR/tray2.svg
-   INPUT1=''
-   INPUT2='  <input file>'$ICONDIR'/tray2.svg</input><height>22</height><width>22</width>'
-   TOOLTIP1='tooltip-text=" '$(gettext 'Select Tray-1')' "'
-   TOOLTIP2='tooltip-text=" '$(gettext 'Tray-2 is selected')' "'
-  fi
-
-  if [ "`grep -a -- '<Tray' $HOME/.jwmrc-tray 2>/dev/null`" ]; then
-   BUTTON1='<button height-request="35" '$TOOLTIP1'>
-     <label>Tray-1</label>
-     '$INPUT1'
-     <action>echo "jwmrc-tray1" > $PREFDIR/default_tray</action>
-     <action>touch /tmp/easyjwm-page</action>
-     <action>easyjwm &</action>
-     <action>exit:quit_now</action>
-    </button>'
-  fi
-
-  if [ "`grep -a -- '<Tray' $HOME/.jwmrc-tray2 2>/dev/null`" ]; then
-   BUTTON2='<button height-request="35" '$TOOLTIP2'>
-     <label>Tray-2</label>
-     '$INPUT2'
-     <action>echo "jwmrc-tray2" > $PREFDIR/default_tray</action>
-     <action>touch /tmp/easyjwm-page</action>
-     <action>easyjwm &</action>
-     <action>exit:quit_now</action>
-    </button>'
-  fi
+#20230523
+JWM_HOME="/root"
+jwmtray=".jwmrc-tray"
+main_tray='          '
+tasklist_tray='.jwmrc-tray'
+attributes_tray=''
+current_tray=' tray'
+profile_tray='jwmrc-tray'
+widget_tray=''
+hybrid_template=''
+BUTTON1=''
+BUTTON2=''
+DEFAULT_TRAY=$(cat $PREFDIR/default_tray 2>/dev/null)
+[ ! "$DEFAULT_TRAY" ] && DEFAULT_TRAY="jwmrc-tray1" && echo "$DEFAULT_TRAY" > $PREFDIR/default_tray
+if [ "$ACCESSORY_PANEL" = "true" ]; then #launchbar
+ if [ "$DEFAULT_TRAY" = "jwmrc-tray1" ]; then
+  jwmtray=".jwmrc-tray"
+  jwmtray_label="jwmrc-tray1"
+ elif [ "$DEFAULT_TRAY" = "jwmrc-tray2" ]; then
+  jwmtray=".jwmrc-tray2"
+  jwmtray_label="jwmrc-tray2"
+ else
+  jwmtray=".jwmrc-tray"
+  jwmtray_label="jwmrc-tray1"
  fi
- [ ! -f $JWM_HOME/$jwmtray-bak ] && cp $JWM_HOME/$jwmtray $JWM_HOME/$jwmtray-bak #backup $jwmtray
-
-else #jwm_config desktop environment
-
- [[ $(grep -B1 '<Clock' $HOME/.jwm/jwmrc-tray1 | grep 'logout_gui<') ]] && sed -i "/logout_gui</d" $HOME/.jwm/jwmrc-tray1
- JWM_HOME="/root/.jwm"
- DEFAULT_TRAY=$(cat $PREFDIR/default_tray 2>/dev/null)
- [ ! "$DEFAULT_TRAY" ] && DEFAULT_TRAY="jwmrc-tray1" && echo "$DEFAULT_TRAY" > $PREFDIR/default_tray
- jwmtray="$DEFAULT_TRAY"
- [ "$ACCESSORY_PANEL" = "true" ] && hybrid_template='jwmrc-tray2' || hybrid_template=''
-
+ hybrid_template='.jwmrc-tray2'
  #define proxy names for the selected tray
- main_tray=" : `echo "$jwmtray" | cut -d "-" -f2 | sed 's/tray/tray-/'`"
- tasklist_tray="jwmrc-tray1"
+ main_tray=" : `echo "$jwmtray_label" | cut -d "-" -f2 | sed 's/tray/tray-/'`"
+ tasklist_tray=".jwmrc-tray"
  attributes_tray="$main_tray"
  current_tray=$(echo "$main_tray" | cut -d ":" -f2)
  profile_tray=$(echo "$jwmtray" | cut -d "." -f2)
- widget_tray=" : `echo "$tasklist_tray" | cut -d "-" -f2 | sed 's/tray/tray-/'`"
+ widget_tray=" : tray-1"
 
  #define tray-selection buttons
- ACTIVE_TRAY=$(echo "$jwmtray" | cut -d "-" -f2)
+ ACTIVE_TRAY=$(echo "$jwmtray_label" | cut -d "-" -f2)
  [ ! "$ACTIVE_TRAY" ] && ACTIVE_TRAY="tray1"
  if [ "$ACTIVE_TRAY" = "tray1" ]; then
   ln -sf $ICONDIR/active_tray.svg $ICONDIR/tray1.svg
@@ -1053,28 +808,29 @@ else #jwm_config desktop environment
   TOOLTIP2='tooltip-text=" '$(gettext 'Tray-2 is selected')' "'
  fi
 
- if [ "`grep -a -- '<Tray' $HOME/.jwm/jwmrc-tray1 2>/dev/null`" ]; then
+ if [ "`grep -a -- '<Tray' $HOME/.jwmrc-tray 2>/dev/null`" ]; then
   BUTTON1='<button height-request="35" '$TOOLTIP1'>
-    <label>Tray-1</label>
-    '$INPUT1'
-    <action>echo "jwmrc-tray1" > $PREFDIR/default_tray</action>
-    <action>touch /tmp/easyjwm-page</action>
-    <action>easyjwm &</action>
-    <action>exit:quit_now</action>
-   </button>'
+     <label>Tray-1</label>
+     '$INPUT1'
+     <action>echo "jwmrc-tray1" > $PREFDIR/default_tray</action>
+     <action>touch /tmp/easyjwm-page</action>
+     <action>easyjwm &</action>
+     <action>exit:quit_now</action>
+    </button>'
  fi
 
- if [ "`grep -a -- '<Tray' $HOME/.jwm/jwmrc-tray2 2>/dev/null`" ]; then
+ if [ "`grep -a -- '<Tray' $HOME/.jwmrc-tray2 2>/dev/null`" ]; then
   BUTTON2='<button height-request="35" '$TOOLTIP2'>
-    <label>Tray-2</label>
-    '$INPUT2'
-    <action>echo "jwmrc-tray2" > $PREFDIR/default_tray</action>
-    <action>touch /tmp/easyjwm-page</action>
-    <action>easyjwm &</action>
-    <action>exit:quit_now</action>
-   </button>'
+     <label>Tray-2</label>
+     '$INPUT2'
+     <action>echo "jwmrc-tray2" > $PREFDIR/default_tray</action>
+     <action>touch /tmp/easyjwm-page</action>
+     <action>easyjwm &</action>
+     <action>exit:quit_now</action>
+    </button>'
  fi
 fi
+[ ! -f $JWM_HOME/$jwmtray-bak ] && cp $JWM_HOME/$jwmtray $JWM_HOME/$jwmtray-bak #backup $jwmtray
 
 export JWM_HOME jwmtray main_tray tasklist_tray attributes_tray current_tray profile_tray widget_tray hybrid_template DEFAULT_TRAY
 
@@ -1085,80 +841,53 @@ else
   sed -i 's/tray_vspacer.svg/tray_hspacer.svg/g' $JWM_HOME/$jwmtray
 fi
 
-if [ -d /usr/local/easy_version ]; then #EasyOS
- #set main tray long dimension based on BK code
- if [ "$DEFAULT_TRAY" = "jwmrc-tray1" ]; then #tray-1
-  TRAY_MARGIN_PADDING="true"
-  echo "true" > $PREFDIR/tray_margin_padding
-  MTL=""
-  . /etc/uimanager
-  if [ "${UI_DESK_MANAGER}" == "jwm" ];then #JWM desktop (scaled-width tray)
-   read ROOTDIMS MX MY << EOF
-`xwininfo -root | grep -F ' -geometry ' | cut -f 1 -d '+' | tr 'x' ' '`
-EOF
-   #20220321 BK (see code also in /root/.xinitrc, /usr/local/easyjwm/uimanager)
-   # adjust tray width and height to suit screen...
-   # each entry here is screen-width:tray-height:tray-width
-   . /usr/local/ui/jwm/tray_dims #has JWM_TRAY_DIM_PROFILES
-   aH=31; aW=0
-   for aPROF in $JWM_TRAY_DIM_PROFILES
-   do
-    if [ $MX -le ${aPROF/:*/} ];then
-     aW=${aPROF/*:/} #ex: 1136
-     aH=${aPROF:5:2} #ex: 34
-     break
-    fi
-   done
-   MX="$aW" #tray width
-
-   #20220323 BK presume want MY to be tray length when vertical...
-   aH=31; aW=0
-   for aPROF in $JWM_TRAY_DIM_PROFILES
-   do
-    if [ $MY -le ${aPROF/:*/} ];then
-     aW=${aPROF/*:/} #ex: 1136
-     aH=${aPROF:5:2} #ex: 34
-     break
-    fi
-   done
-   MY="$aW"
-
-  else #ROX desktop (full-width tray)
-   MX="0"
-   MY="0"
-  fi
-  export MX MY
- else #tray-2
-  TRAY_MARGIN_PADDING=''
-  MTL=''
- fi
-else #Puppy
- #set main tray long dimension (either full screen dimension managed by jwm or optional 3/4 dimension at screen center)
- TRAY_MARGIN_PADDING=$(cat $PREFDIR/tray_margin_padding 2>/dev/null)
- [ ! "$TRAY_MARGIN_PADDING" ] && TRAY_MARGIN_PADDING="false" && echo "$TRAY_MARGIN_PADDING" > $PREFDIR/tray_margin_padding
- if [ "$DEFAULT_TRAY" = "jwmrc-tray1" ]; then
+#set main tray long dimension based on BK code
+if [ "$DEFAULT_TRAY" = "jwmrc-tray1" ]; then #tray-1
+ TRAY_MARGIN_PADDING="true"
+ echo "true" > $PREFDIR/tray_margin_padding
+ MTL=""
+ . /etc/uimanager
+ if [ "${UI_DESK_MANAGER}" == "jwm" ];then #JWM desktop (scaled-width tray)
   read ROOTDIMS MX MY << EOF
 `xwininfo -root | grep -F ' -geometry ' | cut -f 1 -d '+' | tr 'x' ' '`
 EOF
-  MX="$(( 3*MX / 4 ))"
-  [ ! "$MX" ] && MX="0"
-  MY="$(( 3*MY / 4 ))"
-  [ ! "$MY" ] && MY="0"
-  export MX MY
+  #20220321 BK (see code also in /root/.xinitrc, /usr/local/easyjwm/uimanager)
+  # adjust tray width and height to suit screen...
+  # each entry here is screen-width:tray-height:tray-width
+  . /usr/local/ui/jwm/tray_dims #has JWM_TRAY_DIM_PROFILES
+  aH=31; aW=0
+  for aPROF in $JWM_TRAY_DIM_PROFILES
+  do
+   if [ $MX -le ${aPROF/:*/} ];then
+    aW=${aPROF/*:/} #ex: 1136
+    aH=${aPROF:5:2} #ex: 34
+    break
+   fi
+  done
+  MX="$aW" #tray width
 
-  MTL='
-    <checkbox space-expand="false" space-fill="false" tooltip-text=" '$(gettext 'Scale tray to 75% of screen dimension')' ">
-     <label>'$(gettext 'Scale')'  |</label>
-     <variable>TRAY_MARGIN_PADDING</variable>
-     <input>cat '$PREFDIR'/tray_margin_padding 2>/dev/null</input>
-     <action>if true echo true > '$PREFDIR'/tray_margin_padding</action>
-     <action>if false echo false > '$PREFDIR'/tray_margin_padding</action>
-    </checkbox>'
- else
-  TRAY_MARGIN_PADDING=''
-  MTL=''
+  #20220323 BK presume want MY to be tray length when vertical...
+  aH=31; aW=0
+  for aPROF in $JWM_TRAY_DIM_PROFILES
+  do
+   if [ $MY -le ${aPROF/:*/} ];then
+    aW=${aPROF/*:/} #ex: 1136
+    aH=${aPROF:5:2} #ex: 34
+    break
+   fi
+  done
+  MY="$aW"
+
+ else #ROX desktop (full-width tray)
+  MX="0"
+  MY="0"
  fi
+ export MX MY
+else #tray-2
+ TRAY_MARGIN_PADDING=''
+ MTL=''
 fi
+#20230523 note, alternative puppy code removed.
 export TRAY_MARGIN_PADDING MTL
 
 #set missing Tasklist tag in some legacy jwmrc-tray files
@@ -1270,7 +999,7 @@ fi
 
 tray_menus()
 {
-[ -d /usr/local/jwm_config* ] && onroot_default_menu=9 || onroot_default_menu=3
+onroot_default_menu=3 #20230523
 export onroot_default_menu=${onroot_default_menu}
 export onroot_places_menu=x onroot_system_menu=y onroot_utilities_menu=z
 
@@ -1340,9 +1069,8 @@ else
  sed -i "/root:${onroot_utilities_menu}/d" /tmp/$tray1
 fi
 
-if [ -d /usr/local/easy_version ]; then #easyOS
- [ "$PLACES_MENU" = "true" -o "$SYSTEM_MENU" = "true" -o "$UTILITIES_MENU" = "true" ] && sed -i 's/MENHEIGHT/24/g' /etc/xdg/templates/_root_.jwmrc 
-fi
+#20230523
+[ "$PLACES_MENU" = "true" -o "$SYSTEM_MENU" = "true" -o "$UTILITIES_MENU" = "true" ] && sed -i 's/MENHEIGHT/24/g' /etc/xdg/templates/_root_.jwmrc 
 
 sed -i '$!N;/^\n$/{$q;D;};P;D;' /etc/xdg/templates/_root_.jwmrc #remove contiguous blank lines
  }
@@ -1360,25 +1088,14 @@ tray_format()
  TRAYBUTTON_SPACING=$(cat $PREFDIR/traybutton_spacing 2>/dev/null)
  TRAY_SPACER="<Spacer width=\"$TRAYBUTTON_SPACING\" height=\"$TRAYBUTTON_SPACING\"/>"
  TRAYDIR=$HOME  tray1=.jwmrc-tray
- if [ -d /usr/local/jwm_config* ]; then
-  TRAYDIR=$HOME/.jwm  tray1=jwmrc-tray1
-  sed -i '/>root:9</s/TrayButton popup=/TrayButton label=/' $TRAYDIR/$tray1
- else
-  sed -i '/>root:3</s/TrayButton popup=/TrayButton label=/' $TRAYDIR/$tray1
- fi
+ #20230523
+ sed -i '/>root:3</s/TrayButton popup=/TrayButton label=/' $TRAYDIR/$tray1
  [[ ! $(grep -aF -- '<?xml version' $TRAYDIR/$tray1 2>/dev/null) ]] && sed -i "/<JWM>/ i <?xml version=\"1.0\"?>" $TRAYDIR/$tray1
  grep -aEv -- '<!--[[:blank:]]*Additional|<!--[[:blank:]]*TrayButton tags' $TRAYDIR/$tray1 2>/dev/null | sed '/^$/d' > /tmp/$tray1 # remove blank lines and commented Traybutton lines in $tray1
  grep -aE -- '<?xml|<JWM>|<RestartCommand|<Include|<Tray |Additional TrayButton|main app menu' /tmp/$tray1 > /tmp/tmp1
  head -n -6 /tmp/$tray1 | grep -aF -- '<TrayButton label' > /tmp/tmp2
- if [ ! -d /usr/local/easy_version ]; then # Puppy
-  if [[ ! $(grep -aF -- '>showdesktop<' /tmp/$tray1 2>/dev/null) ]]; then # must have at least one launcher, else adding additional launchers will fail
-    echo "<TrayButton popup=\"Show Desktop\" icon=\"/usr/local/easyjwm/icons/desktop.svg\" border=\"false\">showdesktop</TrayButton>" > /tmp/tmp3
-  else
-    grep -aF -- '<TrayButton popup' /tmp/$tray1 | grep '<Pager' -B 1000 > /tmp/tmp3
-  fi
- else # EasyOS
-  grep -aF -- '<TrayButton popup' /tmp/$tray1 | grep '<Pager' -B 1000 > /tmp/tmp3
- fi
+ #20230523
+ grep -aF -- '<TrayButton popup' /tmp/$tray1 | grep '<Pager' -B 1000 > /tmp/tmp3
  grep -aEv -- '<?xml|<JWM>|<RestartCommand|<Include|<Tray |Additional TrayButton|<TrayButton label|Spacer width=|main app menu' /tmp/$tray1 > /tmp/tmp4
  cat /tmp/tmp1 > /tmp/$tray1 # format head of $tray1
  cat /tmp/tmp2 | uniq >> /tmp/$tray1 # add menu label(s) to $tray1
@@ -1388,12 +1105,9 @@ tray_format()
  if [ "$PAGER_RIGHT" = "true" ]; then # move pager to right side of $tray1
    sed -i '/<TaskList/ a <Pager\/>' /tmp/$tray1
  else
-   if [ -d /usr/local/easy_version ]; then
-     sed -i '/STARTICONS/ i <Pager\/>' /tmp/$tray1
-     sed -i "/STARTICONS/ i ${TRAY_SPACER}" /tmp/$tray1 #20220321 BK # add spacer to left margin of starticons
-   else
-     sed -i '/<TaskList/ i <Pager\/>' /tmp/$tray1
-   fi
+   #20230523
+   sed -i '/STARTICONS/ i <Pager\/>' /tmp/$tray1
+   sed -i "/STARTICONS/ i ${TRAY_SPACER}" /tmp/$tray1 #20220321 BK # add spacer to left margin of starticons
  fi
  sed -i "/<TrayButton label=/ a ${TRAY_SPACER}" /tmp/$tray1 # add spacer to right margin of tray menu label(s)
  sed -i "/<Pager/ i ${TRAY_SPACER}" /tmp/$tray1 # add spacer to left margin of pager
@@ -1411,38 +1125,30 @@ tray_format()
  if [[ ! $(echo $(grep -aF -A1 -- "root:${onroot_system_menu}" /tmp/$tray1 | grep "<Spacer width=")) ]]; then
    sed -i "/root:${onroot_system_menu}/ a ${TRAY_SPACER}" /tmp/$tray1 # assure single spacer after System menu label
  fi
- if [ -d /usr/local/jwm_config* ]; then
-  if [[ $(grep -aF -- 'menu_build_places' /etc/xdg/templates/_root_.jwmrc | grep 'onroot="8"') ]]; then
-    [[ $(grep -aF -- 'Places' /tmp/$tray1 | grep 'root:8<') ]] && sed -i "/root:8</d" /tmp/$tray1
-  fi
-  [[ $(grep -aF -- 'Places' /tmp/$tray1 | grep 'root:a<') ]] && sed -i "/root:a</d" /tmp/$tray1
-  [[ $(grep -aF -- 'root:7</Clock>' /tmp/$tray1) ]] && sed -i 's/>.*<\/Clock>/><\/Clock>/' /tmp/$tray1
- fi
- if [ -d /usr/local/easy_version ]; then
-  sed -i "/main app menu/s/root:3/root 3/" /tmp/$tray1 # reserve root:3 pattern for easyjwm sed editing
-  sed -i "/--STARTMENU/ i \<!-- TrayButton tags for extra menus -->" /tmp/$tray1
-  sed -i "/--STARTICONS/ i \<!-- TrayButton tags for apps -->" /tmp/$tray1
-  sed -i "/--STARTEXTRA/ i \<!-- TrayButton tags for apps at right side of tray -->" /tmp/$tray1
- fi
+ #20230523
+ sed -i "/main app menu/s/root:3/root 3/" /tmp/$tray1 # reserve root:3 pattern for easyjwm sed editing
+ sed -i "/--STARTMENU/ i \<!-- TrayButton tags for extra menus -->" /tmp/$tray1
+ sed -i "/--STARTICONS/ i \<!-- TrayButton tags for apps -->" /tmp/$tray1
+ sed -i "/--STARTEXTRA/ i \<!-- TrayButton tags for apps at right side of tray -->" /tmp/$tray1
  sed -i -e '$!N;/^\(.*\)\n\1$/!P;D' /tmp/$tray1 # remove contiguous duplicate lines
  sed -i -e 's/^[ \t]*<Tray /	<Tray /g' -e 's/^[ \t]*<\/Tray/	<\/Tray/g' -e 's/^[ \t]*<TrayButton/		<TrayButton/g' -e 's/^[ \t]*<Pager/		<Pager/g' -e 's/^[ \t]*<TaskList/		<TaskList/g' -e 's/^[ \t]*<Dock/		<Dock/g' -e 's/^[ \t]*<Swallow/		<Swallow/g' -e 's/^[ \t]*<\/Swallow/		<\/Swallow/g' -e 's/^[ \t]*<Clock/		<Clock/g' -e 's/^[ \t]*<Spacer/		<Spacer/g' -e 's/^[ \t]*<!--/		<!--/g' /tmp/$tray1 # format $tray1 text-indentation
- if [ -d /usr/local/easy_version ]; then
-  #20220407 BK: problem with this, insert test...
-  . /etc/uimanager
-  if [ "${UI_DESK_MANAGER}" == "jwm" ];then
-   sed -i '0,/<TrayButton/s/<TrayButton label/<TrayButton popup/' /tmp/$tray1
-  fi
-  sed -i '0,/<Spacer/{//d}' /tmp/$tray1
-  #20220407 BK: Xlock was removed from tray-extra...
-  grep -q 'Xlock' /tmp/$tray1
-  if [ $? -ne 0 ];then
-   grep -m 1 'Xlock' $HOME/.jwm/tray-extra > $HOME/.jwm/tray-extra-temp
-   mv -f $HOME/.jwm/tray-extra-temp $HOME/.jwm/tray-extra
-  else
-   echo -n '' > $HOME/.jwm/tray-extra
-  fi
-  grep -A100 -- 'STARTEXTRA' /tmp/$tray1 | grep -aF -- '<TrayButton popup=' >> $HOME/.jwm/tray-extra
+ #20230523
+ #20220407 BK: problem with this, insert test...
+ . /etc/uimanager
+ if [ "${UI_DESK_MANAGER}" == "jwm" ];then
+  sed -i '0,/<TrayButton/s/<TrayButton label/<TrayButton popup/' /tmp/$tray1
  fi
+ sed -i '0,/<Spacer/{//d}' /tmp/$tray1
+ #20220407 BK: Xlock was removed from tray-extra...
+ grep -q 'Xlock' /tmp/$tray1
+ if [ $? -ne 0 ];then
+  grep -m 1 'Xlock' $HOME/.jwm/tray-extra > $HOME/.jwm/tray-extra-temp
+  mv -f $HOME/.jwm/tray-extra-temp $HOME/.jwm/tray-extra
+ else
+  echo -n '' > $HOME/.jwm/tray-extra
+ fi
+ grep -A100 -- 'STARTEXTRA' /tmp/$tray1 | grep -aF -- '<TrayButton popup=' >> $HOME/.jwm/tray-extra
+ 
  mv -f /tmp/$tray1 $TRAYDIR/
  sync
 
@@ -1463,14 +1169,9 @@ tray_hybrid()
 if [ "$DEFAULT_TRAY" = "jwmrc-tray2" ]; then
  AUTOHIDE_HYBRID=$(cat $PREFDIR/autohide_hybrid 2>/dev/null) || AUTOHIDE_HYBRID=""
  if [ "$AUTOHIDE_HYBRID" = "true" ]; then
-  if [ -d /usr/local/jwm_config* ]; then
-   if [ ! "`grep -aF -- 'hybrid</Include>' $HOME/\.jwm/jwmrc-tray2 2>/dev/null`" ]; then
-    sed -i -e "/<JWM>/a \	<Include>/root/.jwm/"$hybrid_template"_hybrid</Include>" $JWM_HOME/$hybrid_template
-   fi
-  else
-   if [ ! "`grep -aF -- 'hybrid</Include>' $HOME/\.jwmrc-tray2 2>/dev/null`" ]; then
-    sed -i -e "/<JWM>/a \	<Include>/root/"$hybrid_template"_hybrid</Include>" $JWM_HOME/$hybrid_template
-   fi
+  #20230523
+  if [ ! "`grep -aF -- 'hybrid</Include>' $HOME/\.jwmrc-tray2 2>/dev/null`" ]; then
+   sed -i -e "/<JWM>/a \	<Include>/root/"$hybrid_template"_hybrid</Include>" $JWM_HOME/$hybrid_template
   fi
  else
   sed -i -e '/hybrid<\/Include>/d' $JWM_HOME/$hybrid_template
@@ -1541,7 +1242,8 @@ fi
 [ "$AUTOHIDE_HYBRID" = "true" ] && AUTOHIDE_NORMAL="true"
 DESKTOPS_CLOSE_TAG="`grep -a '</Desktops>' $HOME/.jwm/jwmrc-personal 2>/dev/null`"
 [ "$DESKTOPS_CLOSE_TAG" ] && DCT=">" || DCT="\/>"
-if [ -d /usr/local/easy_version ] && [ ! "$ROX_PINBOARD" ]; then
+. /etc/uimanager #20230523 has UI_DESK_MANAGER=rox or jwm
+if [ "${UI_DESK_MANAGER}" == "jwm" ];then #20230523 if jwm, all icons in tray.
  TASKLIST_LABELED="false"
 else
  TASKLIST_LABELED="true"
@@ -1965,65 +1667,7 @@ fi
 #define tray spacer button
 SPACER_BUTTON=""
 SPACERSIZE=""
-if [ ! -d /usr/local/easy_version ]; then
-
-  #set tray spacer size
-  setspacersize()
-{
-  /tmp/spacer_size
-  SPACER_SIZE=$(cat $PREFDIR/spacer-size 2>/dev/null)
-  [ ! "$SPACER_SIZE" ] && SPACER_SIZE="10"
-  echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?><svg xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\" height=\"20\" width=\"$SPACER_SIZE\"><path style=\"fill:none;stroke:none\" d=\"M 0,0 10,0 10,20 0,20 z\"/></svg>" > /usr/share/pixmaps/tray_hspacer.svg
-  echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?><svg xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\" height=\"$SPACER_SIZE\" width=\"20\"><path style=\"fill:none;stroke:none\" d=\"M 0,0 20,0 20,10 0,10 z\"/></svg>" > /usr/share/pixmaps/tray_vspacer.svg
-  ln -sf /usr/share/pixmaps/tray_hspacer.svg /usr/share/pixmaps/tray_spacer.svg
-}
-export -f setspacersize
-
-  if [ ! -x /tmp/spacer_size ]; then
-   spacer_size='#!/bin/sh
-   PREFDIR="/usr/local/easyjwm/preferences"
-   SPACER_SIZE=$(cat ${PREFDIR}/spacer-size)
-   REPLY=$(Xdialog --stdout --title "$(gettext '"'Spacer Width'"')" --no-cancel \
-   --under-mouse --rangebox "$(gettext '"'Tray Spacer Width'"')" 10 60 1 25 ${SPACER_SIZE} )
-   if [ "$REPLY" = "" ]; then
-    exit 1
-   else
-    echo "$REPLY" > ${PREFDIR}/spacer-size
-   fi'
-   printf '%s' "$spacer_size" > /tmp/spacer_size
-   chmod 755 /tmp/spacer_size
-  fi
-
-  SPACER_SIZE=$(cat $PREFDIR/spacer-size 2>/dev/null)
-  [ ! "$SPACER_SIZE" ] && SPACER_SIZE="10" && echo "$SPACER_SIZE" > $PREFDIR/spacer-size
-  echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?><svg xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\" height=\"20\" width=\"$SPACER_SIZE\"><path style=\"fill:none;stroke:none\" d=\"M 0,0 10,0 10,20 0,20 z\"/></svg>" > /usr/share/pixmaps/tray_hspacer.svg
-  echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?><svg xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\" height=\"$SPACER_SIZE\" width=\"20\"><path style=\"fill:none;stroke:none\" d=\"M 0,0 20,0 20,10 0,10 z\"/></svg>" > /usr/share/pixmaps/tray_vspacer.svg
-  ln -sf /usr/share/pixmaps/tray_hspacer.svg /usr/share/pixmaps/tray_spacer.svg
-
-  echo "[Desktop Entry]
-Encoding=UTF-8
-Type=Application
-NoDisplay=true
-Name=Spacer
-Exec=echo
-Icon=tray_spacer.svg" > /usr/share/applications/trayspacer.desktop
-
-  SPACER_BUTTON='
-   <button height-request="38" width-request="38" tooltip-text=" '$(gettext 'Add spacer button to launcher list')' ">
-    <input file stock="gtk-add"></input>
-    <action signal="button-release-event">touch /tmp/addspacer</action>
-    <action signal="button-release-event">echo trayspacer > /tmp/traybutton_new</action>
-    <action signal="button-release-event">button_add</action>
-    <action signal="button-release-event">currentbuttons</action>
-    <action signal="button-release-event">refresh:CURRENTBUTTONS</action>
-   </button>'
-
-  SPACERSIZE='
-   <button height-request="38" width-request="38" tooltip-text=" '$(gettext 'Width of spacer button')' ">
-    <input file>'$ICONDIR'/size.svg</input><height>22</height><width>22</width>
-    <action signal="button-release-event">setspacersize &</action>
-   </button>'
-fi
+#20230523
 
 #define togglebutton parameters
 [ ! -f "$TMPDIR/show.png" ] && cp $APPDIR/icons/showhiddenyes.png $APPDIR/icons/showhiddenno.png $TMPDIR/
@@ -2065,8 +1709,9 @@ getapps
 #get current tray buttons
 currentbuttons()
 {
-DEFAULT_TRAY=$(cat $PREFDIR/default_tray 2>/dev/null)
-if [ -d /usr/local/easy_version ] && [ "$DEFAULT_TRAY" = "jwmrc-tray1" ]; then # EasyOS tray-1
+ DEFAULT_TRAY=$(cat $PREFDIR/default_tray 2>/dev/null)
+ #20230523
+ if [ "$DEFAULT_TRAY" = "jwmrc-tray1" ]; then # EasyOS tray-1
   CURRENTBTNCODE=$(grep 'STARTEXTRA' -A 1000 $JWM_HOME/$jwmtray | grep -a -- "<TrayButton" 2>/dev/null | grep -av -- "<!--" | grep -av -- "root:[a-z0-9]")
   CURRENTBTNS=$(grep 'STARTEXTRA' -A 1000 $JWM_HOME/$jwmtray | grep -a -- "<TrayButton" 2>/dev/null | grep -av -- "<!--" | grep -av -- "root:[a-z0-9]"|\
     sed -e 's/.*<TrayButton //g' \
@@ -2083,7 +1728,7 @@ if [ -d /usr/local/easy_version ] && [ "$DEFAULT_TRAY" = "jwmrc-tray1" ]; then #
         -e 's/"|icon/|icon/g')
   echo "$CURRENTBTNS" > /tmp/jwm_cur_btns
   echo "$CURRENTBTNCODE" > /tmp/jwm_cur_btn_code
-else # all tray-2 and Puppy tray-1
+ else # all tray-2 and Puppy tray-1
   CURRENTBTNCODE=$(grep -a -- "<TrayButton" $JWM_HOME/$jwmtray 2>/dev/null | grep -av -- "<!--" | grep -av -- "root:[a-z0-9]")
   CURRENTBTNS=$(grep -a -- "<TrayButton" $JWM_HOME/$jwmtray 2>/dev/null | grep -av -- "<!--" | grep -av -- "root:[a-z0-9]"|\
     sed -e 's/.*<TrayButton //g' \
@@ -2100,9 +1745,9 @@ else # all tray-2 and Puppy tray-1
         -e 's/"|icon/|icon/g')
   echo "$CURRENTBTNS" > /tmp/jwm_cur_btns
   echo "$CURRENTBTNCODE" > /tmp/jwm_cur_btn_code
-fi
-echo -n > /tmp/tmp
-while read -r line
+ fi
+ echo -n > /tmp/tmp
+ while read -r line
  do
     LAUNCH_ICON="`echo "$line" | grep -a -om1 -- "|icon=.*|" | cut -d'=' -f2- | sed -e 's/\"//g' -e 's/|//g'`"
     ICONNAME="${LAUNCH_ICON##*/}" #with extension
@@ -2159,21 +1804,8 @@ button_add()
       cat $JWM_HOME/$jwmtray | tail -n "$last" > /tmp/jwmrc-tray-3.txt
       cat /tmp/jwmrc-tray-1.txt /tmp/jwm_cur_btn_code | awk '!a[$0]++' > /tmp/jwmrc-tray-2.txt ### concatenate headers, labels and button code; remove duplicate labels
      else # main tray (tray-1)
-       if [ ! -d /usr/local/easy_version ]; then # Puppy Linux
-         total=$(wc -l $JWM_HOME/$jwmtray | sed -e 's/ *//' | sed -e 's/ .*//g') ### get total number of lines
-         low=$(grep -an -- '^[[:blank:]]*<TrayButton' $JWM_HOME/$jwmtray 2>/dev/null | head -n 1| cut -d':' -f1)  ### get line number of the first button(Menu)
-         high=$(head -n -6 $JWM_HOME/$jwmtray | grep -an -- '^[[:blank:]]*<TrayButton popup' 2>/dev/null | tail -n 1| cut -d':' -f1) ### get line number of the last button
-         high=$(echo "(("$high" + 1))" | bc -l)
-         last=$(echo "(("$total" - "$high" + 1))" | bc -l)
-         begin=$(echo "(("$low" + 1))" | bc -l) ### first line with panel buttons
-         cat $JWM_HOME/$jwmtray | head -n "$low" > /tmp/jwmrc-tray-1.txt
-         if [ -d /usr/local/jwm_config* ]; then
-           LABELS=$(head -n -6 $JWM_HOME/$jwmtray | grep -a -- '<TrayButton label' 2>/dev/null) ### support more than one menu label
-           echo "$LABELS" >> /tmp/jwmrc-tray-1.txt ### add all menu labels
-         fi
-         cat $JWM_HOME/$jwmtray | tail -n "$last" > /tmp/jwmrc-tray-3.txt
-         cat /tmp/jwmrc-tray-1.txt /tmp/jwm_cur_btn_code | awk '!a[$0]++' > /tmp/jwmrc-tray-2.txt ### concatenate headers, labels and button code; remove duplicate labels
-       fi
+      #20230523
+      true
      fi
 
      POPUP=$(grep -a -m1 '^Name=' "$DTD/$NEWBUTTON.desktop" | cut -d'=' -f2)
@@ -2192,7 +1824,8 @@ button_add()
      [ "$EXEC" = "showdesktop" ] && EXECUTABLE="showdesktop"
 
      # append new button
-     if [ -d /usr/local/easy_version ] && [ "$DEFAULT_TRAY" = "jwmrc-tray1" ]; then # EasyOS tray-1
+     #20230523
+     if [ "$DEFAULT_TRAY" = "jwmrc-tray1" ]; then # EasyOS tray-1
        sed -i "/--ENDEXTRA/ i \<TrayButton popup=\"$POPUP\" icon=\"$ICON\">$EXECUTABLE<\/TrayButton>" $JWM_HOME/$jwmtray
      else # all tray-2 and Puppy tray-1
        if [ ! -f /tmp/addspacer ]; then
@@ -2293,14 +1926,9 @@ launchbar()
     ACCESSORY_PANEL=$(cat $PREFDIR/accessory_tray 2>/dev/null)
     [ ! "$ACCESSORY_PANEL" ] && ACCESSORY_PANEL="false" && echo "$ACCESSORY_PANEL" > $PREFDIR/accessory_tray
     if [ "$ACCESSORY_PANEL" = "true" ]; then #accessory panel enabled
-     if [ -d /usr/local/jwm_config* ]; then
-      if [ ! "`grep -aF -- '<Include>/root/.jwm/jwmrc-tray2</Include>' /etc/xdg/templates/_root_.jwmrc`" ]; then
-       sed -i -e '/<Include>\/root\/\.jwm\/jwmrc-tray1<\/Include>/a \<Include>\/root\/\.jwm\/jwmrc-tray2<\/Include>' /etc/xdg/templates/_root_.jwmrc
-      fi
-     else
-      if [ ! "`grep -aF -- '<Include>/root/.jwmrc-tray2</Include>' /etc/xdg/templates/_root_.jwmrc`" ]; then
-       sed -i -e '/<\/JWM>/i \<Include>\/root\/\.jwmrc-tray2<\/Include>' /etc/xdg/templates/_root_.jwmrc
-      fi
+     #20230523
+     if [ ! "`grep -aF -- '<Include>/root/.jwmrc-tray2</Include>' /etc/xdg/templates/_root_.jwmrc`" ]; then
+      sed -i -e '/<\/JWM>/i \<Include>\/root\/\.jwmrc-tray2<\/Include>' /etc/xdg/templates/_root_.jwmrc
      fi
 
      #find installed applications
@@ -2324,15 +1952,9 @@ launchbar()
      [ "$OSMO" ] && DEFAULTCALENDAR="killall osmo ; osmo" || DEFAULTCALENDAR="defaultcalendar"
 
      #find properties of current accessory tray (if it exists)
-     if [ -d /usr/local/jwm_config* ]; then
-      if [[ ! $(grep -a -- '<?xml version="1.0"?>  ' $HOME/.jwm/jwmrc-tray1 2>/dev/null) ]]; then # assure primary tray is jwmrc-tray1
-       $APPDIR/easyjwm_reset &
-       exit 0
-      fi
-      LAUNCHBAR=".jwm/jwmrc-tray2"
-     else
-      LAUNCHBAR=".jwmrc-tray2"
-     fi
+     #20230523
+     LAUNCHBAR=".jwmrc-tray2"
+     
      if [ "`grep -aFi -- '<Tray ' $HOME/$LAUNCHBAR 2>/dev/null`" ]; then #current accessory tray
       AUTOHIDE=$(grep -aFi -- '<Tray ' $HOME/$LAUNCHBAR | grep -a -om1 -- " autohide=.* " | cut -d'"' -f2)
       if [ ! "$AUTOHIDE" ]; then
@@ -2358,22 +1980,10 @@ launchbar()
       [ ! "$HALIGN" ] && HALIGN="center"
       VALIGN=$(grep -aFi -- '<Tray ' $HOME/$LAUNCHBAR | grep -a -om1 -- " valign=.* " | cut -d'"' -f2)
       [ ! "$VALIGN" ] && VALIGN="top"
-      if [ -d /usr/local/jwm_config* ]; then
-       VALIGN1=$(grep -aFi -- '<Tray ' $HOME/.jwm/jwmrc-tray1 | grep -a -om1 -- " valign=.* " | cut -d'"' -f2)
-       [ ! "$VALIGN1" ] && VALIGN1="bottom"
-       if [ "$VALIGN1" = "top" -o "$VALIGN1" = "center" ]; then
-        VALIGN="bottom"
-       else
-        VALIGN="top"
-       fi
-       [ "$TRAY_LAYOUT" = "vertical" ] && VALIGN="center"
-      fi
+      #20230523
      else #no current accessory tray, so apply default tray parameters
-      if [ -d /usr/local/jwm_config* ]; then
-       VALIGN1=$(grep -aFi -- '<Tray ' $HOME/.jwm/jwmrc-tray1 | grep -a -om1 -- " valign=.* " | cut -d'"' -f2)
-      else
-       VALIGN1=$(grep -aFi -- '<Tray ' $HOME/.jwmrc-tray | grep -a -om1 -- " valign=.* " | cut -d'"' -f2)
-      fi
+      #20230523
+      VALIGN1=$(grep -aFi -- '<Tray ' $HOME/.jwmrc-tray | grep -a -om1 -- " valign=.* " | cut -d'"' -f2)
       if [ "$VALIGN1" = "top" -o "$VALIGN1" = "center" ]; then
        VALIGN="bottom"
       else
@@ -2479,7 +2089,8 @@ launchbar()
 
      #if prior existing tray set to hybrid autohide, then apply same state to new preset tray
      if [ "$HYBRID_STATE" = "true" ]; then
-      [ -d /usr/local/jwm_config* ] && sed -i -e "/<JWM>/a \	<Include>/root/.jwm/"jwmrc-tray2"_hybrid</Include>" $HOME/$LAUNCHBAR || sed -i -e "/<JWM>/a \	<Include>/root/".jwmrc-tray2"_hybrid</Include>" $HOME/$LAUNCHBAR
+      #20230523
+      sed -i -e "/<JWM>/a \	<Include>/root/".jwmrc-tray2"_hybrid</Include>" $HOME/$LAUNCHBAR
       grep -aFv -- '_hybrid</Include>' $HOME/$LAUNCHBAR 2>/dev/null | sed -e 's%autohide="\(top\|bottom\|left\|right\)"%autohide="off"%' -e "s%layer=\"above\"%layer=\"below\"%" > "$HOME/$LAUNCHBAR"_hybrid
      fi
 
@@ -2487,25 +2098,13 @@ launchbar()
      echo "jwmrc-tray2" > $PREFDIR/default_tray
 
     else #accessory panel disabled 
-
-     if [ -d /usr/local/jwm_config* ]; then
-      if [[ ! $(grep -a -- '<?xml version="1.0"?>  ' $HOME/.jwm/jwmrc-tray1 2>/dev/null) ]]; then # assure primary tray is jwmrc-tray1
-       $APPDIR/easyjwm_reset &
-       exit 0
-      fi
-      echo -e '<?xml version="1.0"?>\n<JWM>\n\n</JWM>' > $HOME/.jwm/jwmrc-tray2
-      [ -f $HOME/.jwm/jwmrc-tray*_hybrid ] && rm -f $HOME/.jwm/jwmrc-tray*_hybrid
-      echo "false" > $PREFDIR/accessory_tray
-      echo "false" > $PREFDIR/autohide_hybrid
-      echo "jwmrc-tray1" > $PREFDIR/default_tray
-     else
-      sed -i '/\/root\/\.jwmrc-tray2<\/Include>/d' /etc/xdg/templates/_root_.jwmrc
-      [ -f $HOME/.jwmrc-tray2 ] && rm -f $HOME/.jwmrc-tray2
-      [ -f $HOME/.jwm/jwmrc-tray*_hybrid ] && rm -f $HOME/.jwm/jwmrc-tray*_hybrid
-      echo "false" > $PREFDIR/accessory_tray
-      echo "false" > $PREFDIR/autohide_hybrid
-      echo "jwmrc-tray1" > $PREFDIR/default_tray
-     fi
+     #20230523
+     sed -i '/\/root\/\.jwmrc-tray2<\/Include>/d' /etc/xdg/templates/_root_.jwmrc
+     [ -f $HOME/.jwmrc-tray2 ] && rm -f $HOME/.jwmrc-tray2
+     [ -f $HOME/.jwm/jwmrc-tray*_hybrid ] && rm -f $HOME/.jwm/jwmrc-tray*_hybrid
+     echo "false" > $PREFDIR/accessory_tray
+     echo "false" > $PREFDIR/autohide_hybrid
+     echo "jwmrc-tray1" > $PREFDIR/default_tray
     fi
     sync
 
@@ -2523,20 +2122,12 @@ export -f launchbar
 #custom launchbar
 save_custom_launchbar()
 {
- if [ -d /usr/local/jwm_config* ]; then
-  if [ "`grep -aF -- '<TrayButton popup=' $HOME/\.jwm/jwmrc-tray2 2>/dev/null`" ]; then 
-   grep -a -- '<TrayButton popup=' $HOME/.jwm/jwmrc-tray2 > $PREFDIR/launchbar_custom
-   gtkdialog-splash -close never -timeout 4 -margin 8 -placement center -fontsize large -bg goldenrod -text " $(gettext 'Current launch bar buttons saved !') "
-  else
-   gtkdialog-splash -close never -timeout 4 -margin 8 -placement center -fontsize large -bg goldenrod -text " $(gettext 'Current launch bar buttons not found !') "
-  fi
+ #20230523
+ if [ "`grep -aF -- '<TrayButton popup=' $HOME/\.jwmrc-tray2 2>/dev/null`" ]; then
+  grep -a -- '<TrayButton popup=' $HOME/.jwmrc-tray2 > $PREFDIR/launchbar_custom
+  gtkdialog-splash -close never -timeout 4 -margin 8 -placement center -fontsize large -bg goldenrod -text " $(gettext 'Current launch bar buttons saved !') "
  else
-  if [ "`grep -aF -- '<TrayButton popup=' $HOME/\.jwmrc-tray2 2>/dev/null`" ]; then
-   grep -a -- '<TrayButton popup=' $HOME/.jwmrc-tray2 > $PREFDIR/launchbar_custom
-   gtkdialog-splash -close never -timeout 4 -margin 8 -placement center -fontsize large -bg goldenrod -text " $(gettext 'Current launch bar buttons saved !') "
-  else
-   gtkdialog-splash -close never -timeout 4 -margin 8 -placement center -fontsize large -bg goldenrod -text " $(gettext 'Current launch bar buttons not found !') "
-  fi
+  gtkdialog-splash -close never -timeout 4 -margin 8 -placement center -fontsize large -bg goldenrod -text " $(gettext 'Current launch bar buttons not found !') "
  fi
 }
 export -f save_custom_launchbar
@@ -2555,12 +2146,7 @@ CURRENT_THEMES_BUTTON='
 
 set_accessory_menus()
 {
- if [ -d /usr/local/jwm_config* ]; then
-  if [[ ! $(grep -a -- '<?xml version="1.0"?>  ' $HOME/.jwm/jwmrc-tray1 2>/dev/null) ]]; then
-   Xdialog --title $(gettext 'Alert') --beep --icon "$ALERT" --msgbox "\n  $(gettext 'Non-compliant jwm tray detected !')  \n\n  $(gettext 'Please close, then restart EasyJWM.')  \n" 0 0
-   exit 0
-  fi
- fi
+ #20230523
  tray_format 2>/dev/null
  jwm -restart &
 }
@@ -2647,10 +2233,9 @@ else
  fi
 fi
 
-EASYOS_UI_MANAGER=''
-if [ -d /usr/local/easy_version ] && [ -f /etc/uimanager ]; then #EasyOS
- ACCESSORY_MENUS='' #disable accessory menus in EasyOS
- EASYOS_UI_MANAGER='
+#20230523
+ACCESSORY_MENUS='' #disable accessory menus in EasyOS
+EASYOS_UI_MANAGER='
    <text space-expand="true" space-fill="true" height-request="15"><label>""</label></text>
    <text space-expand="false" space-fill="false" use-markup="true"><label>"<b><big>'$(gettext 'Desk Interface')'</big></b>"</label></text> 
    <hbox space-expand="false" space-fill="false" homogeneous="true">
@@ -2661,22 +2246,9 @@ if [ -d /usr/local/easy_version ] && [ -f /etc/uimanager ]; then #EasyOS
      <action>exit:quit_now</action>
     </button>
    </hbox>'
-fi
 
 PTHEME_RESET=''
-if [ -d /usr/local/jwm_config* ]; then #jwm_config/ptheme installed
- PTHEME_RESET='
-   <text space-expand="true" space-fill="true" height-request="15"><label>""</label></text>
-   <text space-expand="false" space-fill="false" use-markup="true"><label>"<b><big>'$(gettext 'Desk Manager')'</big></b>"</label></text> 
-   <hbox space-expand="false" space-fill="false" homogeneous="true">
-    <button width-request="161" image-position="0" tooltip-text=" '$(gettext 'Select EasyJWM or Ptheme')' ">
-     <label>" '"$(gettext 'Select')"' "</label>
-     <input file>'$ICONDIR'/update.svg</input><height>20</height><width>20</width>
-     <action>$APPDIR/easyjwm_reset &</action>
-     <action>exit:quit_now</action>
-    </button>
-   </hbox>'
-fi
+#20230523
 
 #gui of Options tab
 LAUNCHBAR_PRESET=$(cat $PREFDIR/launchbar_preset 2>/dev/null)
@@ -2770,14 +2342,9 @@ export -f savejwmrc_personal
 
 savejwmrc_tray()
 {
-    if [ -d /usr/local/jwm_config* ]; then
-     [ ! -d $JWM_HOME/backup/ ] && mkdir -p "$JWM_HOME/backup/"
-     grep -av -- 'hybrid</Include>' $JWM_HOME/$jwmtray > $JWM_HOME/backup/$jwmtray-bak
-     Xdialog --title "$(gettext 'Save')" --no-buttons --infobox "\n ${jwmtray} \n\n $(gettext 'saved to') \n\n $JWM_HOME/backup/$jwmtray-bak \n" 0 0 5000 &
-    else
-     grep -av -- 'hybrid</Include>' $JWM_HOME/$jwmtray > $JWM_HOME/$jwmtray-bak
-     Xdialog --title "$(gettext 'Save')" --no-buttons --infobox "\n ${jwmtray#.} \n\n $(gettext 'saved to') \n\n $JWM_HOME/$jwmtray-bak \n" 0 0 5000 &
-    fi
+ #20230523
+ grep -av -- 'hybrid</Include>' $JWM_HOME/$jwmtray > $JWM_HOME/$jwmtray-bak
+ Xdialog --title "$(gettext 'Save')" --no-buttons --infobox "\n ${jwmtray#.} \n\n $(gettext 'saved to') \n\n $JWM_HOME/$jwmtray-bak \n" 0 0 5000 &
 }
 export -f savejwmrc_tray
 
@@ -2801,44 +2368,25 @@ export -f restorejwmrc_personal
 
 restorejwmrc_tray()
 {
-    touch /tmp/easyjwm-page
-    if [ -d /usr/local/jwm_config* ]; then
-     if [ ! -f $JWM_HOME/backup/$jwmtray-bak ]; then
-      Xdialog --title $(gettext 'Alert') --beep --icon "$ALERT" --msgbox "\n  $(gettext 'Restore file not found !')  \n" 0 0
-      $APPDIR/easyjwm &
-      exit 0
-     fi
-     Xdialog --title "$(gettext 'Restore')" --cancel-label "No" --ok-label "Ok"  --yesno "\n $(gettext 'Restore') $JWM_HOME/$jwmtray ? \n" 0 0
-     if [[ $? == 0 ]]; then
-      cp -f $JWM_HOME/backup/$jwmtray-bak $JWM_HOME/$jwmtray
-      if [ "$DEFAULT_TRAY" = "jwmrc-tray2" ]; then
-       sed -i 's%autohide="\(top\|bottom\|left\|right\)"%autohide="off"%' $JWM_HOME/$jwmtray
-       echo 'false' > $PREFDIR/autohide_hybrid
-      fi
-      $APPDIR/easyjwm &
-      jwm_restart
-     else
-      $APPDIR/easyjwm &
-     fi
-    else
-     if [ ! -f $JWM_HOME/$jwmtray-bak ]; then
-      Xdialog --title $(gettext 'Alert') --beep --icon "$ALERT" --msgbox "\n  $(gettext 'Restore file not found !')  \n" 0 0
-      $APPDIR/easyjwm &
-      exit 0
-     fi
-     Xdialog --title "$(gettext 'Restore')" --cancel-label "No" --ok-label "Ok"  --yesno "\n $(gettext 'Restore') $JWM_HOME/$jwmtray ? \n" 0 0
-     if [[ $? == 0 ]]; then
-      cp -f $JWM_HOME/$jwmtray-bak $JWM_HOME/$jwmtray
-      if [ "$DEFAULT_TRAY" = "jwmrc-tray2" ]; then
-       sed -i 's%autohide="\(top\|bottom\|left\|right\)"%autohide="off"%' $JWM_HOME/$jwmtray
-       echo 'false' > $PREFDIR/autohide_hybrid
-      fi
-      $APPDIR/easyjwm &
-      jwm_restart
-     else
-      $APPDIR/easyjwm &
-     fi
-    fi
+ touch /tmp/easyjwm-page
+ #20230523
+ if [ ! -f $JWM_HOME/$jwmtray-bak ]; then
+  Xdialog --title $(gettext 'Alert') --beep --icon "$ALERT" --msgbox "\n  $(gettext 'Restore file not found !')  \n" 0 0
+  $APPDIR/easyjwm &
+  exit 0
+ fi
+ Xdialog --title "$(gettext 'Restore')" --cancel-label "No" --ok-label "Ok"  --yesno "\n $(gettext 'Restore') $JWM_HOME/$jwmtray ? \n" 0 0
+ if [[ $? == 0 ]]; then
+  cp -f $JWM_HOME/$jwmtray-bak $JWM_HOME/$jwmtray
+  if [ "$DEFAULT_TRAY" = "jwmrc-tray2" ]; then
+   sed -i 's%autohide="\(top\|bottom\|left\|right\)"%autohide="off"%' $JWM_HOME/$jwmtray
+   echo 'false' > $PREFDIR/autohide_hybrid
+  fi
+  $APPDIR/easyjwm &
+  jwm_restart
+ else
+  $APPDIR/easyjwm &
+ fi
 }
 export -f restorejwmrc_tray
 
@@ -2903,12 +2451,7 @@ else
 fi
 
 apply_easyjwm_config(){
- if [ -d /usr/local/jwm_config* ]; then # Woof-CE desktop
-  if [[ ! $(grep -a -- '<?xml version="1.0"?>  ' $HOME/.jwm/jwmrc-tray1 2>/dev/null) ]]; then # assure primary tray is jwmrc-tray1
-   Xdialog --title $(gettext 'Alert') --beep --icon "$ALERT" --msgbox "\n  $(gettext 'Non-compliant jwm tray detected !')  \n\n  $(gettext 'Please close, then restart EasyJWM.')  \n" 0 0 &
-   exit 0
-  fi
- fi
+ #20230523
  window_new
  tray_hybrid
  tray_new

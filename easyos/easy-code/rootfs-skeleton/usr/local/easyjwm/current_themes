@@ -1,5 +1,6 @@
 #!/bin/sh
 # JWMDesk - define current desktop themes in JWM environment
+#20230523 some woof-ce stuff removed.
 
 export TEXTDOMAIN=jwmdesk
 export OUTPUT_CHARSET=UTF-8
@@ -32,15 +33,10 @@ export OUTPUT_CHARSET=UTF-8
   CURRENT_GTK2THEME="NA"
  fi
 
-# JWM theme
- if [ -d /usr/local/jwm_config* ]; then
-  CURRENT_JWMPRESET=$(cat $HOME/.jwm/tray_active_preset 2>/dev/null)
-  JWMTHEME="$(gettext 'Tray Theme'):"
- else
-  CURRENT_JWMPRESET=$(cat $HOME/.jwm/theme 2>/dev/null)
-  JWMTHEME="$(gettext 'JWM Theme'):"
- fi
- [ ! "$CURRENT_JWMPRESET" ] && CURRENT_JWMPRESET="NA"
+# JWM theme  20230523
+CURRENT_JWMPRESET=$(cat $HOME/.jwm/theme 2>/dev/null)
+JWMTHEME="$(gettext 'JWM Theme'):"
+[ ! "$CURRENT_JWMPRESET" ] && CURRENT_JWMPRESET="NA"
 
 # Desk icon theme
  CURRENT_DESKICONS=$(cat /etc/desktop_icon_theme 2>/dev/null)

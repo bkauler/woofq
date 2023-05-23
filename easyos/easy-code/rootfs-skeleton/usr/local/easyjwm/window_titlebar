@@ -1,5 +1,6 @@
 #!/bin/sh
 # Window title bar options for JWM 2.4+
+#20230523 remove some puppy stuff.
 
 export TEXTDOMAIN=easyjwm
 export OUTPUT_CHARSET=UTF-8
@@ -121,12 +122,9 @@ title_bar_func()
 	fi
 
 	if [ ! "`grep -a '<WindowStyle' $HOME/.jwm/jwmrc-personal`" ]; then
-		if [ -d /usr/local/easy_version ]; then
-			if [ "`grep -aF -- 'STARTWINDOWSTYLE' $HOME/.jwm/jwmrc-personal 2>/dev/null`" ]; then
-				sed -i -e '/STARTWINDOWSTYLE/a <WindowStyle>\n<\/WindowStyle>' $HOME/.jwm/jwmrc-personal
-			else
-				sed -i -e '/<ResizeMode/a \\n<WindowStyle>\n<\/WindowStyle>' $HOME/.jwm/jwmrc-personal
-			fi
+		#20230523
+		if [ "`grep -aF -- 'STARTWINDOWSTYLE' $HOME/.jwm/jwmrc-personal 2>/dev/null`" ]; then
+			sed -i -e '/STARTWINDOWSTYLE/a <WindowStyle>\n<\/WindowStyle>' $HOME/.jwm/jwmrc-personal
 		else
 			sed -i -e '/<ResizeMode/a \\n<WindowStyle>\n<\/WindowStyle>' $HOME/.jwm/jwmrc-personal
 		fi

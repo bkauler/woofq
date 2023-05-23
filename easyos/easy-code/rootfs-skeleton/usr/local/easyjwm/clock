@@ -3,6 +3,7 @@
 # radky 20 Oct 2015: adjust for JWMDesk; support parsing of l and r parameters in 12 hr clock, and R and T parameters in 24 hr clock
 # radky 25 Dec 2015: if jwm_config environment, find clock code in jwmrc-tray1-4
 # radky 30 Mar 2021: add support for day, date and year; adjust GUI
+#20230523 removed some woof-ce stuff.
 
 export TEXTDOMAIN=jwmclock
 export OUTPUT_CHARSET=UTF-8
@@ -37,22 +38,9 @@ HEADER="
 [ ! -f /usr/share/icons/hicolor/48x48/apps/clock_digital.svg ] && \
 ln -sf $APPDIR/jwm_menu_icons/clock_digital.svg /usr/share/icons/hicolor/48x48/apps && gtk-update-icon-cache -f -i /usr/share/icons/hicolor 2>/dev/null
 
-# find jwm tray with clock widget
-if [ -d /usr/local/jwm_config* ]; then #25 Dec 2015
- JWM_HOME="/root/.jwm"
- if [ "`grep '<Clock' $HOME/.jwm/jwmrc-tray1`" ]; then
-  jwmtray="jwmrc-tray1"
- elif [ "`grep '<Clock' $HOME/.jwm/jwmrc-tray2`" ]; then
-  jwmtray="jwmrc-tray2"
- elif [ "`grep '<Clock' $HOME/.jwm/jwmrc-tray3`" ]; then
-  jwmtray="jwmrc-tray3"
- elif [ "`grep '<Clock' $HOME/.jwm/jwmrc-tray4`" ]; then
-  jwmtray="jwmrc-tray4"
- fi
-else
- JWM_HOME="/root"
- jwmtray=".jwmrc-tray"
-fi
+# find jwm tray with clock widget  20230523
+JWM_HOME="/root"
+jwmtray=".jwmrc-tray"
 
 # find current time format
 CURCLOCK=$(grep "Clock format=" $JWM_HOME/$jwmtray|tr '"' '#'|awk -F# '{print $2}')
