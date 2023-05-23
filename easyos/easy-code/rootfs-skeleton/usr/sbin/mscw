@@ -28,6 +28,7 @@
 #20221023 may be running as zeus super-user.
 #20221031 /root/Startup/pulseaudio changed to /etc/init.d/pulseaudio
 #20221031 running as zeus, maybe still need to bump up to root.
+#20230523 improve msg on main window.
 
 if [ ! -e /etc/init.d/pulseaudio ];then #20211113 20221031
  exec mscw-alsa #the old alsa-only script (does support bluez-alsa, and early pa attempts).
@@ -449,12 +450,16 @@ ICON='/usr/share/pixmaps/puppy/card_pci.svg'
 ###########################################################
 export L_MSCW=$(gettext 'Sound Card Wizard')
 L_NODEVICES=$(gettext 'No Sound Devices Detected')
-L_CHOOSE=$(gettext 'Choose default sound card')
+#20230523 improve msg...
+#L_CHOOSE=$(gettext 'Choose default sound card')
+L_CHOOSE="$(gettext 'Please choose the default sound device, then click <b>Test Sound</b>. If no sound, select device again then click <b>Configure</b>. If sound OK, select device again then set it as the default by clicking on <b>Set Default Device</b>')"
 L_CHOOSE_ANOTHER=$(gettext 'Choose another default sound card')
 L_QUIT=$(gettext 'Quit')
 L_OK=$(gettext 'OK')
 L_CANCEL=$(gettext 'Cancel')
-L_SELECT=$(gettext 'Select card/device')
+#20230523 improve button text...
+#L_SELECT=$(gettext 'Select card/device')
+L_SELECT="$(gettext 'Set Default Device')"
 L_REPORT=$(gettext 'Report')
 L_RETROVOL_SET=$(gettext 'Retrovol has been set to use this card:')
 #L_CONFIGURE_MIXER=$(gettext 'Configure your audio mixer as')
@@ -710,7 +715,7 @@ BTxml="$(gettext 'If a Bluetooth device is chosen as default output, the setting
 #200118 help button
 HELPICON="gtk-index"
 M_close="`gettext 'Close'`"
-H_mscw="$(gettext "A tick is alongside the currently-selected audio output. You may change to another by clicking to highlight it, then click the <i>Select card/device</i> button.")
+H_mscw="$(gettext "A tick is alongside the currently-selected audio output. You may change to another by clicking to highlight it, then click the <i>Set Default Device</i> button.")
 
 <b>$(gettext 'Bluetooth')</b>
 $(gettext "A Bluetooth sound device may be chosen, but it will have to be previously paired and set as <i>Audio sink</i> to be used for sound output. This is done by whatever Bluetooth manager is installed. In the case of EasyOS, it is <b>BluePup</b>, which is in the system tray.")
@@ -1019,7 +1024,7 @@ ${TEXT} ${BTaddress}" &
    ## pacmd list-sinks | grep -e 'name:' -e 'index:'
    
   fi
- else #200117 clicked "Select card/device" button without highlighting an entry.
+ else #200117 clicked "Set Default Device" button without highlighting an entry.
   /usr/lib/gtkdialog/box_ok "$L_MSCW" error "$L_MUSTSELECT"
   exec mscw
  fi
