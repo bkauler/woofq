@@ -22,6 +22,7 @@
 #170105 xkbconfigmanager now at /usr/sbin and builtin to woofQ.
 #191105 psynclient has replaced flsynclient.
 #20201109 console font "uk" changed to "gb", as it is for Great Britain, not Ukraine.
+#20230522 now using 512-glyph zap font.
 
 export TEXTDOMAINDIR=/usr/share/locale
 export TEXTDOMAIN=input-wizard
@@ -560,7 +561,22 @@ while :; do
    /lib/keymaps) gzip -dcf /lib/keymaps/$KMAP.gz | loadkmap ;;
    *) loadkeys $KMAP ;; #note i think don't need to specify the extension.
   esac
-  [ "$FONTMAP" ] && gzip -dcf /lib/consolefonts/${FONTMAP}.gz | loadfont
+  
+  #20230522 now using 512-glyph zap font...
+  #[ "$FONTMAP" ] && gzip -dcf /lib/consolefonts/${FONTMAP}.gz | loadfont
+  Fs=0
+  if [ -e /dev/fb0 -a -s /sys/class/graphics/fb0/virtual_size ];then
+   fbRES="$(cat /sys/class/graphics/fb0/virtual_size)"
+   fbX=${fbRES/,*/}
+   if [ $fbX -gt 1024 ];then
+    #bigger font... 
+    loadfont < /lib/consolefonts/zap-ext-light20.psfu
+    Fs=1
+   fi
+  fi
+  if [ $Fs -eq 0 ];then
+   loadfont < /lib/consolefonts/zap-ext-vga16.psfu
+  fi
 
   #100520 this code copied back to /usr/bin/xwin...
   #100215 moved this from /usr/bin/xwin... (note, xorgwizard has same code)
