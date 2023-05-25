@@ -9,6 +9,7 @@
 #20230509 need a hack for zoom.
 #20230510 support custom entries. 20230511 check for duplicates.
 #20230516 ping to check internet. reduce scale fact 1.2 to 1.1. fix version detect.
+#20230524 fix find installed flatpaks.
 
 export TEXTDOMAIN=flatpaks
 export TEXTDOMAINDIR=/usr/share/locale
@@ -344,8 +345,8 @@ if [ -e /mnt/wkg/flatpak/exports/bin/${TRIPLET} ];then
  if [ -f /usr/bin/${aAPP,,} ];then
   #already installed. 20230516 fix FPver...
   #FPver="$(flatpak list --app --columns=name,version | tr '\t' ' ' | tr -s ' ' | grep "^${aAPP} " | cut -f 2 -d ' ')"
-  #20230516 seems weird, but this is how specify tab delimiter for cut...
-  FPver="$(flatpak list --app --columns=name,version | grep "^${aAPP}" | tr -s '\t' | cut -f 2 -d$'\t')"
+  #20230516 seems weird, but this is how specify tab delimiter for cut... 20230524 grep need -i...
+  FPver="$(flatpak list --app --columns=name,version | grep -i "^${aAPP}" | tr -s '\t' | cut -f 2 -d$'\t')"
   UPDATExml="<text><label>$(gettext 'To probe online if there is a later version and update to it, click the UPDATE button:')</label></text>
    <vbox>
     <button><label>$(gettext 'UPDATE')</label><action>EXIT:update</action></button>

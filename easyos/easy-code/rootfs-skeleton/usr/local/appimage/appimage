@@ -3,6 +3,7 @@
 #20230415 start and stop dbus-daemon for session.
 #20230425 entries in external file.
 #20230517 fix check internet connection.
+#20230525 allow openshot to update.
 
 export TEXTDOMAIN=appimages
 export TEXTDOMAINDIR=/usr/share/locale
@@ -252,7 +253,8 @@ case "${aAPP}" in
  JitsiMeet) DEFDL='https://github.com/jitsi/jitsi-meet-electron/releases/download/v2023.2.0/jitsi-meet-x86_64.AppImage'; DEFVER='2023.2.0'; MEMBER='jitsi'; PROJECT='jitsi-meet-electron'; APPIMG='jitsi-meet-x86_64.AppImage'; MENUcat='X-Internet-chat'; MENUtop='Internet'; MENUname='JitsiMeet video conferencing'; ;;
  Acreom) DEFDL='https://github.com/Acreom/releases/releases/download/v1.5.7/acreom-1.5.7.AppImage'; DEFVER='1.5.7'; MEMBER='Acreom'; PROJECT='releases'; APPIMG='acreom-VERSION.AppImage'; MENUcat='X-Personal'; MENUtop='Personal'; MENUname='Acreom private knowledge base'; ;;
  Zoom) DEFDL='http://distro.ibiblio.org/easyos/amd64/packages/appimage/easyos/oe/kirkstone/Zoom-5.13.11.1288.glibc2.17-x86_64.AppImage'; DEFVER='5.13.11.1288'; MEMBER='probonopd'; PROJECT='Zoom.AppImage'; APPIMG='Zoom-VERSION-x86_64.AppImage'; MENUcat='VideoConference'; MENUtop='Internet'; MENUname='Zoom video conferencing'; ;;
- OpenShot) DIRECTDL='https://github.com/OpenShot/openshot-qt/releases/download/daily/OpenShot-v3.0.0-daily-11120-f0b44c51-b5bbab66-x86_64.AppImage'; DIRECTVER='3.0.0'; MENUcat='X-Multimedia-video'; MENUtop='Multimedia'; MENUname='OpenShot video editor'; ;;
+ #OpenShot) DIRECTDL='https://github.com/OpenShot/openshot-qt/releases/download/daily/OpenShot-v3.0.0-daily-11120-f0b44c51-b5bbab66-x86_64.AppImage'; DIRECTVER='3.0.0'; MENUcat='X-Multimedia-video'; MENUtop='Multimedia'; MENUname='OpenShot video editor'; ;;
+ OpenShot) DEFDL='https://github.com/OpenShot/openshot-qt/releases/download/v3.1.1/OpenShot-v3.1.1-x86_64.AppImage'; DEFVER='3.1.1'; MEMBER='OpenShot'; PROJECT='openshot-qt'; APPIMG='OpenShot-VERSION-x86_64.AppImage'; MENUcat='X-Multimedia-video'; MENUtop='Multimedia'; MENUname='OpenShot video editor'; ;;
  Altus) DEFDL='https://github.com/amanharwara/altus/releases/download/4.8.5/Altus-4.8.5-x86_64.AppImage'; DEFVER='4.8.5'; MEMBER='amanharwara'; PROJECT='altus'; APPIMG='Altus-VERSION-x86_64.AppImage'; MENUcat='X-Internet-chat'; MENUtop='Internet'; MENUname='Altus WhatsApp messaging and calls'; ;;
  DBBrowser) DEFDL='https://github.com/sqlitebrowser/sqlitebrowser/releases/download/v3.12.2/DB_Browser_for_SQLite-v3.12.2-x86_64.AppImage'; DEFVER='3.12.2'; MEMBER='sqlitebrowser'; PROJECT='sqlitebrowser'; APPIMG='DB_Browser_for_SQLite-vVERSION-x86_64.AppImage'; MENUcat='X-Business'; MENUtop='Business'; MENUname='DBBrowser create and edit SQLITE databases'; ;;
  Telegram) DEFDL='https://github.com/srevinsaju/Telegram-AppImage/releases/download/v3.2.5/Telegram_Desktop-x86_64.AppImage'; DEFVER='3.2.5'; MEMBER='srevinsaju'; PROJECT='Telegram-AppImage'; APPIMG='Telegram_Desktop-x86_64.AppImage'; MENUcat='X-Internet-chat'; MENUtop='Internet'; MENUname='Telegram messaging'; ;;
