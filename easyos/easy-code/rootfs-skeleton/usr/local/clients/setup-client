@@ -53,6 +53,7 @@
 #20230412 .DirIcon symlink and target of commandline-symlink must have same owner:group as parent folder.
 #20230502 support fscrypt v2
 #20230511 run dbus-launch in <app>.bin  20230512 fix.
+#20230528 setgid bit (see blog post).
 
 APPname="${1/=*/}"  #ex: seamonkey
 APPflag="${1/*=/}" #ex: true
@@ -144,7 +145,8 @@ CHGflg=0 #20210916  20210918 revert 20210917...
    echo -e "#!/bin/sh\nexec ${APPname}" > ${PREFIXDIR1}/home/${APPname}/${APPname}/AppRun
    chmod 755 ${PREFIXDIR1}/home/${APPname}/${APPname}/AppRun
    #20230330 prevent other apps from seeing in here...
-   chmod 700 ${PREFIXDIR1}/home/${APPname}
+   #20230528 if admin creates files/folders, setgid so they will be group $APPname...
+   chmod 2700 ${PREFIXDIR1}/home/${APPname}
   fi
   if [ ! -d ${PREFIXDIR1}/home/${APPname}/.config/gtk-3.0 ];then #20210927
    CHGflg=1 #20211103
@@ -794,7 +796,7 @@ PRE=14,4,0,0,0,0,Nimbus Mono L
   fi
  fi
  chown -R ${APPname}:${APPname} ${PREFIXDIR1}/home/${APPname}/.opera
- chmod 775 ${PREFIXDIR1}/home/${APPname}/Downloads #should already be.
+ chmod 2775 ${PREFIXDIR1}/home/${APPname}/Downloads #should already be. 20230528
  return 0
 }
 opera_false() {

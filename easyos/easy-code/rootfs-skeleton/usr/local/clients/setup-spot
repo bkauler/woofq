@@ -19,6 +19,7 @@
 #20210914 ${APPpath} fix for appended ${PREFIXDIR}
 #20210919 /clients now /home
 #20230502 support fscrypt v2. no need to test EOS_FSCRYPT_VER
+#20230528 setgid (see blog post).
 
 SPOTAPPS="$@"
 RUNNINGPUP=0
@@ -228,7 +229,7 @@ QtWeb_true() {
   mkdir -p ${PREFIXDIR}/home/spot/.config/QtWeb.NET
  fi
  chown -R spot:spot ${PREFIXDIR}/home/spot/.config
- chmod 775 ${PREFIXDIR}/home/spot/Downloads #should already be.
+ chmod 2775 ${PREFIXDIR}/home/spot/Downloads #should already be. 20230528
  return 0
 }
 
@@ -274,7 +275,7 @@ PRE=14,4,0,0,0,0,Nimbus Mono L
   fi
  fi
  chown -R spot:spot ${PREFIXDIR}/home/spot/.opera
- chmod 775 ${PREFIXDIR}/home/spot/Downloads #should already be.
+ chmod 2775 ${PREFIXDIR}/home/spot/Downloads #should already be. 20230528
  return 0
 }
 opera_false() {

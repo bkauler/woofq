@@ -10,6 +10,7 @@
 #20230510 support custom entries. 20230511 check for duplicates.
 #20230516 ping to check internet. reduce scale fact 1.2 to 1.1. fix version detect.
 #20230524 fix find installed flatpaks.
+#20230528 setgid (see blog post).
 
 export TEXTDOMAIN=flatpaks
 export TEXTDOMAINDIR=/usr/share/locale
@@ -591,9 +592,9 @@ $(gettext 'For your convenience, this folder has been created:')
 else
  #create a path for optional open/save files for this app
  mkdir -p /files/apps/${aAPP,,}
- chown -R ${aAPP,,}:${aAPP,,} /files/apps/${aAPP,,} #20230318
- #20230319 for extra security...
- chmod 700 /files/apps/${aAPP,,}
+ chown -h -R ${aAPP,,}:${aAPP,,} /files/apps/${aAPP,,} #20230318  20230528 add -h
+ #20230319 for extra security...  20230528 setgid
+ chmod 2700 /files/apps/${aAPP,,}
  M1="$(gettext 'This means that the app will only be able to save files in the home directory or anywhere in the /files folder.')
 $(gettext 'For your convenience, this folder has been created:')
   /files/apps/${aAPP,,}" 

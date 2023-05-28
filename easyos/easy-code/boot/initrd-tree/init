@@ -1578,11 +1578,15 @@ SFS_DB_hash='${ESUM}'" > /mnt/${WKG_DEV}/${WKG_DIR}sfs/easyos/${INIT_DISTRO_BINA
  if [ "$FGRP" != "122" ];then
   chgrp -R 122 /mnt/${WKG_DEV}/${WKG_DIR}files
  fi
- #20211210...
+ #20211210... 20230528 setgid now is set...
  FPERM="$(stat -c %a /mnt/${WKG_DEV}/${WKG_DIR}files)"
- if [ "$FPERM" != "770" ];then
-  chmod 770 /mnt/${WKG_DEV}/${WKG_DIR}files
-  chmod 770 $(find /mnt/${WKG_DEV}/${WKG_DIR}files -mindepth 1 -type d | tr '\n' ' ')
+ if [ "$FPERM" != "2770" ];then
+  chmod 2770 /mnt/${WKG_DEV}/${WKG_DIR}files
+  #chmod 2770 $(find /mnt/${WKG_DEV}/${WKG_DIR}files -mindepth 1 -type d | tr '\n' ' ')
+  #20230528 do it this way in case too many folders...
+  find /mnt/${WKG_DEV}/${WKG_DIR}files -mindepth 1 -type d | xargs -I STR chmod 2770 STR
+  #20230528 folders for each app need to be invisible to other apps...
+  chmod 2700 $(find /mnt/${WKG_DEV}/${WKG_DIR}files/apps -mindepth 1 -maxdepth 1 -type d | tr '\n' ' ')
  fi
  ##20230406 testing openshot flatpak, needs this to save here... 20230407 revert.
  #chgrp 122 /mnt/${WKG_DEV}/${WKG_DIR}

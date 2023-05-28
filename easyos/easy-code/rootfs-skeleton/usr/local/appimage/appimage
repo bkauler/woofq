@@ -5,6 +5,7 @@
 #20230517 fix check internet connection.
 #20230525 allow openshot to update.
 #20230527 update kdenlive to 23.04.1
+#20230528 setgid (see blog post).
 
 export TEXTDOMAIN=appimages
 export TEXTDOMAINDIR=/usr/share/locale
@@ -613,9 +614,9 @@ Exec=${aAPP,,}" > /usr/share/applications/${aAPP,,}.desktop
 
  #create a path for optional open/save files for this app
  mkdir -p /files/apps/${aAPP,,}
- chown -R ${aAPP,,}:${aAPP,,} /files/apps/${aAPP,,} #20230318
- #20230319 for extra security...
- chmod 700 /files/apps/${aAPP,,}
+ chown -h -R ${aAPP,,}:${aAPP,,} /files/apps/${aAPP,,} #20230318  20230528 add -h
+ #20230319 for extra security...  20230528 setgid
+ chmod 2700 /files/apps/${aAPP,,}
 fi
 
 #.specs file...

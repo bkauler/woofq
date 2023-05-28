@@ -12,6 +12,7 @@
 #161012 remove /usr/X11R7/bin from PATH.
 #200212 catch glob literal fallback.
 #20211206 remove path /root/my-applications/bin
+#20230528 change umask to 002
 
 PATH="/bin:/usr/bin:/sbin:/usr/sbin:/usr/local/bin:/usr/games"
 QT_XFT=true
@@ -27,11 +28,8 @@ export GDK_USE_XFT=1
 export OOO_FORCE_DESKTOP="gnome"
 
 ulimit -c 0
-if [ `id -gn` = `id -un` -a `id -u` -gt 14 ]; then
- umask 002
-else
- umask 022
-fi
+#20230528 change umask from 022 to 002 (see blog post)...
+umask 002
 USER=`id -un`
 PS1="# "
 LOGNAME=$USER
