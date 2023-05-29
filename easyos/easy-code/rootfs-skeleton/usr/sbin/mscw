@@ -746,11 +746,6 @@ if [ "$MSCW_GUI" ] ; then
  #else
   BUTTONS='
    <button>
-    '$(/usr/lib/gtkdialog/xml_button-icon apply.svg)'
-    <label>'${L_SELECT}'</label>
-    <action>exit:OK</action>
-   </button>
-   <button>
     '$(/usr/lib/gtkdialog/xml_button-icon sound.svg)'
     <label>'${L_TESTSOUND}'</label>
     <action>test_sound $SELECTED</action>
@@ -759,6 +754,11 @@ if [ "$MSCW_GUI" ] ; then
     '$(/usr/lib/gtkdialog/xml_button-icon sound_mixer.svg)'
     <label>'${L_CONF}'</label>
     <action>ALSA_MIXER $SELECTED</action>
+   </button>
+   <button>
+    '$(/usr/lib/gtkdialog/xml_button-icon apply.svg)'
+    <label>'${L_SELECT}'</label>
+    <action>exit:OK</action>
    </button>
    <button>
     '$(/usr/lib/gtkdialog/xml_button-icon cancel.svg)'
