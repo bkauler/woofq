@@ -296,6 +296,7 @@
 #20230423 trying to fix norwegian.
 #20230429 no need to substitute variable values in initrd.
 #20230429 copy fscryptctl from initrd to rootfs-complete. 20230430 and argon2
+#20230603 create /root/.SALT, read by /usr/local/drive_all
 
 export LANG=C #faster.
 
@@ -5326,6 +5327,11 @@ fi
 if [ -e bin/argon2 ];then #20230430
  cp -a -f bin/argon2 ../../sandbox3/rootfs-complete/sbin/
 fi
+#20230603
+echo -n 'aprilandvincent' > ../../sandbox3/rootfs-complete/root/.SALT
+chown zeus:zeus ../../sandbox3/rootfs-complete/root/.SALT
+chmod 600 ../../sandbox3/rootfs-complete/root/.SALT
+#...so cannot be read by non-root app, nor crippled-root in containers.
 
 #20230416 pre-populate sfs .png and .specs files...
 SFSSPATH=''
