@@ -20,6 +20,7 @@
 #20220331 remove xlock icon from tray when in rox-mode. 20220407 fix.
 #20220413 set tray width & height when flip between rox-mode and jwm-mode.
 #20220526 support EOS_SUPPORT_CONTAINERS==0
+#20230602 toggle touchpad on/off
 
 . /etc/rc.d/PUPSTATE #20220526 has EOS_SUPPORT_CONTAINERS
 
@@ -194,6 +195,18 @@ if [ -f /root/.fonts/fonts.dir ];then
 fi
 
 [ -f /usr/bin/xsetroot ] && xsetroot -cursor_name top_left_arrow
+
+#20230602 ref: /usr/sbin/touchpad-toggle
+if [ -f /var/local/touchpad-off ];then
+ TPdevices="$(LANG=C xinput | grep -iv 'USB' | sed -nre '/TouchPad|Touchpad|Mouse/s/.*id=([0-9]*).*/\1/p')"
+ if [ "$TPdevices" ];then
+  xTPdevices="$(echo -n "$TPdevices" | tr '\n' ' ')"
+  for aTPdevice in ${xTPdevices}
+  do
+   xinput disable $aTPdevice
+  done
+ fi
+fi
 
 #v555 w003
 #[ -f /usr/bin/xfce-mcs-manager ] && xfce-mcs-manager
