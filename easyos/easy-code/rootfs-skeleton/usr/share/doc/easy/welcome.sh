@@ -14,6 +14,7 @@
 #         note: <!-- BLOB1 --> comment disabled as cannot nest comments.
 #20221111 improve explanation boot and working drives.
 #20230214 desktop image translated text overlay by svg.
+#20230530 no longer have separate sfs icon on desktop. pkg icon has 4 package managers.
 
 export TEXTDOMAIN=easyhelp
 export OUTPUT_CHARSET=UTF-8
@@ -38,8 +39,8 @@ fi
 export LANGUAGE="$xNEWLANG"
 
 ###20230214###
-S01="$(gettext 'Install')"
-S02="$(gettext 'mega-apps')"
+S01="$(gettext '4 package')"
+S02="$(gettext 'managers')"
 S03="$(gettext 'or right-click on desktop')"
 S04="$(gettext 'Containerized')"
 S05="$(gettext 'RAM to drive')"
@@ -66,54 +67,122 @@ cat >> ${OVERLAYSVG} <<_EOF1
     fill:#ff0000;fill-opacity:1;stroke:#ff0000;stroke-width:1.05833;stroke-dasharray:none;stroke-opacity:1;
   }
 </style>
-<g transform="translate(-33.490788,-20.03125)">
-<text class="mainfont" x="91.684166" y="39.407032">
-  <tspan x="91.684166" y="39.407032">${S01}</tspan>
-</text>
-<text class="mainfont" x="91.25695" y="45.528339">
-  <tspan x="91.25695" y="45.528339">${S02}</tspan>
-</text>
-<text class="mainfont" x="54.177029" y="126.66013">
-  <tspan x="54.177029" y="126.66013">${S03}</tspan>
-</text>
-<text class="mainfont" x="152.11078" y="58.268532">
-  <tspan x="152.11078" y="58.268532">${S04}</tspan>
-</text>
-<text class="mainfont" x="79.326881" y="61.75177">
-  <tspan x="79.326881" y="61.75177">${S05}</tspan>
-</text>
-<text class="mainfont" x="78.778191" y="54.602173">
-  <tspan x="78.778191" y="54.602173">${S06}</tspan>
-</text>
-<text class="mainfont" x="68.396561" y="78.357773">
-  <tspan x="68.396561" y="78.357773">${S07}</tspan>
-</text>
-<text class="mainfont" x="68.011627" y="71.309212">
-  <tspan x="68.011627" y="71.309212">${S08}</tspan>
-</text>
-<text class="mainfont" x="58.641693" y="96.851074">
-  <tspan x="58.641693" y="96.851074">${S09}</tspan>
-</text>
-<text class="mainfont" x="52.750999" y="89.105911">
-  <tspan x="52.750999" y="89.105911">${S10}</tspan>
-</text>
-<text class="mainfont" x="42.896725" y="108.18369">
-  <tspan x="42.896725" y="108.18369">${S11}</tspan>
-</text>
-<text class="mainfont" x="35.422188" y="119.28849">
-  <tspan x="35.422188" y="119.28849">${S12}</tspan>
-</text>
-<text class="mainfont" x="158.04077" y="64.77507">
-  <tspan x="158.04077" y="64.77507">${S13}</tspan>
-</text>
-<path class="mainline" d="m 48.604281,48.073644 7.496394,34.626201" />
-<path class="mainline" d="m 70.00499,47.371474 7.496376,7.496391" />
-<path class="mainline" d="m 153.16482,37.975631 9.28126,14.278846" />
-<path class="mainline" d="m 81.500377,32.702891 8.924283,7.496393" />
-<path class="mainline" d="M 59.347165,47.555305 71.541464,64.759183" />
-<path class="mainline" d="M 38.886186,48.723655 45.942182,101.241" />
-<path class="mainline" d="m 40.853579,120.73036 1.784856,23.20313" />
-</g></svg>
+
+<text
+     class="mainfont"
+     x="55.018375"
+     y="19.375782"
+     id="text6"><tspan
+       x="55.018375"
+       y="19.375782"
+       id="tspan4">4 package</tspan></text><text
+     class="mainfont"
+     x="54.59116"
+     y="25.497089"
+     id="text10"><tspan
+       x="54.59116"
+       y="25.497089"
+       id="tspan8">managers</tspan></text><text
+     class="mainfont"
+     x="20.686241"
+     y="106.62888"
+     id="text14"><tspan
+       x="20.686241"
+       y="106.62888"
+       id="tspan12">or right-click on desktop</tspan></text><text
+     class="mainfont"
+     x="118.61999"
+     y="38.237282"
+     id="text18"><tspan
+       x="118.61999"
+       y="38.237282"
+       id="tspan16">Containerized</tspan></text><text
+     class="mainfont"
+     x="45.836094"
+     y="41.72052"
+     id="text22"><tspan
+       x="45.836094"
+       y="41.72052"
+       id="tspan20">RAM to drive</tspan></text><text
+     class="mainfont"
+     x="45.287403"
+     y="34.570923"
+     id="text26"><tspan
+       x="45.287403"
+       y="34.570923"
+       id="tspan24">Save session</tspan></text><text
+     class="mainfont"
+     x="34.905773"
+     y="58.326523"
+     id="text30"><tspan
+       x="34.905773"
+       y="58.326523"
+       id="tspan28">latest version</tspan></text><text
+     class="mainfont"
+     x="34.52084"
+     y="51.277962"
+     id="text34"><tspan
+       x="34.52084"
+       y="51.277962"
+       id="tspan32">Update EasyOS to</tspan></text><text
+     class="mainfont"
+     x="25.150906"
+     y="76.819824"
+     id="text38"><tspan
+       x="25.150906"
+       y="76.819824"
+       id="tspan36">over the network</tspan></text><text
+     class="mainfont"
+     x="19.260212"
+     y="69.074661"
+     id="text42"><tspan
+       x="19.260212"
+       y="69.074661"
+       id="tspan40">Share files &amp; printers</tspan></text><text
+     class="mainfont"
+     x="9.4059362"
+     y="88.152443"
+     id="text46"><tspan
+       x="9.4059362"
+       y="88.152443"
+       id="tspan44">Connect to the Internet</tspan></text><text
+     class="mainfont"
+     x="1.9313998"
+     y="99.25724"
+     id="text50"><tspan
+       x="1.9313998"
+       y="99.25724"
+       id="tspan48">Menu: bottom-left of screen,</tspan></text><text
+     class="mainfont"
+     x="124.54998"
+     y="44.74382"
+     id="text54"><tspan
+       x="124.54998"
+       y="44.74382"
+       id="tspan52">apps</tspan></text><path
+     class="mainline"
+     d="m 15.113493,28.042394 7.496394,34.626201"
+     id="path56" /><path
+     class="mainline"
+     d="m 36.514202,27.340224 7.496376,7.496391"
+     id="path58" /><path
+     class="mainline"
+     d="m 119.67403,17.944381 9.28126,14.278846"
+     id="path60" /><path
+     class="mainline"
+     d="M 42.208066,13.135145 53.75887,20.168034"
+     id="path62" /><path
+     class="mainline"
+     d="M 25.856377,27.524055 38.050676,44.727933"
+     id="path64" /><path
+     class="mainline"
+     d="M 5.395398,28.692405 12.451394,81.20975"
+     id="path66" /><path
+     class="mainline"
+     d="m 7.362791,100.69911 1.784856,23.20313"
+     id="path68" />
+
+</svg>
 _EOF1
 
 #merge the desktop images...
