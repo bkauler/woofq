@@ -50,6 +50,7 @@
 #20201214 modify test in BOOT_CAPS_DROPPED (5.10 kernel, with CAP_SYS_MOUNT patch).
 #20210918 replaced "Quirky" with "EasyOS"
 #20221023 may be running as zeus super-user. 20221031 think still need to bump to root.
+#20230603 enter pw if mount ext4 partition with encrypted fs.
 
 export TEXTDOMAIN=drive_all
 export OUTPUT_CHARSET=UTF-8
@@ -424,6 +425,37 @@ do
     mount -t $xFSTYPE -o iocharset=utf8 /dev/$xONEDRVNAME /mnt/$xONEDRVNAME
     RETVAL1=$?
     ;;  
+   ext4) #20230603
+    mount -t $xFSTYPE /dev/$xONEDRVNAME /mnt/$xONEDRVNAME
+    RETVAL1=$?
+    if [ $RETVAL1 -eq 0 ];then
+     if [ -r /root/.SALT ];then
+      FSCRYPT="$(LANG=C tune2fs -l /dev/${xONEDRVNAME} | grep '^Filesystem features' | grep -o 'encrypt')"
+      if [ "$FSCRYPT" ];then
+       #find if any encrypted folders, they will be 54 chars long (-print -quit will stop at 1st match)...
+       FSDIR="$(find /mnt/${xONEDRVNAME} -maxdepth 3 -mount -type d -name '??????????????????????????????????????????????????????' -print -quit)"
+       if [ "$FSDIR" ];then
+        export DA_FSCRYPT_DLG="<window title=\"ext4 fscrypt\" image-name=\"/usr/local/lib/X11/mini-icons/mini-lock.xpm\">
+        <vbox>
+         <text><label>$(gettext 'This partition may have encrypted folders, using the ext4 fscrypt v2 mechanism. You will need to know the password to access those folders. If you enter the wrong password, or leave empty, any encrypted folders in the partition will not be accessible.')</label></text>
+         <hbox>
+          <text><label>\"        $(gettext 'Password:')\"</label></text>
+          <entry><variable>FSPASSWORD</variable></entry>
+         </hbox>
+         <hbox><button ok></button></hbox>
+        </vbox>
+        </window>"
+        RETVALS="$(gtkdialog --program=DA_FSCRYPT_DLG --center)"
+        PW="$(echo "$RETVALS" | grep '^FSPASSWORD=' | cut -f 2 -d '"')"
+        SALT="$(cat /root/.SALT)" #zeus:zeus 600, so hidden also from crippled-root.
+        #.../root/.SALT created in 3buildeasydistro. note: see also init script in initrd
+        PASSPHRASE="$(echo -n ${PW}xxxx | argon2 ${SALT} -l 32 -r)" #64 byte hash generated from password.
+        echo -n "$PASSPHRASE" | fscryptctl add_key /mnt/${xONEDRVNAME} >/dev/null 2>&1
+       fi
+      fi
+     fi
+    fi
+    ;;
    *)
     mount -t $xFSTYPE /dev/$xONEDRVNAME /mnt/$xONEDRVNAME
     RETVAL1=$?
