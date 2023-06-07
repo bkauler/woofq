@@ -297,6 +297,7 @@
 #20230429 no need to substitute variable values in initrd.
 #20230429 copy fscryptctl from initrd to rootfs-complete. 20230430 and argon2
 #20230603 create /root/.SALT, read by /usr/local/drive_all
+#20230607 easy 5.3+ want to get rid of "setup" icon and change "pkg" to only run PKGget (see also dir2sfs)
 
 export LANG=C #faster.
 
@@ -5798,16 +5799,28 @@ cat << 'EOF3' >> rootfs-complete/.control/${DISTRO_NAME_SHORT,,}.run-once-top
  #take out these desktop icons also...
  sed -i '/Connect/d' /root/Choices/ROX-Filer/PuppyPin
  sed -i '/EasyShare/d' /root/Choices/ROX-Filer/PuppyPin
- #190123 must not run sfsget inside a container...
- #20220606 but do some checking...
- grep 'sfsget' /root/Choices/ROX-Filer/PuppyPin | grep -q '288'
+ 
+ #20230607 easy 5.3+ want to get rid of "setup" icon and change "pkg" to only run PKGget (see also dir2sfs)...
+ ##190123 must not run sfsget inside a container...
+ ##20220606 but do some checking...
+ #grep 'sfsget' /root/Choices/ROX-Filer/PuppyPin | grep -q '288'
+ #if [ $? -eq 0 ];then
+ # sed -i '/sfsget/d' /root/Choices/ROX-Filer/PuppyPin
+ # #...that creates a gap, should close it up...
+ # sed -i -e 's%x="352"%x="288"%' /root/Choices/ROX-Filer/PuppyPin #setup
+ # sed -i -e 's%x="416"%x="352"%' /root/Choices/ROX-Filer/PuppyPin #edit
+ # sed -i -e 's%x="480"%x="416"%' /root/Choices/ROX-Filer/PuppyPin #console
+ #fi
+ grep -q '288.*easysetup' /root/Choices/ROX-Filer/PuppyPin
  if [ $? -eq 0 ];then
-  sed -i '/sfsget/d' /root/Choices/ROX-Filer/PuppyPin
-  #...that creates a gap, should close it up...
-  sed -i -e 's%x="352"%x="288"%' /root/Choices/ROX-Filer/PuppyPin #setup
-  sed -i -e 's%x="416"%x="352"%' /root/Choices/ROX-Filer/PuppyPin #edit
-  sed -i -e 's%x="480"%x="416"%' /root/Choices/ROX-Filer/PuppyPin #console
+  sed -i '/easysetup/d' /root/Choices/ROX-Filer/PuppyPin
+  #close up the gap...
+  sed -i -e 's%x="352"%x="288"%' /root/Choices/ROX-Filer/PuppyPin #edit
+  sed -i -e 's%x="416"%x="352"%' /root/Choices/ROX-Filer/PuppyPin #term
  fi
+ #and change run-action of "pkg" icon so will only run PKGget...
+ sed -i -e 's%/usr/sbin/pkg-wrap%/usr/sbin/dotpup%' /root/Choices/ROX-Filer/PuppyPin
+ 
  #20201209 do not want "update" icon on desktop...
  sed -i '/update/d' /root/Choices/ROX-Filer/PuppyPin
  #20220606 do not want "save" icon on desktop (coz containers are save via main desktop "save")...

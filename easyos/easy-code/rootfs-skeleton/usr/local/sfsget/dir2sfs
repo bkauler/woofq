@@ -47,6 +47,7 @@
 #20230316 mksquashfs zstd compression.
 #20230403 *.run-once-top: remove appimage.desktop in container.
 #20230522 remove old /tmp/sfsget
+#20230607 easy 5.3+ want to get rid of "setup" icon and change "pkg" to only run PKGget (see also 3buildeasydistro)
 
 . /etc/rc.d/PUPSTATE
 . /etc/DISTRO_SPECS
@@ -635,16 +636,27 @@ fi
   sed -i '/Connect/d' ${PP}
   sed -i '/EasyShare/d' ${PP}
  
-  #20220606 easyos specific...
-  #remove the "sfs" or "sfsget" desktop icon...
-  grep 'sfsget' ${PP} | grep -q '288'
+  #20230607 easy 5.3+ want to get rid of "setup" icon and change "pkg" to only run PKGget (see also 3buildeasydistro)...
+  ##20220606 easyos specific...
+  ##remove the "sfs" or "sfsget" desktop icon...
+  #grep 'sfsget' ${PP} | grep -q '288'
+  #if [ $? -eq 0 ];then
+  # sed -i '/sfsget/d' ${PP}
+  # #...that creates a gap, should close it up...
+  # sed -i -e 's%x="352"%x="288"%' ${PP} #setup
+  # sed -i -e 's%x="416"%x="352"%' ${PP} #edit
+  # sed -i -e 's%x="480"%x="416"%' ${PP} #console
+  #fi
+  grep -q '288.*easysetup' ${PP}
   if [ $? -eq 0 ];then
-   sed -i '/sfsget/d' ${PP}
-   #...that creates a gap, should close it up...
-   sed -i -e 's%x="352"%x="288"%' ${PP} #setup
-   sed -i -e 's%x="416"%x="352"%' ${PP} #edit
-   sed -i -e 's%x="480"%x="416"%' ${PP} #console
+   sed -i '/easysetup/d' ${PP}
+   #close up the gap...
+   sed -i -e 's%x="352"%x="288"%' ${PP} #edit
+   sed -i -e 's%x="416"%x="352"%' ${PP} #term
   fi
+  #and change run-action of "pkg" icon so will only run PKGget...
+  sed -i -e 's%/usr/sbin/pkg-wrap%/usr/sbin/dotpup%' ${PP}
+  
   #do not want "update" icon on desktop...
   sed -i '/update/d' ${PP}
   #20220606 do not want "save" icon on desktop (coz containers are save via main desktop "save")...
