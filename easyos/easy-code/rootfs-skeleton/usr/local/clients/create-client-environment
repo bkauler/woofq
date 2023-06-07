@@ -10,7 +10,7 @@
 #20211104 firefox playing videos, need belong 'video' group.
 #20211205 /home/*/Downloads is now symlink to /files/downloads. 20211206 no.
 #20211206 new group 'filesgrp'. copy /root/.config/user-dirs.dirs
-#20230527 check in case copied in files to /files/apps/$1  20230528 revert (see blog post)
+#20230527 check in case copied in files to /files/apps/$1  20230528 revert (see blog post). 20230606 fix.
 
 [ ! "$1" ] && exit 1
 APPname="$1"
@@ -117,14 +117,14 @@ if [ "$(stat -c %U ${PREFIXDIR1}/home/${APPname})" != "${APPname}" ];then
  chown -h -R ${APPname}:${APPname} ${PREFIXDIR1}/home/${APPname} #20211205 added -h
 fi
 
-#20230528 mostly revert...
+#20230528 mostly revert... 20230606 fix...
 ##20230527 problem if admin has copied-in folders and files...
 ##note: /usr/bin/$APPname script calls this script.
 if [ "$PREFIXDIR1" == "" ];then
 # if [ -d /files/apps/${APPname} ];then
 #  chown -h -R ${APPname}:${APPname} /files/apps/${APPname}
   #just to be sure: 'apps' is 770 root:filesgrp, somehow got changed to root:root, fix...
-  chgrp root:filesgrp /files/apps
+  chgrp filesgrp /files/apps
   chmod 2770 /files/apps
 # fi
 fi
