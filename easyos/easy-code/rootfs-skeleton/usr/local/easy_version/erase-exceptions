@@ -15,6 +15,7 @@
 #20230511 offer to preserve appimage and flatpak home folders.
 #20230513 preserve gnupg keys.
 #20230523 fix preserve appimages and flatpaks.
+#20230607 preserve smartgit setup.
 
 export TEXTDOMAIN=erase-exceptions
 export OUTPUT_CHARSET=UTF-8
@@ -229,6 +230,11 @@ if [ "$EXIT" == "save" ];then
  #20221108 smartgit created this file, has git username and email, keep it...
  if [ -f /root/.gitconfig ];then
   cp -a -f /root/.gitconfig /mnt/wkg/sfs/settings/erase-exceptions/root/
+ fi
+ #20230607 preserve smartgit setup...
+ if [ -d /root/.config/smartgit ];then
+  mkdir -p /mnt/wkg/sfs/settings/erase-exceptions/root/.config
+  cp -a /root/.config/smartgit /mnt/wkg/sfs/settings/erase-exceptions/root/.config/
  fi
  #20221124 preserve flags what apps running non-root...
  cp -a -f /mnt/.easy_ro/easy_sfs/root/.clients-status /mnt/wkg/sfs/settings/erase-exceptions/root/
