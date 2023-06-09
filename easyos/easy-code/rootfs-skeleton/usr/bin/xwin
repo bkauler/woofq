@@ -19,6 +19,7 @@
 #20211024 revert 200114, xorgwizard problem when no drm driver.
 #20220524 do not "cd /files" prevents umount /files in rc.shutdown
 #20220801 move /root/.XLOADED to /mnt/${WKG_DEV}/${WKG_DIR}
+#20230602 may need to load the zap20 bigger font... 20230607 revert.
 
 export TEXTDOMAIN=xwin
 export OUTPUT_CHARSET=UTF-8
@@ -79,8 +80,8 @@ do
 done
 echo
 
-#20230602 may need to load the zap20 bigger font...
-load_consolefont #/sbin
+#20230602 may need to load the zap20 bigger font... 20230607 revert (note: load_consolefont called when X exits).
+#load_consolefont #/sbin
 
 #120505 automatic network reconnect. refer /usr/sbin/hostname-set
 if [ -f /tmp/simple_network_setup/network_default_reconnect_required_flag ];then
