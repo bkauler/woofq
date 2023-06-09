@@ -66,6 +66,7 @@
 #20230216 find existing .mo files for binary executables.
 #20230218 run defaulttexteditor with LANG=C, so have english ui
 #20230222 major rethink /usr/share/locale.in only exist in rootfs-skeleton
+#20230607 if newtranslations tarball already exists, make backup.
 
 #***MOMANAGER IS ENGLISH ONLY (NOT GETTEXT'ED)***
 #it is for use by developers/translators with knowledge of english.
@@ -1800,7 +1801,20 @@ WARNING: If there is an existing mo file, MoManager uncompiles it and merges wit
   sync
   
   #20230212 also tarball of new translations
-  rm -f /root/newtranslations-${GENLANG}-${ADATE}.tar.gz 2> /dev/null
+  #20230607 make backup if already exist... in case person reruns momanager on same day...
+  if [ -f /root/newtranslations-${GENLANG}-${ADATE}-3.tar.gz ];then
+   mv -f /root/newtranslations-${GENLANG}-${ADATE}-3.tar.gz /root/newtranslations-${GENLANG}-${ADATE}-4.tar.gz
+  fi
+  if [ -f /root/newtranslations-${GENLANG}-${ADATE}-2.tar.gz ];then
+   mv -f /root/newtranslations-${GENLANG}-${ADATE}-2.tar.gz /root/newtranslations-${GENLANG}-${ADATE}-3.tar.gz
+  fi
+  if [ -f /root/newtranslations-${GENLANG}-${ADATE}-1.tar.gz ];then
+   mv -f /root/newtranslations-${GENLANG}-${ADATE}-1.tar.gz /root/newtranslations-${GENLANG}-${ADATE}-2.tar.gz
+  fi
+  if [ -f /root/newtranslations-${GENLANG}-${ADATE}.tar.gz ];then
+   mv -f /root/newtranslations-${GENLANG}-${ADATE}.tar.gz /root/newtranslations-${GENLANG}-${ADATE}-1.tar.gz
+  fi
+  #rm -f /root/newtranslations-${GENLANG}-${ADATE}.tar.gz 2> /dev/null
   rm -rf /root/newtranslations-${GENLANG}-${ADATE} 2> /dev/null
   #rm -rf /root/newtranslations-* 2>/dev/null
   mkdir -p /tmp/momanager/newtranslations/WOOF/usr/share/applications.in
