@@ -43,3 +43,13 @@ if [ -e usr/lib/libGL.so.1 ];then
   cp -a usr/lib/libGL.so.1 usr/lib/libOpenGL.so.0
  fi
 fi
+
+#20230610 kdenlive appimage wants libGLX.so.0
+#this is in libglvnd, however easy 5.3.2 doesn't have this pkg.
+#mesa libGL contains all the libGLX exported functions...
+# ...found by running "nm -D --defined-only" on each lib
+if [ -e usr/lib/libGL.so.1 ];then
+ if [ ! -e usr/lib/libGLX.so.0 ];then
+  cp -a usr/lib/libGL.so.1 usr/lib/libGLX.so.0
+ fi
+fi
