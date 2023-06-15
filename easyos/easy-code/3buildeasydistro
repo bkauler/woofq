@@ -298,6 +298,7 @@
 #20230429 copy fscryptctl from initrd to rootfs-complete. 20230430 and argon2
 #20230603 create /root/.SALT, read by /usr/local/drive_all
 #20230607 easy 5.3+ want to get rid of "setup" icon and change "pkg" to only run PKGget (see also dir2sfs)
+#20230616 chmod 700 so other apps cannot see inside /root
 
 export LANG=C #faster.
 
@@ -5208,6 +5209,8 @@ fi
 #20230212 momanager will read this, to find builtin files...
 find ../rootfs-skeleton -type f | grep -vE '/usr/share/locale\.in|/usr/share/applications\.in' | sed -e 's%\.\./rootfs-skeleton%%' > rootfs-complete/root/.packages/rootfs-skeleton.list
 
+#20230616 so other apps cannot see inside /root
+chmod 700 rootfs-complete/root
 
 
 
