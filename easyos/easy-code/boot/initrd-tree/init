@@ -162,6 +162,7 @@
 #20230503 fscrypt v1 to v2 update.
 #20230507 hash generated from password used for gpg.
 #20230522 new zap psfu font, do not run load_font, load_font_country.
+#20230616 modify check perms under /files
 
 #20230429
 . /build-choices #3buildeasydistro copies it here.
@@ -1575,16 +1576,23 @@ SFS_DB_hash='${ESUM}'" > /mnt/${WKG_DEV}/${WKG_DIR}sfs/easyos/${INIT_DISTRO_BINA
  
  #files folder, everything must belong to 'fscryptgrp' group. 20211206 now 'filesgrp'
  FGRP="$(stat -c %g /mnt/${WKG_DEV}/${WKG_DIR}files)"
- if [ "$FGRP" != "122" ];then
-  chgrp -R 122 /mnt/${WKG_DEV}/${WKG_DIR}files
+ #20230616 check deeper...
+ FGRP2="$(stat -c %g /mnt/${WKG_DEV}/${WKG_DIR}files/media/images)"
+ if [ "$FGRP" != "122" -o "$FGRP2" != "122" ];then
+  #20230616 only folders...
+  #chgrp -R 122 /mnt/${WKG_DEV}/${WKG_DIR}files
+  chgrp 122 /mnt/${WKG_DEV}/${WKG_DIR}files
+  find /mnt/${WKG_DEV}/${WKG_DIR}files -mindepth 1 -maxdepth 5 -type d | xargs -I STR chgrp 122 STR
  fi
  #20211210... 20230528 setgid now is set...
  FPERM="$(stat -c %a /mnt/${WKG_DEV}/${WKG_DIR}files)"
- if [ "$FPERM" != "2770" ];then
+ #20230616 check deeper...
+ FPERM2="$(stat -c %a /mnt/${WKG_DEV}/${WKG_DIR}files/media/images)"
+ if [ "$FPERM" != "2770" -o "$FPERM2" != "2770" ];then
   chmod 2770 /mnt/${WKG_DEV}/${WKG_DIR}files
   #chmod 2770 $(find /mnt/${WKG_DEV}/${WKG_DIR}files -mindepth 1 -type d | tr '\n' ' ')
   #20230528 do it this way in case too many folders...
-  find /mnt/${WKG_DEV}/${WKG_DIR}files -mindepth 1 -type d | xargs -I STR chmod 2770 STR
+  find /mnt/${WKG_DEV}/${WKG_DIR}files -mindepth 1 -maxdepth 5 -type d | xargs -I STR chmod 2770 STR
   #20230528 folders for each app need to be invisible to other apps...
   chmod 2700 $(find /mnt/${WKG_DEV}/${WKG_DIR}files/apps -mindepth 1 -maxdepth 1 -type d | tr '\n' ' ')
  fi
