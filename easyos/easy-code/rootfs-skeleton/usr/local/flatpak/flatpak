@@ -11,6 +11,7 @@
 #20230516 ping to check internet. reduce scale fact 1.2 to 1.1. fix version detect.
 #20230524 fix find installed flatpaks.
 #20230528 setgid. ref: https://bkhome.org/news/202305/setting-up-permissions-under-files-take-2.html
+#20230617 note: set-client now has already created /files/apps/<appname>
 
 export TEXTDOMAIN=flatpaks
 export TEXTDOMAINDIR=/usr/share/locale
@@ -590,6 +591,7 @@ if [ "$EOS_FSCRYPT_VER" == "1" ];then #20230502
 $(gettext 'For your convenience, this folder has been created:')
   /home/${aAPP,,}/data"
 else
+ #20230617 note: set-client now has already created this...
  #create a path for optional open/save files for this app
  mkdir -p /files/apps/${aAPP,,}
  chown -h -R ${aAPP,,}:${aAPP,,} /files/apps/${aAPP,,} #20230318  20230528 add -h

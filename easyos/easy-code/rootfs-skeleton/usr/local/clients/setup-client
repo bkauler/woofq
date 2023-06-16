@@ -54,6 +54,7 @@
 #20230502 support fscrypt v2
 #20230511 run dbus-launch in <app>.bin  20230512 fix.
 #20230528 setgid bit. ref: https://bkhome.org/news/202305/setting-up-permissions-under-files-take-2.html
+#20230617 create /files/apps/$APPname (but not when called from 3buildeasydistro or dir2sfs)
 
 APPname="${1/=*/}"  #ex: seamonkey
 APPflag="${1/*=/}" #ex: true
@@ -946,6 +947,20 @@ if [ ! "$PREFIXDIR2" ];then #20210918 if an sfs, need to delay this...
    fi
    chown -h -H -R ${APPname}:${APPname} ${PREFIXDIR1}/home/${APPname} #-H Traverse symlinks on command line only
   fi
+ 
+  #20230617 previously did this in 'appimage' and 'flatpak' scripts, but want 
+  # for all apps that run non-root...
+  if [ "${PREFIXDIR1}" == "" ];then
+   #not called from 3buildeasydistro.
+   if [ ! -d /files/apps/${APPname} ];then #precaution.
+    #create a path for optional open/save files for this app
+    mkdir -p /files/apps/${APPname}
+    chown ${APPname}:${APPname} /files/apps/${APPname}
+    #for extra security, and setgid
+    chmod 2700 /files/apps/${APPname}
+   fi
+  fi
+  
  fi
 fi
 ###end###
