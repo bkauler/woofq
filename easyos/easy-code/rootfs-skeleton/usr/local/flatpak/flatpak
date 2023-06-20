@@ -12,6 +12,7 @@
 #20230524 fix find installed flatpaks.
 #20230528 setgid. ref: https://bkhome.org/news/202305/setting-up-permissions-under-files-take-2.html
 #20230617 note: set-client now has already created /files/apps/<appname>
+#20230619 remove runtimes and extensions that are not used by any installed applications.
 
 export TEXTDOMAIN=flatpaks
 export TEXTDOMAINDIR=/usr/share/locale
@@ -399,6 +400,10 @@ if [ -e /mnt/wkg/flatpak/exports/bin/${TRIPLET} ];then
     if [ $? -eq 0 ];then #20230412
      exec flapi
     fi
+    
+    #20230619 remove runtimes and extensions that are not used by any installed applications...
+    urxvt -bg '#FFE0A0' -geometry '100x25' -e flatpak uninstall --unused
+    
     rm -rf /home/${aAPP,,}
     rm -f /usr/share/applications/${aAPP,,}.desktop
     rm -f /usr/bin/${aAPP,,}
@@ -638,7 +643,7 @@ export FP_DLG6="<window title=\"$(gettext 'Flatpak Installer: notes')\">
   <vbox>
     <frame>
       <text use-markup=\"true\"><label>\"<b>$(gettext 'Security notes')</b>\"</label></text>
-      <text use-markup=\"true\"><label>\"$(gettext 'As has been stated in the previous window, the Flatpak has been installed to run as a non-root user. In fact, each Flatpak runs as its own separate user. This provides isolation, in other words, security.')
+      <text use-markup=\"true\"><label>\"$(gettext 'As has been stated in the previous window, the Flatpak has been installed to run as a non-root user. In fact, each Flatpak runs as its own separate user. This provides isolation between apps, in other words, extra security.')
 ${M3}\"</label></text>
     </frame>
     
