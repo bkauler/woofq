@@ -35,6 +35,7 @@ yes|android-tools|android-tools|exe,dev,doc,nls|compat:kirkstone| #has adb and f
 yes|appstream-glib|appstream-glib|exe,dev,doc,nls|compat:kirkstone| #needed by celluloid.
 yes|apr|apr|exe,dev,doc,nls|compat:kirkstone
 yes|apr-util|apr-util|exe,dev,doc,nls|compat:kirkstone
+yes|argon2|argon2|exe,dev,doc,nls|compat:kirkstone| #20230621
 yes|arp-scan|arp-scan|exe,dev,doc,nls|compat:kirkstone| #needed by peasyscan-noarch
 yes|aspell|aspell|exe,dev,doc,nls|compat:kirkstone| #needed by epiphany, enchant, webkitgtk, inkscape
 yes|atk|atk|exe,dev,doc,nls|compat:kirkstone
@@ -62,13 +63,14 @@ yes|bdftopcf|bdftopcf|exe,dev,doc,nls|compat:kirkstone|
 yes|bdwgc|bdwgc|exe,dev,doc,nls|compat:kirkstone| #needed by inkscape
 yes|binutils|binutils|exe>dev,dev,doc,nls|compat:kirkstone
 yes|bison|bison|exe>dev,dev,doc,nls|compat:kirkstone
-yes|bluegriffon||exe,dev,doc,nls|pet:kirkstone| #20230131 wysiwyg html editor.
+no|bluegriffon||exe,dev,doc,nls|pet:kirkstone| #20230131 wysiwyg html editor. 20230621
 yes|bluepup_tray|bluepup-tray|exe,dev,doc,nls|compat:kirkstone|
 yes|bluez|bluez5|exe,dev,doc,nls|compat:kirkstone|  #has bluetoothctl internationalized.
 yes|bluez-tools|bluez-tools|exe,dev,doc,nls|compat:kirkstone|
 yes|bones||exe|pet:noarch
 yes|boost|boost|exe>dev,dev,doc,nls|compat:kirkstone
 yes|boost-runtime|boost|exe,dev>null,doc>null,nls>null|compat:kirkstone
+yes|botan|botan|exe,dev,doc,nls|compat:kirkstone| #20230621
 yes|bridge-utils|bridge-utils|exe,dev,doc,nls|compat:kirkstone| #maybe used by qemu.
 yes|brlaser|brlaser|exe,dev,doc,nls|compat:kirkstone|
 yes|busybox||exe,dev>null,doc,nls|pet:kirkstone| #has guess_fstype applet. compiled statically. KEEPPKG
@@ -333,6 +335,7 @@ yes|jwm3_theme_peachy-red||exe|pet:noarch|
 no|jwm_theme_wary7stark||exe|pet:noarch| #20230124
 no|JWMDesk||exe|pet:noarch| #20230422 now have easyjwm builtin.
 yes|jwmthememaker||exe|pet:noarch| #20230423 coz no longer have jwmdesk.
+yes|keepassxc|keepassxc|exe,dev,doc,nls|compat:kirkstone| #20230621
 yes|keyutils|keyutils|exe,dev,doc,nls|compat:kirkstone| #kernel keyring management.
 yes|kmod|kmod|exe,dev,doc,nls|compat:kirkstone
 yes|krb5|krb5|exe,dev,doc,nls|compat:kirkstone| #20230318 needed by samba
@@ -553,6 +556,7 @@ yes|mingetty|mingetty|exe,dev,doc,nls|compat:kirkstone
 no|minibase-net||exe,dev,doc,nls|pet:kirkstone| #needed for UltraSNS.
 yes|minicom|minicom|exe,dev,doc,nls|compat:kirkstone
 yes|minixcal|minixcal|exe,dev,doc,nls|compat:kirkstone
+yes|minizip|minizip|exe,dev,doc,nls|compat:kirkstone| #20230621
 yes|mirdir|mirdir|exe,dev,doc,nls|compat:kirkstone|
 yes|mkfontscale|mkfontscale|exe,dev,doc,nls|compat:kirkstone| #note, also has mkfontdir utility.
 yes|mm-common|mm-common|exe>dev,dev,doc,nls|compat:kirkstone| #move to devx.
@@ -624,6 +628,7 @@ no|pcd||exe|pet:noarch| #20230111 removed has old non-gettext nls.
 yes|pcdripper||exe|pet:noarch
 yes|pciutils|pciutils|exe,dev,doc,nls|compat:kirkstone
 yes|pclock||exe|pet:noarch| #replaces ptimer, pstopwatch.
+yes|pcsc-lite|pcsc-lite|exe,dev,doc,nls|compat:kirkstone| #20230621
 yes|pctorrent||exe|pet:noarch| #needs ctorrent.
 yes|pdvdrip||exe|pet:noarch| #replaces pdvdrsab
 yes|peasydisc||exe|pet:noarch
@@ -688,12 +693,14 @@ yes|pwsget||exe|pet:noarch
 yes|python3-tiny|python3|exe,dev>null,doc,nls|compat:kirkstone|
 yes|python3|python3|exe>dev,dev,doc,nls|compat:kirkstone
 yes|python3-asn1crypto|python3-asn1crypto|exe>dev,dev,doc,nls|compat:kirkstone|
+yes|python3-certifi|python3-certifi|exe,dev,doc,nls|compat:kirkstone| #20230621 symphytum wants.
 yes|python3-cffi|python3-cffi|exe,dev,doc,nls|compat:kirkstone| #hexchat needs this.
+yes|python3-chardet|python3-chardet|exe,dev,doc,nls|compat:kirkstone| #20230621 symphytum wants.
 yes|python3-cryptography|python3-cryptography|exe>dev,dev,doc,nls|compat:kirkstone|
 yes|python3-cython|python3-cython|exe>dev,dev,doc,nls|compat:kirkstone|
 yes|python3-dbus|python3-dbus|exe,dev,doc,nls|compat:kirkstone| #needed by blueman.
 yes|python3-docutils|python3-docutils|exe>dev,dev,doc,nls|compat:kirkstone|
-yes|python3-idna|python3-idna|exe>dev,dev,doc,nls|compat:kirkstone|
+yes|python3-idna|python3-idna|exe,dev,doc,nls|compat:kirkstone| #20230621 remove exe>dev, symphytum wants.
 yes|python3-jinja2|python3-jinja2|exe>dev,dev,doc,nls|compat:kirkstone|
 yes|python3-lxml|python3-lxml|exe>dev,dev,doc,nls|compat:kirkstone|
 yes|python3-mako|python3-mako|exe>dev,dev,doc,nls|compat:kirkstone|
@@ -705,11 +712,20 @@ yes|python3-pycairo|python3-pycairo|exe,dev,doc,nls|compat:kirkstone| #needed by
 yes|python3-pycparser|python3-pycparser|exe,dev,doc,nls|compat:kirkstone| #hexchat needs this.
 yes|python3-pygobject|python3-pygobject|exe,dev,doc,nls|compat:kirkstone| #needed by blueman.
 yes|python3-pyparsing|python3-pyparsing|exe,dev,doc,nls|compat:kirkstone| #pitivi needs this.
+yes|python3-requests|python3-requests|exe,dev,doc,nls|compat:kirkstone| #20230621 symphytum wants.
 yes|python3-scons|python3-scons|exe>dev,dev,doc,nls|compat:kirkstone|
-yes|python3-setuptools|python3-setuptools|exe>dev,dev,doc,nls|compat:kirkstone|
+yes|python3-setuptools|python3-setuptools|exe,dev,doc,nls|compat:kirkstone| #20230621 remove exe>dev, symphytum wants.
 yes|python3-six|python3-six|exe,dev,doc,nls|compat:kirkstone| #pitivi needs this.
 yes|qpdf|qpdf|exe,dev,doc,nls|compat:kirkstone|
+yes|qrencode|qrencode|exe,dev,doc,nls|compat:kirkstone| #20230621
 yes|qt5-styleplugins|qt5-styleplugins|exe,dev,doc,nls|compat:kirkstone| #gtk2 theme. leave this in.
+yes|qtbase|qtbase|exe,dev,doc,nls|compat:kirkstone| #20230621
+yes|qtdeclarative|qtdeclarative|exe,dev,doc,nls|compat:kirkstone| #20230621
+yes|qtimageformats|qtimageformats|exe,dev,doc,nls|compat:kirkstone| #20230621
+yes|qtsvg|qtsvg|exe,dev,doc,nls|compat:kirkstone| #20230621
+yes|qttools|qttools|exe,dev,doc,nls|compat:kirkstone| #20230621
+yes|qtx11extras|qtx11extras|exe,dev,doc,nls|compat:kirkstone| #20230621
+yes|qtxmlpatterns|qtxmlpatterns|exe,dev,doc,nls|compat:kirkstone| #20230621
 yes|quilt|quilt|exe>dev,dev,doc,nls|compat:kirkstone
 yes|quota|quota|exe,dev,doc,nls|compat:kirkstone
 yes|raptor2|raptor2|exe,dev,doc,nls|compat:kirkstone|
@@ -767,6 +783,7 @@ yes|streamripper|streamripper|exe,dev,doc,nls|compat:kirkstone
 yes|subversion|subversion|exe>dev,dev,doc,nls|compat:kirkstone
 yes|sudo|sudo|exe,dev,doc,nls|compat:kirkstone
 yes|swig|swig|exe,dev,doc,nls|compat:kirkstone| #20221224 needed by libplist
+yes|symphytum|symphytum|exe,dev,doc,nls|compat:kirkstone| #20230621
 yes|sysfsutils|sysfsutils|exe,dev,doc,nls|compat:kirkstone
 yes|syslinux|syslinux|exe,dev,doc,nls|compat:kirkstone
 yes|sysvinit-utils-cut|sysvinit|exe,dev>null,doc>null,nls>null|compat:kirkstone|
