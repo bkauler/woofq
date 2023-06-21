@@ -1,0 +1,43 @@
+
+if [ -f usr/bin/keepassxc-cli ];then
+ rm -f usr/bin/keepassxc-cli
+fi
+
+if [ -d usr/share/keepassxc/translations ];then
+ if [ ! -d ../keepassxc_NLS/usr/share/keepassxc/translations ];then
+  mkdir -p ../keepassxc_NLS/usr/share/keepassxc
+  mv -f usr/share/keepassxc/translations ../keepassxc_NLS/usr/share/keepassxc/
+ fi
+fi
+if [ -d ../keepassxc_NLS/usr/share/keepassxc/translations ];then
+ mkdir -p usr/share/keepassxc/translations
+ cp -a ../keepassxc_NLS/usr/share/keepassxc/translations/keepassxc_en* usr/share/keepassxc/translations/
+fi
+
+rm -rf usr/share/applications 2>/dev/null
+mkdir usr/share/applications
+echo '[Desktop Entry]
+Name[fr]=Gestionnaire de mots de passe KeePassXC
+Name[de]=KeePassXC Passwort-Manager
+Name[es]=Administrador de contraseñas KeePassXC
+Name[ru]=Менеджер паролей KeePassXC
+Name[tr]=KeePassXC şifre yöneticisi
+Name=KeePassXC password manager
+GenericName=KeePassXC
+Comment[fr]=Port Linux de application Windows KeePass Password Safe
+Comment[de]=Linux-Portierung der Windows-Anwendung KeePass Password Safe
+Comment[es]=Puerto Linux de la aplicación de Windows KeePass Password Safe
+Comment[ru]=Linux-порт Windows-приложения KeePass Password Safe
+Comment[tr]=Windows uygulamasının Linux portu KeePass Password Safe
+Comment=Linux port of the Windows application KeePass Password Safe
+Exec=keepassxc
+Icon=keepassxc.png
+StartupWMClass=keepassxc
+StartupNotify=true
+Terminal=false
+Type=Application
+Categories=Security
+MimeType=application/x-keepass2;
+SingleMainWindow=true
+X-GNOME-SingleWindow=true' > usr/share/applications/keepassxc.desktop
+
