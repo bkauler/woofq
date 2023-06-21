@@ -299,6 +299,7 @@
 #20230603 create /root/.SALT, read by /usr/local/drive_all
 #20230607 easy 5.3+ want to get rid of "setup" icon and change "pkg" to only run PKGget (see also dir2sfs)
 #20230616 chmod 700 so other apps cannot see inside /root
+#20230621 copy rootfs-skeleton/etc/sudo.conf. hack fix PuppyPin
 
 export LANG=C #faster.
 
@@ -5212,6 +5213,12 @@ find ../rootfs-skeleton -type f | grep -vE '/usr/share/locale\.in|/usr/share/app
 #20230616 so other apps cannot see inside /root
 chmod 700 rootfs-complete/root
 
+#20230621 these were getting overwritten...
+cp -a -f ../rootfs-skeleton/etc/sudoers rootfs-complete/etc/
+cp -a -f ../rootfs-skeleton/etc/sudo.conf rootfs-complete/etc/
+
+#20230621 hack fix PuppyPin, have no idea why this has happened...
+sed -i -e 's%"console"%"term"%' rootfs-complete/root/Choices/ROX-Filer/PuppyPin
 
 
 

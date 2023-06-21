@@ -30,7 +30,11 @@ export OOO_FORCE_DESKTOP="gnome"
 
 ulimit -c 0
 #20230528 change umask from 022 to 002. 20230616 revert
-umask 022
+if [ `id -gn` = `id -un` -a `id -u` -gt 14 ]; then
+ umask 002
+else
+ umask 022
+fi
 USER=`id -un`
 PS1="# "
 LOGNAME=$USER
