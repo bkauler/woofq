@@ -163,6 +163,7 @@
 #20230507 hash generated from password used for gpg.
 #20230522 new zap psfu font, do not run load_font, load_font_country.
 #20230616 modify check perms under /files
+#20230622 new tr console keyboard layout.
 
 #20230429
 . /build-choices #3buildeasydistro copies it here.
@@ -283,7 +284,7 @@ err_exit() { #200807 call exit_to_initrd()
 
 ask_kb() { #181010
  KEYMAP=us
- #now ask for KEYMAP...
+ #now ask for KEYMAP... 20230622 new tr (turkey)...
  echo -e '\e[1;;45m 1 azerty 2 be-latin1  3 br-abnt2  4 br-abnt   5 br-latin1-abnt2 6 br-latin1-us
  7 by     8 cf         9 croat      10 cz        11 de            12 de-latin1 
  13 dk    14 dvorak    15 dvorak-l  16 dvorak-r  17 es            18 et        
@@ -291,7 +292,7 @@ ask_kb() { #181010
  25 il    26 it        27 jp106     28 la-latin1 29 lt            30 mk        
  31 nl    32 no        33 pl        34 pt-latin1 35 ro            36 ru        
  37 se    38 sg        39 sk-qwerty 40 sk-qwertz 41 slovene       42 srp       
- 43 sv-latin1  44 us   45 wangbe                                               \e[0;;m'
+ 43 sv-latin1  44 tr   45 us        46 wangbe                                               \e[0;;m'
  
  #20210424 want word-wrapped text block in background colour rectangle...
  echo -n -e '\033[1;;44m'
@@ -320,9 +321,9 @@ EOT
  read -r -t 300 KBnum
  [ $? -ne 0 ] && return 1 #timed out
  KBnum=$(echo -n "$KBnum" | sed -e 's%[^0-9]%%g')
- [ ! $KBnum ] && KBnum=44
- [ $KBnum -gt 45 ] && KBnum=44
- [ $KBnum -eq 0 ] && KBnum=44
+ [ ! $KBnum ] && KBnum=45 #20230622
+ [ $KBnum -gt 46 ] && KBnum=45 #20230622
+ [ $KBnum -eq 0 ] && KBnum=45  #20230622
  KEYMAP="$(ls -1 /lib/keymaps | head -n ${KBnum} | tail -n 1 | sed -e 's%\.gz%%')"
  echo " ${S019} ${KEYMAP}"
  return 0
@@ -1666,6 +1667,12 @@ XDG_VIDEOS_DIR="/files/media"' > ${bDL}/.config/user-dirs.dirs
  echo
  touch /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${INIT_DISTRO_VERSION}/configuration
  touch /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${INIT_DISTRO_VERSION}/configuration-${INIT_DISTRO_VERSION}
+ 
+ #20230622 update from before 5.4.2 this does not exist...
+ if [ ! -d /mnt/${WKG_DEV}/${WKG_DIR}files/database ];then
+  cp -a /skeleton/files/database /mnt/${WKG_DEV}/${WKG_DIR}files/
+ fi
+ 
 else #20220613
  if [ -f /mnt/${WKG_DEV}/${WKG_DIR}easy.sfs ];then #20220615
   #should only exist when do update, and easy.sfs gets moved into releases folder.

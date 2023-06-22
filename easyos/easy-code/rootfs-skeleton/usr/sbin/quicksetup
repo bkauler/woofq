@@ -134,6 +134,7 @@
 #20230224 if changed to en, fix symlinks.
 #20230423 trying to fix norwegian.
 #20230511 make sure /etc/clock.$PC_HARDWARE_PROFILE gets created.
+#20230622 new tr console keyboard layout.
 
 WHOIAM="$(whoami)"
 [ "${WHOIAM}" != "root" ] && exec sudo -A ${0} ${@} #20221023 20221031
@@ -1283,6 +1284,11 @@ if [ "$SET_KEYBOARD" ];then
     modprobe nls_iso8859-2
     #FONTMAP="lat2-12.psfu"
     CODEPAGE="852"
+   ;;
+   tr*) #20230622
+    modprobe nls_cp857
+    modprobe nls_iso8859-9
+    CODEPAGE="857"
    ;;
   esac
   echo -n "${NEW_KMAP}${KEXT}" > /etc/keymap #120627

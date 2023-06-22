@@ -11,6 +11,7 @@
 #20220715 hardware profile to detect running on different computer, PC_HARDWARE_PROFILE
 #20220715 hardware-profile /etc/clock, see also /usr/sbin/quicksetup, /usr/sbin/delayedrun
 #20220912 PC_HARDWARE_PROFILE not set, try hack.
+#20230622 new tr console keyboard layout.
 
 . /etc/rc.d/PUPSTATE
 . /etc/DISTRO_SPECS #has DISTRO_XORG_AUTO
@@ -126,7 +127,7 @@ askkbdlayout ()
    sv*) ACNTRY="(Sweden)";;
    sk*) ACNTRY="(Slovakia)";;
    sl*) ACNTRY="(Slovenia)";;
-   uk*) ACNTRY="(UK)";;
+   gb*) ACNTRY="(UK)";;  #20230622
    wangbe*) ACNTRY="(Belgium)";;
    azerty) ACNTRY="(Tandon)";;
    dvorak-r) ACNTRY="(Right_single-handed)";;
@@ -148,6 +149,7 @@ askkbdlayout ()
  case $KMAP in #note, same/similar code in /usr/sbin/input-wizard, init, quicksetup.
   de*|be*|br*|dk*|es*|fi*|fr*|it*|no*|se*|sv*|pt*) echo -n "850" > /etc/codepage ;;
   cz*|hu*|pl*|ro*|sk*|croat*|slovene*|sr*)  echo -n "852" > /etc/codepage  ;; #150302 added sr*
+  tr*) echo -n "857" > /etc/codepage  ;; #20230622
  esac
  echo -n "${KMAP}${KEXT}" > /etc/keymap
  return 0
@@ -166,6 +168,7 @@ if [ -s /etc/codepage ];then
  case $CODEPAGE in
   850) modprobe nls_cp850 ;;
   852) modprobe nls_cp852 ; modprobe nls_iso8859-2 ;;
+  857) modprobe nls_cp857 ; modprobe nls_iso8859-9 ;; #20230622
  esac
 fi
 

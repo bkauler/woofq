@@ -23,6 +23,7 @@
 #191105 psynclient has replaced flsynclient.
 #20201109 console font "uk" changed to "gb", as it is for Great Britain, not Ukraine.
 #20230522 now using 512-glyph zap font.
+#20230622 new tr console keyboard layout.
 
 export TEXTDOMAINDIR=/usr/share/locale
 export TEXTDOMAIN=input-wizard
@@ -200,6 +201,12 @@ askkbdlayout () #091122
    modprobe nls_iso8859-2
    FONTMAP="lat2-12.psfu"
    CODEPAGE="852"
+  ;;
+  tr*) #20230622
+   modprobe nls_cp857
+   modprobe nls_iso8859-9
+   FONTMAP="lat2-12.psfu"
+   CODEPAGE="857"
   ;;
  esac
  FONTMAP='' #101112

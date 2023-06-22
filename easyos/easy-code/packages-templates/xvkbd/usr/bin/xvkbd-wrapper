@@ -1,5 +1,6 @@
 #!/bin/sh
 # BK 20151025
+#20230622 new tr console keyboard layout.
 
 XVKBDlangs="$(ls -1 /etc/X11/app-defaults | grep 'XVkbd\-' | grep -v -E 'common|small|strip' | cut -f 2 -d '-' | tr '\n' ' ')"
 # belgian danish fitaly french french2 german greek hebrew icelandic italian jisx6002 jisx6004 korean latin1 norwegian portuguese russian slovene spanish swedish swissgerman turkish uk 
@@ -23,8 +24,8 @@ case $xCONSKEYMAP in
  sl)  XVKEYMAP='slovene' ;;
  es)  XVKEYMAP='spanish' ;;
  se)  XVKEYMAP='swedish' ;;
- #)  XVKEYMAP='turkish' ;;
- uk)  XVKEYMAP='uk' ;;
+ tr)  XVKEYMAP='turkish' ;; #20230622
+ gb)  XVKEYMAP='uk' ;; #20230622
  *) XVKEYMAP='' ;;
 esac
 
