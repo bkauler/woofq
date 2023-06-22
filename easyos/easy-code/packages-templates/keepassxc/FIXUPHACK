@@ -41,3 +41,25 @@ MimeType=application/x-keepass2;
 SingleMainWindow=true
 X-GNOME-SingleWindow=true' > usr/share/applications/keepassxc.desktop
 
+mkdir -p root/.config/keepassxc
+echo '[General]
+NumberOfRememberedLastDatabases=2
+
+[GUI]
+MinimizeOnClose=true
+MinimizeOnStartup=true
+MinimizeToTray=true
+ShowTrayIcon=true
+TrayIconAppearance=colorful
+
+[General]
+LastActiveDatabase=/files/database/keepassxc/Passwords.kdbx
+LastDatabases=/files/database/keepassxc/Passwords.kdbx
+LastOpenedDatabases=/files/database/keepassxc/Passwords.kdbx' > root/.config/keepassxc/keepassxc.ini
+
+#this will startup in the tray...
+mkdir -p root/Startup
+echo '#!/bin/sh
+exec keepassxc' > root/Startup/keepassxc_tray
+chmod 755 root/Startup/keepassxc_tray
+
