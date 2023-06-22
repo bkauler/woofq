@@ -17,7 +17,7 @@ if [ "$MAINCAT" == "business" ];then
   case "$SUBCAT" in
    calculator) CATS='^Categories.*Calculator|^Categories.*X-CalculateUtility'; EXCLUDE='gmeasures'; ;;
    calendar)   CATS='^Categories.*X-Personal-date|^Categories.*Calendar' ;;
-   database)   CATS='^Categories.*X-Personal-database|^Categories.*ContactManagement|^Categories.*Database' ;;
+   database)   CATS='^Exec=symphytum|^Categories.*X-Personal-database|^Categories.*ContactManagement|^Categories.*Database' ;;
    finance)    CATS='^Categories.*X-Business-finance|^Categories.*Finance' ;;
    measure)    CATS='^Exec.*gmeasures' ;;
    notebook)   CATS='^Categories.*X-Personal-organizer|^Categories.*PDA' ;;
@@ -79,7 +79,7 @@ elif [ "$MAINCAT" == "utility" ];then
   international) CATS='^Exec=momanager|^Exec=gxlat|^Categories.*Languages' ;;
   systeminformation) CATS='^Exec=hardinfo|^Exec=ipinfo|^Exec=pprocess|^Exec=Pup-SysInfo|^Exec=pupscan|^Exec=usbviewshell'; EXCLUDE='pprocess'; ;;
   terminalemulator) CATS='^Categories.*TerminalEmulator'; EXCLUDE='ec-console'; ;;
-  encryption) CATS='^Categories.*X-Personal-security|^Exec=gtkhash' ;;
+  encryption) CATS='^Categories.*X-Personal-security|^Exec=gtkhash|^Categories.*Security' ;;
  esac
 else #precaution
  exit
