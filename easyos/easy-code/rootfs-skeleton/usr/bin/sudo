@@ -1,0 +1,16 @@
+#!/bin/ash
+#20230623
+#sudo does not work. something to do with busybox mkpasswd now using sha512?
+#whatever, if a script has this (ex: /usr/sbin/bootmanager):
+# WHOIAM="$(whoami)"
+# [ "${WHOIAM}" != "root" ] && exec sudo -A ${0} ${@}
+#use busybox 'su' instead. 'su' does not read pw from stdin, but via
+#the 'script' utility it works. ref:
+# https://stackoverflow.com/questions/19164222/su-pass-password-to-script
+#note, /usr/bin/sudo does not have to be suid.
+
+CMD="$1"
+[ ! "$CMD" ] && exit 1
+shift
+
+askpass ${CMD} | script -qc "su root -c ${@} | tail -n +2" /dev/null
