@@ -9,8 +9,16 @@
 # https://stackoverflow.com/questions/19164222/su-pass-password-to-script
 #note, /usr/bin/sudo does not have to be suid.
 
-CMD="$1"
-[ ! "$CMD" ] && exit 1
-shift
+#as this is not the normal sudo executable, perform basic filtering...
+if [ "$1" != "-A" ];then
+ exit 1
+fi
+RP="$(realpath "$2" 2>/dev/null)"
+if [ ! "${RP}" ];then
+ exit 1
+fi
 
-askpass ${CMD} | script -qc "su root -c ${@} | tail -n +2" /dev/null
+shift #need this coz first argument is "-A"
+shift #coz have $RP
+
+askpass | script -qc "su root -c '${RP} ${*}' | tail -n +2" /dev/null
