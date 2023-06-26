@@ -7,8 +7,16 @@
 # 160630 radky: adjust GUI, auto-sort menu items, add stock-id icons
 # 210515 radky: adjust GUI to 3-pane format & update tree icons to svg
 # 210930 radky: adjust GUI header; add 'Processing' notification
+#20230626 new sudo-sh replaces sudo.
 
-[ "$UID" = 0 ]|| exec sudo -A ${0} ${@}
+#20230626
+if [ "$(whoami)" != "root" ];then
+ if [ -x /usr/bin/sudo-sh ];then
+  exec sudo-sh ${PPID} ${0} ${@}
+ else
+  exec sudo -A ${0} ${@}
+ fi
+fi
 
 export TEXTDOMAIN=pmenumanager
 export OUTPUT_CHARSET=UTF-8

@@ -49,13 +49,20 @@
 #190215 BK: /tmp/sns_interface_success no longer used.
 #20210612 replaced all yaf-splash with gtkdialog-splash. note, still ok to kill yaf-splash, see gtkdialog-splash script.
 #20221023 may be running as zeus super-user. 20221031 think still need to bump to root.
+#20230626 new sudo-sh
 
 export TEXTDOMAIN=sns___sns
 export OUTPUT_CHARSET=UTF-8
 . gettext.sh
 
-WHOIAM="$(whoami)"
-[ "${WHOIAM}" != "root" ] && exec sudo -A ${0} ${@} #110505 20221023 20221031
+#20230626
+if [ "$(whoami)" != "root" ];then
+ if [ -x /usr/bin/sudo-sh ];then
+  exec sudo-sh ${PPID} ${0} ${@}
+ else
+  exec sudo -A ${0} ${@}
+ fi
+fi
 
 #170706 rerwin. ref: network_connect_update PET.
 if which connectwizard_exec &>/dev/null \

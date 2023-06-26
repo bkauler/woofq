@@ -62,9 +62,16 @@
 #20230224 Caramel: export keyboard layout to Xephyr server.
 #20230326 restore EC_CAP_mount check.
 #20340409 note: /files symlink has returned (ref: init in intrd, rc.sysinit)
+#20230626 new sudo-sh replaces sudo.
 
-WHOIAM="$(whoami)"
-[ "${WHOIAM}" != "root" ] && exec sudo -A ${0} ${@} #20221031
+#20230626
+if [ "$(whoami)" != "root" ];then
+ if [ -x /usr/bin/sudo-sh ];then
+  exec sudo-sh ${PPID} ${0} ${@}
+ else
+  exec sudo -A ${0} ${@}
+ fi
+fi
 
 [ ! $1 ] && exit 1
 EXE="$1"; shift

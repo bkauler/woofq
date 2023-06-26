@@ -14,9 +14,16 @@
 #190922 BK: 190805: now "nm-setup" in defaultconnect.
 #200609 Use pgprs 2.0 interface.
 #20221023 may be running as zeus super-user. 20221031 think still need to bump to root.
+#20230626 new sudo-sh replaces sudo.
 
-WHOIAM="$(whoami)"
-[ "${WHOIAM}" != "root" ] && exec sudo -A ${0} ${@} #110505 20221023 20221031
+#20230626
+if [ "$(whoami)" != "root" ];then
+ if [ -x /usr/bin/sudo-sh ];then
+  exec sudo-sh ${PPID} ${0} ${@}
+ else
+  exec sudo -A ${0} ${@}
+ fi
+fi
 
 CURREXEC="`cat /usr/local/bin/defaultconnect | tail -n 1 | tr -s " " | cut -f 2 -d " "`"
 [ "`grep 'gprs' /usr/local/bin/defaultconnect`" != "" ] && CURREXEC='pgprs' #200609

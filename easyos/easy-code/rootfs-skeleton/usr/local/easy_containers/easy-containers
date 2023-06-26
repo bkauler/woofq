@@ -42,9 +42,16 @@
 #20221031 if running as zeus, think need to bump up to root.
 #20230302 delete a container, did not fully delete when have indirect save.
 #20230427 screen out apps running non-root in main filesystem. 20230522 more.
+#20230626 new sudo-sh replaces sudo.
 
-WHOIAM="$(whoami)"
-[ "${WHOIAM}" != "root" ] && exec sudo -A ${0} ${@} #20221031
+#20230626
+if [ "$(whoami)" != "root" ];then
+ if [ -x /usr/bin/sudo-sh ];then
+  exec sudo-sh ${PPID} ${0} ${@}
+ else
+  exec sudo -A ${0} ${@}
+ fi
+fi
 
 export TEXTDOMAIN=easy-containers
 export OUTPUT_CHARSET=UTF-8

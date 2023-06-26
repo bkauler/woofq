@@ -13,9 +13,16 @@
 #20201215 tweaked a string for translation.
 #20220524 rename mnt/easy_ro to mnt/.easy_ro, ditto easy_rw
 #20221023 may be running as zeus super-user. 20221031 think still need to bump to root.
+#20230626 new sudo-sh replaces sudo.
 
-WHOIAM="$(whoami)"
-[ "${WHOIAM}" != "root" ] && exec sudo -A ${0} ${@} #20221023 20221031
+#20230626
+if [ "$(whoami)" != "root" ];then
+ if [ -x /usr/bin/sudo-sh ];then
+  exec sudo-sh ${PPID} ${0} ${@}
+ else
+  exec sudo -A ${0} ${@}
+ fi
+fi
 
 export TEXTDOMAIN=easy-remaster
 export OUTPUT_CHARSET=UTF-8

@@ -12,9 +12,16 @@
 #20221023 BK: may be running as zeus super-user. 20221031 hmmm, maybe still need bump to root.
 #20221111 BK: iptables is being replaced by nftables.
 # ref: https://unix.stackexchange.com/questions/621397/iptables-stopped-working-with-couldnt-load-match-stateno-such-file-or-direc
+#20230626 new sudo-sh replaces sudo.
 
-WHOIAM="$(whoami)"
-[ "${WHOIAM}" != "root" ] && exec sudo -A ${0} ${@} #20221023 20221031
+#20230626
+if [ "$(whoami)" != "root" ];then
+ if [ -x /usr/bin/sudo-sh ];then
+  exec sudo-sh ${PPID} ${0} ${@}
+ else
+  exec sudo -A ${0} ${@}
+ fi
+fi
 
 version=0.7
 

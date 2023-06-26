@@ -5,11 +5,19 @@
 #190303 radiobuttons list of APs, now scrollable. see variable RAD_SSIDS
 #190308 ssid may have a space char in it.
 #190319 change wifi password. pass in notebook index.
+#20230626 new sudo-sh
 
 export TEXTDOMAIN=usns
 export OUTPUT_CHARSET=UTF-8
 
-[ "`whoami`" != "root" ] && exec sudo -A ${0} ${@} #well, have this in sns.
+#20230626
+if [ "$(whoami)" != "root" ];then
+ if [ -x /usr/bin/sudo-sh ];then
+  exec sudo-sh ${PPID} ${0} ${@}
+ else
+  exec sudo -A ${0} ${@}
+ fi
+fi
 
 #DIF="$(busybox ps | grep 'dhcpcd \-b' | rev | cut -f 1 -d ' ' | rev | tr '\n' ' ')" #ex: eth0
 #for aDIF in $DIF

@@ -43,14 +43,21 @@
 #20220903 optional dpkg|apt sync.  20220905
 #20221023 may be running as zeus super-user. 20221031 think still need to bump to root.
 #20230309 have removed /usr/local/debget. make repo radiobuttons shorter, remove "debian-"
+#20230626 new sudo-sh
 
 #/usr/local/petget/service_pack.sh & #121125 offer download Service Pack.
 
 export TEXTDOMAIN=petget___pkg_chooser.sh
 export OUTPUT_CHARSET=UTF-8
 
-WHOIAM="$(whoami)"
-[ "${WHOIAM}" != "root" ] && exec sudo -A ${0} ${@} #110505 20221023 20221031
+#20230626
+if [ "$(whoami)" != "root" ];then
+ if [ -x /usr/bin/sudo-sh ];then
+  exec sudo-sh ${PPID} ${0} ${@}
+ else
+  exec sudo -A ${0} ${@}
+ fi
+fi
 
 #export LANG=C
 mkdir -p /tmp/petget #120504

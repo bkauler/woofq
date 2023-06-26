@@ -22,14 +22,14 @@
 #20221023 may be running as zeus super-user. 20221031 think still need to bump to root.
 #20230102 must run as root.
 #20230103 find any duplicate UUID etc.
+#20230626 new sudo-sh replaces sudo.
 
-#20230102
-WHOIAM="$(whoami)"
-if [ "${WHOIAM}" != "root" ];then
- if [ -f /usr/sbin/askpass ];then #20220722 only the pups have gui frontend for sudo. ref: /etc/sudo.conf
-  exec sudo -A ${0} ${@} #20221023 20221031
+#20230626
+if [ "$(whoami)" != "root" ];then
+ if [ -x /usr/bin/sudo-sh ];then
+  exec sudo-sh ${PPID} ${0} ${@}
  else
-  exit
+  exec sudo -A ${0} ${@}
  fi
 fi
 

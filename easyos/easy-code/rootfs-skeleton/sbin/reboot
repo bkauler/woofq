@@ -3,9 +3,16 @@
 #120408 support minit
 #200301 initramfs still there, monitoring change in /.shutdown-request-to-initrd
 #20221023 may be running as zeus super-user.
+#20230626 new sudo-sh replaces sudo.
 
-WHOIAM="$(whoami)"
-[ "${WHOIAM}" != "root" -a "${WHOIAM}" != "zeus" ] && exec sudo -A ${0} ${@} #110505 20221023
+#20230626
+if [ "$(whoami)" != "root" ];then
+ if [ -x /usr/bin/sudo-sh ];then
+  exec sudo-sh ${PPID} ${0} ${@}
+ else
+  exec sudo -A ${0} ${@}
+ fi
+fi
 
 /etc/rc.d/rc.shutdown
 

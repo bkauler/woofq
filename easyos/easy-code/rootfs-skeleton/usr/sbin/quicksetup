@@ -135,9 +135,16 @@
 #20230423 trying to fix norwegian.
 #20230511 make sure /etc/clock.$PC_HARDWARE_PROFILE gets created.
 #20230622 new tr console keyboard layout.
+#20230626 new sudo-sh replaces sudo.
 
-WHOIAM="$(whoami)"
-[ "${WHOIAM}" != "root" ] && exec sudo -A ${0} ${@} #20221023 20221031
+#20230626
+if [ "$(whoami)" != "root" ];then
+ if [ -x /usr/bin/sudo-sh ];then
+  exec sudo-sh ${PPID} ${0} ${@}
+ else
+  exec sudo -A ${0} ${@}
+ fi
+fi
 
 export TEXTDOMAIN=quicksetup
 export OUTPUT_CHARSET=UTF-8

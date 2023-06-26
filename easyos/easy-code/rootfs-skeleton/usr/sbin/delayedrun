@@ -90,9 +90,16 @@
 #20220626 fix for mscw popping up twice. ref: https://forum.puppylinux.com/viewtopic.php?p=60565#p60565
 #20220715 run date-time-wizard if no /etc/clock.<hw profile> ref: rc.country, quicksetup
 #20221023 may be running as zeus super-user. 20221031 hmmm, maybe still need bump to root.
+#20230626 new sudo-sh replaces sudo.
 
-WHOIAM="$(whoami)"
-[ "${WHOIAM}" != "root" ] && exec sudo -A ${0} ${@} #120110 20221023 20221031
+#20230626
+if [ "$(whoami)" != "root" ];then
+ if [ -x /usr/bin/sudo-sh ];then
+  exec sudo-sh ${PPID} ${0} ${@}
+ else
+  exec sudo -A ${0} ${@}
+ fi
+fi
 
 export TEXTDOMAIN=delayedrun
 export OUTPUT_CHARSET=UTF-8

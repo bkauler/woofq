@@ -21,8 +21,15 @@
 # have to edit /etc/asound.conf only
 # rcrsn51 reported that ~/.asoundrc is for other special customizations...
 
-WHOIAM="$(whoami)"
-[ "${WHOIAM}" != "root" ] && exec sudo -A ${0} ${@} #20221023 20221031
+#20230626 new sudo-sh replaces sudo.
+#20230626
+if [ "$(whoami)" != "root" ];then
+ if [ -x /usr/bin/sudo-sh ];then
+  exec sudo-sh ${PPID} ${0} ${@}
+ else
+  exec sudo -A ${0} ${@}
+ fi
+fi
 
 [ ! -d /var/local/mscw ] && mkdir -p /var/local/mscw
 [ ! -f /etc/asound.conf ] && touch /etc/asound.conf #200116
