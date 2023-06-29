@@ -1,0 +1,23 @@
+#!/bin/ash
+#20230628
+#some scripts want to run as root, they call /usr/bin/sudo-sh which is setuid binary.
+#however, some sandboxed apps (ex: electron based) ignore the setuid bit and
+#will run sudo-sh as a non-root user (ex: etcher runs as user 'etcher').
+#sudo-sh detects if it has been entered non-root and posts the commandline params
+#to /tmp/pup_event_ipc/sudosh_pass. this script waits for messages, then sudo-sh
+#running as root, with the params.
+
+touch /tmp/pup_event_ipc/sudosh_pass
+chmod 0666 /tmp/pup_event_ipc/sudosh_pass
+touch /tmp/pup_event_ipc/sudosh_ack
+chmod 0666 /tmp/pup_event_ipc/sudosh_ack
+
+while [ 1 ];do
+ #PARAMS="$(pup_event_ipc waitmail:sudosh)"
+ #echo 'received' > /tmp/pup_event_ipc/sudosh_ack
+ #this is a sync exchange. when params received from sudo-sh, "received" is returned...
+ # in this case, "received" will append to /tmp/pup_event_ipc/sudosh_ack...
+ PARAMS="$(pup_event_ipc sudosh_ack:sudosh_pass:received)"
+ sudo-sh ${PARAMS}
+done
+###end###

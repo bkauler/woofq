@@ -1,12 +1,8 @@
 #!/bin/ash
 #20230623
 #sudo does not work. something to do with busybox mkpasswd now using sha512?
-#whatever, if a script has this (ex: /usr/sbin/bootmanager):
-# WHOIAM="$(whoami)"
-# [ "${WHOIAM}" != "root" ] && exec sudo -A ${0} ${@}
-#use busybox 'su' instead.
-#/usr/bin/sudo is now a binary executable, setuid, that calls this script.
-#so, enter here running as root.
+#script that wants to run as root has code that runs sudo-sh (suid binary)
+# hence here. ex: /usr/sbin/bootmanager
 
 export TEXTDOMAIN=sudo-sh
 export OUTPUT_CHARSET=UTF-8
