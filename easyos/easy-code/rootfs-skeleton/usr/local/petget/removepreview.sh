@@ -34,6 +34,7 @@
 #190219 esmourguit: extra gettext.
 #190902 fix 131221, 131222, only allow uninstall if nothing dependent on it.
 #20230309 have removed /usr/local/debget
+#20230629 .desktop gets removed before remove rox mime links.
 
 export TEXTDOMAIN=petget___removepreview.sh
 export OUTPUT_CHARSET=UTF-8
@@ -203,6 +204,14 @@ fi
 
 #131230 from here down, use busybox applets only...
 export LANG=C
+
+#20230629 preserve .desktop files, coz want to read them later...
+DESKTOPFILES="`grep '\.desktop$' /root/.packages/${DB_pkgname}.files | tr '\n' ' '`"
+for ONEDESKTOP in $DESKTOPFILES
+do
+ cp -f ${ONEDESKTOP} /tmp/${ONEDESKTOP##*/}
+done
+
 #delete files...
 busybox cat /root/.packages/${DB_pkgname}.files | busybox grep -v '/$' | busybox xargs busybox rm -f #/ on end, it is a directory entry.
 #do it again, looking for empty directories...
@@ -309,7 +318,7 @@ export LANG="$ORIGLANG"
 DESKTOPFILES="`grep '\.desktop$' /root/.packages/${DB_pkgname}.files | tr '\n' ' '`"
 for ONEDESKTOP in $DESKTOPFILES
 do
- build-rox-sendto -${ONEDESKTOP}
+ build-rox-sendto -/tmp/${ONEDESKTOP##*/} #20230629
 done
 
 #110706 update menu if .desktop file exists...
