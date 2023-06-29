@@ -72,8 +72,8 @@ PKG_PREFER_OLDER=''
 #190302 have some pets with +qt5-base and +qt5-basic, which used to be pets, now qt is n OE...
 #20211110 now have firefox-skeleton pet... 20220107 now have firefox-skel-ask pet...
 #20211217 oe pkg: qt4-x11-free  20211221 busybox  20220109 obs  20221224 add libcdio-paranoia, add coreutils,core-utils
-#20221224 add enchant,enchant2
-PKG_NAME_ALIASES='enchant,enchant2 coreutils,core-utils obs,obs-studio firefox,firefox-skel* qtbase,qt5-base,qt5-basic pburn* cdparanoia,libcdio,libcdio-paranoia dvd_close,dvd-close mp,mp5,mped mplayer,mplayer_* rxvt-unicode,urxvt,urxvt-unicode cxxlibs,glibc gdk-pixbuf,gdk-pixbuf0,gdk-pixbuf2 glib,glib12 glibc-solibs,glibcsolibs alsalib,alsa-lib,alsa-lib2* gtk+,gtk+2,gtk+2* gtk+3,gtk+3* gtkdialog,gtkdialog3,gtkdialog4 alsautils,alsa-utils,alsa-utils2* libungif,libgif,giflib zip,infozip e3,e3_utf8 hal,libhal* jwm,jwm2 mesa,mesa_*,libgl1-mesa*,mesa-common* libxcb,libxcb_base ostree,libostree qt4,qt4_minimal,qt4-x11-free rox_filer,rox-filer,rox-filer-easy,rox-filer-quirky sane,sane-backends samba,samba-tng,samba_*,mountcifs SDL,libsdl,sdl peasyport,peasyport-noarch peasyscale-noarch,peasyscale-exec,peasyscale peasyscan-noarch,peasyscan-exec,peasyscan pure_ftpd,pure-ftpd rp_pppoe*,rp-pppoe skype,skype_static udev,udev_*,libudev*,libgudev*,eudev util-linux-ng,util-linux,utillinuxng vlc,vlc_nogui,VLC_Plus_Extras xf86-video-ati,xf86-video-ati-* xfdiff,xfdiff-cut xorg_base,xorg_base_t2*,x11-common,x-dev,xorg,xorg73_base_t2 acl,libacl* xdg_puppy,xdg-utils perl_tiny,perl-base,perl-modules,perlapi* xorg-util-macros,util-macros busybox,busybox-static'
+#20221224 add enchant,enchant2 
+PKG_NAME_ALIASES='enchant,enchant2 coreutils,core-utils obs,obs-studio firefox,firefox-skel* qtbase,qt5-base,qt5-basic pburn* cdparanoia,libcdio,libcdio-paranoia dvd_close,dvd-close mp,mp5,mped mplayer,mplayer_* rxvt-unicode,urxvt,urxvt-unicode cxxlibs,glibc gdk-pixbuf,gdk-pixbuf0,gdk-pixbuf2 glib,glib12 glibc-solibs,glibcsolibs alsalib,alsa-lib,alsa-lib2* gtk+,gtk+2,gtk+2* gtk+3,gtk+3* gtkdialog,gtkdialog3,gtkdialog4 alsautils,alsa-utils,alsa-utils2* libungif,libgif,giflib zip,infozip e3,e3_utf8 hal,libhal* jwm,jwm2 mesa,mesa_*,libgl1-mesa*,mesa-common* libxcb,libxcb_base ostree,libostree qt4,qt4_minimal,qt4-x11-free rox_filer,rox-filer,rox-filer-easy,rox-filer-quirky sane,sane-backends samba,samba-tng,samba_*,mountcifs SDL,libsdl,sdl peasyport,peasyport-noarch peasyscale-noarch,peasyscale-exec,peasyscale peasyscan-noarch,peasyscan-exec,peasyscan pure_ftpd,pure-ftpd rp_pppoe*,rp-pppoe skype,skype_static udev,udev_*,libudev*,libgudev*,eudev util-linux-ng,util-linux,utillinuxng vlc,vlc_nogui,VLC_Plus_Extras xf86-video-ati,xf86-video-ati-* xfdiff,xfdiff-cut xorg_base,xorg_base_t2*,x11-common,x-dev,xorg,xorg73_base_t2 acl,libacl* xdg-puppy,xdg-utils perl_tiny,perl-base,perl-modules,perlapi* xorg-util-macros,util-macros busybox,busybox-static'
 
 #150716 support/build-order reads this...
 case $DISTRO_BINARY_COMPAT in
@@ -99,7 +99,8 @@ esac
 #variable PKG_NAME_IGNORE is processed in /usr/local/petget/pkg_chooser.sh, used in /usr/local/petget/filterpkgs.sh
 
 #20221224 getcurpos is in pup-tools. mktemp is in coreutils or busybox.
-PKG_NAME_IGNORE="getcurpos mktemp"
+#20230628 added xdg-utils
+PKG_NAME_IGNORE="getcurpos mktemp xdg-utils"
 
 case $DISTRO_COMPAT_VERSION in
  wary5)
@@ -125,7 +126,7 @@ case $DISTRO_BINARY_COMPAT in #110705
   #200109 add 'adwaita-icon-theme', now have cut-down in rootfs-skeleton.
   #20210801 add 'login', 'dbus-user-session'
   #20230310 add 'libgcc1'
-  PKG_NAME_IGNORE="adduser adwaita-icon-theme base-files dbus-user-session debconf gsfonts initscripts init-system-helpers keyboard-configuration libgcc1 libudev1 login lsb-release mime-support netbase passwd systemd-sysv sysvinit-utils sysv-rc xdg-utils xkb-data ${PKG_NAME_IGNORE}"
+  PKG_NAME_IGNORE="adduser adwaita-icon-theme base-files dbus-user-session debconf gsfonts initscripts init-system-helpers keyboard-configuration libgcc1 libudev1 login lsb-release mime-support netbase passwd systemd-sysv sysvinit-utils sysv-rc xkb-data ${PKG_NAME_IGNORE}"
  ;;
  slackware) #170107
   #IGNORE_XORG_BASE="appres bdftopcf bitmap editres evieext fontconfig fonttosfnt fslsfonts fstobdf iceauth libdmx libfontenc libFS libICE libSM libX11 libXau libXaw libXcomposite libXcursor libXdamage libXdmcp libXevie libXext libXfixes libXfont libXfontcache libXft libXi libXinerama libxkbfile libXmu libXp libXpm libXrandr libXrender libXres libXScrnSaver libXt libXtst libXv libXvMC libXxf86dga libXxf86misc libXxf86vm listres luit makedepend mkcomposecache mkfontdir mkfontscale mtdev rendercheck sessreg setxkbmap showfont smproxy viewres x11perf xauth xbacklight xbiff xcalc xclipboard xclock xconsole xcursorgen xditview xdpyinfo xdriinfo xev xf86dga xfontsel xgamma xhost xinit xkbcomp xkbutils xkill xload xmag xmessage xmodmap xprop xrandr xrdb xrefresh xset xsetroot xsm xstdcmap xvidtune xvinfo xwd xwininfo libdrm"
