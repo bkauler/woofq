@@ -13,6 +13,7 @@
 #20230528 setgid. ref: https://bkhome.org/news/202305/setting-up-permissions-under-files-take-2.html
 #20230617 note: set-client now has already created /files/apps/<appname>
 #20230619 remove runtimes and extensions that are not used by any installed applications.
+#20230701 fix when cannot register with flathub.org
 
 export TEXTDOMAIN=flatpaks
 export TEXTDOMAINDIR=/usr/share/locale
@@ -32,7 +33,7 @@ start_func() { #20230516
   popup "terminate=ok background=#ff8080 level=top process=wait|<big>${M3a}</big>"
   exec flapi
  fi
- #20230631 improve test bad repo...
+ #20230701 improve test bad repo...
  FHflg='ok'
  if [ ! -d /mnt/wkg/flatpak/repo ];then FHflg='bad'; fi
  if [ -f /mnt/wkg/flatpak/repo/config ];then
@@ -43,12 +44,38 @@ start_func() { #20230516
   #if bad, wipe repo folder and start again...
   if [ -d /mnt/wkg/flatpak/repo ];then rm -rf /mnt/wkg/flatpak/repo; fi
   #now attempt register with flathub...
+  FHflg='ok'
   flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
-  if [ $? -ne 0 ];then
-   rm -rf /mnt/wkg/flatpak 2>/dev/null
-   M3b="$(gettext 'ERROR: Failure registering with Flathub repository.')"
-   popup "terminate=ok background=#ff8080 level=top process=wait|<big>${M3b}</big>"
-   exec flapi
+  if [ $? -ne 0 ];then FHflg='bad'; fi
+  if [ ! -d /mnt/wkg/flatpak/repo ];then FHflg='bad'; fi
+  if [ -f /mnt/wkg/flatpak/repo/config ];then
+   if ! grep -q '^gpg-verify=true' /mnt/wkg/flatpak/repo/config;then FHflg='bad'; fi
+   if ! grep -q -F 'homepage=https://flathub.org/' /mnt/wkg/flatpak/repo/config;then FHflg='bad'; fi
+  fi
+  if [ "$FHflg" == "bad" ];then
+   rm -rf /mnt/wkg/flatpak/repo 2>/dev/null
+   export FP_DLG0="<window title=\"$(gettext 'Flatpak Installer: Error')\">
+   <vbox>
+    <text use-markup=\"true\">
+      <label>\"
+<b><span color='red'>$(gettext 'ERROR: Failure registering with Flathub repository.')</span></b>
+
+$(gettext 'Some users have found that synchronizing the time from the Internet fixes this problem. We do not know why, it just seems to be a peculiarity of the flatpak program.')
+
+$(gettext 'Click the button to synchronize time from Internet. After that start the Flatpak Installer again, and hopefully it will work.')\"</label>
+    </text>
+    <hbox>
+      <button><label>$(gettext 'Sync time from Internet')</label><action>exit:qsync</action></button>
+      <button cancel></button>
+    </hbox>
+   </vbox></window>"
+   VALS0="$(gtkdialog --center --program=FP_DLG0)"
+   xVALS0="$(echo "$VALS0" | grep '^EXIT')"
+   eval "$xVALS0"
+   if [ "$EXIT" == "qsync" ];then
+    qsync
+   fi
+   exit
   fi
  fi
 }
@@ -323,6 +350,7 @@ case "${aAPP}" in
  Spotify) TRIPLET='com.spotify.Client'; MENUcat='X-Multimedia-sound'; MENUtop='Multimedia'; MENUname='Spotify music streaming'; ;;
  GoldenDict) TRIPLET='org.goldendict.GoldenDict'; MENUcat='X-Personal'; MENUtop='Personal'; MENUname='GoldenDict dictionary lookup'; ;;
  SpaceCadetPinball) TRIPLET='com.github.k4zmu2a.spacecadetpinball'; MENUcat='X-Fun'; MENUtop='Fun'; MENUname='SpaceCadetPinball 3D pinball game'; ;;
+ Stremio) TRIPLET='com.stremio.Stremio'; MENUcat='X-Multimedia-mediaplayer'; MENUtop='Multimedia'; MENUname='Streaming media player'; ;;
  ZZZ) TRIPLET=''; MENUcat=''; MENUtop=''; MENUname=''; ;;
 esac
 
