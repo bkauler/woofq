@@ -3,12 +3,17 @@
 #sudo does not work. something to do with busybox mkpasswd now using sha512?
 #script that wants to run as root has code that runs sudo-sh (suid binary)
 # hence here. ex: /usr/sbin/bootmanager
+#20230630 type-hint="6", ref: https://oldforum.puppylinux.com/viewtopic.php?t=115554
 
 export TEXTDOMAIN=sudo-sh
 export OUTPUT_CHARSET=UTF-8
 
 PPPID="${1}"
-EXE="$(cat /proc/${PPPID}/comm)"
+if [ -e /proc/${PPPID} ];then #precaution
+ EXE="$(cat /proc/${PPPID}/comm)"
+else
+ EXE='unknown'
+fi
 RP="$(realpath -e "$2" 2>/dev/null)"
 if [ ! -x "${RP}" ];then
  RP="$(which "$2")"
@@ -47,7 +52,7 @@ M2="<text><label>$(gettext 'This is the caller application:')</label></text>
 rootPW=''
 if [ $DISPLAY ];then
  export SUDOSH_DLG="
-<window title=\"AskPass\" decorated=\"false\" window_position=\"1\" skip_taskbar_hint=\"true\">
+<window title=\"AskPass\" decorated=\"false\" window_position=\"1\" skip_taskbar_hint=\"true\" type-hint=\"6\">
   <vbox>
   <frame>
     ${M1}
