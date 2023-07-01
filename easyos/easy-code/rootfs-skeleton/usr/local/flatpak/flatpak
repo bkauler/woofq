@@ -32,7 +32,17 @@ start_func() { #20230516
   popup "terminate=ok background=#ff8080 level=top process=wait|<big>${M3a}</big>"
   exec flapi
  fi
- if [ ! -d /mnt/wkg/flatpak/repo ];then
+ #20230631 improve test bad repo...
+ FHflg='ok'
+ if [ ! -d /mnt/wkg/flatpak/repo ];then FHflg='bad'; fi
+ if [ -f /mnt/wkg/flatpak/repo/config ];then
+  if ! grep -q '^gpg-verify=true' /mnt/wkg/flatpak/repo/config;then FHflg='bad'; fi
+  if ! grep -q -F 'homepage=https://flathub.org/' /mnt/wkg/flatpak/repo/config;then FHflg='bad'; fi
+ fi
+ if [ "$FHflg" == "bad" ];then
+  #if bad, wipe repo folder and start again...
+  if [ -d /mnt/wkg/flatpak/repo ];then rm -rf /mnt/wkg/flatpak/repo; fi
+  #now attempt register with flathub...
   flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
   if [ $? -ne 0 ];then
    rm -rf /mnt/wkg/flatpak 2>/dev/null
