@@ -186,7 +186,8 @@ fi
 kill `pgrep -f mozbare`
 
 #want an icon...
-wget https://dl.flathub.org/repo/appstream/x86_64/icons/128x128/${ENTRY_TRIPLET}.png -O /tmp/${ENTRY_NAME,,}128.png 2>/dev/null
+#20230704 -t number of tries, -T timeout
+wget -4 -t 2 -q -T 5 --no-check-certificate https://dl.flathub.org/repo/appstream/x86_64/icons/128x128/${ENTRY_TRIPLET}.png -O /tmp/${ENTRY_NAME,,}128.png 2>/dev/null
 if [ -s /tmp/${ENTRY_NAME,,}128.png ];then
  ffmpeg -i /tmp/${ENTRY_NAME,,}128.png -vf scale=48:-1 /tmp/${ENTRY_NAME,,}.png
  file /tmp/${ENTRY_NAME,,}.png | grep -q PNG
