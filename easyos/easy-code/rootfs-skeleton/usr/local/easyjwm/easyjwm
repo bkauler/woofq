@@ -4,6 +4,7 @@
 # Copyright 2015-2022 GPL3 http://www.gnu.org/licenses
 # Author: Roger D. Grider (radky)
 #20230523 fix show labels in tasklist when in rox mode. remove some woof-ce stuff.
+#20230703 Menu Manager was missing.
 
 export TEXTDOMAIN=easyjwm
 export OUTPUT_CHARSET=UTF-8
@@ -2495,11 +2496,32 @@ if [ -f /usr/share/applications/jwmthememaker.desktop ];then
 "
 fi
 
+#20230703 this was missing...
+MENU='
+  <vbox space-expand="true" space-fill="true" margin="5">
+   <text height-request="10"><label>""</label></text>
+  '$JWM_MENUHEIGHT'
+  '$MENUBUTTON'
+   <text space-expand="true" space-fill="true" height-request="35"><label>""</label></text>
+   <text space-expand="false" space-fill="false" use-markup="true"><label>"<b><big>'$(gettext 'Menu Manager')'</big></b>"</label></text>
+   <hbox space-expand="false" space-fill="false" homogeneous="true">
+    <button height-request="102" width-request="154" image-position="2" tooltip-text=" '$(gettext 'Manage apps in the system menu')' ">
+     <label>'$(gettext 'Item Editor')' </label>
+     <input file>'$ICONDIR'/menu.svg</input><height>56</height><width>56</width>
+     <action>func_menu_manager &</action>
+    </button>
+   </hbox>
+   '$menu_checkbox'
+   <pixmap><input file>'$ICONDIR'/blank1.png</input></pixmap>
+   <pixmap><input file>'$ICONDIR'/blank1.png</input></pixmap>
+   <pixmap space-expand="true" space-fill="true"><input file>'$ICONDIR'/blank1.png</input></pixmap>
+  </vbox>'
+
 export EASYJWM='
 <window title="EasyJWM" icon-name="'$window_title_icon'" resizable="true" default_height="'$WINDOW_HEIGHT'" default_width="'$WINDOW_WIDTH'">
  <vbox>
  <vbox space-expand="true" space-fill="true" scrollable="true" shadow-type="0" border-width="1">
- <notebook page="'$NBPG'" space-expand="true" space-fill="true" labels=" '$(gettext 'Desktop|Menu|Window|Tray|Launch|Options|Profiles')' ">
+ <notebook page="'$NBPG'" space-expand="true" space-fill="true" labels=" '$(gettext 'Desktop|Menu|Window|Tray|Launch|Options')' ">
 
   <vbox space-expand="true" space-fill="true">
    <vbox>
@@ -2523,7 +2545,9 @@ export EASYJWM='
     </hbox>
    </vbox>
   </vbox>
-
+  
+  '${MENU}'
+  
   <vbox space-expand="true" space-fill="true">
    <vbox>
     <text xalign="0" use-markup="true"><label>"<b><span size='"'small'"'>'$(gettext ' Geometry')'</span></b>"</label></text>
@@ -2948,6 +2972,7 @@ export EASYJWM='
  <action signal="show">echo 100 > /tmp/easyjwm-splash</action>
 </window>'
 
+#echo "$EASYJWM" > /tmp/EASYJWM #TEST
 $GTKDIALOG -p EASYJWM --geometry="$GEO" --styles=$TMPDIR/gtkrc.css
 
 [ -f /tmp/tray_menu_change ] && rm -f /tmp/tray_menu_change
