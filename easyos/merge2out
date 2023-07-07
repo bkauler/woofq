@@ -41,6 +41,7 @@
 #20230309 use oe kirkstone pkgs in non-oe builds.
 #20230326 fix paths now everything on 4TB ssd.
 #20230409 EMPTYDIRMARKER files will be in boot/initrd-tree
+#20230706 fix removing EMPTYDIRMARKER files in puppy folder.
 
 [ ! -d ./easy-arch ] && exit
 [ ! -d ./easy-code ] && exit
@@ -293,7 +294,6 @@ fossil_fixup_func packages-templates
 
 #20230409
 fossil_fixup_func boot
-fossil_fixup_func puppy
 
 #2: VCSMETADATA permissions/ownership...
 if [ -s VCSMETADATA ];then
@@ -390,6 +390,11 @@ rm -rf ${BUILDSPATH}/easy-out_${HOSTARCH}_${TARGETARCH}_${COMPATDISTRO}_${COMPAT
 sync
 cp -a -f ../puppy/* ${BUILDSPATH}/easy-out_${HOSTARCH}_${TARGETARCH}_${COMPATDISTRO}_${COMPATVERSION}/puppy/
 sync
+
+#20230706 moved down
+cd ${BUILDSPATH}/easy-out_${HOSTARCH}_${TARGETARCH}_${COMPATDISTRO}_${COMPATVERSION}
+fossil_fixup_func puppy
+cd $PROJECTPATH
 
 #200921
 echo "PROJECTPATH='${PROJECTPATH}'
