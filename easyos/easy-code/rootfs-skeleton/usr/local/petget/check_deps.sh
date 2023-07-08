@@ -19,6 +19,7 @@
 #20220126 now PKGget.
 #20220629 replace "Puppy" with "EasyOS".
 #20220905 dpkg/apt support.
+#20230708 handle file names with space char.
 
 export TEXTDOMAIN=petget___check_deps.sh
 export OUTPUT_CHARSET=UTF-8
@@ -123,9 +124,15 @@ dependcheckfunc() {
   [ "$FNDOO" = "" ] && LD_LIBRARY_PATH="${FNDOO}/program:${LD_LIBRARY_PATH}"
  fi
 
- FNDFILES="`cat /root/.packages/$APKGNAME.files`"
- for ONEFILE in $FNDFILES
+ #20230708 handle files with space char...
+ #FNDFILES="`cat /root/.packages/$APKGNAME.files`"
+ #for ONEFILE in $FNDFILES
+ while read ONEFILE
  do
+  #ignore path/file if has space...
+  if [ "${ONEFILE/ /}" != "${ONEFILE}" ];then
+   continue
+  fi
   ISANEXEC="`file --brief $ONEFILE | grep --extended-regexp "LSB executable|shared object"`"
   if [ ! "$ISANEXEC" = "" ];then
    LDDRESULT="`ldd $ONEFILE`"
@@ -136,7 +143,9 @@ dependcheckfunc() {
     echo " $MISSINGLIBS" >> /tmp/missinglibs.txt #100718
    fi
   fi
- done
+ done<<_END1
+$(cat /root/.packages/$APKGNAME.files)
+_END1
  if [ -s /tmp/missinglibs.txt ];then #100718 reduce size of list, to fit in window...
   MISSINGLIBSLIST="`cat /tmp/missinglibs.txt | tr '\n' ' ' | tr -s ' ' | tr ' ' '\n' | sort -u | tr '\n' ' '`"
   echo "$MISSINGLIBSLIST" > /tmp/missinglibs.txt
