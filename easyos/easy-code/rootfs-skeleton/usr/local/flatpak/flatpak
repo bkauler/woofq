@@ -54,7 +54,7 @@ start_func() { #20230516
   fi
   if [ "$FHflg" == "bad" ];then
    rm -rf /mnt/wkg/flatpak/repo 2>/dev/null
-   export FP_DLG0="<window title=\"$(gettext 'Flatpak Installer: Error')\">
+   export FP_DLG0="<window title=\"$(gettext 'Flatpak Installer: Error')\" image-name=\"/usr/share/pixmaps/flatpak.png\">
    <vbox>
     <text use-markup=\"true\">
       <label>\"
@@ -169,7 +169,7 @@ ENTRIESother="$(cat /tmp/flatpak/ENTRIESother)"
 PACKAGE="Flatpak"
 DESCRIPTION="$(gettext 'Description')"
 SIZE="$(gettext 'Size')"
-export FP_DLG1="<window title=\"$(gettext 'Flatpak Installer')\">
+export FP_DLG1="<window title=\"$(gettext 'Flatpak Installer')\" image-name=\"/usr/share/pixmaps/flatpak.png\">
   <vbox>
     <text use-markup=\"true\"><label>\"$(gettext 'Flatpaks are applications with all dependencies builtin.')${CR}$(gettext 'They may be downloaded and installed in EasyOS.')${CR}$(gettext 'An existing installation may be updated or deleted.')\"</label></text>
     <notebook labels=\"$(gettext 'Audio')|$(gettext 'Developer')|$(gettext 'Games')|$(gettext 'Graphics')|$(gettext 'Network')|$(gettext 'Office')|$(gettext 'Productivity')|$(gettext 'System')|$(gettext 'Video')|$(gettext 'Other')\">
@@ -393,7 +393,7 @@ if [ -e /mnt/wkg/flatpak/exports/bin/${TRIPLET} ];then
    <vbox>
     <button><label>$(gettext 'UPDATE')</label><action>EXIT:update</action></button>
    </vbox>"
-  export FP_DLG2="<window title=\"$(gettext 'Flatpak Installer')\">
+  export FP_DLG2="<window title=\"$(gettext 'Flatpak Installer')\" image-name=\"/usr/share/pixmaps/flatpak.png\">
   <vbox>
     <text use-markup=\"true\">
       <label>\"$(gettext 'Please make a choice for this installed Flatpak:')
@@ -487,7 +487,7 @@ if [ "$UPDATEflg" == "yes" ];then
 else
  Mup="$(gettext 'Please confirm that you want to download and install this Flatpak:')"
 fi
-export FP_DLG3="<window title=\"$(gettext 'Flatpak Installer')\">
+export FP_DLG3="<window title=\"$(gettext 'Flatpak Installer')\" image-name=\"/usr/share/pixmaps/flatpak.png\">
   <vbox>
    <text use-markup=\"true\"><label>\"${Mup}
   <b>${aAPP}</b>\"</label></text>
@@ -514,7 +514,7 @@ fi
 
 if [ "$UPDATEflg" == "yes" ];then
  NEWver="$(flatpak search --columns=version ${TRIPLET})"
- export FP_DLG4="<window title=\"$(gettext 'Flatpak Installer:') ${aAPP}\">
+ export FP_DLG4="<window title=\"$(gettext 'Flatpak Installer:') ${aAPP}\" image-name=\"/usr/share/pixmaps/flatpak.png\">
   <vbox>
     <text use-markup=\"true\">
       <label>\"$(gettext 'This is the currently installed version of the Flatpak:')
@@ -646,7 +646,7 @@ $(gettext 'For your convenience, this folder has been created:')
   /files/apps/${aAPP,,}" 
 fi
 
-export FP_DLG5="<window title=\"$(gettext 'Flatpak Installer: success')\">
+export FP_DLG5="<window title=\"$(gettext 'Flatpak Installer: success')\" image-name=\"/usr/share/pixmaps/flatpak.png\">
   <vbox>
     <text><label>\"$(gettext 'Success, this Flatpak has been installed:')
   ${aAPP}
@@ -678,7 +678,7 @@ else
  M3="$(gettext 'However, you may prefer to run some apps as the root user, a file-manager for example, where you want unfettered access to the entire filesystem, able to open, edit and save anywhere.')"
 fi
 
-export FP_DLG6="<window title=\"$(gettext 'Flatpak Installer: notes')\">
+export FP_DLG6="<window title=\"$(gettext 'Flatpak Installer: notes')\" image-name=\"/usr/share/pixmaps/flatpak.png\">
   <vbox>
     <frame>
       <text use-markup=\"true\"><label>\"<b>$(gettext 'Security notes')</b>\"</label></text>
