@@ -300,6 +300,7 @@
 #20230607 easy 5.3+ want to get rid of "setup" icon and change "pkg" to only run PKGget (see also dir2sfs)
 #20230616 chmod 700 so other apps cannot see inside /root
 #20230621 copy rootfs-skeleton/etc/sudo.conf. hack fix PuppyPin
+#20230708 restore #20120329: packages-templates copied into rootfs-complete/root/.packages
 
 export LANG=C #faster.
 
@@ -5001,22 +5002,24 @@ else
  update-mime-database rootfs-complete/usr/share/mime
 fi
 
-#20220921 revert...
-##20210329 intention is petget will use entry in packages-templates to process a non-pet pkg.
-#GENERIC_ALL="$(grep '^yes|' ../${DPSFILE} | cut -f 2 -d '|')"
-#TEMPLATES_ALL="$(find ../packages-templates -mindepth 1 -maxdepth 1 -type d | rev | cut -f 1 -d '/' | rev | sort)"
-#echo "$TEMPLATES_ALL" > /tmp/3buildeasydistro/templates-all
-#echo "$GENERIC_ALL" > /tmp/3buildeasydistro/templates-applied.list
-##had hoped could use * glob wildcard with grep -F option (fixed strings) but doesn't work...
-#echo -e '0buildroot\nmplayer_gui\nxorg.*\ngtkdialog.*\n.*HIDE\n.*OLD\ngcc.*\nxserver.*\nmonkey\npcmcia.*\nkodi\nlibreoffice-.*\npekwm\nkompozer\ngtksourceview' >> /tmp/3buildeasydistro/templates-applied.list
-#TEMPLATES_CUT="$(grep -f /tmp/3buildeasydistro/templates-applied.list -x -v /tmp/3buildeasydistro/templates-all)"
-#echo "$TEMPLATES_CUT" > /tmp/3buildeasydistro/templates-cut #test
-#mkdir -p rootfs-complete/root/.packages/packages-templates
-#for aTEMPLATE in $TEMPLATES_CUT
-#do
-# [ "$aTEMPLATE" == "" ] && continue
-# cp -a ../packages-templates/${aTEMPLATE} rootfs-complete/root/.packages/packages-templates/
-#done
+#20220921 revert...  20230708 restore...
+#20210329 intention is petget will use entry in packages-templates to process a non-pet pkg.
+GENERIC_ALL="$(grep '^yes|' ../${DPSFILE} | cut -f 2 -d '|')"
+TEMPLATES_ALL="$(find ../packages-templates -mindepth 1 -maxdepth 1 -type d | rev | cut -f 1 -d '/' | rev | sort)"
+echo "$TEMPLATES_ALL" > /tmp/3buildeasydistro/templates-all
+echo "$GENERIC_ALL" > /tmp/3buildeasydistro/templates-applied.list
+#had hoped could use * glob wildcard with grep -F option (fixed strings) but doesn't work...
+echo -e '0buildroot\nmplayer_gui\nxorg.*\ngtkdialog.*\n.*HIDE\n.*OLD\ngcc.*\nxserver.*\nmonkey\npcmcia.*\nkodi\nlibreoffice-.*\npekwm\nkompozer\ngtksourceview\npidgin\niceape\ngxine\nxfwm4\nlives\nndiswrapper\nlibxcb_base\nx11proto\njwm2\nsamba_client\nglibc_locales' >> /tmp/3buildeasydistro/templates-applied.list
+echo -e 'alsamixergui\napulse\naumix\nbacon_runtime\nbdb\nboehm-gc\ndotpuphandler\nembutils_cut\ngeany-plugin-markdown\ngeany-plugins-common\nglibc-bin\nglibc_dev\nglibc-solibs\ngtk+3.0\ninitscripts\nlibmozjs\nlibnma\nlibstdc++6\nlibtiff\nlinux-quirky\nlsb\nlsb-base\nmesa_base\nmesa_swrast\nmodule-init-tools\npython\npython-tiny\nwpa_supplicant\nzlibreoffice' >> /tmp/3buildeasydistro/templates-applied.list
+echo -e 'bsdmainutils\ndebianutils\nncurses-old\nrxvt\nsyslinux6' >> /tmp/3buildeasydistro/templates-applied.list
+TEMPLATES_CUT="$(grep -f /tmp/3buildeasydistro/templates-applied.list -x -v /tmp/3buildeasydistro/templates-all)"
+echo "$TEMPLATES_CUT" > /tmp/3buildeasydistro/templates-cut #test
+mkdir -p rootfs-complete/root/.packages/packages-templates
+for aTEMPLATE in $TEMPLATES_CUT
+do
+ [ "$aTEMPLATE" == "" ] && continue
+ cp -a ../packages-templates/${aTEMPLATE} rootfs-complete/root/.packages/packages-templates/
+done
 
 #200209 remove...
 rm -rf rootfs-complete/etc/rc[0-6].d 2>/dev/null

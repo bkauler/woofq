@@ -85,6 +85,7 @@
 # ***TODO*** restore them if uninstall pkg.
 #20230222 major rethink /usr/share/locale.in only exist in rootfs-skeleton
 #20230309 have removed /usr/local/debget
+#20230708 apply /root/.packages/packages-templates/<app> if exists.
 
 #information from 'labrador', to expand a .pet directly to '/':
 #NAME="a52dec-0.7.4"
@@ -399,6 +400,206 @@ esac
 
 echo -n '' > /tmp/petget/FLAGFND #140109 moved up.
 if [ "$DIRECTSAVEPATH" ];then #131230
+ 
+ #20230708 see if anything in /root/.packages/packages-templates...
+ PKGnameonly="$(grep -F "${DLPKG_NAME}|" /tmp/petget_missing_dbentries-Packages-* | grep "^${DLPKG_NAME}" | head -n 1 | cut -f 2 -d '|')"
+ if [ "$PKGnameonly" ];then
+  if [ -d /root/.packages/packages-templates/${PKGnameonly} ];then
+   #based on code from 2createpackages...
+   GENERICNAME="${PKGnameonly}"
+   [ -d /tmp/petget/original ] && rm -rf /tmp/petget/original
+   cp -a ${DIRECTSAVEPATH} /tmp/petget/original
+   #templates may have /lib, /usr/lib, /usr/bin, but may be in ARCHDIR...
+   [ -d /tmp/petget/template ] && rm -rf /tmp/petget/template
+   cp -a /root/.packages/packages-templates/$GENERICNAME /tmp/petget/template
+   if [ "$xARCHDIR" ];then
+    if [ -d /tmp/petget/original/lib${xARCHDIR} ];then
+     if [ ! -h /tmp/petget/original/lib${xARCHDIR} ];then
+      if [ -d /tmp/petget/template/lib ];then
+       if [ ! -d /tmp/petget/template/lib${xARCHDIR} ];then
+        #move all of /lib into /lib$xARCHDIR...
+        mkdir -p /tmp/petget/template/lib${xARCHDIR}
+        for tFILE in `find /tmp/petget/template/lib -mindepth 1 -maxdepth 1 | tr '\n' ' '`
+        do
+         tBASE="`basename $tFILE`"
+         [ -d /tmp/petget/original/lib${xARCHDIR}/${tBASE} ] && mv -f /tmp/petget/template/lib/${tBASE} /tmp/petget/template/lib${xARCHDIR}/
+         [ -d $tFILE ] && continue
+         mv -f /tmp/petget/template/lib/${tBASE} /tmp/petget/template/lib${xARCHDIR}/
+        done
+       fi
+      fi
+     fi
+    fi
+    if [ -d /tmp/petget/original/usr/lib${xARCHDIR} ];then
+     if [ ! -h /tmp/petget/original/usr/lib${xARCHDIR} ];then
+      if [ -d /tmp/petget/template/usr/lib ];then
+       if [ ! -d /tmp/petget/template/usr/lib${xARCHDIR} ];then
+        #move all of /usr/lib into /usr/lib$xARCHDIR...
+        mkdir -p /tmp/petget/template/usr/lib${xARCHDIR}
+        for tFILE in `find /tmp/petget/template/usr/lib -mindepth 1 -maxdepth 1 | tr '\n' ' '`
+        do
+         tBASE="`basename $tFILE`"
+         [ -d /tmp/petget/original/usr/lib${xARCHDIR}/${tBASE} ] && mv -f /tmp/petget/template/usr/lib/${tBASE} /tmp/petget/template/usr/lib${xARCHDIR}/
+         [ -d $tFILE ] && continue
+         mv -f /tmp/petget/template/usr/lib/${tBASE} /tmp/petget/template/usr/lib${xARCHDIR}/
+        done
+       fi
+      fi
+     fi
+    fi
+    if [ -d /tmp/petget/original/usr/bin${xARCHDIR} ];then
+     if [ ! -h /tmp/petget/original/usr/bin${xARCHDIR} ];then
+      if [ -d /tmp/petget/template/usr/bin ];then
+       if [ ! -d /tmp/petget/template/usr/bin${xARCHDIR} ];then
+        #move all of /usr/bin into /usr/bin$xARCHDIR...
+        mkdir -p /tmp/petget/template/usr/bin${xARCHDIR}
+        for tFILE in `find /tmp/petget/template/usr/bin -mindepth 1 -maxdepth 1 | tr '\n' ' '`
+        do
+         tBASE="`basename $tFILE`"
+         [ -d /tmp/petget/original/usr/bin${xARCHDIR}/${tBASE} ] && mv -f /tmp/petget/template/usr/bin/${tBASE} /tmp/petget/template/usr/bin${xARCHDIR}/
+         [ -d $tFILE ] && continue
+         mv -f /tmp/petget/template/usr/bin/${tBASE} /tmp/petget/template/usr/bin${xARCHDIR}/
+        done
+       fi
+      fi
+     fi
+    fi
+   fi
+   
+   for TEMPLATEPATH in `find /tmp/petget/template -type d`
+   do
+    TEMPLATEFILES="`find $TEMPLATEPATH -maxdepth 1 -type f`"
+    TEMPLATELINKS="`find $TEMPLATEPATH -maxdepth 1 -type l`"
+    ppPATTERN="s%/tmp/petget/template%${DIRECTSAVEPATH}%"
+    TARGETPATH="`echo -n "$TEMPLATEPATH" | sed -e "$ppPATTERN"`"
+    mkdir -p $TARGETPATH
+    TMPPATH="`echo -n "$TEMPLATEPATH" | sed -e 's%/tmp/template%/tmp/original%'`"
+    #bit radical, but if dir in template has one or more files, truncate those in target...
+    if [ ! -f $TEMPLATEPATH/PLUSEXTRAFILES ];then #marker-file, that all files in deb to be kept.
+     #for ONEDEL in `find ${TARGETPATH} -maxdepth 1 -type f` #ignore symlinks.
+     while read ONEDEL
+     do
+      #if file has any versioning info, do not delete...
+      DELBASE="$(basename "$ONEDEL")"
+      [ ! -f "${TARGETPATH}/${DELBASE}" ] && continue
+      #if dir has NOEXCEPTIONFILES then do not allow these exceptions...
+      [ ! -f $TEMPLATEPATH/NOEXCEPTIONFILES ] && [ "`echo "$DELBASE" | grep -E '\.[0-9]*\.|\.[0-9]*$|\-[0-9]*\.|[0-9]\.so$|\.so\.[0-9]'`" != "" ] && continue
+      rm -f "${TARGETPATH}/${DELBASE}"
+     done<<_END1
+$(find ${TARGETPATH} -maxdepth 1 -type f)
+_END1
+    fi
+    #if file exists in template, non-0 copy it from template to target, 0-size copy from deb pkg to target...
+    for FINALFILE in $TEMPLATEFILES
+    do
+     ALTTARGETPATH="$TARGETPATH"
+     ALTTMPPATH="$TMPPATH"
+     TMPLNAMEONLY="`basename $FINALFILE -FULL`" #coreutils & util-linux have some file-FULL.
+     if [ ! -f $TMPPATH/$TMPLNAMEONLY ];then
+      if [ "/tmp/petget/original" != "$TMPPATH" ];then #ignore top level.
+       if [ "`echo -n "$TMPPATH" | grep -E "/root|/etc|/dev|/var/"`" = "" ];then #ignore if file in /root or /etc or /dev
+        #if the target file is somewhere else, find it...
+        ALTLOCATION="`find /tmp/petget/original -type f -name $TMPLNAMEONLY | grep -E '/bin/|/sbin/|/lib/|/lib64/|/lib32/' | head -n 1`" #161224 narrow the search.
+        if [ "$ALTLOCATION" != "" ];then
+         [ "`file "$ALTLOCATION" | grep ' text'`" = "" ] && ALTTMPPATH="`dirname $ALTLOCATION`" #ignore text file.
+        else
+         #a hack, util-linux has 'rename.ul', presume ubuntu have renamed it so as not to conflict
+         #with some other 'rename'....
+         ALTLOCATION="`find /tmp/petget/original -type f -name ${TMPLNAMEONLY}.ul | head -n 1`"
+         if [ "$ALTLOCATION" != "" ];then
+          ALTTMPPATH="`dirname $ALTLOCATION`"
+          TMPLNAMEONLY="$TMPLNAMEONLY"'.ul'
+         fi
+        fi
+       fi
+      fi
+     fi
+     #130313 arch linux is relocating many files to /usr, providing symlinks, very annoying...
+     #note, ALTTMPPATH is *not* the template, it is the actual package, copied to tmp.
+     if [ ! -h $FINALFILE ];then
+      if [ ! -s $FINALFILE ];then #want zero bytes, this is in template.
+       if [ -h $ALTTMPPATH/$TMPLNAMEONLY ];then
+        if [ "`echo -n "$FINALFILE" | grep '/usr/'`" = "" ];then #only catch files moved to /usr.
+         LINKTNO="$(readlink $ALTTMPPATH/$TMPLNAMEONLY)"
+         if [ "$(echo -n "$LINKTNO" | grep '\.\./usr/')" != "" ];then #only catch files moved to /usr.
+          if [ -f $ALTTMPPATH/$LINKTNO ];then #hope it is relative link. -- i put the .. above to check that.
+           rm -f $ALTTMPPATH/$TMPLNAMEONLY
+           mv -f $ALTTMPPATH/$LINKTNO $ALTTMPPATH/ #put it back in correct place.
+           NEWLINKTNO="$(echo -n "$LINKTNO" | sed -e 's%/usr/%/../%')"
+           ln -s $NEWLINKTNO $ALTTMPPATH/$LINKTNO #concession, provide a symlink from "wrong" place.
+          fi
+         fi
+        fi
+       fi
+      fi
+     fi
+     if [ -s $FINALFILE ];then
+      #all non-0-size files must be copied from template to final pkg...
+      cp -af $FINALFILE $ALTTARGETPATH/
+     else
+      #zero-size file. copy from the backup made in /tmp/petget/original to final pkg...
+      TARGETNAMEONLY="`basename $FINALFILE`"
+      if [ "`echo -n "$TARGETNAMEONLY" | grep "STARCHAR"`" != "" ];then
+       #if template file has text STARCHAR in it, replace with wildcard ...
+       globTARGETNAMEONLY="`echo -n "$TARGETNAMEONLY" | sed -e 's%STARCHAR%*%'`"
+       cp -a --remove-destination ${ALTTMPPATH}/${globTARGETNAMEONLY} ${ALTTARGETPATH}/ 2>/dev/null
+      else
+       cp -a --remove-destination ${ALTTMPPATH}/${TMPLNAMEONLY} ${ALTTARGETPATH}/${TARGETNAMEONLY} 2>/dev/null
+      fi
+     fi
+    done
+    #prune target dirs that are not in template (unless PLUSEXTRADIRS file exists in path)...
+    PLUSEXTRADIRS='no'
+    TESTPATH="$TEMPLATEPATH"
+    while [ "$TESTPATH" != "/tmp" ];do
+     if [ -f $TESTPATH/PLUSEXTRADIRS ];then
+      PLUSEXTRADIRS='yes'
+      break
+     fi
+     TESTPATH="`dirname $TESTPATH`"
+    done
+    if [ "$PLUSEXTRADIRS" = "no" ];then
+     TEMPLATEDIRS="`find $TEMPLATEPATH -maxdepth 1 -type d | rev | cut -f 1 -d '/' | rev`"
+     xTEMPLATEDIRS="$TEMPLATEDIRS"
+     for ONETARGETDIR in `find $TARGETPATH -mindepth 1 -maxdepth 1 -type d | rev | cut -f 1 -d '/' | rev` #120514 added -mindepth
+     do
+      #w002 precaution. dunno why, some pkgs in packages-woof are disappearing...
+      [ `echo -n "$TARGETPATH/$ONETARGETDIR" | sed -e 's%[^/]%%g' | wc -c` -le 1 ] && continue
+      tPATTERN='^'"$ONETARGETDIR"'$'
+      if [ "`echo "$xTEMPLATEDIRS" | grep "$tPATTERN"`" = "" ];then
+       tPATTERN="packages-${DISTRO_FILE_PREFIX}/"
+       [ "`echo "$TARGETPATH/$ONETARGETDIR" | grep "$tPATTERN"`" != "" ] && rm -rf $TARGETPATH/$ONETARGETDIR #test is paranoid precaution.
+      fi
+     done
+    fi
+    if [ "$TEMPLATELINKS" != "" ];then
+     for ONETEMPLATELINK in $TEMPLATELINKS
+     do
+      TARGETLINKNAME="`basename $ONETEMPLATELINK`"
+      if [ ! -e $TARGETPATH/$TARGETLINKNAME ];then
+       mkdir -p $TARGETPATH
+       cp -a -f $TEMPLATEPATH/$TARGETLINKNAME $TARGETPATH/
+      fi
+     done
+    fi
+   done
+   cd ${DIRECTSAVEPATH}
+   #a last resort fixup, if 'FIXUPHACK' exists, execute it...
+   if [ -f /tmp/petget/template/FIXUPHACK ];then
+    cp -af /tmp/petget/template/FIXUPHACK ${DIRECTSAVEPATH}/
+    sh ./FIXUPHACK
+    rm -f ${DIRECTSAVEPATH}/FIXUPHACK
+   fi
+   if [ -f /tmp/petget/template/pinstall.sh ];then
+    cp -af /tmp/petget/template/pinstall.sh ${DIRECTSAVEPATH}/
+    ./pinstall.sh
+    rm -f ${DIRECTSAVEPATH}/pinstall.sh
+   fi
+  fi
+  [ -d /tmp/petget/template ] && rm -rf /tmp/petget/template
+  [ -d /tmp/petget/original ] && rm -rf /tmp/petget/original
+ fi
+ 
  #131220...
  #have installed to temp $DIRECTSAVEPATH, now determine what is going to be overwritten...
  #save overwritten files (so can restore if pkg uninstalled)...
@@ -413,7 +614,7 @@ if [ "$DIRECTSAVEPATH" ];then #131230
    echo -n '1' > /tmp/petget/FLAGFND
   fi
  done
-
+ 
  #now write temp-location to final destination... 180625
  cp -a -f --remove-destination ${DIRECTSAVEPATH}/* /${DEBSHERE}  2> /tmp/petget/install-cp-errlog
  sync
