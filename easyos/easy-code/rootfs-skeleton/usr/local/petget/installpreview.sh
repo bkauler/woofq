@@ -191,8 +191,10 @@ export PREVIEW_DIALOG="<window title=\"$(gettext 'PKGget Package Manager: preins
  
  <frame>
   <hbox>
-   <text><label>$(gettext 'If you would like more information about') '${TREE1}', $(gettext 'such as what it is for and the dependencies, this button will download and display detailed information:')</label></text>
-   <button><label>$(gettext 'More info')</label><action>/usr/local/petget/fetchinfo.sh ${TREE1} & </action></button>
+   <text><label>$(gettext 'If you would like more information about') '${TREE1}', $(gettext 'such as what it is for and the dependencies, this button will display detailed information:')</label></text>
+   <vbox>
+    <button><label>$(gettext 'More info')</label><action>/usr/local/petget/fetchinfo.sh ${TREE1} & </action></button>
+   </vbox>
   </hbox>
  </frame>
  
