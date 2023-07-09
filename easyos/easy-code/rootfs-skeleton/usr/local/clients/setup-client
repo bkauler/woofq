@@ -615,6 +615,46 @@ ROOTOPTS='--no-sandbox'
  return 0
 }
 
+#20230708 scribus, ref: /usr/bin/scribus.install
+scribus_func() {
+ #setup the app to run as spot or root...
+ case $APPflag in
+  true)
+   gen_bin_func
+   rm -f ${PREFIXDIR1}${APPpath}/${APPname} #in case it is a symlink.
+   echo "#!/bin/bash
+APPbin='${APPpath}/${APPname}.bin'
+APPname='${APPname}'
+DESKTOPCODE='mkdir -p /home/scribus/.config/scribus
+cp -f /root/.config/scribus/scribus150.rc /home/scribus/.config/scribus/
+sed -i -e s%/files/%/files/apps/scribus/% /home/scribus/.config/scribus/
+chown -R scribus:scribus /home/scribus/.config
+'" > ${PREFIXDIR1}${APPpath}/${APPname}
+   echo "$RUNASCLIENT" >> ${PREFIXDIR1}${APPpath}/${APPname}
+   chmod 755 ${PREFIXDIR1}${APPpath}/${APPname}
+  ;;
+  false)
+   if [ -e ${PREFIXDIR1}${APPpath}/${APPname}.bin0 -o -e ${PREFIXDIR1}${APPpath}/${APPname}.bin ];then
+    if [ -e ${PREFIXDIR1}${APPpath}/${APPname}.bin0 ];then
+     cp -a -f --remove-destination ${PREFIXDIR1}${APPpath}/${APPname}.bin0 ${PREFIXDIR1}${APPpath}/${APPname} #restore original.
+     rm -f ${PREFIXDIR1}${APPpath}/${APPname}.bin0
+     rm -f ${PREFIXDIR1}${APPpath}/${APPname}.bin
+    elif [ -e ${PREFIXDIR1}${APPpath}/${APPname}.bin ];then
+     cp -a -f --remove-destination ${PREFIXDIR1}${APPpath}/${APPname}.bin ${PREFIXDIR1}${APPpath}/${APPname} #restore original.
+     rm -f ${PREFIXDIR1}${APPpath}/${APPname}.bin
+    fi
+   fi
+   #20210915 hide, so can bring back in future...
+   if [ -d ${PREFIXDIR1}/home/.${APPname} ];then #precaution.
+    rm -rf ${PREFIXDIR1}/home/.${APPname}
+   fi
+   mv -f ${PREFIXDIR1}/home/${APPname} ${PREFIXDIR1}/home/.${APPname} 2>/dev/null
+  ;;
+ esac
+ return 0
+}
+
+
 #20220916 set default open/save path to /files/Blender
 blender_func() {
  #setup the app to run as spot or root...
@@ -626,11 +666,11 @@ blender_func() {
    echo "#!/bin/bash
 APPbin='${APPpath}/${APPname}.bin'
 APPname='${APPname}'
-DESKTOPCODE='mkdir -p /files/Blender
+DESKTOPCODE='
 if [ ! -e /home/blender/.config/blender/3.3/config/recent-files.txt ];then
  mkdir -p /home/blender/.config/blender/3.3/config
- echo /files/Blender/new1.blend > /home/blender/.config/blender/3.3/config/recent-files.txt
- chown -R blender:blender /home/blender/.config/blender
+ echo /files/apps/blender/new1.blend > /home/blender/.config/blender/3.3/config/recent-files.txt
+ chown -R blender:blender /home/blender/.config
 fi
 '" > ${PREFIXDIR1}${APPpath}/${APPname}
    echo "$RUNASCLIENT" >> ${PREFIXDIR1}${APPpath}/${APPname}
@@ -916,6 +956,7 @@ case $APPname in
  firefox)   firefox_${APPflag}    ;; #20211107
  blender)   blender_func  ;; #20220916
  vivaldi)   vivaldi_func ;; #20230302
+ scribus)   scribus_func ;; #20230708
  *)         generic_func  ;;
 esac
 if [ $? -ne 0 ];then
