@@ -68,6 +68,7 @@
 #20230222 major rethink /usr/share/locale.in only exist in rootfs-skeleton
 #20230607 if newtranslations tarball already exists, make backup.
 #20230626 new sudo-sh
+#20230710 ignore .desktop with "NoDisplay=true"
 
 #***MOMANAGER IS ENGLISH ONLY (NOT GETTEXT'ED)***
 #it is for use by developers/translators with knowledge of english.
@@ -322,6 +323,7 @@ dPTN="\\[${ORIGLANG1}\\]"
 for aDESKTOP in `find /usr/share/applications -mindepth 1 -maxdepth 1 -type f -name '*.desktop' | grep -v ' ' | sort | tr '\n' ' '`
 do
  [ "`grep '^Icon' $aDESKTOP`" = "" ] && continue #some dummy .desktop files used by xfce, ignore them.
+ if grep -q '^NoDisplay=true' ${aDESKTOP};then continue; fi #20230710 ignore these
  aDESKNAME="`basename $aDESKTOP`"
  
  #20230213
