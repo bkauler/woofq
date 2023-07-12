@@ -86,6 +86,7 @@
 #20230222 major rethink /usr/share/locale.in only exist in rootfs-skeleton
 #20230309 have removed /usr/local/debget
 #20230708 apply /root/.packages/packages-templates/<app> if exists.
+#20230711 check .desktop file exists.
 
 #information from 'labrador', to expand a .pet directly to '/':
 #NAME="a52dec-0.7.4"
@@ -599,6 +600,7 @@ _END1
   [ -d /tmp/petget/template ] && rm -rf /tmp/petget/template
   [ -d /tmp/petget/original ] && rm -rf /tmp/petget/original
  fi
+ cd $DLPKG_PATH
  
  #131220...
  #have installed to temp $DIRECTSAVEPATH, now determine what is going to be overwritten...
@@ -856,6 +858,12 @@ fi
 
 for ONEDOT in `grep 'share/applications/.*\.desktop$' /root/.packages/${DLPKG_NAME}.files | tr '\n' ' '` #121119 exclude other strange .desktop files.
 do
+ #20230711 claws-mail, the template deletes claws-mail.desktop, replaces with claws.desktop
+ #hmmm, just assume claws.desktop doesn't need any fixing...
+ if [ ! -e "$ONEDOT" ];then
+  continue
+ fi
+ 
  #120901 get rid of param on end of Exec, ex: Exec=gimp-2.8 %U
  #sed -i -e 's/\(^Exec=[^%]*\).*/\1/' -e 's/ *$//' $ONEDOT #'s/\(^Exec=[^ ]*\).*/\1/'
  #121015 01micko: alternative that may work better...

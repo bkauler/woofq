@@ -44,6 +44,7 @@
 #20221023 may be running as zeus super-user. 20221031 think still need to bump to root.
 #20230309 have removed /usr/local/debget. make repo radiobuttons shorter, remove "debian-"
 #20230626 new sudo-sh
+#20230711 when called from /usr/bin/*.install script, has passed param "gen-tmp-files-only"
 
 #/usr/local/petget/service_pack.sh & #121125 offer download Service Pack.
 
@@ -59,6 +60,7 @@ if [ "$(whoami)" != "root" ];then
  fi
 fi
 
+PARAM1="$1" #20230711
 #export LANG=C
 mkdir -p /tmp/petget #120504
 mkdir -p /var/local/petget
@@ -257,6 +259,11 @@ do
  repocnt=`expr $repocnt + 1`
  [ $repocnt -ge 5 ] && break
 done
+
+#20230711
+if [ "$PARAM1" == "gen-tmp-files-only" ];then
+ exit 0
+fi
 
 ##100116 quirky...
 #QUIRKY_DB=''
