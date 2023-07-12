@@ -1,17 +1,17 @@
 #!/bin/sh
-#20230708 placemarker menu entry calls this script, to install scribus.
+#20230710 placemarker menu entry calls this script, to install Claws-Mail.
 
 export TEXTDOMAIN=pkg-install
 export OUTPUT_CHARSET=UTF-8
 
 #precaution...
-grep -q '|scribus|' /root/.packages/user-installed-packages 2>/dev/null
+grep -q '|claws-mail|' /root/.packages/user-installed-packages 2>/dev/null
 if [ $? -eq 0 ];then
  exit
 fi
-which scribus >/dev/null
+which claws >/dev/null
 if [ $? -eq 0 ];then
- E1="$(gettext 'ERROR: Scribus already installed')"
+ E1="$(gettext 'ERROR: Claws already installed')"
  popup "level=top background=#ffa0a0 terminate=ok|<big>${E1}</big>"
  exit
 fi
@@ -20,28 +20,28 @@ fi
 #DISTRO_COMPAT_VERSION=kirkstone DISTRO_BINARY_COMPAT=oe
 mkdir -p /tmp/petget
 
-export SCRIBUS_INSTALL_DLG="
-<window title=\"Scribus\" image-name=\"/usr/local/lib/X11/mini-icons/ballorange22.png\">
+export PKG_INSTALL_DLG="
+<window title=\"Claws\" image-name=\"/usr/local/lib/X11/mini-icons/ballorange22.png\">
 <vbox>
  <hbox>
-  <pixmap><input file>/usr/share/pixmaps/scribus.png</input></pixmap>
-  <text use-markup=\"true\"><label>\"<b>$(gettext 'Scribus desktop publishing')</b>\"</label></text>
+  <pixmap><input file>/usr/share/pixmaps/claws.png</input></pixmap>
+  <text use-markup=\"true\"><label>\"<b>$(gettext 'Claws Mail email client')</b>\"</label></text>
   <text><label>\"                      \"</label></text>
  </hbox>
  <text>
-  <label>\"$(gettext 'Scribus is not installed. It is a native application, available in the package repository via PKGget and you can install it by clicking on the INSTALL button.')
-$(gettext 'You may click the Online Information button to view the Scribus homepage in the web browser.')
+  <label>\"$(gettext 'Claws is not installed. It is a native application, available in the package repository via PKGget and you can install it by clicking on the INSTALL button.')
+$(gettext 'You may click the Online Information button to view the Claws homepage in the web browser.')
 \"</label>
  </text>
  <hbox>
-  <button><label>$(gettext 'Online Information')</label><action>mozbare https://www.scribus.net/ & </action></button>
+  <button><label>$(gettext 'Online Information')</label><action>mozbare https://www.claws-mail.org/ & </action></button>
   <button><label>$(gettext 'INSTALL')</label><action>EXIT:install</action></button>
   <button cancel></button>
  </hbox>
 </vbox>
 </window>
 "
-RETVARS="$(gtkdialog --program=SCRIBUS_INSTALL_DLG --center)" 
+RETVARS="$(gtkdialog --program=PKG_INSTALL_DLG --center)" 
 xRETVARS="$(echo "$RETVARS" | grep '^EXIT=')"
 eval "$xRETVARS"
 if [ "$EXIT" != "install" ];then
@@ -51,7 +51,7 @@ fi
 kill `pgrep -f mozbare` 2>/dev/null
 
 #oe will be -official but for debian may be -main, so have "-*" here...
-DBfnd="$(grep -H '|scribus|' /root/.packages/Packages-${DISTRO_BINARY_COMPAT}-${DISTRO_COMPAT_VERSION}-* | head -n 1)"
+DBfnd="$(grep -H '|claws-mail|' /root/.packages/Packages-${DISTRO_BINARY_COMPAT}-${DISTRO_COMPAT_VERSION}-* | head -n 1)"
 if [ ! "$DBfnd" ];then #precaution
  exit
 fi
@@ -67,7 +67,7 @@ DBreponame="${DBrepospec##*/}"
 DBrepotriad="${DBreponame#*-}" #ex: oe-kirkstone-official
 
 echo "${DBrepotriad}" > /tmp/petget/current-repo-triad
-echo "${TREE1}|mini-Document-layout|Scribus Open source desktop publishing|${DBrepotriad}|" > /tmp/petget/filterpkgs.results.post
+echo "${TREE1}|mini-Internet-mailnews|Claws Mail email client|${DBrepotriad}|" > /tmp/petget/filterpkgs.results.post
 
 #generates some needed files in /tmp then exit...
 /usr/local/petget/pkg_chooser.sh "gen-tmp-files-only"
@@ -76,21 +76,21 @@ echo "${TREE1}|mini-Document-layout|Scribus Open source desktop publishing|${DBr
 /usr/local/petget/installpreview.sh
 
 #exit if not installed...
-grep -q '|scribus|' /root/.packages/user-installed-packages 2>/dev/null
+grep -q '|claws-mail|' /root/.packages/user-installed-packages 2>/dev/null
 if [ $? -ne 0 ];then
  exit
 fi
 
-#run as user 'scribus'...
-setup-client "scribus=true"
+#run as user 'claws'...
+setup-client "claws=true"
 
-aAPP="Scribus"
-MENUtop="$(gettext 'Document')"
+aAPP="Claws"
+MENUtop="$(gettext 'Internet')"
 #based on code from /usr/local/flatpak/flatpak...
 M1="$(gettext 'This means that the app will only be able to save files in the home directory or anywhere in the /files folder.')
 $(gettext 'For your convenience, this folder has been created:')
   /files/apps/${aAPP,,}" 
-export PKG_INSTALLED_DLG1="<window title=\"$(gettext 'Scribus install: success')\" image-name=\"/usr/share/pixmaps/scribus.png\">
+export PKG_INSTALLED_DLG1="<window title=\"$(gettext 'Claws install: success')\" image-name=\"/usr/share/pixmaps/claws.png\">
   <vbox>
     <text><label>\"$(gettext 'Success, this application has been installed:')
   ${aAPP}
@@ -116,7 +116,7 @@ $(gettext 'Click the OK button for some final useful information...')\"</label><
 gtkdialog --center --program=PKG_INSTALLED_DLG1
 
 M3="$(gettext 'However, you may prefer to run some apps as the root user, a file-manager for example, where you want unfettered access to the entire filesystem, able to open, edit and save anywhere.')"
-export PKG_INSTALLED_DLG2="<window title=\"$(gettext 'Scribus install: notes')\" image-name=\"/usr/share/pixmaps/scribus.png\">
+export PKG_INSTALLED_DLG2="<window title=\"$(gettext 'Claws install: notes')\" image-name=\"/usr/share/pixmaps/claws.png\">
   <vbox>
     <frame>
       <text use-markup=\"true\"><label>\"<b>$(gettext 'Security notes')</b>\"</label></text>

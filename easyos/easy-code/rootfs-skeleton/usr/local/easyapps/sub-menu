@@ -32,12 +32,13 @@ elif [ "$MAINCAT" == "document" ];then
   pdfreader)  CATS='^Exec.*evince' ;;
   scanner)    CATS='^Categories.*X-Graphic-scanner' ;;
   texteditor) CATS='^Categories.*X-Document-edit|^Categories.*TextEditor'  ;;
-  wordprocessor) CATS='^Exec.*swriter|^Categories.*WordProcessor|^Exec.*abiword'  ;;
+  wordprocessor) CATS='^Exec.*swriter|^Categories.*WordProcessor|^Exec.*abiword|^Exec.*scribus'  ;;
  esac
 elif [ "$MAINCAT" == "graphic" ];then
  case "$SUBCAT" in
   2d3dcad)       CATS='^Exec.*solvespace|^Exec.*freecad|^Exec.*librecad' ;;
   bitmapeditor)  CATS='^Categories.*X-Graphic-paint|^Categories.*RasterGraphics' ;;
+  diagrameditor) CATS='^Categories.*X-Graphic-flow|^Categories.*FlowChart|^Exec.*vym|^Exec.*minder|^Exec.*heimer' ;;
   digitalcamera) CATS='^Categories.*X-Graphic-camera|^Categories.*Photography' ;;
   imageviewer)   CATS='^Categories.*X-Graphic-viewer' ;;
   paint)         CATS='^Categories.*X-Graphic-paint' ;;
@@ -48,12 +49,12 @@ elif [ "$MAINCAT" == "graphic" ];then
  esac
 elif [ "$MAINCAT" == "internet" ];then
  case "$SUBCAT" in
-  browser)       CATS='^Categories.*X-Internet-browser|^Categories.*WebBrowser'; EXCLUDE='ec-'; ;;
+  browser)       CATS='^Categories.*X-Internet-browser|^Categories.*WebBrowser|^Exec=mozilla'; EXCLUDE='ec-'; ;;
   chat)          CATS='^Categories.*X-Internet-chat|^Categories.*Chat|^Categories.*InstantMessaging|^Categories.*VideoConference' ;;
   download)      CATS='^Exec=pwsget|^Categories.*X-Internet-transfer|^Categories.*FileTransfer' ;;
   downloadvideo) CATS='^Exec.*youtube' ;;
-  email)         CATS='^Exec.*mozmail' ;;
-  filetransfer)  CATS='^Exec=gftp' ;;
+  email)         CATS='^Exec.*mozmail|^Exec.*claws|^Exec.*thunderbird|^Categories.*Email' ;;
+  filetransfer)  CATS='^Exec=gftp|^Categories.*X-Internet-transfer|^Categories.*FileTransfer' ;;
   networksecurity) CATS='^Categories.*X-Internet-block|^Exec.*firewall' ;;
   p2p)           CATS='^Categories.*P2P' ;;
   streaming)     CATS='^Exec.*pupradio|^Name.*streaming|^Name.*TV' ;;
@@ -68,6 +69,7 @@ elif [ "$MAINCAT" == "media" ];then
   desktoprecorder) CATS='^Exec=easycast' ;;
   mediaconverter)  CATS='^Exec=ffconvert' ;;
   videoplayer)     CATS='^Categories.*X-Multimedia-mediaplayer' ;;
+  videorecorder)   CATS='^Categories.*AudioVideoEditing' ;;
  esac
 elif [ "$MAINCAT" == "utility" ];then
  case "$SUBCAT" in

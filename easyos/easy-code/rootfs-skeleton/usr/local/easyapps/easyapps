@@ -32,6 +32,7 @@ Bicon='mini-edit.xpm';Bsub='wordprocessor';Bname1='$(gettext 'Word Processor')';
 ###Graphic###
 Gparams="Bicon='3dcad20.png';Bsub='2d3dcad';Bname1='$(gettext '2D/3D CAD')';Bname2='$(gettext 'Computer Aided Drafting')'
 Bicon='bitmap20.png';Bsub='bitmapeditor';Bname1='$(gettext 'Bitmap Editor')';Bname2='$(gettext 'Bitmap/pixel image editor')'
+Bicon='outline16.xpm';Bsub='diagrameditor';Bname1='$(gettext 'Diagram Editor')';Bname2='$(gettext 'Edit relationship diagrams')'
 Bicon='mini-camera.xpm';Bsub='digitalcamera';Bname1='$(gettext 'Digital camera')';Bname2='$(gettext 'Manager camera images')'
 Bicon='mini-eye.xpm';Bsub='imageviewer';Bname1='$(gettext 'Image Viewer')';Bname2='$(gettext 'Basic graphics browser')'
 Bicon='mini-Graphic-print.xpm';Bsub='photoprinter';Bname1='$(gettext 'Photo Printer')';Bname2='$(gettext 'Print graphics and photos')'
@@ -59,6 +60,7 @@ Bicon='mini-cd.xpm';Bsub='opticalburner';Bname1='$(gettext 'CD/DVD Burner')';Bna
 Bicon='mini.window3d.xpm';Bsub='desktoprecorder';Bname1='$(gettext 'Desktop Recorder')';Bname2='$(gettext 'Save desktop actions')'
 Bicon='converter20.png';Bsub='mediaconverter';Bname1='$(gettext 'Media Converter')';Bname2='$(gettext 'Audio/video transcoder')'
 Bicon='Animation.xpm';Bsub='videoplayer';Bname1='$(gettext 'Video Player')';Bname2='$(gettext 'Play audio/video media')'
+Bicon='Animation.xpm';Bsub='videorecorder';Bname1='$(gettext 'Video Recorder')';Bname2='$(gettext 'Record audio/video media')'
 "
 ###Utility###
 Uparams="Bicon='mini-clipboard.xpm';Bsub='clipboard';Bname1='$(gettext 'Clipboard')';Bname2='$(gettext 'Manage the clipboard')'
@@ -116,7 +118,18 @@ EOF1
 done
 
 
-EXIT_BTN="<hbox><button relief=\"2\" tooltip-text=\"$(gettext 'Close EasyApps')\"><input file>${MIP}/mini-cross.xpm</input><action>EXIT:quit</action></button></hbox>"
+EXIT_BTN="<hbox>
+ <pixmap>
+  <width>22</width>
+  <height>22</height>
+  <input file>/usr/local/lib/X11/mini-icons/ballorange22.png</input>
+ </pixmap>
+ <text>
+  <label>$(gettext ' = not installed')</label>
+ </text>
+ <text><label>\"    \"</label></text>
+ <button relief=\"2\" tooltip-text=\"$(gettext 'Close EasyApps')\"><input file>${MIP}/mini-cross.xpm</input><action>EXIT:quit</action></button>
+</hbox>"
 
 GUIHEIGHT="495"
 GUIWIDTH="668"
