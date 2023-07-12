@@ -301,6 +301,7 @@
 #20230616 chmod 700 so other apps cannot see inside /root
 #20230621 copy rootfs-skeleton/etc/sudo.conf. hack fix PuppyPin
 #20230708 restore #20120329: packages-templates copied into rootfs-complete/root/.packages
+#20230710 .desktop with Exec=*.install
 
 export LANG=C #faster.
 
@@ -1738,6 +1739,15 @@ rm -rf sandbox3/rootfs-complete/usr/share/doc/easy/images/choices
 if [ "$EOS_SUPPORT_CONTAINERS" == "0" ];then
  #20220530 remove the www, console, etc. inbuilt containers .desktop entries...
  rm -f sandbox3/rootfs-complete/usr/share/applications/ec-*.desktop
+fi
+
+#20230710 only have these for oe builds...
+if [ "$DISTRO_BINARY_COMPAT" != "oe" ];then
+ for aREM in $(grep -rl '^Exec=.*\.install$' sandbox3/rootfs-complete/usr/share/applications | tr '\n' ' ')
+ do
+  aDT="${aREM##*/}"
+  rm -f sandbox3/rootfs-complete/usr/share/applications/${aDT}
+ done
 fi
 
 #190110 translate home.htm, welcome.htm, help.htm... 20220525 always do this...
