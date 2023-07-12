@@ -55,6 +55,7 @@
 #20230511 run dbus-launch in <app>.bin  20230512 fix.
 #20230528 setgid bit. ref: https://bkhome.org/news/202305/setting-up-permissions-under-files-take-2.html
 #20230617 create /files/apps/$APPname (but not when called from 3buildeasydistro or dir2sfs)
+#20230708 scribus.
 
 APPname="${1/=*/}"  #ex: seamonkey
 APPflag="${1/*=/}" #ex: true
@@ -625,10 +626,12 @@ scribus_func() {
    echo "#!/bin/bash
 APPbin='${APPpath}/${APPname}.bin'
 APPname='${APPname}'
-DESKTOPCODE='mkdir -p /home/scribus/.config/scribus
-cp -f /root/.config/scribus/scribus150.rc /home/scribus/.config/scribus/
-sed -i -e s%/files/%/files/apps/scribus/% /home/scribus/.config/scribus/
-chown -R scribus:scribus /home/scribus/.config
+DESKTOPCODE='if [ ! -e /home/scribus/.config/scribus/scribus150.rc ];then
+ mkdir -p /home/scribus/.config/scribus
+ cp -f /root/.config/scribus/scribus150.rc /home/scribus/.config/scribus/
+ sed -i -e s%/files/%/files/apps/scribus/% /home/scribus/.config/scribus/
+ chown -R scribus:scribus /home/scribus/.config
+fi
 '" > ${PREFIXDIR1}${APPpath}/${APPname}
    echo "$RUNASCLIENT" >> ${PREFIXDIR1}${APPpath}/${APPname}
    chmod 755 ${PREFIXDIR1}${APPpath}/${APPname}
