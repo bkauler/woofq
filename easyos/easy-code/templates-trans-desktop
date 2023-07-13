@@ -1,0 +1,90 @@
+#!/bin/sh
+#20230712 insert Name and Comment translations into .desktop files.
+
+for aDT in $(find packages-templates -type f -name '*.desktop' | sort | tr '\n' ' ')
+do
+ grep -q '^Name\[' $aDT
+ if [ $? -eq 0 ];then
+  continue #already translated.
+ fi
+ grep -q 'Name=' $aDT
+ if [ $? -ne 0 ];then
+  continue
+ fi
+ echo "$aDT"
+ grep -v '^Name\[' $aDT > temp1.desktop
+ grep -v '^Comment\[' temp1.desktop > temp2.desktop
+ grep '^Name=' $aDT > temp.name
+ grep '^Comment=' $aDT > temp.comment
+ NAME="$(cat temp.name | cut -f 2 -d '=')"
+ COMMENT="$(cat temp.comment | cut -f 2 -d '=')"
+ if [ ! "$NAME" ];then #precaution
+  continue
+ fi
+ 
+ for aL in names comments
+ do
+  case "$aL" in
+   names)    aN="$NAME"; PARAM='Name' ;;
+   comments)
+    if [ ! "$COMMENT" ];then
+     continue
+    fi
+    aN="$COMMENT"
+    PARAM='Comment'
+   ;;
+  esac
+  
+  echo -n '' > ${aL}
+  
+  for aNLS in af am ar as ay az ba be bg bm bn bo bs ca co cs cv cy da de dv ee el eo es et eu fa fi fj fo fr fy ga gd gl gn gu ha he hi hr ht hu hy id ig is it iu ja jv ka kk km kn ko ku ky la lb lg ln lo lt lv mg mi mk ml mn mr ms mt my ne nl no ny om or pa pl ps pt-PT qu ro ru rw sa sd si sk sl sm sn so sq st su sv sw ta te tg th ti tk tl to tr ts tt tw ty ug uk ur uz vi xh yi yo zh-CN zu
+  do
+   echo -n '.'
+   for CNT in 1 2 3 4
+   do
+    [ $CNT -gt 1 ] && echo -n 'X'
+    TR1="$(timeout 5 trans -b en:${aNLS} "$aN" 2>/dev/null)"
+    if [ $? -ne 0 ];then
+     continue
+    fi
+    if [ "$TR1" ];then
+     break
+    fi
+    sleep 1
+   done
+   [ ! "$TR1" ] && continue
+   #suppress leading and trailing spaces...
+   # ref: https://unix.stackexchange.com/questions/102008/how-do-i-trim-leading-and-trailing-whitespace-from-each-line-of-some-output
+   echo -n "${PARAM}[${aNLS:0:2}]=" >> ${aL}
+   echo "$TR1" | awk '{$1=$1};1' >> ${aL}
+   sleep 0.5
+  done
+  echo
+
+  case "$aL" in
+   names)
+    #ref: https://unix.stackexchange.com/questions/32908/how-to-insert-the-content-of-a-file-into-another-file-before-a-pattern-marker
+    sed '/^Name=/e cat names' temp2.desktop > $aDT
+   ;;
+   comments)
+    grep -q '^Comment=' $aDT
+    if [ $? -eq 0 ];then
+     sed -i '/^Comment=/e cat comments' $aDT
+    fi
+   ;;
+  esac
+  sync
+
+ done
+ #exit #TEST
+done
+
+rm -f temp.name
+rm -f temp.comment
+rm -f names
+rm -f comments
+rm -f temp1.desktop
+rm -f temp2.desktop
+aplay /usr/share/audio/ok.wav
+###end###
+
