@@ -1,10 +1,20 @@
 #!/bin/sh
 #20230716 insert Name and Comment translations into .desktop files.
 # preserve any existing translations.
+#20230716 fix bug if more than one Name=, and some other fixes.
 
 CNT=1
 for aDT in $(find rootfs-skeleton/usr/share/applications rootfs-skeleton/usr/share/applications.in -maxdepth 1 -type f -name '*.desktop' | sort | tr '\n' ' ')
 do
+ #problem if more than one...
+ WC=$(grep '^Name=' $aDT | wc -l)
+ if [ $WC -gt 1 ];then
+  continue
+ fi
+ WC=$(grep '^Comment=' $aDT | wc -l)
+ if [ $WC -gt 1 ];then
+  continue
+ fi
  #grep -q '^Name\[' $aDT
  #if [ $? -eq 0 ];then
  # continue #already translated.
@@ -56,7 +66,7 @@ do
    for CNT in 1 2 3 4
    do
     [ $CNT -gt 1 ] && echo -n 'X'
-    TR1="$(timeout 6 trans -b en:${aNLS} "$aN" 2>/dev/null)"
+    TR1="$(timeout 6 trans -b en:${aNLS} "$aN" 2>/dev/null | head -n 1)"
     if [ $? -ne 0 ];then
      continue
     fi
@@ -69,7 +79,7 @@ do
    #suppress leading and trailing spaces...
    # ref: https://unix.stackexchange.com/questions/102008/how-do-i-trim-leading-and-trailing-whitespace-from-each-line-of-some-output
    echo -n "${PARAM}[${aNLS:0:2}]=" >> ${aL}
-   echo "$TR1" | awk '{$1=$1};1' | tr -d '"' >> ${aL}
+   echo "$TR1" | awk '{$1=$1};1' | tr -d '"' | tr -d "'" >> ${aL}
    sleep 0.5
   done
   echo

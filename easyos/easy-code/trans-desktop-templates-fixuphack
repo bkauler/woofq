@@ -1,8 +1,22 @@
 #!/bin/sh
 #20230712 insert Name and Comment translations into FIXUPHACK files.
+#20230716 fix bug if more than one Name=, and some other fixes.
 
 for aDT in $(find packages-templates -type f -name 'FIXUPHACK' | sort | tr '\n' ' ')
 do
+ #problem if more than one...
+ WC=$(grep '^Name=' $aDT | wc -l)
+ if [ $WC -gt 1 ];then
+  continue
+ fi
+ WC=$(grep '^Comment=' $aDT | wc -l)
+ if [ $WC -gt 1 ];then
+  continue
+ fi
+ grep -q '^NoDisplay=true' $aDT
+ if [ $? -eq 0 ];then
+  continue
+ fi
  grep -q '^Name\[' $aDT
  if [ $? -eq 0 ];then
   continue #already translated.
@@ -44,7 +58,7 @@ do
    for CNT in 1 2 3 4
    do
     [ $CNT -gt 1 ] && echo -n 'X'
-    TR1="$(timeout 5 trans -b en:${aNLS} "$aN" 2>/dev/null)"
+    TR1="$(timeout 5 trans -b en:${aNLS} "$aN" 2>/dev/null | head -n 1)"
     if [ $? -ne 0 ];then
      continue
     fi
