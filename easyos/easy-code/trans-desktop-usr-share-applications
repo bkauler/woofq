@@ -19,6 +19,10 @@ do
  #if [ $? -eq 0 ];then
  # continue #already translated.
  #fi
+ grep -q '^\[D-BUS Service\]' $aDT
+ if [ $? -eq 0 ];then
+  continue
+ fi
  grep -q '^NoDisplay=true' $aDT
  if [ $? -eq 0 ];then
   continue

@@ -13,6 +13,10 @@ do
  if [ $WC -gt 1 ];then
   continue
  fi
+ grep -q -F '[D-BUS Service]' $aDT
+ if [ $? -eq 0 ];then
+  continue
+ fi
  grep -q '^NoDisplay=true' $aDT
  if [ $? -eq 0 ];then
   continue
