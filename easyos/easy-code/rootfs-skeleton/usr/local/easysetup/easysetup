@@ -47,6 +47,7 @@ Bicon='mini-Desktop-settings.xpm';Bsub='pupx';Bname1='$(gettext 'pupX')';Bname2=
 Bicon='mini-ray.xpm';Bsub='quicksetup';Bname1='$(gettext 'QuickSetup')';Bname2='$(gettext 'Lots of settings in one big window')'
 Bicon='mini-sh.xpm';Bsub='terminal';Bname1='$(gettext 'Terminal')';Bname2='$(gettext 'Manage terminal emulators')'
 Bicon='wizard16.xpm';Bsub='videowizard';Bname1='$(gettext 'Video Wizard')';Bname2='$(gettext 'Configure all aspects of Xorg')'
+Bicon='qemu22.png';Bsub='virtualmachines';Bname1='$(gettext 'Virtual Machines')';Bname2='$(gettext 'Create and manage VMs')'
 Bicon='mini-lock.xpm';Bsub='xlock';Bname1='$(gettext 'Xlock')';Bname2='$(gettext 'Configure screen locking')'
 "
 
@@ -89,8 +90,18 @@ EOF1
  esac
 done
 
-
-EXIT_BTN="<hbox><button relief=\"2\" tooltip-text=\"$(gettext 'Close EasySetup')\"><input file>${MIP}/mini-cross.xpm</input><action>EXIT:quit</action></button></hbox>"
+EXIT_BTN="<hbox>
+ <pixmap>
+  <width>22</width>
+  <height>22</height>
+  <input file>/usr/local/lib/X11/mini-icons/ballorange22.png</input>
+ </pixmap>
+ <text>
+  <label>$(gettext ' = not installed')</label>
+ </text>
+ <text><label>\"    \"</label></text>
+ <button relief=\"2\" tooltip-text=\"$(gettext 'Close EasySetup')\"><input file>${MIP}/mini-cross.xpm</input><action>EXIT:quit</action></button>
+</hbox>"
 
 GUIHEIGHT="495"
 GUIWIDTH="668"
