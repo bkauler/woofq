@@ -34,6 +34,7 @@
 #20220607 problem when remove online sfs files, but user already has downloaded .specs and .png files.
 #20220608 fixes. 
 #20221125 fix finding paths to sfs files. ref: https://forum.puppylinux.com/viewtopic.php?p=73599#p73599
+#20230714 comment-out an if condition.
 
 export TEXTDOMAIN=sfsget
 export OUTPUT_CHARSET=UTF-8
@@ -1207,9 +1208,10 @@ mkdir -p /usr/local/easy_containers/templates/${SFS_DB_nameonly}
 #/usr/local/easy_containers/setup-container will read this...
 #190911 3buildeasydistro creates easy.sfs without easy.configuration file...
 if [ -f mntpt/.control/${SFS_DB_nameonly}.configuration ];then
- if [ ! -f /usr/local/easy_containers/templates/${SFS_DB_nameonly}/configuration ];then
+ #20230714 comment-out the if...
+ #if [ ! -f /usr/local/easy_containers/templates/${SFS_DB_nameonly}/configuration ];then
   cp -f --remove-destination mntpt/.control/${SFS_DB_nameonly}.configuration /usr/local/easy_containers/templates/${SFS_DB_nameonly}/configuration
- fi
+ #fi
 fi
 
 ###setup container###
