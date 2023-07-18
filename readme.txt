@@ -16,9 +16,9 @@ woofQ, as per the other woof* build systems, is able to import binary packages f
 
 Also, binary packages compiled from source by T2sde or OpenEmbedded/Yocto (OE) can be imported.
 
-The current Dunfell-series of EasyOS is built from packages compiled in OE, see the project here:
+The current Kirkstone-series of EasyOS is built from packages compiled in OE, see the project here:
 
-https://github.com/bkauler/oe-qky-dunfell
+https://github.com/bkauler/oe-qky-kirkstone
 
 The website for EasyOS:
 
