@@ -87,6 +87,7 @@
 #20230309 have removed /usr/local/debget
 #20230708 apply /root/.packages/packages-templates/<app> if exists.
 #20230711 check .desktop file exists.
+#20230718 some fixes
 
 #information from 'labrador', to expand a .pet directly to '/':
 #NAME="a52dec-0.7.4"
@@ -591,11 +592,12 @@ _END1
     sh ./FIXUPHACK
     rm -f ${DIRECTSAVEPATH}/FIXUPHACK
    fi
-   if [ -f /tmp/petget/template/pinstall.sh ];then
-    cp -af /tmp/petget/template/pinstall.sh ${DIRECTSAVEPATH}/
-    ./pinstall.sh
-    rm -f ${DIRECTSAVEPATH}/pinstall.sh
-   fi
+   #20230718 remove, this is done further down...
+   #if [ -f /tmp/petget/template/pinstall.sh ];then
+   # cp -af /tmp/petget/template/pinstall.sh ${DIRECTSAVEPATH}/
+   # ./pinstall.sh
+   # rm -f ${DIRECTSAVEPATH}/pinstall.sh
+   #fi
   fi
   [ -d /tmp/petget/template ] && rm -rf /tmp/petget/template
   [ -d /tmp/petget/original ] && rm -rf /tmp/petget/original
@@ -846,7 +848,8 @@ if [ -f /usr/local/petget/categories.dat ];then #precaution, but it will be ther
   esac
   xnPTN=" ${xNAMEONLY} "
   #130126 categories.dat format changed slightly... 130219 ignore case...
-  CATVARIABLE="$(grep -i "$xnPTN" /usr/local/petget/categories.dat | grep '^PKGCAT' | head -n 1 | cut -f 1 -d '=' | cut -f 2,3 -d '_' | tr '_' '-')" #ex: PKGCAT_Graphic_camera=" gphoto2 gtkam "
+  #20230718 CATVARIABLE=PKGCAT_Utility_Sub, drop the "_Sub"
+  CATVARIABLE="$(grep -i "$xnPTN" /usr/local/petget/categories.dat | grep '^PKGCAT' | head -n 1 | cut -f 1 -d '=' | cut -f 2,3 -d '_' | sed -e 's%_Sub$%%' | tr '_' '-')" #ex: PKGCAT_Graphic_camera=" gphoto2 gtkam "
   if [ "$CATVARIABLE" ];then #ex: Graphic-camera
    xCATEGORY="X-${CATVARIABLE}"
    cPATTERN="s%^Categories=.*%Categories=${xCATEGORY}%" #121120

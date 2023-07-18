@@ -98,6 +98,7 @@
 #20230221 improve finding .mo files in usr/share/locale.in. fix find .desktop files.
 #20230222 major rethink /usr/share/locale.in only exist in rootfs-skeleton  20230224 fix sort.
 #20230309 support compat:kirkstone
+#20230718 CATVARIABLE=PKGCAT_Utility_Sub, drop the "_Sub"
 
 export LANG=C #faster.
 
@@ -1001,7 +1002,8 @@ then run this script again and choose to build ${GENERICNAME}." >> ERROR-2CREATE
     esac
     xnPTN=" ${xNAMEONLY} "
     #130219 categories.dat format changed slightly... ignore case...
-    CATVARIABLE="$(grep -i "$xnPTN" /usr/local/petget/categories.dat | grep '^PKGCAT' | head -n 1 | cut -f 1 -d '=' | cut -f 2,3 -d '_' | tr '_' '-')" #ex: PKGCAT_Graphic_camera=" gphoto2 gtkam "
+    #20230718 CATVARIABLE=PKGCAT_Utility_Sub, drop the "_Sub"
+    CATVARIABLE="$(grep -i "$xnPTN" /usr/local/petget/categories.dat | grep '^PKGCAT' | head -n 1 | cut -f 1 -d '=' | cut -f 2,3 -d '_' | sed -e 's%_Sub$%%' | tr '_' '-')" #ex: PKGCAT_Graphic_camera=" gphoto2 gtkam "
     if [ "$CATVARIABLE" ];then #ex: Graphic-camera
      xCATEGORY="X-${CATVARIABLE}"
      cPATTERN="s%^Categories=.*%Categories=${xCATEGORY}%"
