@@ -8,6 +8,14 @@
 #200820 moved 200609 up, to be sure fixmenus run before jwm has started.
 #200827 200609: removing old .desktop files code moved to rc.sysinit
 #20211207 check that /root/.mozilla/seamonkey exists.
+#20230718 rebuild /etc/xdg/rox.sourceforge.net
+
+#20230718 when update, not first pristine-boot...
+if [ -f /.sfschg.flg -a -f /etc/networkmodules ];then
+ #init script in initrd erases /etc/xdg when update, need to rebuild right-click
+ #menu if there are user-installed packages...
+ build-rox-sendto
+fi
 
 #131217 only do this on very first boot... 170920...
 if [ -f /.sfschg.flg -o ! -f /etc/networkmodules ];then
