@@ -3,7 +3,7 @@
 #GPL
 #radky: cutdown version
 
-mkdir -p /tmp/jwmdesk
+mkdir -p /tmp/easyjwm
 
 #generate header/banner for Gtkdialog apps
 case $1 in
@@ -18,7 +18,7 @@ case $1 in
 	if  ldd $(which gtkdialog) | grep -Fq 'gtk-3'; then
 		echo 'notebook#BgSVG {
 	background-image: url("/tmp/xml_info.svg");
-}' > /tmp/jwmdesk/gtkrc_xml_info.css
+}' > /tmp/easyjwm/gtkrc_xml_info.css
 	fi
 
 	#redefine gtk-theme for GTK2 apps

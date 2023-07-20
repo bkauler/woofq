@@ -6,7 +6,7 @@
 # radky 151020: adjust for JWMDesk
 ###############################################################################
 
-export TEXTDOMAIN=puppy
+export TEXTDOMAIN=easyjwm
 export OUTPUT_CHARSET=UTF-8
 
 #------------------------------------------------------------------------------
@@ -24,7 +24,7 @@ trap 'rm -rf $TMPDIR' EXIT
 export FAKE="`echo -e '\x00\xe2\x88\xa3'`"   # Divides (U+2223)
 
 #[ -e /usr/share/pixmaps/puppy/keyboard.svg ] && PIC_PATH=/usr/share/pixmaps/puppy/keyboard.svg || PIC_PATH=/usr/local/lib/X11/mini-icons/mini-keyboard.xpm
-PIC_PATH=/usr/local/jwmdesk/icons/keyboard_shortcut.svg
+PIC_PATH=/usr/local/easyjwm/icons/keyboard_shortcut.svg
 
 #------------------------------------------------------------------------------
 
@@ -463,7 +463,7 @@ export GUI_MAIN='
       <button>
         <label>'$(gettext "Help")'</label>
         <input file stock="gtk-help"></input>
-        <action>func_msg INFO -file /usr/local/jwmdesk/keyConfigHelp &</action>
+        <action>func_msg INFO -file /usr/local/easyjwm/keyConfigHelp &</action>
       </button>
 
       <button>

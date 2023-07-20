@@ -6,7 +6,7 @@
 #  icon gap is automatic (see ICON_PLACE_EDGE_GAP in /etc/eventmanager) then
 #  all icons need to be redrawn.
 
-export TEXTDOMAIN=jwmdesk
+export TEXTDOMAIN=easyjwm
 export OUTPUT_CHARSET=UTF-8
 
 [ ! -f /etc/uimanager ] && gtkdialog-splash -close never -timeout 5 -margin 10 -placement center -fontsize large -bg goldenrod -text "   $(gettext 'This application requires EasyOS !')   " && exit 0
@@ -27,7 +27,7 @@ if [ "$UI_DESK_MANAGER" = "jwm" ]; then
   sleep 0.2
   exec restartwm
  else
-  /usr/local/jwmdesk/jwmdesk &
+  /usr/local/easyjwm/easyjwm &
  fi
 else
  REPLY=`Xdialog --stdout --title " $(gettext 'EasyOS Desktop') " --backtitle " $(gettext 'This will restart X, please close all apps now !') " --no-tags --cancel-label "$(gettext 'Cancel')" --ok-label "$(gettext 'Continue') " --radiolist "$(gettext 'ROX Desktop enabled')" 0 0 3  "1" "$(gettext 'ROX Desktop')" "on"  "2" "$(gettext 'JWM Desktop')" "off" `
@@ -42,7 +42,7 @@ else
   sleep 0.2
   exec restartwm
  else
-  /usr/local/jwmdesk/jwmdesk &
+  /usr/local/easyjwm/easyjwm &
  fi
 fi
 

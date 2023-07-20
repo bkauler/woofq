@@ -4,10 +4,10 @@
 # by parsing recently-used.xbel and creating a list of
 # the files recently opened by GTK open/save dialogs.
 
-export TEXTDOMAIN=jwmdesk
+export TEXTDOMAIN=easyjwm
 export OUTPUT_CHARSET=UTF-8
 
-PREFDIR="/usr/local/jwmdesk/preferences"
+PREFDIR="/usr/local/easyjwm/preferences"
 XBEL_PATH="${HOME}/.local/share/recently-used.xbel"
 
 if [[ -e ${XBEL_PATH} ]]; then
@@ -58,7 +58,7 @@ if [ ! -x /tmp/recentfiles_max ]; then
  recentfiles_max='#!/bin/sh
  export TEXTDOMAIN=recentfiles
  export OUTPUT_CHARSET=UTF-8
- PREFDIR="/usr/local/jwmdesk/preferences"
+ PREFDIR="/usr/local/easyjwm/preferences"
  MAX_FILES=$(cat ${PREFDIR}/max-files)
  REPLY=$(Xdialog --stdout --title "$(gettext '"'Recent Files'"')" --no-cancel \
  --rangebox "$(gettext '"'Maximum Number of Files'"')" 10 60 10 25 ${MAX_FILES} )
