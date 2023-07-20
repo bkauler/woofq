@@ -21,6 +21,7 @@
 #20220413 set tray width & height when flip between rox-mode and jwm-mode.
 #20220526 support EOS_SUPPORT_CONTAINERS==0
 #20230602 toggle touchpad on/off
+#20230720 default.jpg/.png mismatch.
 
 . /etc/rc.d/PUPSTATE #20220526 has EOS_SUPPORT_CONTAINERS
 
@@ -78,6 +79,22 @@ echo -n "$SCRN_Y" > /var/local/pup_event_frontend_scrn_y
 /sbin/clean_desk_icons #v4.02 tidy up drive icons first.
 #/sbin/pup_event_frontend_d &
 #130525 ...start this further down.
+
+#20230720 not sure how this is happening, default.jpg/.png mismatch...
+# think, version update, default.png<-->default.jpg change
+BGjwm="$(grep -o '/usr/share/backgrounds/[^<]*' /root/.jwm/jwmrc-personal | head -n 1)"
+if [ ! -f "$BGjwm" ];then
+ #remove from <Background tag, think will get recreated below...
+ #sed -i -e "s%%${BGjwm}%%" /root/.jwm/jwmrc-personal
+ #um, no set to unshaped default...
+ if [ -f /usr/share/backgrounds/default.png ];then
+  jPTN="s%<Background.*%<Background type=\"image\">/usr/share/backgrounds/default.png</Background>%"
+  sed -i -e "$jPTN" /root/.jwm/jwmrc-personal
+ elif [ -f /usr/share/backgrounds/default.jpg ];then
+  jPTN="s%<Background.*%<Background type=\"image\">/usr/share/backgrounds/default.jpg</Background>%"
+  sed -i -e "$jPTN" /root/.jwm/jwmrc-personal
+ fi
+fi
 
 #140101 maybe need to truncate image for widescreen...
 /usr/sbin/background_reshape
