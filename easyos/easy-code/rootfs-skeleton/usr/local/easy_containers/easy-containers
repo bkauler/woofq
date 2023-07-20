@@ -34,7 +34,7 @@
 #20220208 set flag if rox is managing desktop icons. 20220210 read /etc/uimanager
 #20220218 generate-containers-menu writes to /root/.jwmrc-containers internally.
 #20220218 no longer using ROXDESKflg.
-#20220423 y-axis icon coords. ref: jwmdesk /usr/local/desksetup/func, see also ec-fix-desktop
+#20220423 y-axis icon coords. ref:  ec-fix-desktop
 #20220524 rename mnt/easy_ro to mnt/.easy_ro, ditto easy_rw
 #20220603 replace DB_* with SFS_DB_* in sfs .specs files.
 #20220809 removed picscale, now resize images with ffmpeg.
@@ -400,7 +400,7 @@ echo '#Tick to run as user spot in container:' >> /mnt/${WKG_DEV}/${WKG_DIR}cont
   ICON="$(grep '^Icon=' /usr/share/applications/ec-${EC_CREATE}.desktop | cut -f 2 -d '=')" #180407
   sed -i -e "s%^Icon=.*%Icon=container48.png%" /usr/share/applications/ec-${EC_CREATE}.desktop
   
-  #20220423 ref: jwmdesk /usr/local/desksetup/func, see also ec-fix-desktop
+  #20220423 ref: ec-fix-desktop
   Y_EDGE_GAP=32; Y_SPACING=96
   Y1=128; Y2=224; Y3=320; Y4=416
   if [ -d /root/.desksetup ];then
