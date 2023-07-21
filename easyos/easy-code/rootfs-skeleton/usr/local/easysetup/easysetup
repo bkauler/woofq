@@ -5,6 +5,14 @@
 export TEXTDOMAIN=easysetup
 export OUTPUT_CHARSET=UTF-8
 
+#20230721 display less if running inside a container...
+ls /INSIDE_* >/dev/null 2>&1
+if [ $? -eq 0 ];then
+ CONTflg=1
+else
+ CONTflg=0
+fi
+
 EAP="/usr/local/easysetup"
 MIP="/usr/local/lib/X11/mini-icons"
 
@@ -19,7 +27,8 @@ Bicon='mini-Desktop-appearance.xpm';Bsub='jwmthemes';Bname1='$(gettext 'JWM Them
 Bicon='mini-cave.xpm';Bsub='wallpaper';Bname1='$(gettext 'Wallpaper')';Bname2='$(gettext 'Choose a background')'
 "
 ###EasyOS###
-Eparams="Bicon='boot20.png';Bsub='bootup';Bname1='$(gettext 'Bootup')';Bname2='$(gettext 'Configure next bootup')'
+if [ $CONTflg -eq 0 ];then
+ Eparams="Bicon='boot20.png';Bsub='bootup';Bname1='$(gettext 'Bootup')';Bname2='$(gettext 'Configure next bootup')'
 Bicon='mini-Filesystem-audit.xpm';Bsub='easycontainers';Bname1='$(gettext 'Easy Containers')';Bname2='$(gettext 'Create and manage containers')'
 Bicon='mini-ray.xpm';Bsub='easydd';Bname1='$(gettext 'EasyDD')';Bname2='$(gettext 'Write image file to a drive')'
 Bicon='mini-ray.xpm';Bsub='remaster';Bname1='$(gettext 'Remaster')';Bname2='$(gettext 'Remaster EasyOS')'
@@ -27,8 +36,13 @@ Bicon='mini-ray.xpm';Bsub='removebuiltin';Bname1='$(gettext 'Remove Builtin')';B
 Bicon='mini-lower.xpm';Bsub='update';Bname1='$(gettext 'Update')';Bname2='$(gettext 'Update to latest version of EasyOS')'
 Bicon='mini-Filesystem-audit.xpm';Bsub='versioncontrol';Bname1='$(gettext 'Version Control')';Bname2='$(gettext 'Take snapshots, rollback/forward')'
 "
+else #running in container...
+ Eparams=""
+fi
+
 ###Hardware###
-Hparams="Bicon='mini-speaker.xpm';Bsub='audio';Bname1='$(gettext 'Audio')';Bname2='$(gettext 'Setup audio input and output')'
+if [ $CONTflg -eq 0 ];then
+ Hparams="Bicon='mini-speaker.xpm';Bsub='audio';Bname1='$(gettext 'Audio')';Bname2='$(gettext 'Setup audio input and output')'
 Bicon='bluepup.xpm';Bsub='bluetooth';Bname1='$(gettext 'Bluetooth')';Bname2='$(gettext 'Setup Bluetooth devices')'
 Bicon='mini-clock.xpm';Bsub='clock';Bname1='$(gettext 'Clock')';Bname2='$(gettext 'Setup date and time')'
 Bicon='mini-cpu.png';Bsub='cpufrequency';Bname1='$(gettext 'CPU Frequency')';Bname2='$(gettext 'CPU frequency scaling tool')'
@@ -38,8 +52,19 @@ Bicon='mini-display.xpm';Bsub='multiplemonitors';Bname1='$(gettext 'Multiple Mon
 Bicon='mini-display-bright.xpm';Bsub='screenbrightness';Bname1='$(gettext 'Screen Brightness')';Bname2='$(gettext 'Set screen tint and brightness')'
 Bicon='mini-touchpad.png';Bsub='touchpad';Bname1='$(gettext 'Touchpad')';Bname2='$(gettext 'Configure a touchpad')'
 "
+else
+ Hparams="Bicon='mini-speaker.xpm';Bsub='audio';Bname1='$(gettext 'Audio')';Bname2='$(gettext 'Setup audio input and output')'
+Bicon='mini-System-print.xpm';Bsub='cups';Bname1='$(gettext 'CUPS')';Bname2='$(gettext 'Setup your printer/scanner')'
+Bicon='hid24.png';Bsub='hid';Bname1='$(gettext 'HID')';Bname2='$(gettext 'Setup mouse and keyboard')'
+Bicon='mini-display.xpm';Bsub='multiplemonitors';Bname1='$(gettext 'Multiple Monitors')';Bname2='$(gettext 'Manage multiple monitors')'
+Bicon='mini-display-bright.xpm';Bsub='screenbrightness';Bname1='$(gettext 'Screen Brightness')';Bname2='$(gettext 'Set screen tint and brightness')'
+Bicon='mini-touchpad.png';Bsub='touchpad';Bname1='$(gettext 'Touchpad')';Bname2='$(gettext 'Configure a touchpad')'
+"
+fi
+
 ###System###
-Sparams="Bicon='Executable.xpm';Bsub='defaultapps';Bname1='$(gettext 'Default Apps')';Bname2='$(gettext 'Choose default applications')'
+if [ $CONTflg -eq 0 ];then
+ Sparams="Bicon='Executable.xpm';Bsub='defaultapps';Bname1='$(gettext 'Default Apps')';Bname2='$(gettext 'Choose default applications')'
 Bicon='so.xpm';Bsub='eventmanager';Bname1='$(gettext 'Event Manager')';Bname2='$(gettext 'Configure desktop events')'
 Bicon='mini-font.xpm';Bsub='locale';Bname1='$(gettext 'Locale')';Bname2='$(gettext 'Country localization')'
 Bicon='mini-hdisk.xpm';Bsub='partitions';Bname1='$(gettext 'Partitions')';Bname2='$(gettext 'Create and manage drive partitions')'
@@ -50,6 +75,13 @@ Bicon='wizard16.xpm';Bsub='videowizard';Bname1='$(gettext 'Video Wizard')';Bname
 Bicon='qemu22.png';Bsub='virtualmachines';Bname1='$(gettext 'Virtual Machines')';Bname2='$(gettext 'Create and manage VMs')'
 Bicon='mini-lock.xpm';Bsub='xlock';Bname1='$(gettext 'Xlock')';Bname2='$(gettext 'Configure screen locking')'
 "
+else #running in container...
+ Sparams="Bicon='Executable.xpm';Bsub='defaultapps';Bname1='$(gettext 'Default Apps')';Bname2='$(gettext 'Choose default applications')'
+Bicon='so.xpm';Bsub='eventmanager';Bname1='$(gettext 'Event Manager')';Bname2='$(gettext 'Configure desktop events')'
+Bicon='mini-font.xpm';Bsub='locale';Bname1='$(gettext 'Locale')';Bname2='$(gettext 'Country localization')'
+Bicon='mini-sh.xpm';Bsub='terminal';Bname1='$(gettext 'Terminal')';Bname2='$(gettext 'Manage terminal emulators')'
+"
+fi
 
 for aCAT in Desktop EasyOS Hardware System
 do
