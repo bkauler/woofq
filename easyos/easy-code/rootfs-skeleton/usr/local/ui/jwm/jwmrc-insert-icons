@@ -3,6 +3,7 @@
 # called from /root/.xinitrc when X starts.
 #20220413 sfsget now has icon sfs48.png
 #20220530 EOS_TOP_LEVEL_ZRAM==1 then have "save" icon.
+#20230720 no longer separate pkgget & sfsget icons.
 
 export TEXTDOMAIN=ui-jwm
 export OUTPUT_CHARSET=UTF-8
@@ -20,11 +21,11 @@ if [ ! -f /root/.jwm/tray-icons ];then
  mCONNECT="$(gettext 'connect')"
  mSHARE="$(gettext 'share')"
  mUPDATE="$(gettext 'update')"
+ mPKG="$(gettext 'pkg')"
  echo "		<TrayButton ${LABEL}=\"${mFILES}\" icon=\"folders48.png\">exec:/usr/local/bin/rox --dir=/files</TrayButton>
 		<TrayButton ${LABEL}=\"${mWWW}\" icon=\"www48.png\">exec:defaultbrowser</TrayButton>
 		<TrayButton ${LABEL}=\"${mAPPS}\" icon=\"apps48.png\">exec:easyapps</TrayButton>
-		<TrayButton ${LABEL}=\"pkgget\" icon=\"pet48.png\">exec:dotpup</TrayButton>
-		<TrayButton ${LABEL}=\"sfsget\" icon=\"sfs48.png\">exec:sfsget</TrayButton>
+		<TrayButton ${LABEL}=\"${mPKG}\" icon=\"pet48.png\">exec:pkg-wrap</TrayButton>
 		<TrayButton ${LABEL}=\"${mSETUP}\" icon=\"configuration48.png\">exec:easysetup</TrayButton>
 		<TrayButton ${LABEL}=\"${mEDIT}\" icon=\"edit48.png\">exec:defaulttexteditor</TrayButton>
 		<TrayButton ${LABEL}=\"${mCONSOLE}\" icon=\"console48.png\">exec:defaultterminal</TrayButton>
