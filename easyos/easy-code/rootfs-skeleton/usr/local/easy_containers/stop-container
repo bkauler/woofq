@@ -19,6 +19,7 @@
 #190220 minibase network utilities.
 #20230326 remove all reference to file EASYPAK, not used anymore.
 #20230326 file base-load-list has a list of .sfs files, but allow a folder name.
+#20230721 lazy unmount.
 
 [ ! $1 ] && exit 1
 EXE="$1"
@@ -160,7 +161,8 @@ else
    [ ! -f $aSFS ] && continue
    ANAME="$(basename $aSFS .sfs)" #ex: easy
    echo "Unmounting: ${aSFS}"
-   busybox umount .${ANAME}
+   #20230721 lazy unmount...
+   busybox umount -l .${ANAME}
   fi
  done 
 fi
@@ -173,7 +175,8 @@ do
   if [ -f "$ROsfs" ];then
    echo "Unmounting: ${ROsfs}"
    ANAME="${ROsfs/.sfs/}"
-   busybox umount .${ANAME}
+   #20230721 lazy unmount...
+   busybox umount -l .${ANAME}
   fi
  fi
 done
