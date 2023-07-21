@@ -312,7 +312,7 @@ cat >> ${NEWFILE} <<_EOF
        <tr>
         <td valign="top">${MSGk1}
         </td>
-        <td valign="top"><img src="images/icon-free-desk.jpg" alt="applets" width="560" height="420">
+        <td valign="top"><img src="images/icon-free-desk.jpg" alt="applets" width="560" height="315">
         </td>
        </tr>
       </tbody>
