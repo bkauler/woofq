@@ -41,6 +41,7 @@
 #20230423 remove complicated code that may be removing desktop icons from PuppyPin
 #20230423 make sure "pkg" icon runs pkg-wrap (easy 5.2.2) --can remove this later, after everyone hass updated.
 #20230510 preserve flatpak user customizations.
+#20230723 retain any user-set /usr/local/bin/default*
 
 WKG_DRV=$1 #ex: sda
 WKG_DEV=$2 #ex: sda2
@@ -93,6 +94,10 @@ do
   [ -h /easy_ro/easy_sfs/"$onespec" -o -f /easy_ro/easy_sfs/"$onespec" ] && rm -rf "$onespec"
  else #file
   case "$onespec" in
+   usr/local/bin/default*)
+    #20230723 retain any user-set defaults...
+    continue
+   ;;
    */.wh.*)
     basefile="${onespec##*.}" #ex: usr/lib/.wh.afile becomes afile
     basepath="${onespec%/*}"  #ex: usr/lib/.wh.afile usr/lib
