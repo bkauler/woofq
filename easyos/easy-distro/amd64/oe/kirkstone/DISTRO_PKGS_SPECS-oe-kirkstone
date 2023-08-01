@@ -161,6 +161,7 @@ yes|fdk-aac|fdk-aac|exe,dev,doc,nls|compat:kirkstone| #20221224 needed by ffmpeg
 yes|ffconvert||exe,dev,doc,nls|pet:noarch
 yes|ffmpeg|ffmpeg|exe,dev,doc,nls|compat:kirkstone
 yes|fftag||exe|pet:noarch| #replaces pmetatagger.
+yes|fftw|fftw|exe,dev,doc,nls|compat:kirkstone| #20230801 needed by mlt
 yes|file|file|exe,dev,doc,nls|compat:kirkstone
 yes|findutils|findutils|exe,dev,doc,nls|compat:kirkstone
 no|firefox-skeleton||exe|pet:noarch| #trying chromium. 20221222  20230312 yes, want mozbare. 20230316 no
@@ -178,6 +179,7 @@ yes|flatpak|flatpak|exe,dev,doc,nls|compat:kirkstone| #20230406
 no|flatpak-xdg-utils||exe,dev,doc,nls|pet:kirkstone| #20230619 think needs xdg-desktop-portal
 yes|flex|flex|exe>dev,dev,doc,nls|compat:kirkstone
 yes|floppy-format-noarch||exe|pet:noarch| #needs ufiformat.
+yes|flowblade||exe,dev,doc,nls|pet:noarch| #20230801 video editor.
 yes|flsynclient|flsynclient|exe,dev,doc,nls|compat:kirkstone| #instead of psynclient.
 yes|fltk|fltk|exe,dev,doc,nls|compat:kirkstone| #needed by flsynclient.
 yes|fontconfig|fontconfig|exe,dev,doc,nls|compat:kirkstone
@@ -188,6 +190,7 @@ yes|formfactor|formfactor|exe,dev,doc,nls|compat:kirkstone
 yes|fpm2|fpm2|exe,dev,doc,nls|compat:kirkstone|
 yes|freememapplet_tray|freememapplet-tray|exe,dev,doc,nls|compat:kirkstone|
 yes|freetype|freetype|exe,dev,doc,nls|compat:kirkstone
+yes|frei0r|frei0r|exe,dev,doc,nls|compat:kirkstone| #20230801 needed by mlt flowblade
 yes|fribidi|fribidi|exe,dev,doc,nls|compat:kirkstone
 yes|fuse|fuse|exe,dev,doc,nls|compat:kirkstone
 yes|fuse3|fuse3|exe,dev,doc,nls|compat:kirkstone| #maybe a compile option for qemu.
@@ -564,6 +567,7 @@ yes|minixcal|minixcal|exe,dev,doc,nls|compat:kirkstone
 yes|minizip|minizip|exe,dev,doc,nls|compat:kirkstone| #20230621
 yes|mirdir|mirdir|exe,dev,doc,nls|compat:kirkstone|
 yes|mkfontscale|mkfontscale|exe,dev,doc,nls|compat:kirkstone| #note, also has mkfontdir utility.
+yes|mlt|mlt|exe,dev,doc,nls|compat:kirkstone| #20230801 needed by flowblade.
 yes|mm-common|mm-common|exe>dev,dev,doc,nls|compat:kirkstone| #move to devx.
 yes|mobile-broadband-provider-info|mobile-broadband-provider-info|exe,dev,doc,nls|compat:kirkstone| #removed.
 yes|modem-stats|modem-stats|exe,dev,doc,nls|compat:kirkstone|
@@ -704,12 +708,15 @@ yes|python3-chardet|python3-chardet|exe,dev,doc,nls|compat:kirkstone| #20230621 
 yes|python3-cryptography|python3-cryptography|exe>dev,dev,doc,nls|compat:kirkstone|
 yes|python3-cython|python3-cython|exe>dev,dev,doc,nls|compat:kirkstone|
 yes|python3-dbus|python3-dbus|exe,dev,doc,nls|compat:kirkstone| #needed by blueman.
+yes|python3-distutils-extra|python3-distutils-extra|exe,dev,doc,nls|compat:kirkstone| #20230801 maybe needed by flowblade.
 yes|python3-docutils|python3-docutils|exe>dev,dev,doc,nls|compat:kirkstone|
 yes|python3-idna|python3-idna|exe,dev,doc,nls|compat:kirkstone| #20230621 remove exe>dev, symphytum wants.
 yes|python3-jinja2|python3-jinja2|exe>dev,dev,doc,nls|compat:kirkstone|
 yes|python3-lxml|python3-lxml|exe>dev,dev,doc,nls|compat:kirkstone|
 yes|python3-mako|python3-mako|exe>dev,dev,doc,nls|compat:kirkstone|
 yes|python3-markupsafe|python3-markupsafe|exe>dev,dev,doc,nls|compat:kirkstone|
+yes|python3-numpy|python3-numpy|exe,dev,doc,nls|compat:kirkstone| #20230801 reqd by flowblade.
+yes|python3-pillow|python3-pillow|exe,dev,doc,nls|compat:kirkstone| #20230801 reqd by flowblade.
 yes|python3-pip|python3-pip|exe>dev,dev,doc,nls|compat:kirkstone| #python package installer.
 yes|python3-ply|python3-ply|exe>dev,dev,doc,nls|compat:kirkstone|
 yes|python3-prctl|python3-prctl|exe,dev,doc,nls|compat:kirkstone| #needed by pulseaudio-autoconnect.
@@ -727,6 +734,7 @@ yes|qt5-styleplugins|qt5-styleplugins|exe,dev,doc,nls|compat:kirkstone| #gtk2 th
 yes|qtbase|qtbase|exe,dev,doc,nls|compat:kirkstone| #20230621
 yes|qtdeclarative|qtdeclarative|exe,dev,doc,nls|compat:kirkstone| #20230621
 yes|qtimageformats|qtimageformats|exe,dev,doc,nls|compat:kirkstone| #20230621
+yes|qtscript|qtscript|exe,dev,doc,nls|compat:kirkstone| #20230801 needed by mlt
 yes|qtsvg|qtsvg|exe,dev,doc,nls|compat:kirkstone| #20230621
 yes|qttools|qttools|exe,dev,doc,nls|compat:kirkstone| #20230621
 yes|qtx11extras|qtx11extras|exe,dev,doc,nls|compat:kirkstone| #20230621
@@ -776,6 +784,7 @@ yes|slang|slang|exe,dev,doc,nls|compat:kirkstone| #needed by networkmanager.
 yes|smbnetfs|smbnetfs|exe,dev,doc,nls|compat:kirkstone| #needs samba.
 yes|socat|socat|exe,dev,doc,nls|compat:kirkstone|
 yes|solvespace|solvespace|exe,dev,doc,nls|compat:kirkstone|
+yes|sox|sox|exe,dev,doc,nls|compat:kirkstone| #20230801 reqd by flowblade.
 yes|speex|speex|exe,dev,doc,nls|compat:kirkstone
 yes|speexdsp|speexdsp|exe,dev,doc,nls|compat:kirkstone
 yes|sqlite3|sqlite3|exe,dev,doc,nls|compat:kirkstone
