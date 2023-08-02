@@ -42,6 +42,7 @@
 #20230423 make sure "pkg" icon runs pkg-wrap (easy 5.2.2) --can remove this later, after everyone hass updated.
 #20230510 preserve flatpak user customizations.
 #20230723 retain any user-set /usr/local/bin/default*
+#20230802 check if a pre-install .desktop underneath.
 
 WKG_DRV=$1 #ex: sda
 WKG_DEV=$2 #ex: sda2
@@ -96,7 +97,16 @@ do
   case "$onespec" in
    usr/local/bin/default*)
     #20230723 retain any user-set defaults...
-    continue
+    true
+   ;;
+   *.desktop)
+    if [ -e /easy_ro/easy_sfs/"$onespec" ];then
+     #20230802 check if a pre-install .desktop underneath...
+     grep -q '^Exec=.*\.install$' /easy_ro/easy_sfs/"$onespec"
+     if [ $? -ne 0 ];then
+      rm -f "$onespec"
+     fi
+    fi
    ;;
    */.wh.*)
     basefile="${onespec##*.}" #ex: usr/lib/.wh.afile becomes afile
@@ -104,7 +114,9 @@ do
     [ -e /easy_ro/easy_sfs/"${basepath}"/${basefile} ] && rm -f "$onespec"
    ;;
    *)
-    [ -e /easy_ro/easy_sfs/"$onespec" ] && rm -f "$onespec"
+    if [ -e /easy_ro/easy_sfs/"$onespec" ];then
+     rm -f "$onespec"
+    fi
    ;;
   esac
  fi
