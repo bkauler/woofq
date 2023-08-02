@@ -160,14 +160,21 @@ fi
 
 if [ "$ENTRY_URL" == "" -o "$ENTRY_TRIPLET" == "" -o "ENTRY_NAME" == "" ];then
  M1="$(gettext 'Please fill in all fields.')"
- popup "process=wait background=#ff8080 terminate=ok level=top|<big>${M1}</big>"
+ popup "process=wait background=#ffa0a0 terminate=ok level=top|<big>${M1}</big>"
  exec /usr/local/flatpak/customize preload
 fi
 if [ "${ENTRY_URL:0:4}" != "http" ];then
  M2="$(gettext 'A complete URL is required, with https:// prefix.')"
- popup "process=wait background=#ff8080 terminate=ok level=top|<big>${M2}</big>"
+ popup "process=wait background=#ffa0a0 terminate=ok level=top|<big>${M2}</big>"
  exec /usr/local/flatpak/customize preload
 fi
+#20230802 detect incorrect app name...
+if [ "${ENTRY_NAME//[a-zA-Z_0-9]/}" != "" ];then
+ M3="$(gettext 'The app name must only contain a-z, A-Z, 0-9 or an underscore. All other characters, including a space, are invalid. Please enter a single word, with capitalization as required.')"
+ popup "process=wait background=#ffa0a0 terminate=ok level=top|<big>${M3}</big>"
+ exec /usr/local/flatpak/customize preload
+fi
+
 if [ "$ENTRY_DESCRIPTION" == "" ];then
  ENTRY_DESCRIPTION="$(gettext 'No description provided')"
 fi
