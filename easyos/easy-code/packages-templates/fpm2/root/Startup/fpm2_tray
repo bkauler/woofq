@@ -1,0 +1,7 @@
+#!/bin/ash
+
+pidof fpm2 >/dev/null
+[ $? -eq 0 ] && exit
+
+#note: /root/.fpm/fpm.ini already specifies start in tray, don't need "-t" here...
+exec fpm2
