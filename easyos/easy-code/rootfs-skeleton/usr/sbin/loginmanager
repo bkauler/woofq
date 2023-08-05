@@ -20,98 +20,47 @@
 #20221023 now supporting zeus administrator ***TODO***
 #20221124 modify message, non-root app also able to open|save under /files
 #20230111 root-${LANG/_*/}.htm
+#20230805 must run this script as root. removed fido. choose root pw. manage clients.
+
+if [ "$(whoami)" != "root" ];then
+ if [ -x /usr/bin/sudo-sh ];then
+  exec sudo-sh ${PPID} ${0} ${@}
+ else
+  exec sudo -A ${0} ${@}
+ fi
+fi
 
 export TEXTDOMAIN=loginmanager
 export TEXTDOMAINDIR=/usr/share/locale
 export OUTPUT_CHARSET=UTF-8
 . gettext.sh
 
-HOMEUSER="`whoami`"
-xHOMEUSER="$HOMEUSER"
-[ "$HOMEUSER" = "root" ] && xHOMEUSER='administrator'
-
-CHANGE2ROOT=""
-if [ "$HOMEUSER" != "root" ];then
- CHANGE2ROOT="<text><label>$(gettext "You are currently running as 'fido', however, if you wish, you can change to the administrator (root) permanently on the next boot. Just tick this box and it will be so:")</label></text>
-  <checkbox>
-   <label>$(gettext 'Tick box to become administrator permanently')</label>
-   <default>false</default>
-   <variable>CHECKADMIN</variable>
-  </checkbox>
-  <hbox>
-   <entry invisible_char=\"x\" visibility=\"false\">
-    <variable>ADMINPASSWORD</variable>
-   </entry>
-   <text><label>$(gettext 'Type admin password here')</label></text>
-  </hbox>
- <text><label>$(gettext 'This will take affect after reboot.')</label></text>
- "
-
-fi
+mkdir -p /tmp/loginmanager
+ADMINISTRATOR="$(gettext 'administrator')"
 
 touch /root/.clients-status
-
-MOREEXPERIMENT='
-If you would like to help out and add more apps to run as non-root client,
-edit /root/.clients-status. For example, to add Sylpheed mail client,
-insert a line "sylpheed=false". Then type "loginmanager" in a
-terminal, and you will see the checkbox for sylpheed. Tick it,
-click OK button, then see if sylpheed then runs as user sylpheed.
-Note, /usr/sbin/loginmanager calls /usr/sbin/setup-client to
-setup sylpheed to run as user sylpheed, also to revert to root if
-you untick the checkbox.
-In some cases, setup-spot may need to be customised, as you
-will see has been done for seamonkey.
-If you are successful please let Barry know bkauler@gmail.com'
-echo "xmessage -bg red -center 'NOT YET IMPLEMENTED${MOREEXPERIMENT}'" > /tmp/notyetimplemented
-chmod 755 /tmp/notyetimplemented
-
-if [ "$HOMEUSER" = "root" ];then #130601 130604
-
- if [ -s /root/.clients-status ];then #140215
-  sed -i -e '/\-/d' /root/.clients-status #app names with dashs not allowed.
+LISTtrue=''
+CLIENTShome="$(find /home -mindepth 1 -maxdepth 1 -type d | grep -v -E 'rover|spot|zeus' | sed -e 's%/home/%%' | sort)"
+CLIENTStrue="$(grep 'true$' /root/.clients-status | cut -f 1 -d '=')"
+echo -n "$CLIENTStrue" > /tmp/loginmanager/CLIENTStrue
+#compose a list of apps running non-root...
+for aAPP in $CLIENTShome
+do
+ [ "$aAPP" == "" ] && continue
+ grep -q -x ${aAPP} /tmp/loginmanager/CLIENTStrue
+ if [ $? -eq 0 ];then
+  if [ "$LISTtrue" == "" ];then
+   LISTtrue="${aAPP}"
+  else
+   LISTtrue="${LISTtrue}, ${aAPP}"
+  fi
  fi
-
- #130723 pre-populate .clients-status... 130822 add firefox... 140215 chromium...
- for ONEAPP in chromium seamonkey QtWeb opera firefox
- do
-  [ "$(which ${ONEAPP})" = "" ] && continue
-  [ "$(grep "${ONEAPP}" /root/.clients-status)" = "" ] && echo "${ONEAPP}=false" >> /root/.clients-status
- done
-
- SPOTCHECKS=''
- if [ -s /root/.clients-status ];then
-  #organise checkboxes into 3 rows per column...
-  SPOTCHECKS='<vbox>'
-  CNT=0
-  for ASPOTLIST in `cat /root/.clients-status`
-  do
-   [ ! "$ASPOTLIST" ] && continue
-   CNT=`expr $CNT + 1`
-   case $CNT in
-    4) SPOTCHECKS="${SPOTCHECKS}</vbox><vbox>" ;;
-    7) SPOTCHECKS="${SPOTCHECKS}</vbox><vbox>" ;;
-    10) SPOTCHECKS="${SPOTCHECKS}</vbox><vbox>" ;;
-   esac
-   ANAME="`echo -n "$ASPOTLIST" | cut -f 1 -d '='`"
-   AVALUE="`echo -n "$ASPOTLIST" | cut -f 2 -d '='`"
-   SPOTCHECKS="${SPOTCHECKS}<checkbox><label>${ANAME}</label><variable>CHECK_${ANAME}</variable><default>${AVALUE}</default></checkbox>"
-  done
-  SPOTCHECKS="${SPOTCHECKS}</vbox>"
- fi
-
- SPOTLIST="
- <hbox>
-  <vbox>
-   <text width-chars=\"14\"><label>$(gettext 'Tick apps to run as a client:')</label></text>
-  </vbox>
-  ${SPOTCHECKS}
-  <vbox><button><label>$(gettext 'More')</label><action>/tmp/notyetimplemented & </action></button></vbox>
- </hbox>
-"
-else
- SPOTLIST="<text use-markup=\"true\"><label>\"<b>$(gettext 'Disabled, as not logged in as administrator')</b>\"</label></text>"
+done
+if [ "$LISTtrue" == "" ];then
+ LISTtrue="$(gettext 'No apps running non-root')"
 fi
+LISTtrue="$(echo -n "$LISTtrue" | fold -s -w 45)"
+
 
 #<text width-chars=\"60\" use-markup=\"true\"><label>\"<b>*</b> <small>$(gettext 'We offer this and other advice in good faith, however you are running Puppy entirely at your own risk. Puppy is a free product, and there is a total disclaimer of any responsibility for any misbehaviour. You are using Puppy with this understanding.')</small>\"</label></text>
 
@@ -128,12 +77,20 @@ fi
 export MAIN_DIALOG="
 <window title=\"Login and Security Manager\" icon-name=\"gtk-execute\" resizable=\"false\">
  <vbox>
-  <text use-markup=\"true\"><label>\"<b>$(gettext 'Currently you are logged in as:') <big>${xHOMEUSER}</big></b>\"</label></text>
+  <text use-markup=\"true\"><label>\"<b>$(gettext 'Currently you are logged in as:') <big>${ADMINISTRATOR}</big></b>\"</label></text>
   
   <hbox>
    <pixmap><input file>/usr/share/doc/logo96.png</input></pixmap>
-   <frame administrator>
-    <text><label>$(gettext "EasyOS is structured in such a way that we consider running as administrator (also known as 'root') to be safe*, and is the choice of most users.")</label></text>
+   <frame ${ADMINISTRATOR}>
+    <text><label>$(gettext "EasyOS is structured in such a way that we consider running as administrator (also known as 'root') to be safe*.")</label></text>
+    <text><label>\"$(gettext 'The root password was set at first bootup, and optionally to encrypt folders in the working-partition. The password for encrypted folders cannot be changed; however, you can change the root password.')
+$(gettext 'Only characters a-z, A-Z, 0-9, #, %, @ allowed, minimum 6 characters.')\"</label></text>
+    <hbox>
+     <text><label>\"                  \"</label></text>
+     <text><label>$(gettext 'New root password:')</label></text>
+     <entry><variable>NEW_PW</variable></entry>
+     <button><label>$(gettext 'APPLY')</label><action>/usr/local/clients/set-root-pw \$NEW_PW & </action><action>EXIT:DONE</action></button>
+    </hbox>
    </frame>
   </hbox>
   
@@ -141,8 +98,14 @@ export MAIN_DIALOG="
    <pixmap><input file>/home/spot/spot.png</input></pixmap>
    <frame client>
     <vbox>
-     <text><label>$(gettext "Logged in as administrator, it is possible to run some Internet applications as a non-root client user. This gives theoretical extra security.")</label></text>
-     ${SPOTLIST}
+     <text><label>$(gettext "It is possible to run applications as a non-root client user. This gives theoretical extra security.")</label></text>
+     <text><label>$(gettext 'These are the apps currently set to run non-root. Click the MODIFY button to add more or remove:')</label></text>
+     <hbox>
+      <text use-markup=\"true\"><label>\"<b>${LISTtrue}</b>\"</label></text>
+      <vbox>
+       <button><label>$(gettext 'MODIFY')</label><action>/usr/local/clients/choose-clients & </action><action>EXIT:DONE</action></button>
+      </vbox>
+     </hbox>
     </vbox>
    </frame>
   </hbox>
@@ -158,24 +121,12 @@ export MAIN_DIALOG="
   </hbox>
 
   <hbox>
-   <pixmap><input file>/usr/share/doc/fido96.png</input></pixmap>
-   <frame fido>
-    <vbox>
-     ${M_w1}
-     <text><label>$(gettext 'User fido is a non-root login introduced in Puppy Linux. Currently not offered in EasyOS.')</label></text>
-     ${CHANGE2ROOT}
-    </vbox>
-   </frame>
-  </hbox>
-  
-  <hbox>
    <text><label>$(gettext 'Help:')</label></text>
    <button><input file>/usr/local/lib/X11/mini-icons/mini-question.xpm</input><action>basichtmlviewer file:///usr/share/doc/${ROOTHTM} & </action></button>
    <text><label>$(gettext '*Legal:')</label></text>
    <button><input file>/usr/local/lib/X11/mini-icons/mini-question.xpm</input><action>basichtmlviewer file:///usr/share/doc/legal/easyos.htm & </action></button>
    <text><label>\"     \"</label></text>
-   <button ok></button>
-   <button cancel></button>
+   <button><label>$(gettext 'Exit')</label><action>EXIT:OK</action></button>
   </hbox>
  </vbox>
 </window>
@@ -183,58 +134,4 @@ export MAIN_DIALOG="
 
 
 RETSTRING="`gtkdialog --program=MAIN_DIALOG --center`"
-[ $? -ne 0 ] && exit
-
-eval "$RETSTRING"
-[ "$EXIT" != "OK" ] && exit
-
-#if [ "$CHANGE2ROOT" != "" ];then
- if [ "$CHECKADMIN" = "true" ];then
-  echo "$ADMINPASSWORD" | su root -c /usr/sbin/user2root #130527
-  if [ $? -ne 0 ];then
-   pupmessage -bg red -title "$(gettext 'LoginManager: error')" -center "$(gettext 'Sorry, admin password is wrong')"
-   exit
-  fi
- fi
-#fi
-
-if [ "$HOMEUSER" = "root" ];then #130604
- if [ -s /root/.clients-status ];then
-  for ASPOTLIST in `echo "$RETSTRING" | grep '^CHECK_'`
-  do
-   ACHECKNAME="`echo -n "$ASPOTLIST" | cut -f 1 -d '='`"
-   ANAME="`echo -n "$ACHECKNAME" | cut -f 2- -d '_'`"
-   AVALUE="`echo -n "$ASPOTLIST" | cut -f 2 -d '"'`" #'geany
-   ORIGVALUE="$(grep "^${ANAME}=" /root/.clients-status | cut -f 2 -d '=')"
-   if [ "$AVALUE" != "$ORIGVALUE" ];then
-    pupmessage -bg orange -title "$(gettext 'Security Manager:') ${ANAME}" "$(eval_gettext 'If ${ANAME} is running please exit it now, then click OK button...')"
-    setup-client "${ANAME}=${AVALUE}"
-    case $AVALUE in
-     true)
-      extramsg=''
-      case $ANAME in
-       seamonkey)
-        extramsg="
-$(gettext 'Note also, the restrictions apply to components of the SeaMonkey suite, including browser, Mail&News, address-book and ChatZilla. Excluding Composer, that will only run as root so as to have edit capability anywhere.')" 
-       ;;
-      esac
-      M_sm1="$(eval_gettext "The next time that you start \${ANAME}, it will run as user '${ANAME}'.")
-
-$(eval_gettext 'Note, this restricts where you can download and save files to, and where they can be edited. You are restricted to /home/${ANAME} and anywhere under /files.')
-
-$(eval_gettext 'Note also, if you move or copy any files into /home/${ANAME} while ${ANAME} is running, you may be able to open but not edit them, as they may not have permissions/ownership rights for user ${ANAME} -- exiting and restarting ${ANAME} will automatically fix this.')
-${extramsg}"
-     ;;
-     false)
-      M_sm1="$(eval_gettext "The next time that you start \${ANAME}, it will run as the 'root' user (administrator).")
-
-$(gettext 'Note, this gives you complete freedom to download, save and edit files anywhere in the system.')"
-     ;;
-    esac
-    pupmessage -bg LightGreen -title "$(gettext 'Security Manager:') ${ANAME}" "$M_sm1"
-   fi
-  done
- fi
-fi
-
-###END###
+###end###
