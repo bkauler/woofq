@@ -1,0 +1,40 @@
+#!/bin/bash
+#20230805 called from /usr/sbin/loginmanager.
+
+export TEXTDOMAIN=clients
+export OUTPUT_CHARSET=UTF-8
+
+rootPW="$1"
+[ "$rootPW" == "" ] && exit
+
+. /etc/rc.d/PUPSTATE #has EOS_SUPPORT_CONTAINERS, WKG_DEV, WKG_DIR
+
+cntPW=$(echo -n "$rootPW" | wc -c)
+
+if [ "${rootPW//[a-zA-Z0-9#%@]/}" != "" -o $cntPW -lt 6 ];then
+ M1="$(gettext 'Sorry, the password may only contain characters a-z, A-Z, 0-9, #, % or @. It also must be at least 6 characters.')"
+ popup "terminate=ok level=top background=#ffa0a0|<big>${M1}</big>"
+ exit
+fi
+
+ePW="$(cryptpw -m SHA512 ${rootPW})" #note: busybox mkpasswd is an alias for cryptpw
+sed -i '/^zeus/d' /etc/shadow
+sed -i '/^root/d' /etc/shadow
+echo "zeus:${ePW}:17693:0:99999:7:::
+root:${ePW}:17693:0:99999:7:::" >> /etc/shadow
+
+if [ "$EOS_SUPPORT_CONTAINERS" != "0" ];then
+ for aCONT in `ls -1 /mnt/${WKG_DEV}/${WKG_DIR}containers` #desk console ssh0 www
+ do
+  if [ -f /mnt/${WKG_DEV}/${WKG_DIR}containers/${aCONT}/container/etc/shadow ];then
+   #container is running.
+   cp -a -f /etc/shadow /mnt/${WKG_DEV}/${WKG_DIR}containers/${aCONT}/container/etc/
+  else
+   cp -a -f /etc/shadow /mnt/${WKG_DEV}/${WKG_DIR}containers/${aCONT}/.session/etc/
+  fi
+ done
+fi
+
+M2="$(gettext 'Administrator password has been changed')"
+popup "background=#a0ffa0 level=top terminate=ok|<big>${M2}</big>"
+###end###

@@ -1,0 +1,61 @@
+#!/bin/bash
+#20230805 called from /usr/sbin/loginmanager
+
+export TEXTDOMAIN=clients
+export OUTPUT_CHARSET=UTF-8
+
+mkdir -p /tmp/loginmanager
+touch /root/.clients-status
+CLIENTStrue="$(grep 'true$' /root/.clients-status | cut -f 1 -d '=')"
+echo -n "$CLIENTStrue" > /tmp/loginmanager/CLIENTStrue
+
+echo -n '' > /tmp/loginmanager/LIST
+APPS="$(grep -h -v '^NoDisplay=true' /usr/share/applications/*.desktop | grep '^Exec=' | cut -f 2 -d '=' | grep -v '^ec-' | grep -v '/' | cut -f 1 -d ' ' | grep -v '\.install$' | sort -u)"
+for aAPP in $APPS
+do
+ [ "$aAPP" == "" ] && continue
+ grep -q -x "$aAPP" /tmp/loginmanager/CLIENTStrue
+ if [ $? -eq 0 ];then
+  echo -n "${aAPP} ${aAPP} on " >> /tmp/loginmanager/LIST
+ else
+  echo -n "${aAPP} ${aAPP} off " >> /tmp/loginmanager/LIST
+ fi
+done
+LIST="$(cat /tmp/loginmanager/LIST)"
+
+rm -f /tmp/loginmanager/nonrootapps1 2>/dev/null
+EXECME="Xdialog --screen-center --wrap --wmclass \"module16\" --title \"$(gettext 'Client Manager')\" --left --stdout --separator \" \" --buildlist \"$(gettext 'On the right pane are applications that will run non-root, each as its own user. Any app may be moved from the left pane to the right pane, so that it will also run non-root. Or, an app may be moved from right to left, so it will run as the root user.')\" 0 65 14 ${LIST} >/tmp/loginmanager/nonrootapps1"
+eval $EXECME
+RETVAL=$?
+[ $RETVAL -ne 0 ] && exit
+[ ! -s /tmp/loginmanager/nonrootapps1 ] && exit
+
+NRA="$(cat /tmp/loginmanager/nonrootapps1 | tr ' ' '\n')"
+echo -n "$NRA" > /tmp/loginmanager/nonrootapps2
+
+M1="$(gettext 'This app will now run non-root, as its own user:')"
+M2="$(gettext 'This app will now run as the root user:')"
+for aAPP in $APPS
+do
+ [ "$aAPP" == "" ] && continue
+ grep -q -x ${aAPP} /tmp/loginmanager/nonrootapps2
+ if [ $? -eq 0 ];then
+  grep -q -x ${aAPP} /tmp/loginmanager/CLIENTStrue #see if change
+  if [ $? -ne 0 ];then
+   /usr/local/clients/setup-client ${aAPP}=true
+   if [ $? -eq 0 ];then
+    popup "level=top background=#a0ffa0 terminate=ok process=wait|<big>${M1} ${aAPP}</big>"
+   fi
+  fi
+ else
+  grep -q -x ${aAPP} /tmp/loginmanager/CLIENTStrue #see if change
+  if [ $? -eq 0 ];then
+   /usr/local/clients/setup-client ${aAPP}=false
+   if [ $? -eq 0 ];then
+    popup "level=top background=#a0ffa0 terminate=ok process=wait|<big>${M2} ${aAPP}</big>"
+   fi
+  fi
+ fi
+done
+
+###end###
