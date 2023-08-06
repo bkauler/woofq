@@ -10,8 +10,13 @@
 #150120 warning for windows vista, 7, 8.
 #20221101 logged in as zeus, think need to bump to root.
 
-WHOIAM="$(whoami)"
-[ "${WHOIAM}" != "root" ] && exec sudo -A ${0} ${@} #20221101
+if [ "$(whoami)" != "root" ];then
+ if [ -x /usr/bin/sudo-sh ];then
+  exec sudo-sh ${PPID} ${0} ${@}
+ else
+  exec sudo -A ${0} ${@}
+ fi
+fi
 
 export TEXTDOMAIN=gparted_shell
 export TEXTDOMAINDIR=/usr/share/locale

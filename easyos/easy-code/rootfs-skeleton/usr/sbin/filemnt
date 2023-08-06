@@ -28,6 +28,14 @@
 #20220624 easy*.img, call mount-img
 #20230305 easy-*.img may have a different name.
 
+if [ "$(whoami)" != "root" ];then
+ if [ -x /usr/bin/sudo-sh ];then
+  exec sudo-sh ${PPID} ${0} ${@}
+ else
+  exec sudo -A ${0} ${@}
+ fi
+fi
+
 . /etc/DISTRO_SPECS #20230305
 if [ ! "$DISTRO_NAME_SHORT" ];then
  DISTRO_NAME_SHORT='Easy'

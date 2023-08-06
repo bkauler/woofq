@@ -15,6 +15,14 @@
 #181208 if launched via rox right-click-menu, cd to that dir.
 #20201129 include CD+ and DVD+ in messages.
 
+if [ "$(whoami)" != "root" ];then
+ if [ -x /usr/bin/sudo-sh ];then
+  exec sudo-sh ${PPID} ${0} ${@}
+ else
+  exec sudo -A ${0} ${@}
+ fi
+fi
+
 export TEXTDOMAIN=burniso2cd
 export TEXTDOMAINDIR=/usr/share/locale
 export OUTPUT_CHARSET=UTF-8

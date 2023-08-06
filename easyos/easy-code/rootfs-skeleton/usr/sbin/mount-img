@@ -9,6 +9,14 @@
 #20220624 fallback popup to xmessage, so will work on other distros.
 #20220625 default mount ro, pass-in "rw"
 
+if [ "$(whoami)" != "root" ];then
+ if [ -x /usr/bin/sudo-sh ];then
+  exec sudo-sh ${PPID} ${0} ${@}
+ else
+  exec sudo -A ${0} ${@}
+ fi
+fi
+
 export TEXTDOMAIN=mount-img
 export OUTPUT_CHARSET=UTF-8
 CR='
