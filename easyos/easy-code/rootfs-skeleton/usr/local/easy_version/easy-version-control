@@ -45,6 +45,14 @@
 #20230104 /.rollback.flg moved to /mnt/wkg/.rollback.flg
 #20230123 removed SESSIONSFSflag. it is an old idea from 2017, not used.
 
+if [ "$(whoami)" != "root" ];then
+ if [ -x /usr/bin/sudo-sh ];then
+  exec sudo-sh ${PPID} ${0} ${@}
+ else
+  exec sudo -A ${0} ${@}
+ fi
+fi
+
 export TEXTDOMAIN=version-control
 export OUTPUT_CHARSET=UTF-8
 

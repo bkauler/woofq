@@ -30,6 +30,14 @@
 #20221122 note: alternative to "arp-scan --localnet": nmap -PR -sn 192.168.1.1/24
 #20221212 fix detect more than one network.
 
+if [ "$(whoami)" != "root" ];then
+ if [ -x /usr/bin/sudo-sh ];then
+  exec sudo-sh ${PPID} ${0} ${@}
+ else
+  exec sudo -A ${0} ${@}
+ fi
+fi
+
 export TEXTDOMAIN=easyshare
 export OUTPUT_CHARSET=UTF-8
 

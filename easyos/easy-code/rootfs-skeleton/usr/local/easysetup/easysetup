@@ -2,6 +2,14 @@
 #(c) Copyright Barry Kauler 2023, bkhome.org, license GPLv3 (/usr/share/doc/legal)
 #inspired by Roger's superb PupApps and PupControl.
 
+if [ "$(whoami)" != "root" ];then
+ if [ -x /usr/bin/sudo-sh ];then
+  exec sudo-sh ${PPID} ${0} ${@}
+ else
+  exec sudo -A ${0} ${@}
+ fi
+fi
+
 export TEXTDOMAIN=easysetup
 export OUTPUT_CHARSET=UTF-8
 

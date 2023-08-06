@@ -10,7 +10,49 @@ CLIENTStrue="$(grep 'true$' /root/.clients-status | cut -f 1 -d '=')"
 echo -n "$CLIENTStrue" > /tmp/loginmanager/CLIENTStrue
 
 echo -n '' > /tmp/loginmanager/LIST
-APPS="$(grep -h -v '^NoDisplay=true' /usr/share/applications/*.desktop | grep '^Exec=' | cut -f 2 -d '=' | grep -v '^ec-' | grep -v '/' | cut -f 1 -d ' ' | grep -v '\.install$' | sort -u)"
+echo -n '' > /tmp/loginmanager/APPS
+xAPPS="$(grep -h -v '^NoDisplay=true' /usr/share/applications/*.desktop | grep '^Exec=' | cut -f 2 -d '=' | grep -v '^ec-' | grep -v '/' | cut -f 1 -d ' ' | grep -v '\.install$' | sort -u)"
+#narrow down the list a bit more...
+for aAPP in $xAPPS
+do
+ if [ "$aAPP" == "" ];then continue; fi
+ xFspec="$(which $aAPP)"
+ if [ "$xFspec" == "" ];then continue; fi
+ if [ -h "$xFspec" ];then
+  Fspec="$(readlink -e "$xFspec")"
+  if [ "$Fspec" == "" ];then continue; fi
+ else
+  Fspec="$xFspec"
+ fi
+ Fsh="$(LANG=C file "$Fspec" | grep -o 'shell script')"
+ if [ "$Fsh" == "shell script" ];then
+  grep -q 'exec sudo-sh' "$Fspec"
+  if [ $? -eq 0 ];then continue; fi
+ fi
+ #shell script may just exec to another shell script...
+ if [ ! -h "$xFspec" ];then
+  if [ "$Fsh" == "shell script" ];then
+   Fexec="$(grep -o '^exec .*' "$xFspec" | head -n 1 | tr -s ' ' | cut -f 2 -d ' ')"
+   if [ "$Fexec" != "" ];then
+    if [ "${Fexec:0:1}" == "/" ];then
+     Fdest="$Fexec"
+    else
+     Fdest="$(which "${Fexec##*/}" >/dev/null)"
+    fi
+    if [ "$Fdest" != "" ];then
+     Fsh="$(LANG=C file "$Fdest" | grep -o 'shell script')"
+     if [ "$Fsh" == "shell script" ];then
+      grep -q 'exec sudo-sh' "$Fdest"
+      if [ $? -eq 0 ];then continue; fi
+     fi
+    fi
+   fi
+  fi
+ fi
+ echo "$aAPP" >> /tmp/loginmanager/APPS
+done
+APPS="$(cat /tmp/loginmanager/APPS)"
+
 for aAPP in $APPS
 do
  [ "$aAPP" == "" ] && continue

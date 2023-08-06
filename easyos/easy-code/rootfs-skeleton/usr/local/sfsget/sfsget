@@ -36,6 +36,14 @@
 #20221125 fix finding paths to sfs files. ref: https://forum.puppylinux.com/viewtopic.php?p=73599#p73599
 #20230714 comment-out an if condition.
 
+if [ "$(whoami)" != "root" ];then
+ if [ -x /usr/bin/sudo-sh ];then
+  exec sudo-sh ${PPID} ${0} ${@}
+ else
+  exec sudo -A ${0} ${@}
+ fi
+fi
+
 export TEXTDOMAIN=sfsget
 export OUTPUT_CHARSET=UTF-8
 #export ORIGLANG="$LANG"
