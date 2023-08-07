@@ -303,6 +303,7 @@
 #20230708 restore #20120329: packages-templates copied into rootfs-complete/root/.packages
 #20230710 .desktop with Exec=*.install
 #20230721 remove gparted.desktop in container.
+#20230807 compatibility-script for zenity, instead of symlink.
 
 export LANG=C #faster.
 
@@ -3813,7 +3814,12 @@ if [ "$YAD" ];then
  ZENITY="`find ./rootfs-complete/bin ./rootfs-complete/sbin ./rootfs-complete/usr/bin ./rootfs-complete/usr/sbin ./rootfs-complete/usr/local/bin -name zenity`"
  if [ ! "$ZENITY"  ];then
   YADDIR="`dirname $YAD`"
-  ln -s yad ${YADDIR}/zenity
+  #20230807 create a compatibility script...
+  # ref: https://forum.puppylinux.com/viewtopic.php?t=9300
+  #ln -s yad ${YADDIR}/zenity
+  echo '#!/bin/bash
+exec yad "${@/--file-selection/--file}"' > rootfs-complete/usr/bin/zenity
+  chmod 755 rootfs-complete/usr/bin/zenity
  fi
 fi
 
