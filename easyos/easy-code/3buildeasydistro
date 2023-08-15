@@ -304,6 +304,7 @@
 #20230710 .desktop with Exec=*.install
 #20230721 remove gparted.desktop in container.
 #20230807 compatibility-script for zenity, instead of symlink.
+#20230815 fix path to overwrite existing argon2.
 
 export LANG=C #faster.
 
@@ -5355,8 +5356,8 @@ cp -a -f ../../build-choices ./
 if [ -e bin/fscryptctl ];then
  cp -a -f bin/fscryptctl ../../sandbox3/rootfs-complete/sbin/
 fi
-if [ -e bin/argon2 ];then #20230430
- cp -a -f bin/argon2 ../../sandbox3/rootfs-complete/sbin/
+if [ -e bin/argon2 ];then #20230430  20230815 fix path to overwrite existing argon2...
+ cp -a -f bin/argon2 ../../sandbox3/rootfs-complete/usr/bin/
 fi
 #20230603
 echo -n 'aprilandvincent' > ../../sandbox3/rootfs-complete/root/.SALT
