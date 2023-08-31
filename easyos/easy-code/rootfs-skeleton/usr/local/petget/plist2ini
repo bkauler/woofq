@@ -1,0 +1,62 @@
+#!/bin/sh
+#20160721 created by mistfire: https://oldforum.puppylinux.com/viewtopic.php?t=107586
+
+PLIST="$1"
+
+PREVKEY=""
+CURKEY=""
+CURARRAY=""
+CURVAL=""
+
+if [ ! -e $PLIST ]; then
+exit
+fi
+
+while IFS='' read -r line || [[ -n $line ]]
+do
+
+    PLINE="$(echo "$line" | sed -e "s/^\t*</</")"
+	LKEY="$(echo $PLINE | grep "<key>")"
+	LVALUE="$(echo $PLINE | grep "<string>")"
+	
+	if [ "$PLINE" == "</dict>" ]; then
+		echo "$CURKEY|$CURVAL"
+	fi
+	
+	if [ "$LVALUE" == "" ]; then
+	 LVALUE="$(echo $PLINE | grep "<integer>")"
+	fi
+	
+	if [ "$LKEY" != "" ] && [ "$LKEY" != "$PREVKEY" ]; then
+	
+		if [ "$PREVKEY" != "" ]; then
+		 echo "$CURKEY|$CURVAL"
+		fi
+	
+	    CURKEY="$(echo "$PLINE" | sed -e "s/<key>//" -e "s/<\/key>//")"
+		PREVKEY="$(echo "$PLINE" | sed -e "s/<key>//" -e "s/<\/key>//")"
+		CURARRAY=""
+		CURVAL=""
+	fi
+	
+	if [ "$PLINE"  != "<array>" ]; then
+		CURARRAY="1"
+	elif [ "$PLINE"  != "</array>" ]; then
+		CURARRAY=""	
+	fi
+	
+	if [ "$LVALUE" != "" ]; then
+		pVALUE="$(echo "$PLINE" | sed -e "s/<string>//" -e "s/<\/string>//" -e "s/<integer>//" -e "s/<\/integer>//")"
+		
+		if [ "$CURARRAY" != "" ]; then
+			if [ "$CURVAL" == "" ]; then
+			CURVAL="$pVALUE"
+			else
+			CURVAL="$CURVAL,$pVALUE"
+			fi
+		else
+			CURVAL="$pVALUE"
+		fi		
+	fi
+
+done < $PLIST
