@@ -39,6 +39,7 @@
 #20220126 PETget now PKGget.
 #20221023 may be running as zeus super-user. 20221031 think still need to bump to root.
 #20230626 new sudo-sh
+#20230831 support Void Linux .xbps pkgs.
 
 export TEXTDOMAIN=petget___petget
 export OUTPUT_CHARSET=UTF-8
@@ -93,6 +94,9 @@ case $DISTRO_BINARY_COMPAT in
  oe) #170517
   COMPAT_EXT=".tar.xz"
  ;;
+ void) #20230831
+  COMPAT_EXT=".xbps"
+ ;;
 esac
 
 #what type is it...
@@ -124,6 +128,9 @@ case $PASSEDBASE in
  ;;
  *.tar.zst) #200712
   EXT=".tar.zst"
+ ;;
+ *.xbps) #20230831
+  EXT=".xbps"
  ;;
  *)
   EXT=""
@@ -234,6 +241,14 @@ PKGPATH=/root
    nPTN='s%^'"${DB_nameonly}"'\-%%'
    DB_version="$(echo -n "$PKGNAME" | sed -e "$nPTN" -e 's%\.pkg$%%')"
    DB_pkgrelease=""
+  ;;
+  .xbps) #20230831
+   #exs: xbps-0.59.1_10.x86_64.xbps 9menu-1.10_1.aarch64.xbps Carla-devel-2.5.1_2.x86_64.xbps
+   #PKGMAIN has already had the .xbps extension removed. $PKGNAME will be 1st param in db.
+   PKGNAME="$(echo -n "$PKGMAIN" | rev | cut -f 2- -d '.' | rev)" #ex: 9menu-1.10_1
+   DB_nameonly="$(echo -n "$PKGNAME" | cut -f 1 -d '_' | rev | cut -f 2- -d '-' | rev)"
+   DB_pkgrelease="$(echo -n "$PKGNAME" | cut -f 2 -d '_')"
+   DB_version="$(echo -n "$PKGNAME" | cut -f 1 -d '_' | rev | cut -f 1 -d '-' | rev)"
   ;;
  esac
 

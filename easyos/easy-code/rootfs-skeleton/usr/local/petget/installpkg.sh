@@ -88,6 +88,7 @@
 #20230708 apply /root/.packages/packages-templates/<app> if exists.
 #20230711 check .desktop file exists.
 #20230718 some fixes
+#20230831 support Void Linux .xbps pkg.
 
 #information from 'labrador', to expand a .pet directly to '/':
 #NAME="a52dec-0.7.4"
@@ -397,6 +398,40 @@ case $DLPKG_BASE in
   echo "$PFILES" > /root/.packages/${DLPKG_NAME}.files
   [ $DISPLAY ] && install_path_check
   tar -x --directory=${DIRECTSAVEPATH}/ -f $DLPKG_BASE
+ ;;
+ *.xbps) #20230831
+  DLPKG_NAME="$(basename $DLPKG_BASE .xbps)"
+  PKGNAME="$(echo -n "$DLPKG_NAME" | rev | cut -f 2- -d '.' | rev)" #ex: 9menu-1.10_1
+  DB_nameonly="$(echo -n "$PKGNAME" | cut -f 1 -d '_' | rev | cut -f 2- -d '-' | rev)"
+  DB_pkgrelease="$(echo -n "$PKGNAME" | cut -f 2 -d '_')"
+  DB_version="$(echo -n "$PKGNAME" | cut -f 1 -d '_' | rev | cut -f 1 -d '-' | rev)"
+  zstd --test $DLPKG_BASE > /dev/null 2>&1
+  [ $? -ne 0 ] && exit_func 1 #exit 1
+  PFILES="$(tar --list -f $DLPKG_BASE)"
+  [ $? -ne 0 ] && exit_func 1 #exit 1
+  echo "$PFILES" > /root/.packages/${DLPKG_NAME}.files
+  [ $DISPLAY ] && install_path_check
+  tar -x --directory=${DIRECTSAVEPATH}/ -f $DLPKG_BASE
+  #if [ -f ${DIRECTSAVEPATH}/INSTALL ];then
+  # mv -f ${DIRECTSAVEPATH}/INSTALL ${DIRECTSAVEPATH}/pinstall.sh
+  #fi
+  #if [ -f ${DIRECTSAVEPATH}/REMOVE ];then
+  # mv -f ${DIRECTSAVEPATH}/REMOVE ${DIRECTSAVEPATH}/puninstall.sh
+  #fi
+  if [ -f ${DIRECTSAVEPATH}/files.plist ];then
+   rm -f ${DIRECTSAVEPATH}/files.plist
+  fi
+  if [ -f ${DIRECTSAVEPATH}/props.plist ];then
+   #thanks to mistfire...
+   /usr/local/petget/plist2ini ${DIRECTSAVEPATH}/props.plist > /tmp/petget/props.tmp
+   rm -f ${DIRECTSAVEPATH}/props.plist
+  else
+   echo -n "architecture|" > /tmp/petget/props.tmp
+   arch >> /tmp/petget/props.tmp
+   echo "pkgname|${DB_nameonly}" >> /tmp/petget/props.tmp
+   echo "pkgver|${PKGNAME}" >> /tmp/petget/props.tmp
+   echo "version|${DB_version}" >> /tmp/petget/props.tmp
+  fi
  ;;
 esac
 
@@ -761,6 +796,14 @@ if [ -f /.INSTALL ];then #arch post-install script.
    rm -f .INSTALL*
   fi
  fi
+fi
+if [ -f /INSTALL ];then #20230831 .xbps pkg
+ ARCH="$(arch)"
+ echo 'alias rm=/usr/local/petget/rm.sh' > /xpinstall.sh
+ cat /INSTALL >> /xpinstall.sh
+ LANG=$LANG_USER sh /xpinstall.sh post ${PKGNAME} ${DB_version} no "" ${ARCH}
+ rm -f /INSTALL
+ rm -f /pinstall.sh
 fi
 cd / #180625
 
