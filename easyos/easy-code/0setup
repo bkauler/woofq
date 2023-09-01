@@ -52,6 +52,7 @@
 #20220120 arch linux: remove fraction from size. fix db arch|20211231
 #20220829 debdb2pupdb rewritten in nim. now in /usr/local/debget
 #20230309 support compat:kirkstone. missing pkg, limit number of alternatives.
+#20230901 support void linux.
 
 LANGORG="$(locale | grep '^LANG=' | cut -d '=' -f 2)" #121116
 export LANG=C #faster.
@@ -667,6 +668,9 @@ _EOF1
   t2) #w017
    LANG=${LANGORG} echo "...it's already in the Puppy standard format."
   ;;
+  void) #20230901 from woof-ce testing
+	support/void/void0setup
+   ;;
   puppy)
    echo "...it's already in the Puppy standard format."
   ;;

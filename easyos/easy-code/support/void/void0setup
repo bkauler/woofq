@@ -2,11 +2,16 @@
 #041222
 . ./DISTRO_SPECS
 
+case "${DISTRO_TARGETARCH}" in
+ amd64) TARGETARCH='x86_64' ;;
+ *) TARGETARCH="${DISTRO_TARGETARCH}" ;;
+esac
+
 echo "Extracting the Void xml database from the archive"
-mv -f Packages-${DISTRO_BINARY_COMPAT}-${DISTRO_COMPAT_VERSION}pre ${DISTRO_TARGETARCH}-repodata.tar.zst
+mv -f Packages-${DISTRO_BINARY_COMPAT}-${DISTRO_COMPAT_VERSION}pre ${TARGETARCH}-repodata.tar.zst
 rm *.plist
-tar --zstd -xf ${DISTRO_TARGETARCH}-repodata.tar.zst
-rm ${DISTRO_TARGETARCH}-repodata.tar.zst
+tar --zstd -xf ${TARGETARCH}-repodata.tar.zst
+rm ${TARGETARCH}-repodata.tar.zst
 echo
 echo "Converting the Void xml database to the Puppy PPM format (@JamesBond)"
 rm Packages-${DISTRO_BINARY_COMPAT}-${DISTRO_COMPAT_VERSION}
