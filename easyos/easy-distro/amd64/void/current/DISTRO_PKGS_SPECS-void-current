@@ -1,0 +1,647 @@
+#fallbacks when looking for pet pkgs (space-separated list)...
+FALLBACKS_COMPAT_VERSIONS=''
+
+#PKGS_SPECS_TABLE table format:
+#will pkg be in puppy-build.
+#   Generic name for pkg. Note: PET packages, if exist, use this name.
+#   Comma-separated list of compatible-distro pkg(s). '-' prefix, exclude.
+#   Must be exact name-only of pkg, else '*' on end is wildcard to search full name.
+#   Empty field, then use PET pkg.
+#   How the package will get split up in woof (optional redirection '>' operator).
+#   Missing field, it goes into exe. Can also redirect >null, means dump it.
+#yes|abiword|iceword,iceword-plugins|exe,dev,doc,nls
+#example showing wildcard. finds all full pkg names with 'gcc-4.3*',
+#but, exclude any 'gcc-4.3-doc*' matches...
+#yes|gcc|gcc,gcc-4.3*,-gcc-4.3-doc*|exe,dev,doc,nls
+#110817 Comments preferred to be on end of line, ex:
+#yes|abiword|iceword,iceword-plugins|exe,dev,doc,nls| #this is a comment.
+#110829 enhancements:
+#Force pkg is from compat-distro repo, specifically 'salix' repo...
+#yes|abiword|iceword,iceword-plugins|exe,dev,doc,nls|compat:salix
+#Generic format:
+#yes|genericpkgname|[pkgnames]|[splitup]|[pet:[repo]]
+#yes|genericpkgname|[pkgnames]|[splitup]|[compat:[repo]]
+#note: "repo" is 3rd or 4th field in "Packages-*" file, ex: Packages-void-current-official
+
+PKGS_SPECS_TABLE='
+yes|915resolution||exe,dev,doc,nls|pet:void|
+yes|acl|acl,acl-devel|exe,dev,doc,nls|compat:current|
+yes|adbfs|adbfs|exe,dev,doc,nls|compat:kirkstone|
+yes|adwaita-icon-theme|adwaita-icon-theme|exe,dev,doc,nls|compat:current|
+yes|align||exe|pet:noarch| #perl script.
+yes|alsa-lib|alsa-lib,alsa-lib-devel|exe,dev,doc,nls|compat:current|
+yes|alsa-utils|alsa-utils|exe,dev,doc,nls|compat:current|
+yes|android-tools|android-tools|exe,dev,doc,nls|compat:kirkstone|
+yes|apr|apr,apr-devel|exe>dev,dev,doc,nls|compat:current|
+yes|apr-util|apr-util,apr-util-devel|exe>dev,dev,doc,nls|compat:current|
+no|argon2||exe,dev,doc,nls|pet:void| #compiled in compaq presario core2 cpu.
+yes|argon2|argon2,libargon2,libargon2-devel|exe,dev,doc,nls|compat:current|
+yes|aspell|aspell,libaspell,aspell-devel|exe,dev,doc,nls|compat:current|
+yes|at-spi2-atk-devel|at-spi2-atk-devel|exe>dev,dev,doc,nls|compat:current|
+yes|at-spi2-core-devel|at-spi2-core-devel|exe>dev,dev,doc,nls|compat:current|
+yes|atk|atk,atk-devel|exe,dev,doc,nls|compat:current|
+yes|atkmm|atkmm,atkmm-devel|exe,dev,doc,nls|compat:current|
+yes|attr|attr,attr-devel|exe,dev,doc,nls|compat:current|
+yes|audiofile|audiofile,audiofile-devel|exe,dev,doc,nls|compat:current|
+yes|aufs-util|aufs-util|exe,dev,doc,nls|compat:kirkstone|
+yes|autoconf2.13||exe>dev,dev,doc,nls|pet:noarch| #needed to compile firefox and seamonkey.
+yes|autoconf|autoconf|exe>dev,dev,doc,nls|compat:current|
+yes|automake|automake|exe>dev,dev,doc,nls|compat:current|
+yes|avahi-libs|avahi-libs,avahi-glib-libs,avahi-libs-devel,avahi-glib-libs-devel|exe,dev,doc,nls|compat:current|
+yes|awf|awf|exe,dev,doc,nls|compat:kirkstone|
+yes|bacon|bacon|exe>dev,dev,doc,nls|compat:kirkstone|
+yes|bacon-hug|bacon-hug|exe,dev>exe,doc>dev,nls|compat:kirkstone|
+yes|bacon-hug-imports|bacon-hug-imports|exe>dev,dev,doc,nls|compat:kirkstone|
+yes|bash|bash,bash-devel|exe,dev,doc,nls|compat:current|
+yes|bbc_provided|bbc-provided|exe,dev,doc,nls|compat:kirkstone|
+yes|bc|bc|exe,dev>null,doc,nls|compat:current|
+yes|bdftopcf|bdftopcf|exe,dev,doc,nls|compat:kirkstone|
+yes|binutils|binutils,binutils-devel|exe>dev,dev,doc,nls|compat:current|
+yes|bison|bison|exe>dev,dev,doc,nls|compat:current|
+yes|bluegriffon||exe,dev,doc,nls|pet:void| #wysiwyg html editor.
+yes|bluepup_tray|bluepup-tray|exe,dev,doc,nls|compat:kirkstone|
+yes|bluez|bluez5|exe,dev,doc,nls|compat:kirkstone|  #has bluetoothctl internationalized.
+yes|bluez-tools|bluez-tools|exe,dev,doc,nls|compat:kirkstone|
+yes|bones||exe|pet:noarch
+yes|boost|boost,boost-devel|exe>dev,dev,doc,nls|compat:current|
+yes|brotli|brotli,brotli-devel|exe,dev,doc,nls|compat:current|
+yes|busybox||exe,dev>null,doc,nls|pet:void| #has guess_fstype applet. compiled statically. KEEPPKG
+yes|bzip2|bzip2,bzip2-devel|exe,dev,doc,nls|compat:current|
+yes|c99-wrapper||exe>dev,dev,doc,nls|pet:noarch
+yes|ca-certificates|ca-certificates|exe,dev,doc,nls|compat:current|
+yes|c-ares-devel|c-ares-devel|exe>dev,dev,doc,nls|compat:current|
+yes|cairo|cairo,cairo-devel|exe,dev,doc,nls|compat:current|
+yes|cairomm|cairomm,cairomm-devel|exe,dev,doc,nls|compat:current|
+yes|cddetect|cddetect|exe,dev>null,doc,nls|compat:kirkstone|
+yes|cddetect_quick|cddetect-quick|exe,dev>null,doc,nls|compat:kirkstone|
+yes|cdrtools|cdrtools|exe,dev,doc,nls|compat:current|
+yes|CellWriter|CellWriter|exe,dev,doc,nls|compat:current|
+yes|cgtkcalc|cgtkcalc|exe,dev>null,doc,nls|compat:kirkstone|
+yes|chrpath|chrpath|exe,dev,doc,nls|compat:kirkstone|
+yes|cifs-utils|cifs-utils|exe,dev,doc,nls|compat:current|
+yes|cifs-utils||exe,dev,doc,nls|pet:void| #recompiled in oe but still does not work. use pet.
+yes|cmake|cmake,libidn|exe>dev,dev,doc,nls|compat:current|
+yes|coreutils|coreutils|exe,dev>null,doc,nls|compat:current|
+yes|cpio|cpio|exe,dev>null,doc,nls|compat:current|
+yes|cracklib-devel|cracklib-devel|exe>dev,dev,doc,nls|compat:current|
+yes|crda|crda|exe,dev,doc,nls|compat:current|
+yes|cups|cups,libcups,cups-devel|exe,dev,doc>exe,nls|compat:current|
+yes|cups-filters|cups-filters,libcups-filters,libcups-filters-devel|exe,dev,doc,nls|compat:current|
+no|cups-filters||exe,dev,doc,nls|pet:void| #printing was broken, now works.
+yes|cups_pdf||exe|pet:noarch| #why do we still have this as can print to file anyway.
+yes|curl|curl,libcurl,c-ares,libcurl-devel|exe,dev,doc,nls|compat:current|
+yes|curlftpfs|curlftpfs|exe,dev,doc,nls|compat:kirkstone|
+yes|cvs|cvs|exe>dev,dev,doc,nls|compat:current|
+yes|cyrus-sasl2|cyrus-sasl|exe,dev,doc,nls|compat:current|
+yes|dbus|dbus,dbus-libs,dbus-x11,dbus-devel|exe,dev,doc,nls|+lsb-base|compat:current|
+yes|dbus-glib|dbus-glib,dbus-glib-devel|exe,dev,doc,nls|+dbus|compat:current|
+yes|dconf|dconf,dconf-devel|exe,dev,doc,nls|compat:current|
+yes|defaults-chooser||exe|pet:noarch
+yes|dejavu_fonts|dejavu-fonts-ttf|exe,dev,doc,nls|compat:current|
+yes|desk_background_pale-orange-brown-red||exe|pet:noarch| #has easyOS text
+yes|desk_icon_theme_multicolor_marble2||exe|pet:noarch|
+yes|desk_icon_theme_very-light-orange||exe|pet:noarch|
+yes|desktop-file-utils|desktop-file-utils|exe,dev,doc,nls|compat:current|
+yes|device-mapper|device-mapper,device-mapper-devel|exe,dev,doc,nls|compat:current|
+yes|devxcomps|libdb,libuv,rhash,jsoncpp,libdebuginfod|exe>dev,dev,doc,nls|compat:current|
+yes|dhcpcd|dhcpcd|exe,dev,doc,nls|compat:current|
+yes|dialog|dialog|exe,dev>null,doc,nls|compat:current|
+yes|diffstat|diffstat|exe,dev>null,doc,nls|compat:current|
+yes|diffutils|diffutils|exe,dev>null,doc,nls|compat:current|
+yes|disktype|disktype|exe,dev,doc,nls|compat:kirkstone|
+yes|dmidecode|dmidecode|exe,dev>null,doc,nls|compat:current|
+yes|dosfstools|dosfstools|exe,dev>null,doc,nls|compat:current|
+yes|droidcam|droidcam|exe,dev,doc,nls|compat:kirkstone|
+yes|Dropbox_GUI||exe|pet:noarch|
+yes|dvdauthor|dvdauthor|exe,dev,doc,nls|compat:current|
+yes|dvd_close|dvd-close|exe,dev,doc,nls|compat:kirkstone|
+yes|dvd+rwtools|dvd+rw-tools|exe,dev,doc,nls|compat:current|
+yes|e2fsprogs|e2fsprogs,e2fsprogs-libs,e2fsprogs-devel|exe,dev,doc,nls|compat:current|
+yes|easycast||exe,dev,doc,nls|pet:noarch|
+yes|elfutils|elfutils,libelf,elfutils-devel|exe,dev,doc,nls|compat:current|
+yes|elogind|elogind,libelogind,elogind-devel|exe,dev,doc,nls|compat:current|
+yes|empty|empty|exe,dev,doc,nls|compat:kirkstone|
+yes|ethtool|ethtool|exe,dev>null,doc,nls|compat:current|
+yes|eudev|eudev,eudev-libudev,eudev-libudev-devel|exe,dev,doc,nls|compat:current|
+no|eudev|eudev|exe,dev,doc,nls|compat:kirkstone|
+yes|evince|evince|exe,dev,doc,nls|compat:kirkstone|
+yes|exfatprogs|exfatprogs|exe,dev,doc,nls|compat:current|
+yes|exfat-utils|exfat-utils|exe,dev,doc,nls|compat:current|
+yes|exiv2|exiv2,exiv2-devel|exe,dev,doc,nls|compat:current|
+yes|expat|expat,expat-devel|exe,dev,doc,nls|compat:current|
+yes|ffconvert||exe,dev,doc,nls|pet:noarch
+yes|fftag||exe|pet:noarch| #replaces pmetatagger.
+yes|file|file,file-devel|exe,dev,doc,nls|compat:current|
+yes|findutils|findutils|exe,dev>null,doc,nls|compat:current|
+yes|firefox-skel-ask||exe|pet:noarch|
+yes|firmware_asus_e200ha||exe|pet:noarch| #needed for my asus e200ha notebook.
+yes|firmware_linux_acer_aspire1||exe|pet:noarch| #for my acer aspire1 laptop. note has regulatory.db useful all wifi.
+yes|firmware_linux_all_k5p15p85||exe|pet:noarch|
+yes|firmware_linux_base||exe|pet:noarch|
+yes|firmware_linux_mele_pcg35||exe|pet:noarch|
+yes|firmware_linux_rtw89||exe|pet:noarch|
+yes|flac|flac,libflac,libflac-devel|exe,dev,doc,nls|compat:current|
+yes|flex|flex,libfl-devel|exe>dev,dev,doc,nls|compat:current|
+yes|floppy-format-noarch||exe|pet:noarch| #needs ufiformat.
+yes|flowblade||exe,dev,doc,nls|pet:noarch| #video editor.
+yes|flsynclient|flsynclient|exe,dev,doc,nls|compat:kirkstone|
+yes|fontconfig-devel|fontconfig-devel|exe>dev,dev,doc,nls|compat:current|
+yes|font_opensans_semibold_bold||exe|pet:noarch| #the semibold is the default, when want thick font.
+yes|font-util|font-util|exe,dev,doc,nls|compat:current|
+yes|foomatic-db-compressed-ppds||exe|pet:noarch|
+yes|fpm2|fpm2|exe,dev,doc,nls|compat:kirkstone|
+yes|freememapplet_tray|freememapplet-tray|exe,dev,doc,nls|compat:kirkstone|
+yes|freetype|freetype,freetype-devel|exe,dev,doc,nls|compat:current|
+yes|fribidi|fribidi,fribidi-devel|exe,dev,doc,nls|compat:current|
+yes|fuse|fuse,fuse-devel|exe,dev,doc>null,nls|compat:current|
+yes|gamin|gamin,gamin-devel|exe,dev,doc,nls|compat:current|
+yes|gawk|gawk|exe,dev,doc,nls|compat:current|
+yes|gcc_dev|gcc,libgcc,libgcc-devel,libstdc++,libstdc++-devel,gcc-go,gmp,elfutils,libmpc,libmpc-devel,isl|exe>dev,dev,doc,nls|compat:current|
+no|gcc||exe>dev,dev,doc,nls|pet:void| #same problem as with dunfell, had to recompile in running easyos.
+yes|gcc_lib|gcc,libgcc,libstdc++|exe,dev>null,doc>null,nls>null|compat:current|
+yes|gc|gc,gc-devel|exe,dev,doc,nls|compat:current|
+yes|gcolorsel|gcolorsel|exe,dev,doc,nls|compat:kirkstone|
+yes|GConf|GConf,GConf-devel|exe,dev,doc,nls|compat:current|
+yes|gdb|gdb|exe>dev,dev,doc,nls|compat:current|
+yes|gdbm|gdbm,gdbm-devel|exe,dev,doc,nls|compat:current|
+yes|gdk-pixbuf|gdk-pixbuf,gdk-pixbuf-devel|exe,dev,doc,nls|compat:current|
+yes|geany|geany,geany-devel|exe,dev,doc,nls|compat:current|
+no|geany|geany|exe,dev>null,doc,nls|compat:kirkstone|
+no|geany-plugins|geany-plugins|exe,dev>null,doc,nls|compat:kirkstone|
+yes|gettext-tools|gettext-devel-tools|exe>dev,dev,doc,nls|compat:current|
+yes|gettext-void|gettext,gettext-devel|exe,dev,doc,nls|compat:current|
+yes|gfnrename|gfnrename|exe,dev>null,doc,nls|compat:kirkstone|
+yes|gfontsel|gfontsel|exe,dev>null,doc,nls|compat:kirkstone|
+yes|gftp|gftp|exe,dev>null,doc,nls|compat:current|
+yes|ghostscript|ghostscript,libgs,libpaper,libjbig2dec,ghostscript-devel|exe,dev,doc,nls|compat:current|
+yes|gif2lss|gif2lss|exe,dev,doc,nls|compat:kirkstone|
+yes|giflib-devel|giflib-devel|exe>dev,dev,doc,nls|compat:current|
+yes|gifsicle|gifsicle|exe,dev,doc,nls|compat:kirkstone|
+yes|git|git|exe>dev,dev,doc>dev,nls>dev|compat:current|
+yes|glibc|glibc,glibc-locales,tzdata,rpcsvc-proto,glibc-devel|exe,dev,doc,nls|compat:current|
+yes|glibc_locales|glibc,glibc-locales,tzdata|exe,dev,doc,nls>exe|compat:current|
+yes|glib|glib,glib-devel,libglib-devel|exe,dev,doc,nls|compat:current|
+yes|glibmm|glibmm,glibmm-devel|exe,dev,doc,nls|compat:current|
+yes|glib-networking|glib-networking|exe,dev,doc,nls|compat:current|
+no|glipper-lite|glipper-lite|exe,dev>null,doc,nls|compat:kirkstone| #using parselite
+yes|Global_IP_TV_Panel_Any_Pup_using_mpv||exe|pet:noarch|
+yes|glu-devel|glu-devel|exe>dev,dev,doc,nls|compat:current|
+yes|gmeasures|gmeasures|exe,dev>null,doc,nls|compat:kirkstone|
+yes|gmp|gmp,gmp-devel|exe,dev,doc,nls|compat:current|
+yes|gnet|gnet|exe,dev,doc,nls|compat:kirkstone|
+yes|gnome-bluetooth|gnome-bluetooth3|exe,dev,doc,nls|compat:kirkstone| #gnome-bluetooth needs gtk4, gnome-bluetooth3 needs gtk+3
+yes|gnome-common|gnome-common|exe>dev,dev,doc,nls|compat:kirkstone|
+yes|gnome-doc-utils-stub|gnome-doc-utils-stub|exe,dev,doc,nls|compat:kirkstone|
+yes|gnome-icon-theme||exe>dev,dev,doc,nls|pet:noarch| #in devx, may need to extract some into main f.s.
+yes|gnome-keyring|gnome-keyring|exe,dev,doc,nls|compat:kirkstone|
+yes|gnome-menus|gnome-menus|exe,dev,doc,nls|compat:kirkstone|
+yes|gnupg|gnupg,gnupg-devel|exe,dev,doc,nls|compat:current|
+yes|gnutls|gnutls,nettle,p11-kit,gnutls-devel,p11-kit-devel|exe,dev,doc,nls|compat:current|
+yes|gobject-introspection|gobject-introspection,gobject-introspection-devel,libgirepository,libgirepository-devel|exe,dev,doc,nls|compat:current|
+no|gparted|gparted|exe,dev,doc,nls|compat:kirkstone|
+yes|gparted|gparted,libparted,libparted-devel|exe,dev,doc,nls|compat:current|
+yes|gperf|gperf|exe>dev,dev,doc,nls|compat:current|
+yes|gpptp|gpptp|exe,dev,doc,nls|compat:kirkstone|
+yes|gpptp-noarch||exe|pet:noarch| #created by jafadmin.
+yes|gptfdisk|gptfdisk|exe,dev,doc,nls|compat:kirkstone|
+yes|graphite|graphite,graphite-devel|exe,dev,doc,nls|compat:current|
+yes|grep|grep|exe,dev>null,doc,nls|compat:current|
+yes|groff|groff|exe>dev,dev,doc,nls|compat:current|
+yes|gsettings-desktop-schemas|gsettings-desktop-schemas|exe,dev,doc,nls|compat:current|
+yes|gtk_2_3_theme_easyblue||exe|pet:noarch|
+yes|gtk_2_3_theme_flat-light-orange-brown||exe|pet:noarch|
+yes|gtk+3|gtk+3,at-spi2-core,at-spi2-atk,libcolord,libgusb,gtkmm,gtk+3-devel,gtkmm-devel|exe,dev,doc,nls|compat:current|
+yes|gtkdialog|gtkdialog|exe,dev,doc>dev,nls|compat:kirkstone|
+yes|gtk+|gtk+,libffi,gtk+-devel|exe,dev,doc,nls|compat:current|
+yes|gtkhash|gtkhash|exe,dev,doc,nls|compat:kirkstone|
+yes|gtkmm2|gtkmm2,gtkmm2-devel|exe,dev,doc,nls|compat:current|
+yes|gtk_theme_citrus_cut||exe|pet:noarch
+yes|gtk_theme_peachy_red||exe|pet:noarch|
+yes|gtk-update-icon-cache|gtk-update-icon-cache|exe,dev,doc,nls|compat:current|
+yes|guile|guile,libguile,guile-devel|exe,dev,doc,nls|compat:current|
+yes|gummiboot||exe|pet:void|
+yes|gutenprint|gutenprint,gutenprint-devel|exe,dev,doc,nls|compat:current|
+yes|gview|gview|exe,dev,doc,nls|compat:kirkstone|
+yes|gwhere|gwhere|exe,dev,doc,nls|compat:kirkstone|
+yes|gxlat||exe,dev,doc,nls|pet:noarch|
+yes|gzip|gzip|exe,dev>null,doc,nls|compat:current|
+yes|hardinfo|hardinfo|exe,dev,doc,nls|compat:kirkstone|
+yes|harfbuzz|harfbuzz,libharfbuzz,harfbuzz-devel|exe,dev,doc,nls|compat:current|
+yes|helpsurfer|helpsurfer|exe,dev,doc,nls|compat:kirkstone|
+yes|hiawatha|hiawatha|exe,dev,doc,nls|compat:kirkstone|
+yes|hicolor-icon-theme|hicolor-icon-theme|exe,dev>null,doc,nls|compat:current|
+yes|hotplug2stdout|hotplug2stdout|exe,dev,doc,nls|compat:kirkstone|
+yes|htop|htop|exe,dev|compat:current|
+yes|hunspell-en-au||exe|pet:noarch|
+yes|hunspell-en-gb||exe|pet:noarch|
+yes|hunspell-en-us||exe|pet:noarch
+yes|iconfinder||exe,dev,doc,nls|pet:noarch
+yes|icu4c|icu,icu-libs,icu-devel|exe,dev,doc,nls|compat:current|
+yes|ifplugd|ifplugd|exe,dev,doc,nls|compat:kirkstone|
+yes|ifplugd_old|ifplugd-old|exe,dev,doc,nls|compat:kirkstone|
+yes|imake|imake|exe>dev,dev,doc,nls|compat:current|
+yes|inotify-tools|inotify-tools,libinotify-tools,inotify-tools-devel|exe,dev,doc,nls|compat:current|
+yes|intltool|intltool|exe>dev,dev,doc,nls|compat:current|
+yes|iptables|iptables,iptables-devel|exe,dev,doc,nls|compat:current|
+yes|isl|isl-devel|exe>dev,dev,doc,nls|compat:current|
+yes|iw|iw|exe,dev,doc,nls|compat:current|
+yes|jansson|jansson-devel|exe>dev,dev,doc,nls|compat:current|
+no|jasper|jasper|exe,dev,doc,nls|compat:kirkstone|
+yes|jasper|jasper,libjasper,jasper-devel|exe,dev,doc,nls|compat:current|
+yes|jbigkit-libs|jbigkit-libs|exe,dev,doc,nls|compat:current|
+yes|jimtcl|jimtcl|exe,dev,doc,nls|compat:kirkstone|
+yes|json-glib|json-glib,json-glib-devel|exe,dev,doc,nls|compat:current|
+yes|judy|judy,judy-devel|exe>dev,dev,doc,nls|compat:current|
+yes|jwm3_theme_black-deep||exe|pet:noarch|
+yes|jwm3_theme_easyblue||exe|pet:noarch|
+yes|jwm3_theme_light-orange-brown||exe|pet:noarch|
+yes|jwm3_theme_peachy-darkbrown||exe|pet:noarch|
+yes|jwm3_theme_peachy-red||exe|pet:noarch|
+yes|jwm|jwm|exe,dev,doc,nls|compat:kirkstone|
+yes|jwmthememaker||exe|pet:noarch| #coz no longer have jwmdesk.
+yes|kernel-libc-headers|kernel-libc-headers|exe>dev,dev,doc,nls|compat:current|
+yes|keyutils|keyutils,keyutils-devel|exe,dev,doc,nls|compat:current|
+yes|kmod|kmod,libkmod,libkmod-devel|exe,dev,doc,nls|compat:current|
+yes|ktsuss|ktsuss|exe,dev,doc,nls|compat:kirkstone|
+yes|lcms|lcms,lcms-devel|exe,dev,doc,nls|compat:current|
+yes|lcms2|lcms2,lcms2-devel|exe.dev,dev,doc,nls|compat:current|
+yes|leafpad|leafpad|exe,dev,doc,nls|compat:current|
+no|leafpad|leafpad|exe,dev,doc,nls|compat:kirkstone|
+yes|less|less|exe,dev>null,doc,nls|compat:current|
+yes|libaio|libaio,libaio-devel|exe,dev,doc,nls|compat:current|
+yes|libao|libao,libao-devel|exe,dev,doc,nls|compat:current|
+yes|libarchive,libarchive-devel|libarchive|exe,dev,doc,nls|compat:current|
+yes|libart|libart,libart-devel|exe,dev,doc,nls|compat:current|
+yes|libassuan|libassuan,libassuan-devel|exe,dev,doc,nls|compat:current|
+yes|libatomic|libatomic,libatomic-devel|exe,dev,doc,nls|compat:current|
+yes|libblkid|libblkid-devel|exe>dev,dev,doc,nls|compat:current|
+no|libcap|libcap,libcap-devel|exe,dev,doc,nls|compat:current|
+yes|libcap|libcap|exe,dev,doc,nls|compat:kirkstone|
+no|libcap-ng|libcap-ng,libcap-ng-devel|exe,dev,doc,nls|compat:current|
+yes|libcap-ng|libcap-ng|exe,dev,doc,nls|compat:kirkstone|
+yes|libcddb|libcddb,libcddb-devel|exe,dev,doc,nls|compat:current|
+yes|libcdio|libcdio,libcdio-devel|exe,dev,doc,nls|compat:current|
+yes|libcdio-paranoia|libcdio-paranoia,libcdio-paranoia-devel|exe,dev,doc,nls|compat:current|
+yes|libconfig|libconfig,libconfig-devel|exe,dev,doc,nls|compat:current|
+yes|libcroco|libcroco,libcroco-devel|exe,dev,doc,nls|compat:current|
+yes|libdaemon|libdaemon,libdaemon-devel|exe,dev,doc,nls|compat:current|
+yes|libdatrie|libdatrie,libdatrie-devel|exe,dev,doc,nls|compat:current|
+yes|libdvdcss|libdvdcss,libdvdcss-devel|exe,dev,doc,nls|compat:current|
+no|libdvdcss|libdvdcss|exe,dev,doc,nls|compat:kirkstone|
+yes|libdvdnav|libdvdnav,libdvdnav-devel|exe,dev,doc,nls|compat:current|
+yes|libdvdread|libdvdread,libdvdread-devel|exe,dev,doc,nls|compat:current|
+yes|libedit|libedit,libedit-devel|exe,dev,doc,nls|compat:current|
+yes|libepoxy|libepoxy,libepoxy-devel|exe,dev,doc,nls|compat:current|
+yes|libevdev|libevdev,libevdev-devel|exe,dev,doc,nls|compat:current|
+yes|libevent|libevent,libevent-devel|exe,dev,doc,nls|compat:current|
+yes|libev|libev,libev-devel|exe,dev,doc,nls|compat:current|
+yes|libexif|libexif,libexif-devel|exe,dev,doc,nls|compat:current|
+yes|libexttextcat-data||exe,dev,doc,nls|pet:void| #oe should have installed this, it is in libexttextcat pkg. 20210411 still have this problem.
+yes|libffi|libffi,libffi-devel|exe,dev,doc,nls|compat:current|
+yes|libgbm|libgbm,libgbm-devel|exe,dev,doc,nls|compat:current|
+yes|libgcrypt|libgcrypt,libgcrypt-devel|exe,dev,doc,nls|compat:current|
+yes|libgif|giflib|exe,dev,doc,nls|compat:current|
+yes|libgit2|libgit2|exe,dev,doc,nls|compat:kirkstone|
+yes|libglade2|libglade,libglade-devel|exe,dev,doc,nls|compat:current|
+yes|libglapi|libglapi|exe,dev,doc,nls|compat:current|
+yes|libgo|libgo|exe>dev,dev,doc,nls|compat:current|
+yes|libgpg-error|libgpg-error,libgpg-error-devel|exe,dev,doc,nls|compat:current|
+yes|libgsf|libgsf,libgsf-devel|exe,dev,doc,nls|compat:current|
+yes|libgtkhtml|libgtkhtml|exe,dev,doc,nls|compat:kirkstone|
+yes|libgudev|libgudev,libgudev-devel|exe,dev,doc,nls|compat:current|
+yes|libical|libical,libical-devel|exe,dev,doc,nls|compat:current|
+yes|libid3tag|libid3tag,libid3tag-devel|exe,dev,doc,nls|compat:current|
+yes|libidn2|libidn2,libidn2-devel|exe,dev,doc,nls|compat:current|
+yes|libidn|libidn,libidn-devel|exe,dev,doc,nls|compat:current|
+yes|libieee1284|libieee1284,libieee1284-devel|exe,dev,doc,nls|compat:current|
+yes|libjpeg-turbo|libjpeg-turbo,libjpeg-turbo-devel|exe,dev,doc,nls|compat:current|
+yes|libkeyutils|libkeyutils|exe,dev,doc,nls|compat:current|
+yes|libksba|libksba,libksba-devel|exe,dev,doc,nls|compat:current|
+yes|libldap|libldap,libldap-devel|exe,dev,doc,nls|compat:current|
+yes|libltdl|libtool,libltdl,libltdl-devel|exe,dev,doc,nls|compat:current|
+yes|liblz4|liblz4,liblz4-devel|exe,dev,doc,nls|compat:current|
+yes|liblzma|liblzma,liblzma-devel|exe,dev,doc,nls|compat:current|
+yes|libmad|libmad,libmad-devel|exe,dev,doc,nls|compat:current|
+yes|libmagic|libmagic|exe,dev,doc,nls|compat:current|
+yes|libmng|libmng,libmng-devel|exe,dev,doc,nls|compat:current|
+yes|libmnl|libmnl,libmnl-devel|exe,dev,doc,nls|compat:current|
+yes|libmtp|libmtp,libmtp-devel|exe,dev,doc,nls|compat:current|
+yes|libnetfilter_conntrack|libnetfilter_conntrack,libnetfilter_conntrack-devel|exe,dev,doc,nls|compat:current|
+yes|libnfnetlink|libnfnetlink,libnfnetlink-devel|exe,dev,doc,nls|compat:current|
+yes|libnftnl|libnftnl,libnftnl-devel|exe,dev,doc,nls|compat:current|
+yes|libnl3|libnl3,libnl3-devel|exe,dev,doc,nls|compat:current|
+yes|libnl|libnl,libnl-devel|exe,dev,doc,nls|compat:current|
+yes|libnotify|libnotify,libnotify-devel|exe,dev,doc,nls|compat:current|
+yes|libnsl|libnsl,libnsl-devel|exe,dev,doc,nls|compat:current|
+yes|libogg|libogg,libogg-devel|exe,dev,doc,nls|compat:current|
+yes|liboil|liboil,liboil-devel|exe,dev,doc,nls|compat:current|
+yes|libpcap|libpcap,libpcap-devel|exe,dev,doc,nls|compat:current|
+yes|libpciaccess|libpciaccess,libpciaccess-devel|exe,dev,doc,nls|compat:current|
+yes|libpcre2|libpcre2|exe,dev,doc,nls|compat:current|
+yes|libpcrecpp|libpcrecpp|exe>dev,dev,doc,nls|compat:current|
+yes|libpng12|libpng12|exe,dev,doc,nls|compat:kirkstone|
+yes|libpng|libpng,libpng-devel|exe,dev,doc,nls|compat:current|
+yes|libproxy|libproxy|exe,dev,doc,nls|compat:current|
+yes|libpsl|libpsl,libpsl-devel|exe,dev,doc,nls|compat:current|
+yes|libquadmath|libquadmath,libquadmath-devel|exe,dev,doc,nls|compat:current|
+yes|libraw1394|libraw1394,libraw1394-devel|exe,dev,doc,nls|compat:current|
+yes|libreoffice-icons-colibre-v7.4.2||exe|pet:noarch| #some colibre icons are missing from libreoffice pkg.
+yes|librsvg|librsvg,librsvg-utils,librsvg-devel|exe,dev,doc,nls|compat:current|
+yes|libsasl|libsasl,libsasl-devel|exe,dev,doc,nls|compat:current|
+yes|libsensors|libsensors|exe,dev,doc,nls|compat:current|
+yes|libsigc++|libsigc++,libsigc++-devel|exe,dev,doc,nls|compat:current|
+yes|libsigsegv|libsigsegv,libsigsegv-devel|exe,dev,doc,nls|compat:current|
+yes|libsndfile|libsndfile,libmpg123,libsndfile-devel|exe,dev,doc,nls|compat:current|
+yes|libsodium|libsodium|exe,dev,doc,nls|compat:current|
+yes|libsoup|libsoup,libpsl,libsoup-devel|exe,dev,doc,nls|compat:current|
+yes|libssh2|libssh2,libssh2-devel|exe,dev,doc,nls|compat:current|
+yes|libssh|libssh,libssh-devel|exe,dev,doc,nls|compat:current|
+yes|libsystem|libsystem|exe,dev,doc,nls|compat:kirkstone|
+yes|libtasn1|libtasn1,libtasn1-devel|exe,dev,doc,nls|compat:current|
+yes|libtermkey|libtermkey,libtermkey-devel|exe,dev,doc,nls|compat:current|
+no|libthai||exe|pet:void| #stupid thing needed for audacity appimage.
+yes|libthai|libthai,libthai-devel|exe,dev,doc,nls|compat:current|
+yes|libtheora|libtheora,libtheora-devel|exe,dev,doc,nls|compat:current|
+yes|libtirpc|libtirpc,libtirpc-devel|exe,dev,doc,nls|compat:current|
+yes|libtool|libtool|exe>dev,dev,doc,nls|compat:current|
+yes|libtubo|libtubo|exe,dev,doc,nls|compat:kirkstone|
+yes|libunbound|libunbound,unbound-devel|exe,dev,doc,nls|compat:current|
+yes|libunique|libunique,libunique-devel|exe,dev,doc,nls|compat:current|
+yes|libunistring|libunistring,libunistring-devel|exe,dev,doc,nls|compat:current|
+yes|libunwind|libunwind,libunwind-devel|exe,dev,doc,nls|compat:current|
+yes|libusb1|libusb,libusb-devel|exe,dev,doc,nls|compat:current|
+yes|libusb-compat|libusb-compat,libusb-compat-devel|exe,dev,doc,nls|compat:current|
+yes|libutf8proc|libutf8proc,libutf8proc-devel|exe>dev,dev,doc,nls|compat:current|
+yes|libvorbis|libvorbis,libvorbis-devel|exe,dev,doc,nls|compat:current|
+yes|libvpx7|libvpx7,libvpx-tools,libvpx-devel|exe,dev,doc,nls|compat:current|
+yes|libwebp|libwebp,libsharpyuv,libsharpyuv-devel,libwebp-devel|exe,dev,doc,nls|compat:current|
+yes|libx86|libx86,libx86-devel|exe,dev,doc,nls|compat:current|
+yes|libxatracker|libxatracker|exe,dev,doc,nls|compat:current|
+yes|libxcb_base|libxcb,libxcb-devel|exe,dev,doc,nls|compat:current|
+yes|libxcrypt|libxcrypt|exe,dev>null,doc,nls|compat:kirkstone|
+yes|libXfont2|libXfont2|exe,dev,doc,nls|compat:current|
+yes|libxkbcommon|libxkbcommon,libxkbcommon-devel|exe,dev,doc,nls|compat:current|
+yes|libxml2|libxml2,libxml2-devel|exe,dev,doc,nls|compat:current|
+yes|libxshmfence|libxshmfence,libxshmfence-devel|exe,dev,doc,nls|compat:current|
+yes|libxslt|libxslt,libxslt-devel|exe,dev,doc,nls|compat:current|
+yes|libyaml|libyaml,libyaml-devel|exe>dev,dev,doc,nls|compat:current|
+yes|limine|limine|exe,dev,doc,nls|compat:kirkstone|
+yes|llvm-cut|libllvm15|exe,dev>null,doc,nls|compat:current|
+yes|lmarbles||exe,dev,doc,nls|pet:void|
+yes|lvm2|lvm2|exe,dev,doc,nls|compat:current|
+yes|lxrandr|lxrandr|exe,dev,doc,nls|compat:current|
+yes|lxtask|lxtask|exe,dev,doc,nls|compat:current|
+yes|lxterminal|lxterminal|exe,dev,doc,nls|compat:current|
+yes|lz4|lz4|exe,dev,doc,nls|compat:current|
+yes|lzlib|lzlib,lzlib-devel|exe,dev,doc,nls|compat:current|
+yes|lzo|lzo,lzo-devel|exe,dev,doc,nls|compat:current|
+yes|m4|m4|exe>dev,dev,doc,nls|compat:current|
+yes|maag||exe,dev,doc,nls|pet:noarch|
+yes|make|make|exe>dev,dev,doc,nls|compat:current|
+yes|mariadb|mariadb,liburing,liburing-devel|exe>dev,dev,doc,nls|compat:current|
+yes|mdview|mdview|exe,dev,doc,nls|compat:kirkstone|
+yes|mesa|mesa,mesa-dri,libglvnd,libglvnd-devel,glew,glew-devel,glu,lm_sensors,glxinfo|exe,dev,doc,nls|compat:current|
+yes|metamail|metamail|exe,dev,doc,nls|compat:kirkstone|
+yes|minixcal|minixcal|exe,dev,doc,nls|compat:kirkstone
+yes|mirdir|mirdir|exe,dev,doc,nls|compat:kirkstone|
+yes|mit-krb5-libs|mit-krb5-libs|exe,dev,doc,nls|compat:current|
+yes|modem-stats|modem-stats|exe,dev,doc,nls|compat:kirkstone|
+yes|mozilla-nss|nss,nspr,nspr-devel,nss-devel|exe,dev,doc,nls|compat:current|
+yes|mpfr|mpfr,mpfr-devel|exe,dev,doc,nls|compat:current|
+yes|mplayer_codecs_basic||exe|pet:void| #have x86_64 pet.
+yes|mp|mped|exe,dev,doc,nls|compat:kirkstone|
+yes|mpscan|mpscan|exe,dev,doc,nls|compat:kirkstone|
+yes|mtools|mtools|exe,dev,doc,nls|compat:current|
+yes|mtpaint|mtpaint|exe,dev,doc,nls|compat:kirkstone|
+yes|mtr||exe,dev,doc,nls|pet:void| #mtr compiled in oe is cli only.
+yes|mtr|mtr,jansson|exe|compat:current|
+yes|nano|nano|exe,dev,doc,nls|compat:current|
+yes|nasm|nasm|exe>dev,dev,doc,nls|compat:current|
+yes|ncurses|ncurses,ncurses-libs,ncurses-base,ncurses-term,ncurses-libtinfo-libs,ncurses-devel|exe,dev,doc,nls|compat:current|
+yes|nenscript|nenscript|exe,dev,doc,nls|compat:kirkstone|
+no|netpbm|netpbm|exe,dev,doc,nls|compat:kirkstone|
+yes|netpbm|netpbm,libnetpbm,libnetpbm-devel|exe,dev,doc,nls|compat:current|
+no|nettle7|nettle|exe,dev>null,doc,nls|compat:kirkstone|
+yes|nettle|nettle,nettle-devel|exe,dev>null,doc,nls|compat:current|
+yes|net-tools|net-tools|exe,dev,doc,nls|compat:current|
+yes|networkmanager|networkmanager|exe,dev,doc,nls|compat:kirkstone|
+yes|network-manager-applet|network-manager-applet|exe,dev,doc,nls|compat:kirkstone|
+yes|network_tray|network-tray|exe,dev,doc,nls|compat:kirkstone|
+yes|nghttp2|nghttp2,nghttp2-devel|exe,dev,doc,nls|compat:current|
+yes|nim|nim|exe>dev,dev,doc,nls|compat:kirkstone|
+yes|notecase|notecase|exe,dev,doc,nls|compat:kirkstone|
+yes|npth|npth,npth-devel|exe,dev,doc,nls|compat:current|
+yes|ntfs-3g|ntfs-3g,ntfs-3g-devel|exe,dev,doc,nls|compat:current|
+yes|ntpdate|ntp|exe,dev,doc,nls|compat:kirkstone|
+yes|openjpeg|openjpeg,libopenjpeg,libopenjpeg2,libopenjpeg-devel,libopenjpeg2-devel|exe,dev,doc,nls|compat:current|
+yes|openssh_server|openssh,libldns,libldns-devel|exe,dev,doc,nls|compat:current|
+yes|openssl|openssl,libssl1.1,libcrypto1.1,openssl-devel|exe,dev,doc,nls|compat:current|
+yes|opus|opus,opus-devel|exe,dev,doc,nls|compat:current|
+yes|orc|orc,orc-devel|exe,dev,doc,nls|compat:current|
+yes|osmo|osmo|exe,dev,doc,nls|compat:kirkstone|
+yes|pa-applet|pa-applet|exe,dev,doc,nls|compat:kirkstone|
+yes|pam|pam,pam-libs,cracklib,libcracklib,libpwquality,libpwquality-devel,pam-devel|exe,dev,doc,nls|compat:current|
+yes|pangomm|pangomm,pangomm-devel|exe,dev,doc,nls|compat:current|
+yes|pango|pango,pango-xft,pango-devel|exe,dev,doc,nls|compat:current|
+yes|parcellite|parcellite|exe,dev,doc,nls|compat:kirkstone| #instead of glipper-lite
+yes|parted|parted|exe,dev,doc,nls|compat:current|
+yes|patch|patch|exe>dev,dev,doc,nls|compat:current|
+yes|patch|patch|exe,dev,doc,nls|compat:current|
+yes|pavucontrol|pavucontrol|exe,dev,doc,nls|compat:kirkstone|
+yes|pburn3||exe|pet:noarch| #using cdrkit, not cdrtools.
+yes|pcdripper||exe|pet:noarch
+yes|pciutils|pciutils,pciutils-devel|exe,dev,doc,nls|compat:current|
+yes|pclock||exe|pet:noarch| #replaces ptimer, pstopwatch.
+yes|pcre|pcre,libpcre,pcre-devel,pcre2-devel|exe,dev,doc,nls|compat:current|
+yes|pctorrent||exe|pet:noarch| #needs ctorrent.
+yes|pdvdrip||exe|pet:noarch| #replaces pdvdrsab
+yes|peasydisc||exe|pet:noarch
+yes|peasyglue||exe,dev,doc,nls|pet:noarch|
+yes|peasypdf||exe|pet:noarch
+yes|peasyport-noarch||exe,dev,doc,nls|pet:noarch| #rcrsn51, alternative to superscan. needs pnscan
+yes|peasyprint||exe|pet:noarch| #print graphics files png/jpg.
+yes|peasyscale-exec|peasyscale-exec|exe,dev,doc,nls|compat:kirkstone|
+yes|peasyscale-noarch||exe|pet:noarch| #rcrsn51, jpg image resizer.
+yes|peasyscan-exec|peasyscan-exec|exe,dev,doc,nls|compat:kirkstone|
+yes|peasyscan-noarch||exe|pet:noarch| #rcrsn51, scanner gui
+yes|perl|perl|exe>dev,dev,doc,nls|compat:current|
+yes|perl_tiny|perl|exe,dev>null,doc>null,nls>null|compat:current|
+yes|perl-XML-Parser|perl-XML-Parser|exe>dev,dev,doc,nls|compat:current|
+yes|pfilesearch||exe|pet:noarch
+yes|pfind||exe|pet:noarch
+yes|pflask|pflask|exe,dev,doc,nls|compat:kirkstone|
+yes|phash||exe|pet:noarch
+yes|picpuz||exe,dev,doc,nls|pet:void|
+yes|picscale|picscale|exe,dev,doc,nls|compat:kirkstone|
+yes|pinentry|pinentry,pinentry-devel|exe,dev,doc,nls|compat:current|
+yes|pixman|pixman,pixman-devel|exe,dev,doc,nls|compat:current|
+yes|pkgconfig|pkgconf,libpkgconf,pkgconf-devel|exe>dev,dev,doc,nls|compat:current|
+yes|pmcputemp||exe,dev,doc,nls|pet:void| #new version 1.2. does the oe one not work
+yes|pmirror||exe|pet:noarch
+yes|pmirrorget||exe|pet:noarch
+yes|pngoverlay-cairo|pngoverlay-cairo|exe|compat:kirkstone|
+yes|polkit|polkit,polkit-devel|exe,dev,doc,nls|compat:current|
+yes|poppler|poppler,libpoppler,poppler-glib,poppler-cpp,poppler-devel,poppler-cpp-devel|exe,dev,doc,nls|compat:current|
+yes|popt|popt,popt-devel|exe,dev,doc,nls|compat:current|
+yes|powerapplet_tray|powerapplet-tray|exe,dev,doc,nls|compat:kirkstone|
+yes|ppp|ppp,ppp-devel|exe,dev>null,doc,nls|compat:current|
+yes|pprocess||exe|pet:noarch
+yes|precord||exe|pet:noarch
+yes|prename||exe,dev,doc,nls|pet:noarch|
+yes|printer-driver-samsung||exe|pet:void|
+yes|procps-ng,procps-ng-devel|procps-ng|exe|compat:current|
+yes|programchooser||exe|pet:noarch
+yes|prun||exe|pet:noarch
+yes|pschedule||exe|pet:noarch
+yes|ptooltips||exe|pet:noarch
+yes|puppyinputdetect|puppyinputdetect|exe,dev,doc,nls|compat:kirkstone|
+yes|puppy-podcast-grabber||exe|pet:noarch
+yes|puppyserialdetect|puppyserialdetect|exe,dev,doc,nls|compat:kirkstone|
+yes|pupradio||exe,dev,doc,nls|pet:noarch
+yes|Pup-SysInfo||exe,dev,doc,nls|pet:noarch| #instead of hardinfo.
+yes|pup-tools|pup-tools|exe,dev,doc,nls|compat:kirkstone|
+yes|pupx||exe|pet:noarch
+yes|pwsget||exe|pet:noarch
+no|python2|python,python-devel|exe>dev,dev,doc,nls|compat:current|
+yes|python3-tiny|python3|exe,dev>null,doc,nls|compat:current|
+yes|python3|python3|exe>dev,dev,doc,nls|compat:current|
+yes|python3-asn1crypto|python3-asn1crypto|exe>dev,dev,doc,nls|compat:current|
+yes|python3-certifi|python3-certifi|exe,dev,doc,nls|compat:current| #symphytum wants.
+yes|python3-cffi|python3-cffi|exe,dev,doc,nls|compat:current| #hexchat needs this.
+yes|python3-chardet|python3-chardet|exe,dev,doc,nls|compat:current| #symphytum wants.
+yes|python3-cryptography|python3-cryptography|exe>dev,dev,doc,nls|compat:current|
+yes|python3-Cython|python3-Cython|exe>dev,dev,doc,nls|compat:current|
+yes|python3-dbus|python3-dbus|exe,dev,doc,nls|compat:current| #needed by blueman.
+yes|python3-distutils-extra|python3-distutils-extra|exe,dev,doc,nls|compat:current| #maybe needed by flowblade.
+yes|python3-docutils|python3-docutils|exe>dev,dev,doc,nls|compat:current|
+yes|python3-idna|python3-idna|exe,dev,doc,nls|compat:current| #remove exe>dev, symphytum wants.
+yes|python3-Jinja2|python3-Jinja2|exe>dev,dev,doc,nls|compat:current|
+yes|python3-lxml|python3-lxml|exe>dev,dev,doc,nls|compat:current|
+yes|python3-Mako|python3-Mako|exe>dev,dev,doc,nls|compat:current|
+yes|python3-MarkupSafe|python3-MarkupSafe|exe>dev,dev,doc,nls|compat:current|
+yes|python3-numpy|python3-numpy|exe,dev,doc,nls|compat:current| #reqd by flowblade.
+yes|python3-Pillow|python3-Pillow|exe,dev,doc,nls|compat:current| #reqd by flowblade.
+yes|python3-pip|python3-pip|exe>dev,dev,doc,nls|compat:current| #python package installer.
+yes|python3-ply|python3-ply|exe>dev,dev,doc,nls|compat:current|
+yes|python3-prctl|python3-prctl|exe,dev,doc,nls|compat:current| #needed by pulseaudio-autoconnect.
+yes|python3-cairo|python3-cairo|exe,dev,doc,nls|compat:current| #needed by blueman.
+yes|python3-pycparser|python3-pycparser|exe,dev,doc,nls|compat:current| #hexchat needs this.
+yes|python3-gobject|python3-gobject|exe,dev,doc,nls|compat:current| #needed by blueman.
+yes|python3-parsing|python3-parsing|exe,dev,doc,nls|compat:current| #pitivi needs this.
+yes|python3-requests|python3-requests|exe,dev,doc,nls|compat:current| #symphytum wants.
+no|python3-scons|python3-scons|exe>dev,dev,doc,nls|compat:current| #does not exist.
+yes|python3-setuptools|python3-setuptools|exe,dev,doc,nls|compat:current| #remove exe>dev, symphytum wants.
+yes|python3-six|python3-six|exe,dev,doc,nls|compat:current| #pitivi needs this.
+yes|python3-Markdown|python3-Markdown|exe,dev,doc,nls|compat:current|
+yes|qpdf|qpdf,libqpdf,libqpdf-devel|exe,dev,doc,nls|compat:current|
+yes|rdesktop|rdesktop,libsamplerate,libpcsclite,libsamplerate-devel|exe,dev,doc,nls|compat:current|
+yes|readline|readline,libreadline8,libhistory8,readline-devel|exe,dev,doc,nls|compat:current|
+yes|redshift|redshift|exe,dev,doc,nls|compat:kirkstone|
+yes|refind|refind|exe,dev,doc,nls|compat:kirkstone|
+yes|restarter|restarter|exe,dev,doc,nls|compat:kirkstone|
+yes|rox-filer|rox-filer|exe,dev,doc,nls|compat:kirkstone|
+yes|rshift_tray||exe|pet:noarch| #requires redshift.
+yes|rsync|rsync,xxHash,libxxHash|exe,dev,doc,nls|compat:current|
+yes|rubix|rubix|exe,dev,doc,nls|compat:kirkstone|
+yes|rxvt-unicode|rxvt-unicode|exe,dev>null,doc,nls|compat:kirkstone|
+yes|sakura|sakura|exe,dev,doc,nls|compat:kirkstone|
+yes|scale2x|scale2x|exe,dev,doc,nls|compat:kirkstone|
+yes|scrcpy|scrcpy|exe,dev,doc,nls|compat:kirkstone|
+yes|sdl|SDL,libsndio,SDL-devel|exe,dev,doc,nls|compat:current|
+yes|sed|sed|exe,dev>null,doc,nls|compat:current|
+yes|serf|serf,serf-devel|exe>dev,dev,doc,nls|compat:current|
+yes|setcolortemperature||exe,dev,doc,nls|compat:kirkstone|
+yes|setvol|setvol|exe,dev,doc,nls|compat:kirkstone|
+yes|shadow|shadow|exe,dev,doc,nls|compat:current|
+no|shared-mime-info|shared-mime-info|exe,dev,doc,nls|compat:current|
+yes|shared-mime-info|shared-mime-info|exe,dev,doc,nls|compat:kirkstone|
+yes|simple-mtpfs||exe|pet:void| #new. used by pupmtp builtin to woof.
+yes|simple_xcursor_creator||exe|pet:noarch|
+yes|smbnetfs|smbnetfs|exe,dev,doc,nls|compat:kirkstone|
+yes|sqlite|sqlite,sqlite-devel|exe,dev,doc,nls|compat:current|
+yes|squashfs-tools|squashfs-tools|exe,dev|compat:current|
+no|squashfs-tools|squashfs-tools|exe,dev>null,doc,nls|compat:kirkstone|
+yes|ssh-gui|ssh-gui|exe,dev,doc,nls|compat:kirkstone|
+yes|startup-notification|startup-notification,startup-notification-devel|exe,dev,doc,nls|compat:current|
+yes|strace|strace|exe>dev,dev,doc,nls|compat:current|
+yes|sudo-sh||exe|pet:void| #compiled in oe does not work.
+yes|sudo-sh|sudo-sh|exe,dev,doc,nls|compat:kirkstone|
+yes|sudo|sudo|exe,dev,doc,nls|compat:current|
+yes|sysfsutils|sysfsutils,libsysfs,libsysfs-devel|exe,dev,doc,nls|compat:current|
+yes|syslinux|syslinux|exe,dev,doc,nls|compat:kirkstone|
+no|syslinux|syslinux|exe,dev>null,doc,nls|compat:current|
+yes|sysvinit-utils-cut|sysvinit|exe,dev>null,doc>null,nls>null|compat:kirkstone|
+yes|talloc|talloc|exe,dev,doc,nls|compat:current|
+yes|tar|tar|exe,dev>null,doc,nls|compat:current|
+yes|tas||exe,dev,doc,nls|pet:noarch| #take-a-shot
+yes|tcl|tcl,tk,tcl-devel,tk-devel|exe>dev,dev,doc,nls|compat:current|
+yes|tcpdump|tcpdump|exe,dev,doc,nls|compat:current|
+yes|tevent|tevent|exe,dev,doc,nls|compat:current|
+yes|texinfo|texinfo|exe>dev,dev,doc,nls|compat:current|
+yes|tiff|tiff,tiff-devel|exe,dev,doc,nls|compat:current|
+yes|translate-shell||exe|pet:noarch| #note gxlat has an older version of trans
+yes|trousers|trousers,trousers-devel|exe,dev,doc,nls|compat:current|
+yes|ufiformat|ufiformat|exe,dev,doc,nls|compat:kirkstone|
+yes|unclutter|unclutter|exe,dev>null,doc,nls|compat:kirkstone|
+yes|unifont||exe|pet:noarch| #needed by solvespace
+yes|UrxvtControl||exe,dev,doc,nls|pet:noarch|
+yes|usbutils|usbutils|exe,dev,doc,nls|compat:current|
+yes|util-linux|util-linux,util-linux-common,libblkid,libfdisk,libfdisk-devel,libmount,libmount-devel,libsmartcols,libsmartcols-devel,libuuid,libuuid-devel|exe,dev,doc,nls|compat:current|
+yes|vala|vala,libvala,vala-devel|exe,dev,doc,nls|compat:current|
+yes|viewnior|viewnior|exe,dev,doc,nls|compat:current|
+yes|vivaldi-skel-ask||exe|pet:noarch|
+yes|vte2|vte290,vte290-devel|exe,dev,doc,nls|compat:current|
+yes|vte3|vte3,vte3-devel|exe,dev,doc,nls|compat:current|
+no|vte9|vte9|exe,dev,doc,nls|compat:kirkstone|
+yes|vulkan-loader|vulkan-loader|exe,dev,doc,nls|compat:current|
+yes|wag_profiles||exe|pet:noarch| #taken out of net_setup pet, see oldforum t=82092&start=300
+yes|wavplay|wavplay|exe,dev,doc,nls|compat:kirkstone|
+yes|wayland|wayland,wayland-devel|exe,dev,doc,nls|compat:current|
+yes|wcpufreq||exe|pet:noarch
+no|wget|wget|exe,dev>null,doc,nls|compat:current|
+yes|wget|wget|exe,dev>null,doc,nls|compat:kirkstone|
+yes|wireguard-tools||exe,dev,doc,nls|pet:void|
+yes|wireless-regdb||exe|pet:noarch|
+yes|wireless-tools||exe,dev,doc,nls|pet:void| #this is deprecated i think.
+yes|wpa_supplicant|wpa_supplicant|exe,dev>null,doc,nls|compat:current|
+yes|x264|x264,x264-devel|exe,dev|compat:current|
+yes|x265|x265,x265-devel|exe,dev|compat:current|
+yes|xarchive|xarchive|exe,dev>null,doc,nls|compat:kirkstone|
+yes|xbps|xbps,libxbps,xbps-triggers,vpm,libxbps-devel|exe,dev,doc,nls|compat:current|
+yes|xcb-util-keysyms|xcb-util-keysyms,xcb-util-keysyms-devel|exe,dev,doc,nls|compat:current|
+yes|xcb-util|xcb-util,xcb-util-devel|exe,dev,doc,nls|compat:current|
+yes|xconsole|xconsole|exe,dev,doc,nls|compat:kirkstone|
+yes|xcur2png|xcur2png|exe,dev,doc,nls|compat:kirkstone|
+yes|xcursorgen|xcursorgen|exe,dev,doc,nls|compat:kirkstone|
+yes|xdelta3|xdelta3|exe,dev,doc,nls|compat:kirkstone|
+yes|xdg-desktop-portal||exe,dev,doc,nls|pet:void| #for flatpak. needs libportal. recompiled without libportal dep.
+yes|xdg-desktop-portal-gtk||exe,dev,doc,nls|pet:void| #for flatpak. needs xdg-desktop-portal
+yes|xdg-puppy|xdg-puppy|exe,dev,doc,nls|compat:kirkstone|
+yes|xdialog|xdialog|exe,dev,doc,nls|compat:kirkstone|
+yes|xdotool|xdotool|exe,dev,doc,nls|compat:kirkstone|
+yes|xf86-video-fbdev|xf86-video-fbdev|exe,dev,doc|compat:current|
+yes|xfdiff-cut|xfdiff-cut|exe,dev,doc,nls|compat:kirkstone|
+yes|xlockmore|xlockmore|exe,dev,doc,nls|compat:kirkstone|
+yes|xorg_base|rgb,appres,bdftopcf,bitmap,editres,fontconfig,fonttosfnt,iceauth,libdmx,libdmx-devel,libfontenc,libfontenc-devel,libICE,libICE-devel,libSM,libSM-devel,libX11,libX11-devel,libXau,libXau-devel,libXaw,libXaw-devel,libXcomposite,libXcomposite-devel,libXcursor,libXcursor-devel,libXdamage,libXdamage-devel,libXdmcp,libXdmcp-devel,libXevie,libXevie-devel,libXext,libXext-devel,libXfixes,libXfixes-devel,libXfont,libXfont-devel,libXfont2-devel,libXfontcache,libXfontcache-devel,libXft,libXft-devel,libXi,libXi-devel,libXinerama,libXinerama-devel,libxkbfile,libxkbfile-devel,libXmu,libXmu-devel,libXp,libXp-devel,libXpm,libXpm-devel,libXpresent,libXpresent-devel,libXrandr,libXrandr-devel,libXrender,libXrender-devel,libXres,libXres-devel,libXScrnSaver,libXScrnSaver-devel,libXt,libXt-devel,libXtst,libXtst-devel,libXv,libXv-devel,libXvMC,libXvMC-devel,libXxf86misc,libXxf86misc-devel,libXxf86vm,libXxf86vm-devel,libxcvt,libxcvt-devel,listres,makedepend,mkfontscale,mtdev,mtdev-devel,sessreg,setxkbmap,smproxy,viewres,x11perf,xauth,xbacklight,xbiff,xclipboard,xclock,xconsole,xcursorgen,xditview,xdpyinfo,xdriinfo,xev,xfontsel,xgamma,xhost,xinit,xkbcomp,xkbutils,xkill,xload,xmag,xmessage,xmodmap,xprop,xrandr,xrdb,xrefresh,xset,xsetroot,xsm,xvidtune,xvinfo,xwd,xwininfo,libdrm,libdrm-devel,xinput,xkeyboard-config,xbitmaps|exe,dev,doc,nls|compat:current|
+yes|xorg-cf-files|xorg-cf-files|exe>dev,dev,doc,nls|compat:current|
+yes|xorgproto|xorgproto,xcb-proto|exe>dev,dev,doc,nls|compat:current|
+yes|xresprobe|xresprobe|exe,dev,doc,nls|compat:kirkstone|
+no|xserver_xorg|xorg-server,xf86-video-*,xf86-input-*,-xf86-input-evdev,-xf86-input-synaptics,libinput,libinput-devel,libwacom,libwacom-devel,xorg-server-devel|exe,dev,doc,nls|compat:current|
+yes|xserver_xorg|xorg-server,xf86-video-*,xf86-input-*,libinput,libinput-devel,libwacom,libwacom-devel,xorg-server-devel|exe,dev,doc,nls|compat:current|
+yes|xtrans|xtrans|exe>dev,dev,doc,nls|compat:current|
+yes|xwd|xwd|exe,dev,doc,nls|compat:current|
+yes|xxHash|xxhash,xxHash-devel|exe,dev,doc,nls|compat:current|
+yes|xz|xz,xz-devel|exe,dev,doc,nls|compat:current|
+yes|yad|yad0|exe,dev,doc,nls|compat:kirkstone|
+yes|yasm|yasm|exe>dev,dev,doc,nls|compat:current|
+yes|ycalc||exe,dev,doc,nls|pet:void|  #failed to compile in oe. i like it
+yes|youtube-dl||exe|pet:noarch|
+yes|youtubedl-gui||exe|pet:noarch|
+yes|z2_geany_bacon_hack||exe|pet:noarch| #temp hack for geany. will probably have to remove soon.
+yes|zarfy|zarfy|exe,dev,doc,nls|compat:kirkstone|
+yes|zip|zip|exe,dev>null,doc,nls|compat:current|
+yes|zlib|zlib,zlib-devel|exe,dev,doc,nls|compat:current|
+no|zstd|zstd|exe,dev,doc,nls|compat:kirkstone|
+yes|zstd|zstd,libzstd,libzstd-devel|exe,dev,doc,nls|compat:current|
+'
+
