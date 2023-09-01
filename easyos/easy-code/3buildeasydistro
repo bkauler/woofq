@@ -305,6 +305,7 @@
 #20230721 remove gparted.desktop in container.
 #20230807 compatibility-script for zenity, instead of symlink.
 #20230815 fix path to overwrite existing argon2.
+#20230901 support xbps pkg manager.
 
 export LANG=C #faster.
 
@@ -557,6 +558,15 @@ fi
 echo
 ./findwoofinstalledpkgs #creates woof-installed-packages, which later gets copied into sandbox3/rootfs-complete/root/.packages/
 #121028 ...now also creates devx-only-installed-packages.
+
+#20230901 support xbps pkg manager...
+if [ "$DISTRO_BINARY_COMPAT" = "void" ]; then
+  echo "Generating /var/db/xbps/pkgdb-0.38.plist - takes a while - please wait"
+  ./support/void/makepkgdb.sh status/findpkgs_FINAL_PKGS-${DISTRO_BINARY_COMPAT}-${DISTRO_COMPAT_VERSION} \
+                             packages-${DISTRO_FILE_PREFIX} \
+                             sandbox3/rootfs-complete/var/db/xbps/pkgdb-0.38.plist
+  echo "Generation finished - thanks for waiting"
+fi
 
 #140119 traditional names only...
 PREFIX1CHAR="`echo -n "$DISTRO_FILE_PREFIX" | cut -c 1`"
