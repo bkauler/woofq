@@ -669,7 +669,11 @@ _EOF1
    LANG=${LANGORG} echo "...it's already in the Puppy standard format."
   ;;
   void) #20230901 from woof-ce testing
-	support/void/void0setup
+    if [ "$RUNNINGPUP" = "no" ];then
+     support/void/void0setup
+	else
+	 /usr/local/petget/support/void/void0setup
+	fi
    ;;
   puppy)
    echo "...it's already in the Puppy standard format."
