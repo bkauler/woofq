@@ -99,6 +99,7 @@
 #20230222 major rethink /usr/share/locale.in only exist in rootfs-skeleton  20230224 fix sort.
 #20230309 support compat:kirkstone
 #20230718 CATVARIABLE=PKGCAT_Utility_Sub, drop the "_Sub"
+#20230902 support void .xbps pkgs. pkg may have 'INSTALL' script.
 
 export LANG=C #faster.
 
@@ -861,6 +862,56 @@ then run this script again and choose to build ${GENERICNAME}." >> ERROR-2CREATE
      continue
     fi
     PKGNAME="$(cat sandbox2/pkg.specs | cut -f 1 -d '|')" #ex: glibc-2.24-r0
+   ;;
+   void) #20230902
+    FULLPKGNAME="`basename $ONEBINARYPKG`"
+    rm -rf sandbox2
+    mkdir sandbox2
+    cp -a $ONEBINARYPKG sandbox2/
+    cd sandbox2
+    tar --force-local --zstd -xf $FULLPKGNAME #.xbps
+    RETVAL=$?
+    rm -f $FULLPKGNAME
+    cd ..
+    if [ $RETVAL -ne 0 ];then
+     echo "ERROR: failed to unpack $FULLPKGNAME"
+     continue
+    fi
+    PKGNAME="$(echo -n $FULLPKGNAME | rev | cut -f 3- -d '.' | rev)" #ex: 9menu-1.10_1.aarch64.xbps becomes 9menu-1.10_1
+    if [ -f sandbox2/INSTALL ];then
+     #*NO* delay this until 3buildeasydistro, chroot onto rootfs-complete...
+     ##see also /usr/local/petget/installpkg.sh
+     ##slackware doinstall.sh gets accumulated in case of multiple pkgs, but exec this now...
+     #cd sandbox2
+     #case "$DISTRO_TARGETARCH" in
+     # amd64) TARGETARCH='x86_64' ;;
+     # *)     TARGETARCH="$DISTRO_TARGETARCH" ;;
+     #esac
+     #echo 'alias rm=/usr/local/petget/rm.sh' > xpinstall.sh
+     #cat INSTALL >> xpinstall.sh
+     ##try change all absolute paths to relative...
+     #sed -i -e 's%"/%"%' xpinstall.sh
+     #sed -i -e 's%^/%%' xpinstall.sh
+     ##but want this to be absolute...
+     #sed -i -e 's%^TRIGGERSDIR=.*%TRIGGERSDIR="/usr/libexec/xbps-triggers"%' xpinstall.sh
+     #DB_version="$(echo -n "$PKGNAME" | cut -f 1 -d '_' | rev | cut -f 1 -d '-' | rev)"
+     #LANG=C sh xpinstall.sh post ${PKGNAME} ${DB_version} no "" ${TARGETARCH}
+     #rm -f INSTALL
+     #rm -f xpinstall.sh
+     #cd ..
+     DB_nameonly="$(echo -n "$PKGNAME" | cut -f 1 -d '_' | rev | cut -f 2- -d '-' | rev)"
+     DB_version="$(echo -n "$PKGNAME" | cut -f 1 -d '_' | rev | cut -f 1 -d '-' | rev)"
+     mv -f sandbox2/INSTALL sandbox2/INSTALL:${DB_nameonly}:${DB_version}
+    fi
+    if [ -f sandbox2/REMOVE ];then
+     rm -f sandbox2/REMOVE
+    fi
+    if [ -f sandbox2/files.plist ];then
+     rm -f sandbox2/files.plist
+    fi
+    if [ -f sandbox2/props.plist ];then
+     rm -f sandbox2/props.plist
+    fi
    ;;
   esac
   
