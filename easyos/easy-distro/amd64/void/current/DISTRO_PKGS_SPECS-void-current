@@ -195,9 +195,9 @@ yes|gnome-doc-utils-stub|gnome-doc-utils-stub|exe,dev,doc,nls|compat:kirkstone|
 yes|gnome-icon-theme||exe>dev,dev,doc,nls|pet:noarch| #in devx, may need to extract some into main f.s.
 yes|gnome-keyring|gnome-keyring|exe,dev,doc,nls|compat:kirkstone|
 yes|gnome-menus|gnome-menus|exe,dev,doc,nls|compat:kirkstone|
-yes|gnupg|gnupg,gnupg-devel|exe,dev,doc,nls|compat:current|
+yes|gnupg|gnupg|exe,dev,doc,nls|compat:current| #note there is no gnupg-devel
 yes|gnutls|gnutls,nettle,p11-kit,gnutls-devel,p11-kit-devel|exe,dev,doc,nls|compat:current|
-yes|gobject-introspection|gobject-introspection,gobject-introspection-devel,libgirepository,libgirepository-devel|exe,dev,doc,nls|compat:current|
+yes|gobject-introspection|gobject-introspection,libgirepository,libgirepository-devel|exe,dev,doc,nls|compat:current| #not there is no gobject-introspection-devel
 no|gparted|gparted|exe,dev,doc,nls|compat:kirkstone|
 yes|gparted|gparted,libparted,libparted-devel|exe,dev,doc,nls|compat:current|
 yes|gperf|gperf|exe>dev,dev,doc,nls|compat:current|
@@ -302,6 +302,7 @@ yes|libgbm|libgbm,libgbm-devel|exe,dev,doc,nls|compat:current|
 yes|libgcrypt|libgcrypt,libgcrypt-devel|exe,dev,doc,nls|compat:current|
 yes|libgif|giflib|exe,dev,doc,nls|compat:current|
 yes|libgit2|libgit2|exe,dev,doc,nls|compat:kirkstone|
+no|libGL|libGL|exe,dev,doc,nls|compat:current| #does not exist.
 yes|libglade2|libglade,libglade-devel|exe,dev,doc,nls|compat:current|
 yes|libglapi|libglapi|exe,dev,doc,nls|compat:current|
 yes|libgo|libgo|exe>dev,dev,doc,nls|compat:current|
@@ -369,7 +370,7 @@ yes|libunbound|libunbound,unbound-devel|exe,dev,doc,nls|compat:current|
 yes|libunique|libunique,libunique-devel|exe,dev,doc,nls|compat:current|
 yes|libunistring|libunistring,libunistring-devel|exe,dev,doc,nls|compat:current|
 yes|libunwind|libunwind,libunwind-devel|exe,dev,doc,nls|compat:current|
-yes|libusb1|libusb,libusb-devel|exe,dev,doc,nls|compat:current|
+yes|libusb|libusb,libusb-devel|exe,dev,doc,nls|compat:current|
 yes|libusb-compat|libusb-compat,libusb-compat-devel|exe,dev,doc,nls|compat:current|
 yes|libutf8proc|libutf8proc,libutf8proc-devel|exe>dev,dev,doc,nls|compat:current|
 yes|libvorbis|libvorbis,libvorbis-devel|exe,dev,doc,nls|compat:current|
@@ -377,7 +378,7 @@ yes|libvpx7|libvpx7,libvpx-tools,libvpx-devel|exe,dev,doc,nls|compat:current|
 yes|libwebp|libwebp,libsharpyuv,libsharpyuv-devel,libwebp-devel|exe,dev,doc,nls|compat:current|
 yes|libx86|libx86,libx86-devel|exe,dev,doc,nls|compat:current|
 yes|libxatracker|libxatracker|exe,dev,doc,nls|compat:current|
-yes|libxcb_base|libxcb,libxcb-devel|exe,dev,doc,nls|compat:current|
+yes|libxcb|libxcb,libxcb-devel|exe,dev,doc,nls|compat:current|
 yes|libxcrypt|libxcrypt|exe,dev>null,doc,nls|compat:kirkstone|
 yes|libXfont2|libXfont2|exe,dev,doc,nls|compat:current|
 yes|libxkbcommon|libxkbcommon,libxkbcommon-devel|exe,dev,doc,nls|compat:current|
@@ -474,7 +475,7 @@ yes|pflask|pflask|exe,dev,doc,nls|compat:kirkstone|
 yes|phash||exe|pet:noarch
 yes|picpuz||exe,dev,doc,nls|pet:void|
 yes|picscale|picscale|exe,dev,doc,nls|compat:kirkstone|
-yes|pinentry|pinentry,pinentry-devel|exe,dev,doc,nls|compat:current|
+yes|pinentry|pinentry,pinentry-gtk|exe,dev,doc,nls|compat:current| #note there is no pinentry-devel
 yes|pixman|pixman,pixman-devel|exe,dev,doc,nls|compat:current|
 yes|pkgconfig|pkgconf,libpkgconf,pkgconf-devel|exe>dev,dev,doc,nls|compat:current|
 yes|pmcputemp||exe,dev,doc,nls|pet:void| #new version 1.2. does the oe one not work
@@ -610,8 +611,11 @@ yes|x264|x264,x264-devel|exe,dev|compat:current|
 yes|x265|x265,x265-devel|exe,dev|compat:current|
 yes|xarchive|xarchive|exe,dev>null,doc,nls|compat:kirkstone|
 yes|xbps|xbps,libxbps,xbps-triggers,vpm,libxbps-devel|exe,dev,doc,nls|compat:current|
-yes|xcb-util-keysyms|xcb-util-keysyms,xcb-util-keysyms-devel|exe,dev,doc,nls|compat:current|
 yes|xcb-util|xcb-util,xcb-util-devel|exe,dev,doc,nls|compat:current|
+yes|xcb-util-image|xcb-util-image,xcb-util-image-devel|exe,dev,doc,nls|compat:current|
+yes|xcb-util-keysyms|xcb-util-keysyms,xcb-util-keysyms-devel|exe,dev,doc,nls|compat:current|
+yes|xcb-util-renderutil|xcb-util-renderutil,xcb-util-renderutil-devel|exe,dev,doc,nls|compat:current|
+yes|xcb-util-wm|xcb-util-wm,xcb-util-wm-devel|exe,dev,doc,nls|compat:current|
 yes|xconsole|xconsole|exe,dev,doc,nls|compat:kirkstone|
 yes|xcur2png|xcur2png|exe,dev,doc,nls|compat:kirkstone|
 yes|xcursorgen|xcursorgen|exe,dev,doc,nls|compat:kirkstone|
@@ -625,16 +629,16 @@ yes|xf86-video-fbdev|xf86-video-fbdev|exe,dev,doc|compat:current|
 yes|xfdiff-cut|xfdiff-cut|exe,dev,doc,nls|compat:kirkstone|
 yes|xlockmore|xlockmore|exe,dev,doc,nls|compat:kirkstone|
 yes|xml2||exe|pet:void| #needed for void support.
-yes|xorg_base|rgb,appres,bdftopcf,bitmap,editres,fontconfig,fonttosfnt,iceauth,libdmx,libdmx-devel,libfontenc,libfontenc-devel,libICE,libICE-devel,libSM,libSM-devel,libX11,libX11-devel,libXau,libXau-devel,libXaw,libXaw-devel,libXcomposite,libXcomposite-devel,libXcursor,libXcursor-devel,libXdamage,libXdamage-devel,libXdmcp,libXdmcp-devel,libXevie,libXevie-devel,libXext,libXext-devel,libXfixes,libXfixes-devel,libXfont,libXfont-devel,libXfont2-devel,libXfontcache,libXfontcache-devel,libXft,libXft-devel,libXi,libXi-devel,libXinerama,libXinerama-devel,libxkbfile,libxkbfile-devel,libXmu,libXmu-devel,libXp,libXp-devel,libXpm,libXpm-devel,libXpresent,libXpresent-devel,libXrandr,libXrandr-devel,libXrender,libXrender-devel,libXres,libXres-devel,libXScrnSaver,libXScrnSaver-devel,libXt,libXt-devel,libXtst,libXtst-devel,libXv,libXv-devel,libXvMC,libXvMC-devel,libXxf86misc,libXxf86misc-devel,libXxf86vm,libXxf86vm-devel,libxcvt,libxcvt-devel,listres,makedepend,mkfontscale,mtdev,mtdev-devel,sessreg,setxkbmap,smproxy,viewres,x11perf,xauth,xbacklight,xbiff,xclipboard,xclock,xconsole,xcursorgen,xditview,xdpyinfo,xdriinfo,xev,xfontsel,xgamma,xhost,xinit,xkbcomp,xkbutils,xkill,xload,xmag,xmessage,xmodmap,xprop,xrandr,xrdb,xrefresh,xset,xsetroot,xsm,xvidtune,xvinfo,xwd,xwininfo,libdrm,libdrm-devel,xinput,xkeyboard-config,xbitmaps|exe,dev,doc,nls|compat:current|
+yes|xorg_base|rgb,appres,bdftopcf,bitmap,editres,fontconfig,fonttosfnt,iceauth,libdmx,libdmx-devel,libfontenc,libfontenc-devel,libICE,libICE-devel,libSM,libSM-devel,libX11,libX11-devel,libXau,libXau-devel,libXaw,libXaw-devel,libXcomposite,libXcomposite-devel,libXcursor,libXcursor-devel,libXdamage,libXdamage-devel,libXdmcp,libXdmcp-devel,libXevie,libXevie-devel,libXext,libXext-devel,libXfixes,libXfixes-devel,libXfont,libXfont-devel,libXfont2,libXfont2-devel,libXfontcache,libXfontcache-devel,libXft,libXft-devel,libXi,libXi-devel,libXinerama,libXinerama-devel,libxkbfile,libxkbfile-devel,libXmu,libXmu-devel,libXp,libXp-devel,libXpm,libXpm-devel,libXpresent,libXpresent-devel,libXrandr,libXrandr-devel,libXrender,libXrender-devel,libXres,libXres-devel,libXScrnSaver,libXScrnSaver-devel,libXt,libXt-devel,libXtst,libXtst-devel,libXv,libXv-devel,libXvMC,libXvMC-devel,libXxf86misc,libXxf86misc-devel,libXxf86vm,libXxf86vm-devel,libxcvt,libxcvt-devel,listres,makedepend,mkfontscale,mtdev,mtdev-devel,sessreg,setxkbmap,smproxy,viewres,x11perf,xauth,xbacklight,xbiff,xclipboard,xclock,xconsole,xcursorgen,xditview,xdpyinfo,xdriinfo,xev,xfontsel,xgamma,xhost,xinit,xkbcomp,xkbutils,xkill,xload,xmag,xmessage,xmodmap,xprop,xrandr,xrdb,xrefresh,xset,xsetroot,xsm,xvidtune,xvinfo,xwd,xwininfo,libdrm,libdrm-devel,xinput,xkeyboard-config,xbitmaps|exe,dev,doc,nls|compat:current|
 yes|xorg-cf-files|xorg-cf-files|exe>dev,dev,doc,nls|compat:current|
 yes|xorgproto|xorgproto,xcb-proto|exe>dev,dev,doc,nls|compat:current|
 yes|xresprobe|xresprobe|exe,dev,doc,nls|compat:kirkstone|
 no|xserver_xorg|xorg-server,xf86-video-*,xf86-input-*,-xf86-input-evdev,-xf86-input-synaptics,libinput,libinput-devel,libwacom,libwacom-devel,xorg-server-devel|exe,dev,doc,nls|compat:current|
-yes|xserver_xorg|xorg-server,xf86-video-*,xf86-input-*,libinput,libinput-devel,libwacom,libwacom-devel,xorg-server-devel|exe,dev,doc,nls|compat:current|
+yes|xserver_xorg|xorg-server-common,xorg-server,xorg-server-xephyr,xf86-video-*,xf86-input-*,libinput,libinput-devel,libwacom,libwacom-devel,xorg-server-devel|exe,dev,doc,nls|compat:current|
 yes|xtrans|xtrans|exe>dev,dev,doc,nls|compat:current|
 yes|xwd|xwd|exe,dev,doc,nls|compat:current|
-yes|xxHash|xxhash,xxHash-devel|exe,dev,doc,nls|compat:current|
-yes|xz|xz,xz-devel|exe,dev,doc,nls|compat:current|
+yes|xxHash|xxHash,xxHash-devel|exe,dev,doc,nls|compat:current|
+yes|xz|xz|exe,dev,doc,nls|compat:current| #note there is no xz-devel
 yes|yad|yad0|exe,dev,doc,nls|compat:kirkstone|
 yes|yasm|yasm|exe>dev,dev,doc,nls|compat:current|
 yes|ycalc||exe,dev,doc,nls|pet:void|  #failed to compile in oe. i like it
