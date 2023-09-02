@@ -22,6 +22,7 @@
 #110808 rerwin: Change all redirections to stderr to be appends, to protect error log.
 #200711 peebee: support zstd. ref: http://www.murga-linux.com/puppy/viewtopic.php?t=56651
 #20220126 fix .tar.zst extraction.
+#20230902 support void .xbps pkgs.
 
 # set up exit status variables
 E_UNSUPPORTED=65
@@ -33,7 +34,7 @@ BZIP2_EXTS="tar.bz tbz tar.bz2 tbz2"
 COMPRESS_EXTS="tar.z"
 XZ_EXTS="tar.xz txz"
 LZMA_EXTS="tar.lzma tar.lz tlz"
-ZST_EXTS="tar.zstd tar.zst" #200711
+ZST_EXTS="tar.zstd tar.zst xbps" #200711 20230902
 
 # Setup awk program
 AWK_PROGS="mawk gawk awk"
