@@ -415,15 +415,16 @@ case $DLPKG_BASE in
   #if [ -f ${DIRECTSAVEPATH}/INSTALL ];then
   # mv -f ${DIRECTSAVEPATH}/INSTALL ${DIRECTSAVEPATH}/pinstall.sh
   #fi
-  #if [ -f ${DIRECTSAVEPATH}/REMOVE ];then
-  # mv -f ${DIRECTSAVEPATH}/REMOVE ${DIRECTSAVEPATH}/puninstall.sh
-  #fi
+  if [ -f ${DIRECTSAVEPATH}/REMOVE ];then
+   # mv -f ${DIRECTSAVEPATH}/REMOVE ${DIRECTSAVEPATH}/puninstall.sh
+   rm -f ${DIRECTSAVEPATH}/REMOVE
+  fi
   if [ -f ${DIRECTSAVEPATH}/files.plist ];then
    rm -f ${DIRECTSAVEPATH}/files.plist
   fi
   if [ -f ${DIRECTSAVEPATH}/props.plist ];then
    #thanks to mistfire...
-   /usr/local/petget/plist2ini ${DIRECTSAVEPATH}/props.plist > /tmp/petget/props.tmp
+   /usr/local/petget/support/void/plist2ini ${DIRECTSAVEPATH}/props.plist > /tmp/petget/props.tmp
    rm -f ${DIRECTSAVEPATH}/props.plist
   else
    echo -n "architecture|" > /tmp/petget/props.tmp
@@ -801,9 +802,9 @@ if [ -f /INSTALL ];then #20230831 .xbps pkg
  ARCH="$(arch)"
  echo 'alias rm=/usr/local/petget/rm.sh' > /xpinstall.sh
  cat /INSTALL >> /xpinstall.sh
- LANG=$LANG_USER sh /xpinstall.sh post ${PKGNAME} ${DB_version} no "" ${ARCH}
+ LANG=$LANG_USER sh /xpinstall.sh post ${DB_nameonly} ${DB_version} no "" ${ARCH}
  rm -f /INSTALL
- rm -f /pinstall.sh
+ rm -f /xpinstall.sh
 fi
 cd / #180625
 
