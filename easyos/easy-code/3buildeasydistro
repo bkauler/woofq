@@ -305,7 +305,7 @@
 #20230721 remove gparted.desktop in container.
 #20230807 compatibility-script for zenity, instead of symlink.
 #20230815 fix path to overwrite existing argon2.
-#20230901 support xbps pkg manager.
+#20230901 support xbps pkg manager. 20230902 run 'INSTALL:*' scripts (ref: 2createpackages)
 
 export LANG=C #faster.
 
@@ -1520,6 +1520,15 @@ fi
 #20211201 copy latest youtube-dl. ref: 1download-latest-youtube-dl
 if [ -e ../youtube-dl ];then
  cp -a -f ../youtube-dl rootfs-complete/usr/bin/
+fi
+
+#20230902 2createpackages accumulated INSTALL:${DB_nameonly}:${DB_version}
+if [ "${DISTRO_BINARY_COMPAT}" = "void" ]; then
+ cp -a ../support/void/accum-install.sh rootfs-complete/
+ chroot rootfs-complete /accum-install.sh
+ rm rootfs-complete/accum-install.sh
+ #also copy these, as 0setup has to run in running easyos...
+ cp -a ../support/void rootfs-complete/usr/local/petget/support/
 fi
 
 #20230304 support distro name other than "EasyOS" and "Easy"
