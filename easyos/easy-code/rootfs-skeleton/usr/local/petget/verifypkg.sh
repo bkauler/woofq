@@ -8,6 +8,7 @@
 #101225 bug fix, .pet was converted to .tar.gz, restore to .pet.
 #170517 support .tar.xz
 #200712 support .tar.zst (arch linux now using this, actually .pkg.tar.zst).
+#20230902 support void .xbps
 
 export LANG=C
 . /etc/rc.d/PUPSTATE  #this has PUPMODE and SAVE_LAYER.
@@ -70,6 +71,11 @@ case $DLPKG_BASE in
  *.tar.zst) #200712
   DLPKG_MAIN="`basename $DLPKG_BASE .tar.zst`" #ex: scite-1.77-i686-2as
   zstd --test $DLPKG_BASE > /dev/null 2>&1
+  [ $? -ne 0 ] && FLAG="bad"
+ ;;
+ *.xbps) #20230902
+  DLPKG_MAIN="$(basename $DLPKG_BASE .xbps)" #ex: SDL_ttf-2.0.11_7.x86_64
+  zstd --test $DLPKG_BASE >/dev/null 2>&1
   [ $? -ne 0 ] && FLAG="bad"
  ;;
 esac
