@@ -1,5 +1,7 @@
 #!/bin/sh
 #041222
+#20230902 remove any utf8 characters, puppy db doesn't like.
+
 . ./DISTRO_SPECS
 
 case "${DISTRO_TARGETARCH}" in
@@ -12,6 +14,9 @@ mv -f Packages-${DISTRO_BINARY_COMPAT}-${DISTRO_COMPAT_VERSION}pre ${TARGETARCH}
 rm *.plist
 tar --zstd -xf ${TARGETARCH}-repodata.tar.zst
 rm ${TARGETARCH}-repodata.tar.zst
+#remove any utf8 characters...
+iconv -c -f utf-8 -t ascii index.plist > index.plistFIXED
+mv -f index.plistFIXED index.plist
 echo
 echo "Converting the Void xml database to the Puppy PPM format (@JamesBond)"
 rm Packages-${DISTRO_BINARY_COMPAT}-${DISTRO_COMPAT_VERSION}

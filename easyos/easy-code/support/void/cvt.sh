@@ -108,7 +108,7 @@ $1 ~ arraystr_key {
 	if (endpkg) {
 		if (pkgdep) gsub(/^,/,"",pkgdep)
 		pkgfn = pkgver "." arch ".xbps"
-		print pkgver "|" pkgname "|" pkgvver "|1|Uncategorized|" pkgsize "|current|" pkgfn "|" pkgdep "|" pkgdesc "||||" 
+		print pkgver "|" pkgname "|" pkgvver "|1|Uncategorized|" pkgsize "|current|" pkgfn "|" pkgdep "|" pkgdesc "|void|current||" 
 		endpkg=0
 	}
 }

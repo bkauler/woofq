@@ -52,7 +52,7 @@
 #20220120 arch linux: remove fraction from size. fix db arch|20211231
 #20220829 debdb2pupdb rewritten in nim. now in /usr/local/debget
 #20230309 support compat:kirkstone. missing pkg, limit number of alternatives.
-#20230901 support void linux.
+#20230901 support void linux. 20230902
 
 LANGORG="$(locale | grep '^LANG=' | cut -d '=' -f 2)" #121116
 export LANG=C #faster.
@@ -326,6 +326,11 @@ do
       gunzip ${xDLFILE}.gz
       RETSTAT=$?
       [ $RETSTAT -eq 0 ] && mv -f $xDLFILE ${PKGLISTFILE}pre #ex: Packages-mageia-1-corepre
+     ;;
+     void) #20230902
+      #renames x86_64-repodata (which is zstd compressed tarball) to Packages-void-currentpre
+      mv -f ${DLFILE} ${PKGLISTFILE}pre
+      RETSTAT=0
      ;;
      *) #141116 buildroot, pkg db file needs no processing (as for 'puppy' above)
       RETSTAT=0
@@ -669,12 +674,21 @@ _EOF1
    LANG=${LANGORG} echo "...it's already in the Puppy standard format."
   ;;
   void) #20230901 from woof-ce testing
-    if [ "$RUNNINGPUP" = "no" ];then
-     support/void/void0setup
-	else
-	 /usr/local/petget/support/void/void0setup
-	fi
-   ;;
+   echo "executing void0setup..."
+   if [ "$RUNNINGPUP" = "no" ];then
+    support/void/void0setup
+   else
+    /usr/local/petget/support/void/void0setup
+   fi
+   #void0setup sets category field to "uncategorized", so fix...
+   #mv -f Packages-${DISTRO_BINARY_COMPAT}-${DISTRO_COMPAT_VERSION} Packages-${DISTRO_BINARY_COMPAT}-${DISTRO_COMPAT_VERSION}temp
+   #${FIND_CAT} Packages-${DISTRO_BINARY_COMPAT}-${DISTRO_COMPAT_VERSION}temp > Packages-${DISTRO_BINARY_COMPAT}-${DISTRO_COMPAT_VERSION}
+   mv -f ${ONE_PKGLISTS_COMPAT} ${ONE_PKGLISTS_COMPAT}temp
+   ${FIND_CAT} ${ONE_PKGLISTS_COMPAT}temp > ${ONE_PKGLISTS_COMPAT}
+   rm -f ${ONE_PKGLISTS_COMPAT}temp
+   #cvt.sh called from void0setup has lib*so* files in deps, remove...
+   sed -i -e 's%,+lib[^|]*|%|%' ${ONE_PKGLISTS_COMPAT}
+  ;;
   puppy)
    echo "...it's already in the Puppy standard format."
   ;;
