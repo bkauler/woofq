@@ -100,6 +100,7 @@
 #20230309 support compat:kirkstone
 #20230718 CATVARIABLE=PKGCAT_Utility_Sub, drop the "_Sub"
 #20230902 support void .xbps pkgs. pkg may have 'INSTALL' script.
+#20230903 void has usr-merge.
 
 export LANG=C #faster.
 
@@ -262,7 +263,7 @@ case $WOOF_TARGETARCH in #120720 120721
   esac
  ;;
 esac
-if [ "$DISTRO_BINARY_COMPAT" == "arch" ];then #20220121
+if [ "$DISTRO_BINARY_COMPAT" == "arch" -o "$DISTRO_BINARY_COMPAT" == "void" ];then #20220121 20230903
  ARCHDIR=''
  DISTRO_ARCHDIR=''
 else
@@ -308,7 +309,7 @@ if [ "$DISTRO_ARCHDIR_SYMLINKS" = "no" ];then
   xARCHDIR="/${ARCHDIR}"
  fi
 fi
-if [ "$DISTRO_BINARY_COMPAT" == "arch" ];then #20220121
+if [ "$DISTRO_BINARY_COMPAT" == "arch" -o "$DISTRO_BINARY_COMPAT" == "void" ];then #20220121 20230903
  xARCHDIR=''
 fi
 export xARCHDIR
@@ -917,7 +918,7 @@ then run this script again and choose to build ${GENERICNAME}." >> ERROR-2CREATE
   
   #130111 moved below case-statement.
   #120316 hack for multiarch, move libs to standard locations...
-  if [ "$DISTRO_ARCHDIR_SYMLINKS" = "yes" -a "$DISTRO_BINARY_COMPAT" != "arch" ];then #130112 change test from ARCHDIR. 130114 revert DISTRO_ARCHDIR_SYMLINKS==yes. 140116 20220121
+  if [ "$DISTRO_ARCHDIR_SYMLINKS" = "yes" -a "$DISTRO_BINARY_COMPAT" != "arch" -a "$DISTRO_BINARY_COMPAT" != "void" ];then #130112 change test from ARCHDIR. 130114 revert DISTRO_ARCHDIR_SYMLINKS==yes. 140116 20220121 20230903
    if [ "$ARCHDIR" == "lib64" ];then #150102
     if [ -d sandbox2/${ARCHDIR} ];then #150102 T2 ARCHDIR=lib64
      if [ ! -h sandbox2/${ARCHDIR} ];then #20220120
@@ -968,7 +969,7 @@ then run this script again and choose to build ${GENERICNAME}." >> ERROR-2CREATE
   fi
   
   #20220121 arch-linux folder hierachy...
-  if [ "$DISTRO_BINARY_COMPAT" == "arch" ];then
+  if [ "$DISTRO_BINARY_COMPAT" == "arch" -o "$DISTRO_BINARY_COMPAT" == "void" ];then #20230903
    #echo '  moving everything into usr/lib and usr/bin...'
    mkdir -p sandbox2/usr/lib
    cd sandbox2

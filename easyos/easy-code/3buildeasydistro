@@ -306,6 +306,7 @@
 #20230807 compatibility-script for zenity, instead of symlink.
 #20230815 fix path to overwrite existing argon2.
 #20230901 support xbps pkg manager. 20230902 run 'INSTALL:*' scripts (ref: 2createpackages). 20230903 fix.
+#20230903 void has usr-merge.
 
 export LANG=C #faster.
 
@@ -449,7 +450,7 @@ if [ "$ARCHDIR" ];then #201011
   fi
  fi
 fi
-if [ "$DISTRO_BINARY_COMPAT" == "arch" ];then #20220121
+if [ "$DISTRO_BINARY_COMPAT" == "arch" -o "$DISTRO_BINARY_COMPAT" == "void" ];then #20220121 20230903
  xARCHDIR=''
 fi
 export xARCHDIR #151123
@@ -868,7 +869,7 @@ rm -f sandbox3/rootfs-complete/pinstall.sh
 
 rm -f /tmp/3builddistro_removed_alt 2>/dev/null #101013
 
-if [ "$DISTRO_BINARY_COMPAT" == "arch" ];then #20220121
+if [ "$DISTRO_BINARY_COMPAT" == "arch" -o "$DISTRO_BINARY_COMPAT" == "void" ];then #20220121 20230903
  ARCHDIR=''
  #create arch-linux symlinks...
  cd sandbox3/rootfs-complete
@@ -5091,7 +5092,7 @@ done
 sync
 
 #20220125 hack for now, this needs to be fixed properly...
-if [ "$DISTRO_BINARY_COMPAT" == "arch" ];then
+if [ "$DISTRO_BINARY_COMPAT" == "arch" -o "$DISTRO_BINARY_COMPAT" == "void" ];then #20230903
  ln -snf kmod rootfs-complete/usr/bin/depmod
  ln -snf kmod rootfs-complete/usr/bin/insmod
  ln -snf kmod rootfs-complete/usr/bin/lsmod
@@ -6775,7 +6776,7 @@ if [ -e devx_${VER}_${DISTRO_TARGETARCH}/usr/bin/man ];then
 fi
 
 #20220125 arch-linux, make sure libs are symlinks...
-if [ "$DISTRO_BINARY_COMPAT" == "arch" ];then #20220121
+if [ "$DISTRO_BINARY_COMPAT" == "arch" -o "$DISTRO_BINARY_COMPAT" == "void" ];then #20220121 20230903
  cd devx_${VER}_${DISTRO_TARGETARCH}
  for aLIB in lib lib64 usr/lib64
  do
