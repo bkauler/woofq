@@ -38,6 +38,7 @@
 #20220119 arch linux fix.
 #20220120 support compat:dunfell pkgs.
 #20230309 support compat:kirkstone
+#20230902 support void .xbps pkgs.
 
 export LANG=C #faster.
 
@@ -535,6 +536,12 @@ do
         SUCCESS='no'
        ;;
       esac
+     ;;
+     void) #20230902 support void .xbps pkgs
+      zstd --test $DB_fullfilename > /dev/null 2>&1
+      if [ $? -eq 0 ];then
+       SUCCESS='yes'
+      fi
      ;;
      slackware) #100617 support .txz...
       xz --test $DB_fullfilename > /dev/null 2>&1
