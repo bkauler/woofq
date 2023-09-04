@@ -11,18 +11,8 @@
 
 DISABLE_POST_INSTALL_SCRIPT=yes
 
-#170511 why do we want to do this?...
-##dunno why deb has to relocate 'head' in /usr/bin...
-#if [ -f usr/bin/head ];then
-# if [ ! -h usb/bin/head ];then #120516
-#  cp -a -f --remove-destination usr/bin/head bin/head
-#  rm -f usr/bin/head
-#  ln -s ../../bin/head usr/bin/head
-# fi
-#fi
-
 #170511 OE build, utilities names are appended with ".coreutils". 181008
-FNDCU="$(find bin usr/bin usr/sbin -mindepth 1 -maxdepth 1 -type f -name '*.coreutils*')"
+FNDCU="$(find usr/bin -mindepth 1 -maxdepth 1 -type f -name '*.coreutils*')"
 if [ "$FNDCU" ];then
  for ANAME in $FNDCU
  do

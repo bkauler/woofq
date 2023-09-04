@@ -11,7 +11,7 @@ if [ ! "`pwd`" = "/" ];then
  #if nothing suitable installed, do this...
  #note, helpsurfer not suitable, can't display my doc/index.html 
  HTMLVIEWERFLAG='no'
- [ "`find ./bin ./usr/bin -maxdepth 1 -type f -name netsurf`" != "" ] && HTMLVIEWERFLAG='yes'
+ [ "`find ./usr/bin -maxdepth 1 -type f -name netsurf`" != "" ] && HTMLVIEWERFLAG='yes'
  if [ "$HTMLVIEWERFLAG" = "no" ];then
   echo '#!/bin/sh' > ./usr/local/bin/defaulthtmlviewer
   echo 'exec qupzilla "$@"' >> ./usr/local/bin/defaulthtmlviewer
