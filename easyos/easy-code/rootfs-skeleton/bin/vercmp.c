@@ -1,1 +1,1 @@
-../../../../source/gcc/vercmp.c
+../../../source/gcc/vercmp.c
