@@ -89,6 +89,7 @@
 #20230711 check .desktop file exists.
 #20230718 some fixes
 #20230831 support Void Linux .xbps pkg.
+#20230904 set xARCHDIR
 
 #information from 'labrador', to expand a .pet directly to '/':
 #NAME="a52dec-0.7.4"
@@ -117,9 +118,13 @@ export LANG=C
 . /etc/xdg/menus/hierarchy #w478 has PUPHIERARCHY variable.
 
 #140125 DISTRO_ARCHDIR_SYMLINKS and DISTRO_ARCHDIR are defined in file DISTRO_SPECS...
-ARCHDIR="$DISTRO_ARCHDIR" #140204 fix.
-xARCHDIR=""
-[ "$DISTRO_ARCHDIR_SYMLINKS" = "no" ] && xARCHDIR="/${ARCHDIR}"
+xARCHDIR="$DISTRO_xARCHDIR" #20230904
+if [ "${xARCHDIR:0:1}" == "/" ];then
+ ARCHDIR="${xARCHDIR:1:99}"
+ #...this means if xARCHDIR=/x86_64-linux-gnu then path is /usr/lib/x86_64-linux-gnu
+else
+ ARCHDIR=''
+fi
 
 DLPKG="$1"
 DLPKG_BASE="`basename $DLPKG`" #ex: scite-1.77-i686-2as.tgz
@@ -485,19 +490,21 @@ if [ "$DIRECTSAVEPATH" ];then #131230
       fi
      fi
     fi
-    if [ -d /tmp/petget/original/usr/bin${xARCHDIR} ];then
-     if [ ! -h /tmp/petget/original/usr/bin${xARCHDIR} ];then
-      if [ -d /tmp/petget/template/usr/bin ];then
-       if [ ! -d /tmp/petget/template/usr/bin${xARCHDIR} ];then
-        #move all of /usr/bin into /usr/bin$xARCHDIR...
-        mkdir -p /tmp/petget/template/usr/bin${xARCHDIR}
-        for tFILE in `find /tmp/petget/template/usr/bin -mindepth 1 -maxdepth 1 | tr '\n' ' '`
-        do
-         tBASE="`basename $tFILE`"
-         [ -d /tmp/petget/original/usr/bin${xARCHDIR}/${tBASE} ] && mv -f /tmp/petget/template/usr/bin/${tBASE} /tmp/petget/template/usr/bin${xARCHDIR}/
-         [ -d $tFILE ] && continue
-         mv -f /tmp/petget/template/usr/bin/${tBASE} /tmp/petget/template/usr/bin${xARCHDIR}/
-        done
+    if [ "$ARCHDIR" ];then #20230904
+     if [ -d /tmp/petget/original/usr/bin/${ARCHDIR} ];then
+      if [ ! -h /tmp/petget/original/usr/bin/${ARCHDIR} ];then
+       if [ -d /tmp/petget/template/usr/bin ];then
+        if [ ! -d /tmp/petget/template/usr/bin/${ARCHDIR} ];then
+         #move all of /usr/bin into /usr/bin/$ARCHDIR...
+         mkdir -p /tmp/petget/template/usr/bin/${ARCHDIR}
+         for tFILE in `find /tmp/petget/template/usr/bin -mindepth 1 -maxdepth 1 | tr '\n' ' '`
+         do
+          tBASE="`basename $tFILE`"
+          [ -d /tmp/petget/original/usr/bin/${ARCHDIR}/${tBASE} ] && mv -f /tmp/petget/template/usr/bin/${tBASE} /tmp/petget/template/usr/bin${xARCHDIR}/
+          [ -d $tFILE ] && continue
+          mv -f /tmp/petget/template/usr/bin/${tBASE} /tmp/petget/template/usr/bin/${ARCHDIR}/
+         done
+        fi
        fi
       fi
      fi

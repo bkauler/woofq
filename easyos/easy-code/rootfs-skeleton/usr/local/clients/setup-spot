@@ -20,6 +20,7 @@
 #20210919 /clients now /home
 #20230502 support fscrypt v2. no need to test EOS_FSCRYPT_VER
 #20230528 setgid (see blog post).
+#20230904 set xARCHDIR
 
 SPOTAPPS="$@"
 RUNNINGPUP=0
@@ -35,17 +36,7 @@ if [ -f ../DISTRO_SPECS ];then
 else
 . /etc/DISTRO_SPECS
 fi
-xARCHDIR=""
-if [ "$DISTRO_ARCHDIR_SYMLINKS" = "no" ];then
- if [ "$DISTRO_ARCHDIR" == "lib64" ];then
-  xARCHDIR="64"
- else
-  xARCHDIR="/${DISTRO_ARCHDIR}"
- fi
- if [ "$DISTRO_BINARY_COMPAT" == "oe" ];then #20210906
-  xARCHDIR=""
- fi
-fi
+xARCHDIR="$DISTRO_xARCHDIR" #20230904
 
 #130604 jamesbond, mods by BK...
 RUNASSPOT='#script to run $APP as spot...

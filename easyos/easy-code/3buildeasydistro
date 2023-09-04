@@ -160,7 +160,6 @@
 #200820 no longer using "lockdown=confidentialty" kernel param, it is done inside init.
 #200929 more meaningful to change easy- to easy-${DISTRO_COMPAT_VERSION}- in .img.gz
 #200930 oe dunfell: some pkgs have folder 'ptest' -- delete them.
-#201012 fix xARCHDIR. may need symlinks for multiarch foreign pkgs to work in oe build.
 #20201117 revert 200929
 #20201205 have changed msg in devx_*.specs to not install in container.
 #20201209 do not want "update" icon on desktop in container.
@@ -229,7 +228,6 @@
 #20220413 use themed logo48.png, if exist. 20220416 changed in pets to easy48.png
 #20220414 also switch builtin container icons (code also from icon_switcher-cli). 20220416 fix.
 #20220416 set label= or popup= in .jwmrc-tray, according to /etc/uimanager
-#20220509 lib64 and lib/$ARCHDIR symlinks were wrong.
 #20220511 skeleton img may not be compressed, and partition sizes may differ.
 #20220511 4M ext4 too small for a journal. enable journal in init, after resizing partition.
 #20220512 no longer compressing .img 
@@ -307,6 +305,7 @@
 #20230815 fix path to overwrite existing argon2.
 #20230901 support xbps pkg manager. 20230902 run 'INSTALL:*' scripts (ref: 2createpackages). 20230903 fix.
 #20230903 void has usr-merge.
+#20230904 woofq now only support usr-merge and sbin-merge.
 
 export LANG=C #faster.
 
@@ -437,23 +436,6 @@ sed -i '/#QUIRKY/d' /tmp/DISTRO_SPECSCOPY
 sed -i -e 's% +#EASY$%%' /tmp/DISTRO_SPECSCOPY
 
 . /tmp/DISTRO_SPECSCOPY
-
-#140125 DISTRO_ARCHDIR and DISTRO_ARCHDIR_SYMLINKS are in DISTRO_SPECS, created in 2createpackages.
-ARCHDIR="$DISTRO_ARCHDIR"
-xARCHDIR=""
-if [ "$ARCHDIR" ];then #201011
- if [ "$DISTRO_ARCHDIR_SYMLINKS" = "no" ];then
-  if [ "$ARCHDIR" == "lib64" ];then #150102
-   xARCHDIR="64"
-  else
-   xARCHDIR="/${ARCHDIR}"
-  fi
- fi
-fi
-if [ "$DISTRO_BINARY_COMPAT" == "arch" -o "$DISTRO_BINARY_COMPAT" == "void" ];then #20220121 20230903
- xARCHDIR=''
-fi
-export xARCHDIR #151123
 
 #the files that have compatible-distro pkg docs (these were downloaded by 0setup)...
 PKGLISTS_COMPAT="`echo "$PKG_DOCS_DISTRO_COMPAT" | tr ' ' '\n' | cut -f 3 -d '|' | tr '\n' ' ' | sed -e 's% $%%'`" #see file DISTRO_PKGS_SPECS-ubuntu
@@ -843,11 +825,39 @@ if [ -f status/findpkgs_GENERIC_NAMES-${DISTRO_BINARY_COMPAT}-${DISTRO_COMPAT_VE
  #150730 perl is installing too late so put here... 'glib' also...
  for AMINPKG in busybox glibc pcre libselinux bash ncurses dpkg readline libffi gawk acl attr mpfr4 perl glib
  do
-  [ -d packages-${DISTRO_FILE_PREFIX}/${AMINPKG} ] && cp -a -f --remove-destination packages-${DISTRO_FILE_PREFIX}/${AMINPKG}/* sandbox3/rootfs-complete/
+  if [ -d packages-${DISTRO_FILE_PREFIX}/${AMINPKG} ];then
+   cp -a --remove-destination packages-${DISTRO_FILE_PREFIX}/${AMINPKG}/* sandbox3/rootfs-complete/ 2> /tmp/3builddistro-cp-errlog
+   sync #mysterious loss of dirs/files. try sync.
+   #20230904 fix for symlink path in rootfs-skeleton...
+   if [ -s /tmp/3builddistro-cp-errlog ];then
+    while read ONEDIRSYMLINK
+    do
+     [ "$ONEDIRSYMLINK" == "" ] && continue
+     xONEDIRSYMLINK="`echo -n "$ONEDIRSYMLINK" | sed -e 's%sandbox3/rootfs-complete%%'`"
+     #adding that extra trailing / does the trick...
+     cp -a --remove-destination packages-${DISTRO_FILE_PREFIX}/${AMINPKG}${xONEDIRSYMLINK}/* sandbox3/rootfs-complete${xONEDIRSYMLINK}/ 2> /tmp/3builddistro-cp-errlog2
+     #170418 installing some april pkgs into yocto morty, there are two levels of symlinks, /usr/X11R7/lib64...
+     if [ -s /tmp/3builddistro-cp-errlog2 ];then
+      cat /tmp/3builddistro-cp-errlog2 | grep 'cannot overwrite non-directory' | tr '[`‘’]' "'" | tr -s "'" | cut -f 2 -d "'" |
+      while read ONEDIRSYMLINK2
+      do
+       xONEDIRSYMLINK2="`echo -n "$ONEDIRSYMLINK2" | sed -e 's%sandbox3/rootfs-complete%%'`"
+       #adding that extra trailing / does the trick...
+       cp -a --remove-destination packages-${DISTRO_FILE_PREFIX}/${AMINPKG}${xONEDIRSYMLINK2}/* sandbox3/rootfs-complete${xONEDIRSYMLINK2}/
+      done
+      sync
+     fi
+    done <<_END1
+$(cat /tmp/3builddistro-cp-errlog | grep 'cannot overwrite non-directory' | tr '[`‘’]' "'" | tr -s "'" | cut -f 2 -d "'")
+_END1
+   fi
+   
+  fi
  done
  [ -e sandbox3/rootfs-complete/pet.specs ] && rm -f sandbox3/rootfs-complete/pet.specs
  [ -e sandbox3/rootfs-complete/pinstall.sh ] && rm -f sandbox3/rootfs-complete/pinstall.sh
  rm -rf sandbox3/rootfs-complete/DEBIAN* 2> /dev/null
+ rm -rf sandbox3/rootfs-complete/INSTALL* 2> /dev/null #void
 fi
 
 mkdir -p sandbox3/rootfs-complete/etc
@@ -869,166 +879,8 @@ rm -f sandbox3/rootfs-complete/pinstall.sh
 
 rm -f /tmp/3builddistro_removed_alt 2>/dev/null #101013
 
-if [ "$DISTRO_BINARY_COMPAT" == "arch" -o "$DISTRO_BINARY_COMPAT" == "void" ];then #20220121 20230903
- ARCHDIR=''
- #create arch-linux symlinks...
- cd sandbox3/rootfs-complete
- for aLIB in lib lib64 usr/lib64
- do
-  if [ -d $aLIB ];then
-   if [ ! -h $aLIB ];then
-    #do extra checking...
-    #cp -a ${aLIB}/* usr/lib/
-    for aF in `find ${aLIB} -mindepth 1 -maxdepth 1`
-    do
-     [ "$aF" == "" ] && continue
-     if [ -h "$aF" ];then
-      if [ ! -e usr/lib/${aF/*\//} ];then #instead of using cp -n (no clobber)
-       cp -a $aF usr/lib/
-      fi
-     else
-      cp -a -f --remove-destination $aF usr/lib/
-     fi
-    done
-    rm -rf ./${aLIB}
-    ln -s -r usr/lib ${aLIB}
-   else
-    ln -snf -r usr/lib ${aLIB}
-   fi
-  else
-   ln -snf -r usr/lib ${aLIB}
-  fi
- done
- #20220122 let's make it completely arch-linux compatible... NO... 20220125 yes...
- mkdir -p usr/bin
- for aBIN in bin sbin usr/sbin
- do
-  if [ -d ${aBIN} ];then
-   if [ ! -h ${aBIN} ];then
-    #20220125 need extra checking...
-    #cp -a ${aBIN}/* usr/bin/
-    for aF in `find ${aBIN} -mindepth 1 -maxdepth 1`
-    do
-     [ "$aF" == "" ] && continue
-     if [ -h "$aF" ];then
-      if [ ! -e usr/bin/${aF/*\//} ];then #instead of using cp -n (no clobber)
-       cp -a $aF usr/bin/ #-n  is no clobber
-      fi
-     else
-      cp -a -f --remove-destination $aF usr/bin/
-     fi
-    done
-    rm -rf ./${aBIN}
-    ln -s -r usr/bin ${aBIN}
-   else #redundant
-    ln -r -snf usr/bin ${aBIN}
-   fi
-  else #redundant
-   ln -r -snf usr/bin ${aBIN}
-  fi
- done
- cd ../..
- echo "/usr/lib" > sandbox3/rootfs-complete/etc/ld.so.conf
-else
- #170801 /lib64 and /usr/lib64 may have to be symlinks...
- #note, already created the minimal chrootable f.s. above, may need to fix.
- echo "/lib" > sandbox3/rootfs-complete/etc/ld.so.conf
- echo "/usr/lib" >> sandbox3/rootfs-complete/etc/ld.so.conf
- case $WOOF_TARGETARCH in #161002
-  x86|armv7) #32-bit
-   true
-  ;;
-  *) #64-bit ex: amd64
-   if [ "$ARCHDIR" ];then #ex1: i386-linux-gnu  ex2: x86_64-linux-gnu
-    for aLIB in lib usr/lib
-    do
-     if [ "$ARCHDIR" != "lib64" ];then #150102
-      if [ "$DISTRO_ARCHDIR_SYMLINKS" = "no" ];then
-       mkdir -p sandbox3/rootfs-complete/${aLIB}/${ARCHDIR}
-       if [ -e sandbox3/rootfs-complete/${aLIB}64 ];then #coz of chrootable f.s.
-        if [ ! -h sandbox3/rootfs-complete/${aLIB}64 ];then
-         
-         #20220911 problem if a symlink overwrites a file...
-         for aL in $(find sandbox3/rootfs-complete/${aLIB}64 -mindepth 1 -type l 2>/dev/null | sed -e "s%sandbox3/rootfs-complete/${aLIB}64/%%" | grep -v ' ' | tr '\n' ' ')
-         do
-          aD="sandbox3/rootfs-complete/${aLIB}/${ARCHDIR}/${aL}"
-          if [ -f $aD ];then
-           #if [ ! -h $aD ];then
-            rm -f sandbox3/rootfs-complete/${aLIB}64/${aL}
-           #fi
-          fi
-         done
-         cp -a -f --remove-destination sandbox3/rootfs-complete/${aLIB}64/* sandbox3/rootfs-complete/${aLIB}/${ARCHDIR}/
-         rm -rf sandbox3/rootfs-complete/${aLIB}64
-        fi
-       fi
-       ln -snf lib/${ARCHDIR} sandbox3/rootfs-complete/${aLIB}64
-       echo "/${aLIB}/${ARCHDIR}" >> sandbox3/rootfs-complete/etc/ld.so.conf
-      else
-       if [ -e sandbox3/rootfs-complete/${aLIB}64 ];then #coz of chrootable f.s.
-        if [ ! -h sandbox3/rootfs-complete/${aLIB}64 ];then
-         cp -a -f --remove-destination sandbox3/rootfs-complete/${aLIB}64/* sandbox3/rootfs-complete/${aLIB}/
-         rm -rf sandbox3/rootfs-complete/${aLIB}64
-        fi
-       fi
-       ln -snf lib sandbox3/rootfs-complete/${aLIB}64 #20220509
-       
-       #20220509
-       if [ "$ARCHDIR" ];then
-        if [ -e sandbox3/rootfs-complete/${aLIB}/${ARCHDIR} ];then
-         if [ ! -h sandbox3/rootfs-complete/${aLIB}/${ARCHDIR} ];then
-          cp -a -f --remove-destination sandbox3/rootfs-complete/${aLIB}/${ARCHDIR}/* sandbox3/rootfs-complete/${aLIB}/
-          rm -rf sandbox3/rootfs-complete/${aLIB}/${ARCHDIR}
-         fi
-        fi
-        ln -snf ./ sandbox3/rootfs-complete/${aLIB}/${ARCHDIR}
-       fi
-       
-      fi
-     else
-      if [ "$DISTRO_ARCHDIR_SYMLINKS" = "no" ];then
-       mkdir -p sandbox3/rootfs-complete/${aLIB}64
-       echo "/${aLIB}64" >> sandbox3/rootfs-complete/etc/ld.so.conf
-      else
-       if [ -e sandbox3/rootfs-complete/${aLIB}64 ];then #coz of chrootable f.s.
-        if [ ! -h sandbox3/rootfs-complete/${aLIB}64 ];then
-         cp -a -f --remove-destination sandbox3/rootfs-complete/${aLIB}64/* sandbox3/rootfs-complete/${aLIB}/
-         rm -rf sandbox3/rootfs-complete/${aLIB}64
-        fi
-       fi
-       ln -snf lib sandbox3/rootfs-complete/${aLIB}64 #20220120 fix.
-      fi
-     fi
-    done
-    #190729 need these symlinks for pyro binaries to work in multi-arch build...
-    if [ "$DISTRO_ARCHDIR_SYMLINKS" = "no" ];then
-     if [ "$ARCHDIR" == "lib64" ];then #20210822 slackware
-      ln -s ../lib64/libc.so.6 sandbox3/rootfs-complete/lib/libc.so.6
-     else
-      ln -s ${ARCHDIR}/libc.so.6 sandbox3/rootfs-complete/lib/libc.so.6
-     fi
-     case "$WOOF_TARGETARCH" in
-      amd64)
-       if [ "$ARCHDIR" == "lib64" ];then #20210822 slackware
-        ln -s ../lib64/ld-linux-x86-64.so.2 sandbox3/rootfs-complete/lib/ld-linux-x86-64.so.2
-       else
-        ln -s ${ARCHDIR}/ld-linux-x86-64.so.2 sandbox3/rootfs-complete/lib/ld-linux-x86-64.so.2
-       fi
-      ;;
-      *)
-       if [ "$ARCHDIR" == "lib64" ];then #20210822 slackware
-        ln -s ../lib64/ld-linux-${WOOF_TARGETARCH}.so.2 sandbox3/rootfs-complete/lib/ld-linux-${WOOF_TARGETARCH}.so.2
-       else
-        ln -s ${ARCHDIR}/ld-linux-${WOOF_TARGETARCH}.so.2 sandbox3/rootfs-complete/lib/ld-linux-${WOOF_TARGETARCH}.so.2
-       fi
-      ;;
-     esac
-    fi
-   fi
-  ;;
- esac
- #140123 note, ld.so.conf appended-to further down.
-fi
+#20230904 code removed.
+echo "/usr/lib" > sandbox3/rootfs-complete/etc/ld.so.conf
 
 echo "3builddistro found these pkgs missing in packages-${DISTRO_FILE_PREFIX}:" > zmissing-pkgs-3builddistro #141107
 if [ -f status/findpkgs_GENERIC_NAMES-${DISTRO_BINARY_COMPAT}-${DISTRO_COMPAT_VERSION} ];then #150714 150731
@@ -1159,6 +1011,31 @@ _END1
  rm -rf sandbox3/rootfs-complete/DEBIAN* 2> /dev/null #161005
 
 done
+
+#20230904 check symlinks...
+while read aL
+do
+ aT="$(busybox readlink -n $aL)"
+ if [ -f sandbox3/rootfs-complete/usr/bin/${aT##*/} ];then
+  if [ ! -h sandbox3/rootfs-complete/usr/bin/${aT##*/} ];then
+   ln -snf ${aT##*/} ${aL}
+  fi
+ fi
+done <<_END2
+$(find sandbox3/rootfs-complete/usr/bin -mindepth 1 -maxdepth 1 -type l)
+_END2
+while read aL
+do
+ aT="$(busybox readlink -n $aL)"
+ if [ -f sandbox3/rootfs-complete/usr/lib/${aT##*/} ];then
+  if [ ! -h sandbox3/rootfs-complete/usr/lib/${aT##*/} ];then
+   ln -snf ${aT##*/} ${aL}
+  fi
+ fi
+done <<_END2
+$(find sandbox3/rootfs-complete/usr/lib -mindepth 1 -maxdepth 1 -type l)
+_END2
+   
 echo
 [ -s deb-postinst-log ] && echo "...'deb-postinst-log' has log of executing postinst scripts"
 echo
@@ -3494,9 +3371,9 @@ fi
 #however, mageia1 requires above file to be at /usr/lib/gdk-pixbuf-2.0/2.10.0/loaders.cache
 #create a symlink...
 VERDIR=''
-if [ -d rootfs-complete/usr/lib${xARCHDIR}/gdk-pixbuf-2.0 ];then
+if [ -d rootfs-complete/usr/lib/gdk-pixbuf-2.0 ];then
  [ ! -f rootfs-complete/etc/gtk-2.0/gdk-pixbuf.loaders ] && touch rootfs-complete/etc/gtk-2.0/gdk-pixbuf.loaders
- PIXBUFLOADERSDIR="`find rootfs-complete/usr/lib${xARCHDIR}/gdk-pixbuf-2.0 -maxdepth 2 -mindepth 2 -type d -name loaders | head -n 1`"
+ PIXBUFLOADERSDIR="`find rootfs-complete/usr/lib/gdk-pixbuf-2.0 -maxdepth 2 -mindepth 2 -type d -name loaders | head -n 1`"
  if [ "$PIXBUFLOADERSDIR" ];then
   PIXBUFCACHEDIR="`dirname $PIXBUFLOADERSDIR`"
   VERDIR="`basename $PIXBUFCACHEDIR`" #2.10.0
@@ -3506,18 +3383,14 @@ if [ -d rootfs-complete/usr/lib${xARCHDIR}/gdk-pixbuf-2.0 ];then
    ln -snf ../../../../etc/gtk-2.0/gdk-pixbuf.loaders ${PIXBUFCACHEDIR}/loaders.cache #110903 change -s to -snf
   fi
   #there may be some loaders in wrong place...
-  [ -d rootfs-complete/usr/lib${xARCHDIR}/gtk-2.0/loaders ] && mv -f rootfs-complete/usr/lib${xARCHDIR}/gtk-2.0/loaders/*.so ${PIXBUFLOADERSDIR}/ 2>/dev/null
-  if [ -d rootfs-complete/usr/lib${xARCHDIR}/gtk-2.0/${VERDIR}/loaders ];then
+  [ -d rootfs-complete/usr/lib/gtk-2.0/loaders ] && mv -f rootfs-complete/usr/lib/gtk-2.0/loaders/*.so ${PIXBUFLOADERSDIR}/ 2>/dev/null
+  if [ -d rootfs-complete/usr/lib/gtk-2.0/${VERDIR}/loaders ];then
    #mv -f rootfs-complete/usr/lib${xARCHDIR}/gtk-2.0/${VERDIR}/loaders/*.so ${PIXBUFLOADERSDIR}/ 2>/dev/null
    #150726 with devx merged, have a .la file also in here...
-   mv -f rootfs-complete/usr/lib${xARCHDIR}/gtk-2.0/${VERDIR}/loaders/* ${PIXBUFLOADERSDIR}/ 2>/dev/null #150726
-   rmdir rootfs-complete/usr/lib${xARCHDIR}/gtk-2.0/${VERDIR}/loaders #111114
+   mv -f rootfs-complete/usr/lib/gtk-2.0/${VERDIR}/loaders/* ${PIXBUFLOADERSDIR}/ 2>/dev/null #150726
+   rmdir rootfs-complete/usr/lib/gtk-2.0/${VERDIR}/loaders #111114
   fi
-  if [ "$(echo -n "$xARCHDIR" | cut -c 1)" == "/" ];then #150102
-   ln -s ../../../${ARCHDIR}/gdk-pixbuf-2.0/${VERDIR}/loaders rootfs-complete/usr/lib${xARCHDIR}/gtk-2.0/${VERDIR}/loaders
-  else #161230
-   ln -s ../../gdk-pixbuf-2.0/${VERDIR}/loaders rootfs-complete/usr/lib${xARCHDIR}/gtk-2.0/${VERDIR}/loaders #111114
-  fi
+  ln -s ../../gdk-pixbuf-2.0/${VERDIR}/loaders rootfs-complete/usr/lib/gtk-2.0/${VERDIR}/loaders #111114
  fi
 fi
 
@@ -3567,11 +3440,7 @@ else
  touch rootfs-complete/etc/gtk-2.0/gtk.immodules
 fi
 if [ "$VERDIR" ];then #161230
- if [ "$(echo -n "$xARCHDIR" | cut -c 1)" == "/" ];then #150102
-  ln -snf ../../../../../etc/gtk-2.0/gtk.immodules rootfs-complete/usr/lib${xARCHDIR}/gtk-2.0/${VERDIR}/gtk.immodules
- else
-  ln -snf ../../../../etc/gtk-2.0/gtk.immodules rootfs-complete/usr/lib${xARCHDIR}/gtk-2.0/${VERDIR}/gtk.immodules
- fi
+ ln -snf ../../../../etc/gtk-2.0/gtk.immodules rootfs-complete/usr/lib/gtk-2.0/${VERDIR}/gtk.immodules
 fi
 
 #100627 recent versions of xorg server, turn modesetting on... 110822 improve...
@@ -3899,20 +3768,20 @@ fi
 #160927 always create the symlinks...
 #if [ "$WOOF_HOSTARCH" = "$WOOF_TARGETARCH" ];then
  if [ -d rootfs-complete/usr/share/glib-2.0/schemas ];then
-  [ -e rootfs-complete/usr/lib${xARCHDIR}/glib-2.0/glib-compile-schemas ] && ln -s ../lib${xARCHDIR}/glib-2.0/glib-compile-schemas rootfs-complete/usr/bin/glib-compile-schemas #140127
-  [ -e rootfs-complete/usr/lib${xARCHDIR}/glib-2.0/glib-compile-resources ] && ln -s ../lib${xARCHDIR}/glib-2.0/glib-compile-resources rootfs-complete/usr/bin/glib-compile-resources #160927
+  [ -e rootfs-complete/usr/lib/glib-2.0/glib-compile-schemas ] && ln -s ../lib/glib-2.0/glib-compile-schemas rootfs-complete/usr/bin/glib-compile-schemas #140127
+  [ -e rootfs-complete/usr/lib/glib-2.0/glib-compile-resources ] && ln -s ../lib/glib-2.0/glib-compile-resources rootfs-complete/usr/bin/glib-compile-resources #160927
   [ "$WOOF_HOSTARCH" = "$WOOF_TARGETARCH" ] && [ -e rootfs-complete/usr/bin/glib-compile-schemas ] && chroot rootfs-complete /usr/bin/glib-compile-schemas /usr/share/glib-2.0/schemas
  fi
  #120523 seems need this too... 140125... 20220204 fix for oe...
- if [ -d rootfs-complete/usr/lib${xARCHDIR}/gio/modules ];then
+ if [ -d rootfs-complete/usr/lib/gio/modules ];then
   if [ ! -e rootfs-complete/usr/bin/gio-querymodules ];then
-   if [ -e rootfs-complete/usr/lib${xARCHDIR}/glib-2.0/gio-querymodules ];then
-    ln -s ../lib${xARCHDIR}/glib-2.0/gio-querymodules rootfs-complete/usr/bin/gio-querymodules #140127
+   if [ -e rootfs-complete/usr/lib/glib-2.0/gio-querymodules ];then
+    ln -s ../lib/glib-2.0/gio-querymodules rootfs-complete/usr/bin/gio-querymodules #140127
    elif [ rootfs-complete/usr/libexec/glib-2.0/gio-querymodules ];then #20220204 oe
     ln -s ../libexec/glib-2.0/gio-querymodules rootfs-complete/usr/bin/gio-querymodules
    fi
   fi
-  [ "$WOOF_HOSTARCH" = "$WOOF_TARGETARCH" ] && [ -e rootfs-complete/usr/bin/gio-querymodules ] && chroot rootfs-complete /usr/bin/gio-querymodules /usr/lib${xARCHDIR}/gio/modules
+  [ "$WOOF_HOSTARCH" = "$WOOF_TARGETARCH" ] && [ -e rootfs-complete/usr/bin/gio-querymodules ] && chroot rootfs-complete /usr/bin/gio-querymodules /usr/lib/gio/modules
  fi
 #fi
 
@@ -4030,14 +3899,14 @@ fi
 #(refer /usr/sbin/welcome1stboot.bac), however these are only in the devx.
 #so need to create them... 161231 fix lib path...
 #note, i think this problem only in wary/racy, as gtk template creates these symlinks.
-if [ ! -e rootfs-complete/usr/lib${xARCHDIR}/libgtk-x11-2.0.so ];then
- FNDGTKLIB="$(find rootfs-complete/usr/lib${xARCHDIR}/ -mindepth 1 -maxdepth 1 -name 'libgtk-x11-2.0.so.[0-9]' | head -n 1 | rev | cut -f 1 -d '/' | rev)"
- [ "$FNDGTKLIB" ] && ln -s $FNDGTKLIB rootfs-complete/usr/lib${xARCHDIR}/libgtk-x11-2.0.so #2> /dev/null
+if [ ! -e rootfs-complete/usr/lib/libgtk-x11-2.0.so ];then
+ FNDGTKLIB="$(find rootfs-complete/usr/lib/ -mindepth 1 -maxdepth 1 -name 'libgtk-x11-2.0.so.[0-9]' | head -n 1 | rev | cut -f 1 -d '/' | rev)"
+ [ "$FNDGTKLIB" ] && ln -s $FNDGTKLIB rootfs-complete/usr/lib/libgtk-x11-2.0.so #2> /dev/null
 fi
 #i'll do the same for libgdk-x11-2.0.so ...
-if [ ! -e rootfs-complete/usr/lib${xARCHDIR}/libgdk-x11-2.0.so ];then
- FNDGDKLIB="$(find rootfs-complete/usr/lib${xARCHDIR}/ -mindepth 1 -maxdepth 1 -name 'libgdk-x11-2.0.so.[0-9]' | head -n 1 | rev | cut -f 1 -d '/' | rev)"
- [ "$FNDGTKLIB" ] && ln -s $FNDGTKLIB rootfs-complete/usr/lib${xARCHDIR}/libgdk-x11-2.0.so #2> /dev/null
+if [ ! -e rootfs-complete/usr/lib/libgdk-x11-2.0.so ];then
+ FNDGDKLIB="$(find rootfs-complete/usr/lib/ -mindepth 1 -maxdepth 1 -name 'libgdk-x11-2.0.so.[0-9]' | head -n 1 | rev | cut -f 1 -d '/' | rev)"
+ [ "$FNDGTKLIB" ] && ln -s $FNDGTKLIB rootfs-complete/usr/lib/libgdk-x11-2.0.so #2> /dev/null
 fi
 
 #121212 puinstall.sh was not getting removed...
@@ -4287,9 +4156,7 @@ fi
 #done
 
 if [ "$BUILD_CHOICE_MERGE_DEVX" != "yes" ];then #150814
- #140124 there may be some stray .a files, move them to devx... 161231 fix...
- [ "$xARCHDIR" == "64" ] && EXTRALIBS="rootfs-complete/lib${xARCHDIR} rootfs-complete/usr/lib${xARCHDIR}"
- for ASO in `find rootfs-complete/usr/lib rootfs-complete/lib ${EXTRALIBS} -name '*.a' | sed -e 's%rootfs-complete/%%' | tr ' ' 'x' | tr '\n' ' '`
+ for ASO in `find rootfs-complete/usr/lib -name '*.a' | sed -e 's%rootfs-complete/%%' | tr ' ' 'x' | tr '\n' ' '`
  do
   ADIR="`dirname $ASO`"
   ANAME="`basename $ASO`"
@@ -4303,10 +4170,8 @@ sync
 
 #140125 disable gtk dependency on a stupid gnome daemon... do always, in case future install gtk3...
 #ref: http://forums.gentoo.org/viewtopic-t-947210-start-0.html
-#if [ -d rootfs-complete/usr/lib${xARCHDIR}/gtk-3.0 ];then
  mkdir -p rootfs-complete/etc/profile.d
  echo 'export NO_AT_BRIDGE=1' > rootfs-complete/etc/profile.d/gtk3
-#fi
 
 #140202 set default dirs into /file... 170221 "home" is now /mnt/wkg/home, where wkg is a symlink.
 ###WORK IN PROGRESS###
@@ -4537,12 +4402,6 @@ if [ "$BUILD_CHOICE_MERGE_DEVX" == "yes" ];then #150725
  #mageia1 python puts 30python.csh here...
  rm -f rootfs-complete/etc/profile.d/*.csh
  
- #140122 not sure about this...
- if [ "$(echo -n "$xARCHDIR" | cut -c 1)" == "/" ];then #150102
-  #CPATH works any language, replaces C_INCLUDE_PATH and CPLUS_INCLUDE_PATH
-  echo "export CPATH=/usr/include/${ARCHDIR}" > rootfs-complete/etc/profile.d/archinc
- fi
- 
  #140123 'man-1.6f' binary pkg from T2 has bug, everything in /usr/usr...
  if [ -d rootfs-complete/usr/usr ];then
   cp -a -f --remove-destination rootfs-complete/usr/usr/bin/* rootfs-complete/usr/bin/ 2>/dev/null
@@ -4550,16 +4409,6 @@ if [ "$BUILD_CHOICE_MERGE_DEVX" == "yes" ];then #150725
   cp -a -f --remove-destination rootfs-complete/usr/usr/share/* rootfs-complete/usr/share/ 2>/dev/null
   sync
   rm -rf rootfs-complete/usr/usr
- fi
- 
- #140122 seamonkey compile, unable to find gdkconfig.h, glibconfig.h... (note, i actually put these in /usr/include, but this should work also...)
- if [ "$xARCHDIR" ];then #150102 fix
-  for AINC in `find rootfs-complete/usr/lib${xARCHDIR} -type d -name 'include' | sed -e "s%rootfs-complete/usr/%%" | tr '\n' ' '` #ex: glib-2.0/include
-  do
-   mkdir -p rootfs-complete/usr/${AINC} #ex: rootfs-complete/usr/lib/glib-2.0/include
-   xAINC="$(echo -n "$AINC" | sed -e 's%lib${xARCHDIR}/%%')"
-   cp -a -f --remove-destination rootfs-complete/usr/${AINC}/*.h rootfs-complete/usr/lib/${xAINC}/ 2>/dev/null
-  done
  fi
  
  #141017 quirky unicorn, compile seamonkey needs /usr/sbin/i686-linux-gnu-gcc, but only have ...-gcc-4.6 symlink.
@@ -4857,7 +4706,7 @@ if [ -f rootfs-complete/usr/sbin/update-ca-certificates ];then
 fi
 
 #170515 oe, usr/lib/gconv/gconv-modules.cache is missing...
-if [ ! -f rootfs-complete/usr/lib${xARCHDIR}/gconv/gconv-modules.cache ];then
+if [ ! -f rootfs-complete/usr/lib/gconv/gconv-modules.cache ];then
  if [ "$WOOF_HOSTARCH" == "$WOOF_TARGETARCH" ];then
   #chroot rootfs-complete /usr/sbin/iconvconfig
   chroot rootfs-complete iconvconfig #20220122 arch-linux has it at /usr/bin
@@ -6254,47 +6103,6 @@ ln -s . sandbox3/devx/usr/X11R7
 ln -s . sandbox3/devx/usr/X11R6
 ln -s . sandbox3/devx/usr/X11
 
-#170801 /lib64 and /usr/lib64 may have to be symlinks...
-mkdir -p sandbox3/devx/lib
-mkdir -p sandbox3/devx/usr/lib
-case $WOOF_TARGETARCH in #161002
- x86|armv7) #32-bit
-  true
- ;;
- *) #64-bit ex: amd64
-  if [ "$ARCHDIR" ];then #ex1: i386-linux-gnu  ex2: x86_64-linux-gnu
-   if [ "$ARCHDIR" != "lib64" ];then #150102
-    if [ "$DISTRO_ARCHDIR_SYMLINKS" = "no" ];then
-     mkdir -p sandbox3/devx/lib/${ARCHDIR}
-     mkdir -p sandbox3/devx/usr/lib/${ARCHDIR}
-     ln -snf lib/${ARCHDIR} sandbox3/devx/lib64
-     ln -snf lib/${ARCHDIR} sandbox3/devx/usr/lib64
-    else
-     ln -snf lib sandbox3/devx/lib64  #20220509
-     ln -snf lib sandbox3/devx/usr/lib64 #20220509
-    
-     #20220509
-     if [ "$ARCHDIR" ];then
-      ln -snf ./ sandbox3/devx/lib/${ARCHDIR}
-      ln -snf ./ sandbox3/devx/usr/lib/${ARCHDIR}
-     fi
-
-    fi
-   else
-    if [ "$DISTRO_ARCHDIR_SYMLINKS" = "no" ];then
-     mkdir -p sandbox3/devx/lib64
-     mkdir -p sandbox3/devx/usr/lib64
-    else
-     ln -snf lib sandbox3/devx/lib64 #20220509
-     ln -snf lib sandbox3/devx/usr/lib64 #20220509
-    fi
-    
-
-    
-   fi
-  fi
- ;;
-esac
 
 #rm -rf sandbox3/devx no, done above.
 #mkdir sandbox3/devx
@@ -6356,6 +6164,30 @@ done
 sync
 
 rm -rf sandbox3/devx/DEBIAN* 2> /dev/null #150801
+
+#20230904 check symlinks...
+while read aL
+do
+ aT="$(busybox readlink -n $aL)"
+ if [ -f sandbox3/devx/usr/bin/${aT##*/} ];then
+  if [ ! -h sandbox3/devx/usr/bin/${aT##*/} ];then
+   ln -snf ${aT##*/} ${aL}
+  fi
+ fi
+done <<_END2
+$(find sandbox3/devx/usr/bin -mindepth 1 -maxdepth 1 -type l)
+_END2
+while read aL
+do
+ aT="$(busybox readlink -n $aL)"
+ if [ -f sandbox3/devx/usr/lib/${aT##*/} ];then
+  if [ ! -h sandbox3/devx/usr/lib/${aT##*/} ];then
+   ln -snf ${aT##*/} ${aL}
+  fi
+ fi
+done <<_END2
+$(find sandbox3/devx/usr/lib -mindepth 1 -maxdepth 1 -type l)
+_END2
 
 #200711 have this in rootfs-complete...
 if [ -d sandbox3/devx/usr/share/mime/packages ];then
@@ -6558,12 +6390,6 @@ fi
 #110702 mageia1 python puts 30python.csh here...
 rm -f sandbox3/devx/etc/profile.d/*.csh
 
-#140122 not sure about this...
-if [ "$(echo -n "$xARCHDIR" | cut -c 1)" == "/" ];then #150102
- #CPATH works any language, replaces C_INCLUDE_PATH and CPLUS_INCLUDE_PATH
- echo "export CPATH=/usr/include/${ARCHDIR}" > sandbox3/devx/etc/profile.d/archinc
-fi
-
 #140123 'man-1.6f' binary pkg from T2 has bug, everything in /usr/usr...
 if [ -d sandbox3/devx/usr/usr ];then
  cp -a -f --remove-destination sandbox3/devx/usr/usr/bin/* sandbox3/devx/usr/bin/ 2>/dev/null
@@ -6584,16 +6410,6 @@ fi
 [ -f sandbox3/devx/etc/ld.so.conf ] && rm -f sandbox3/devx/etc/ld.so.conf
 [ -h sandbox3/devx/etc/localtime ] && rm -f sandbox3/devx/etc/localtime
 #140102 [ -f sandbox3/devx/etc/profile.d/pkgconfig ] && rm -f sandbox3/devx/etc/profile.d/pkgconfig
-
-#140122 seamonkey compile, unable to find gdkconfig.h, glibconfig.h... (note, i actually put these in /usr/include, but this should work also...)
-if [ "$xARCHDIR" ];then #150102 fix
- for AINC in `find sandbox3/devx/usr/lib${xARCHDIR} -type d -name 'include' | sed -e "s%sandbox3/devx/usr/%%" | tr '\n' ' '` #ex: glib-2.0/include
- do
-  mkdir -p sandbox3/devx/usr/${AINC} #ex: sandbox3/devx/usr/lib/glib-2.0/include
-  xAINC="$(echo -n "$AINC" | sed -e 's%lib${xARCHDIR}/%%')"
-  cp -a -f --remove-destination sandbox3/devx/usr/${AINC}/*.h sandbox3/devx/usr/lib/${xAINC}/ 2>/dev/null
- done
-fi
 
 #141017 quirky unicorn, compile seamonkey needs /usr/sbin/i686-linux-gnu-gcc, but only have ...-gcc-4.6 symlink.
 GCCLINK="$(find sandbox3/devx/usr/bin -mindepth 1 -maxdepth 1 -type l -name '*-linux-gnu-gcc-*' | head -n 1)"

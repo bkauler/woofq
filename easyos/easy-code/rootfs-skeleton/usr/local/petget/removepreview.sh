@@ -47,9 +47,7 @@ DB_pkgname="$TREE2"
 ORIGLANG="$LANG" #131230
 
 #140204 DISTRO_ARCHDIR_SYMLINKS and DISTRO_ARCHDIR are defined in file DISTRO_SPECS...
-ARCHDIR="$DISTRO_ARCHDIR"
-xARCHDIR=""
-[ "$DISTRO_ARCHDIR_SYMLINKS" = "no" ] && xARCHDIR="/${ARCHDIR}"
+xARCHDIR="$DISTRO_xARCHDIR" #20230904
 
 #140206 old versions of quirky (tahr <6.0.3, t2<6.1.5) may need these moved...
 for ADEPSFS in `find /audit -maxdepth 1 -type f -name '*DEPOSED.sfs' 2>/dev/null | tr '\n' ' '`

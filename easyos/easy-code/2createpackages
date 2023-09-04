@@ -53,8 +53,6 @@
 #130510 support multiarch for debian wheezy.
 #131209 Packages-puppy- files renamed to Packages-pet-
 #140116 bring back multiarch dirs (optional). see also 3builddistro, /usr/local/petget/installpkg.sh.
-#140117 export ARCHDIR and DISTRO_ARCHDIR_SYMLINKS, so visible in FIXUPHACK scripts.
-#140117 templates may have /lib, /usr/lib, /usr/bin, but may be in ARCHDIR. 140118 fix.
 #140126 was getting .so files back in the EXE dir, fix.
 #140203 strip out all translations from .desktop files. these are provided by appropriate langpack.
 #141027 export SPLITRULE, for FIXUPHACK script in templates. this is the 4th field from PKGS_SPECS_TABLE, ex: exe,dev,doc,nls (see bdb template)
@@ -62,7 +60,6 @@
 #141112 want to rebuild a pkg without calling support/findpkgs -- pass "fast" param.
 #141116 handle buildroot, also general case. 141117
 #141223 want WOOF_HOSTARCH and WOOF_TARGETARCH visible in FIXUPHACK in templates.
-#150102 handle ARCHDIR=lib64 for T2 amd64 build.
 #150111 improve dev, nls split for qt4.
 #150203 prevent icon-link from link to itself. (see also usr/local/petget/installpkg.sh)
 #150205 seamonkey 'flat' chrome, chrome/en-US/locale must not be moved to _NLS. (see also usr/local/petget/downloadpkgs.sh)
@@ -101,6 +98,7 @@
 #20230718 CATVARIABLE=PKGCAT_Utility_Sub, drop the "_Sub"
 #20230902 support void .xbps pkgs. pkg may have 'INSTALL' script.
 #20230903 void has usr-merge.
+#20230904 woofq now only support usr-merge and sbin-merge.
 
 export LANG=C #faster.
 
@@ -185,134 +183,16 @@ esac
  . /tmp/DISTRO_SPECSCOPY
 #fi
 
-#this is for ubuntu (Precise Pangolin) only so far...
-ARCHDIR=''
-if [ "$WOOF_COMPATDISTRO" = "ubuntu" ];then
- case $WOOF_COMPATVERSION in
-  jaunty|karmic|lucid) #old releases.
-   true
-  ;;
-  *) #precise, raring, and later...
-   case $WOOF_TARGETARCH in
-    x86) ARCHDIR='i386-linux-gnu' ;;
-    x86_64) ARCHDIR='x86_64-linux-gnu' ;;
-    amd64) ARCHDIR='x86_64-linux-gnu' ;; #141106
-   esac
-  ;;
- esac
-fi
-if [ "$WOOF_COMPATDISTRO" = "debian" ];then #130510
- case $WOOF_COMPATVERSION in
-  squeeze|lenny|etch|sarge|woody) #old releases.
-   true
-  ;;
-  *) #wheezy and later...
-   case $WOOF_TARGETARCH in
-    x86) ARCHDIR='i386-linux-gnu' ;;
-    x86_64) ARCHDIR='x86_64-linux-gnu' ;;
-    amd64) ARCHDIR='x86_64-linux-gnu' ;; #190728
-   esac
-  ;;
- esac
-fi
-if [ "$WOOF_COMPATDISTRO" = "devuan" ];then #150419
- case $WOOF_TARGETARCH in
-  x86) ARCHDIR='i386-linux-gnu' ;;
-  x86_64) ARCHDIR='x86_64-linux-gnu' ;;
-  amd64) ARCHDIR='x86_64-linux-gnu' ;; #190728
- esac
-fi
-if [ "$WOOF_COMPATDISTRO" = "mageia" ];then #130111
- case $WOOF_TARGETARCH in
-  x86) ARCHDIR='multiarch-i386-linux' ;;
-  *) ARCHDIR=''; echo 'dunno'; exit ;;
- esac
-fi
-if [ "$WOOF_COMPATDISTRO" = "t2" ];then #150102
- case $WOOF_TARGETARCH in
-  x86) ARCHDIR='' ;;
-  amd64) ARCHDIR='lib64' ;; #this is actually /lib64 and /usr/lib64
- esac
-fi
-if [ "$WOOF_COMPATDISTRO" = "slackware" ];then #161229
- case $WOOF_TARGETARCH in
-  x86) ARCHDIR='' ;;
-  amd64) ARCHDIR='lib64' ;; #this is actually /lib64 and /usr/lib64
- esac
-fi
-
-case $WOOF_TARGETARCH in #120720 120721
- arm|armv7) #160829
-  case $WOOF_COMPATDISTRO in #see file WOOFMERGEVARS
-   raspbian) ARCHDIR='arm-linux-gnueabihf' ;; #different from debian/ubuntu, compiled for armv6 hf.
-   debian)
-    case $WOOF_COMPATVERSION in
-     squeeze) true ;; #old release
-     *) ARCHDIR='arm-linux-gnueabihf' ;;
-    esac
-   ;;
-   devuan) #150419
-    ARCHDIR='arm-linux-gnueabihf'
-   ;;
-   ubuntu)
-    case $WOOF_COMPATVERSION in
-     jaunty|karmic|lucid) true ;; #old releases.
-     *) ARCHDIR='arm-linux-gnueabihf' ;;
-    esac
-   ;;
-  esac
- ;;
-esac
-if [ "$DISTRO_BINARY_COMPAT" == "arch" -o "$DISTRO_BINARY_COMPAT" == "void" ];then #20220121 20230903
- ARCHDIR=''
- DISTRO_ARCHDIR=''
+#20230904 code removed.
+#20230904 simplified xARCHIVE and ARCHDIR exported to FIXUPHACK...
+xARCHDIR="$DISTRO_xARCHDIR" #20230904
+if [ "${xARCHDIR:0:1}" == "/" ];then
+ ARCHDIR="${xARCHDIR:1:99}"
+ #...this means if xARCHDIR=/x86_64-linux-gnu then path is /usr/lib/x86_64-linux-gnu
 else
- if [ "$DISTRO_ARCHDIR" != "$ARCHDIR" ];then #161003
-  sed -i '/^DISTRO_ARCHDIR=/d' DISTRO_SPECS #140118
-  echo "DISTRO_ARCHDIR='${ARCHDIR}'" >> DISTRO_SPECS #140118
-  DISTRO_ARCHDIR="${ARCHDIR}" #161003
- fi
+ ARCHDIR=''
 fi
-
-#130114 revert 130112... 140116 bring back...
-#130112 make multiarch symlinks optional...
-#see also code in 3builddistro.
-if [ "$ARCHDIR" ];then #ex: i386-linux-gnu
- if [ "$DISTRO_ARCHDIR_SYMLINKS" = "" ];then #in /etc/DISTRO_SPECS
-  echo
-  echo "Woof-built puppies up until Jan 2014 have multiarch dirs as symlinks,
-for example /usr/lib/i386-linux-gnu is a symlink to /usr/lib in Debian/Ubuntu
-based pups. However, in future builds will by default retain the multiarch
-sub-directories."
-  echo -n "ENTER only to retain multiarch dirs: "
-  read flagmultiarchdirs
-  if [ "$flagmultiarchdirs" = "" ];then
-   echo "DISTRO_ARCHDIR_SYMLINKS='no'" >> DISTRO_SPECS
-   DISTRO_ARCHDIR_SYMLINKS='no'
-   echo "...DISTRO_ARCHDIR_SYMLINKS='no' written to file DISTRO_SPECS"
-  else
-   echo "DISTRO_ARCHDIR_SYMLINKS='yes'" >> DISTRO_SPECS
-   DISTRO_ARCHDIR_SYMLINKS='yes'
-   echo "...DISTRO_ARCHDIR_SYMLINKS='yes' written to file DISTRO_SPECS"
-  fi
- fi
-fi
-#140117 want these visible in template FIXUPHACK...
-export ARCHDIR
-export DISTRO_ARCHDIR_SYMLINKS
-#for easy insertion in FIXUPHACK... (see abiword template)
-xARCHDIR=""
-if [ "$DISTRO_ARCHDIR_SYMLINKS" = "no" ];then
- if [ "$ARCHDIR" == "lib64" ];then #150102
-  xARCHDIR="64"
- else
-  xARCHDIR="/${ARCHDIR}"
- fi
-fi
-if [ "$DISTRO_BINARY_COMPAT" == "arch" -o "$DISTRO_BINARY_COMPAT" == "void" ];then #20220121 20230903
- xARCHDIR=''
-fi
-export xARCHDIR
+export xARCHDIR ARCHDIR
 
 #w469 modify compat-distro fallback list...
 if [ "$FALLBACKS_COMPAT_VERSIONS" != "" ];then
@@ -916,93 +796,7 @@ then run this script again and choose to build ${GENERICNAME}." >> ERROR-2CREATE
    ;;
   esac
   
-  #130111 moved below case-statement.
-  #120316 hack for multiarch, move libs to standard locations...
-  if [ "$DISTRO_ARCHDIR_SYMLINKS" = "yes" -a "$DISTRO_BINARY_COMPAT" != "arch" -a "$DISTRO_BINARY_COMPAT" != "void" ];then #130112 change test from ARCHDIR. 130114 revert DISTRO_ARCHDIR_SYMLINKS==yes. 140116 20220121 20230903
-   if [ "$ARCHDIR" == "lib64" ];then #150102
-    if [ -d sandbox2/${ARCHDIR} ];then #150102 T2 ARCHDIR=lib64
-     if [ ! -h sandbox2/${ARCHDIR} ];then #20220120
-      mkdir -p sandbox2/lib
-      cp -a -f --remove-destination sandbox2/${ARCHDIR}/* sandbox2/lib/
-      sync
-      rm -rf sandbox2/${ARCHDIR}
-      ln -s lib sandbox2/${ARCHDIR}
-     fi
-    fi
-    if [ -d sandbox2/usr/${ARCHDIR} ];then #150102 T2 ARCHDIR=lib64
-     if [ ! -h sandbox2/usr/${ARCHDIR} ];then #20220120
-      mkdir -p sandbox2/usr/lib
-      cp -a -f --remove-destination sandbox2/usr/${ARCHDIR}/* sandbox2/usr/lib/
-      sync
-      rm -rf sandbox2/usr/${ARCHDIR}
-      ln -s lib sandbox2/usr/${ARCHDIR}
-     fi
-    fi
-    if [ -d sandbox2/usr/X11R7/${ARCHDIR} ];then #150102 T2 ARCHDIR=lib64
-     mkdir -p sandbox2/usr/X11R7/lib
-     cp -a -f --remove-destination sandbox2/usr/X11R7/${ARCHDIR}/* sandbox2/usr/X11R7/lib/
-     sync
-     rm -rf sandbox2/usr/X11R7/${ARCHDIR}
-     ln -s lib sandbox2/usr/X11R7/${ARCHDIR}
-    fi
-   else
-    if [ -d sandbox2/lib/$ARCHDIR ];then
-     cp -a -f --remove-destination sandbox2/lib/${ARCHDIR}/* sandbox2/lib/
-     sync
-     rm -rf sandbox2/lib/${ARCHDIR}
-     ln -s ./ sandbox2/lib/${ARCHDIR}
-    fi
-    if [ -d sandbox2/usr/lib/$ARCHDIR ];then
-     cp -a -f --remove-destination sandbox2/usr/lib/${ARCHDIR}/* sandbox2/usr/lib/
-     sync
-     rm -rf sandbox2/usr/lib/${ARCHDIR}
-     ln -s ./ sandbox2/usr/lib/${ARCHDIR}
-    fi
-    #120909 add /usr/bin...
-    if [ -d sandbox2/usr/bin/$ARCHDIR ];then
-     cp -a -f --remove-destination sandbox2/usr/bin/${ARCHDIR}/* sandbox2/usr/bin/
-     sync
-     rm -rf sandbox2/usr/bin/${ARCHDIR}
-     ln -s ./ sandbox2/usr/bin/${ARCHDIR}
-    fi
-   fi
-  fi
-  
-  #20220121 arch-linux folder hierachy...
-  if [ "$DISTRO_BINARY_COMPAT" == "arch" -o "$DISTRO_BINARY_COMPAT" == "void" ];then #20230903
-   #echo '  moving everything into usr/lib and usr/bin...'
-   mkdir -p sandbox2/usr/lib
-   cd sandbox2
-   for aLIB in lib lib64 usr/lib64
-   do
-    if [ -d $aLIB ];then
-     if [ ! -h $aLIB ];then
-      cp -a ${aLIB}/* usr/lib/
-      rm -rf ./${aLIB}
-      #NO, do this in 3buildeasydistro...
-      #ln -s -r usr/lib ${aLIB}
-     else
-      rm -f ./${aLIB}
-      #ln -s -r usr/lib ${aLIB}
-     fi
-    fi
-   done
-   #20220122 delaying below until 3buildeasydistro...
-   #NO, this stuffs up some pkgs like busybox pet...
-   #mkdir -p usr/bin
-   #for aBIN in bin sbin usr/sbin
-   #do
-   # if [ -d ${aBIN} ];then
-   #  if [ ! -h ${aBIN} ];then
-   #   cp -a ${aBIN}/* usr/bin/
-   #   rm -rf ./${aBIN}
-   #   ln -s -r usr/bin ${aBIN}
-   #  fi
-   # fi
-   #done
-   cd ..
-   #echo '    ...moved'
-  fi
+  #20230904 code removed.
   
   #120818 overhauled. Pkg db now has category[;subcategory] (see 0setup), xdg enhanced (see /etc/xdg and /usr/share/desktop-directories), and generic icons for all subcategories (see /usr/local/lib/X11/mini-icons).
   #w019 fix .desktop files... 120628 improve...
@@ -1498,80 +1292,7 @@ _EOF1
   [ -d /tmp/original${GENERICNAME} ] && rm -rf /tmp/original${GENERICNAME} #140118
   cp -a packages-${DISTRO_FILE_PREFIX}/${GENERICNAME}${EXE} /tmp/original${GENERICNAME}
   
-  #140117 templates may have /lib, /usr/lib, /usr/bin, but may be in ARCHDIR...
-  #150102 fixes for T2 lib64 (xARCHDIR=64)...
-  [ -d /tmp/template${GENERICNAME} ] && rm -rf /tmp/template${GENERICNAME} #140118
-  cp -a packages-templates/$GENERICNAME /tmp/template${GENERICNAME}
-  if [ "$xARCHDIR" ];then
-   if [ -d /tmp/original${GENERICNAME}/lib${xARCHDIR} ];then
-    if [ ! -h /tmp/original${GENERICNAME}/lib${xARCHDIR} ];then
-     if [ -d /tmp/template${GENERICNAME}/lib ];then
-      if [ ! -d /tmp/template${GENERICNAME}/lib${xARCHDIR} ];then
-       #move all of /lib into /lib$xARCHDIR...
-       mkdir -p /tmp/template${GENERICNAME}/lib${xARCHDIR}
-       for tFILE in `find /tmp/template${GENERICNAME}/lib -mindepth 1 -maxdepth 1 | tr '\n' ' '`
-       do
-        tBASE="`basename $tFILE`"
-        [ -d /tmp/original${GENERICNAME}/lib${xARCHDIR}/${tBASE} ] && mv -f /tmp/template${GENERICNAME}/lib/${tBASE} /tmp/template${GENERICNAME}/lib${xARCHDIR}/
-        [ -d $tFILE ] && continue
-        mv -f /tmp/template${GENERICNAME}/lib/${tBASE} /tmp/template${GENERICNAME}/lib${xARCHDIR}/
-       done
-      fi
-     fi
-    fi
-   fi
-   if [ -d /tmp/original${GENERICNAME}/usr/lib${xARCHDIR} ];then
-    if [ ! -h /tmp/original${GENERICNAME}/usr/lib${xARCHDIR} ];then
-     if [ -d /tmp/template${GENERICNAME}/usr/lib ];then
-      if [ ! -d /tmp/template${GENERICNAME}/usr/lib${xARCHDIR} ];then
-       #move all of /usr/lib into /usr/lib$xARCHDIR...
-       mkdir -p /tmp/template${GENERICNAME}/usr/lib${xARCHDIR}
-       for tFILE in `find /tmp/template${GENERICNAME}/usr/lib -mindepth 1 -maxdepth 1 | tr '\n' ' '`
-       do
-        tBASE="`basename $tFILE`"
-        [ -d /tmp/original${GENERICNAME}/usr/lib${xARCHDIR}/${tBASE} ] && mv -f /tmp/template${GENERICNAME}/usr/lib/${tBASE} /tmp/template${GENERICNAME}/usr/lib${xARCHDIR}/
-        [ -d $tFILE ] && continue
-        mv -f /tmp/template${GENERICNAME}/usr/lib/${tBASE} /tmp/template${GENERICNAME}/usr/lib${xARCHDIR}/
-       done
-      fi
-     fi
-    fi
-   fi
-   if [ -d /tmp/original${GENERICNAME}/usr/X11R7/lib${xARCHDIR} ];then
-    if [ ! -h /tmp/original${GENERICNAME}/usr/X11R7/lib${xARCHDIR} ];then
-     if [ -d /tmp/template${GENERICNAME}/usr/X11R7/lib ];then
-      if [ ! -d /tmp/template${GENERICNAME}/usr/X11R7/lib${xARCHDIR} ];then
-       #move all of /usr/X11R7/lib into /usr/X11R7/lib$xARCHDIR...
-       mkdir -p /tmp/template${GENERICNAME}/usr/X11R7/lib${xARCHDIR}
-       for tFILE in `find /tmp/template${GENERICNAME}/usr/X11R7/lib -mindepth 1 -maxdepth 1 | tr '\n' ' '`
-       do
-        tBASE="`basename $tFILE`"
-        [ -d /tmp/original${GENERICNAME}/usr/X11R7/lib${xARCHDIR}/${tBASE} ] && mv -f /tmp/template${GENERICNAME}/usr/X11R7/lib/${tBASE} /tmp/template${GENERICNAME}/usr/X11R7/lib${xARCHDIR}/
-        [ -d $tFILE ] && continue
-        mv -f /tmp/template${GENERICNAME}/usr/X11R7/lib/${tBASE} /tmp/template${GENERICNAME}/usr/X11R7/lib${xARCHDIR}/
-       done
-      fi
-     fi
-    fi
-   fi
-   if [ -d /tmp/original${GENERICNAME}/usr/bin${xARCHDIR} ];then
-    if [ ! -h /tmp/original${GENERICNAME}/usr/bin${xARCHDIR} ];then
-     if [ -d /tmp/template${GENERICNAME}/usr/bin ];then
-      if [ ! -d /tmp/template${GENERICNAME}/usr/bin${xARCHDIR} ];then
-       #move all of /usr/bin into /usr/bin$xARCHDIR...
-       mkdir -p /tmp/template${GENERICNAME}/usr/bin${xARCHDIR}
-       for tFILE in `find /tmp/template${GENERICNAME}/usr/bin -mindepth 1 -maxdepth 1 | tr '\n' ' '`
-       do
-        tBASE="`basename $tFILE`"
-        [ -d /tmp/original${GENERICNAME}/usr/bin${xARCHDIR}/${tBASE} ] && mv -f /tmp/template${GENERICNAME}/usr/bin/${tBASE} /tmp/template${GENERICNAME}/usr/bin${xARCHDIR}/
-        [ -d $tFILE ] && continue
-        mv -f /tmp/template${GENERICNAME}/usr/bin/${tBASE} /tmp/template${GENERICNAME}/usr/bin${xARCHDIR}/
-       done
-      fi
-     fi
-    fi
-   fi
-  fi
+  #20230904 code removed.
   
   for TEMPLATEPATH in `find /tmp/template${GENERICNAME} -type d` #140117
   do

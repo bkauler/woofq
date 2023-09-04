@@ -15,6 +15,7 @@
 #200602 xsane patch fix for amd64.
 #200609 chromium deb has icon chromium.png, not chromium-browser.png.
 #20220628 samba. 20220629 fix.
+#20230904 set xARCHDIR
 
 . /etc/DISTRO_SPECS #150216 want DISTRO_TARGETARCH
 
@@ -22,13 +23,12 @@ INSTALLEDPKG="$1" #ex: vlc_2.0.3-0ubuntu0.12.04.1_i386, without .deb
 INSTALLEDNAME="$2" #130326
 
 #151123
-xARCHDIR=""
-if [ "$DISTRO_ARCHDIR_SYMLINKS" = "no" ];then
- if [ "$DISTRO_ARCHDIR" == "lib64" ];then
-  xARCHDIR="64"
- else
-  xARCHDIR="/${DISTRO_ARCHDIR}"
- fi
+xARCHDIR="$DISTRO_xARCHDIR" #20230904
+if [ "${xARCHDIR:0:1}" == "/" ];then
+ ARCHDIR="${xARCHDIR:1:99}"
+ #...this means if xARCHDIR=/x86_64-linux-gnu then path is /usr/lib/x86_64-linux-gnu
+else
+ ARCHDIR=''
 fi
 
 case $INSTALLEDPKG in
@@ -200,10 +200,10 @@ X-AppInstall-Package=chromium-browser" > /usr/share/applications/${CBDSK}
    if [ -f /usr/bin/xsane  ];then
     case "$DISTRO_TARGETARCH" in
      x86)
-      bbe -e 's/\x6b\x00getuid/\x6b\x00getpid/' usr/bin/${ARCHDIR}/xsane > /tmp/xsane-temp1
+      bbe -e 's/\x6b\x00getuid/\x6b\x00getpid/' usr/bin/xsane > /tmp/xsane-temp1
      ;;
      *) #amd64
-      bbe -e 's/\x65\x00getuid/\x65\x00getpid/' usr/bin/${ARCHDIR}/xsane > /tmp/xsane-temp0
+      bbe -e 's/\x65\x00getuid/\x65\x00getpid/' usr/bin/xsane > /tmp/xsane-temp0
       #buster64 deb now requires same as for x86...
       bbe -e 's/\x6b\x00getuid/\x6b\x00getpid/' /tmp/xsane-temp0 > /tmp/xsane-temp1
       rm -f /tmp/xsane-temp0

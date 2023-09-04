@@ -57,6 +57,7 @@
 #20230528 setgid bit. ref: https://bkhome.org/news/202305/setting-up-permissions-under-files-take-2.html
 #20230617 create /files/apps/$APPname (but not when called from 3buildeasydistro or dir2sfs)
 #20230708 scribus.
+#20230904 set xARCHDIR
 
 APPname="${1/=*/}"  #ex: seamonkey
 APPflag="${1/*=/}" #ex: true
@@ -258,17 +259,7 @@ if [ -f ../DISTRO_SPECS ];then
 else
 . /etc/DISTRO_SPECS
 fi
-xARCHDIR=""
-if [ "$DISTRO_ARCHDIR_SYMLINKS" = "no" ];then
- if [ "$DISTRO_ARCHDIR" == "lib64" ];then
-  xARCHDIR="64"
- else
-  xARCHDIR="/${DISTRO_ARCHDIR}"
- fi
- if [ "$DISTRO_BINARY_COMPAT" == "oe" ];then
-  xARCHDIR=""
- fi
-fi
+xARCHDIR="$DISTRO_xARCHDIR" #20230904
 
 #bulk of runtime script, usually at /usr/bin/$APPname...
 RUNASCLIENT="#CLIENTMARKER ${APPname}"'
