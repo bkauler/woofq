@@ -2,7 +2,7 @@
 woofQ
 -----
 
-woofQ is a build system for creating EasyOS. Also, historically, for creating Quirky Linux and "classical Puppy Linux".
+woofQ is a build system for creating EasyOS.
 
 The build systems for Puppy Linux started back in the early 2000's, with the name "Puppy Unleashed", then became "Woof", then "Woof2". Circa 2013, Barry Kauler stepped down from leading the Puppy project and handed it over to the Puppy-community. Woof2 was forked to "Woof-CE", where the "CE" means "Community Edition".
 
@@ -10,9 +10,9 @@ Barry continued to work on an experimental distribution named "Quirky Linux", an
 
 In 2017, Barry started another experimental distribution, named "EasyOS", also built with woofQ.
 
-Note that woofQ has retained the ability to build a Puppy Linux, with the infrastructure as Puppy was in 2013. Hence, this is referred to as a "classical" Puppy.
+Note that woofQ no longer has the ability to build a Puppy Linux or Quirky Linux. That backwards capability was removed on 2023-09-04.
 
-woofQ, as per the other woof* build systems, is able to import binary packages from anywhere. For example, the binary packages of Debian, Ubuntu, or Slackware, can be used.
+woofQ, as per the other woof* build systems, is able to import binary packages from anywhere. For example, the binary packages of Void, Debian, Ubuntu, or Slackware, can be used.
 
 Also, binary packages compiled from source by T2sde or OpenEmbedded/Yocto (OE) can be imported.
 
