@@ -1,0 +1,3 @@
+#udev script to make USB CDC devices with OBEX accessible to users
+
+ACTION=="add", SUBSYSTEM=="usb", PROGRAM="/usr/sbin/obex-check-device $attr{idVendor} $attr{idProduct}", MODE="660", GROUP="plugdev"
