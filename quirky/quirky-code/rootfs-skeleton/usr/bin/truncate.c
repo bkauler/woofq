@@ -1,1 +1,0 @@
-../../../../source/gcc/truncate.c
