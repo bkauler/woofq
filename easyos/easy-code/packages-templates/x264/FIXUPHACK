@@ -1,6 +1,5 @@
 #note: DISTRO_BINARY_COMPAT and DISTRO_FILE_PREFIX are visible here, exported in 2createpackages.
-#140117 xARCHDIR, ARCHDIR and DISTRO_ARCHDIR_SYMLINKS exported in 2createpackages. 
-#140117 note, 2createpackages may move /lib, /usr/lib, /usr/bin in template to ARCHDIR subdir.
+#xARCHDIR, ARCHDIR exported in 2createpackages. 
 #20210819 fix find err msg.
 
 #to support apps compiled for older x264...
@@ -10,16 +9,16 @@ if [ "$xARCHDIR" ];then #140117
   BASELIB="`basename $FNDLIB`"
   BASENUM="`echo -n "$BASELIB" | rev | cut -f 1 -d '.' | rev`" #ex: libx264.so.115 becomes 115
   if vercmp ${BASENUM} gt 116;then
-   ln -s $BASELIB usr/lib/${ARCHDIR}/libx264.so.116
+   ln -s $BASELIB usr/lib${xARCHDIR}/libx264.so.116
   fi
   if vercmp ${BASENUM} gt 105;then
-   ln -s $BASELIB usr/lib/${ARCHDIR}/libx264.so.105
+   ln -s $BASELIB usr/lib${xARCHDIR}/libx264.so.105
   fi
   if vercmp ${BASENUM} gt 94;then
-   ln -s $BASELIB usr/lib/${ARCHDIR}/libx264.so.94
+   ln -s $BASELIB usr/lib${xARCHDIR}/libx264.so.94
   fi
   if vercmp ${BASENUM} gt 98;then
-   ln -s $BASELIB usr/lib/${ARCHDIR}/libx264.so.98
+   ln -s $BASELIB usr/lib${xARCHDIR}/libx264.so.98
   fi
  fi
 fi

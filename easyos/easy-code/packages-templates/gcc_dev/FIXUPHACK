@@ -1,6 +1,5 @@
 #note: DISTRO_BINARY_COMPAT and DISTRO_FILE_PREFIX are visible here, exported in 2createpackages.
-#140117 xARCHDIR, ARCHDIR and DISTRO_ARCHDIR_SYMLINKS exported in 2createpackages. 
-#140117 note, 2createpackages may move /lib, /usr/lib, /usr/bin in template to ARCHDIR subdir.
+#xARCHDIR, ARCHDIR exported in 2createpackages. 
 #20210819 fix find err msgs.
 
 #120517 gentoo...
@@ -15,7 +14,7 @@ if [ "$DISTRO_BINARY_COMPAT" = "gentoo" ];then
 fi
 
 #ubuntu is the problem, these symlinks are missing...
-if [ "$xARCHDIR" ];then #140117
+if [ "$ARCHDIR" ];then #140117
  if [ ! -e usr/bin/${ARCHDIR}/g++ ];then
   REALFILE="`find usr/bin/${ARCHDIR}/ -maxdepth 1 -type f -name "g++-*" 2>/dev/null | head -n 1 | rev | cut -f 1 -d '/' | rev`"
   if [ "$REALFILE" ];then
@@ -34,7 +33,7 @@ fi
 
 #121028 01micko: Slackware ships with exec named gcc-4.7.1 and another util named gcc-somethingelse (forget sorry)
 # change -name "gcc-*" to -name "gcc-*.*" ...
-if [ "$xARCHDIR" ];then #140117
+if [ "$ARCHDIR" ];then #140117
  if [ ! -e usr/bin/${ARCHDIR}/gcc ];then
   REALFILE="`find usr/bin/${ARCHDIR}/ -maxdepth 1 -type f -name "gcc-*.*" 2>/dev/null | head -n 1 | rev | cut -f 1 -d '/' | rev`"
   if [ "$REALFILE" ];then
@@ -52,20 +51,22 @@ if [ ! -e usr/bin/gcc ];then
 fi
 
 #t2, i had to recompile gcc in running quirky, my new binary tarball has some things missing...
-if [ "$xARCHDIR" ];then #140117
+if [ "$ARCHDIR" ];then #140117
  if [ ! -e usr/bin/${ARCHDIR}/cc ];then
   REALFILE="`find usr/bin/${ARCHDIR}/ -maxdepth 1 -type f -name gcc 2>/dev/null | head -n 1 | rev | cut -f 1 -d '/' | rev`"
   [ "$REALFILE" = "" ] && REALFILE="`find usr/bin/${ARCHDIR}/ -maxdepth 1 -type f -name "gcc-*" 2>/dev/null | head -n 1 | rev | cut -f 1 -d '/' | rev`"
   [ "$REALFILE" ] && ln -s $REALFILE usr/bin/${ARCHDIR}/cc
  fi
- if [ ! -e usr/lib/${ARCHDIR}/libgcc_s.so ];then
-  REALFILE="`find usr/lib/${ARCHDIR}/ -maxdepth 1 -type f -name "libgcc_s.so*" 2>/dev/null | head -n 1 | rev | cut -f 1 -d '/' | rev`"
-  [ "$REALFILE" ] && ln -s $REALFILE usr/lib/${ARCHDIR}/libgcc_s.so
- fi
  if [ ! -e usr/bin/${ARCHDIR}/c++ ];then
   REALFILE="`find usr/bin/${ARCHDIR}/ -maxdepth 1 -type f -name g++ 2>/dev/null | head -n 1 | rev | cut -f 1 -d '/' | rev`"
   [ "$REALFILE" = "" ] && REALFILE="`find usr/bin/${ARCHDIR}/ -maxdepth 1 -type f -name "g++-*" 2>/dev/null | head -n 1 | rev | cut -f 1 -d '/' | rev`"
   [ "$REALFILE" ] && ln -s $REALFILE usr/bin/${ARCHDIR}/c++
+ fi
+fi
+if [ "$xARCHDIR" ];then
+ if [ ! -e usr/lib${xARCHDIR}/libgcc_s.so ];then
+  REALFILE="`find usr/lib${xARCHDIR}/ -maxdepth 1 -type f -name "libgcc_s.so*" 2>/dev/null | head -n 1 | rev | cut -f 1 -d '/' | rev`"
+  [ "$REALFILE" ] && ln -s $REALFILE usr/lib${xARCHDIR}/libgcc_s.so
  fi
 fi
 if [ ! -e usr/bin/cc ];then
@@ -84,7 +85,7 @@ if [ ! -e usr/bin/c++ ];then
 fi
 
 #110628 mageia 1...
-if [ "$xARCHDIR" ];then #140117
+if [ "$ARCHDIR" ];then #140117
  if [ ! -e usr/bin/${ARCHDIR}/cpp ];then
   CPPBIN="`find usr/bin/${ARCHDIR}/ -maxdepth 1 -type f -name 'cpp-*' 2>/dev/null | head -n 1`"
   if [ "$CPPBIN" ];then

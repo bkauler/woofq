@@ -1,6 +1,5 @@
 #note: DISTRO_BINARY_COMPAT and DISTRO_FILE_PREFIX are visible here, exported in 2createpackages.
-#140117 xARCHDIR, ARCHDIR and DISTRO_ARCHDIR_SYMLINKS exported in 2createpackages. 
-#140117 note, 2createpackages may move /lib, /usr/lib, /usr/bin in template to ARCHDIR subdir.
+#xARCHDIR, ARCHDIR exported in 2createpackages. 
 #190729 buster. ...no, need separate libcdio.so.18 pet.
 
 ##hack for slackware 13.1: i compiled mplayer against a later libcdio...
@@ -9,17 +8,17 @@
 
 #hack for debian squeezy...
 if [ "$xARCHDIR" ];then #140117
- LIBCDIOEXIST="`find usr/lib/${ARCHDIR} -maxdepth 1 -name 'libcdio.so.*' 2>/dev/null | head -n 1`"
+ LIBCDIOEXIST="`find usr/lib${xARCHDIR} -maxdepth 1 -name 'libcdio.so.*' 2>/dev/null | head -n 1`"
  if [ "$LIBCDIOEXIST" ];then #140204
   BASEEXIST="`basename $LIBCDIOEXIST`"
-  if [ ! -e usr/lib/${ARCHDIR}/libcdio.so.7 ];then
-   ln -s $BASEEXIST usr/lib/${ARCHDIR}/libcdio.so.7
+  if [ ! -e usr/lib${xARCHDIR}/libcdio.so.7 ];then
+   ln -s $BASEEXIST usr/lib${xARCHDIR}/libcdio.so.7
   fi
-  if [ ! -e usr/lib/${ARCHDIR}/libcdio.so.12 ];then
-   ln -s $BASEEXIST usr/lib/${ARCHDIR}/libcdio.so.12
+  if [ ! -e usr/lib${xARCHDIR}/libcdio.so.12 ];then
+   ln -s $BASEEXIST usr/lib${xARCHDIR}/libcdio.so.12
   fi
-  #if [ ! -e usr/lib/${ARCHDIR}/libcdio.so.18 ];then
-  # ln -s $BASEEXIST usr/lib/${ARCHDIR}/libcdio.so.18
+  #if [ ! -e usr/lib${xARCHDIR}/libcdio.so.18 ];then
+  # ln -s $BASEEXIST usr/lib${xARCHDIR}/libcdio.so.18
   #fi
  fi
 fi
@@ -36,14 +35,14 @@ fi
 
 #120907
 if [ "$xARCHDIR" ];then #140117
- LIB9660EXIST="`find usr/lib/${ARCHDIR} -maxdepth 1 -name 'libiso9660.so.*' 2>/dev/null | head -n 1`"
+ LIB9660EXIST="`find usr/lib${xARCHDIR} -maxdepth 1 -name 'libiso9660.so.*' 2>/dev/null | head -n 1`"
  if [ "$LIB9660EXIST" ];then #140204
   BASEEXIST="`basename $LIB9660EXIST`"
-  if [ ! -e usr/lib/${ARCHDIR}/libiso9660.so.7 ];then
-   ln -s $BASEEXIST usr/lib/${ARCHDIR}/libiso9660.so.7
+  if [ ! -e usr/lib${xARCHDIR}/libiso9660.so.7 ];then
+   ln -s $BASEEXIST usr/lib${xARCHDIR}/libiso9660.so.7
   fi
-  if [ ! -e usr/lib/${ARCHDIR}/libiso9660.so.5 ];then
-   ln -s $BASEEXIST usr/lib/${ARCHDIR}/libiso9660.so.5
+  if [ ! -e usr/lib${xARCHDIR}/libiso9660.so.5 ];then
+   ln -s $BASEEXIST usr/lib${xARCHDIR}/libiso9660.so.5
   fi
  fi
 fi

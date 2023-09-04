@@ -1,8 +1,7 @@
 #if the pkg created in packages-woof has something wrong, this file is a last
 #resort to fix it. Current-dir is where this file FIXUPHACK is located.
 #note: DISTRO_BINARY_COMPAT and DISTRO_FILE_PREFIX are visible here, exported in 2createpackages.
-#140117 xARCHDIR, ARCHDIR and DISTRO_ARCHDIR_SYMLINKS exported in 2createpackages. 
-#140117 note, 2createpackages may move /lib, /usr/lib, /usr/bin in template to ARCHDIR subdir.
+#xARCHDIR, ARCHDIR exported in 2createpackages. 
 
 #110623 i don't think we want this symlink anymore...
 ##this symlink got taken away to the _DEV pkg...
@@ -11,10 +10,10 @@
 
 #so did these, but needed...
 if [ "$xARCHDIR" ];then #140117
- [ -e usr/lib/${ARCHDIR}/libchromeXvMCPro.so.1 ] && ln -snf libchromeXvMCPro.so.1 usr/lib/${ARCHDIR}/libchromeXvMCPro.so
- [ -e usr/lib/${ARCHDIR}/libchromeXvMC.so.1 ] && ln -snf libchromeXvMC.so.1 usr/lib/${ARCHDIR}/libchromeXvMC.so
- [ -e usr/lib/${ARCHDIR}/libI810XvMC.so.1 ] && ln -snf libI810XvMC.so.1 usr/lib/${ARCHDIR}/libI810XvMC.so
- [ -e usr/lib/${ARCHDIR}/libIntelXvMC.so.1 ] && ln -snf libIntelXvMC.so.1 usr/lib/${ARCHDIR}/libIntelXvMC.so
+ [ -e usr/lib${xARCHDIR}/libchromeXvMCPro.so.1 ] && ln -snf libchromeXvMCPro.so.1 usr/lib${xARCHDIR}/libchromeXvMCPro.so
+ [ -e usr/lib${xARCHDIR}/libchromeXvMC.so.1 ] && ln -snf libchromeXvMC.so.1 usr/lib${xARCHDIR}/libchromeXvMC.so
+ [ -e usr/lib${xARCHDIR}/libI810XvMC.so.1 ] && ln -snf libI810XvMC.so.1 usr/lib${xARCHDIR}/libI810XvMC.so
+ [ -e usr/lib${xARCHDIR}/libIntelXvMC.so.1 ] && ln -snf libIntelXvMC.so.1 usr/lib${xARCHDIR}/libIntelXvMC.so
 fi
 [ -e usr/lib/libchromeXvMCPro.so.1 ] && ln -snf libchromeXvMCPro.so.1 usr/lib/libchromeXvMCPro.so
 [ -e usr/lib/libchromeXvMC.so.1 ] && ln -snf libchromeXvMC.so.1 usr/lib/libchromeXvMC.so
@@ -22,7 +21,7 @@ fi
 [ -e usr/lib/libIntelXvMC.so.1 ] && ln -snf libIntelXvMC.so.1 usr/lib/libIntelXvMC.so
 
 #inrepid again. remove this, as xorg_base pkg has X as a symlink...
-[ "$xARCHDIR" ] && rm -f usr/bin/${ARCHDIR}/X 2>/dev/null
+[ "$ARCHDIR" ] && rm -f usr/bin/${ARCHDIR}/X 2>/dev/null
 rm -f usr/bin/X 2>/dev/null
 ##dump this stuff...
 #[ -d etc/evtouch ] && rm -rf etc/evtouch
@@ -32,18 +31,18 @@ rm -f usr/bin/X 2>/dev/null
 
 #180630 easyos, want Xephyr and Xnest...
 #arch, has extra servers in the one xorg-servers pkg...
-if [ "$xARCHDIR" ];then #140117
+if [ "$ARCHDIR" ];then #140117
  #rm -f usr/bin/${ARCHDIR}/Xnest 2> /dev/null
  rm -f usr/bin/${ARCHDIR}/Xvfb 2> /dev/null
  #rm -f usr/bin/${ARCHDIR}/Xephyr 2> /dev/null
- #also has dri modules, but this is a cutdown pkg...
- rm -rf usr/lib/${ARCHDIR}/xorg/modules/dri 2> /dev/null
+ ##also has dri modules, but this is a cutdown pkg...
+ #rm -rf usr/lib/${ARCHDIR}/xorg/modules/dri 2> /dev/null
 fi
 #rm -f usr/bin/Xnest 2> /dev/null
 rm -f usr/bin/Xvfb 2> /dev/null
 #rm -f usr/bin/Xephyr 2> /dev/null
-#also has dri modules, but this is a cutdown pkg...
-rm -rf usr/lib/xorg/modules/dri 2> /dev/null
+##also has dri modules, but this is a cutdown pkg...
+#rm -rf usr/lib/xorg/modules/dri 2> /dev/null
 #...note, ubuntu has xorg 7.4 which seems to need /usr/lib/dri/swrast_dri.so but note
 #   that this is in the 'xorg_base' woof package.
 #...note also, the arch dri modules need libdricore.so but I don't know where that is.
@@ -53,7 +52,7 @@ rm -rf usr/lib/xorg/modules/dri 2> /dev/null
 #rm -f usr/lib/xorg/modules/extensions/libglx.so
 
 #100704 slackware 13.1, these X servers get through...
-if [ "$xARCHDIR" ];then #140117
+if [ "$ARCHDIR" ];then #140117
  rm -f usr/bin/${ARCHDIR}/Xfbdev 2> /dev/null
  rm -f usr/bin/${ARCHDIR}/Xsdl 2> /dev/null
  rm -f usr/bin/${ARCHDIR}/Xdmx 2> /dev/null

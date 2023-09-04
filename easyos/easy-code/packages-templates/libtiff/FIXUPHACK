@@ -1,51 +1,34 @@
 #note: DISTRO_BINARY_COMPAT and DISTRO_FILE_PREFIX are visible here, exported in 2createpackages.
-#140117 xARCHDIR, ARCHDIR and DISTRO_ARCHDIR_SYMLINKS exported in 2createpackages. 
-#140117 note, 2createpackages may move /lib, /usr/lib, /usr/bin in template to ARCHDIR subdir.
+#xARCHDIR, ARCHDIR exported in 2createpackages. 
 #20210818 fixed symlinks.
 
-if [ "$xARCHDIR" ];then #140117
- HAVETIFF=3
- [ -e usr/lib${xARCHDIR}/libtiff.so.4 ] && HAVETIFF=4
- [ -e usr/lib${xARCHDIR}/libtiff.so.5 ] && HAVETIFF=5
- [ -e usr/lib${xARCHDIR}/libtiff.so.6 ] && HAVETIFF=6
- case $HAVETIFF in
-  3)
-   ln -snf libtiff.so.3 usr/lib${xARCHDIR}/libtiff.so.4 2>/dev/null #hmmm.
-  ;;
-  4)
-   ln -snf libtiff.so.4 usr/lib${xARCHDIR}/libtiff.so.3
-  ;;
-  5)
-   ln -snf libtiff.so.5 usr/lib${xARCHDIR}/libtiff.so.3
-   ln -snf libtiff.so.5 usr/lib${xARCHDIR}/libtiff.so.4
-  ;;
-  6)
-   ln -snf libtiff.so.6 usr/lib${xARCHDIR}/libtiff.so.3
-   ln -snf libtiff.so.6 usr/lib${xARCHDIR}/libtiff.so.4
-   ln -snf libtiff.so.6 usr/lib${xARCHDIR}/libtiff.so.5
-  ;;
- esac
-fi
 #130326...
 HAVETIFF=3
-[ -e usr/lib/libtiff.so.4 ] && HAVETIFF=4
-[ -e usr/lib/libtiff.so.5 ] && HAVETIFF=5
-[ -e usr/lib/libtiff.so.6 ] && HAVETIFF=6
+[ -e usr/lib${xARCHDIR}/libtiff.so.4 ] && HAVETIFF=4
+[ -e usr/lib${xARCHDIR}/libtiff.so.5 ] && HAVETIFF=5
+[ -e usr/lib${xARCHDIR}/libtiff.so.6 ] && HAVETIFF=6
+[ -e usr/lib${xARCHDIR}/libtiff.so.7 ] && HAVETIFF=7
 case $HAVETIFF in
  3)
-  ln -snf libtiff.so.3 usr/lib/libtiff.so.4 2>/dev/null #hmmm.
+  ln -snf libtiff.so.3 usr/lib${xARCHDIR}/libtiff.so.4 2>/dev/null #hmmm.
  ;;
  4)
-  ln -snf libtiff.so.4 usr/lib/libtiff.so.3
+  ln -snf libtiff.so.4 usr/lib${xARCHDIR}/libtiff.so.3
  ;;
  5)
-  ln -snf libtiff.so.5 usr/lib/libtiff.so.3
-  ln -snf libtiff.so.5 usr/lib/libtiff.so.4
+  ln -snf libtiff.so.5 usr/lib${xARCHDIR}/libtiff.so.3
+  ln -snf libtiff.so.5 usr/lib${xARCHDIR}/libtiff.so.4
  ;;
  6)
-  ln -snf libtiff.so.6 usr/lib/libtiff.so.3
-  ln -snf libtiff.so.6 usr/lib/libtiff.so.4
-  ln -snf libtiff.so.6 usr/lib/libtiff.so.5
+  ln -snf libtiff.so.6 usr/lib${xARCHDIR}/libtiff.so.3
+  ln -snf libtiff.so.6 usr/lib${xARCHDIR}/libtiff.so.4
+  ln -snf libtiff.so.6 usr/lib${xARCHDIR}/libtiff.so.5
+ ;;
+ 7)
+  ln -snf libtiff.so.6 usr/lib${xARCHDIR}/libtiff.so.3
+  ln -snf libtiff.so.6 usr/lib${xARCHDIR}/libtiff.so.4
+  ln -snf libtiff.so.6 usr/lib${xARCHDIR}/libtiff.so.5
+  ln -snf libtiff.so.6 usr/lib${xARCHDIR}/libtiff.so.6
  ;;
 esac
 

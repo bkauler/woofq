@@ -1,10 +1,10 @@
 #note: DISTRO_BINARY_COMPAT and DISTRO_FILE_PREFIX are visible here, exported in 2createpackages.
-#140117 xARCHDIR, ARCHDIR and DISTRO_ARCHDIR_SYMLINKS exported in 2createpackages.
+#xARCHDIR, ARCHDIR exported in 2createpackages.
 
 #120526 precise pangolin. 140117...
 if [ "$xARCHDIR" ];then
- if [ -e usr/lib/${ARCHDIR}/libaudiofile.so.1 ];then
-  [ ! -e usr/lib/${ARCHDIR}/libaudiofile.so.0 ] && ln -s libaudiofile.so.1 usr/lib/${ARCHDIR}/libaudiofile.so.0
+ if [ -e usr/lib${xARCHDIR}/libaudiofile.so.1 ];then
+  [ ! -e usr/lib${xARCHDIR}/libaudiofile.so.0 ] && ln -s libaudiofile.so.1 usr/lib${xARCHDIR}/libaudiofile.so.0
  fi
 fi
 if [ -e usr/lib/libaudiofile.so.1 ];then

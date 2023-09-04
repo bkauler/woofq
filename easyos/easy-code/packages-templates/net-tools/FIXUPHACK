@@ -1,15 +1,10 @@
 #note: DISTRO_BINARY_COMPAT and DISTRO_FILE_PREFIX are visible here, exported in 2createpackages.
-#140117 xARCHDIR, ARCHDIR and DISTRO_ARCHDIR_SYMLINKS exported in 2createpackages. 
-#140117 note, 2createpackages may move /lib, /usr/lib, /usr/bin in template to ARCHDIR subdir.
 
 #these are links to hostname, but that is in busybox pkg...
-if [ "$xARCHDIR" ];then #140117
- [ -h ./usr/bin/${ARCHDIR}/dnsdomainname ] && rm -f ./usr/bin/${ARCHDIR}/dnsdomainname
- [ -h ./usr/bin/${ARCHDIR}/domainname ] && rm -f ./usr/bin/${ARCHDIR}/domainname
- [ -h ./usr/bin/${ARCHDIR}/nisdomainname ] && rm -f ./usr/bin/${ARCHDIR}/nisdomainname
- [ -h ./usr/bin/${ARCHDIR}/ypdomainname ] && rm -f ./usr/bin/${ARCHDIR}/ypdomainname
-fi
-[ -h ./usr/bin/dnsdomainname ] && rm -f ./usr/bin/dnsdomainname
-[ -h ./usr/bin/domainname ] && rm -f ./usr/bin/domainname
-[ -h ./usr/bin/nisdomainname ] && rm -f ./usr/bin/nisdomainname
-[ -h ./usr/bin/ypdomainname ] && rm -f ./usr/bin/ypdomainname
+for aP in bin sbin usr/bin usr/sbin
+do
+ [ -h ${aP}/dnsdomainname ] && rm -f ${aP}/dnsdomainname
+ [ -h ${aP}/domainname ] && rm -f ${aP}/domainname
+ [ -h ${aP}/nisdomainname ] && rm -f ${aP}/nisdomainname
+ [ -h ${aP}/ypdomainname ] && rm -f ${aP}/ypdomainname
+done

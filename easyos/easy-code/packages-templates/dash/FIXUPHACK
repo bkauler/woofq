@@ -3,7 +3,9 @@
 #note, dash breaks our scripts.
 #note, this problem only occurs for full-HD install, when cp devx sfs into it.
 DISABLE_POST_INSTALL_SCRIPT=yes
-rm -f usr/bin/sh
+rm -f usr/bin/sh 2>/dev/null
+rm -f bin/sh 2>/dev/null
 #2createpackages copies 'sh' again from sandbox2b, after running FIXUPHACK, need
 #this workaround...
-rm -f ../../sandbox2b/usr/bin/sh
+rm -f ../../sandbox2b/usr/bin/sh 2>/dev/null
+rm -f ../../sandbox2b/bin/sh 2>/dev/null

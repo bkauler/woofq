@@ -1,6 +1,5 @@
 #note: DISTRO_BINARY_COMPAT and DISTRO_FILE_PREFIX are visible here, exported in 2createpackages.
-#140117 xARCHDIR, ARCHDIR and DISTRO_ARCHDIR_SYMLINKS exported in 2createpackages. 
-#140117 note, 2createpackages may move /lib, /usr/lib, /usr/bin in template to ARCHDIR subdir.
+#xARCHDIR, ARCHDIR exported in 2createpackages. 
 #190805 fix wpa_supplicant path confusion.
 #190807 added scan_ssid=1
 
@@ -26,7 +25,6 @@ rm -rf etc/logrotate.d
 #for slackware...
 [ -d usr/share/applications ] && rm -rf usr/share/applications
 [ -f usr/bin/wpa_gui ] && rm -f usr/bin/wpa_gui
-[ "$xARCHDIR" ] && [ -f usr/bin/${ARCHDIR}/wpa_gui ] && rm -f usr/bin/${ARCHDIR}/wpa_gui
 DISABLE_POST_INSTALL_SCRIPT=yes
 
 #190805 buster has it in sbin, pyro has it in usr/sbin

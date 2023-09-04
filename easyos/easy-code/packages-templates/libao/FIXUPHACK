@@ -3,11 +3,11 @@
 #140117 note, 2createpackages may move /lib, /usr/lib, /usr/bin in template to ARCHDIR subdir.
 
 if [ "$xARCHDIR" ];then #140117
- if [ ! -e usr/lib/${ARCHDIR}/libao.so.2 ];then
-  LIBAOEXIST="`find usr/lib/${ARCHDIR} -maxdepth 1 -name 'libao.so.*' | head -n 1`"
+ if [ ! -e usr/lib${xARCHDIR}/libao.so.2 ];then
+  LIBAOEXIST="`find usr/lib${xARCHDIR} -maxdepth 1 -name 'libao.so.*' | head -n 1`"
   if [ "$LIBAOEXIST" != "" ];then
    LIBAOBASE="`basename $LIBAOEXIST`"
-   ln -s $LIBAOBASE usr/lib/${ARCHDIR}/libao.so.2
+   ln -s $LIBAOBASE usr/lib${xARCHDIR}/libao.so.2
   fi
  fi
 fi

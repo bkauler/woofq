@@ -1,14 +1,5 @@
 #note: DISTRO_BINARY_COMPAT and DISTRO_FILE_PREFIX are visible here, exported in 2createpackages.
-#140117 xARCHDIR, ARCHDIR and DISTRO_ARCHDIR_SYMLINKS exported in 2createpackages. 
-#140117 note, 2createpackages may move /lib, /usr/lib, /usr/bin in template to ARCHDIR subdir.
 
-if [ "$xARCHDIR" ];then #140117
- if [ ! -e sbin/${ARCHDIR}/loadndisdriver ];then
-  UPKGVERSION="`ls -1 sbin/${ARCHDIR}/ | grep 'loadndisdriver-' | head -n 1 | cut -f 2 -d '-'`"
-  ln -s loadndisdriver-${UPKGVERSION} sbin/${ARCHDIR}/loadndisdriver
- fi
- [ ! -e usr/sbin/${ARCHDIR}/ndiswrapper ] && ln -s ndiswrapper-${UPKGVERSION} usr/sbin/${ARCHDIR}/ndiswrapper
-fi
 if [ ! -e sbin/loadndisdriver ];then
  UPKGVERSION="`ls -1 sbin/ | grep 'loadndisdriver-' | head -n 1 | cut -f 2 -d '-'`"
  ln -s loadndisdriver-${UPKGVERSION} sbin/loadndisdriver

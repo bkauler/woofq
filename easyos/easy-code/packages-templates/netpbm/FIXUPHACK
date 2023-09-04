@@ -1,8 +1,7 @@
 #note: DISTRO_BINARY_COMPAT and DISTRO_FILE_PREFIX are visible here, exported in 2createpackages.
-#140117 xARCHDIR, ARCHDIR and DISTRO_ARCHDIR_SYMLINKS exported in 2createpackages. 
-#140117 note, 2createpackages may move /lib, /usr/lib, /usr/bin in template to ARCHDIR subdir.
+#xARCHDIR, ARCHDIR exported in 2createpackages. 
 
-if [ "$xARCHDIR" ];then #140117
+if [ "$ARCHDIR" ];then #140117
  [ -f usr/bin/${ARCHDIR}/pngtopam ] && [ ! -f usr/bin/${ARCHDIR}/pngtopnm ] && ln -s pngtopam usr/bin/${ARCHDIR}/pngtopnm
  [ -f usr/bin/${ARCHDIR}/pamscale ] && [ ! -f usr/bin/${ARCHDIR}/pnmscale ] && ln -s pamscale usr/bin/${ARCHDIR}/pnmscale
 fi

@@ -4,8 +4,7 @@
 #091126 added Hash.pm needed by POSIX.pm (needed by foomatic-rip).
 #110621 add CORE/libperl.so to tiny list (needed in mageia 1).
 #note: DISTRO_BINARY_COMPAT and DISTRO_FILE_PREFIX are visible here, exported in 2createpackages.
-#140117 xARCHDIR, ARCHDIR and DISTRO_ARCHDIR_SYMLINKS exported in 2createpackages. 
-#140117 note, 2createpackages may move /lib, /usr/lib, /usr/bin in template to ARCHDIR subdir.
+#xARCHDIR, ARCHDIR exported in 2createpackages. 
 #141112 quirky unicorn, some apps need libperl.so
 #151110 some dir symlinks were missing.
 #160907 netpbm ppmquant utility needs overloading.pm
@@ -36,7 +35,7 @@ do
  done
 done
 
-if [ "$xARCHDIR" ];then #140117
+if [ "$ARCHDIR" ];then #140117
  mkdir -p usr/bin/${ARCHDIR}
  cp -a ../tempdir1/usr/bin/${ARCHDIR}/perl* usr/bin/${ARCHDIR}/ 2>/dev/null
 fi
@@ -44,7 +43,7 @@ mkdir -p usr/bin
 cp -a ../tempdir1/usr/bin/perl* usr/bin/ 2>/dev/null
 
 #for Perl, just leave 'perl' executable... um, no, make 'perl' a symlink... 120824 fix...
-if [ "$xARCHDIR" ];then #140117
+if [ "$ARCHDIR" ];then #140117
  UPKGVERSION="$(find usr/bin/${ARCHDIR} -mindepth 1 -maxdepth 1 -type f -executable -name 'perl[0-9]*' | sed -e "s%usr/bin/${ARCHDIR}/perl%%" | head -n 1)"
  if [ "$UPKGVERSION" != "" ];then
   if [ ! -h usr/bin/${ARCHDIR}/perl${UPKGVERSION} ];then
@@ -63,9 +62,9 @@ fi
 
 #120715 debian squeeze has libperl* in perl_base pkg -- not in libperl pkg!
 if [ "$xARCHDIR" ];then #140117
- if [ -d ../tempdir1/usr/lib/${ARCHDIR} ];then
-  mkdir -p usr/lib/${ARCHDIR}
-  cp -a -f --remove-destination ../tempdir1/usr/lib/${ARCHDIR}/libperl.so* usr/lib/${ARCHDIR}/ 2>/dev/null
+ if [ -d ../tempdir1/usr/lib${xARCHDIR} ];then
+  mkdir -p usr/lib${xARCHDIR}
+  cp -a -f --remove-destination ../tempdir1/usr/lib${xARCHDIR}/libperl.so* usr/lib${xARCHDIR}/ 2>/dev/null
  fi
 fi
 if [ -d ../tempdir1/usr/lib ];then

@@ -419,9 +419,8 @@ if [ -f /.sfschg.flg -o ! -f /etc/networkmodules ];then #this file gets created 
    #ubuntu precise puppy must have the schemas compiled (otherwise seamonkey crashed)...
    [ -d /usr/share/glib-2.0/schemas ] && [ -e /usr/bin/glib-compile-schemas ] && /usr/bin/glib-compile-schemas /usr/share/glib-2.0/schemas
    #this too...
-   if [ "$DISTRO_ARCHDIR_SYMLINKS" == "no" ];then #151028
-    [ -d /usr/lib/${DISTRO_ARCHDIR}/gio/modules ] && [ -e /usr/bin/gio-querymodules ] && /usr/bin/gio-querymodules /usr/lib/${DISTRO_ARCHDIR}/gio/modules #ex: x86_64-linux-gnu
-    [ -d /usr/${DISTRO_ARCHDIR}/gio/modules ] && [ -e /usr/bin/gio-querymodules ] && /usr/bin/gio-querymodules /usr/${DISTRO_ARCHDIR}/gio/modules #ex: lib64
+   if [ "$DISTRO_xARCHDIR" ];then #20230904
+    [ -d /usr/lib${DISTRO_xARCHDIR}/gio/modules ] && [ -e /usr/bin/gio-querymodules ] && /usr/bin/gio-querymodules /usr/lib${DISTRO_xARCHDIR}/gio/modules #ex: x86_64-linux-gnu
    else
     [ -d /usr/lib/gio/modules ] && [ -e /usr/bin/gio-querymodules ] && /usr/bin/gio-querymodules /usr/lib/gio/modules
    fi

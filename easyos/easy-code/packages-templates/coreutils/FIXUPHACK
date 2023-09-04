@@ -1,8 +1,7 @@
 #current dir is inside packages-${DISTRO_FILE_PREFIX}/$GENERICNAME/ ...
 # that is: packages-woof/coreutils/
 #note: DISTRO_BINARY_COMPAT and DISTRO_FILE_PREFIX are visible here, exported in 2createpackages.
-#140117 xARCHDIR, ARCHDIR and DISTRO_ARCHDIR_SYMLINKS exported in 2createpackages. 
-#140117 note, 2createpackages may move /lib, /usr/lib, /usr/bin in template to ARCHDIR subdir.
+#xARCHDIR, ARCHDIR exported in 2createpackages. 
 
 #slackware post-install script stuffs things up...
 #note, 2createpackages renames slackware doinst.sh to pinstall.sh and moves
@@ -12,7 +11,7 @@
 DISABLE_POST_INSTALL_SCRIPT=yes
 
 #170511 OE build, utilities names are appended with ".coreutils". 181008
-FNDCU="$(find usr/bin -mindepth 1 -maxdepth 1 -type f -name '*.coreutils*')"
+FNDCU="$(find bin usr/bin usr/sbin -mindepth 1 -maxdepth 1 -type f -name '*.coreutils*')"
 if [ "$FNDCU" ];then
  for ANAME in $FNDCU
  do

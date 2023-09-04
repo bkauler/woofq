@@ -1,9 +1,9 @@
 #note: DISTRO_BINARY_COMPAT and DISTRO_FILE_PREFIX are visible here, exported in 2createpackages.
-#140117 xARCHDIR, ARCHDIR and DISTRO_ARCHDIR_SYMLINKS exported in 2createpackages.
+#xARCHDIR, ARCHDIR exported in 2createpackages.
 
 #ubuntu is the problem, these symlinks are missing...
 
-if [ "$xARCHDIR" ];then #140117
+if [ "$ARCHDIR" ];then #140117
  if [ -d usr/bin/${ARCHDIR} ];then #161229
   if [ ! -e usr/bin/${ARCHDIR}/aclocal ];then
    REALFILE="`ls -1 usr/bin/${ARCHDIR}/aclocal* | head -n 1 | rev | cut -f 1 -d '/' | rev`"

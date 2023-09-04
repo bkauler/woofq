@@ -1,6 +1,5 @@
 #note: DISTRO_BINARY_COMPAT and DISTRO_FILE_PREFIX are visible here, exported in 2createpackages.
-#xARCHDIR, ARCHDIR and DISTRO_ARCHDIR_SYMLINKS exported in 2createpackages. 
-#note, 2createpackages may move /lib, /usr/lib, /usr/bin in template to ARCHDIR subdir.
+#xARCHDIR, ARCHDIR exported in 2createpackages. 
 
 LIBCAPFND="$(find lib usr/lib lib${xARCHDIR} usr/lib${xARCHDIR} -maxdepth 1 -type f -name 'libcap.so.*' 2>/dev/null | head -n 1)"
 if [ "$LIBCAPFND" ];then

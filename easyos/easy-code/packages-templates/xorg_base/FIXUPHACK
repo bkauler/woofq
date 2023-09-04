@@ -1,13 +1,12 @@
 #if the pkg created in packages-woof has something wrong, this file is a last
 #resort to fix it. Current-dir is where this file FIXUPHACK is located.
 #note: DISTRO_BINARY_COMPAT and DISTRO_FILE_PREFIX are visible here, exported in 2createpackages.
-#140117 xARCHDIR, ARCHDIR and DISTRO_ARCHDIR_SYMLINKS exported in 2createpackages. 
-#140117 note, 2createpackages may move /lib, /usr/lib, /usr/bin in template to ARCHDIR subdir.
+#xARCHDIR, ARCHDIR exported in 2createpackages. 
 #140127 ubuntu trusty tahr: find libGL.so.1
 #150928 161103
 #20210819 fix symlink.
 
-if [ "$xARCHDIR" ];then #140117
+if [ "$ARCHDIR" ];then #140117
  [ -f usr/bin/${ARCHDIR}/X ] && mv usr/bin/${ARCHDIR}/X usr/bin/${ARCHDIR}/X-ORIG
  [ -d usr/bin/${ARCHDIR} ] && ln -s Xorg usr/bin/${ARCHDIR}/X
 fi
@@ -18,11 +17,11 @@ ln -s Xorg usr/bin/X
 #100416 ubuntu lucid has moved libGL.so* to /usr/lib/mesa...
 #note, but not libGLU.so*
 if [ "$xARCHDIR" ];then #140127
- if [ -e usr/lib/${ARCHDIR}/mesa/libGL.so.1 ];then
-  ln -s mesa/libGL.so.1 usr/lib/${ARCHDIR}/libGL.so.1
-  ln -s mesa/libGL.so usr/lib/${ARCHDIR}/libGL.so
+ if [ -e usr/lib${xARCHDIR}/mesa/libGL.so.1 ];then
+  ln -s mesa/libGL.so.1 usr/lib${xARCHDIR}/libGL.so.1
+  ln -s mesa/libGL.so usr/lib${xARCHDIR}/libGL.so
   [ ! -e mesa/libGL.so.1.2 ] && cp -a mesa/libGL.so.1 mesa/libGL.so.1.2 #161103
-  ln -s mesa/libGL.so.1.2 usr/lib/${ARCHDIR}/libGL.so.1.2
+  ln -s mesa/libGL.so.1.2 usr/lib${xARCHDIR}/libGL.so.1.2
  fi
 fi
 if [ -e usr/lib/mesa/libGL.so.1 ];then
@@ -33,7 +32,7 @@ fi
 
 #150928
 ##120406 gxmessage pkg creates xmessage symlink to it (in pinstall.sh). get real xmessage out of the way...
-#if [ "$xARCHDIR" ];then #140117
+#if [ "$ARCHDIR" ];then #140117
 # if [ -f usr/bin/${ARCHDIR}/xmessage ];then
 #  if [ ! -h usr/bin/${ARCHDIR}/xmessage  ];then
 #   mkdir -p usr/X11R7/bin

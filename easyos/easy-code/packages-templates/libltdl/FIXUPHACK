@@ -1,12 +1,11 @@
 #note: DISTRO_BINARY_COMPAT and DISTRO_FILE_PREFIX are visible here, exported in 2createpackages.
-#140117 xARCHDIR, ARCHDIR and DISTRO_ARCHDIR_SYMLINKS exported in 2createpackages. 
-#140117 note, 2createpackages may move /lib, /usr/lib, /usr/bin in template to ARCHDIR subdir.
+#xARCHDIR, ARCHDIR exported in 2createpackages. 
 
 if [ "$xARCHDIR" ];then #140117
- LIBLTDL="`find usr/lib/${ARCHDIR} -maxdepth 1 -type f -name libltdl.so.* | head -n 1`"
+ LIBLTDL="`find usr/lib${xARCHDIR} -maxdepth 1 -type f -name libltdl.so.* | head -n 1`"
  if [ "$LIBLTDL" ];then
   BASELTDL="`basename $LIBLTDL`"
-  ln -s $BASELTDL usr/lib/${ARCHDIR}/libltdl.so.3
+  ln -s $BASELTDL usr/lib${xARCHDIR}/libltdl.so.3
  fi
 fi
 LIBLTDL="`find usr/lib -maxdepth 1 -type f -name libltdl.so.* | head -n 1`"
