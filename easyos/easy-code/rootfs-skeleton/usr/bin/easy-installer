@@ -1,0 +1,54 @@
+#!/bin/sh
+#(c) Copyright Barry Kauler, Feb. 2017. License GPL v3 (usr/share/doc/legal)
+#190306 fixed hyperlinks.
+
+export TEXTDOMAIN=easy-installer
+export OUTPUT_CHARSET=UTF-8
+
+WC="65"
+
+export EI_DLG1="<window title=\"$(gettext "Easy Installer")\" icon-name=\"gtk-convert\">
+<vbox>
+ <text use-markup=\"true\"><label>\"<b>$(gettext 'Welcome to Easy Installer!')</b>\"</label></text>
+ <text use-markup=\"true\"><label>\"$(gettext 'EasyOS is deployed as a disk image file, that can be written to USB-stick, SD-card, solid-state drive (SSD) or magnetic-platter drive (HDD). The image will occupy the entire drive.')
+$(gettext 'EasyOS may also be installed into a ext4 partition in a drive, in what is called <i>frugal</i> mode. This occupies a folder in the partition, allowing co-existence with whatever is already in the partition.')
+
+\"</label></text>
+
+ <frame $(gettext 'Image file')>
+  <hbox>
+   <text use-markup=\"true\"><label>\"$(gettext 'Instructions for writing an EasyOS image file to a drive, and configuring a desktop PC or laptop to boot from it, are posted online:')\"</label></text>
+   <vbox>
+    <button><label>$(gettext 'View in browser')</label><action>defaultbrowser https://easyos.org/install/how-to-write-easyos-to-a-flash-drive.html & </action></button>
+    <button><label>$(gettext 'View in browser')</label><action>defaultbrowser https://easyos.org/install/how-to-install-easyos-on-a-new-ssd.html & </action></button>
+   </vbox>
+  </hbox>
+ </frame>
+ 
+ <text><label>\"  \"</label></text>
+
+ <frame $(gettext 'Frugal install')>
+  <hbox>
+   <text use-markup=\"true\"><label>\"$(gettext 'For users with modern PCs manufactured from 2012, Windows 10 and UEFI-BIOS computers, there is a fairly simple manual method for installing to internal hard drive explained online:')\"</label></text>
+   <vbox><button><label>$(gettext 'View in browser')</label><action>defaultbrowser https://easyos.org/install/how-to-install-easyos-on-your-hard-drive.html & </action></button></vbox>
+  </hbox>
+  <hbox>
+   <text use-markup=\"true\"><label>\"$(gettext 'For information on frugal installation, particularly useful for pre-2012 PCs:')\"</label></text>
+   <vbox><button><label>$(gettext 'View in browser')</label><action>defaultbrowser https://easyos.org/install/easy-frugal-installation.html & </action></button></vbox>
+  </hbox>
+ 
+  <hbox>
+   <text use-markup=\"true\"><label>\"$(gettext 'When EasyOS is installed to an internal drive, it may be necessary to install a bootloader, to offer a menu of installed operations systems.')\"</label></text>
+   <vbox><button><label>$(gettext 'View in browser')</label><action>defaultbrowser https://easyos.org/install/limine-bootloader.html & </action></button></vbox>
+  </hbox>
+ </frame>
+  
+ <hbox>
+   <button ok></button>
+ </hbox>
+</vbox>
+</window>"
+
+RETSTRING1="$(gtkdialog --program=EI_DLG1 --center)"
+[ $? -ne 0 ] && exit
+eval "$RETSTRING1"

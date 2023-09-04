@@ -1,0 +1,42 @@
+#!/bin/sh
+#(c) Copyright Barry Kauler Dec 27 2013, bkhome.org
+#Licence: GPL3 (refer: /usr/share/doc/legal)
+#offer to upgrade Quirky to a later version. note, this is also done when ppm starts.
+#151105 change gtkdialog4 to gtkdialog.
+#190203 esmourguit: fix translations.
+
+export TEXTDOMAIN=upgrade-manager
+export OUTPUT_CHARSET=UTF-8
+
+. /etc/DISTRO_SPECS #want DISTRO_VERSION
+
+M_w1="<span fgcolor='"'red'"'><b>$(gettext "Please close all other applications before installing a version upgrade")</b></span>" #need some funny stuff.
+
+export UM_DLG="<window title=\"$(gettext 'Quirky Upgrade Manager')\" icon-name=\"gtk-about\" window_position=\"1\">
+<vbox>
+ <text use-markup=\"true\"><label>\"<big><b>$(gettext 'Current version:') ${DISTRO_VERSION}</b></big>\"</label></text>
+ <text use-markup=\"true\"><label>\"$(gettext 'Version upgrades of Quirky are available as <b>Service Packs</b>, which are PET packages (the standard package format used by all Puppy and Puppy-derivative Linux distributions). PET packages can also be downloaded and installed by the Quirky Package Manager (see <b>install</b> icon on desktop).')\"</label></text>
+ <text use-markup=\"true\"><label>\"$(gettext 'If you are connected to the Internet, the Quirky Package Manager will check for an upgrade Service Pack automatically, however, you may also do that here, by clicking the <b>Upgrade</b> button.')\"</label></text>
+ <frame $(gettext 'Upgrade')>
+  <text use-markup=\"true\"><label>\"$(gettext 'Click the <b>Upgrade</b> button to check for availability of a version upgrade. You must be connected to the Internet.')\"</label></text>
+  <text use-markup=\"true\"><label>\"${M_w1}\"</label></text>
+  <hbox>
+  <button><label>$(gettext 'Upgrade')</label><action function=\"exit\">UPGRADE</action></button>
+  </hbox>
+ </frame>
+ <hbox>
+  <button cancel></button>
+ </hbox>
+</vbox>
+</window>"
+
+RETVALS="$(gtkdialog --program=UM_DLG)"
+eval "$RETVALS"
+
+[ "$EXIT" != "UPGRADE" ] && exit
+
+/usr/local/petget/service_pack.sh
+if [ $? -eq 1 ];then
+  pupmessage -bg '#FF8080' -title "$(gettext 'No Internet connection')" "$(gettext 'Sorry, Quirky does not seem to be connected to the Internet.')"
+fi
+###END###

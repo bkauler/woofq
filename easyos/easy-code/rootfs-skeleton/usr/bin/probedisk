@@ -1,0 +1,132 @@
+#!/bin/bash
+#LGPL 2007 Puppy Linux www.puppyos.com
+#based on probedisk3 written by Dougal.
+#small mods by BK 16 june 2007
+# 21 Jun 2007 BK: force /proc update for usb drives.
+#v3.93 10 dec 2007 BK: updated for 2.6.24 kernel, no /dev/hd*.
+#v3.97 31jan2008 BK: refinement for detecting kernels with /dev/hd* drives.
+#v4.01 10may2008 BK: bugfix for detecting if usb drive.
+#v4.01 10may2008 BK: new 2nd-param categories. named 'probedisk2'.
+#v4.01 21may2008 BK: zip and ls120 now categorized as 'floppy'.
+#v4.02 9jun08 BK: correct detection of usb floppy.
+#v403 fixed excessive spaces in description field.
+#v406 support for old kernel, /proc/ide, /dev/hd*.
+#110126 no longer using SATADRIVES variable in PUPSTATE.
+#130201 this script no longer named 'probedisk2' (had probedisk symlink to it). now named 'probedisk'.
+#150320 able to run inside a self-extracting archive. refer: /usr/local/install_quirky
+#160328 asus e200ha laptop: weird extra nodes /sys/block/mmcblk0boot0, mmcblk0boot1, mmcblk0rpmb (as well as mmcblk0)
+#180408 support nvme drives.
+#200330 nvme does not have /sys/.../vendor
+
+#150320 detect if running inside a self-extracted archive:
+PWD="`pwd`"
+PRE=''
+if [ -f ${PWD}/DISTRO_SPECS ];then
+ if [ -f ${PWD}/gtkdialog ];then
+  PRE="${PWD}/"
+ fi
+fi
+
+[ -f /etc/rc.d/PUPSTATE ] && . /etc/rc.d/PUPSTATE #ATADRIVES is exported by 'installquirky' (which calls probepart).
+#110126 ATADRIVES is all ide/pata/sata drives (not usb, not optical).
+
+if [ -f /root/.usb-drive-log-probedisk ];then #force /proc upate mechanism
+ for ONEUSBDRV in `${PRE}busybox cat /root/.usb-drive-log-probedisk | ${PRE}busybox tr '\n' ' '`
+ do
+  #disktype /dev/$ONEUSBDRV > /dev/null 2>&1
+  ${PRE}busybox dd if=/dev/$ONEUSBDRV of=/dev/null bs=512 count=1 >/dev/null 2>&1 #v4.01 faster.
+ done
+fi
+
+#mounted drives/partitions...
+MNTDDEVS="`${PRE}busybox mount | ${PRE}busybox cut -f 1 -d ' ' | ${PRE}busybox cut -f 3 -d '/' | ${PRE}busybox grep -E '^hd|^sd|^scd|^sr|^mmc|^nvme' | ${PRE}busybox tr '\n' ' '`" #180408
+
+#crap, right now, /sys/block does not show my hdb cd/dvd drive, but it is in
+#/proc/ide. pathetic kernel! oh well...
+if [ ! -e /proc/ide ];then #v3.97
+ ALLDRVS="`${PRE}busybox ls -1 /sys/block | ${PRE}busybox grep -E '^scd|^sd|^mmcblk[0-9]$|^sr|^nvme' | ${PRE}busybox tr '\n' ' '`" #160328 180408
+else
+ ALLDRVS="`${PRE}busybox ls -1 /sys/block | ${PRE}busybox grep -E '^scd|^sd|^mmcblk[0-9]$|^sr|^nvme' | ${PRE}busybox tr '\n' ' '``ls -1 /proc/ide | ${PRE}busybox grep '^hd' | ${PRE}busybox tr '\n' ' '`" #160328 180408
+fi
+#note: after further testing, the 2.6.21.5 kernel exhibits inconsistent behaviour for hd devices, best to avoid.
+
+for ONEDRV in $ALLDRVS
+do
+  case $ONEDRV in
+   hd*) # ide device, look in /proc/ide for info
+     MEDIA="`${PRE}busybox cat /proc/ide/$ONEDRV/media`"
+     [ "$MEDIA" = "disk" ] && MEDIA="drive"
+     [ "$MEDIA" = "cdrom" ] && MEDIA="optical"
+     INFO="`${PRE}busybox cat /proc/ide/$ONEDRV/model`"
+   ;;
+   sd*|nvme*) # scsi devices, look in /sys/block (all appear as Direct-Access) 180408
+     MEDIA="drive"
+     #200330 nvme does not have /vendor...
+     VENDOR="`${PRE}busybox cat /sys/block/$ONEDRV/device/vendor 2>/dev/null | ${PRE}busybox tr -s ' '`"
+     MODEL="`${PRE}busybox cat /sys/block/$ONEDRV/device/model | ${PRE}busybox tr -s ' '`"
+     INFO="$VENDOR$MODEL"
+     DRVNAMES="$DRVNAMES `${PRE}busybox echo -n "$ONEDRV" | ${PRE}busybox cut -b 1-3` "
+     
+     #log if usb drive (not a ata drive)... v4.01... 110126...
+     if [ "`${PRE}busybox echo "$ATADRIVES" | ${PRE}busybox grep "$ONEDRV"`" = "" ];then
+      MEDIA="usbdrv" #v4.01
+      ${PRE}busybox echo "$ONEDRV" >> /root/.usb-drive-log-probedisk
+      ${PRE}sort -u /root/.usb-drive-log-probedisk > /tmp/usb-drive-log-probedisk-tmp
+      ${PRE}busybox mv -f /tmp/usb-drive-log-probedisk-tmp /root/.usb-drive-log-probedisk
+      #find out if a usb floppy drive...
+      if [ -e /sys/block/${ONEDRV}/size ];then
+       [ "`${PRE}busybox cat /sys/block/${ONEDRV}/size`" = "2880" ] && MEDIA="floppy"
+      fi
+      #if the floppy diskette not inserted, try this fallback test...
+      #some examples: Vendor: NEC Model: USB UF000x Rev: 1.50, Sony USB Floppy Drive, rev 1.10/5.01,
+      # MITUMI USB FDD, VenDor: TEAC Model: FD-05PUB, Vendor: COMPAQ Model: USB EXT FLOPPY
+      if [ -e /sys/block/${ONEDRV}/device/model ];then
+       [ "`${PRE}busybox grep -E ' FDD| UF000x|Floppy|USB\-FDU|^FD\-|FLOPPY' /sys/block/${ONEDRV}/device/model`" != "" ] && MEDIA="floppy"
+      fi
+     else
+      #find out if it is a removable internal drive (zip, ls120, etc)...
+      if [ -e /sys/block/${ONEDRV}/removable ];then
+       [ "`${PRE}busybox cat /sys/block/${ONEDRV}/removable`" = "1" ] && MEDIA="floppy"
+      fi
+     fi
+    
+   ;;
+   scd*|sr*) #  scsi cdroms
+     MEDIA="optical"
+     VENDOR="`${PRE}busybox cat /sys/block/$ONEDRV/device/vendor | ${PRE}busybox tr -s ' '`"
+     MODEL="`${PRE}busybox cat /sys/block/$ONEDRV/device/model | ${PRE}busybox tr -s ' '`"
+     INFO="$VENDOR$MODEL"
+   ;;
+   mmc*) #/dev/mmcblk0
+     MEDIA="card"
+     INFO="MMC/SD: `${PRE}busybox cat /sys/block/$ONEDRV/device/name`"
+   ;;
+   *)
+     continue
+   ;;
+  esac
+  echo "/dev/$ONEDRV|$MEDIA|$INFO"
+
+done
+
+#find out if a mounted device has been unplugged...
+#for hotplug drives, remove it and it will disappear from /sys/block, however
+#still shows up in 'mount' if hasn't been unmounted.
+for ONEMNTD in $MNTDDEVS
+do
+ case $ONEMNTD in
+  hd*|sd*|sr*)
+   MNTDDRVs="`${PRE}busybox echo -n "$ONEMNTD" | cut -c 1-3` "
+   ;;
+  scd*)
+   MNTDDRVs="`${PRE}busybox echo -n "$ONEMNTD" | cut -c 1-4` "
+   ;;
+  mmc*|nvme*) #180408
+   MNTDDRVs="`${PRE}busybox echo -n "$ONEMNTD" | cut -c 1-7` "
+   ;;
+ esac
+ #prints to system log and to stderr...
+ [ "`${PRE}busybox echo "$ALLDRVS" | ${PRE}busybox grep "$MNTDDRVs"`" = "" ] && ${PRE}busybox logger -s "PROBEDISK ERROR: MOUNTED UNPLUGGED $ONEMNTD"
+done
+
+###END###

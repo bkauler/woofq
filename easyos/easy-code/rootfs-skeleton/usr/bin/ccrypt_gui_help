@@ -1,0 +1,21 @@
+#!/bin/bash
+#200624 created.
+
+export TEXTDOMAIN=bcrypt_gui
+export OUTPUT_CHARSET=UTF-8
+
+export CCRYPT_HLP_DLG="<window title=\"$(gettext 'Ccrypt - HELP')\" icon-name=\"gtk-info\">
+<vbox>
+<text use-markup=\"true\"><label>\"$(gettext 'Ccrypt is a cross-platform file encryption utility which means that encrypted files are portable across all supported operating systems, including Linux, Windows, Android and MacOS.')
+
+$(gettext 'Ccrypt is based on the Rijndael block cipher, a version of which is also used in the Advanced Encryption Standard, AES. This cipher is believed to provide very strong cryptographic security.')
+
+$(gettext 'A password of at least 8 characters must be provided, any letters, numbers or special characters are allowed. When a file is encrypted, it will have the .cpt extension.')
+
+$(gettext 'The GUI script frontend for ccrypt was originally written by coolpup, modified by BarryK. License is GPL v3. The ccrypt utility is copyright 2000-2018 Peter Selinger, license GPL v2.')\"</label></text>
+<hbox>
+ <button ok></button>
+</hbox>
+</vbox>
+</window>"
+gtkdialog --center --program=CCRYPT_HLP_DLG

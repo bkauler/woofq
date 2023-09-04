@@ -1,0 +1,29 @@
+#!/bin/ash
+#called from /usr/bin/xwin, only if no /etc/X11/xorg.conf.d/20-gpu-*.conf
+#this hack was originally /etc/rc.d/rc.hacks called from rc.sysinit -- removed.
+#variable HARDWAREPROFILE is exported to here.
+#200209 first version.
+
+#format of HARDWAREPROFILE is id1_[id2_]+edidsum, ex: 8086:0102_+958937616
+#FUTURE: think about multiple gpu's
+#note, this is how to find a particular gpu: lspci -n -d 8086:5a85:0300
+
+#forum member norgo has identified some intel chips that require uxa: 0412 2562 27a2
+#  http://murga-linux.com/puppy/viewtopic.php?p=1048213#1048213
+#5a85 is my apollo lake laptop, intel gpu, crashes with modesetting driver, prefers uxa instead of sna.
+
+case "$HARDWAREPROFILE" in
+ 8086:5a85*|8086:0412*|8086:2562*|8086:27a2*)
+  if [ ! -f /etc/X11/xorg.conf.d/20-gpu-intel.conf ];then
+   cp -a /etc/X11/xorg.conf.d/20-gpu-intel.confUXA /etc/X11/xorg.conf.d/20-gpu-intel.conf
+  fi
+ ;;
+ 8086:*)
+  true
+ ;;
+ *) #precaution...
+  [ -f /etc/X11/xorg.conf.d/20-gpu-intel.conf ] && rm -f /etc/X11/xorg.conf.d/20-gpu-intel.conf
+ ;;
+esac
+
+

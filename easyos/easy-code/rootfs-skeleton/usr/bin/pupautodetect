@@ -1,0 +1,15 @@
+#!/bin/ash
+#20201021 scripts called from udev rule must exit quickly.
+#ref: https://bkhome.org/news/202009/detach-child-process-from-parent.html
+#20201208 setsid not working when call from udev rule. "&" or "disown" do NOT detach the process.
+# ref: https://unix.stackexchange.com/questions/56243/how-to-run-long-time-process-on-udev-event
+# busybox cttyhack does detach process.
+#20211229 need paths.
+
+#setsid --fork pupautodetect-run $@
+
+cttyhack /bin/ash /usr/sbin/pupautodetect-run $@ &
+
+
+###end###
+

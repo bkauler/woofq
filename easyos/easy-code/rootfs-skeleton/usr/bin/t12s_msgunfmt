@@ -1,0 +1,50 @@
+#!/bin/sh
+# t12s_msgunfmt by L18L dec 2013, GPL
+#
+if [ -z "$1" ]; then echo "usage $0 file [> file.po]"; exit 1; fi
+
+if [ $1 = "-h" -o $1 = "--help" ]; then echo "Un-format translate file of t12s to portable object (po) file.po to make translator's life easier.
+You can translate this file and use gettext's msgmerge and msgformat.
+"; exit 0; fi 
+
+if [ ! -f "$1" ]; then echo "$0: $1 is not a file"; exit 1; fi
+
+echo "# created by $0
+# on `date`
+msgid \"\"
+msgstr \"\"
+\"Content-Type: text/plain; charset=UTF-8\n\"
+"
+
+
+while read LINE; do
+ case $LINE in
+  _M_*) t12s_ID=${LINE%=*}
+  
+        MSGSTR=${LINE#*\"}; MSGSTR=${MSGSTR%\"*} # first and last quote removed
+        MSGSTR=${MSGSTR//\"/\\\"}                # quotes escaped
+        
+        read LINE
+        MSGID=${LINE:1}            # 1st char removed which was #
+        MSGID=${MSGID//\"/\\\"}    # quotes escaped
+
+        echo ""
+        echo "#${t12s_ID}"
+        echo 'msgid "'${MSGID}'"'
+        echo 'msgstr "'${MSGSTR}'"'
+        ;;
+ esac
+done < $1
+
+exit 0
+
+# format to po
+##_M_10
+#msgid "Aborted."
+#msgstr ""
+
+
+# mo is formatted:
+#         echo ""
+#         echo "${t12s_ID}=\"${MSGSTR}\""
+#         echo "#${MSGID}"

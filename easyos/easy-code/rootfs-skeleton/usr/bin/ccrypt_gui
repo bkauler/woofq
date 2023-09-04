@@ -1,0 +1,126 @@
+#!/bin/sh
+#(c) Barry Kauler, April 2009. GPL v3 licence (refer: /usr/share/doc/legal).
+#gui for 'bcrypt' file encrypt/decrypt.
+#$1 is normally invoked by clicking on a .bfe file in rox, $1 has full path.
+#also supports drag and drop.
+#most of this code was written by coolpup, I have just butchered it a bit.
+#w482 dogone: password must be 8 chars, logic fixed.
+#120201 rodin.s: internationalized.
+#120226 01micko: convert to gtkdialog4.
+#120323 call pupmessage instead of xmessage.
+#200624 rewritten for ccrypt.
+
+export TEXTDOMAIN=ccrypt_gui
+export TEXTDOMAINDIR=/usr/share/locale
+export OUTPUT_CHARSET=UTF-8
+. gettext.sh
+export LANGORG=$LANG
+
+if [ "`which ccrypt`" = "" ];then
+ pupmessage -center -bg '#ff8080' -title "$(gettext 'Ccrypt error')" "$(gettext "The 'ccrypt' package must be installed first.")"
+ exit
+fi
+
+GTKDIALOGEXE="gtkdialog"
+[ "`which gtkdialog4`" ] && GTKDIALOGEXE="gtkdialog4"
+
+SOURCEFILE=""
+if [ $1 ];then
+ SOURCEFILE="$1"
+ [ ! -f "$SOURCEFILE" ] && exit
+fi
+ 
+MSG2="<text><label>\"  \"</label></text>"
+while [ 1 ];do
+ if [ "$SOURCEFILE" = "" ];then
+  DEFAULT=""
+ else
+  DEFAULT="<default>${SOURCEFILE}</default>"
+ fi
+ export CCRYPT_DLG="
+<window title=\"$(gettext 'Ccrypt file encryption')\" icon-name=\"gtk-file\">
+<vbox>
+  <text><label>`gettext \"Welcome, this is a GUI for the 'ccrypt' utility, to encrypt or decrypt a file\"`</label></text>
+   <text use-markup=\"true\"><label>\"<b>$(gettext 'For file encryption or decryption, drag the file here') ↓    </b>\"</label></text>          
+  <hbox>
+  <entry accept=\"directory\">${DEFAULT}<variable>SOURCEFILE</variable></entry>
+  </hbox>
+  ${MSG2}
+  <hbox>
+   <text><label>$(gettext 'Enter password:')</label></text>
+   <entry>
+    <visible>password</visible>
+    <variable>PASSWORD1</variable>
+   </entry>
+  </hbox>
+  <hbox>
+   <text><label>$(gettext 'Reenter password:')</label></text>
+   <entry>
+    <visible>password</visible>
+    <variable>PASSWORD2</variable>
+   </entry>
+  </hbox>
+
+  <hbox> 
+  <button help>
+   <action>ccrypt_gui_help</action>
+  </button>
+  <button cancel></button>
+  <button ok></button>
+  </hbox>
+</vbox>
+</window>"
+
+ RETVALS="$(${GTKDIALOGEXE} --program=CCRYPT_DLG --center)"
+ [ $? -ne 0 ] && break
+ eval "$RETVALS"
+ [ "$EXIT" != "OK" ] && break
+ [ "$PASSWORD1" == "" ] && break
+ [ "$PASSWORD2" == "" ] && break
+ [ "$SOURCEFILE" == "" ] && break
+ [ ! -f "$SOURCEFILE" ] && break
+ BYTES1=`echo -n "$PASSWORD1" | wc -c`
+ if [ $BYTES1 -lt 8 ];then #w482 dogone advised, change from -le.
+  MSG2="$(gettext 'Password needs to be at least 8 characters!')"
+  MSG2="<text use-markup=\"true\"><label>\"<b>${MSG2}</b>\"</label></text>"
+  continue
+ fi
+ if [ "$PASSWORD1" != "$PASSWORD2" ];then
+  MSG2="$(gettext 'The password entries do not match!')"
+  MSG2="<text use-markup=\"true\"><label>\"<b>${MSG2}</b>\"</label></text>"
+  continue
+ fi
+  
+ DIRNAME="`dirname "$SOURCEFILE"`"
+ BASENAME="`basename "$SOURCEFILE"`"
+ cd "$DIRNAME"
+ case "$BASENAME" in
+  *.cpt)
+   CCRYPTPW="$PASSWORD1" ccrypt --decrypt --brave --force --quiet --envvar CCRYPTPW ${BASENAME} 2>/tmp/ccrypt_error
+  ;;
+  *)
+   CCRYPTPW="$PASSWORD1" ccrypt --encrypt --brave --force --quiet --envvar CCRYPTPW ${BASENAME} 2>/tmp/ccrypt_error
+  ;;
+ esac
+ if [ $? -ne 0 ];then
+  MSG2="`cat /tmp/ccrypt_error | tail -n 1`"
+  MSG2="<text use-markup=\"true\"><label>\"<b>${MSG2}</b>\"</label></text>"
+  continue
+ fi
+  
+ case "$BASENAME" in
+  *.cpt)
+   Myes="$(gettext 'File decrypted:')"
+   BN="$(basename ${BASENAME} .cpt)"
+  ;;
+  *)
+   Myes="$(gettext 'File encrypted:')"
+   BN="${BASENAME}.cpt"
+ ;;
+ esac
+ pupmessage -center -bg '#80ff80' -title "$(gettext 'Ccrypt success')" "${Myes} ${BN}"
+  
+ break
+done
+
+###end###

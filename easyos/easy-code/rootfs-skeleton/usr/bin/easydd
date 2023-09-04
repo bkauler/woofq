@@ -1,0 +1,655 @@
+#!/bin/bash
+#(c) Copyright Barry Kauler, October 2017. License: GPL v3 (/usr/share/doc/legal)
+#gui for 'dd' utility.
+#optional cli mode: source-file target-drive
+#171004 first release.
+#171008 cli mode, do not use any X apps, run dd in same terminal.
+#171009 MODE variable =gui =cli =dlg (latter uses dialog, NOT YET IMPLEMENTED)
+#171205 change text "EasyOS" to "Linux"
+#180408 support nvme drives.
+#180718 support .zip zipped files.
+#181220 bug fix.
+#190827 basic bit-flipping test to verify write, plus verify normal write. 190828 fixes.
+#191224 remove bit-flipping test, keep verify-write.
+#200215 support write iso file to usb-stick. use isolyzer if exist.
+#200521 GuillaumeD reported issue with non-english.
+#200522 nvme doesn't have /sys/block/$ONEDRV/device/vendor
+#200605 drag or paste message. help window. test if launched from rox right-click menu.
+#200605 preselect last drive.
+#200613 use gtkdialog instead of pupmessage/gxmessage/pupdialog.
+#200614 allow fallback to old 'dd'. more complete test for missing utilities.
+#200614 embed terminal if gtkdialog supports it. word-wrap $M2f in terminal.
+#200615 add xterm, gnome-terminal. check running as root.
+#200617 fix CLI $2
+#200618 bugs GUI mode in linux mint. ref: http://murga-linux.com/puppy/viewtopic.php?p=1061184#1061184
+#200618 gnome-terminal returns immediately, needs "--wait".
+#200619 in-built question-mark icon.
+#200709 explicitly set foregound color to black.
+#20221023 may be running as zeus super-user. no.
+
+if [ "$(whoami)" != "root" ];then
+ if [ -x /usr/bin/sudo-sh ];then
+  exec sudo-sh ${PPID} ${0} ${@}
+ else
+  exec sudo -A ${0} ${@}
+ fi
+fi
+
+export TEXTDOMAIN=easydd
+export OUTPUT_CHARSET=UTF-8
+
+#200605 test if running in a terminal...
+#echo -n '' > /tmp/easydd-preselected-targetdrv
+test -t 0
+TTYflg=$? #0 if yes, 1 if launched from rox menu.
+DEFSOURCE=''
+if [ $1 ];then
+ if [ -f "$1" ];then
+  if [ $TTYflg -ne 0 ];then
+   #echo -n "$1" > /tmp/easydd-preselected-targetdrv
+   DEFSOURCE="$1"
+   set -- #this will unset $1 (and $2 etc). note, could also use 'shift'
+  fi
+ fi
+fi
+
+#200614
+VTEflg='' 
+GTKDIALOGEXE="$(which gtkdialog 2>/dev/null)"
+[ ! "$GTKDIALOGEXE" ] && [ -e /usr/bin/gtkdialog ] && GTKDIALOGEXE='/usr/bin/gtkdialog'
+[ "$GTKDIALOGEXE" ] && VTEflg="$(ldd ${GTKDIALOGEXE} | grep -m1 -o '/libvte.so')"
+
+#200613 replacement for pupmessage/gxmessage...
+msg_func() {
+ #format: -bg '#ff8080' -title 'title here' 'message here'
+ Mbg='#80ffff'
+ Mtitle="$(gettext 'EasyDD message')"
+ Mmsg="$(gettext 'Please wait...')"
+ while [ "$1" ];do
+  case "$1" in
+   -bg)    shift; Mbg="$1"  ;;
+   -title) shift; Mtitle="$1" ;;
+   -wrap)  true ;;
+   *)      Mmsg="$1" ;;
+  esac
+  shift
+ done
+ echo "style \"easydd-msg\"
+{
+	bg[NORMAL]		= \"${Mbg}\"
+	fg[NORMAL]		= \"#000000\"
+}
+class \"*\" style \"easydd-msg\"" > /tmp/easydd-msg-gtkrc
+ export GTK2_RC_FILES=/tmp/easydd-msg-gtkrc:/root/.gtkrc-2.0
+ export EASYDD_MSG1="<window resizable=\"false\" decorated=\"false\">
+ <vbox>
+  <text use-markup=\"true\"><label>\"<b>${Mtitle}</b>\"</label></text>
+  <text use-markup=\"true\"><label>\"${Mmsg}\"</label></text>
+  <hbox><button ok></button></hbox>
+ </vbox></window>"
+ RETVARS1="$(gtkdialog --class=easydd-msg --program=EASYDD_MSG1 --center)"
+ [ $? -ne 0 ] && exit 1
+ eval "$RETVARS1"
+ 
+}
+
+MODE='gui'
+ERRTITLE="$(gettext 'ERROR')"
+err_exit() {
+ case $MODE in
+  gui)
+   if [ "$GTKDIALOGEXE" ];then
+    msg_func -wrap -bg '#ffa0a0' -title "EasyDD: ${ERRTITLE}" "$@"
+   else
+    xmessage -center -bg '#ffa0a0' -fg '#000000' "${ERRTITLE} $@" 2>/dev/null #200709 set fg color.
+    echo -e "\\033[1;31m${ERRTITLE}: ${@}\\033[0;39m" #red
+   fi
+  ;;
+  dlg) dialog --cr-wrap --colors --title "${ERRTITLE}" --msgbox "\Z1${@}\Zn" 0 0 ;;
+  *)   echo -e "\\033[1;31m${ERRTITLE}: ${@}\\033[0;39m" ;; #red
+ esac
+ exit 1
+}
+
+#import 'probedisk' code into here...
+probedisk_func() {
+ ALLDRVS="$(ls -1 /sys/block | grep -E '^sd|^mmcblk[0-9]$|^nvme' | tr '\n' ' ')" #180408
+ for ONEDRV in $ALLDRVS
+ do
+  case $ONEDRV in
+   sd*|nvme*) #180408 nvme quick hack, needs improving.
+    MEDIA="ata"
+    [ "$(readlink /sys/block/${ONEDRV} | grep '/usb[0-9]')" != "" ] && MEDIA="usb"
+    VENDOR="$(cat /sys/block/$ONEDRV/device/vendor 2>/dev/null | tr -s ' ')" #200522 nvme doesnt have this.
+    MODEL="$(cat /sys/block/$ONEDRV/device/model | tr -s ' ')"
+    INFO="${VENDOR}${MODEL}"
+   ;;
+   mmc*) #/dev/mmcblk0
+    MEDIA="card"
+    INFO="MMC/SD: $(cat /sys/block/$ONEDRV/device/name)"
+   ;;
+  esac
+  echo "/dev/$ONEDRV|$MEDIA|$INFO"
+ done
+}
+
+FILESOURCE=''; DRVTARGET=''
+if [ $1 ];then
+ [ $TTYflg -ne 0 ] && exit #200605 paranoid precaution.
+ if [ -f "$1" ];then
+  FILESOURCE="$1"
+  MODE='cli'
+  if [ ! $2 ];then
+   #err_exit "Target drive not specified"
+   DRVTARGET='ask'
+  else
+   DRVTARGET="${2/*\//}" #dump /dev/ if exists
+   DRVVERIFY="$(ls -1 /sys/block | grep "^${DRVTARGET}$")"
+   if [ ! "$DRVVERIFY" ];then #200617
+    echo -e "\\033[1;31m$(gettext 'This drive does not exist:')
+${DRVTARGET}
+$(gettext 'Specify an existing drive, and not a partition')\\033[0;39m" #red
+    exit
+   fi
+  fi
+ else
+  case "$1" in
+   -d|--d*)
+    MODE='dlg'
+    E1a="$(gettext 'dialog mode not currently supported')"
+    echo -e "\\033[1;31m${E1a}\\033[0;39m" #31=red
+    exit
+   ;;
+   *)
+    echo "EasyDD is a GUI frontend for the 'dd' utility, for writing an image to a drive.
+easydd                No parameters, runs in full X GUI mode.
+NOT CURRENTLY SUPPORTED easydd -d Runs in textmode GUI, using 'dialog' utility.
+easydd <file>         CLI mode, source-file, will ask for target-drive.
+easydd <file> <drive> CLI mode, source-file and target-drive parameters.
+                      Source file must be format *.img[.gz|.bzip2|.xz|.zip] or *.iso
+                      Target must be an entire drive, not a partition. ex: sda
+easydd -h             Displays this help message.
+                      --dialog, --help  Long parameters supported."
+    exit
+   ;;
+  esac
+ fi
+fi
+[ "$MODE" == "gui" ] && [ ! $DISPLAY ] && exit
+
+#200615  20221023
+ME="$(whoami)"
+[ "$ME" != "root" -a "$ME" != "zeus" ] && err_exit "$(gettext 'This script must be run as root user. Use sudo or su')"
+
+ERR=''; RXVTEXE=''; MSGEXE=''
+if ! which which > /dev/null 2>&1 ;then #200614
+ ERR="${ERR} which"
+else
+ for aU in cat cmp dd fold grep gettext gunzip kill killall ldd ls ps readlink sha512sum tac tr umount which #200614
+ do
+  if ! which ${aU} >/dev/null ;then ERR="${ERR} ${aU}"; fi
+ done
+ if [ "$MODE" == "gui" ];then
+  if [ "$VTEflg" == "" ];then #200614
+   if which rxvt >/dev/null ;then RXVTEXE='rxvt'
+   elif which urxvt >/dev/null ;then RXVTEXE='urxvt'
+   elif which xterm >/dev/null ;then RXVTEXE='xterm' #200615
+   elif which gnome-terminal >/dev/null ;then RXVTEXE='gnome-terminal' #200615 200618
+   else ERR="${ERR} rxvt|urxvt|xterm|gnome-terminal"
+   fi
+  fi
+  if ! which gtkdialog >/dev/null ;then ERR="${ERR} gtkdialog"; fi
+ fi
+ if [ "$MODE" == "dlg" ];then
+  if ! which dialog >/dev/null ;then ERR="${ERR} dialog"; fi
+ fi
+fi
+if [ "$ERR" ];then
+ err_exit "$(gettext 'These utilities are missing:')
+${ERR}"
+fi
+
+#the full dd is required... 200521 prefix "LANG=C"... 200614...
+DDspeed=''
+DDtest="$(LANG=C dd --help | grep -o 'periodic transfer statistics')"
+#[ ! "$DDtest" ] && err_exit "$(gettext "dd utility does not support 'status=progress' cli option")"
+[ "$DDtest" ] && DDspeed='status=progress oflag=sync'
+
+#use in-built question-mark icon...
+QICON='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" enable-background="new 0 0 64 64"><g transform="translate(10)" fill="#be212f"><path d="m21.03 51.23c-1.902 0-3.527.604-4.872 1.809-1.344 1.204-2.02 2.662-2.02 4.381 0 1.937.68 3.457 2.038 4.563 1.362 1.106 2.948 1.664 4.761 1.664 1.843 0 3.451-.55 4.827-1.641 1.375-1.096 2.062-2.623 2.062-4.587 0-1.719-.657-3.177-1.972-4.381-1.315-1.203-2.921-1.808-4.827-1.808"/><path d="m40.458 8.617c-1.75-2.656-4.251-4.78-7.438-6.319-3.169-1.525-6.86-2.298-10.974-2.298-4.429 0-8.371.926-11.711 2.753-3.344 1.83-5.928 4.178-7.68 6.978-1.76 2.814-2.655 5.644-2.655 8.414 0 1.477.616 2.856 1.824 4.096 1.214 1.248 2.724 1.879 4.488 1.879 3.01 0 5.061-1.766 6.105-5.23.951-2.865 2.124-5.05 3.48-6.498 1.276-1.364 3.346-2.056 6.149-2.056 2.418 0 4.326.678 5.84 2.075 1.491 1.378 2.217 3.02 2.217 5.02 0 1.01-.236 1.917-.709 2.775-.503.9-1.13 1.727-1.863 2.463-.775.776-2.054 1.941-3.802 3.473-2.036 1.785-3.679 3.348-4.875 4.646-1.25 1.349-2.263 2.935-3.02 4.712-.756 1.789-1.14 3.924-1.14 6.349 0 2.069.577 3.671 1.717 4.762 1.128 1.08 2.533 1.63 4.178 1.63 3.145 0 5.121-1.719 5.709-4.935.298-1.337.524-2.271.674-2.802.136-.483.333-.979.586-1.474.246-.482.635-1.028 1.16-1.625.547-.631 1.286-1.371 2.192-2.198 3.389-3.03 5.78-5.222 7.106-6.52 1.368-1.337 2.561-2.946 3.546-4.778 1.014-1.875 1.528-4.084 1.528-6.559.002-3.131-.887-6.072-2.637-8.737"/></g></svg>'
+echo "$QICON" > /tmp/easydd-question-icon.svg
+
+INTERFACE="$(gettext 'Interface:')"
+DESCRIPTION="$(gettext 'Description:')"
+if [ "$DRVTARGET" == "ask" ];then #MODE=cli only
+ echo -e "\\033[1;35m" #35=purple
+ echo "$(gettext 'Please plugin the drive that you want to write to, if not already.')"
+ echo "$(gettext 'DO IT RIGHT NOW, before hitting ENTER key.')"
+ echo -e "\\033[0;39m"
+ echo -n "$(gettext 'Then, press ENTER key to continue:') "
+ read keepgoing
+ echo
+ echo "$(gettext 'You need to choose which drive to write to.')"
+ echo "$(gettext 'Here is information about the drives:')"
+ echo
+ acnt=1
+ echo -n '' > /tmp/easydd-drvs
+ while read aline
+ do
+  echo -e "\\033[1;35m${acnt}\\033[0;39m ${aline}" #35=purple
+  echo "$aline" >> /tmp/easydd-drvs
+  acnt=$(($acnt+1))
+ done <<_EOF
+$(probedisk_func | cut -f 3- -d '/' | sed -e "s%|% (${INTERFACE} %" | sed -e "s%|% ${DESCRIPTION} %" | sed -e 's%$%)%')
+_EOF
+ echo
+ echo -n "$(gettext 'Type a number from left column: ')"
+ read anumber
+ DRVTARGET="$(head -n ${anumber} /tmp/easydd-drvs | tail -n 1 | cut -f 1 -d ' ')"
+ echo "$(gettext 'Chosen drive:') ${DRVTARGET}"
+fi
+
+D1b="$(gettext 'Continue')"
+D1c="$(gettext 'Cancel')"
+D1d="$(gettext 'This first version of EasyDD will write an image file to a drive.')"
+D1e="$(gettext 'Please plugin the target drive right now, if not already.')"
+D1f="$(gettext "Then, click the 'Continue' button...")"
+D1g="$(gettext '(Note, there will be further sanity checks before writing to the drive)')"
+while [ ! "$DRVTARGET" ];do ###start gui-1###
+
+ #200605 help window...
+ M_close="$(gettext 'Close')"
+ CR='
+'
+ HELPICON="gtk-index"
+ H_edd="$(gettext "EasyDD is a simple application to write an image file to USB-stick or SD-card, and even to a hard drive. It writes to the entire drive, wiping anything previously on the drive.")${CR}$(gettext "Image files are usually named with .img extension, and may also be compressed: .img.gz, .img.xz, .img.bz2. Zip compressed files, with .zip extension, are also supported, and .iso files. ISO files may only be written to drives, not to optical media.")${CR}$(gettext "EasyDD does not uncompress an image file before writing it to the drive, which is important in memory-constrained systems. Instead, compressed images are expanded directly to the target drive.")${CR}${CR}$(gettext "To run, in a terminal, type <b>easydd</b> without parameters to run in GUI mode, or <b>easydd -h</b> for CLI options.")${CR}$(gettext "Or, in EasyOS and EasyPup only, right-click on an image file and choose <b>EasyDD</b> from the menu.")${CR}${CR}$(gettext "(c) Copyright Barry Kauler 2020, bkhome.org, license GPL v3")"
+ export DLG_HELP_EDD="<window resizable=\"false\" title=\"$(gettext 'Help: EasyDD')\" icon-name=\"${HELPICON}\" window_position=\"1\"><vbox><text use-markup=\"true\"><label>\"${H_edd}\"</label><variable>DLG_HELP_EDD</variable></text><hbox><button><label>${M_close}</label><action type=\"closewindow\">DLG_HELP_EDD</action></button></hbox></vbox></window>"
+
+ #200613 replaced pupdialog...
+ export EASYDD_DLG0="
+<window title=\"EasyDD $(gettext 'frontend for dd')\" icon-name=\"gtk-harddisk\">
+ <vbox>
+  <text use-markup=\"true\">
+   <label>\"${D1d}
+<b><span fgcolor='red'>${D1e}</span></b>
+${D1f}
+
+${D1g}\"</label>
+  </text>
+  <hbox>
+   <button><label>${D1b}</label><action>exit:continue</action></button>
+   <button><label>${D1c}</label><action>exit:cancel</action></button>
+   <button><height>22</height><input file>/tmp/easydd-question-icon.svg</input><action type=\"launch\">DLG_HELP_EDD</action></button>
+  </hbox>
+ </vbox>
+</window>"
+ RETVARS="`gtkdialog --program=EASYDD_DLG0 --center`"
+ [ $? -ne 0 ] && exit
+ eval "$RETVARS"
+ [ "$EXIT" != "continue" ] && exit
+ sleep 0.5
+ 
+ DISKS="$(probedisk_func | cut -f 3- -d '/' | sed -e "s%|% (${INTERFACE} %" | sed -e "s%|% ${DESCRIPTION} %" | sed -e 's%$%)%')"
+ CNT=1; RADIOXML=""
+ #200605 want preselect last one...
+ echo -n '' > /tmp/easydd-radioxml-tac
+ while read adisk
+ do
+  adev="$(echo -n "$adisk" | cut -f 1 -d ' ')" #ex: sda
+  if [ $CNT -eq 1 ];then
+   defRADIO="true"
+  else
+   defRADIO="false"
+  fi
+  echo "<radiobutton><variable>DISK_${adev}</variable><label>${adisk}</label><default>${defRADIO}</default></radiobutton>" >> /tmp/easydd-radioxml-tac
+  CNT=$(($CNT+1))
+ done <<_EOF
+$(echo "$DISKS" | tac)
+_EOF
+
+ [ ! -s /tmp/easydd-radioxml-tac ] && err_exit "$(gettext 'Cannot find any drives')"
+ 
+ RADIOXML="$(tac /tmp/easydd-radioxml-tac)"
+ 
+ export EASYDD_DLG1="<window title=\"EasyDD $(gettext 'frontend for dd')\" icon-name=\"gtk-harddisk\">
+ <vbox>
+  <text use-markup=\"true\">
+   <label>\"<b>$(gettext 'Simple GUI for dd')</b>\"</label>
+  </text>
+  <text><label>$(gettext 'This first version has only one purpose, to write an image file to an entire drive.')</label></text>
+  <text use-markup=\"true\"><label>\"$(gettext 'An example would be a downloaded release of EasyOS, with a name like:')
+<b>easy-0.6-amd64.img.gz</b>\"</label></text>
+
+  <frame $(gettext 'Source')>
+   <text><label>$(gettext 'Drag or paste an image file here') ↓   $(gettext 'Or click the folder icon:')</label></text>
+   <hbox>
+    <entry accept=\"savefilename\" truncate-multiline=\"true\">
+     <default>\"${DEFSOURCE}\"</default>
+     <variable>FILESOURCE</variable>
+    </entry>
+    <button>
+     <input file stock=\"gtk-open\"></input>
+     <variable>FILE_BROWSE_SAVEFILENAME</variable>
+     <action function=\"fileselect\">FILESOURCE</action>
+    </button>
+   </hbox>
+  </frame>
+  
+  <frame $(gettext 'Destination')>
+   <text><label>$(gettext 'Choose the target drive:')</label></text>
+   ${RADIOXML}
+  </frame>
+  <hbox>
+   <button><label>$(gettext 'Go back to previous window')</label><action>exit:goback</action></button>
+   <button cancel></button>
+   <button ok></button>
+   <button><height>22</height><input file>/tmp/easydd-question-icon.svg</input><action type=\"launch\">DLG_HELP_EDD</action></button>
+  </hbox>
+ </vbox>
+</window>"
+
+ RETVARS="`gtkdialog --program=EASYDD_DLG1 --center`"
+ [ $? -ne 0 ] && exit
+ eval "$RETVARS"
+
+ #echo "$RETVARS" #TEST
+ if [ "$EXIT" == "goback" ];then
+  DRVTARGET=''
+  continue
+ fi
+ [ "$EXIT" != "OK" ] && exit
+
+ DRVTARGET="$(echo "$RETVARS" | grep '^DISK_' | grep '"true"' | cut -f 2 -d '_' | cut -f 1 -d '=')"
+ break
+done ###end gui-1###
+
+#200614 sanity check, is a block device...
+test -b /dev/${DRVTARGET}
+[ $? -ne 0 ] && exit
+
+if [ "$MODE" == "dlg" ];then
+ Dmain="${D1d}
+\Zb${D1e}\ZB
+${D1f}
+
+${D1g}"
+ dialog --cr-wrap --colors --no-label "${D1c}" --yes-label "${D1b}" --title "EasyDD" --yesno "${Dmain}" 0 0
+ 
+fi
+
+#check source
+if [ "$(echo -n "$FILESOURCE" | grep -E '\.img\.gz$|\.img\.xz$|\.img\.bzip2$|\.img$|\.img\.zip$|\.iso$|\.img\.bz2$')" == "" ];then #200618 .bz2
+ err_exit "For sanity-check, the source filename must end in '.img', '.img.gz', 'img.xz', '.img.bz2', '.img.zip' or '.iso'"
+fi
+#200618 nemo file manager in linux mint prepends "file://"...
+FILESOURCE="$(echo -n "${FILESOURCE}" | sed -e 's%^file://%%')"
+#200618 paranoid check...
+if [ ! -f "$FILESOURCE" ];then
+ err_exit "$(gettext 'Cannot find file:')
+${FILESOURCE}"
+fi
+
+#check dest
+MNTD="$(grep "^/dev/$DRVTARGET" /proc/mounts | cut -f 1 -d ' ')"
+for amntd in $MNTD
+do
+ sync
+ umount $amntd
+done
+MNTD="$(grep "^/dev/$DRVTARGET" /proc/mounts | cut -f 1 -d ' ')"
+if [ "$MNTD" ];then
+ err_exit "$(gettext 'A partition in target drive cannot be unmounted:')
+${MNTD}"
+fi
+
+M2b="$(gettext 'Ready to write!')"
+M2c="$(gettext 'Source file:')"
+M2d="$(gettext 'Target drive:')"
+M2e="$(gettext 'Check very carefully that target drive is correct, as it will be entirely rewritten, and all pre-existing partitions wiped. Only click the OK button if you know what you are doing!')"
+M2ex="$(gettext 'Check very carefully that target drive is correct, as it will be entirely rewritten, and all pre-existing partitions wiped. Only press ENTER if you know what you are doing!')"
+if [ "$DDtest" ];then #200614
+ M2f="$(gettext 'This will be an opportunity to observe the write-speed of your drive. Some cheap USB-sticks are extremely slow, and will give a very poor experience when running Linux. If the write speed is less than 7MB/sec, it is recommended that you use a faster drive.')"
+else
+ M2f="$(gettext 'NOTICE: Your Linux distribution has a very old version of 'dd', that does not show the true write speed, so unable to determine if the target drive is too slow. Some very cheap USB-sticks are too slow and give a poor experience when running Linux.')"
+fi
+#M2g="$(gettext 'NOTE: due to internal caching, the drive-speed may be faster initially, toward the end of the write you will see its true write-speed.')"
+export EASYDD_DLG2="<window title=\"EasyDD $(gettext 'frontend for dd')\" icon-name=\"gtk-harddisk\">
+ <vbox>
+  <text use-markup=\"true\"><label>\"<b>${M2b}</b>\"</label></text>
+  
+  <text use-markup=\"true\"><label>\"${M2c}
+<b>${FILESOURCE}</b>
+${M2d}
+<b>${DRVTARGET}</b>\"</label></text>
+  
+  <text use-markup=\"true\"><label>\"<span fgcolor='red'>${M2e}</span>\"</label></text>
+
+  <hbox>
+   <button cancel></button>
+   <button ok></button>
+  </hbox>
+ </vbox>
+</window>"
+
+if [ "$MODE" == "gui" ];then
+ #echo "$EASYDD_DLG2" #TEST
+ RETVARS="`gtkdialog --program=EASYDD_DLG2 --center`"
+ [ $? -ne 0 ] && exit
+ eval "$RETVARS"
+ [ "$EXIT" != "OK" ] && exit
+fi
+if [ "$MODE" == "cli" ];then
+ echo -e "\\033[1;35m" #35=purple
+ echo "${M2b}"
+ echo "${M2c}  ${FILESOURCE}"
+ echo "${M2d} ${DRVTARGET}"
+ echo -e "\\033[0;39m"
+ echo -e "\\033[1;31m${M2ex}\\033[0;39m" #31=red
+ echo
+ echo -n "$(gettext 'Press ENTER to continue, CTRL-C to quit:') "
+ read willigoon
+ [ "$willigoon" != "" ] && exit
+fi
+
+EXEC=''; MSGID=''
+EXT="${FILESOURCE/*./}"
+W1b="$(gettext 'Please wait, testing integrity of file...')"
+case $MODE in
+ gui)
+  msg_func -bg '#fabc30' "${W1b}" &
+  PS="$(ps -Af)" #200614 ...work both busybox and full ps...
+  MSGID="$(echo "$PS" | tr -s ' ' | grep 'EASYDD_MSG1' | sed -e 's%^root %%' | cut -f 1 -d ' ')"
+ ;;
+ *) echo -e "\n${W1b}" ;;
+esac
+case "$EXT" in
+ gz)
+  if ! which gunzip >/dev/null ;then err_exit "$(gettext 'Utility gunzip does not exist')"; fi
+  EXEC="gunzip --stdout"
+  gunzip --test $FILESOURCE > /dev/null 2>&1
+  [ $? -ne 0 ] && err_exit "$(gettext 'Source file appears to be corrupted:')
+${FILESOURCE}"
+ ;;
+ bzip2|bz2) #190827 added bz2
+  if ! which bunzip2 >/dev/null ;then err_exit "$(gettext 'Uility bunzip2 does not exist')"; fi
+  EXEC="bunzip2 --stdout"
+  bunzip2 --test $FILESOURCE > /dev/null 2>&1
+  [ $? -ne 0 ] && err_exit "$(gettext 'Source file appears to be corrupted:')
+${FILESOURCE}"
+ ;;
+ xz)
+  if ! which unxz >/dev/null ;then err_exit "$(gettext 'Utility unxz does not exist')"; fi
+  EXEC="unxz --stdout"
+  unxz --test $FILESOURCE > /dev/null 2>&1
+  [ $? -ne 0 ] && err_exit "$(gettext 'Source file appears to be corrupted:')
+${FILESOURCE}"
+ ;;
+ img)
+  EXEC=''
+ ;;
+ zip)
+  if ! which unzip >/dev/null ;then err_exit "$(gettext 'Utility unzip does not exist')"; fi
+  EXEC="unzip -p"
+  unzip -t $FILESOURCE > /dev/null 2>&1
+  [ $? -ne 0 ] && err_exit "$(gettext 'Source file appears to be corrupted:')
+${FILESOURCE}"
+ ;;
+ iso) #200215
+  EXEC=''
+  if which isolyzer >/dev/null;then
+   SZflg="$(isolyzer ${FILESOURCE} | grep -c '<smallerThanExpected>False</smallerThanExpected>')"
+   [ "$SZflg" == "0" ] && err_exit "$(gettext 'ISO file size is less than it should be')"
+  fi
+ ;;
+ *)
+  err_exit "$(gettext 'Filename is wrong')"
+ ;;
+esac
+if [ "$MSGID" ];then
+ #if which pupkill >/dev/null;then pupkill ${MSGID}; fi
+ #kill $MSGID 2>/dev/null
+ killall gtkdialog #200615
+fi
+
+#how to flip all bits in a file:
+# https://unix.stackexchange.com/questions/151003/how-could-i-flip-content-of-a-binary-file-with-bash-commands
+# LC_ALL=C tr '\0-\377' '\377\376\375\374\373\372\371\370\367\366\365\364\363\362\361\360\357\356\355\354\353\352\351\350\347\346\345\344\343\342\341\340\337\336\335\334\333\332\331\330\327\326\325\324\323\322\321\320\317\316\315\314\313\312\311\310\307\306\305\304\303\302\301\300\277\276\275\274\273\272\271\270\267\266\265\264\263\262\261\260\257\256\255\254\253\252\251\250\247\246\245\244\243\242\241\240\237\236\235\234\233\232\231\230\227\226\225\224\223\222\221\220\217\216\215\214\213\212\211\210\207\206\205\204\203\202\201\200\177\176\175\174\173\172\171\170\167\166\165\164\163\162\161\160\157\156\155\154\153\152\151\150\147\146\145\144\143\142\141\140\137\136\135\134\133\132\131\130\127\126\125\124\123\122\121\120\117\116\115\114\113\112\111\110\107\106\105\104\103\102\101\100\77\76\75\74\73\72\71\70\67\66\65\64\63\62\61\60\57\56\55\54\53\52\51\50\47\46\45\44\43\42\41\40\37\36\35\34\33\32\31\30\27\26\25\24\23\22\21\20\17\16\15\14\13\12\11\10\7\6\5\4\3\2\1\0' < file.in > file.out
+# ...very slow! have a fast utility 'bitflip', now in pup-tools pet.
+# bitflip ref: https://unix.stackexchange.com/questions/104585/bit-wise-complement-with-dd
+
+[ -e /tmp/easydd-read-failure ] && rm -f /tmp/easydd-read-failure
+xEXEC="${EXEC}"
+[ "$EXEC" == "" ] && xEXEC='cat'
+
+M3a="$(gettext 'Writing inverse of file to drive:')"
+M3c="$(gettext 'Executing:')"
+M3d="$(gettext 'Verifying write of inverse of file:')"
+M3b="$(gettext 'Writing file to drive:')"
+M3e="$(gettext 'Verifying write of file:')"
+M3f="$(gettext 'Verifying write of inverse of file has failed. The drive is faulty.')"
+M3h="$(gettext '...verified successful write')"
+M3i="$(gettext 'Verifying write of file has failed. The drive is faulty.')"
+
+#find size of expanded file...
+EXPSIZEB="$(${xEXEC} "${FILESOURCE}" | wc -c)"
+EXPSIZEK="$(($EXPSIZEB / 1024))"
+EXPSIZEM="$(($EXPSIZEK / 1024))"
+#create a script to perform the write... 191224 remove inverse-write...
+echo "#!/bin/bash
+##write inverse of file and verify...
+#echo \"${M3a}\"
+#if which bitflip >/dev/null; then #bitflip is in pup-tools pet package.
+# LC_ALL=C ${xEXEC} \"${FILESOURCE}\" | bitflip | sha512sum > /tmp/easydd-inverse-sha512sum-write
+# sync
+# LC_ALL=C ${xEXEC} \"${FILESOURCE}\" | bitflip 2>/dev/null | dd of=/dev/${DRVTARGET} bs=1M conv=fsync ${DDspeed}
+#else
+# LC_ALL=C ${xEXEC} \"${FILESOURCE}\" | tr '\\0-\\377' '\\377\\376\\375\\374\\373\\372\\371\\370\\367\\366\\365\\364\\363\\362\\361\\360\\357\\356\\355\\354\\353\\352\\351\\350\\347\\346\\345\\344\\343\\342\\341\\340\\337\\336\\335\\334\\333\\332\\331\\330\\327\\326\\325\\324\\323\\322\\321\\320\\317\\316\\315\\314\\313\\312\\311\\310\\307\\306\\305\\304\\303\\302\\301\\300\\277\\276\\275\\274\\273\\272\\271\\270\\267\\266\\265\\264\\263\\262\\261\\260\\257\\256\\255\\254\\253\\252\\251\\250\\247\\246\\245\\244\\243\\242\\241\\240\\237\\236\\235\\234\\233\\232\\231\\230\\227\\226\\225\\224\\223\\222\\221\\220\\217\\216\\215\\214\\213\\212\\211\\210\\207\\206\\205\\204\\203\\202\\201\\200\\177\\176\\175\\174\\173\\172\\171\\170\\167\\166\\165\\164\\163\\162\\161\\160\\157\\156\\155\\154\\153\\152\\151\\150\\147\\146\\145\\144\\143\\142\\141\\140\\137\\136\\135\\134\\133\\132\\131\\130\\127\\126\\125\\124\\123\\122\\121\\120\\117\\116\\115\\114\\113\\112\\111\\110\\107\\106\\105\\104\\103\\102\\101\\100\\77\\76\\75\\74\\73\\72\\71\\70\\67\\66\\65\\64\\63\\62\\61\\60\\57\\56\\55\\54\\53\\52\\51\\50\\47\\46\\45\\44\\43\\42\\41\\40\\37\\36\\35\\34\\33\\32\\31\\30\\27\\26\\25\\24\\23\\22\\21\\20\\17\\16\\15\\14\\13\\12\\11\\10\\7\\6\\5\\4\\3\\2\\1\\0' | sha512sum > /tmp/easydd-inverse-sha512sum-write
+# sync
+# LC_ALL=C ${xEXEC} \"${FILESOURCE}\" | tr '\\0-\\377' '\\377\\376\\375\\374\\373\\372\\371\\370\\367\\366\\365\\364\\363\\362\\361\\360\\357\\356\\355\\354\\353\\352\\351\\350\\347\\346\\345\\344\\343\\342\\341\\340\\337\\336\\335\\334\\333\\332\\331\\330\\327\\326\\325\\324\\323\\322\\321\\320\\317\\316\\315\\314\\313\\312\\311\\310\\307\\306\\305\\304\\303\\302\\301\\300\\277\\276\\275\\274\\273\\272\\271\\270\\267\\266\\265\\264\\263\\262\\261\\260\\257\\256\\255\\254\\253\\252\\251\\250\\247\\246\\245\\244\\243\\242\\241\\240\\237\\236\\235\\234\\233\\232\\231\\230\\227\\226\\225\\224\\223\\222\\221\\220\\217\\216\\215\\214\\213\\212\\211\\210\\207\\206\\205\\204\\203\\202\\201\\200\\177\\176\\175\\174\\173\\172\\171\\170\\167\\166\\165\\164\\163\\162\\161\\160\\157\\156\\155\\154\\153\\152\\151\\150\\147\\146\\145\\144\\143\\142\\141\\140\\137\\136\\135\\134\\133\\132\\131\\130\\127\\126\\125\\124\\123\\122\\121\\120\\117\\116\\115\\114\\113\\112\\111\\110\\107\\106\\105\\104\\103\\102\\101\\100\\77\\76\\75\\74\\73\\72\\71\\70\\67\\66\\65\\64\\63\\62\\61\\60\\57\\56\\55\\54\\53\\52\\51\\50\\47\\46\\45\\44\\43\\42\\41\\40\\37\\36\\35\\34\\33\\32\\31\\30\\27\\26\\25\\24\\23\\22\\21\\20\\17\\16\\15\\14\\13\\12\\11\\10\\7\\6\\5\\4\\3\\2\\1\\0' | dd of=/dev/${DRVTARGET} bs=1M conv=fsync ${DDspeed}
+#fi
+#sync
+#echo ''
+#echo \"${M3d}\"
+#LC_ALL=C dd if=/dev/${DRVTARGET} bs=1K count=${EXPSIZEK} | sha512sum > /tmp/easydd-inverse-sha512sum-read
+#sync
+#if cmp -s /tmp/easydd-inverse-sha512sum-write /tmp/easydd-inverse-sha512sum-read; then
+# echo \"${M3h}\"
+#else
+# echo \"${M3f}\"
+# touch /tmp/easydd-read-failure
+# sleep 2
+# exit 1
+#fi
+#now write the normal image file...
+echo ''
+echo \"${M3b}\"
+ echo -e -n \"\\\\033[1;31m\" #red
+ fold -s <<<\"${M2f}\"  #echo -n \"\${M2f}\" | fold -s
+ echo -e -n \"\\\\033[0;39m\" #red end
+ echo \"${M3c}\"
+echo \"${xEXEC} '${FILESOURCE}' | dd of=/dev/${DRVTARGET} bs=1M conv=fsync ${DDspeed}\"
+echo ''
+LC_ALL=C ${xEXEC} \"${FILESOURCE}\" | sha512sum > /tmp/easydd-sha512sum-write
+sync
+LC_ALL=C ${xEXEC} \"${FILESOURCE}\" | dd of=/dev/${DRVTARGET} bs=1M conv=fsync ${DDspeed}
+sync
+echo ''
+echo \"${M3e}\"
+LC_ALL=C dd if=/dev/${DRVTARGET} bs=1K count=${EXPSIZEK} | sha512sum > /tmp/easydd-sha512sum-read
+sync
+if cmp -s /tmp/easydd-sha512sum-write /tmp/easydd-sha512sum-read; then
+ echo \"${M3h}\"
+else
+ echo \"${M3i}\"
+ touch /tmp/easydd-read-failure
+ sleep 2
+ exit 1
+fi
+exit 0" > /tmp/easydd-exec
+chmod 755 /tmp/easydd-exec
+if [ "$MODE" == "gui" ];then
+ if [ ! "$VTEflg" ];then
+  case "$RXVTEXE" in
+   gnome-terminal) #200618
+    ${RXVTEXE} --wait --title='EasyDD' --geometry='80x10' -e /tmp/easydd-exec
+   ;;
+   *)
+    #${RXVTEXE} -title 'EasyDD' -background '#ffff80' -geometry '80x10' -e /tmp/easydd-exec
+    ${RXVTEXE} -title 'EasyDD' -bg '#ffff80' -fg '#000000' -geometry '80x10' -e /tmp/easydd-exec #200709 set fg color.
+   ;;
+  esac
+ else
+#  <hbox>
+#   <text><label>$(gettext 'DO NOT CLICK THIS BUTTON:')</label></text>
+#   <button>
+#    <label>$(gettext 'Emergency abort')</label>
+#    <action>killall dd</action>
+#    <action>sync</action>
+#    <action>exit:cancelled</action>
+#    </button>
+#  </hbox>
+  export EASYDD_DLG4="<window title=\"EasyDD $(gettext 'frontend for dd')\" icon-name=\"gtk-harddisk\">
+ <vbox>
+  <terminal argv0=\"/tmp/easydd-exec\" hscrollbar-policy=\"2\" vscrollbar-policy=\"2\">
+   <height>10</height>
+   <width>80</width>
+   <action>exit:finished</action>
+  </terminal>
+ </vbox>
+</window>"
+  RETVARS4="$(gtkdialog --program=EASYDD_DLG4 --center)"
+  [ $? -ne 0 ] && exit
+  eval "$RETVARS4"
+  [ "$EXIT" != "finished" ] && exit
+ fi
+else
+ echo
+ /tmp/easydd-exec
+fi
+sync
+
+sleep 2 #need sleep before next line...
+echo 'change' > /sys/block/${DRVTARGET}/uevent
+
+if [ -e /tmp/easydd-read-failure ];then
+ M4b="$(gettext 'Write failed')"
+ M4c="$(gettext 'The drive is faulty. Please unplug it.')"
+ if [ "$MODE" == "gui" ];then
+  msg_func -wrap -bg '#ffa0a0' -title "EasyDD: ${M4b}" "${M4c}"
+ else
+  echo
+  echo -e "\\033[1;31m${M4b}\\033[0;39m" #red
+  echo -e "\\033[1;31m${M4c}\\033[0;39m" #red
+ fi
+else
+ M4b="$(gettext 'Write finished')"
+ M4c="$(gettext 'Verified successful. You may unplug the drive.')"
+ if [ "$MODE" == "gui" ];then
+  msg_func -wrap -bg '#a0ffa0' -title "EasyDD: ${M4b}" "${M4c}"
+ else
+  echo
+  echo -e "\\033[1;32m${M4b}\\033[0;39m" #green
+  echo -e "\\033[1;32m${M4c}\\033[0;39m" #green
+ fi
+fi
+###END###

@@ -1,0 +1,61 @@
+#!/bin/sh
+#100704 this was originally in Nathan's Wallpaper package.
+# called by 'pwallpaper' wallpaper setter.
+#140101 background_reshape has changed. see also /root/.xinitrc.
+#140101 new app, Qwallpaper, calls set_bg.
+#20220208 set flag if rox is managing desktop icons. 20220210 read /etc/uimanager
+#20220215 MODE=Stretch needs to be "image" for jwm. remove ROXDESKflg.
+
+[ ! $1 ] && exit 1
+mkdir -p /root/.config/wallpaper
+
+#20220208  20220215
+. /etc/uimanager #has UI_DESK_MANAGER='jwm' #or rox
+
+[ ! -s /root/.config/wallpaper/backgroundmode ] && echo -n 'Stretched' > /root/.config/wallpaper/backgroundmode
+MODE="`cat /root/.config/wallpaper/backgroundmode`"
+case $MODE in
+ Centred) MODE="Centre" ;;
+ Scaled)  MODE="Scale"  ;;
+ *)       MODE="Stretch" ;; #Stretched
+esac
+
+#w482 BK now have script that truncates an image vertically so that it has the right dimensions
+#for a widescreen...
+#140101 background_reshape has changed...
+NEWIMAGE="$1"
+if [ "$MODE" = "Stretch" ];then
+ #truncated image is created, in a subdirectory, ex: /usr/share/backgrounds/177/image.jpg
+ # where "177" is the screen aspect ratio, as a percentage.
+ /usr/sbin/background_reshape ${NEWIMAGE}
+ RETVAL=$?
+ if [ $RETVAL -eq 10 -o $RETVAL -eq 11 ];then
+  NEWIMAGE="`cat /tmp/qwallpaper_reshaped`"
+ fi
+fi
+
+if [ "$UI_DESK_MANAGER" == "jwm" ];then #20220208 20220215
+ case "$MODE" in #jM can be image, scale, tile
+  Stretch) jM='image' ;;
+  *)       jM='scale' ;;
+ esac
+ jPTN="s%<Background.*%<Background type=\"${jM}\">${NEWIMAGE}</Background>%"
+ sed -i -e "$jPTN" /root/.jwm/jwmrc-personal
+ jwm -restart
+else
+ #tell rox to use new bg image, not this will also write to /root/Choices/ROX-Filer/PuppyPin ...
+ rox --RPC << EOF
+<?xml version="1.0"?>
+<env:Envelope xmlns:env="http://www.w3.org/2001/12/soap-envelope">
+ <env:Body xmlns="http://rox.sourceforge.net/SOAP/ROX-Filer">
+  <SetBackdrop>
+   <Filename>${NEWIMAGE}</Filename>
+   <Style>${MODE}</Style>
+  </SetBackdrop>
+ </env:Body>
+</env:Envelope>
+
+EOF
+fi
+
+###END###

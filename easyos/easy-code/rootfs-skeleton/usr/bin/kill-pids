@@ -1,0 +1,64 @@
+#!/bin/ash
+#20220524 kill anything using mount-point
+#called from rc.shutdown
+
+MNTPT="${1}"
+
+#got code from /usr/local/easy_containers/stop-container
+#At first it tries nicely with SIGTERM
+#After a timeout, it uses SIGKILL
+#ref: http://askubuntu.com/questions/162319/how-do-i-stop-all-processes-in-a-chroot
+kill_pid_func() {
+ PROC_TO_KILL=$1
+ #Make sure we have an arg to work with
+ if [[ "$PROC_TO_KILL" == "" ]]
+ then
+  echo "KILL_PID: \$1 cannot be empty"
+  return 1
+ fi
+ #Try to kill it nicely
+ kill -0 $PROC_TO_KILL &>/dev/null && kill -15 $PROC_TO_KILL
+ #Check every second for 5 seconds to see if $PROC_TO_KILL is dead
+ WAIT_TIME=5
+ #Do a quick check to see if it's still running
+ #It usually takes a second, so this often doesn't help
+ kill -0 $PROC_TO_KILL &>/dev/null &&
+ for SEC in $(seq 1 $WAIT_TIME)
+ do
+  sleep 1
+  if [[ "$SEC" != $WAIT_TIME ]]
+  then
+   #If it's dead, exit
+   kill -0 $PROC_TO_KILL &>/dev/null || break
+  else
+   #If time's up, kill it
+   kill -0 $PROC_TO_KILL &>/dev/null && kill -9 $PROC_TO_KILL
+  fi
+ done
+}
+
+#kill all processes, and everything mounted, in the MNTPT.
+#Find processes who's root folder is actually the mount-point...
+for ROOT in $(find /proc/*/root)
+do
+ #Check where the symlink is pointing to
+ LINK=$(readlink -f $ROOT)
+ #If it's pointing to the $CONTAINER, kill the process
+ if echo $LINK | grep -q ${MNTPT%/}
+ then
+  PID=$(basename $(dirname "$ROOT"))
+  kill_pid_func $PID
+ fi
+done
+
+#Get a list of PIDs that are using $MNTPT for anything
+#original code requires full 'lsof', hopefully get it to work with busybox lsof...
+#PID_LIST=$(lsof +D $MNTPT 2>/dev/null | tail -n+2 | tr -s ' ' | cut -d ' ' -f 2 | sort -nu)
+PID_LIST="$(busybox lsof | grep "$MNTPT" | tail -n+2 | cut -d ' ' -f 1 | sort -nu | tr '\n' ' ')"
+#Kill all PIDs holding up unmounting $MNTPT
+for PID in $PID_LIST
+do
+ kill_pid_func $PID
+done
+
+###end###

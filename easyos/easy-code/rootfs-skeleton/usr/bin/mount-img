@@ -1,0 +1,130 @@
+#!/bin/sh
+#passed in param name of .img file. may include path.
+#rox handler used to run 'filemnt', now runs this script.
+# ref: /etc/xdg/rox.sourceforge.net/MIME-types/application_easy-disk-image
+# ref: /usr/sbin/build-rox-sendto, /usr/share/applications/mount-img.desktop
+#optional param "quiet" to not display anything. want to call from /usr/local/easy_version/easy-update
+#exit value number of partitions mounted or unmounted.
+#20220613 first version. 20220615
+#20220624 fallback popup to xmessage, so will work on other distros.
+#20220625 default mount ro, pass-in "rw"
+
+if [ "$(whoami)" != "root" ];then
+ if [ -x /usr/bin/sudo-sh ];then
+  exec sudo-sh ${PPID} ${0} ${@}
+ else
+  exec sudo -A ${0} ${@}
+ fi
+fi
+
+export TEXTDOMAIN=mount-img
+export OUTPUT_CHARSET=UTF-8
+CR='
+'
+
+QUIET=0
+if [ "$1" == "quiet" -o "$2" == "quiet" -o "$3" == "quiet" ];then
+ QUIET=1
+fi
+RW=0
+if [ "$1" == "rw" -o "$2" == "rw" -o "$3" == "rw" ];then
+ RW=1
+ LOPT=''
+ MOPT=''
+else
+ LOPT='-r'
+ MOPT='-r'
+fi
+
+#unmount...
+CNT=0
+for aMNT in `ls -d /tmp/mount-img-[1-9]-* 2>/dev/null`
+do
+ [ "$aMNT" == "" ] && continue
+ [ ! -d "$aMNT" ] && continue
+ aDIR="${aMNT##*/}"
+ rox -D "$aMNT"
+ sync
+ busybox umount "$aMNT"
+ rm -rf /tmp/$aDIR
+ losetup -d /dev/${aDIR/*-/}
+ CNT=$(($CNT+1))
+done
+
+if [ $CNT -gt 0 -a $QUIET -eq 0 ];then
+ M1="$(gettext 'Partitions in image file unmounted')"
+ if which popup >/dev/null; then #20220624
+  popup "terminate=5 timecount=dn name=easyimgunmounted background=#a0ffa0 level=top|<big>${M1}</big> "
+ else
+  xmessage -center -bg '#a0ffa0' "${M1}" &
+ fi
+ exit $CNT
+fi
+
+ESPEC="$1"
+[ "$ESPEC" == "" ] && exit 0
+[ ! -f "$ESPEC" ] && exit 0
+ 
+#20230218
+if [ $DISPLAY ];then
+ if [ $RW -eq 0 -a $QUIET -eq 0 ];then
+  M1="$(gettext 'The partitions in the image file may be mounted read-only or read-write.\nWARNING: read-write will alter the checksum of the image file, even if you do not change anything.')"
+  M2="$(gettext 'Read-only')"
+  M3="$(gettext 'Abort')"
+  M4="$(gettext 'Read-write')"
+  pupdialog --extra-button --ok-label "${M2}"  --extra-label "${M3}" --cancel-label "${M4}" --yesno "${M1}" 0 0
+  case "$?" in
+   0) #ro
+    RW=0
+    LOPT='-r'
+    MOPT='-r'
+   ;;
+   1) #rw
+    RW=1
+    LOPT=''
+    MOPT=''
+   ;;
+   *) #3
+    exit
+   ;;
+  esac
+ fi
+fi
+ 
+xESPEC="$(echo -n "$ESPEC" | sed -e 's%-%\\-%g' -e 's%\.%\\.%g' -e 's%\+%\\+%g')"
+PARTS="$(fdisk -l --bytes ${ESPEC} | grep "^${xESPEC}" | tr -d '*' | tr -s ' ')"
+#ex: offset in sectors, size in bytes. before the pipe operations...
+#                      Boot Start   End    Sectors  Size    Id  Type
+#easy-4.0.3-amd64.img1 *     2048   32767   30720  15728640 ef EFI (FAT-12/16/32)
+#easy-4.0.3-amd64.img2      32768 1638399 1605632 822083584 83 Linux
+ 
+OFFs="$(echo "$PARTS" | cut -f 2 -d ' ' | tr '\n' ' ')"
+ 
+CNT=0
+for aOFFs in ${OFFs}
+do
+ aOFFb=$(($aOFFs*512)) #assumption, 512 bytes per sector.
+ LOOPn="$(losetup -f)"
+ losetup ${LOPT} -o ${aOFFb} ${LOOPn} ${ESPEC}
+ aFS="$(blkid ${LOOPn} | tr ' ' '\n' | grep '^TYPE' | cut -f 2 -d '"' | grep -E 'vfat|ext|f2fs')"
+ [ "$aFS" == "" ] && continue
+ CNT=$(($CNT+1))
+ mkdir -p /tmp/mount-img-${CNT}-${aFS}-${LOOPn##*/}
+ busybox mount ${MOPT} -t ${aFS} ${LOOPn} /tmp/mount-img-${CNT}-${aFS}-${LOOPn##*/}
+ [ $? -ne 0 ] && continue
+ if [ $QUIET -eq 0 ];then
+  rox -x -d /tmp/mount-img-${CNT}-${aFS}-${LOOPn##*/}
+ fi
+done
+
+if [ $CNT -gt 1 -a $QUIET -eq 0 ];then
+ M2="$(gettext 'Partitions in image file mounted.')"
+ M3="$(gettext 'Click on image file again to unmount partitions.')"
+ if which popup >/dev/null; then #20220624
+  popup "terminate=5 timecount=dn name=easyimgunmounted background=#a0ffa0 level=top|<big>${M2}${CR}${M3}</big> "
+ else
+  xmessage -center -bg '#a0ffa0' "${M2}${CR}${M3}" &
+ fi
+fi
+exit $CNT #note includes attempted mount.
+###end###

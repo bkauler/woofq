@@ -1,0 +1,318 @@
+#!/bin/sh
+#(c) Copyright Barry Kauler 2018, license GPLv3 (/usr/share/legal)
+#rebuild the rox-filer "Open With" (Send To) right-click menu.
+#optional path/name of a single .desktop file, optional prefix +/-
+#called from 3buildeasydistro, 3builddistro, 
+#180518 first release. 180608 mtpaint gpicview geany gimp
+#181123 /.* should be /.[a-zA-Z]*
+#181203 added application_x-rpm
+#190117 not always get app at top right-click (ex: audacious).
+#190920 add mimetypes for 'filemnt' script.
+#190920 in some cases, MimeType entry in .desktop is incomplete, so merge with my values.
+
+#may call this in woofQ, when current dir is sandbox3/rootfs-complete, so test...
+CWD="`pwd`"
+case "$CWD" in
+ *rootfs-complete) true ;;
+ *) cd / ;;
+esac
+
+cDT="${1}"; cDT1=''
+if [ "$cDT" ];then
+ #path/name of a .desktop file passed in, "-" prefix if removing
+ DTs="$cDT"
+ cDT1="${cDT:0:1}"
+ [ "$cDT1" == "+" ] && DTs="${cDT:1:200}"
+ [ "$cDT1" == "-" ] && DTs="${cDT:1:200}"
+ [ ! -f "$DTs" ] && exit 1
+else
+ #get rid of all of these...
+ rm -rf root/.config/rox.sourceforge.net/SendTo/* 2>/dev/null
+ rm -rf root/.config/rox.sourceforge.net/SendTo/.[a-zA-Z]* 2>/dev/null #181123
+ mkdir -p etc/xdg/rox.sourceforge.net/OpenWith
+ ln -snf OpenWith etc/xdg/rox.sourceforge.net/SendTo
+ rm -rf etc/xdg/rox.sourceforge.net/SendTo/* 2>/dev/null
+ rm -rf etc/xdg/rox.sourceforge.net/SendTo/.[a-zA-Z]* 2>/dev/null #181123
+ DTs="$(find usr/share/applications -maxdepth 1 -type f -name '*.desktop')"
+fi
+
+#now rebuild...
+for aDT in $DTs
+do
+ #um, we do want to include these, but take out default*...
+ #if grep '^NoDisplay=true' $aDT >/dev/null;then continue ; fi
+ aDTbase="$(basename $aDT .desktop)"
+ case $aDTbase in
+  default*) continue ;;
+ esac
+ aEXE="$(grep '^Exec=' $aDT | head -n 1 | cut -f 2 -d '=' | cut -f 1 -d ' ' | rev | cut -f 1 -d '/' | rev)"
+ [ "$aEXE" == "" ] && continue
+ aNAME="$(grep '^Name=' $aDT | head -n 1 | cut -f 2 -d '=' | cut -f 1 -d ' ')"
+ aMT="$(grep '^MimeType=' $aDT | cut -f 2 -d '=' | tr ';' '\n' | grep -v '^x-' | tr '/' '_')"
+ MIMEDIR=''
+ aBAD='' #MimeType= in .desktop may have inappropriate entries, screen out.
+ #ref: grep '^Exec=' *.desktop | cut -f 2 -d '=' | cut -f 1 -d ' ' | rev | cut -f 1 -d '/' | rev | sort -u | sed -e 's%^%  %' -e "s%$%) MIMEDIR='' ;;%"
+ case $aEXE in
+#  AppRun) MIMEDIR='' ;;
+  audacious) MIMEDIR='audio' ;;
+#  aumix) MIMEDIR='' ;;
+  bacongui-gtk)   MIMEDIR='text' ;;
+  bcrypt_gui) MIMEDIR='ALL' ;;
+#  bluepup) MIMEDIR='' ;;
+#  bootmanager) MIMEDIR='' ;;
+  burniso2cd)     MIMEDIR='application_x-cd-image' ;;
+#  cdburner-wizard) MIMEDIR='' ;;
+#  cgtkcalc) MIMEDIR='' ;;
+#  check_deps.sh) MIMEDIR='' ;;
+#  childproof) MIMEDIR='' ;;
+#  chooselocale) MIMEDIR='' ;;
+  chrome|chromium) MIMEDIR='text_html' ;;
+#  connectwizard) MIMEDIR='' ;;
+#  cups_shell) MIMEDIR='' ;;
+#  defaultbrowser) MIMEDIR='' ;;
+#  defaultchmviewer) MIMEDIR='' ;;
+#  defaultimageviewer) MIMEDIR='' ;;
+#  defaultmediaplayer) MIMEDIR='' ;;
+#  defaultpdfviewer) MIMEDIR='' ;;
+#  defaults-chooser) MIMEDIR='' ;;
+#  defaultspreadsheet) MIMEDIR='' ;;
+#  defaulttexteditor) MIMEDIR='' ;;
+#  defaultwordprocessor) MIMEDIR='' ;;
+  dia)            MIMEDIR='application_x-dia-diagram image' ;;
+#  didiwiki-gui) MIMEDIR='' ;;
+#  dropbox_gui) MIMEDIR='' ;;
+#  easy-bootmanager) MIMEDIR='' ;;
+#  easy-containers) MIMEDIR='' ;;
+  easydd)         MIMEDIR='application_x-gzip' ;;
+#  easy-installer) MIMEDIR='' ;;
+#  easy-remaster) MIMEDIR='' ;;
+#  easyshare) MIMEDIR='' ;;
+#  easy-version-control) MIMEDIR='' ;;
+#  ec-chroot) MIMEDIR='' ;;
+#  eventmanager) MIMEDIR='' ;;
+  evince)         MIMEDIR='application_pdf application_postscript'; aBAD='image_' ;;
+#  ffconvert) MIMEDIR='' ;;
+  #190920...
+  filemnt) MIMEDIR='application_easy-disk-image application_x-cd-image application_x-ext2-image application_x-ext3-image application_x-ext4-image application_x-squashfs-image' ;;
+  firefox)        MIMEDIR='text_html' ;;
+#  firewall_ng) MIMEDIR='' ;;
+#  Floppy_Formatter) MIMEDIR='' ;;
+#  flsynclient) MIMEDIR='' ;;
+#  fluid) MIMEDIR='' ;;
+#  fpm2) MIMEDIR='' ;;
+#  frisbee) MIMEDIR='' ;;
+#  galculator) MIMEDIR='' ;;
+#  gcolorsel) MIMEDIR='' ;;
+#  gdmap) MIMEDIR='' ;;
+  geany)          MIMEDIR='text_plain text_x-chdr text_x-csrc text_x-c++hdr text_x-c++src text_x-java text_x-dsrc text_x-pascal text_x-perl text_x-python application_x-php application_x-httpd-php3 application_x-httpd-php4 application_x-httpd-php5 application_xml text_html text_css text_x-sql text_x-diff image_x-xpixmap application_xml application_javascript application_x-shellscript' ;;
+#  getflash) MIMEDIR='' ;;
+#  gfnrename) MIMEDIR='' ;;
+#  gfontsel) MIMEDIR='' ;;
+#  gftp) MIMEDIR='' ;;
+  ghasher)        MIMEDIR='ALL' ;;
+#  ghostview) MIMEDIR='' ;;
+  gimp)           MIMEDIR='image_bmp image_g3fax image_gif image_x-fits image_x-pcx image_x-portable-anymap image_x-portable-bitmap image_x-portable-graymap image_x-portable-pixmap image_x-psd image_x-sgi image_x-tga image_x-xbitmap image_x-xwindowdump image_x-xcf image_x-compressed-xcf image_x-gimp-gbr image_x-gimp-pat image_x-gimp-gih image_tiff image_jpeg image_x-psp image_png image_x-icon image_x-xpixmap image_svg+xml application_pdf image_jp2 image_jpeg2000 image_jpx image_x-xcursor' ;;
+#  glipper_shell) MIMEDIR='' ;;
+#  gmeasures_wrapper) MIMEDIR='' ;;
+  gnome-mpv)      MIMEDIR='video' ;;
+#  gparted_shell) MIMEDIR='' ;;
+  gpicview)       MIMEDIR='image_bmp image_gif image_jpeg image_jpg image_png image_tiff image_x-bmp image_x-pcx image_x-tga image_x-portable-pixmap image_x-portable-bitmap image_x-targa image_x-portable-greymap application_pcx image_svg+xml image_svg-xml' ;;
+#  gpptp) MIMEDIR='' ;;
+  grisbi)         MIMEDIR='application_x-grisbi' ;;
+#  gtk3-demo) MIMEDIR='' ;;
+#  gtk3-icon-browser) MIMEDIR='' ;;
+#  gtk3-widget-factory) MIMEDIR='' ;;
+#  gtk_chtheme_wrapper) MIMEDIR='' ;;
+#  gtklp) MIMEDIR='' ;;
+#  gtklpq) MIMEDIR='' ;;
+#  gwhere) MIMEDIR='' ;;
+#  hardinfo) MIMEDIR='' ;;
+  homebank)       MIMEDIR='application_x-homebank' ;;
+#  iconfinder) MIMEDIR='' ;;
+#  icon_switcher) MIMEDIR='' ;;
+  inkscape)       MIMEDIR='image' ;;
+  inkscapelite)   MIMEDIR='image' ;;
+#  input-wizard) MIMEDIR='' ;;
+#  ipinfo) MIMEDIR='' ;;
+  isomaster)      MIMEDIR='application_x-cd-image' ;;
+#  jwmdesk) MIMEDIR='' ;;
+  leafpad)        MIMEDIR='text image_x-xpixmap application_xml application_javascript' ;;
+#  lmarbles) MIMEDIR='' ;;
+#  loginmanager) MIMEDIR='' ;;
+  mhwaveedit) MIMEDIR='audio' ;;
+#  momanager) MIMEDIR='' ;;
+#  momanager0) MIMEDIR='' ;;
+#  mozaddressbook) MIMEDIR='' ;;
+#  mozchat) MIMEDIR='' ;;
+  mozedit)        MIMEDIR='text_html'; aNAME='SeaMonkey-Composer' ;;
+  mozilla)        MIMEDIR='text_html'; aNAME='SeaMonkey-Browser' ;;
+#  mozmail) MIMEDIR='' ;;
+  mtpaint)        MIMEDIR='image_bmp image_x-bmp image_x-ms-bmp image_gif image_jpeg image_jpg image_pjpeg image_x-pcx image_png image_x-png image_x-portable-anymap image_x-portable-bitmap image_x-portable-graymap image_x-portable-pixmap image_svg image_svg+xml image_x-tga image_tiff image_xbm image_x-xbm image_x-xbitmap image_xpm image_x-xpm image_x-xpixmap' ;;
+#  mtpaintsnapshot.sh) MIMEDIR='' ;;
+#  mtr) MIMEDIR='' ;;
+#  Multiple-Sound-Card-Wizard) MIMEDIR='' ;;
+  notecase)       MIMEDIR='application_x-notecase application_x-notecase-enc' ;;
+#  osmo) MIMEDIR='' ;;
+#  partview) MIMEDIR='' ;;
+#  pbackup) MIMEDIR='' ;;
+  pburn)          MIMEDIR='application_x-cd-image' ;;
+#  pcd) MIMEDIR='' ;;
+#  pcdripper) MIMEDIR='' ;;
+#  pcreatetorrent) MIMEDIR='' ;;
+#  pctorrent) MIMEDIR='' ;;
+#  pcur) MIMEDIR='' ;;
+#  pdict) MIMEDIR='' ;;
+#  Pdisk) MIMEDIR='' ;;
+#  pdvdrsab) MIMEDIR='' ;;
+#  peasydisc) MIMEDIR='' ;;
+#  peasypdf) MIMEDIR='' ;;
+#  peasyport) MIMEDIR='' ;;
+#  peasyprint) MIMEDIR='' ;;
+#  peasyscale) MIMEDIR='' ;;
+#  peasyscan) MIMEDIR='' ;;
+  petget)         MIMEDIR='application_pet application_x-deb application_x-bzip-compressed-tar application_x-xz-compressed-tar application_x-rpm' ;;
+#  pfind) MIMEDIR='' ;;
+#  picpuz-wrapper) MIMEDIR='' ;;
+#  pidginshell) MIMEDIR='' ;;
+#  pkg_chooser.sh) MIMEDIR='' ;;
+  planner)        MIMEDIR='application_x-planner' ;;
+#  pmetatagger) MIMEDIR='' ;;
+#  pmirror) MIMEDIR='' ;;
+#  pmount) MIMEDIR='' ;;
+  pmusic)         MIMEDIR='audio' ;;
+#  pmwget) MIMEDIR='' ;;
+#  ppg-gui.sh) MIMEDIR='' ;;
+#  pplog_gui) MIMEDIR='' ;;
+#  pprocess) MIMEDIR='' ;;
+#  precord) MIMEDIR='' ;;
+#  prun) MIMEDIR='' ;;
+#  pschedule) MIMEDIR='' ;;
+#  pstopwatch) MIMEDIR='' ;;
+#  psync) MIMEDIR='' ;;
+#  ptimer) MIMEDIR='' ;;
+#  Pudd) MIMEDIR='' ;;
+#  pup-advert-blocker) MIMEDIR='' ;;
+#  PupApps) MIMEDIR='' ;;
+#  pupcamera) MIMEDIR='' ;;
+#  PupControl) MIMEDIR='' ;;
+#  puppypdf) MIMEDIR='' ;;
+#  pupradio) MIMEDIR='' ;;
+#  pupscan) MIMEDIR='' ;;
+#  Pup-SysInfo) MIMEDIR='' ;;
+#  pupwhois) MIMEDIR='' ;;
+#  pupx) MIMEDIR='' ;;
+  pupzip|xarchive|xarchiver) MIMEDIR='application_gzip application_x-bzip application_x-bzip-compressed-tar application_x-bzip2 application_x-compressed-tar application_x-gzip application_x-rar application_x-tar application_x-xz application_x-xz-compressed-tar application_zip application_x-deb application_x-rpm' ;;
+#  pwsget) MIMEDIR='' ;;
+#  qsync) MIMEDIR='' ;;
+#  quicksetup) MIMEDIR='' ;;
+#  qwallpaper) MIMEDIR='' ;;
+#  remove_builtin) MIMEDIR='' ;;
+#  rox) MIMEDIR='' ;;
+#  rubix) MIMEDIR='' ;;
+#  rxvt) MIMEDIR='' ;;
+#  sakura) MIMEDIR='' ;;
+  sbase|lobase) MIMEDIR='application_vnd.oasis.opendocument.database'; aNAME='LibreOffice-Base' ;;
+  scalc|localc) MIMEDIR='application_vnd.ms-excel application_vnd.oasis.opendocument.spreadsheet application_vnd.openxmlformats-officedocument.spreadsheetml.sheet application_vnd.openxmlformats-officedocument.spreadsheetml.template text_csv'; aNAME='LibreOffice-Calc' ;;
+#  screeny) MIMEDIR='' ;;
+  scribus)      MIMEDIR='application_vnd.scribus' ;;
+  sdraw|lodraw)       MIMEDIR='image application_vnd.oasis.opendocument.graphics application_vnd.oasis.opendocument.graphics-template application_vnd.oasis.opendocument.image'; aNAME='LibreOffice-Draw' ;;
+#  securetelnetshell) MIMEDIR='' ;;
+#  set_hwclock_type) MIMEDIR='' ;;
+#  set-time-for-puppy) MIMEDIR='' ;;
+#  set-xftdpi) MIMEDIR='' ;;
+#  sfsget) MIMEDIR='' ;;
+#  sh) MIMEDIR='' ;;
+  simpress|loimpress) MIMEDIR='application_vnd.oasis.opendocument.presentation application_vnd.oasis.opendocument.presentation-template application_vnd.ms-powerpoint application_vnd.openxmlformats-officedocument.presentationml.presentation application_vnd.openxmlformats-officedocument.presentationml.template application_vnd.openxmlformats-officedocument.presentationml.slideshow'; aNAME='LibreOffice-Impress' ;;
+#  sscontrol) MIMEDIR='' ;;
+#  ssh-gui) MIMEDIR='' ;;
+  swriter|lowriter) MIMEDIR='text application_msword application_vnd.openxmlformats-officedocument.wordprocessingml.document application_vnd.openxmlformats-officedocument.wordprocessingml.template application_vnd.oasis.opendocument.text application_vnd.oasis.opendocument.text-template application_vnd.oasis.opendocument.text-web application_vnd.oasis.opendocument.text-master'; aNAME='LibreOffice-Writer' ;;
+#  timezone-set) MIMEDIR='' ;;
+#  toppler) MIMEDIR='' ;;
+#  uget-gtk) MIMEDIR='' ;;
+#  urxvtcontrol) MIMEDIR='' ;;
+#  video_upgrade_wizard) MIMEDIR='' ;;
+#  wcpufreq) MIMEDIR='' ;;
+#  wizardwizard) MIMEDIR='' ;;
+#  xcalc) MIMEDIR='' ;;
+#  xclipboard) MIMEDIR='' ;;
+#  xconsole) MIMEDIR='' ;;
+#  xdelta_gui) MIMEDIR='' ;;
+#  xfdiff-cut) MIMEDIR='' ;;
+#  xfontsel) MIMEDIR='' ;;
+  xine*)    MIMEDIR='audio video'; aBAD='image_' ;;
+#  xorgwizard) MIMEDIR='' ;;
+#  xsane) MIMEDIR='' ;;
+#  xsoldier) MIMEDIR='' ;;
+#  xvkbd-wrapper) MIMEDIR='' ;;
+#  ycalc) MIMEDIR='' ;;
+#  youtubedl) MIMEDIR='' ;;
+  viewnior)       MIMEDIR='image' ;;
+ esac
+ xMIMEDIR="$MIMEDIR" #190920
+ 
+ yMIMEDIR='' #190920
+ if [ "$aMT" ];then #some .desktop files have MimeType=... entry
+  #evince.desktop has image_* blob wildcard
+  #also, some have inappropriate mime-type
+  if [ "$aBAD" ];then
+   xaBAD="$(echo "$aBAD" | tr ' ' '\n')"
+   echo "$xaBAD" > /tmp/brs-xabad
+   yMIMEDIR="$(echo "$aMT" | grep -v -f /tmp/brs-xabad | sed -e 's%\*.*%%' -e 's%_$%%' | tr '\n' ' ' | sed -e 's% $%%')"
+  else
+   yMIMEDIR="$(echo "$aMT" | sed -e 's%\*.*%%' -e 's%_$%%' | tr '\n' ' ' | sed -e 's% $%%')"
+  fi
+ fi
+ 
+ #190920
+ if [ "$xMIMEDIR" ];then
+  if [ "$yMIMEDIR" -a "$xMIMEDIR" != "ALL" ];then
+   zMIMEDIR="$(echo "${xMIMEDIR} ${yMIMEDIR}" | tr -s ' ' | tr ' ' '\n' | sort -u)"
+   #remove redundant entries...
+   echo -n "$zMIMEDIR" > /tmp/build-rox-sendto-zMIMEDIR
+   for aTYPE in audio video image text
+   do
+    if grep "^${aTYPE}$" /tmp/build-rox-sendto-zMIMEDIR >/dev/null;then
+     sed -i "/^${aTYPE}/d" /tmp/build-rox-sendto-zMIMEDIR
+     echo "$aTYPE" >> /tmp/build-rox-sendto-zMIMEDIR
+    fi
+   done
+   MIMEDIR="$(cat /tmp/build-rox-sendto-zMIMEDIR | sort | tr '\n' ' ' | sed -e 's% $%%')"
+  else
+   MIMEDIR="$xMIMEDIR"
+  fi
+ else
+  MIMEDIR="$yMIMEDIR"
+ fi
+ 
+ [ "$MIMEDIR" == "" ] && continue
+ if [ "$MIMEDIR" == "ALL" ];then
+  if [ "$cDT1" == "-" ];then
+   rm -f etc/xdg/rox.sourceforge.net/SendTo/${aNAME} 2>/dev/null
+  else
+   ln -snf /${aDT} etc/xdg/rox.sourceforge.net/SendTo/${aNAME}
+  fi
+  continue
+ fi
+ for aMD in ${MIMEDIR}
+ do
+  if [ "$cDT1" == "-" ];then
+   rm -f etc/xdg/rox.sourceforge.net/SendTo/.${aMD}/${aNAME} 2>/dev/null
+  else
+   [ ! -d etc/xdg/rox.sourceforge.net/SendTo/.${aMD} ] && mkdir etc/xdg/rox.sourceforge.net/SendTo/.${aMD}
+   ln -snf /${aDT} etc/xdg/rox.sourceforge.net/SendTo/.${aMD}/${aNAME}
+   #190117 not always get app at top right-click (ex: audacious)...
+   case "$aMD" in
+    audio)
+     for aAUDIO in audio_annodex audio_x-annodex audio_x-ms-wma audio_mpegurl audio_x-mpegurl audio_x-scpls audio_x-ms-wax audio_x-ms-wvx audio_x-m4a audio_mp4 audio_x-aiff audio_aiff audio_x-pn-aiff audio_x-flac audio_flac audio_x-realaudio audio_basic audio_x-basic audio_x-pn-au audio_x-pn-realaudio audio_x-pn-realaudio-plugin audio_x-real-audio audio_x-8svx audio_8svx audio_x-16sv audio_168sv audio_ogg audio_x-ogg audio_ac3 audio_x-wav audio_wav audio_x-pn-wav audio_x-pn-windows-acm audio_musepack audio_x-musepack audio_mpeg2 audio_x-mpeg2 audio_mpeg3 audio_x-mpeg3 audio_mpeg audio_x-mpeg audio_x-mpegurl audio_mpegurl audio_mp3 audio_x-mp3
+     do
+      [ ! -d etc/xdg/rox.sourceforge.net/SendTo/.${aAUDIO} ] && mkdir etc/xdg/rox.sourceforge.net/SendTo/.${aAUDIO}
+      ln -snf /${aDT} etc/xdg/rox.sourceforge.net/SendTo/.${aAUDIO}/${aNAME}
+     done
+    ;;
+   esac
+  fi
+ done
+ 
+done
+
+###END###

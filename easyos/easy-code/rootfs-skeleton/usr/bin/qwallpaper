@@ -1,0 +1,99 @@
+#!/bin/sh
+#(c) Copyright Barry Kauler, Jan 2013. bkhome.org
+#Licence: GPL3 (/usr/share/doc/legal).
+#140101 new wallpaper setting application. see also /usr/sbin/set_bg, background_reshape, /root/.xinitrc
+#160727 set wallpaper on commandline, bypass gui. also handle svg.
+#20230218 radky's jwmdesk has a TEXTDOMAIN=qwallpaper, so rename this one to qwallaperorig.
+
+export TEXTDOMAIN=qwallpaperorig
+export OUTPUT_CHARSET=UTF-8
+mkdir -p /root/.config/wallpaper
+
+#160727
+if [ $1 ];then
+ [ ! -f "$@" ] && exit 1
+ commFILE="$@"
+ commBASE="$(basename "$commFILE")"
+ case $commBASE in
+  *.svg|*.SVG)
+   xcommBASE="$(echo -n $commBASE | rev | cut -f 2- -d '.' | rev)"
+   rsvg-convert -f png -o /usr/share/backgrounds/${xcommBASE}.png "$commFILE"
+   commBASE=${xcommBASE}.png
+  ;;
+  *.jpg|*.jpeg|*.JPG|*.JPEG)
+   true
+  ;;
+  *.png|*.PNG)
+   true
+  ;;
+  *)
+   exit 1
+  ;;
+ esac
+ [ ! -f /usr/share/backgrounds/${commBASE} ] && cp -a "$commFILE" /usr/share/backgrounds/
+ echo "/usr/share/backgrounds/${commBASE}" > /root/.config/wallpaper/bg_img
+ set_bg /usr/share/backgrounds/${commBASE}
+ exit 0
+fi
+
+curIMAGEFILE=""
+if [ -f /root/Choices/ROX-Filer/PuppyPin ];then
+ curIMAGEFILE="`grep '<backdrop' /root/Choices/ROX-Filer/PuppyPin | cut -f 2 -d '>' | cut -f 1 -d '<'`"
+ curIMAGEBASE=${curIMAGEFILE##*/}
+ #rox has it's own drag-n-drop thing for the wallpaper, image can be anywhere...
+ [ ! -f /usr/share/backgrounds/${curIMAGEBASE} ] && cp -f "$curIMAGEFILE" /usr/share/backgrounds/
+fi
+if [ "$curIMAGEFILE" ];then
+ #qwallpaper reads this...
+ echo -n "/usr/share/backgrounds/${curIMAGEBASE}" > /root/.config/wallpaper/bg_img
+else
+ if [ ! -s /root/.config/wallpaper/bg_img ];then
+  curIMAGEFILE="`ls -1 /usr/share/backgrounds/default.* | head -n 1`"
+  [ ! "$curIMAGEFILE" ] && curIMAGEFILE="`ls -1 /usr/share/backgrounds/*.jpg | head -n 1`"
+  echo -n "$curIMAGEFILE" > /root/.config/wallpaper/bg_img #ex: /usr/share/backgrounds/default.png
+ else
+  curIMAGEFILE="`cat /root/.config/wallpaper/bg_img`"
+ fi
+ curIMAGEBASE=${curIMAGEFILE##*/}
+fi
+
+#note, /usr/share/backgrounds/${curIMAGEBASE} is not the actual image that gets displayed, that will be in an "aspect ratio" subdir.
+ln -snf /usr/share/backgrounds/${curIMAGEBASE} /tmp/qwallpaper-test-image
+
+export QW_DLG="
+<window title=\"$(gettext 'Qwallpaper, background setter')\" resizable=\"false\" window_position=\"1\" icon-name=\"gtk-fullscreen\">
+ <vbox>
+  <text use-markup=\"true\"><label>\"$(gettext 'Choose your required background wallpaper, then click the <b>Apply</b> button:')\"</label></text>
+
+ <hbox>
+  <list>
+   <variable>IMAGE</variable>
+   <input>ls -1 /usr/share/backgrounds | grep -E 'png$|PNG$|jpeg$|JPEG$|jpg$|JPG$'</input>
+   <action signal=\"selection-changed\">ln -snf /usr/share/backgrounds/\$IMAGE /tmp/qwallpaper-test-image</action>
+   <action signal=\"selection-changed\" type=\"refresh\">PIXMAP</action>
+  </list>
+  <pixmap>
+   <height>260</height>
+   <variable>PIXMAP</variable>
+   <input file>/tmp/qwallpaper-test-image</input>
+  </pixmap>
+ </hbox>
+ 
+ <hbox>
+  <button>
+   <label>$(gettext 'Apply')</label>
+   <action>echo /usr/share/backgrounds/\$IMAGE > /root/.config/wallpaper/bg_img</action>
+   <action>set_bg /usr/share/backgrounds/\$IMAGE</action>
+  </button>
+  <button>
+   <label>$(gettext 'Exit')</label>
+   <action type=\"exit\">QWEXIT</action>
+  </button>
+ </hbox>
+
+ </vbox>
+</window>
+"
+gtkdialog --program=QW_DLG
+
+###END###

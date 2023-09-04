@@ -1,0 +1,47 @@
+#!/bin/ash
+#20230721 this was previously /usr/local/easyjwm/uimanager
+
+if [ "$(whoami)" != "root" ];then
+ if [ -x /usr/bin/sudo-sh ];then
+  exec sudo-sh ${PPID} ${0} ${@}
+ else
+  exec sudo -A ${0} ${@}
+ fi
+fi
+
+export TEXTDOMAIN=moveicons
+export OUTPUT_CHARSET=UTF-8
+
+. /etc/uimanager
+
+if [ "$UI_DESK_MANAGER" = "jwm" ]; then
+ REPLY=`Xdialog --stdout --title " $(gettext 'Move Desktop Icons') " --backtitle " $(gettext 'This will restart X, please close all apps now !') " --no-tags --cancel-label "$(gettext 'Cancel')" --ok-label "$(gettext 'Continue') " --radiolist "$(gettext 'All icons currently in the tray')" 0 0 3  "1" "$(gettext 'Icons in tray')" "on"  "2" "$(gettext 'Icons on desktop')" "off" `
+ if [ "$REPLY" = "1" ]; then
+  sed -i -e "s%^UI_DESK_MANAGER=.*%UI_DESK_MANAGER='jwm' #jwm or rox%" /etc/uimanager
+  sleep 0.2
+  exec restartwm
+ elif [ "$REPLY" = "2" ]; then
+  sed -i -e "s%^UI_DESK_MANAGER=.*%UI_DESK_MANAGER='rox' #jwm or rox%" /etc/uimanager
+  #20220419 BK: redraw partition icons... ref: clean_desk_icons, via /root/.xinitrc
+  echo "ICONWIPE" > /var/local/pup_event_icon_change_flag
+  sleep 0.2
+  exec restartwm
+ fi
+else
+ REPLY=`Xdialog --stdout --title " $(gettext 'Move Desktop Icons') " --backtitle " $(gettext 'This will restart X, please close all apps now !') " --no-tags --cancel-label "$(gettext 'Cancel')" --ok-label "$(gettext 'Continue') " --radiolist "$(gettext 'Icons currently on the desktop')" 0 0 3  "1" "$(gettext 'Icons on desktop')" "on"  "2" "$(gettext 'All icons in the tray')" "off" `
+ if [ "$REPLY" = "1" ]; then
+  sed -i -e "s%^UI_DESK_MANAGER=.*%UI_DESK_MANAGER='rox' #jwm or rox%" /etc/uimanager
+  #20220419 BK: redraw partition icons... ref: clean_desk_icons, via /root/.xinitrc
+  echo "ICONWIPE" > /var/local/pup_event_icon_change_flag
+  sleep 0.2
+  exec restartwm
+ elif [ "$REPLY" = "2" ]; then
+  sed -i -e "s%^UI_DESK_MANAGER=.*%UI_DESK_MANAGER='jwm' #jwm or rox%" /etc/uimanager
+  sleep 0.2
+  exec restartwm
+ fi
+fi
+
+exit 0
+###end###
+
