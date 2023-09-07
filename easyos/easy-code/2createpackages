@@ -1292,7 +1292,80 @@ _EOF1
   [ -d /tmp/original${GENERICNAME} ] && rm -rf /tmp/original${GENERICNAME} #140118
   cp -a packages-${DISTRO_FILE_PREFIX}/${GENERICNAME}${EXE} /tmp/original${GENERICNAME}
   
-  #20230904 code removed.
+  #140117 templates may have /lib, /usr/lib, /usr/bin, but may be in ARCHDIR...
+  #150102 fixes for T2 lib64 (xARCHDIR=64)...
+  [ -d /tmp/template${GENERICNAME} ] && rm -rf /tmp/template${GENERICNAME} #140118
+  cp -a packages-templates/$GENERICNAME /tmp/template${GENERICNAME}
+  if [ "$xARCHDIR" ];then
+   if [ -d /tmp/original${GENERICNAME}/lib${xARCHDIR} ];then
+    if [ ! -h /tmp/original${GENERICNAME}/lib${xARCHDIR} ];then
+     if [ -d /tmp/template${GENERICNAME}/lib ];then
+      if [ ! -d /tmp/template${GENERICNAME}/lib${xARCHDIR} ];then
+       #move all of /lib into /lib$xARCHDIR...
+       mkdir -p /tmp/template${GENERICNAME}/lib${xARCHDIR}
+       for tFILE in `find /tmp/template${GENERICNAME}/lib -mindepth 1 -maxdepth 1 | tr '\n' ' '`
+       do
+        tBASE="`basename $tFILE`"
+        [ -d /tmp/original${GENERICNAME}/lib${xARCHDIR}/${tBASE} ] && mv -f /tmp/template${GENERICNAME}/lib/${tBASE} /tmp/template${GENERICNAME}/lib${xARCHDIR}/
+        [ -d $tFILE ] && continue
+        mv -f /tmp/template${GENERICNAME}/lib/${tBASE} /tmp/template${GENERICNAME}/lib${xARCHDIR}/
+       done
+      fi
+     fi
+    fi
+   fi
+   if [ -d /tmp/original${GENERICNAME}/usr/lib${xARCHDIR} ];then
+    if [ ! -h /tmp/original${GENERICNAME}/usr/lib${xARCHDIR} ];then
+     if [ -d /tmp/template${GENERICNAME}/usr/lib ];then
+      if [ ! -d /tmp/template${GENERICNAME}/usr/lib${xARCHDIR} ];then
+       #move all of /usr/lib into /usr/lib$xARCHDIR...
+       mkdir -p /tmp/template${GENERICNAME}/usr/lib${xARCHDIR}
+       for tFILE in `find /tmp/template${GENERICNAME}/usr/lib -mindepth 1 -maxdepth 1 | tr '\n' ' '`
+       do
+        tBASE="`basename $tFILE`"
+        [ -d /tmp/original${GENERICNAME}/usr/lib${xARCHDIR}/${tBASE} ] && mv -f /tmp/template${GENERICNAME}/usr/lib/${tBASE} /tmp/template${GENERICNAME}/usr/lib${xARCHDIR}/
+        [ -d $tFILE ] && continue
+        mv -f /tmp/template${GENERICNAME}/usr/lib/${tBASE} /tmp/template${GENERICNAME}/usr/lib${xARCHDIR}/
+       done
+      fi
+     fi
+    fi
+   fi
+   if [ -d /tmp/original${GENERICNAME}/usr/X11R7/lib${xARCHDIR} ];then
+    if [ ! -h /tmp/original${GENERICNAME}/usr/X11R7/lib${xARCHDIR} ];then
+     if [ -d /tmp/template${GENERICNAME}/usr/X11R7/lib ];then
+      if [ ! -d /tmp/template${GENERICNAME}/usr/X11R7/lib${xARCHDIR} ];then
+       #move all of /usr/X11R7/lib into /usr/X11R7/lib$xARCHDIR...
+       mkdir -p /tmp/template${GENERICNAME}/usr/X11R7/lib${xARCHDIR}
+       for tFILE in `find /tmp/template${GENERICNAME}/usr/X11R7/lib -mindepth 1 -maxdepth 1 | tr '\n' ' '`
+       do
+        tBASE="`basename $tFILE`"
+        [ -d /tmp/original${GENERICNAME}/usr/X11R7/lib${xARCHDIR}/${tBASE} ] && mv -f /tmp/template${GENERICNAME}/usr/X11R7/lib/${tBASE} /tmp/template${GENERICNAME}/usr/X11R7/lib${xARCHDIR}/
+        [ -d $tFILE ] && continue
+        mv -f /tmp/template${GENERICNAME}/usr/X11R7/lib/${tBASE} /tmp/template${GENERICNAME}/usr/X11R7/lib${xARCHDIR}/
+       done
+      fi
+     fi
+    fi
+   fi
+   if [ -d /tmp/original${GENERICNAME}/usr/bin${xARCHDIR} ];then
+    if [ ! -h /tmp/original${GENERICNAME}/usr/bin${xARCHDIR} ];then
+     if [ -d /tmp/template${GENERICNAME}/usr/bin ];then
+      if [ ! -d /tmp/template${GENERICNAME}/usr/bin${xARCHDIR} ];then
+       #move all of /usr/bin into /usr/bin$xARCHDIR...
+       mkdir -p /tmp/template${GENERICNAME}/usr/bin${xARCHDIR}
+       for tFILE in `find /tmp/template${GENERICNAME}/usr/bin -mindepth 1 -maxdepth 1 | tr '\n' ' '`
+       do
+        tBASE="`basename $tFILE`"
+        [ -d /tmp/original${GENERICNAME}/usr/bin${xARCHDIR}/${tBASE} ] && mv -f /tmp/template${GENERICNAME}/usr/bin/${tBASE} /tmp/template${GENERICNAME}/usr/bin${xARCHDIR}/
+        [ -d $tFILE ] && continue
+        mv -f /tmp/template${GENERICNAME}/usr/bin/${tBASE} /tmp/template${GENERICNAME}/usr/bin${xARCHDIR}/
+       done
+      fi
+     fi
+    fi
+   fi
+  fi
   
   for TEMPLATEPATH in `find /tmp/template${GENERICNAME} -type d` #140117
   do
