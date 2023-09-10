@@ -39,6 +39,7 @@
 #20220120 support compat:dunfell pkgs.
 #20230309 support compat:kirkstone
 #20230902 support void .xbps pkgs.
+#20230908 replace yaf-splash with gtkdialog-splash
 
 export LANG=C #faster.
 
@@ -226,7 +227,7 @@ do
    while [ "$CP_STATUS_REQ" = "Pause" ];do
     #echo "Status: paused ${pausecnt}seconds"
     if [ $PIDCP -eq 0 ];then
-     yaf-splash -close never -placement top -bg orange -text "1download script is currently in paused state" &
+     gtkdialog-splash -close never -placement top -bg orange -text "1download script is currently in paused state" &
      PIDCP=$!
     fi
     sleep 5
@@ -594,7 +595,7 @@ do
  while [ "$CP_STATUS_REQ" = "Pause" ];do
   #echo "Status: paused ${pausecnt}seconds"
   if [ $PIDCP -eq 0 ];then
-   yaf-splash -close never -placement top -bg orange -text "1download script is currently in paused state" &
+   gtkdialog-splash -close never -placement top -bg orange -text "1download script is currently in paused state" &
    PIDCP=$!
   fi
   sleep 5
