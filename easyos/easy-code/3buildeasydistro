@@ -306,6 +306,9 @@
 #20230901 support xbps pkg manager. 20230902 run 'INSTALL:*' scripts (ref: 2createpackages). 20230903 fix.
 #20230903 void has usr-merge.
 #20230904 woofq now only support usr-merge and sbin-merge.
+#20230908 fix check for duplicate update-ca-certificates
+#20230909 fix usrmerge paths.
+#20230909 workaround broken usrmerge. ref: https://bkhome.org/news/202309/cannot-execute-usrmerged-binaries-on-non-usrmerged-os.html
 
 export LANG=C #faster.
 
@@ -817,56 +820,59 @@ rm -rf sandbox3/rootfs-complete
 sync
 mkdir sandbox3/rootfs-complete
 
+#20230909 copy skeleton first, as has usrmerge symlinks...
+cp -a -f --remove-destination rootfs-skeleton/* sandbox3/rootfs-complete/
+sync
+
 #150731 moved this up, as some pkgs were overwriting skeleton scripts...
+#20230909 only want busybox...
 if [ -f status/findpkgs_GENERIC_NAMES-${DISTRO_BINARY_COMPAT}-${DISTRO_COMPAT_VERSION} ];then #150714
- #150728 want to create a minimal chroot-able rootfs-complete, so can run pre- and post-install deb scripts...
- echo "Creating minimal chroot-able f.s. in sandbox3/rootfs-complete..."
- #150730 'awk' may not be in busybox... ubuntu 'coreutils' has no deps, but needs libacl.so.1 and libattr.so.1 ... 'awk' needs mpfr...
- #150730 perl is installing too late so put here... 'glib' also...
- for AMINPKG in busybox glibc pcre libselinux bash ncurses dpkg readline libffi gawk acl attr mpfr4 perl glib
- do
-  if [ -d packages-${DISTRO_FILE_PREFIX}/${AMINPKG} ];then
-   cp -a --remove-destination packages-${DISTRO_FILE_PREFIX}/${AMINPKG}/* sandbox3/rootfs-complete/ 2> /tmp/3builddistro-cp-errlog
-   sync #mysterious loss of dirs/files. try sync.
-   #20230904 fix for symlink path in rootfs-skeleton...
-   if [ -s /tmp/3builddistro-cp-errlog ];then
-    while read ONEDIRSYMLINK
-    do
-     [ "$ONEDIRSYMLINK" == "" ] && continue
-     xONEDIRSYMLINK="`echo -n "$ONEDIRSYMLINK" | sed -e 's%sandbox3/rootfs-complete%%'`"
-     #adding that extra trailing / does the trick...
-     cp -a --remove-destination packages-${DISTRO_FILE_PREFIX}/${AMINPKG}${xONEDIRSYMLINK}/* sandbox3/rootfs-complete${xONEDIRSYMLINK}/ 2> /tmp/3builddistro-cp-errlog2
-     #170418 installing some april pkgs into yocto morty, there are two levels of symlinks, /usr/X11R7/lib64...
-     if [ -s /tmp/3builddistro-cp-errlog2 ];then
-      cat /tmp/3builddistro-cp-errlog2 | grep 'cannot overwrite non-directory' | tr '[`‘’]' "'" | tr -s "'" | cut -f 2 -d "'" |
-      while read ONEDIRSYMLINK2
-      do
-       xONEDIRSYMLINK2="`echo -n "$ONEDIRSYMLINK2" | sed -e 's%sandbox3/rootfs-complete%%'`"
-       #adding that extra trailing / does the trick...
-       cp -a --remove-destination packages-${DISTRO_FILE_PREFIX}/${AMINPKG}${xONEDIRSYMLINK2}/* sandbox3/rootfs-complete${xONEDIRSYMLINK2}/
-      done
-      sync
-     fi
-    done <<_END1
-$(cat /tmp/3builddistro-cp-errlog | grep 'cannot overwrite non-directory' | tr '[`‘’]' "'" | tr -s "'" | cut -f 2 -d "'")
-_END1
-   fi
-   
-  fi
- done
- [ -e sandbox3/rootfs-complete/pet.specs ] && rm -f sandbox3/rootfs-complete/pet.specs
- [ -e sandbox3/rootfs-complete/pinstall.sh ] && rm -f sandbox3/rootfs-complete/pinstall.sh
- rm -rf sandbox3/rootfs-complete/DEBIAN* 2> /dev/null
- rm -rf sandbox3/rootfs-complete/INSTALL* 2> /dev/null #void
+ #...this file only exists when have sorted pkgs.
+ MINLIST='busybox glibc pcre libselinux bash ncurses dpkg readline libffi gawk acl attr mpfr4 perl glib'
+else
+ MINLIST='busybox'
 fi
+#150728 want to create a minimal chroot-able rootfs-complete, so can run pre- and post-install deb scripts...
+echo "Creating minimal chroot-able f.s. in sandbox3/rootfs-complete..."
+#150730 'awk' may not be in busybox... ubuntu 'coreutils' has no deps, but needs libacl.so.1 and libattr.so.1 ... 'awk' needs mpfr...
+#150730 perl is installing too late so put here... 'glib' also...
+for AMINPKG in ${MINLIST}
+do
+ if [ -d packages-${DISTRO_FILE_PREFIX}/${AMINPKG} ];then
+  #20230909 simplified copy, target may have symlinks in path...
+  while read aF
+  do
+   if [ -d packages-${DISTRO_FILE_PREFIX}/${AMINPKG}/"$aF" ];then
+    mkdir -p sandbox3/rootfs-complete/"$aF"/
+   else
+    aD="$(dirname "$aF")"
+    mkdir -p sandbox3/rootfs-complete/"$aD"/
+    if [ -h packages-${DISTRO_FILE_PREFIX}/${AMINPKG}/"$aF" ];then
+     if [ -e sandbox3/rootfs-complete/"$aF" ];then
+      if [ ! -h sandbox3/rootfs-complete/"$aF" ];then
+       continue
+      fi
+     fi
+    fi
+    cp -a --remove-destination packages-${DISTRO_FILE_PREFIX}/${AMINPKG}/"$aF" sandbox3/rootfs-complete/"$aD"/
+   fi
+  done <<_END1
+$(find packages-${DISTRO_FILE_PREFIX}/${AMINPKG} -mindepth 1 | sed -e "s%packages-${DISTRO_FILE_PREFIX}/${AMINPKG}/%%")
+_END1
+ fi
+done
+[ -e sandbox3/rootfs-complete/pet.specs ] && rm -f sandbox3/rootfs-complete/pet.specs
+[ -e sandbox3/rootfs-complete/pinstall.sh ] && rm -f sandbox3/rootfs-complete/pinstall.sh
+rm -rf sandbox3/rootfs-complete/DEBIAN* 2> /dev/null
+rm -rf sandbox3/rootfs-complete/INSTALL* 2> /dev/null #void
+
+#20230909 copy the skeleton, yes, again, as a pkg may have overwritten a skeleton file...
+cp -a -f --remove-destination rootfs-skeleton/* sandbox3/rootfs-complete/ #150731
+sync
 
 mkdir -p sandbox3/rootfs-complete/etc
 #cp DISTRO_SPECS sandbox3/rootfs-complete/etc/
 cp -f /tmp/DISTRO_SPECSCOPY sandbox3/rootfs-complete/etc/DISTRO_SPECS #170528
-
-#copy the skeleton...
-cp -a -f --remove-destination rootfs-skeleton/* sandbox3/rootfs-complete/ #150731
-sync
 
 #20230222 merge usr/share/locale.in into usr/share/locale
 cp -a -f --remove-destination sandbox3/rootfs-complete/usr/share/locale/* sandbox3/rootfs-complete/usr/share/locale.in/
@@ -909,68 +915,35 @@ do
    fi
   fi
  fi
+ if [ ! -d packages-${DISTRO_FILE_PREFIX}/${ONEPKG} ];then #20230909
+  continue
+ fi
  echo -n '.'
 
  #110923 avoid conflict between busybox applets and full utilities...
  [ "$ONEPKG" == "busybox" ] && continue #see below.
  
- #170801 remove lib hyperlinks, some pets have it...
- [ -h packages-${DISTRO_FILE_PREFIX}/${ONEPKG}/lib64 ] && rm -f packages-${DISTRO_FILE_PREFIX}/${ONEPKG}/lib64
- [ -h packages-${DISTRO_FILE_PREFIX}/${ONEPKG}/usr/lib64 ] && rm -f packages-${DISTRO_FILE_PREFIX}/${ONEPKG}/usr/lib64
- 
- #cp -a --remove-destination packages-${DISTRO_FILE_PREFIX}/${ONEPKG}/* sandbox3/rootfs-complete/ 2> /dev/null
- #w003 problem. pet pkg seamonkey_addon_adblock has files in /usr/lib/seamonkey but in rootfs-complete
- #usr/lib/seamonkey is a symlink to seamonkey-1.1.14 and copy fails. this will follow path with a
- #symlink (hopefully doesn't break something else)...
- #looks okay. the --remove-destination ensures that if target file already exists as a symlink
- #it will be deleted first and won't be followed. shit no, it changed /usr/lib/seamonkey into a dir...
- #cp -r --preserve=mode,ownership,timestamps,links --dereference --remove-destination packages-${DISTRO_FILE_PREFIX}/${ONEPKG}/* sandbox3/rootfs-complete/ 2> /dev/null
- #/usr/sbin/petget solves this a different way, let's try that...
- 
- #130430 new problem with coreutils 8.20... ex building raring pup...
- #ex: cp -a --remove-destination packages-raring/synclient/* sandbox3/rootfs-complete/
- #coreutils 5.2.1 stderr: cannot overwrite non-directory `sandbox3/rootfs-complete/usr/X11' with directory `packages-raring/synclient/usr/X11'
- #coreutils 8.20 (in Raring) stderr: cp: cannot overwrite non-directory ‘sandbox3/rootfs-complete/usr/X11’ with directory ‘packages-raring/synclient/usr/X11’
- #...!!!! ok, attempt to fix...
- 
- #20220911 problem if a symlink overwrites a file...
- for aL in $(find packages-${DISTRO_FILE_PREFIX}/${ONEPKG} -mindepth 1 -type l 2>/dev/null | sed -e "s%packages-${DISTRO_FILE_PREFIX}/${ONEPKG}/%%" | grep -v ' ' | tr '\n' ' ')
+ #20230909 simplified copy, target may have symlinks in path...
+ while read aF
  do
-  aD="sandbox3/rootfs-complete/${aL}"
-  if [ -f $aD ];then
-   #if [ ! -h $aD ];then
-    rm -f packages-${DISTRO_FILE_PREFIX}/${ONEPKG}/${aL}
-   #fi
-  fi
- done
- 
- cp -a --remove-destination packages-${DISTRO_FILE_PREFIX}/${ONEPKG}/* sandbox3/rootfs-complete/ 2> /tmp/3builddistro-cp-errlog
- sync #110727 running drake pup 0.3 with k2.6.39-3 new laptop, mysterious loss of dirs/files. try sync.
- if [ -s /tmp/3builddistro-cp-errlog ];then #130430 next line fixes those quote chars... 150929 weird, tr creating multiple ' chars...
-  #cat /tmp/3builddistro-cp-errlog | grep 'cannot overwrite non-directory' | tr '[`‘’]' "'" | tr -s "'" | cut -f 2 -d "'" |
-  while read ONEDIRSYMLINK
-  do
-   xONEDIRSYMLINK="`echo -n "$ONEDIRSYMLINK" | sed -e 's%sandbox3/rootfs-complete%%'`"
-   #adding that extra trailing / does the trick...
-   cp -a --remove-destination packages-${DISTRO_FILE_PREFIX}/${ONEPKG}${xONEDIRSYMLINK}/* sandbox3/rootfs-complete${xONEDIRSYMLINK}/ 2> /tmp/3builddistro-cp-errlog2
-   #170418 installing some april pkgs into yocto morty, there are two levels of symlinks, /usr/X11R7/lib64...
-   if [ -s /tmp/3builddistro-cp-errlog2 ];then
-    cat /tmp/3builddistro-cp-errlog2 | grep 'cannot overwrite non-directory' | tr '[`‘’]' "'" | tr -s "'" | cut -f 2 -d "'" |
-    while read ONEDIRSYMLINK2
-    do
-     xONEDIRSYMLINK2="`echo -n "$ONEDIRSYMLINK2" | sed -e 's%sandbox3/rootfs-complete%%'`"
-     #adding that extra trailing / does the trick...
-     cp -a --remove-destination packages-${DISTRO_FILE_PREFIX}/${ONEPKG}${xONEDIRSYMLINK2}/* sandbox3/rootfs-complete${xONEDIRSYMLINK2}/
-    done
-    sync
+  if [ -d packages-${DISTRO_FILE_PREFIX}/${ONEPKG}/"$aF" ];then
+   mkdir -p sandbox3/rootfs-complete/"$aF"/
+  else
+   aD="$(dirname "$aF")"
+   mkdir -p sandbox3/rootfs-complete/"$aD"/
+   if [ -h packages-${DISTRO_FILE_PREFIX}/${ONEPKG}/"$aF" ];then
+    if [ -e sandbox3/rootfs-complete/"$aF" ];then
+     if [ ! -h sandbox3/rootfs-complete/"$aF" ];then
+      continue
+     fi
+    fi
    fi
-  done<<_END1
-$(cat /tmp/3builddistro-cp-errlog | grep 'cannot overwrite non-directory' | tr '[`‘’]' "'" | tr -s "'" | cut -f 2 -d "'")
+   cp -a --remove-destination packages-${DISTRO_FILE_PREFIX}/${ONEPKG}/"$aF" sandbox3/rootfs-complete/"$aD"/
+  fi
+ done <<_END1
+$(find packages-${DISTRO_FILE_PREFIX}/${ONEPKG} -mindepth 1 | sed -e "s%packages-${DISTRO_FILE_PREFIX}/${ONEPKG}/%%")
 _END1
- fi
- #...now seems ok. note, there are two places in woof v003 where this problem occurs: /usr/lib/seamonkey
- # and /usr/share/cups/model.
- 
+
  if [ -f sandbox3/rootfs-complete/pinstall.sh ];then
   #note, do not filter #! /bin/sh (with a space)...
   grep  -E -v '^\#\!\/bin\/sh' sandbox3/rootfs-complete/pinstall.sh >> sandbox3/pinstall.sh
@@ -1011,6 +984,15 @@ _END1
  rm -rf sandbox3/rootfs-complete/DEBIAN* 2> /dev/null #161005
 
 done
+echo ''
+
+#20230909 find out if OE compiled with "usrmerge" in DISTRO_FEATURES...
+USRMERGEconflict='no'
+TEST1="$(rootfs-complete/usr/bin/limine-version 2>&1)"
+grep -q 'No such file or directory' <<<"$TEST1"
+if [ $? -eq 0 ];then
+ USRMERGEconflict='yes'
+fi
 
 #20230904 check symlinks...
 while read aL
@@ -1035,7 +1017,7 @@ do
 done <<_END2
 $(find sandbox3/rootfs-complete/usr/lib -mindepth 1 -maxdepth 1 -type l)
 _END2
-   
+
 echo
 [ -s deb-postinst-log ] && echo "...'deb-postinst-log' has log of executing postinst scripts"
 echo
@@ -1172,52 +1154,7 @@ do
  fi
 done
 
-#110923 fix busybox applets...
-if [ -d packages-${DISTRO_FILE_PREFIX}/busybox ];then #141123 buildroot build has busybox inside 0buildroot. refer FIXUPHACK in 0buildroot template.
- #160921 took 'strings' out of this list, as want the busybox strings...
- DEVXUTILS=' config ar ar86 as as86 audiofile-config autoconf autoheader autom4te automake autopoint autoreconf autoscan autoupdate bacon bacongui bcc bison c2ph catchsegv cc ccmake chem cmake combinediff config_data corelist cpack cpan cpan2dist cpanp cpanp-run-perl cpp ctest cups-config curl-config cvs cvsbug db_archive db_checkpoint db_deadlock db_dump db_hotbackup db_load db_printlog db_recover db_stat db_upgrade db_verify dehtmldiff diet dnsd dprofpp dvdnav-config dvdread-config editdiff elftrunc enc2xs envsubst eqn eqn2graph espdiff filterdiff find2perl fixcvsdiff flex flipdiff freetype-config gccbug gcov gdb gdbserver gdbtui gdiffmk gencat getconf getent gettext gettext.sh gettextize gfortran git git-cvsserver git-receive-pack git-shell git-upload-archive git-upload-pack gitk glade-3 gmake gnome-menu-spec-test gperf gphoto2-config gphoto2-port-config gprof grap2graph grepdiff grn grodvi groff groffer grog grolbp grolj4 grops grotty h2ph h2xs hpftodit iconv idle ifnames indxbib info infokey install-info instmodsh interdiff intltool-extract intltool-merge intltool-prepare intltool-update intltoolize ld ld86 ldd lddlibc4 lex lib-i386 libart2-config libnetcfg libpng-config libpng12-config libtool libtoolize libusb-config lkbib locale localedef lookbib lsdiff m4 make makeinfo man man1 man2dvi man2html mmroff msgattrib msgcat msgcmp msgcomm msgconv msgen msgexec msgfilter msgfmt msggrep msginit msgmerge msgunfmt msguniq mtrace nasm ndisasm neon-config neqn netpbm-config ngettext nm nm86 nroff objcopy objdump objdump86 onsgmls osgmlnorm ospam ospcat ospent osx patch pcap-config pcprofiledump pcre-config pdfroff pdftexi2dvi perl perlbug perldoc perlivp perlthanks pfbtops pic pic2graph piconv pkg-config pl2pm pod2html pod2latex pod2man pod2text pod2usage podchecker podselect post-grohtml pre-grohtml preconv prove psed pstruct ptar ptardiff pydoc ranlib rcs2log readelf recode-sr-latin recountdiff rediff refer rman roff2dvi roff2html roff2pdf roff2ps roff2text roff2x rpcgen s2p sane-config scrollkeeper-config scrollkeeper-extract scrollkeeper-gen-seriesid scrollkeeper-get-cl scrollkeeper-get-content-list scrollkeeper-get-extended-content-list scrollkeeper-get-index-from-docpath scrollkeeper-get-toc-from-docpath scrollkeeper-get-toc-from-id scrollkeeper-install scrollkeeper-preinstall scrollkeeper-rebuilddb scrollkeeper-uninstall scrollkeeper-update shasum size size86 soelim splain splitdiff sprof strace strace-graph strip svn svnadmin svndumpfilter svnlook svnserve svnsync svnversion sysprof sysprof-cli tbl texi2dvi texi2pdf texindex tfmtodit troff tzselect unwrapdiff update-mime-database vsyasm whatis xgettext xml2-config xslt-config xsubpp xtrace yacc yasm ytasm zsoelim iconvconfig makewhatis nscd rpcinfo visudo zic ' #11104 111204 remove zdump.
- cp -a -f packages-${DISTRO_FILE_PREFIX}/busybox/bin/busybox ./sandbox3/rootfs-complete/bin/
- osPTN="s%packages-${DISTRO_FILE_PREFIX}/busybox%%"
- for ONEAPPLET in `find packages-${DISTRO_FILE_PREFIX}/busybox -type l | tr '\n' ' '`
- do
-  ONESPEC="`echo -n "$ONEAPPLET" | sed -e "$osPTN"`"
-  ONEPATH="`dirname $ONESPEC`"
-  ONENAME="`basename $ONESPEC`"
-  FNDFULL="`find ./sandbox3/rootfs-complete/bin ./sandbox3/rootfs-complete/sbin ./sandbox3/rootfs-complete/usr/bin ./sandbox3/rootfs-complete/usr/sbin -name ${ONENAME}`"
-  #130129 deb 'bsdmainutils' has broken 'cal' and 'hd' symlinks... 130204 01micko: fix for spaces in names...
-  if [ "$FNDFULL" ];then
-   if [ -h "$FNDFULL" ];then
-    FULLPATH="$(dirname "$FNDFULL")"
-    FULLLINK="$(readlink "$FNDFULL")"
-    xFULLLINK="${FULLPATH}/${FULLLINK}"
-    [ "`echo -n "$FULLLINK" | cut -c 1`" = "/" ] && xFULLLINK="sandbox3/rootfs-complete${FULLLINK}"
-    if [ ! -e "${xFULLLINK}" ];then
-     rm -f "$FNDFULL" #130130
-     FNDFULL=""
-    fi
-   fi
-  fi
-  #111004 need to check in devx also...
-  if [ ! "$FNDFULL" ];then
-   if [ "$ONENAME" != "[" ];then
-    if [ "$ONENAME" != "[[" ];then
-     oaPTN=" ${ONENAME} "
-     FNDFULL="`echo -n "$DEVXUTILS" | grep "$oaPTN"`"
-    fi
-   fi
-  fi
-  if [ "$FNDFULL" ];then
-   #170806 need a hack here, as already created busybox applets above, when created
-   #chrootable f.s. this code is getting a bit contorted. anyway, put in test...
-   if [ ! -e ./sandbox3/rootfs-complete${ONEPATH}/${ONENAME} ];then
-    cp -a -f $ONEAPPLET ./sandbox3/rootfs-complete${ONEPATH}/${ONENAME}-BB-NOTUSED
-   fi
-  else
-   cp -a -f $ONEAPPLET ./sandbox3/rootfs-complete${ONEPATH}/
-  fi
- done
- [ -f packages-${DISTRO_FILE_PREFIX}/busybox/pinstall.sh ] && cat packages-${DISTRO_FILE_PREFIX}/busybox/pinstall.sh >> sandbox3/pinstall.sh
-fi
+#110923 fix busybox applets... 20230909 removed.
 
 echo 'echo "END OF pinstall.sh SCRIPT."' >> sandbox3/pinstall.sh
 
@@ -2057,6 +1994,19 @@ echo
 echo "Finding invalid symlinks..."
 rm -rf devx
 mkdir devx
+
+#20230909 getting sandbox3/devx/lib, it should be a symlink. precreate...
+mkdir -p devx/usr/bin
+mkdir -p devx/usr/lib
+ln -s usr/bin devx/bin
+ln -s usr/bin devx/sbin
+ln -s bin devx/usr/sbin
+ln -s usr/lib devx/lib
+ln -s usr/lib devx/lib64
+ln -s lib devx/usr/lib64
+ln -s . devx/usr/lib/x86_64-linux-gnu
+ln -s . devx/usr/lib/aarch64-linux-gnu
+
 #v431 aaargh, latest pburn (3.1.1) has a symlink with spaces in name...
 #for ONESYMLINK in `find rootfs-complete/ -type l`
 find rootfs-complete/ -type l |
@@ -2088,66 +2038,8 @@ do
  fi
  
 done
-#for ONESYMLINK in `find rootfs-complete/ -type l`
-#do
-# [ "`echo -n "$ONESYMLINK" | grep '/dev/'`" != "" ] && continue
-# [ "`echo -n "$ONESYMLINK" | grep '/proc/'`" != "" ] && continue
-# xONESYMLINK="`echo -n "$ONESYMLINK" | sed -e 's/^rootfs\-complete//'`"
-# #w018 some symlinks become valid after puppy 1st boot...
-# LINKTO="`chroot rootfs-complete readlink $xONESYMLINK`"
-# [ "`echo -n "$LINKTO" | grep 'lib/X11/pixmaps'`" != "" ] && continue #these images created 1st boot.
-# if [ "`chroot rootfs-complete readlink -e $xONESYMLINK`" = "" ];then
-#  UPONE="`dirname $xONESYMLINK`"
-#  mkdir -p devx${UPONE}
-#  cp -a -f $ONESYMLINK devx${UPONE}/
-#  rm -f $ONESYMLINK
-# fi
-#done
 
 sync
-
-#if [ "$DISTRO_COMPAT_VERSION" = "quirky6" ];then
-# #131211 hack for quirky6, only want these...
-# cp -a -f ../Packages-pet-common-official rootfs-complete/root/.packages/
-# cp -a -f ../Packages-pet-noarch-official rootfs-complete/root/.packages/
-# cp -a -f ../Packages-pet-quirky6-official rootfs-complete/root/.packages/
-# cp -a -f ../Packages-t2-quirky6-official rootfs-complete/root/.packages/ #131214
-#else
-# #get info about the ubuntu pkgs...
-# echo "Updating pkg data in rootfs-complete/root/.packages ..."
-# #copy them into the live-cd also...
-# #in case of Ppup4, PKGLISTS_COMPAT='Packages-pet-4xx-official'
-# for ONELIST in $PKGLISTS_COMPAT
-# do
-#  cp -f ../$ONELIST ./
-#  cp -f ../$ONELIST rootfs-complete/root/.packages/
-# done
-# for ONELIST in $PACKAGELISTS_PET_ORDER #120506
-# do
-#  cp -f ../$ONELIST ./
-#  cp -f ../$ONELIST rootfs-complete/root/.packages/
-# done
-# #note, Ppup4, findwoofinstalledpkgs.sh (below) needs above file, then deletes it.
-# #also copy the pet package databases...
-# cp -f ../Packages-pet-[0-9]-official rootfs-complete/root/.packages/ 2>/dev/null
-# cp -f ../Packages-pet-common-official rootfs-complete/root/.packages/ 2>/dev/null #110608
-# #cp -f ../Packages-pet-wary5-official rootfs-complete/root/.packages/
-# cp -f ../Packages-pet-noarch-official rootfs-complete/root/.packages/ #120305
-# #121102
-# if [ -f ../Packages-pet-${DISTRO_DB_SUBNAME}-official ];then #110723 ex: Packages-pet-drake-official
-#  cp -f ../Packages-pet-${DISTRO_DB_SUBNAME}-official rootfs-complete/root/.packages/
-#  cp -f ../Packages-pet-${DISTRO_DB_SUBNAME}-official ./
-#  #120506...
-#  ../support/rationalize_categories Packages-pet-${DISTRO_DB_SUBNAME}-official
-#  cp -f /tmp/rationalized_categories rootfs-complete/root/.packages/Packages-pet-${DISTRO_DB_SUBNAME}-official
-# fi
-# #101014 rationalise categories... 110726 must *always* copy Packages-pet-wary5-official (it is going to be the fallback)...
-# #if [ "$DISTRO_COMPAT_VERSION" = "wary5" ];then #101025
-# if [ -f Packages-pet-wary5-official ];then
-#  ../support/rationalize_categories Packages-pet-wary5-official
-#  cp -f /tmp/rationalized_categories rootfs-complete/root/.packages/Packages-pet-wary5-official
-# fi
-#fi
 
 #140202 simplify...
 case $DISTRO_DB_SUBNAME in
@@ -4695,13 +4587,15 @@ if [ "$BUILD_CHOICE_INITD_DAEMON_DEFAULT_OFF" ];then
 fi
 
 #170511 'ca-certificates' package...
-if [ -f rootfs-complete/usr/sbin/update-ca-certificates ];then
- #191007 pyro: p11-kit pet has this, remove...
- [ -e rootfs-complete/usr/bin/update-ca-certificates ] && rm -f rootfs-complete/usr/bin/update-ca-certificates
- if [ "$WOOF_HOSTARCH" == "$WOOF_TARGETARCH" ];then
-  chroot rootfs-complete /usr/sbin/update-ca-certificates
- else
-  echo "Note, need to run /usr/sbin/update-ca-certificates in rc.sysinit at first bootup."
+if [ ! -h rootfs-complete/usr/sbin ];then #20230908
+ if [ -f rootfs-complete/usr/sbin/update-ca-certificates ];then
+  #191007 pyro: p11-kit pet has this, remove...
+  [ -e rootfs-complete/usr/bin/update-ca-certificates ] && rm -f rootfs-complete/usr/bin/update-ca-certificates
+  if [ "$WOOF_HOSTARCH" == "$WOOF_TARGETARCH" ];then
+   chroot rootfs-complete /usr/sbin/update-ca-certificates
+  else
+   echo "Note, need to run /usr/sbin/update-ca-certificates in rc.sysinit at first bootup."
+  fi
  fi
 fi
 
@@ -5954,11 +5848,20 @@ INTERFACE_RESOLUTION=800x600
   #only support legacy-bios booting...
   rm -rf img_mntpt/EFI 2>/dev/null
  else
-  #put latest limine files into image... 20221010 get files from rootfs-complete
-  cp -a -f rootfs-complete/usr/share/limine/BOOTX64.EFI img_mntpt/EFI/BOOT/
-  cp -a -f rootfs-complete/usr/share/limine/BOOTIA32.EFI img_mntpt/EFI/BOOT/ #20220720
+  if [ "$USRMERGEconflict" == "no" ];then #20230909
+   #put latest limine files into image... 20221010 get files from rootfs-complete
+   cp -a -f rootfs-complete/usr/share/limine/BOOTX64.EFI img_mntpt/EFI/BOOT/
+   cp -a -f rootfs-complete/usr/share/limine/BOOTIA32.EFI img_mntpt/EFI/BOOT/ #20220720
+  else
+   cp -a -f /usr/share/limine/BOOTX64.EFI img_mntpt/EFI/BOOT/
+   cp -a -f /usr/share/limine/BOOTIA32.EFI img_mntpt/EFI/BOOT/
+  fi
  fi
- cp -a -f rootfs-complete/usr/share/limine/limine.sys img_mntpt/
+ if [ "$USRMERGEconflict" == "no" ];then #20230909
+  cp -a -f rootfs-complete/usr/share/limine/limine.sys img_mntpt/
+ else
+  cp -a -f /usr/share/limine/limine.sys img_mntpt/
+ fi
 fi
 
 sync
@@ -5996,10 +5899,12 @@ sync
 if [ "$BOOTLOADER" == "limine" ];then
  LOOP3="$(losetup -f)"
  losetup ${LOOP3} ${SKELETON_NAME}.img
- sleep 0.1
- if [ "$WOOF_TARGETARCH" == "$WOOF_HOSTARCH" ];then #20221010
+ sleep 0.5
+ if [ "$WOOF_TARGETARCH" == "$WOOF_HOSTARCH" -a "$USRMERGEconflict" == "no" ];then #20221010 20230909
+  echo "EXECUTING: rootfs-complete/usr/bin/limine-deploy ${LOOP3} --force-mbr"
   rootfs-complete/usr/bin/limine-deploy ${LOOP3} --force-mbr
  else
+  echo "EXECUTING: limine-deploy ${LOOP3} --force-mbr"
   limine-deploy ${LOOP3} --force-mbr
  fi
  sleep 0.1
@@ -6117,47 +6022,27 @@ do
  devPATTERN='^'"$ONEDEV"
  if [ "`echo "$ALLGENNAMESD" | grep "$devPATTERN"`" != "" ];then
   
-  #170801 remove lib hyperlinks, some pets have it...
-  [ -h packages-${DISTRO_FILE_PREFIX}/${ONEDEV}/lib64 ] && rm -f packages-${DISTRO_FILE_PREFIX}/${ONEDEV}/lib64
-  [ -h packages-${DISTRO_FILE_PREFIX}/${ONEDEV}/usr/lib64 ] && rm -f packages-${DISTRO_FILE_PREFIX}/${ONEDEV}/usr/lib64
-  
-  #20220911 problem if a symlink overwrites a file...
-  for aL in $(find packages-${DISTRO_FILE_PREFIX}/${ONEDEV} -mindepth 1 -type l 2>/dev/null | sed -e "s%packages-${DISTRO_FILE_PREFIX}/${ONEDEV}/%%" | grep -v ' ' | tr '\n' ' ')
+  #20230909 simplified copy, target may have symlinks in path...
+  while read aF
   do
-   aD="sandbox3/devx/${aL}"
-   if [ -f $aD ];then
-    #if [ ! -h $aD ];then
-     rm -f packages-${DISTRO_FILE_PREFIX}/${ONEDEV}/${aL}
-    #fi
-   fi
-  done
-  
-  #170801 fixed devx copy, following symlinks...
-  cp -a --remove-destination packages-${DISTRO_FILE_PREFIX}/${ONEDEV}/* sandbox3/devx/ 2> /tmp/3builddistro-cp-errlog
-  sync #110727 running drake pup 0.3 with k2.6.39-3 new laptop, mysterious loss of dirs/files. try sync.
-  if [ -s /tmp/3builddistro-cp-errlog ];then #130430 next line fixes those quote chars... 150929 weird, tr creating multiple ' chars...
-   #cat /tmp/3builddistro-cp-errlog | grep 'cannot overwrite non-directory' | tr '[`‘’]' "'" | tr -s "'" | cut -f 2 -d "'" |
-   while read ONEDIRSYMLINK
-   do
-    xONEDIRSYMLINK="`echo -n "$ONEDIRSYMLINK" | sed -e 's%sandbox3/devx%%'`"
-    #adding that extra trailing / does the trick...
-    cp -a --remove-destination packages-${DISTRO_FILE_PREFIX}/${ONEDEV}${xONEDIRSYMLINK}/* sandbox3/devx${xONEDIRSYMLINK}/ 2> /tmp/3builddistro-cp-errlog2
-    #170418 installing some april pkgs into yocto morty, there are two levels of symlinks, /usr/X11R7/lib64...
-    if [ -s /tmp/3builddistro-cp-errlog2 ];then
-     cat /tmp/3builddistro-cp-errlog2 | grep 'cannot overwrite non-directory' | tr '[`‘’]' "'" | tr -s "'" | cut -f 2 -d "'" |
-     while read ONEDIRSYMLINK2
-     do
-      xONEDIRSYMLINK2="`echo -n "$ONEDIRSYMLINK2" | sed -e 's%sandbox3/devx%%'`"
-      #adding that extra trailing / does the trick...
-      cp -a --remove-destination packages-${DISTRO_FILE_PREFIX}/${ONEDEV}${xONEDIRSYMLINK2}/* sandbox3/devx${xONEDIRSYMLINK2}/
-     done
-     sync
+   if [ -d packages-${DISTRO_FILE_PREFIX}/${ONEDEV}/"$aF" ];then
+    mkdir -p sandbox3/devx/"$aF"/
+   else
+    aD="$(dirname "$aF")"
+    mkdir -p sandbox3/devx/"$aD"/
+    if [ -h packages-${DISTRO_FILE_PREFIX}/${ONEDEV}/"$aF" ];then
+     if [ -e sandbox3/devx/"$aF" ];then
+      if [ ! -h sandbox3/devx/"$aF" ];then
+       continue
+      fi
+     fi
     fi
-   done<<_END1
-$(cat /tmp/3builddistro-cp-errlog | grep 'cannot overwrite non-directory' | tr '[`‘’]' "'" | tr -s "'" | cut -f 2 -d "'")
+    cp -a --remove-destination packages-${DISTRO_FILE_PREFIX}/${ONEDEV}/"$aF" sandbox3/devx/"$aD"/
+   fi
+  done <<_END1
+$(find packages-${DISTRO_FILE_PREFIX}/${ONEDEV} -mindepth 1 | sed -e "s%packages-${DISTRO_FILE_PREFIX}/${ONEDEV}/%%")
 _END1
   
-  fi
   sync
  fi
 done
