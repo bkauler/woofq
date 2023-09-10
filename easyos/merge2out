@@ -42,6 +42,7 @@
 #20230326 fix paths now everything on 4TB ssd.
 #20230409 EMPTYDIRMARKER files will be in boot/initrd-tree
 #20230706 fix removing EMPTYDIRMARKER files in puppy folder.
+#20230909 no more puppy folder.
 
 [ ! -d ./easy-arch ] && exit
 [ ! -d ./easy-code ] && exit
@@ -388,12 +389,14 @@ mkdir -p ${PKGSPATH}/local-repositories/${TARGETARCH}/packages-oe-kirkstone
 mkdir -p ${BUILDSPATH}/easy-out_${HOSTARCH}_${TARGETARCH}_${COMPATDISTRO}_${COMPATVERSION}/puppy
 rm -rf ${BUILDSPATH}/easy-out_${HOSTARCH}_${TARGETARCH}_${COMPATDISTRO}_${COMPATVERSION}/puppy/* #200128
 sync
-cp -a -f ../puppy/* ${BUILDSPATH}/easy-out_${HOSTARCH}_${TARGETARCH}_${COMPATDISTRO}_${COMPATVERSION}/puppy/
-sync
 
-#20230706 moved down
-cd ${BUILDSPATH}/easy-out_${HOSTARCH}_${TARGETARCH}_${COMPATDISTRO}_${COMPATVERSION}
-fossil_fixup_func puppy
+#20230909 remove...
+#cp -a -f ../puppy/* ${BUILDSPATH}/easy-out_${HOSTARCH}_${TARGETARCH}_${COMPATDISTRO}_${COMPATVERSION}/puppy/
+#sync
+
+#20230706 moved down 20230909 remove...
+#cd ${BUILDSPATH}/easy-out_${HOSTARCH}_${TARGETARCH}_${COMPATDISTRO}_${COMPATVERSION}
+#fossil_fixup_func puppy
 cd $PROJECTPATH
 
 #200921
