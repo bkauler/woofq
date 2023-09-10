@@ -165,6 +165,7 @@
 #20230616 modify check perms under /files
 #20230622 new tr console keyboard layout.
 #20230718 fix for /etc/xdg/rox.sourceforge.net erased when update.
+#20230910 now have usr-merge, may have to fix old .session folder.
 
 #20230429
 . /build-choices #3buildeasydistro copies it here.
@@ -1433,6 +1434,33 @@ fi
 ###version control###
 prevVER="" #170919
 if [ ! -d /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${INIT_DISTRO_VERSION} ];then
+ 
+ #20230910 now have usr-merge, may have to fix old .session...
+ mkdir -p /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/bin
+ mkdir -p /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/lib
+ for aD in bin sbin usr/sbin
+ do
+  if [ -d /mnt/${WKG_DEV}/${WKG_DIR}.session/${aD} ];then
+   if [ ! -h /mnt/${WKG_DEV}/${WKG_DIR}.session/${aD} ];then
+    cp -a --remove-destination /mnt/${WKG_DEV}/${WKG_DIR}.session/${aD}/* /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/bin/
+    rm -rf /mnt/${WKG_DEV}/${WKG_DIR}.session/${aD}
+   else
+    rm -f /mnt/${WKG_DEV}/${WKG_DIR}.session/${aD}
+   fi
+  fi
+ done
+ for aD in lib lib64 usr/lib64 usr/lib/x86_64-linux-gnu usr/lib/aarch64-linux-gnu
+ do
+  if [ -d /mnt/${WKG_DEV}/${WKG_DIR}.session/${aD} ];then
+   if [ ! -h /mnt/${WKG_DEV}/${WKG_DIR}.session/${aD} ];then
+    cp -a --remove-destination /mnt/${WKG_DEV}/${WKG_DIR}.session/${aD}/* /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/lib/
+    rm -rf /mnt/${WKG_DEV}/${WKG_DIR}.session/${aD}
+   else
+    rm -f /mnt/${WKG_DEV}/${WKG_DIR}.session/${aD}
+   fi
+  fi
+ done
+ 
  echo -e "\\033[1;35m${S170}\\033[0;39m" #'One-time only operation, creating a snapshot of EasyOS'
  echo "  ${S171}" #'This will allow future rollback with the Easy Version Control Manager'
  echo "  ${S172} /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${INIT_DISTRO_VERSION}" #'Populating:'
@@ -1808,21 +1836,31 @@ EXTRASFS=""; sessionSFS=""; NEWEXTRASFSLIST=""
      mount -r -t squashfs -o noatime,loop /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${INIT_DISTRO_VERSION}/${ANAME}.sfs /easy_ro/${ANAME}
     fi
     
+    #20230910 now have usr-merge, check valid paths...
     #20221016 check valid library path...
     BADextra=0
-    if [ -h /easy_ro/easy_sfs/usr/lib64 ];then
-     if [ -e /easy_ro/${ANAME}/usr/lib64 ];then
-      BADextra=1
-      echo -e "\\033[1;31m${S198} ${ANAME}.sfs\n${S199}\\033[0;39m" #red
+    #if [ -h /easy_ro/easy_sfs/usr/lib64 ];then
+    # if [ -e /easy_ro/${ANAME}/usr/lib64 ];then
+    #  BADextra=1
+    #  echo -e "\\033[1;31m${S198} ${ANAME}.sfs\n${S199}\\033[0;39m" #red S198='ERROR: /usr/lib64 incorrect path in SFS:'
+    # fi
+    #fi
+    #if [ -h /easy_ro/easy_sfs/usr/lib/x86_64-linux-gnu ];then
+    # if [ -e /easy_ro/${ANAME}/usr/lib/x86_64-linux-gnu ];then
+    #  BADextra=1
+    #  echo -e "\\033[1;31m${S200} ${ANAME}.sfs\n${S199}\\033[0;39m" #red S199='THIS SFS WILL NOT BE LOADED' S200='ERROR: /usr/lib/x86_64-linux-gnu incorrect path in SFS:'
+    # fi
+    #fi
+    for aD lib lib64 usr/lib/x86_64-linux-gnu usr/lib/aarch64-linux-gnu bin usr/sbin
+    do
+     if [ -e /easy_ro/${ANAME}/${aD} ];then
+      if [ ! -h /easy_ro/${ANAME}/${aD} ];then
+       BADextra=1
+      fi
      fi
-    fi
-    if [ -h /easy_ro/easy_sfs/usr/lib/x86_64-linux-gnu ];then
-     if [ -e /easy_ro/${ANAME}/usr/lib/x86_64-linux-gnu ];then
-      BADextra=1
-      echo -e "\\033[1;31m${S200} ${ANAME}.sfs\n${S199}\\033[0;39m" #red
-     fi
-    fi
+    done
     if [ $BADextra -eq 1 ];then
+     echo -e "\\033[1;31m${S200} ${ANAME}.sfs\n${S199}\\033[0;39m" #red S199='THIS SFS WILL NOT BE LOADED' S200='ERROR: SFS does not have usr-merge folders:'
      umount /easy_ro/${ANAME}
      if [ -f /easy_ro/${ANAME}.sfs ];then
       rm -f /easy_ro/${ANAME}.sfs
