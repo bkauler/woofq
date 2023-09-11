@@ -988,7 +988,7 @@ echo ''
 
 #20230909 find out if OE compiled with "usrmerge" in DISTRO_FEATURES...
 USRMERGEconflict='no'
-TEST1="$(rootfs-complete/usr/bin/limine-version 2>&1)"
+TEST1="$(sandbox3/rootfs-complete/usr/bin/limine-version 2>&1)"
 grep -q 'No such file or directory' <<<"$TEST1"
 if [ $? -eq 0 ];then
  USRMERGEconflict='yes'

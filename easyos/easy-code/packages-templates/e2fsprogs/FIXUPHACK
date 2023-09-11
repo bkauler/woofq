@@ -1,7 +1,8 @@
 
+#20230910 fix for usr-merge...
 #20201024 oe dunfell. 20210819 fix find err msg.
 #some of the utilities have ".e2fsprogs" appended to their name
-EXEAPPEND="$(find bin sbin -type f -name '*.e2fsprogs' 2>/dev/null | tr '\n' ' ')"
+EXEAPPEND="$(find bin sbin usr/bin usr/sbin -type f -name '*.e2fsprogs' 2>/dev/null | tr '\n' ' ')"
 for aAPPEND in $EXEAPPEND
 do
  aDIR="$(dirname $aAPPEND)"
