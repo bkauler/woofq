@@ -305,6 +305,8 @@
 #20230721 remove gparted.desktop in container.
 #20230807 compatibility-script for zenity, instead of symlink.
 #20230815 fix path to overwrite existing argon2.
+#20230901 support xbps pkg manager. 20230902 run 'INSTALL:*' scripts (ref: 2createpackages). 20230903 fix.
+#20230903 void has usr-merge.
 
 export LANG=C #faster.
 
@@ -448,7 +450,7 @@ if [ "$ARCHDIR" ];then #201011
   fi
  fi
 fi
-if [ "$DISTRO_BINARY_COMPAT" == "arch" ];then #20220121
+if [ "$DISTRO_BINARY_COMPAT" == "arch" -o "$DISTRO_BINARY_COMPAT" == "void" ];then #20220121 20230903
  xARCHDIR=''
 fi
 export xARCHDIR #151123
@@ -557,6 +559,15 @@ fi
 echo
 ./findwoofinstalledpkgs #creates woof-installed-packages, which later gets copied into sandbox3/rootfs-complete/root/.packages/
 #121028 ...now also creates devx-only-installed-packages.
+
+#20230901 support xbps pkg manager... 20230903 errors, this out for now...
+#if [ "$DISTRO_BINARY_COMPAT" = "void" ]; then
+#  echo "Generating /var/db/xbps/pkgdb-0.38.plist - takes a while - please wait"
+#  ./support/void/makepkgdb.sh status/findpkgs_FINAL_PKGS-${DISTRO_BINARY_COMPAT}-${DISTRO_COMPAT_VERSION} \
+#                             packages-${DISTRO_FILE_PREFIX} \
+#                             sandbox3/rootfs-complete/var/db/xbps/pkgdb-0.38.plist
+#  echo "Generation finished - thanks for waiting"
+#fi
 
 #140119 traditional names only...
 PREFIX1CHAR="`echo -n "$DISTRO_FILE_PREFIX" | cut -c 1`"
@@ -858,7 +869,7 @@ rm -f sandbox3/rootfs-complete/pinstall.sh
 
 rm -f /tmp/3builddistro_removed_alt 2>/dev/null #101013
 
-if [ "$DISTRO_BINARY_COMPAT" == "arch" ];then #20220121
+if [ "$DISTRO_BINARY_COMPAT" == "arch" -o "$DISTRO_BINARY_COMPAT" == "void" ];then #20220121 20230903
  ARCHDIR=''
  #create arch-linux symlinks...
  cd sandbox3/rootfs-complete
@@ -1510,6 +1521,15 @@ fi
 #20211201 copy latest youtube-dl. ref: 1download-latest-youtube-dl
 if [ -e ../youtube-dl ];then
  cp -a -f ../youtube-dl rootfs-complete/usr/bin/
+fi
+
+#20230902 2createpackages accumulated INSTALL:${DB_nameonly}:${DB_version}
+if [ "${DISTRO_BINARY_COMPAT}" = "void" ]; then
+ cp -a ../support/void/accum-install.sh rootfs-complete/
+ chroot rootfs-complete /accum-install.sh
+ rm rootfs-complete/accum-install.sh
+ #also copy these, as 0setup has to run in running easyos...
+ cp -a ../support/void rootfs-complete/usr/local/petget/support/
 fi
 
 #20230304 support distro name other than "EasyOS" and "Easy"
@@ -5072,7 +5092,7 @@ done
 sync
 
 #20220125 hack for now, this needs to be fixed properly...
-if [ "$DISTRO_BINARY_COMPAT" == "arch" ];then
+if [ "$DISTRO_BINARY_COMPAT" == "arch" -o "$DISTRO_BINARY_COMPAT" == "void" ];then #20230903
  ln -snf kmod rootfs-complete/usr/bin/depmod
  ln -snf kmod rootfs-complete/usr/bin/insmod
  ln -snf kmod rootfs-complete/usr/bin/lsmod
@@ -6756,7 +6776,7 @@ if [ -e devx_${VER}_${DISTRO_TARGETARCH}/usr/bin/man ];then
 fi
 
 #20220125 arch-linux, make sure libs are symlinks...
-if [ "$DISTRO_BINARY_COMPAT" == "arch" ];then #20220121
+if [ "$DISTRO_BINARY_COMPAT" == "arch" -o "$DISTRO_BINARY_COMPAT" == "void" ];then #20220121 20230903
  cd devx_${VER}_${DISTRO_TARGETARCH}
  for aLIB in lib lib64 usr/lib64
  do
