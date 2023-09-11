@@ -114,7 +114,18 @@ $1 ~ arraystr_key {
 	if (nextfield == "rundep") {
 		if ($2) {
 			gsub(/>.*/,"",$2)
-			pkgdep=pkgdep ",+" $2
+			#ex: $2=glibc $3=2.36_1
+			if ($3) {
+				#ex deps for GraphicsMagick: +ghostscript,+glibc&ge2.36_1,+libgraphicsmagick
+				#pkgdep=pkgdep ",+" $2 "&ge" $3
+				#however, only print deps without version...
+				pkgdep=pkgdep ",+" $2
+			}
+			else {
+				#problem, ex deps for GraphicsMagick: +ghostscript,+glibc,+libgraphicsmagick-1.3.40_1
+				gsub("-[0-9].*","",$2)
+				pkgdep=pkgdep ",+" $2
+			}
 		}
 	}
 }
