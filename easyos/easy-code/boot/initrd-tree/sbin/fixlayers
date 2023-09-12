@@ -43,7 +43,7 @@
 #20230510 preserve flatpak user customizations.
 #20230723 retain any user-set /usr/local/bin/default*
 #20230802 check if a pre-install .desktop underneath. also check NoDisplay
-#20230910 fix for usr-merge.
+#20230910 fix for usr-merge. 20230911
 
 WKG_DRV=$1 #ex: sda
 WKG_DEV=$2 #ex: sda2
@@ -79,10 +79,21 @@ echo -e "\\033[1;35m${S001}\\033[0;39m" #purple
 
 rm -rf /mnt/${WKG_DEV}/${WKG_DIR}.session/.wh..wh* 2>/dev/null #some whiteout folders.
 
-#20230910 fix for usr-merge...
+#TEST
+for aF in etc/ld.so.conf.d etc/ld.so.cache etc/ld.so.conf
+do
+ if [ -e /mnt/${WKG_DEV}/${WKG_DIR}.session/${aF} ];then
+  if [ -d /mnt/${WKG_DEV}/${WKG_DIR}.session/${aF} ];then
+   rm -rf /mnt/${WKG_DEV}/${WKG_DIR}.session/${aF}
+  else
+   rm -f /mnt/${WKG_DEV}/${WKG_DIR}.session/${aF}
+  fi
+ fi
+done
+
 #want almost everything in easy.sfs to be visible on top...
 #the extra-sfs layers could stuff things up, but defer checking for that.
-echo "  ${S002} /mnt/${WKG_DEV}/${WKG_DIR}.session"
+echo "  ${S002} /mnt/${WKG_DEV}/${WKG_DIR}.session" #S002='Line'
 cd /mnt/${WKG_DEV}/${WKG_DIR}.session
 mkdir -p usr
 while read onespec
@@ -221,7 +232,6 @@ fi
 
 #ditto, go thru more system scripts. /usr/sbin... 20230910 now in usr/bin...
 mkdir -p /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/bin
-#for onefile in alsaconf alsawizard app-dev-setup-readme.sh askpass background_reshape bcrypt_gui bcrypt_gui_help bootmanager burniso2cd burniso2cdTEST calcfreespace.sh cdburner-wizard check_internet childproof childproofDOT chooselocale chooselocale-OLD connectwizard connectwizard_2nd countrywizard countrywizard-OLD cups_shell delayedrun deskshortcut.sh dhcpcd_dropwait_option dotpup dotpuprox.sh download_file e2ore3.sh edit-initramfs eventmanager exploderpm filemnt firewallinstallshell firewall_ng fitimage2root fixdesk fixmenus fixPuppyPin fixscripts floppy-format.sh framebufferwizard freememappletshell gaim-autosetup.sh gaimshell gen_modem_init_string get_bluetooth_connection get_modem_alternate_device getwoof hackfontsize hostname-set icon_switcher icon_switcher_cli importfrompuppy1 indexgen.sh input-wizard installquirky ipinfo keymap-set lang2initrd legacy_grub_2013 loginmanager mailto.sh modemdisconnect modemprobe modemprobe_erase modemprobe_help modemtest momanager momanager0 mousecheck mousecheck.pupdev network_default_connect networkdisconnect partview partviewOLD pcur pdict Pdisk petget pgprs pgprs-connect pgprs-shell pmodemdiag pmonitork.sh pmonitorx.sh pmount pmovie pngoverlay.bac pngoverlay.sh popadd popup.pupdev pppconnect pppdisconnect pppsetup Pudd pup-advert-blocker pupautodetect pupcamera pupdial pupdial_init_hotpluggable pupdial_wizard_helper puppyhelp puppyinstaller puppypdf pupscan qsync quickcountry quicksetup quicksetup.pupdev qwallpaper remove_builtin report-video root2user run-as-spot save2image savesession scannerwizard.sh screeny securetelnetshell set_bg set_hwclock_type set-time-for-puppy set-xftdpi sfsget sns spacereplace systemvalues t12s t12s_msgfmt t12s_msgunfmt t12s_xgettext take-reference-snapshot timezone-set timezone-set-OLD tkgamma updategpumoduleslist.sh updatenetmoduleslist.sh upgrade-manager usb_modem_special_status usb_modeswitch_status user2root video_upgrade_wizard video-wizard wakepup2 wirelesswizard wizardwizard woofwoof xdelta_gui xf86svga336wizard xgamma-gui xinitrc_test xkbconfigmanager xorgwizard xorgwizard-automatic xorgwizard-cli xrandrshell xrandrshell-OLD xserverwizard
 for onefile in alsaconf alsawizard app-dev-setup-readme.sh askpass ask-save-zram1 background_reshape bcrypt_gui bcrypt_gui_help bootmanager build-rox-sendto burniso2cd calcfreespace.sh cdburner-wizard check_internet chooselocale-OLD connectwizard connectwizard_2nd countrywizard-OLD cups_shell debug-initrd delayedrun deskshortcut.sh dhcpcd_dropwait_option doc-launcher.sh dotpup download_file e2ore3.sh easydd easy-installer easy-remaster easy-version-control ec-chroot-console ec-chroot-easy ec-chroot-www edit-initramfs eventmanager exploderpm filemnt firewallinstallshell firewall_ng fitimage2root fixdesk fixmenus fixPuppyPin floppy-format.sh framebufferwizard freememappletshell gaim-autosetup.sh gaimshell gen_modem_init_string get_bluetooth_connection get_modem_alternate_device getwoof hackfontsize hostname-set icon_switcher icon_switcher_cli ident-user-enum.pl importfrompuppy1 indexgen.sh input-wizard installquirky ipinfo keymap-set legacy_grub_2013 lockdown-ram lockdown-save loginmanager mailto.sh modemdisconnect modemprobe modemprobe_erase modemprobe_help modemtest momanager momanager0 mount-img mousecheck mousecheck.pupdev network_default_connect networkdisconnect nm-wrapper partview partviewOLD pcur pdict Pdisk pgprs pkg-wrap pmodemdiag pmonitork.sh pmonitorx.sh pmount pmovie pngoverlay.sh popadd popup.pupdev pppconnect pppdisconnect pppsetup printcols Pudd pup-advert-blocker pupautodetect pupcamera pupdial pupdial_init_hotpluggable pupdial_wizard_helper puppyhelp puppyinstaller puppypdf pupscan qsync quicksetup quicksetup.pupdev qwallpaper remove_builtin report-video root2user run-as-spot save2image scannerwizard.sh screeny securetelnetshell set_bg set_hwclock_type set-time-for-puppy set-xftdpi sfsget spacereplace systemvalues t12s t12s_msgfmt t12s_msgunfmt t12s_xgettext take-reference-snapshot timezone-set-OLD updategpumoduleslist.sh updatenetmoduleslist.sh upgrade-manager usb_modem_special_status usb_modeswitch_status user2root video_upgrade_wizard video-wizard wakepup2 wirelesswizard wizardwizard woofwoof xdelta_gui xf86svga336wizard xgamma-gui xinitrc_test xkbconfigmanager xorgwizard xorgwizard-automatic xorgwizard-cli xrandrshell-OLD xserverwizard #190816
 do
  [ -e /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/bin/${onefile} ] && rm -f /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/bin/${onefile}
@@ -232,7 +242,6 @@ do
  done
 done
 #/usr/bin...
-#mkdir -p /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/bin
 for onefile in appi cmptree dir2pet dirs2pets flapi ghostview gksu gtkdialog-splash limine-installer lprshell lsb_release mozbare new2dir pet2dir pet2tgz petspec pman po2mo pup2pet pupdialog pupmessage restartwm startx tgz2pet undeb wmexit wmpoweroff wmreboot wvdialshell xterm xwin yaf-splash yelp #190816
 do
  [ -e /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/bin/${onefile} ] && rm -f /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/bin/${onefile}
@@ -243,7 +252,6 @@ do
  done
 done
 #/sbin... 20230910 now usr/bin...
-#mkdir -p /mnt/${WKG_DEV}/${WKG_DIR}.session/sbin
 for onefile in clean_desk_icons dhcp-delayed dir2sfs dir2tgz gtklogfileviewer init load_consolefont poweroff probedisk probepart pup_event_frontend_d pup_event_ipc reboot runlevel test-eide test-scsi #190816
 do
  [ -e /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/bin/${onefile} ] && rm -f /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/bin/${onefile}
@@ -254,7 +262,6 @@ do
  done
 done
 #/bin... 20230910 now usr/bin
-#mkdir -p /mnt/${WKG_DEV}/${WKG_DIR}.session/bin
 for onefile in df initrd_layer_test mount ps pupkill umount
 do
  [ -e /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/bin/${onefile} ] && rm -f /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/bin/${onefile}
@@ -289,168 +296,29 @@ do
  done
 done
 
-#200729 /usr/local/easy_containers...
-mkdir -p /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/easy_containers
-for onefile in create-veth easy-containers ec-chroot ec-chroot-admin ec-create-desktop-icons-menu ec-fix-desktop EC_SEC_INSERT extra-sfss-ec extra-sfss-repo internet-container-abort logactivewindow setup-container start-container stop-container
-do
- [ -e /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/easy_containers/${onefile} ] && rm -f /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/easy_containers/${onefile}
- #however, if on a ro layer (not easy.sfs), copy it up from easy.sfs to top...
- for onelayer in ${EXTRASFSDIRS}
- do
-  [ -e ${onelayer}/usr/local/easy_containers/${onefile} ] && cp -a --remove-destination /easy_ro/easy_sfs/usr/local/easy_containers/${onefile} /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/easy_containers/ 2>/dev/null
- done
-done
-#200729 /usr/local/EasyShare...
-mkdir -p /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/EasyShare
-for onefile in dnsmasq-server easyshare samba-setup sshlogin ssh-setup
-do
- [ -e /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/EasyShare/${onefile} ] && rm -f /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/EasyShare/${onefile}
- #however, if on a ro layer (not easy.sfs), copy it up from easy.sfs to top...
- for onelayer in ${EXTRASFSDIRS}
- do
-  [ -e ${onelayer}/usr/local/EasyShare/${onefile} ] && cp -a --remove-destination /easy_ro/easy_sfs/usr/local/EasyShare/${onefile} /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/EasyShare/ 2>/dev/null
- done
-done
-#200729 /usr/local/easy_version... 20201117 update file list...
-mkdir -p /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/easy_version
-for onefile in easy-rollback easy-update easy-version-control erase-exceptions
-do
- [ -e /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/easy_version/${onefile} ] && rm -f /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/easy_version/${onefile}
- #however, if on a ro layer (not easy.sfs), copy it up from easy.sfs to top...
- for onelayer in ${EXTRASFSDIRS}
- do
-  [ -e ${onelayer}/usr/local/easy_version/${onefile} ] && cp -a --remove-destination /easy_ro/easy_sfs/usr/local/easy_version/${onefile} /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/easy_version/ 2>/dev/null
- done
-done
-#200729 /usr/local/petget...
-mkdir -p /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/petget
-for onefile in check_deps.sh configure.sh dependencies.sh downloadpkgs.sh fetchinfo.sh filterpkgs.sh find_cat findmissingpkgs.sh findnames.sh finduserinstalledpkgs.sh hacks-postinstall.sh installpkg.sh installpreview.sh petget pkg_chooser.sh postfilterpkgs.sh removepreview.sh rm.sh show_installed_version_diffs.sh testurls.sh ui_Classic ui_Ziggy verifypkg.sh
-do
- [ -e /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/petget/${onefile} ] && rm -f /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/petget/${onefile}
- #however, if on a ro layer (not easy.sfs), copy it up from easy.sfs to top...
- for onelayer in ${EXTRASFSDIRS}
- do
-  [ -e ${onelayer}/usr/local/petget/${onefile} ] && cp -a --remove-destination /easy_ro/easy_sfs/usr/local/petget/${onefile} /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/petget/ 2>/dev/null
- done
-done
-if [ -d /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/petget/support ];then #20230910
- rm -rf /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/petget/support
+#20230911 simplify fixes for usr/local/* folders in skeleton...
+#firstly, find folders that must be saved...
+if [ -d /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/easy_containers/templates ];then
+ mv -f /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/easy_containers/templates /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/easy_containers-templates
 fi
-#20230309 have removed /usr/local/debget ...
-##20220829 /usr/local/debget
-#mkdir -p /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/debget
-#for onefile in apt-setup apt-update debdb2pupdb files-pup2dpkg-single get-keys missing-deps2dpkg pupdb2debdb-single.sh sync-dpkg2pupdb sync-new2dpkg sync-remove2dpkg sync-woof2dpkg
-#do
-# [ -e /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/debget/${onefile} ] && rm -f /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/debget/${onefile}
-# #however, if on a ro layer (not easy.sfs), copy it up from easy.sfs to top...
-# for onelayer in ${EXTRASFSDIRS}
-# do
-#  [ -e ${onelayer}/usr/local/debget/${onefile} ] && cp -a --remove-destination /easy_ro/easy_sfs/usr/local/debget/${onefile} /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/debget/ 2>/dev/null
-# done
-#done
-#200729 /usr/local/pgprs...
-mkdir -p /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/pgprs
-for onefile in pgprs-connect pgprs-setup
+if [ -d /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/flatpak/custom ];then
+ mv -f /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/flatpak/custom /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/flatpak-custom
+fi
+#now delete all folders that are in skeleton...
+for aD in android_build appimage apps/Connect apps/PupZip apps/ROX-Filer apps/Trash apps/XkbConfigurationManager bluepup clients easyapps easy_containers easyjwm easysetup EasyShare easy_version firmware flatpak limine-installer momanager petget pgprs pup_event sfsget shellcms simple_network_setup SimpleVP ui UltraSNS video_upgrade
 do
- [ -e /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/pgprs/${onefile} ] && rm -f /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/pgprs/${onefile}
- #however, if on a ro layer (not easy.sfs), copy it up from easy.sfs to top...
- for onelayer in ${EXTRASFSDIRS}
- do
-  [ -e ${onelayer}/usr/local/pgprs/${onefile} ] && cp -a --remove-destination /easy_ro/easy_sfs/usr/local/pgprs/${onefile} /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/pgprs/ 2>/dev/null
- done
-done
-#200729 /usr/local/pup_event... 20201117 add bluetooth-add bluetooth-add-run bluetoothhw-run bluetooth-remove bluetooth-remove-run
-mkdir -p /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/pup_event
-for onefile in bluetooth-add bluetooth-add-run bluetoothhw bluetoothhw-run bluetooth-remove bluetooth-remove-run frontend_change frontend_funcs frontend_startup frontend_timeout60 netchg pup_event_frontend_d pup_event_ipc
-do
- [ -e /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/pup_event/${onefile} ] && rm -f /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/pup_event/${onefile}
- #however, if on a ro layer (not easy.sfs), copy it up from easy.sfs to top...
- for onelayer in ${EXTRASFSDIRS}
- do
-  [ -e ${onelayer}/usr/local/pup_event/${onefile} ] && cp -a --remove-destination /easy_ro/easy_sfs/usr/local/pup_event/${onefile} /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/pup_event/ 2>/dev/null
- done
-done
-#200729 /usr/local/sfsget...
-mkdir -p /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/sfsget
-for onefile in dir2sfs ec-security filterpkgs pkgtext-compose sfsget sfsspec sfsspec-mode
-do
- [ -e /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/sfsget/${onefile} ] && rm -f /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/sfsget/${onefile}
- #however, if on a ro layer (not easy.sfs), copy it up from easy.sfs to top...
- for onelayer in ${EXTRASFSDIRS}
- do
-  [ -e ${onelayer}/usr/local/sfsget/${onefile} ] && cp -a --remove-destination /easy_ro/easy_sfs/usr/local/sfsget/${onefile} /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/sfsget/ 2>/dev/null
- done
-done
-#20201117 /usr/local/bluepup...
-mkdir -p /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/bluepup/support
-for onefile in bluepup
-do
- [ -e /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/bluepup/${onefile} ] && rm -f /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/bluepup/${onefile}
- for onelayer in ${EXTRASFSDIRS}
- do
-  if [ -e ${onelayer}/usr/local/bluepup/${onefile} ];then
-   cp -a --remove-destination /easy_ro/easy_sfs/usr/local/bluepup/${onefile} /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/bluepup/ 2>/dev/null
-  fi
- done
-done
-for onefile in bluetooth-add-refresh bluetooth-remove-refresh bt-agent-monitor bt-agent-run command-go connect disconnect finished get-connected reg-dev-chosen register run-btinfo run-mscw scan set-status-icon startup unregister wait-response
-do
- [ -e /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/bluepup/support/${onefile} ] && rm -f /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/bluepup/support/${onefile}
- for onelayer in ${EXTRASFSDIRS}
- do
-  if [ -e ${onelayer}/usr/local/bluepup/support/${onefile} ];then
-   cp -a --remove-destination /easy_ro/easy_sfs/usr/local/bluepup/support/${onefile} /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/bluepup/support/ 2>/dev/null
-  fi
- done
-done
-#20220709 /usr/local/limine-installer...
-mkdir -p /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/limine-installer
-for onefile in depend-checks find-installations generate-menu-entry limine-installer
-do
- [ -e /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/limine-installer/${onefile} ] && rm -f /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/limine-installer/${onefile}
- #however, if on a ro layer (not easy.sfs), copy it up from easy.sfs to top...
- for onelayer in ${EXTRASFSDIRS}
- do
-  [ -e ${onelayer}/usr/local/limine-installer/${onefile} ] && cp -a --remove-destination /easy_ro/easy_sfs/usr/local/limine-installer/${onefile} /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/limine-installer/ 2>/dev/null
- done
-done
-#20230327 /usr/local/appimage
-mkdir -p /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/appimage
-for onefile in skeletons appimage create-container github-find-latest-ver-api github-find-latest-ver-xdotool notes-security online-info
-do
- if [ -e /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/appimage/${onefile} ];then
-  if [ "$onefile" == "skeletons" ];then
-   rm -rf /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/appimage/${onefile}
-  else
-   rm -f /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/appimage/${onefile}
-  fi
+ if [ -e /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/${aD} ];then
+  rm -rf /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/${aD}
  fi
 done
-#20230408 /usr/local/flatpak 20230510 need to preserve user customizations...
-if [ -d /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/flatpak ];then
- #rm -rf /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/flatpak
- for onefile in customize flatpak online-info
- do
-  if [ -f /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/flatpak/${onefile} ];then
-   rm -f /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/flatpak/${onefile}
-  fi
- done
- if [ -d /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/flatpak/entries ];then
-  rm -rf /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/flatpak/entries
- fi
- if [ -d /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/flatpak/skeletons ];then
-  rm -rf /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/flatpak/skeletons
- fi
+#restore saved...
+if [ -d /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/easy_containers-templates ];then
+ mkdir -p /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/easy_containers
+ mv -f /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/easy_containers-templates /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/easy_containers/templates
 fi
-#20230422
-if [ -d /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/easysetup ];then
- rm -rf /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/easysetup
-fi
-if [ -d /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/easyjwm ];then
- rm -rf /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/easyjwm
-fi
-if [ -d /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/easyapps ];then
- rm -rf /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/easyapps
+if [ -d /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/flatpak-custom ];then
+ mkdir -p /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/flatpak
+ mv -f /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/flatpak-custom /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/flatpak/custom
 fi
 
 #20230423 suspicious this may be removing desktop icons when update...
@@ -495,11 +363,12 @@ fi
 ##20220204 easy 3.3, desktop "petget" is now "pkgget". check... 20220624 now "pkg"
 #sed -i -e 's%label="petget"%label="pkg"%' /mnt/${WKG_DEV}/${WKG_DIR}.session/root/Choices/ROX-Filer/PuppyPin
 
-#20230423 make sure "pkg" icon runs pkg-wrap (easy 5.2.2) --can remove this later, after everyone hass updated.
+#20230423 make sure "pkg" icon runs pkg-wrap (easy 5.2.2) --can remove this later, after everyone hass updated. 20230911
 if [ -s /mnt/${WKG_DEV}/${WKG_DIR}.session/root/Choices/ROX-Filer/PuppyPin ];then
- grep -q '/usr/sbin/pkg-wrap' /mnt/${WKG_DEV}/${WKG_DIR}.session/root/Choices/ROX-Filer/PuppyPin
+ sed -i -e 's%/usr/sbin/%/usr/bin/%' /mnt/${WKG_DEV}/${WKG_DIR}.session/root/Choices/ROX-Filer/PuppyPin
+ grep -q '/usr/bin/pkg-wrap' /mnt/${WKG_DEV}/${WKG_DIR}.session/root/Choices/ROX-Filer/PuppyPin
  if [ $? -ne 0 ];then
-  sed -i -e 's%/usr/sbin/dotpup%/usr/sbin/pkg-wrap%' /mnt/${WKG_DEV}/${WKG_DIR}.session/root/Choices/ROX-Filer/PuppyPin
+  sed -i -e 's%/usr/bin/dotpup%/usr/bin/pkg-wrap%' /mnt/${WKG_DEV}/${WKG_DIR}.session/root/Choices/ROX-Filer/PuppyPin
  fi
  grep -q 'sfsget' /mnt/${WKG_DEV}/${WKG_DIR}.session/root/Choices/ROX-Filer/PuppyPin
  if [ $? -eq 0 ];then
@@ -507,7 +376,9 @@ if [ -s /mnt/${WKG_DEV}/${WKG_DIR}.session/root/Choices/ROX-Filer/PuppyPin ];the
  fi
 fi
 if [ -s /mnt/${WKG_DEV}/${WKG_DIR}.session/root/Choices/ROX-Filer/globicons ];then
- grep -q '/usr/sbin/pkg-wrap' /mnt/${WKG_DEV}/${WKG_DIR}.session/root/Choices/ROX-Filer/globicons
+ sed -i -e 's%/usr/sbin/%/usr/bin/%' /mnt/${WKG_DEV}/${WKG_DIR}.session/root/Choices/ROX-Filer/globicons
+ sed -i -e 's%/usr/sbin/%/usr/bin/%' /mnt/${WKG_DEV}/${WKG_DIR}.session/root/.config/rox.sourceforge.net/ROX-Filer/globicons 2>/dev/null
+ grep -q '/usr/bin/pkg-wrap' /mnt/${WKG_DEV}/${WKG_DIR}.session/root/Choices/ROX-Filer/globicons
  if [ $? -ne 0 ];then
   sed -i -e 's%dotpup%pkg-wrap%' /mnt/${WKG_DEV}/${WKG_DIR}.session/root/Choices/ROX-Filer/globicons
   sed -i -e 's%dotpup%pkg-wrap%' /mnt/${WKG_DEV}/${WKG_DIR}.session/root/.config/rox.sourceforge.net/ROX-Filer/globicons 2>/dev/null
