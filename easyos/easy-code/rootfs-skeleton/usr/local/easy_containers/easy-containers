@@ -43,6 +43,7 @@
 #20230302 delete a container, did not fully delete when have indirect save.
 #20230427 screen out apps running non-root in main filesystem. 20230522 more.
 #20230626 new sudo-sh replaces sudo.
+#20230913 usr-merge fixes.
 
 #20230626
 if [ "$(whoami)" != "root" ];then
@@ -230,7 +231,7 @@ if [ "$EXIT" == "delete" ];then
 <env:Envelope xmlns:env=\"http://www.w3.org/2001/12/soap-envelope\">
  <env:Body xmlns=\"http://rox.sourceforge.net/SOAP/ROX-Filer\">
   <UnsetIcon>
-   <Path>/usr/sbin/ec-chroot-${EC_MANAGE}</Path>
+   <Path>/usr/bin/ec-chroot-${EC_MANAGE}</Path>
   </UnsetIcon>
  </env:Body>
 </env:Envelope>"  | rox -R
@@ -239,7 +240,7 @@ if [ "$EXIT" == "delete" ];then
 <env:Envelope xmlns:env=\"http://www.w3.org/2001/12/soap-envelope\">
  <env:Body xmlns=\"http://rox.sourceforge.net/SOAP/ROX-Filer\">
   <PinboardRemove>
-   <Path>/usr/sbin/ec-chroot-${EC_MANAGE}</Path>
+   <Path>/usr/bin/ec-chroot-${EC_MANAGE}</Path>
   </PinboardRemove>
  </env:Body>
 </env:Envelope>"  | rox -R
@@ -379,24 +380,6 @@ echo '#Tick to run as user spot in container:' >> /mnt/${WKG_DEV}/${WKG_DIR}cont
   cp -f /usr/share/applications/${DTFILE} /usr/share/applications/ec-${EC_CREATE}.desktop
   sed -i -e "s%^Exec=[^ ]*%Exec=ec-chroot ${EC_CREATE}%" /usr/share/applications/ec-${EC_CREATE}.desktop
   
-  #now modify the icon...
-  #170221 pngoverlay wants base and overlay the same size. remove this, just use a standard icon...
-  #ICON="$(grep '^Icon=' /usr/share/applications/ec-${EC_CREATE}.desktop | cut -f 2 -d '=')"
-  #[ -f "$ICON" ] && fndICON="$ICON"
-  #[ ! "$fndICON" ] && [ -f /usr/share/pixmaps/$ICON ] && fndICON="/usr/share/pixmaps/$ICON"
-  #[ ! "$fndICON" ] && [ -f /usr/local/lib/X11/mini-icons/$ICON ] && fndICON="/usr/local/lib/X11/mini-icons/$ICON"
-  #[ ! "$fndICON" ] && [ -f /usr/local/lib/X11/pixmaps/$ICON ] && fndICON="/usr/local/lib/X11/pixmaps/$ICON"
-  #[ ! "$fndICON" ] && fndICON="/usr/local/lib/X11/mini-icons/Executable.xpm" #fallback.
-  #IMGTYPE="$(echo -n "$fndICON" | rev | cut -f 1 -d '.' | rev)" #ex: xpm
-  #IMGBASE="$(basename "${fndICON}" .${IMGTYPE})"
-  #cp -f "$fndICON" /tmp/easy_containers/
-  #cd /tmp/easy_containers
-  #[ "$IMGTYPE" == "xpm" ] && xpmtoppm ${IMGBASE}.${IMGTYPE} | pnmtopng > ${IMGBASE}.png
-  #cp -f /usr/sbin/pngoverlay ./
-  #cp -f /usr/local/lib/X11/pixmaps/container-overlay48.png ./
-  #sync
-  #./pngoverlay ${IMGBASE}.png container-overlay48.png /usr/share/pixmaps/ec-${EC_CREATE}.png
-  #sed -i -e "s%^Icon=.*%Icon=ec-${EC_CREATE}.png%" /usr/share/applications/ec-${EC_CREATE}.desktop
   ICON="$(grep '^Icon=' /usr/share/applications/ec-${EC_CREATE}.desktop | cut -f 2 -d '=')" #180407
   sed -i -e "s%^Icon=.*%Icon=container48.png%" /usr/share/applications/ec-${EC_CREATE}.desktop
   
@@ -469,14 +452,14 @@ echo '#Tick to run as user spot in container:' >> /mnt/${WKG_DEV}/${WKG_DIR}cont
 
    #20210409 now have pngoverlay-cairo, created by 01micko (dunfell series: compiled in oe)
    PNGOVERLAYEXE=""
-   if [ -e /usr/sbin/pngoverlay-cairo ];then
-    PNGOVERLAYEXE="/usr/sbin/pngoverlay-cairo"
+   if [ -e /usr/bin/pngoverlay-cairo ];then
+    PNGOVERLAYEXE="/usr/bin/pngoverlay-cairo"
    fi
    if [ "$PNGOVERLAYEXE" ];then
     sync
     ${PNGOVERLAYEXE} ${IMGBASE}.png ec-overlay48.png /usr/share/pixmaps/ec-${EC_CREATE}48.png
    else #old code...
-    cp -f /usr/sbin/pngoverlay ./
+    cp -f /usr/bin/pngoverlay ./
     sync
     xPWD="$PWD"
     ./pngoverlay ${IMGBASE}.png ec-overlay48.png /usr/share/pixmaps/ec-${EC_CREATE}48.png
@@ -492,25 +475,24 @@ echo '#Tick to run as user spot in container:' >> /mnt/${WKG_DEV}/${WKG_DIR}cont
 <env:Envelope xmlns:env=\"http://www.w3.org/2001/12/soap-envelope\">
  <env:Body xmlns=\"http://rox.sourceforge.net/SOAP/ROX-Filer\">
   <SetIcon>
-   <Path>/usr/sbin/ec-chroot-${EC_CREATE}</Path>
+   <Path>/usr/bin/ec-chroot-${EC_CREATE}</Path>
    <Icon>/usr/share/pixmaps/ec-${EC_CREATE}48.png</Icon>
   </SetIcon>
  </env:Body>
 </env:Envelope>"  | rox -R
   #now create an icon on desktop...
   #181014 this has stopped working when launch from desktop icon...
-  #echo -e "#!/bin/sh\nexec ec-chroot ${EC_CREATE}" > /usr/sbin/ec-chroot-${EC_CREATE}
   #need to launch via "urxvt -name eclaunch -iconic ..." which is hidden (see /root/.jwmrc)
   #181017 now use 'empty' instead of urxvt...
   echo "#!/bin/sh
-empty -f ec-chroot ${EC_CREATE}" > /usr/sbin/ec-chroot-${EC_CREATE}
-  chmod 755 /usr/sbin/ec-chroot-${EC_CREATE}
+empty -f ec-chroot ${EC_CREATE}" > /usr/bin/ec-chroot-${EC_CREATE}
+  chmod 755 /usr/bin/ec-chroot-${EC_CREATE}
   #  note, frontend_funcs has add_pinboard_func(), use code from it...
   echo "<?xml version=\"1.0\"?>
 <env:Envelope xmlns:env=\"http://www.w3.org/2001/12/soap-envelope\">
  <env:Body xmlns=\"http://rox.sourceforge.net/SOAP/ROX-Filer\">
   <PinboardAdd>
-   <Path>/usr/sbin/ec-chroot-${EC_CREATE}</Path>
+   <Path>/usr/bin/ec-chroot-${EC_CREATE}</Path>
    <X>${aX}</X>
    <Y>${aY}</Y>
    <Label>${EC_CREATE}</Label>
@@ -521,7 +503,7 @@ empty -f ec-chroot ${EC_CREATE}" > /usr/sbin/ec-chroot-${EC_CREATE}
   
   #180409 log, read by ec-fix-desktop... 180428  190903 fix path.
   echo "EC_LABEL=${EC_CREATE}
-EC_PATH=/usr/sbin/ec-chroot-${EC_CREATE}
+EC_PATH=/usr/bin/ec-chroot-${EC_CREATE}
 EC_ICON=/usr/share/pixmaps/ec-${EC_CREATE}48.png" > /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_CREATE}/desktop
   
   #now update the jwm menu...

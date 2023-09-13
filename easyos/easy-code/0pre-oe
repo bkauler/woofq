@@ -416,7 +416,7 @@ echo
 echo "Sorting: ${PKGLISTS_COMPAT} PKGS_HOMEPAGES ..."
 sort --key=1 --field-separator='|' $PKGLISTS_COMPAT > /tmp/0pre-$PKGLISTS_COMPAT
 mv -f /tmp/0pre-$PKGLISTS_COMPAT $PKGLISTS_COMPAT
-#note: file PKGS_HOMEPAGES read in /usr/sbin/indexgen.sh and /usr/local/petget/fetchinfo.sh
+#note: file PKGS_HOMEPAGES read in /usr/bin/indexgen.sh and /usr/local/petget/fetchinfo.sh
 sort --key=1,1 --field-separator=" " --unique ./PKGS_HOMEPAGES > /tmp/woof-homepages.sorted
 mv -f /tmp/woof-homepages.sorted ./PKGS_HOMEPAGES
 sync

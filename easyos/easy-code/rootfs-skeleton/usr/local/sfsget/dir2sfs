@@ -49,6 +49,7 @@
 #20230522 remove old /tmp/sfsget
 #20230607 easy 5.3+ want to get rid of "setup" icon and change "pkg" to only run PKGget (see also 3buildeasydistro)
 #20230721 remove gparted.desktop in container.
+#20230913 fix usr-merge
 
 . /etc/rc.d/PUPSTATE
 . /etc/DISTRO_SPECS
@@ -228,10 +229,10 @@ CNTicon=1
 mkdir -p ${PATH1}/${DIR}/usr/share/pixmaps
 mkdir -p ${PATH1}/${DIR}/usr/share/icons
 #20210409 now have pngoverlay-cairo, created by 01micko (dunfell series: compiled in oe)
-if [ -e /usr/sbin/pngoverlay-cairo ];then
- cp -f /usr/sbin/pngoverlay-cairo /tmp/sfsget/pngoverlay #note, doesn't have to be copied to same directory.
+if [ -e /usr/bin/pngoverlay-cairo ];then
+ cp -f /usr/bin/pngoverlay-cairo /tmp/sfsget/pngoverlay #note, doesn't have to be copied to same directory.
 else #old code...
- cp -f /usr/sbin/pngoverlay /tmp/sfsget/
+ cp -f /usr/bin/pngoverlay /tmp/sfsget/
 fi
 #can get these out of the .desktop files...
 for aDT in $APPS
@@ -427,7 +428,7 @@ do
  else
   #20210920 precaution...
   echo -n '' > /tmp/sfsget/dir2sfs-find
-  find ${PATH1}/${DIR}/usr/bin ${PATH1}/${DIR}/usr/sbin ${PATH1}/${DIR}/.control -maxdepth 1 -type f -name "${xAPP}" >/tmp/sfsget/dir2sfs-find 2>/dev/null
+  find ${PATH1}/${DIR}/usr/bin ${PATH1}/${DIR}/.control -maxdepth 1 -type f -name "${xAPP}" >/tmp/sfsget/dir2sfs-find 2>/dev/null
   if [ -s /tmp/sfsget/dir2sfs-find ];then 
    #create it...
    echo "[Desktop Entry]
@@ -478,7 +479,6 @@ cat /tmp/sfsget/ec-configuration > ${PATH1}/${DIR}/.control/${SFS_DB_nameonly}.c
 
 ###desk###
 mkdir -p ${PATH1}/${DIR}/usr/bin
-mkdir -p ${PATH1}/${DIR}/usr/sbin
 mkdir -p ${PATH1}/${DIR}/.control
 if [ "$SFS_DB_install" == "desk" ];then
  #there will be one icon on desktop, label same as name of container.
@@ -656,7 +656,7 @@ fi
    sed -i -e 's%x="416"%x="352"%' ${PP} #term
   fi
   #and change run-action of "pkg" icon so will only run PKGget...
-  sed -i -e 's%/usr/sbin/pkg-wrap%/usr/sbin/dotpup%' ${PP}
+  sed -i -e 's%/usr/bin/pkg-wrap%/usr/bin/dotpup%' ${PP}
   
   #do not want "update" icon on desktop...
   sed -i '/update/d' ${PP}
@@ -667,7 +667,7 @@ fi
  
  #missing, probably good to create it...
  touch /root/.packages/user-installed-packages
- #we need equivalent to /usr/sbin/delayedrun (which starts from /root/.xinitrc), which starts the tray applets.
+ #we need equivalent to /usr/bin/delayedrun (which starts from /root/.xinitrc), which starts the tray applets.
  #see 'desk-delayedrun' below.
  #181115 xenialpup is launching the tray applets...
  # seems a bit weird, need to delete this...
@@ -717,14 +717,14 @@ fi
  do
   rm -f /usr/share/applications/${aDT/STAR/*}.desktop 2>/dev/null
  done
- if [ -x /usr/sbin/fixmenus ];then #20210505
+ if [ -x /usr/bin/fixmenus ];then #20210505
   fixmenus
  elif [ -x /usr/bin/jwm ];then #20210505
   jwm -reload
  fi
  #181105 reshape the backround image...
- if [ -x /usr/sbin/background_reshape ];then #20210505
-  /usr/sbin/background_reshape
+ if [ -x /usr/bin/background_reshape ];then #20210505
+  /usr/bin/background_reshape
  fi
  #...ok for old pups, easyos and quirky need extra code...
  RET1=$?
@@ -745,10 +745,10 @@ fi
   fi
  fi
  #181115 xenialpup needs fix for desktop install icon...
- if [ -f /usr/sbin/dotpup ];then
+ if [ -f /usr/bin/dotpup ];then
   echo '#!/bin/sh
-exec /usr/local/petget/pkg_chooser.sh' > /usr/sbin/dotpup
-  chmod 755 /usr/sbin/dotpup
+exec /usr/local/petget/pkg_chooser.sh' > /usr/bin/dotpup
+  chmod 755 /usr/bin/dotpup
  fi
  #20210510 radky's JWMdesk calls 01micko's desksetup.sh, which needs a fix...
  if [ -f /usr/local/desksetup/desksetup.sh ];then
@@ -803,8 +803,8 @@ case "$WM" in #20210508
   #start rox...
   #relocates right-side icons to actual right-side of screen...
   if [ "$PP" ];then #20210508 20210510
-   if [ -x /usr/sbin/fixPuppyPin ];then
-    /usr/sbin/fixPuppyPin ${PP}
+   if [ -x /usr/bin/fixPuppyPin ];then
+    /usr/bin/fixPuppyPin ${PP}
    fi
   fi
   if [ "$PP" != "/root/.config/rox.sourceforge.net/ROX-Filer/PuppyPin" ];then
@@ -815,7 +815,7 @@ case "$WM" in #20210508
    fi
   fi
   #put text on background...
-  if [ -x /usr/sbin/popup ];then
+  if [ -x /usr/bin/popup ];then
    popup "level=bottom placement=center background=#06ee9b|<b><big><big>Containerized desk ${CR}Press Alt-F6 to flip</big></big></b>"
   elif [ -x /usr/bin/gtkdialog-splash ];then
    gtkdialog-splash -close never -fontsize large -text "Containerized desk${CR}Press Alt-F6 to flip" &
@@ -838,9 +838,9 @@ case "$WM" in #20210508
   fi
   #after a delay, set the wallpaper...
   sleep 1
-  mkdir -p /root/.config/wallpaper #see /usr/sbin/set_bg
+  mkdir -p /root/.config/wallpaper #see /usr/bin/set_bg
   #cannot be sure that target distro has set_bg, or background_reshape...
-  if [ -x /usr/sbin/set_bg ];then
+  if [ -x /usr/bin/set_bg ];then
    set_bg ${BG}
   else
    if [ "$UI_DESK_MANAGER" == "rox" ];then #20220211
@@ -891,12 +891,12 @@ EOF2
  #container launch script...
  if [ "$SFS_DB_nameonly" == "easy" ];then #190911
   echo "#!/bin/sh
-empty -f ec-chroot ${DISTRO_COMPAT_VERSION} easy" >  ${PATH1}/${DIR}/usr/sbin/ec-chroot-${DISTRO_COMPAT_VERSION}
-  chmod 755 ${PATH1}/${DIR}/usr/sbin/ec-chroot-${DISTRO_COMPAT_VERSION}
+empty -f ec-chroot ${DISTRO_COMPAT_VERSION} easy" >  ${PATH1}/${DIR}/usr/bin/ec-chroot-${DISTRO_COMPAT_VERSION}
+  chmod 755 ${PATH1}/${DIR}/usr/bin/ec-chroot-${DISTRO_COMPAT_VERSION}
  else
   echo "#!/bin/sh
-empty -f ec-chroot ${SFS_DB_nameonly}" >  ${PATH1}/${DIR}/usr/sbin/ec-chroot-${SFS_DB_nameonly}
-  chmod 755 ${PATH1}/${DIR}/usr/sbin/ec-chroot-${SFS_DB_nameonly}
+empty -f ec-chroot ${SFS_DB_nameonly}" >  ${PATH1}/${DIR}/usr/bin/ec-chroot-${SFS_DB_nameonly}
+  chmod 755 ${PATH1}/${DIR}/usr/bin/ec-chroot-${SFS_DB_nameonly}
  fi
  
  #20220607 these are not needed...
@@ -914,8 +914,8 @@ if [ "$SFS_DB_install" == "terminal" ];then
  [ -e ${PATH1}/${DIR}/usr/bin/${SFS_DB_nameonly} ] && mv -f ${PATH1}/${DIR}/usr/bin/${SFS_DB_nameonly} ${PATH1}/${DIR}/usr/bin/${SFS_DB_nameonly}.bin
  #container launch script...
  echo "#!/bin/sh
-empty -f ec-chroot ${SFS_DB_nameonly} sakura" >  ${PATH1}/${DIR}/usr/sbin/ec-chroot-${SFS_DB_nameonly}
- chmod 755 ${PATH1}/${DIR}/usr/sbin/ec-chroot-${SFS_DB_nameonly}
+empty -f ec-chroot ${SFS_DB_nameonly} sakura" >  ${PATH1}/${DIR}/usr/bin/ec-chroot-${SFS_DB_nameonly}
+ chmod 755 ${PATH1}/${DIR}/usr/bin/ec-chroot-${SFS_DB_nameonly}
 fi
 
 ###individual###
@@ -928,12 +928,12 @@ if [ "$SFS_DB_install" == "individual" -o "$SFS_DB_install" == "mainonly" -o "$S
    #container launch script...
    if [ -e ${PATH1}/${DIR}/usr/bin/${aAPP} ];then
     echo "#!/bin/sh
-empty -f ec-chroot ${aAPP}" >  ${PATH1}/${DIR}/usr/sbin/ec-chroot-${aAPP}
-    chmod 755 ${PATH1}/${DIR}/usr/sbin/ec-chroot-${aAPP}
+empty -f ec-chroot ${aAPP}" >  ${PATH1}/${DIR}/usr/bin/ec-chroot-${aAPP}
+    chmod 755 ${PATH1}/${DIR}/usr/bin/ec-chroot-${aAPP}
    else
     echo "#!/bin/sh
-empty -f ec-chroot ${aAPP} ${aEXEC}" >  ${PATH1}/${DIR}/usr/sbin/ec-chroot-${aAPP}
-    chmod 755 ${PATH1}/${DIR}/usr/sbin/ec-chroot-${aAPP}
+empty -f ec-chroot ${aAPP} ${aEXEC}" >  ${PATH1}/${DIR}/usr/bin/ec-chroot-${aAPP}
+    chmod 755 ${PATH1}/${DIR}/usr/bin/ec-chroot-${aAPP}
    fi
   done
  fi

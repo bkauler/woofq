@@ -4,6 +4,7 @@
 #pass in name of appimage (with any capitalization).
 #20230326 first release.
 #20230502 support fscrypt v2, no need to test EOS_FSCRYPT_VER
+#20230913 fix usr-merge
 
 aAPP="$1"
 [ "$aAPP" == "" ] && exit 1
@@ -86,15 +87,15 @@ echo "#When a snapshot is made, a comment may optionally be created here." > /mn
 #get some code out of /usr/local/easy_containers/ec-create-desktop-icons-menu...
 
 echo "EC_LABEL=${EXE}
-EC_PATH=/usr/sbin/ec-chroot-${EXE}
+EC_PATH=/usr/bin/ec-chroot-${EXE}
 EC_ICON=/usr/share/pixmaps/ec-${EXE}48.png" > /mnt/wkg/containers/${EXE}/desktop
 
 #/${EXE}.bin is in top layer, is a symlink to the actual .AppImage file.
 #/${EXE} is a script that runs first, see created below.
 # note: actual location is /mnt/wkg/appimage/${EXE}/${EXE}
 echo "#!/bin/sh
-empty -f ec-chroot ${EXE}" > /usr/sbin/ec-chroot-${EXE}
-chmod 755 /usr/sbin/ec-chroot-${EXE}
+empty -f ec-chroot ${EXE}" > /usr/bin/ec-chroot-${EXE}
+chmod 755 /usr/bin/ec-chroot-${EXE}
 
 #create ec-${EXE}48.png
 pngoverlay-cairo /usr/share/pixmaps/${EXE}.png /usr/local/lib/X11/pixmaps/ec-overlay48.png /usr/share/pixmaps/ec-${EXE}48.png
@@ -119,7 +120,7 @@ if [ "$UI_DESK_MANAGER" == "rox" ];then
 <env:Envelope xmlns:env=\"http://www.w3.org/2001/12/soap-envelope\">
  <env:Body xmlns=\"http://rox.sourceforge.net/SOAP/ROX-Filer\">
   <SetIcon>
-   <Path>/usr/sbin/ec-chroot-${EXE}</Path>
+   <Path>/usr/bin/ec-chroot-${EXE}</Path>
    <Icon>/usr/share/pixmaps/ec-${EXE}48.png</Icon>
   </SetIcon>
  </env:Body>
@@ -130,7 +131,7 @@ if [ "$UI_DESK_MANAGER" == "rox" ];then
 <env:Envelope xmlns:env=\"http://www.w3.org/2001/12/soap-envelope\">
  <env:Body xmlns=\"http://rox.sourceforge.net/SOAP/ROX-Filer\">
   <PinboardAdd>
-   <Path>/usr/sbin/ec-chroot-${EXE}</Path>
+   <Path>/usr/bin/ec-chroot-${EXE}</Path>
    <X>${aX}</X>
    <Y>${aY}</Y>
    <Label>${xLABEL}</Label>

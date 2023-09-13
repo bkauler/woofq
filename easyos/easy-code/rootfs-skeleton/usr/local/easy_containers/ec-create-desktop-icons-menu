@@ -10,6 +10,7 @@
 #20220218 generate-containers-menu writes to /root/.jwmrc-containers internally.
 #20220218 no longer using ROXDESKflg.
 #20220603 replace DB_* with SFS_DB_* in sfs .specs files.
+#20230913 fix usr-merge
 
 export TEXTDOMAIN=easy-containers
 export OUTPUT_CHARSET=UTF-8
@@ -53,7 +54,7 @@ do
   cp -f /mnt/wkg/sfs/${1}/mntpt/usr/share/applications/${aAPP}.desktop /usr/share/applications/ec-${aAPP}.desktop
  fi
  #and the run-script...
- cp -a -f /mnt/wkg/sfs/${1}/mntpt/usr/sbin/ec-chroot-${aAPP} /usr/sbin/
+ cp -a -f /mnt/wkg/sfs/${1}/mntpt/usr/bin/ec-chroot-${aAPP} /usr/bin/
 done
 
 #copy out the icons...
@@ -82,7 +83,7 @@ if [ "$UI_DESK_MANAGER" == "rox" ];then #20220208 20220218
 <env:Envelope xmlns:env=\"http://www.w3.org/2001/12/soap-envelope\">
  <env:Body xmlns=\"http://rox.sourceforge.net/SOAP/ROX-Filer\">
   <SetIcon>
-   <Path>/usr/sbin/ec-chroot-${EC_CREATE}</Path>
+   <Path>/usr/bin/ec-chroot-${EC_CREATE}</Path>
    <Icon>/usr/share/pixmaps/ec-${EC_CREATE}48.png</Icon>
   </SetIcon>
  </env:Body>
@@ -93,7 +94,7 @@ if [ "$UI_DESK_MANAGER" == "rox" ];then #20220208 20220218
 <env:Envelope xmlns:env=\"http://www.w3.org/2001/12/soap-envelope\">
  <env:Body xmlns=\"http://rox.sourceforge.net/SOAP/ROX-Filer\">
   <PinboardAdd>
-   <Path>/usr/sbin/ec-chroot-${EC_CREATE}</Path>
+   <Path>/usr/bin/ec-chroot-${EC_CREATE}</Path>
    <X>${aX}</X>
    <Y>${aY}</Y>
    <Label>${xLABEL}</Label>
@@ -107,7 +108,7 @@ fi
   
 #log, read by ec-fix-desktop... 190911...
 echo "EC_LABEL=${xLABEL}
-EC_PATH=/usr/sbin/ec-chroot-${EC_CREATE}
+EC_PATH=/usr/bin/ec-chroot-${EC_CREATE}
 EC_ICON=/usr/share/pixmaps/ec-${EC_CREATE}48.png" > /mnt/wkg/containers/${EC_CREATE}/desktop
   
 #now update the jwm menu...
