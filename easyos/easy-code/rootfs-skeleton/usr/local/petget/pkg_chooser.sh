@@ -68,14 +68,6 @@ mkdir -p /var/local/petget
 . /etc/DISTRO_SPECS #has DISTRO_BINARY_COMPAT, DISTRO_COMPAT_VERSION
 . /root/.packages/DISTRO_PKGS_SPECS
 
-#20230309 have removed /usr/local/debget
-##20220903 optional dpkg|apt sync
-#which apt-get >/dev/null
-#if [ $? -eq 0 ];then
-# /usr/local/debget/apt-setup
-# #...with run once, download debian repo pkgs db, and create /var/local/pkgget/deb_compat_specs
-#fi
-
 #this must be after running apt-setup
 . /root/.packages/PKGS_MANAGEMENT #has PKG_REPOS_ENABLED, PKG_NAME_ALIASES
 

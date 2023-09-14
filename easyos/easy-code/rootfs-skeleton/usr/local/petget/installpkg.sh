@@ -1086,12 +1086,6 @@ fi
 
 echo "$DB_ENTRY" >> /root/.packages/user-installed-packages
 
-#20230309 have removed /usr/local/debget
-##20220903 sync with dpkg|apt
-#if [ -s /var/local/pkgget/deb_compat_specs ];then #created by apt-setup
-# /usr/local/debget/sync-new2dpkg
-#fi
-
 if [ "$NUMDESKFILE" != "0" ];then #171109
  update-desktop-database #creates creates /usr/share/applications/mimeinfo.cache
 fi

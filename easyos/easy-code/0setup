@@ -53,6 +53,7 @@
 #20220829 debdb2pupdb rewritten in nim. now in /usr/local/debget
 #20230309 support compat:kirkstone. missing pkg, limit number of alternatives.
 #20230901 support void linux. 20230902
+#20230914 remove all reference to usr/local/debget
 
 LANGORG="$(locale | grep '^LANG=' | cut -d '=' -f 2)" #121116
 export LANG=C #faster.
@@ -126,7 +127,7 @@ if [ "$RUNNINGPUP" = "no" ];then
  [ $? -eq 1 ] && exit
 fi
 
-[ -f ./support/debdb2pupdb ] && cp -f ./support/debdb2pupdb /usr/local/debget/ #121111 0setup needs it here, when run from PPM. 20220829
+[ -f ./support/debdb2pupdb ] && cp -f ./support/debdb2pupdb /usr/local/petget/ #121111 0setup needs it here, when run from PPM. 20220829 20230914
 #note, 3builddistro copies it into rootfs-complete/usr/local/petget when building a pup.
 #121112 note, debdb2pupdb no longer calls find_cat.
 
@@ -533,19 +534,7 @@ do
  case ${DISTRO_BINARY_COMPAT} in
   ubuntu|debian|raspbian|devuan) #150419
   
-   if [ -f /usr/local/debget/debdb2pupdb ];then #20220829 new debdb2pupdb written in nim.
-    LANG=${LANGORG} echo " please wait..."
-    mkdir -p /tmp/debget
-    cp -f ${ONE_PKGLISTS_COMPAT}pre /tmp/debget/debian-pkgs-db #read by debdb2pupdb
-    /usr/local/debget/debdb2pupdb ${DISTRO_BINARY_COMPAT} ${DISTRO_COMPAT_VERSION}
-    # ...creates /tmp/debget/puppy-pkgs-db, debian-pks-homepage
-    cp -f /tmp/debget/puppy-pkgs-db ${ONE_PKGLISTS_COMPAT}
-    if [ -f ./PKGS_HOMEPAGES ];then #running in woof.
-     cp -f ./PKGS_HOMEPAGES /tmp/debget/
-     cat /tmp/debget/debian-pkgs-homepage >> /tmp/debget/PKGS_HOMEPAGES
-     sort --key=1,1 --field-separator=" " --unique /tmp/debget/PKGS_HOMEPAGES > ./PKGS_HOMEPAGES
-    fi
-   elif [ -f /usr/local/petget/debdb2pupdb ];then #121111
+   if [ -f /usr/local/petget/debdb2pupdb ];then #121111 20230914
     #new fast compiled app...
     #create an intermediate-converted file...
     LANG=${LANGORG} echo " please wait..."

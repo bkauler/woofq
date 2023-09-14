@@ -252,7 +252,6 @@
 #20220801 x86: xorg modesetting drvr doesn't work.
 #20220806 support seamonkey-skeleton pet.
 #20220809 removed picscale, now resize images with ffmpeg.
-#20220829 new /usr/local/debget/debdb2pupdb
 #20220907 support dpkg/apt
 #20220911 problem if a symlink overwrites a file.
 #20220911 debian-archive-keyring deb has /etc/apt/trusted.gpg.d
@@ -288,7 +287,6 @@
 #20230224 merge applications.in into applications  20230225 fix. 20230226 fix.
 #20230304 support distro name other than "EasyOS" and "Easy". 
 #20230305 tweaks. support rename "easy.sfs". support "easy-*.img" rename.
-#20230309 have removed /usr/local/debget  20230317 fix.
 #20230403 easy.run-once-top: remove appimage.desktop in container.
 #20230416 pre-populate initrd sfs .png and .specs files.
 #20230423 trying to fix norwegian.
@@ -309,6 +307,7 @@
 #20230908 fix check for duplicate update-ca-certificates
 #20230909 fix usrmerge paths.
 #20230909 workaround broken usrmerge. ref: https://bkhome.org/news/202309/cannot-execute-usrmerged-binaries-on-non-usrmerged-os.html
+#20230914 removed all reference to usr/local/debget
 
 export LANG=C #faster.
 
@@ -2205,7 +2204,7 @@ cp -f ../0setup rootfs-complete/usr/local/petget/
 [ -f ../support/mageia2ppm ] && cp -f ../support/mageia2ppm rootfs-complete/usr/local/petget/
 #160923 no, host and target archs may differ. already have it in dest (pup-tools pet)...
 ##121111 new fast deb to pup db converter, called by 0setup...
-#[ -f ../support/debdb2pupdb ] && cp -f ../support/debdb2pupdb rootfs-complete/usr/local/petget/
+[ -f ../support/debdb2pupdb ] && cp -f ../support/debdb2pupdb rootfs-complete/usr/local/petget/ #20230914 restore.
 #urls etc on the pet db's...
 cp -f ../DISTRO_PET_REPOS rootfs-complete/root/.packages/
 #w018 homepages of heaps of pkgs (see 0pre script)...
@@ -4934,32 +4933,6 @@ if [ "$WOOF_TARGETARCH" == "x86" ];then #20220801
  #kms modesetting driver doesn't work.
  rm -f rootfs-complete/usr/lib/xorg/modules/drivers/modesetting_drv.so 2>/dev/null
 fi
-
-#20230309 have removed /usr/local/debget
-#if [ "$WOOF_TARGETARCH" == "$WOOF_HOSTARCH" ];then #20220829
-# #the latest debdb2pupdb is in rootfs-complete/usr/local/debget/
-# if [ -f rootfs-complete/usr/local/debget/debdb2pupdb ];then
-#  cp -a -u rootfs-complete/usr/local/debget/debdb2pupdb ../support/
-#  cp -a -u rootfs-complete/usr/local/debget/debdb2pupdb /usr/local/debget/
-# fi
-#fi
-
-#20230309 have removed /usr/local/debget
-#if [ "$WOOF_TARGETARCH" == "${WOOF_HOSTARCH}XXXXXX" ];then #20220907 20220911 do not do this, easy.sfs too big.
-# if [ -f rootfs-complete/usr/bin/apt-get ];then
-#  #20220911 do not have to do this, debian-archive-keyring deb has /etc/apt/trusted.gpg.d ...
-#  #echo "getting apt keys..."
-#  #/usr/local/debget/get-keys
-#  ##...creates rootfs-complete/etc/apt/trusted.gpg
-#  echo "Running: chroot rootfs-complete /usr/local/debget/apt-setup ..."
-#  mv -f rootfs-complete/etc/resolv.conf rootfs-complete/etc/resolv.confORIG
-#  cp -a /etc/resolv.conf rootfs-complete/etc/
-#  chroot rootfs-complete /usr/local/debget/apt-setup
-#  mv -f rootfs-complete/etc/resolv.confORIG rootfs-complete/etc/resolv.conf
-#  #20220911 apt-get has created 70MB files in var/cache/apt, delete...
-#  rm -f rootfs-complete/var/cache/apt/*.bin
-# fi
-#fi
 
 #20221102 remove
 ##20221023 login as zeus... 20221030 comment out parts...

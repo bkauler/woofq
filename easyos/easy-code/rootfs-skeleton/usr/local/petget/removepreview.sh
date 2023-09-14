@@ -360,14 +360,6 @@ do
 done
 [ $LDFLG -eq 1 ] && ldconfig
 
-#20230309 have removed /usr/local/debget
-##20220903 sync with dpkg|apt
-#if [ -s /var/local/pkgget/deb_compat_specs ];then #created by apt-setup
-# mkdir -p /tmp/debget
-# grep "$remPATTERN" /root/.packages/user-installed-packages > /tmp/debget/pup-db-single-rem
-# /usr/local/debget/sync-remove2dpkg
-#fi
-
 #remove records of pkg...
 rm -f /root/.packages/${DB_pkgname}.files
 grep -v "$remPATTERN" /root/.packages/user-installed-packages > /tmp/petget-user-installed-pkgs-rem

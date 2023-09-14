@@ -1341,7 +1341,7 @@ for aD in bin sbin usr/sbin
 do
  if [ -d /mnt/${WKG_DEV}/${WKG_DIR}.session/${aD} ];then
   if [ ! -h /mnt/${WKG_DEV}/${WKG_DIR}.session/${aD} ];then
-   cp -a --remove-destination /mnt/${WKG_DEV}/${WKG_DIR}.session/${aD}/* /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/bin/
+   cp -a --remove-destination /mnt/${WKG_DEV}/${WKG_DIR}.session/${aD}/* /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/bin/ 2>/dev/null
    rm -rf /mnt/${WKG_DEV}/${WKG_DIR}.session/${aD}
   else
    rm -f /mnt/${WKG_DEV}/${WKG_DIR}.session/${aD}
@@ -1352,7 +1352,7 @@ for aD in lib lib64 usr/lib64 usr/lib/x86_64-linux-gnu usr/lib/aarch64-linux-gnu
 do
  if [ -d /mnt/${WKG_DEV}/${WKG_DIR}.session/${aD} ];then
   if [ ! -h /mnt/${WKG_DEV}/${WKG_DIR}.session/${aD} ];then
-   cp -a --remove-destination /mnt/${WKG_DEV}/${WKG_DIR}.session/${aD}/* /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/lib/
+   cp -a --remove-destination /mnt/${WKG_DEV}/${WKG_DIR}.session/${aD}/* /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/lib/ 2>/dev/null
    rm -rf /mnt/${WKG_DEV}/${WKG_DIR}.session/${aD}
   else
    rm -f /mnt/${WKG_DEV}/${WKG_DIR}.session/${aD}
@@ -1475,7 +1475,7 @@ if [ ! -d /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${INIT_DISTRO_VERSION} ];then
  mkdir /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${INIT_DISTRO_VERSION}
  
  #20230913 pre-usrmerge .session may now have circular symlink (see #20230911)...
- FNDall="$(find /mnt/${WKG_DEV}/${WKG_DIR}.session -mindepth 1 -type d 2>/dev/null | xargs -I ZZZ find ZZZ -mindepth 1 -maxdepth 1 -follow 2>&1)"
+ FNDall="$(find /mnt/${WKG_DEV}/${WKG_DIR}.session -mindepth 1 -maxdepth 4 -type d 2>/dev/null | xargs -I ZZZ find ZZZ -mindepth 1 -maxdepth 1 -follow 2>&1)"
  #ex: usr/lib/ld-linux-x86-64.so.2 symlink to ../../lib/ld-linux-x86-64.so.2
  # busybox find: find: /mnt/sdb2/easyos/.session/usr/lib/ld-linux-x86-64.so.2: Symbolic link loop
  # full find: find: ‘/mnt/sdb2/easyos/.session/usr/lib/ld-linux-x86-64.so.2’: Too many levels of symbolic links
