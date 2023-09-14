@@ -45,6 +45,7 @@
 #20230309 have removed /usr/local/debget. make repo radiobuttons shorter, remove "debian-"
 #20230626 new sudo-sh
 #20230711 when called from /usr/bin/*.install script, has passed param "gen-tmp-files-only"
+#20230914 void: update pkg db every time run pkgget.
 
 #/usr/local/petget/service_pack.sh & #121125 offer download Service Pack.
 
@@ -76,6 +77,19 @@ for aPRE in `find /root/.packages -mindepth 1 -maxdepth 1 -type f -name 'Package
 do
  rm -f $aPRE
 done
+
+if [ "$DISTRO_BINARY_COMPAT" == "void" ];then #20230914
+ ping -4 -c 1 -w 5 -q google.com
+ if [ $? -ne 0 ];then
+  E1="$(gettext 'PKGget requires Internet access')"
+  popup "background=#ffa0a0 terminate=ok process=wait level=top|<big>${E1}</big>"
+  exit
+ fi
+ W1="$(gettext 'As Void Linux is a rolling release, need to update the package database every time run PKGget. Please wait...')"
+ popup "background=#ffd8e6 level=top|<big>${W1}</big>"
+ /usr/local/petget/0setup q
+ killall popup
+fi
 
 #120811 removed...
 ##120527 need these patterns in postfilterpkgs.sh...

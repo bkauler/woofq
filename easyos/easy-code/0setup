@@ -54,9 +54,16 @@
 #20230309 support compat:kirkstone. missing pkg, limit number of alternatives.
 #20230901 support void linux. 20230902
 #20230914 remove all reference to usr/local/debget
+#20230914 void: run everytime in pkgget, so have "q" on cmdline.
 
 LANGORG="$(locale | grep '^LANG=' | cut -d '=' -f 2)" #121116
 export LANG=C #faster.
+
+#20230914
+QUIET=no
+if [ "$1" == "q" ];then
+ QUIET=yes
+fi
 
 if [ -f ./DISTRO_SPECS ];then
  SPEC_DS="./DISTRO_SPECS" #170521
@@ -178,12 +185,16 @@ do
  fi
  if [ "$skipdl" = "" ];then
   echo
-  LANG=${LANGORG} echo "A package information database file needs to be downloaded."
-  LANG=${LANGORG} echo "This will be downloaded from:"
-  echo "$PKGLISTURI"
-  LANG=${LANGORG} echo "and will be processed and named: ${PKGLISTFILE}"
-  LANG=${LANGORG} echo -n "Press ENTER key to download, any other to skip it: " #120126
-  read downloadit
+  if [ "$QUIET" == "yes" ];then #20230914
+   downloadit=''
+  else
+   LANG=${LANGORG} echo "A package information database file needs to be downloaded."
+   LANG=${LANGORG} echo "This will be downloaded from:"
+   echo "$PKGLISTURI"
+   LANG=${LANGORG} echo "and will be processed and named: ${PKGLISTFILE}"
+   LANG=${LANGORG} echo -n "Press ENTER key to download, any other to skip it: " #120126
+   read downloadit
+  fi
   if [ "$downloadit" = "" ] ; then #120126
    DLFILE="`basename $PKGLISTURI`"
    [ -f $DLFILE ] && mv -f $DLFILE /tmp/${DLFILE}-backup1 #v431 otherwise wget creates a new file ${DLFILE}.1
@@ -482,12 +493,16 @@ do
  PKGLISTURI="`echo -n "$PKGLISTSPEC" | cut -f 2 -d '|'`"
  if [ "$RUNNINGPUP" = "yes" -o ! -f $PKGLISTFILE ];then
   echo
-  LANG=${LANGORG} echo "A package information database file needs to be downloaded."
-  LANG=${LANGORG} echo "This will be downloaded from:"
-  echo "$PKGLISTURI"
-  LANG=${LANGORG} echo "and will be named: ${PKGLISTFILE}"
-  LANG=${LANGORG} echo -n "Press ENTER key to download, any other to skip it: " #120126
-  read downloadit
+  if [ "$QUIET" == "yes" ];then #20230914
+   downloadit=''
+  else
+   LANG=${LANGORG} echo "A package information database file needs to be downloaded."
+   LANG=${LANGORG} echo "This will be downloaded from:"
+   echo "$PKGLISTURI"
+   LANG=${LANGORG} echo "and will be named: ${PKGLISTFILE}"
+   LANG=${LANGORG} echo -n "Press ENTER key to download, any other to skip it: " #120126
+   read downloadit
+  fi
   if [ "$downloadit" = "" ] ; then #120126
    DLFILE="`basename $PKGLISTURI`"
    [ -f $DLFILE ] && mv -f $DLFILE /tmp/${DLFILE}-backup1 #v431 otherwise wget creates a new file ${DLFILE}.1 111129 prevent error msg.
@@ -675,8 +690,6 @@ _EOF1
    mv -f ${ONE_PKGLISTS_COMPAT} ${ONE_PKGLISTS_COMPAT}temp
    ${FIND_CAT} ${ONE_PKGLISTS_COMPAT}temp > ${ONE_PKGLISTS_COMPAT}
    rm -f ${ONE_PKGLISTS_COMPAT}temp
-   #cvt.sh called from void0setup has lib*so* files in deps, remove... 20230907 ***NO*** fix cvt.sh!
-   #sed -i -e 's%,+lib[^|]*|%|%' ${ONE_PKGLISTS_COMPAT}
   ;;
   puppy)
    echo "...it's already in the Puppy standard format."
@@ -706,7 +719,7 @@ done
 echo
 
 ####################################
-#120825 merge updates into original db files...
+#120825 merge updates into original debian db files...
 if [ "$DBUPDATEFLAG" = "" ];then #121113 empty now means yes.
  for ONE_PKGLISTS_COMPAT in $PKGLISTS_COMPAT
  do
@@ -864,9 +877,11 @@ if [ "$DISTRO_BINARY_COMPAT" == "slackware" ];then
  fi
 fi
 
-
 #120909 moved down...
 if [ "$RUNNINGPUP" = "yes" ];then
+ if [ "$QUIET" == "yes" ];then #20230914
+  exit
+ fi
  echo
  LANG=${LANGORG} echo "FINISHED"
  LANG=${LANGORG} echo "After restarting the Package Manager (PETget),"
