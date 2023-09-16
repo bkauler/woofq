@@ -55,6 +55,7 @@
 #20230901 support void linux. 20230902
 #20230914 remove all reference to usr/local/debget
 #20230914 void: run everytime in pkgget, so have "q" on cmdline.
+#20230915 copy void pkg db back to woofq easy-distro
 
 LANGORG="$(locale | grep '^LANG=' | cut -d '=' -f 2)" #121116
 export LANG=C #faster.
@@ -874,6 +875,12 @@ if [ "$DISTRO_BINARY_COMPAT" == "slackware" ];then
    cp -f ${pkgDB} /tmp/0setup_tmp/${pkgDB}prev
    cp -f /tmp/0setup_tmp/${pkgDB} ${pkgDB}
   done
+ fi
+fi
+
+if [ "$DISTRO_BINARY_COMPAT" == "void" ];then #20230915
+ if [ "$RUNNINGPUP" = "no" ];then
+  cp -a -f ${ONE_PKGLISTS_COMPAT} ${PROJECTPATH}/easy-distro/${DISTRO_TARGETARCH}/void/current/
  fi
 fi
 
