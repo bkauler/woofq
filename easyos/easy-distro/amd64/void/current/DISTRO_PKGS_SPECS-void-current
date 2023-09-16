@@ -30,6 +30,7 @@ yes|adbfs|adbfs|exe,dev,doc,nls|compat:kirkstone|
 yes|adwaita-icon-theme|adwaita-icon-theme|exe,dev,doc,nls|compat:current|
 yes|align||exe|pet:noarch| #perl script.
 yes|alsa-lib|alsa-lib,alsa-lib-devel|exe,dev,doc,nls|compat:current|
+yes|alsa-plugins|alsa-plugins,alsa-plugins-pulseaudio|exe,dev,doc,nls|compat:current|
 yes|alsa-utils|alsa-utils|exe,dev,doc,nls|compat:current|
 yes|android-tools|android-tools|exe,dev,doc,nls|compat:kirkstone|
 yes|apr|apr,apr-devel|exe>dev,dev,doc,nls|compat:current|
@@ -136,7 +137,7 @@ yes|fftag||exe|pet:noarch| #replaces pmetatagger.
 yes|file|file,file-devel|exe,dev,doc,nls|compat:current|
 yes|findutils|findutils|exe,dev>null,doc,nls|compat:current|
 no|firefox-skel-ask||exe|pet:noarch|
-yes|firefox|firefox,firefox-i18n-*|exe,dev,doc,nls|compat:current|
+yes|firefox|firefox,firefox-i18n-bg,firefox-i18n-cs,firefox-i18n-da,firefox-i18n-de,firefox-i18n-el,firefox-i18n-en*,firefox-i18n-es*,firefox-i18n-et,firefox-i18n-fi,firefox-i18n-fr,firefox-i18n-hr,firefox-i18n-hu,firefox-i18n-is,firefox-i18n-it,firefox-i18n-lt,firefox-i18n-lv,firefox-i18n-mk,firefox-i18n-nl,firefox-i18n-nb-NO,firefox-i18n-nn-NO,firefox-i18n-pl,firefox-i18n-pt*,firefox-i18n-ro,firefox-i18n-ru,firefox-i18n-sk,firefox-i18n-sl,firefox-i18n-sq,firefox-i18n-sr,firefox-i18n-sv-SE,firefox-i18n-tr,firefox-i18n-uk,firefox-i18n-uz|exe,dev,doc,nls|compat:current|
 yes|firmware_asus_e200ha||exe|pet:noarch| #needed for my asus e200ha notebook.
 yes|firmware_linux_acer_aspire1||exe|pet:noarch| #for my acer aspire1 laptop. note has regulatory.db useful all wifi.
 yes|firmware_linux_all_k5p15p85||exe|pet:noarch|
@@ -182,6 +183,7 @@ yes|ghostscript|ghostscript,libgs,libpaper,libjbig2dec,ghostscript-devel|exe,dev
 yes|gif2lss|gif2lss|exe,dev,doc,nls|compat:kirkstone|
 yes|giflib-devel|giflib-devel|exe>dev,dev,doc,nls|compat:current|
 yes|gifsicle|gifsicle|exe,dev,doc,nls|compat:kirkstone|
+yes|gir-freedesktop|gir-freedesktop|exe,dev,doc,nls|compat:current|
 yes|git|git|exe>dev,dev,doc>dev,nls>dev|compat:current|
 yes|glibc|glibc,glibc-locales,tzdata,rpcsvc-proto,glibc-devel|exe,dev,doc,nls|compat:current|
 yes|glibc_locales|glibc,glibc-locales,tzdata|exe,dev,doc,nls>exe|compat:current|
@@ -212,7 +214,8 @@ yes|gpptp|gpptp|exe,dev,doc,nls|compat:kirkstone|
 yes|gpptp-noarch||exe|pet:noarch| #created by jafadmin.
 yes|gptfdisk|gptfdisk|exe,dev,doc,nls|compat:kirkstone|
 yes|graphite|graphite,graphite-devel|exe,dev,doc,nls|compat:current|
-yes|grep|grep|exe,dev>null,doc,nls|compat:current|
+no|grep|grep|exe,dev>null,doc,nls|compat:current| #20230915 v3.11 spits out heaps of warnings about pattern starting with a back-slash.
+yes|grep|grep|exe,dev,doc,nls|compat:kirkstone| #20230915 v3.7 this version is ok.
 yes|groff|groff|exe>dev,dev,doc,nls|compat:current|
 yes|gsettings-desktop-schemas|gsettings-desktop-schemas|exe,dev,doc,nls|compat:current|
 yes|gspell|gspell,gspell-devel|exe,dev,doc,nls|compat:current|
@@ -244,7 +247,7 @@ yes|hiawatha|hiawatha|exe,dev,doc,nls|compat:kirkstone|
 yes|hicolor-icon-theme|hicolor-icon-theme|exe,dev>null,doc,nls|compat:current|
 yes|hotplug2stdout|hotplug2stdout|exe,dev,doc,nls|compat:kirkstone|
 yes|htop|htop|exe,dev|compat:current|
-yes|hunspell|hunspell,hunspell-*,libhunspell1.7|exe,dev,doc,nls|compat:current|
+yes|hunspell|hunspell,libhunspell1.7,hunspell-devel,hunspell-da_DK,hunspell-de_DE,hunspell-el_GR,hunspell-en*,hunspell-es_ES,hunspell-fr_FR,hunspell-hr_HR,hunspell-it_IT,hunspell-nl_NL,hunspell-pl_PL,hunspell-pt*,hunspell-ro_RO,hunspell-ru_RU,hunspell-sl_SI,hunspell-sr_SR,hunspell-sv_SE|exe,dev,doc,nls|compat:current|
 no|hunspell-en-au||exe|pet:noarch|
 no|hunspell-en-gb||exe|pet:noarch|
 no|hunspell-en-us||exe|pet:noarch
@@ -255,6 +258,7 @@ yes|ifplugd_old|ifplugd-old|exe,dev,doc,nls|compat:kirkstone|
 yes|imake|imake|exe>dev,dev,doc,nls|compat:current|
 yes|inotify-tools|inotify-tools,libinotify-tools,inotify-tools-devel|exe,dev,doc,nls|compat:current|
 yes|intltool|intltool|exe>dev,dev,doc,nls|compat:current|
+yes|iproute2|iproute2|exe,dev,doc,nls|compat:current| #20230915 dep of NetworkManager
 yes|iptables|iptables,iptables-devel|exe,dev,doc,nls|compat:current|
 yes|isl|isl-devel|exe>dev,dev,doc,nls|compat:current|
 yes|iw|iw|exe,dev,doc,nls|compat:current|
@@ -263,6 +267,7 @@ no|jasper|jasper|exe,dev,doc,nls|compat:kirkstone|
 yes|jasper|jasper,libjasper,jasper-devel|exe,dev,doc,nls|compat:current|
 yes|jbigkit-libs|jbigkit-libs|exe,dev,doc,nls|compat:current|
 yes|jimtcl|jimtcl|exe,dev,doc,nls|compat:kirkstone|
+yes|json-c|json-c,json-c-devel|exe,dev,doc,nls|compat:current|
 yes|json-glib|json-glib,json-glib-devel|exe,dev,doc,nls|compat:current|
 yes|judy|judy,judy-devel|exe>dev,dev,doc,nls|compat:current|
 yes|jwm3_theme_black-deep||exe|pet:noarch|
@@ -327,6 +332,7 @@ no|libGL|libGL|exe,dev,doc,nls|compat:current| #does not exist.
 yes|libglade2|libglade,libglade-devel|exe,dev,doc,nls|compat:current|
 yes|libglapi|libglapi|exe,dev,doc,nls|compat:current|
 yes|libgo|libgo|exe>dev,dev,doc,nls|compat:current|
+yes|libgomp|libgomp|exe,dev,doc,nls|compat:current|
 yes|libgpg-error|libgpg-error,libgpg-error-devel|exe,dev,doc,nls|compat:current|
 yes|libgsf|libgsf,libgsf-devel|exe,dev,doc,nls|compat:current|
 yes|libgtkhtml|libgtkhtml|exe,dev,doc,nls|compat:kirkstone|
@@ -348,6 +354,7 @@ yes|liblz4|liblz4,liblz4-devel|exe,dev,doc,nls|compat:current|
 yes|liblzma|liblzma,liblzma-devel|exe,dev,doc,nls|compat:current|
 yes|libmad|libmad,libmad-devel|exe,dev,doc,nls|compat:current|
 yes|libmagic|libmagic|exe,dev,doc,nls|compat:current|
+yes|libmm-glib|libmm-glib|exe,dev,doc,nls|compat:current| #20230915 dep of NetworkManager
 yes|libmng|libmng,libmng-devel|exe,dev,doc,nls|compat:current|
 yes|libmnl|libmnl,libmnl-devel|exe,dev,doc,nls|compat:current|
 yes|libmtp|libmtp,libmtp-devel|exe,dev,doc,nls|compat:current|
@@ -357,6 +364,7 @@ yes|libnfnetlink|libnfnetlink,libnfnetlink-devel|exe,dev,doc,nls|compat:current|
 yes|libnftnl|libnftnl,libnftnl-devel|exe,dev,doc,nls|compat:current|
 yes|libnl3|libnl3,libnl3-devel|exe,dev,doc,nls|compat:current|
 yes|libnl|libnl,libnl-devel|exe,dev,doc,nls|compat:current|
+yes|libnm|libnm|exe,dev,doc,nls|compat:current| #20230915 dep of NetworkManager
 yes|libnotify|libnotify,libnotify-devel|exe,dev,doc,nls|compat:current|
 yes|libnsl|libnsl,libnsl-devel|exe,dev,doc,nls|compat:current|
 yes|libogg|libogg,libogg-devel|exe,dev,doc,nls|compat:current|
@@ -437,6 +445,7 @@ yes|mingetty|mingetty|exe,dev,doc,nls|compat:kirkstone
 yes|minixcal|minixcal|exe,dev,doc,nls|compat:kirkstone
 yes|mirdir|mirdir|exe,dev,doc,nls|compat:kirkstone|
 yes|mit-krb5-libs|mit-krb5-libs|exe,dev,doc,nls|compat:current|
+yes|mobile-broadband-provider-info|mobile-broadband-provider-info|exe,dev,doc,nls|compat:current| #20230915 dep of NetworkManager
 yes|modem-stats|modem-stats|exe,dev,doc,nls|compat:kirkstone|
 yes|mozilla-nss|nss,nspr,nspr-devel,nss-devel|exe,dev,doc,nls|compat:current|
 yes|mpfr|mpfr,mpfr-devel|exe,dev,doc,nls|compat:current|
@@ -457,19 +466,23 @@ yes|netpbm|netpbm,libnetpbm,libnetpbm-devel|exe,dev,doc,nls|compat:current|
 no|nettle7|nettle|exe,dev>null,doc,nls|compat:kirkstone|
 yes|nettle|nettle,nettle-devel|exe,dev>null,doc,nls|compat:current|
 yes|net-tools|net-tools|exe,dev,doc,nls|compat:current|
-yes|networkmanager|networkmanager|exe,dev,doc,nls|compat:kirkstone|
+no|networkmanager|networkmanager|exe,dev,doc,nls|compat:kirkstone|
+yes|networkmanager|NetworkManager|exe,dev,doc,nls|compat:current| #20230915 see also deps.
 yes|network-manager-applet|network-manager-applet|exe,dev,doc,nls|compat:kirkstone|
 yes|network_tray|network-tray|exe,dev,doc,nls|compat:kirkstone|
+yes|newt|newt,newt-devel|exe,dev,doc,nls|compat:current| #20230915 dep of NetworkManager
 yes|nghttp2|nghttp2,nghttp2-devel|exe,dev,doc,nls|compat:current|
 yes|nim|nim|exe>dev,dev,doc,nls|compat:kirkstone|
 yes|notecase|notecase|exe,dev,doc,nls|compat:kirkstone|
+yes|notification-daemon|notification-daemon|exe,dev,doc,nls|compat:current|
 yes|npth|npth,npth-devel|exe,dev,doc,nls|compat:current|
 yes|ntfs-3g|ntfs-3g,ntfs-3g-devel|exe,dev,doc,nls|compat:current|
 yes|ntpdate|ntp|exe,dev,doc,nls|compat:kirkstone|
 yes|numlockx|numlockx|exe,dev,doc,nls|compat:current|
+yes|oniguruma|oniguruma,oniguruma-devel|exe,dev,doc,nls|compat:current| #20230915 dep of NetworkManager
 yes|openblas|openblas,openblas-devel|exe,dev,doc,nls|compat:current|
 yes|openjpeg|openjpeg,libopenjpeg,libopenjpeg2,libopenjpeg-devel,libopenjpeg2-devel|exe,dev,doc,nls|compat:current|
-yes|openresolv|openresolv|exe,dev,doc,nls|compat:current| #needed by wireguard-tools.
+yes|openresolv|openresolv|exe,dev,doc,nls|compat:current| #needed by wireguard-tools and NetworkManager.
 yes|openssh_server|openssh,libldns,libldns-devel|exe,dev,doc,nls|compat:current|
 yes|openssl|openssl,libssl1.1,libcrypto1.1,libssl3,libcrypto3,openssl-devel|exe,dev,doc,nls|compat:current|
 yes|opus|opus,opus-devel|exe,dev,doc,nls|compat:current|
@@ -527,7 +540,7 @@ yes|pprocess||exe|pet:noarch
 yes|precord||exe|pet:noarch
 yes|prename||exe,dev,doc,nls|pet:noarch|
 yes|printer-driver-samsung||exe|pet:void|
-yes|procps-ng,procps-ng-devel|procps-ng|exe|compat:current|
+yes|procps|procps-ng,procps-ng-devel|exe,dev,doc,nls|compat:current|
 yes|programchooser||exe|pet:noarch
 yes|prun||exe|pet:noarch
 yes|pschedule||exe|pet:noarch
@@ -603,6 +616,7 @@ no|shared-mime-info|shared-mime-info|exe,dev,doc,nls|compat:current|
 yes|shared-mime-info|shared-mime-info|exe,dev,doc,nls|compat:kirkstone|
 yes|simple-mtpfs||exe|pet:void| #new. used by pupmtp builtin to woof.
 yes|simple_xcursor_creator||exe|pet:noarch|
+yes|slang|slang,slang-devel|exe,dev,doc,nls|compat:current| #20230915 dep of NetworkManager
 yes|smbnetfs|smbnetfs|exe,dev,doc,nls|compat:kirkstone|
 yes|sqlite|sqlite,sqlite-devel|exe,dev,doc,nls|compat:current|
 yes|squashfs-tools|squashfs-tools|exe,dev|compat:current|
@@ -625,7 +639,7 @@ yes|tcpdump|tcpdump|exe,dev,doc,nls|compat:current|
 yes|tdb|tdb,libtdb,tdb-devel|exe,dev,doc,nls|compat:current|
 yes|tevent|tevent|exe,dev,doc,nls|compat:current|
 yes|texinfo|texinfo|exe>dev,dev,doc,nls|compat:current|
-yes|tiff5|tiff|exe,dev>null,doc>null,nls>null|compat:kirkstone| #put before tiff.
+yes|tiff-lib5|tiff|exe,dev>null,doc>null,nls>null|compat:kirkstone| #put before tiff.
 yes|tiff|tiff,tiff-devel|exe,dev,doc,nls|compat:current|
 yes|translate-shell||exe|pet:noarch| #note gxlat has an older version of trans
 yes|trousers|trousers,trousers-devel|exe,dev,doc,nls|compat:current|
@@ -650,7 +664,7 @@ yes|wcpufreq||exe|pet:noarch
 no|wget|wget|exe,dev>null,doc,nls|compat:current|
 yes|wget|wget|exe,dev>null,doc,nls|compat:kirkstone|
 no|wireguard-tools||exe,dev,doc,nls|pet:void|
-yes|wireguard-tools|wireguard-tools|exe,dev,doc,nls|compat:current|
+no|wireguard-tools|wireguard-tools|exe,dev,doc,nls|compat:current|
 yes|wireless-regdb||exe|pet:noarch|
 no|wireless-tools||exe,dev,doc,nls|pet:void| #this is deprecated i think.
 yes|wpa_supplicant|wpa_supplicant|exe,dev>null,doc,nls|compat:current|
