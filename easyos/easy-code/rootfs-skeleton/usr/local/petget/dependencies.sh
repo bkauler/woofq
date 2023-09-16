@@ -11,7 +11,7 @@
 #  |mesa-lib|
 #  |qt|
 #  ...that is, pkg name-only with vertical-bars on both ends, one name per line.
-#/tmp/petget_installed_patterns_all (writen in findmissingpkgs.sh) has a list of already installed
+#/tmp/petget/petget_installed_patterns_all (writen in findmissingpkgs.sh) has a list of already installed
 #  packages, both builtin and user-installed. One on each line, exs:
 #  |915resolution|
 #  |a52dec|
@@ -62,7 +62,7 @@ fi
 gtkdialog-splash -bg orange -close never -text "$(gettext 'Please wait, processing package database files...')" &
 X1PID=$!
 
-ALLINSTALLEDPKGS="`cat /tmp/petget_installed_patterns_all`"
+ALLINSTALLEDPKGS="`cat /tmp/petget/petget_installed_patterns_all`"
 TREE1="`cat /tmp/petget_installpreview_pkgname`"
 
 #this is the db of the main pkg...
@@ -113,9 +113,9 @@ do
     xDB_dependencies="`echo -n "$DB_dependencies" | tr ',' '\n' | cut -f 1 -d '&' | tr '\n' ','`" #120903 chop off any versioning info.
     ALLDEPS_PATTERNS="`echo -n "$xDB_dependencies" | tr ',' '\n' | grep '^+' | sed -e 's%^+%%' -e 's%$%|%' -e 's%^%|%'`" #put '|' on each end.
     echo "$ALLDEPS_PATTERNS" > /tmp/petget_subpkg_deps_patterns
-    cp -f /tmp/petget_installed_patterns_all /tmp/petget_installed_patterns_allxx #120907
-    cat /tmp/petget_missingpkgs_patterns_acc >> /tmp/petget_installed_patterns_allxx #120907 greatly speeds search, improves hierarchy view.
-    MISSINGDEPS_PATTERNS="`grep --file=/tmp/petget_installed_patterns_allxx -v /tmp/petget_subpkg_deps_patterns`"
+    cp -f /tmp/petget/petget_installed_patterns_all /tmp/petget/petget_installed_patterns_allxx #120907
+    cat /tmp/petget_missingpkgs_patterns_acc >> /tmp/petget/petget_installed_patterns_allxx #120907 greatly speeds search, improves hierarchy view.
+    MISSINGDEPS_PATTERNS="`grep --file=/tmp/petget/petget_installed_patterns_allxx -v /tmp/petget_subpkg_deps_patterns`"
     echo "$MISSINGDEPS_PATTERNS" >> /tmp/petget_missingpkgs_patterns2
     #w017 log a visual tree...
     MISSDEPSLIST="`echo "$MISSINGDEPS_PATTERNS" | sed -e 's%|%%g' | tr '\n' ' '`"

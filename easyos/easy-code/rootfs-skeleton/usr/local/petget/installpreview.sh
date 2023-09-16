@@ -33,6 +33,7 @@
 #20210612 replaced all yaf-splash with gtkdialog-splash. note, still ok to kill yaf-splash, see gtkdialog-splash script.
 #20220126 PETget now named PKGget
 #20230326 remove all reference to file EASYPAK, not used anymore.
+#20230914 stupid grep: "grep: warning: stray \ before -" use busybox grep.
 
 export TEXTDOMAIN=petget___installpreview.sh
 export OUTPUT_CHARSET=UTF-8
@@ -136,7 +137,7 @@ else
 
  #find all missing pkgs...
  /usr/local/petget/findmissingpkgs.sh "$DB_dependencies"
- #...returns /tmp/petget_installed_patterns_all, /tmp/petget_pkg_deps_patterns, /tmp/petget_missingpkgs_patterns
+ #...returns /tmp/petget/petget_installed_patterns_all, /tmp/petget/petget_pkg_deps_patterns, /tmp/petget_missingpkgs_patterns
  MISSINGDEPS_PATTERNS="`cat /tmp/petget_missingpkgs_patterns`"
  #/tmp/petget_missingpkgs_patterns has a list of missing dependencies, format ex:
  #|kdebase|
@@ -253,7 +254,7 @@ $(gettext 'Note: if the previous window indicated that there are missing depende
  if ! which gcc; then
   NEEDGCC="$(cat /tmp/petget_missing_dbentries-* | grep -E '\|gcc\||\|gcc_dev_DEV\|' | cut -f 1 -d '|')"
   if [ "$NEEDGCC" ];then
-   rm -f /tmp/petget_installed_patterns_system #see pkg_chooser.sh
+   rm -f /tmp/petget/petget_installed_patterns_system #see pkg_chooser.sh
    #create a separate process for the popup, with delay...
    DEVXNAME="devx-${DISTRO_VERSION}-${DISTRO_FILE_PREFIX}.sfs"
    echo "#!/bin/sh

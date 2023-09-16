@@ -46,6 +46,7 @@
 #20230626 new sudo-sh
 #20230711 when called from /usr/bin/*.install script, has passed param "gen-tmp-files-only"
 #20230914 void: update pkg db every time run pkgget.
+#20230914 stupid grep: "grep: warning: stray \ before -" use busybox grep. no, grep -P works. no, in case only have busybox grep, it doesn't understand -P
 
 #/usr/local/petget/service_pack.sh & #121125 offer download Service Pack.
 
@@ -79,16 +80,20 @@ do
 done
 
 if [ "$DISTRO_BINARY_COMPAT" == "void" ];then #20230914
- ping -4 -c 1 -w 5 -q google.com
- if [ $? -ne 0 ];then
-  E1="$(gettext 'PKGget requires Internet access')"
-  popup "background=#ffa0a0 terminate=ok process=wait level=top|<big>${E1}</big>"
-  exit
+ if [ ! -e /tmp/petget/void-db-updated-flg ];then
+  ping -4 -c 1 -w 5 -q google.com
+  if [ $? -ne 0 ];then
+   E1="$(gettext 'PKGget requires Internet access')"
+   popup "background=#ffa0a0 terminate=ok process=wait level=top|<big>${E1}</big>"
+   exit
+  fi
+  W1="$(gettext 'As Void Linux is a rolling release, need to update the package database every time run PKGget. Please wait...')"
+  popup "background=#ffd8e6 level=top|<big>${W1}</big>"
+  /usr/local/petget/0setup q
+  sync
+  killall popup
+  touch /tmp/petget/void-db-updated-flg
  fi
- W1="$(gettext 'As Void Linux is a rolling release, need to update the package database every time run PKGget. Please wait...')"
- popup "background=#ffd8e6 level=top|<big>${W1}</big>"
- /usr/local/petget/0setup q
- killall popup
 fi
 
 #120811 removed...
@@ -127,21 +132,21 @@ DEF_CHK_NLS='false'
 
 #130511 need to include devx-only-installed-packages, if loaded...
 #note, this code block also in check_deps.sh.
-if which gcc;then
- cp -f /root/.packages/woof-installed-packages /tmp/ppm-layers-installed-packages
- cat /root/.packages/devx-only-installed-packages >> /tmp/ppm-layers-installed-packages
- sort -u /tmp/ppm-layers-installed-packages > /root/.packages/layers-installed-packages
+if which gcc >/dev/null ;then
+ cp -f /root/.packages/woof-installed-packages /tmp/petget/ppm-layers-installed-packages
+ cat /root/.packages/devx-only-installed-packages >> /tmp/petget/ppm-layers-installed-packages
+ sort -u /tmp/petget/ppm-layers-installed-packages > /root/.packages/layers-installed-packages
 else
  cp -f /root/.packages/woof-installed-packages /root/.packages/layers-installed-packages
 fi
 
 #100711 moved from findmissingpkgs.sh... 130511 rename woof-installed-packages to layers-installed-packages...
-if [ ! -f /tmp/petget_installed_patterns_system ];then
+if [ ! -f /tmp/petget/petget_installed_patterns_system ];then
  INSTALLED_PATTERNS_SYS="`cat /root/.packages/layers-installed-packages | cut -f 2 -d '|' | sed -e 's%^%|%' -e 's%$%|%' -e 's%\\-%\\\\-%g'`"
- echo "$INSTALLED_PATTERNS_SYS" > /tmp/petget_installed_patterns_system
+ echo "$INSTALLED_PATTERNS_SYS" > /tmp/petget/petget_installed_patterns_system
  #PKGS_SPECS_TABLE also has system-installed names, some of them are generic combinations of pkgs...
  INSTALLED_PATTERNS_GEN="`echo "$PKGS_SPECS_TABLE" | grep '^yes' | cut -f 2 -d '|' |  sed -e 's%^%|%' -e 's%$%|%' -e 's%\\-%\\\\-%g'`"
- echo "$INSTALLED_PATTERNS_GEN" >> /tmp/petget_installed_patterns_system
+ echo "$INSTALLED_PATTERNS_GEN" >> /tmp/petget/petget_installed_patterns_system
  
  #120822 in precise puppy have a pet 'cups' instead of the ubuntu debs. the latter are various pkgs, including 'libcups2'.
  #we don't want libcups2 showing up as a missing dependency, so have to screen these alternative names out...
@@ -149,25 +154,25 @@ if [ ! -f /tmp/petget_installed_patterns_system ];then
   ubuntu|debian|raspbian|devuan) #150419
    #for 'cups' pet, we want to create a pattern '/cups|' so can locate all debs with that DB_path entry '.../cups'
    #INSTALLED_PTNS_SYS_PET="`grep '\.pet|' /root/.packages/layers-installed-packages | cut -f 2 -d '|' | sed -e 's%^%/%' -e 's%$%|%' -e 's%\\-%\\\\-%g'`"
-   INSTALLED_PTNS_PET="$(grep '\.pet|' /root/.packages/layers-installed-packages | cut -f 2 -d '|' | sed -e 's%^%/%' -e 's%$%|%' -e 's%\-%\\-%g')"
+   INSTALLED_PTNS_PET="$(busybox grep '\.pet|' /root/.packages/layers-installed-packages | cut -f 2 -d '|' | sed -e 's%^%/%' -e 's%$%|%' -e 's%\-%\\-%g')" #20230914
    if [ "$INSTALLED_PTNS_PET" != "/|" ];then
     echo "$INSTALLED_PTNS_PET" > /tmp/petget/installed_ptns_pet
     INSTALLED_ALT_NAMES="$(grep --no-filename -f /tmp/petget/installed_ptns_pet /root/.packages/Packages-${DISTRO_BINARY_COMPAT}-${DISTRO_COMPAT_VERSION}-* | cut -f 2 -d '|')"
     if [ "$INSTALLED_ALT_NAMES" ];then
      INSTALLED_ALT_PTNS="$(echo "$INSTALLED_ALT_NAMES" | sed -e 's%^%|%' -e 's%$%|%' -e 's%\-%\\-%g')"
-     echo "$INSTALLED_ALT_PTNS" >> /tmp/petget_installed_patterns_system
+     echo "$INSTALLED_ALT_PTNS" >> /tmp/petget/petget_installed_patterns_system
     fi
    fi
   ;;
  esac
- sort -u /tmp/petget_installed_patterns_system > /tmp/petget_installed_patterns_systemx
- mv -f /tmp/petget_installed_patterns_systemx /tmp/petget_installed_patterns_system
+ sort -u /tmp/petget/petget_installed_patterns_system > /tmp/petget/petget_installed_patterns_systemx
+ mv -f /tmp/petget/petget_installed_patterns_systemx /tmp/petget/petget_installed_patterns_system
 fi
 #100711 this code repeated in findmissingpkgs.sh...
-cp -f /tmp/petget_installed_patterns_system /tmp/petget_installed_patterns_all
+cp -f /tmp/petget/petget_installed_patterns_system /tmp/petget/petget_installed_patterns_all
 if [ -s /root/.packages/user-installed-packages ];then
  INSTALLED_PATTERNS_USER="`cat /root/.packages/user-installed-packages | cut -f 2 -d '|' | sed -e 's%^%|%' -e 's%$%|%' -e 's%\\-%\\\\-%g'`"
- echo "$INSTALLED_PATTERNS_USER" >> /tmp/petget_installed_patterns_all
+ echo "$INSTALLED_PATTERNS_USER" >> /tmp/petget/petget_installed_patterns_all
  #120822 find alt names in compat-distro pkgs, for user-installed pets...
  case $DISTRO_BINARY_COMPAT in
   ubuntu|debian|raspbian|devuan) #150419
@@ -176,7 +181,7 @@ if [ -s /root/.packages/user-installed-packages ];then
    MODIF2=0
    [ -f /var/local/petget/installed_alt_ptns_pet_user ] && MODIF2=`stat --format=%Y /var/local/petget/installed_alt_ptns_pet_user`
    if [ $MODIF1 -gt $MODIF2 ];then
-    INSTALLED_PTNS_PET="$(grep '\.pet|' /root/.packages/user-installed-packages | cut -f 2 -d '|')"
+    INSTALLED_PTNS_PET="$(busybox grep '\.pet|' /root/.packages/user-installed-packages | cut -f 2 -d '|')" #20230914
     if [ "$INSTALLED_PTNS_PET" != "" ];then
      xINSTALLED_PTNS_PET="$(echo "$INSTALLED_PTNS_PET" | sed -e 's%^%/%' -e 's%$%|%' -e 's%\-%\\-%g')"
      echo "$xINSTALLED_PTNS_PET" > /tmp/petget/fmp_xipp1
@@ -184,74 +189,75 @@ if [ -s /root/.packages/user-installed-packages ];then
      if [ "$INSTALLED_ALT_NAMES" ];then
       INSTALLED_ALT_PTNS="$(echo "$INSTALLED_ALT_NAMES" | sed -e 's%^%|%' -e 's%$%|%' -e 's%\-%\\-%g')"
       echo "$INSTALLED_ALT_PTNS" > /var/local/petget/installed_alt_ptns_pet_user
-      echo "$INSTALLED_ALT_PTNS" >> /tmp/petget_installed_patterns_all
+      echo "$INSTALLED_ALT_PTNS" >> /tmp/petget/petget_installed_patterns_all
      fi
     fi
     touch /var/local/petget/installed_alt_ptns_pet_user
    else
-    cat /var/local/petget/installed_alt_ptns_pet_user >> /tmp/petget_installed_patterns_all
+    cat /var/local/petget/installed_alt_ptns_pet_user >> /tmp/petget/petget_installed_patterns_all
    fi
   ;;
  esac
 fi
 
 #20220905 apt/dpkg support... this code also in check_deps.sh and findmissingpkgs.sh
-echo -n '' > /tmp/petget_installed_patterns_dpkg
+echo -n '' > /tmp/petget/petget_installed_patterns_dpkg
 if [ -s /var/local/pkgget/deb_compat_specs ];then
  if [ -d /var/lib/dpkg/info ];then
-  (cd /var/lib/dpkg/info && ls -1 *.list) > /tmp/petget_installed_patterns_dpkg
-  sed -i -e 's%\.list$%%' /tmp/petget_installed_patterns_dpkg
-  sed -i -e 's%^%|%' -e 's%$%|%' -e 's%\-%\\-%g' /tmp/petget_installed_patterns_dpkg
-  if [ -s /tmp/petget_installed_patterns_dpkg ];then
-   cat /tmp/petget_installed_patterns_dpkg >> /tmp/petget_installed_patterns_all
-   sort -u /tmp/petget_installed_patterns_all > /tmp/petget_installed_patterns_allTEMP
-   mv -f /tmp/petget_installed_patterns_allTEMP /tmp/petget_installed_patterns_all
+  (cd /var/lib/dpkg/info && ls -1 *.list) > /tmp/petget/petget_installed_patterns_dpkg
+  sed -i -e 's%\.list$%%' /tmp/petget/petget_installed_patterns_dpkg
+  sed -i -e 's%^%|%' -e 's%$%|%' -e 's%\-%\\-%g' /tmp/petget/petget_installed_patterns_dpkg
+  if [ -s /tmp/petget/petget_installed_patterns_dpkg ];then
+   cat /tmp/petget/petget_installed_patterns_dpkg >> /tmp/petget/petget_installed_patterns_all
+   sort -u /tmp/petget/petget_installed_patterns_all > /tmp/petget/petget_installed_patterns_allTEMP
+   mv -f /tmp/petget/petget_installed_patterns_allTEMP /tmp/petget/petget_installed_patterns_all
   fi
  fi
 fi
 
 #process name aliases into patterns (used in filterpkgs.sh, findmissingpkgs.sh) ... 100126...
 xPKG_NAME_ALIASES="`echo "$PKG_NAME_ALIASES" | tr ' ' '\n' | grep -v '^$' | sed -e 's%^%|%' -e 's%$%|%' -e 's%,%|,|%g' -e 's%\\*%.*%g'`"
-echo "$xPKG_NAME_ALIASES" > /tmp/petget_pkg_name_aliases_patterns_raw #110706
-cp -f /tmp/petget_pkg_name_aliases_patterns_raw /tmp/petget_pkg_name_aliases_patterns #110706 _raw see findmissingpkgs.sh.
+echo "$xPKG_NAME_ALIASES" > /tmp/petget/petget_pkg_name_aliases_patterns_raw #110706
+cp -f /tmp/petget/petget_pkg_name_aliases_patterns_raw /tmp/petget/petget_pkg_name_aliases_patterns #110706 _raw see findmissingpkgs.sh.
 
 #100711 above has a problem as it has wildcards. need to expand...
 #ex: PKG_NAME_ALIASES has an entry 'cxxlibs,glibc*,libc-*', the above creates '|cxxlibs|,|glibc.*|,|libc\-.*|',
 #    after expansion: '|cxxlibs|,|glibc|,|libc-|,|glibc|,|glibc_dev|,|glibc_locales|,|glibc-solibs|,|glibc-zoneinfo|'
-echo -n "" > /tmp/petget_pkg_name_aliases_patterns_expanded
-for ONEALIASLINE in `cat /tmp/petget_pkg_name_aliases_patterns | tr '\n' ' '` #ex: |cxxlibs|,|glibc.*|,|libc\-.*|
+echo -n "" > /tmp/petget/petget_pkg_name_aliases_patterns_expanded
+for ONEALIASLINE in `cat /tmp/petget/petget_pkg_name_aliases_patterns | tr '\n' ' '` #ex: |cxxlibs|,|glibc.*|,|libc\-.*|
 do
- echo -n "" > /tmp/petget_temp1
+ echo -n "" > /tmp/petget/petget_temp1
  for PARTONELINE in `echo -n "$ONEALIASLINE" | tr ',' ' '`
  do
-  grep "$PARTONELINE" /tmp/petget_installed_patterns_all >> /tmp/petget_temp1
+  grep "$PARTONELINE" /tmp/petget/petget_installed_patterns_all >> /tmp/petget/petget_temp1
  done
  ZZZ="`echo "$ONEALIASLINE" | sed -e 's%\.\*%%g' | tr -d '\\'`"
- [ -s /tmp/petget_temp1 ] && ZZZ="${ZZZ},`cat /tmp/petget_temp1 | tr '\n' ',' | tr -s ',' | tr -d '\\'`"
+ [ -s /tmp/petget/petget_temp1 ] && ZZZ="${ZZZ},`cat /tmp/petget/petget_temp1 | tr '\n' ',' | tr -s ',' | tr -d '\\'`"
  ZZZ="`echo -n "$ZZZ" | sed -e 's%,$%%'`"
- echo "$ZZZ" >> /tmp/petget_pkg_name_aliases_patterns_expanded
+ echo "$ZZZ" >> /tmp/petget/petget_pkg_name_aliases_patterns_expanded
 done
-cp -f /tmp/petget_pkg_name_aliases_patterns_expanded /tmp/petget_pkg_name_aliases_patterns
+cp -f /tmp/petget/petget_pkg_name_aliases_patterns_expanded /tmp/petget/petget_pkg_name_aliases_patterns
 
 #w480 PKG_NAME_IGNORE is definedin PKGS_MANAGEMENT file... 100126...
 xPKG_NAME_IGNORE="`echo "$PKG_NAME_IGNORE" | tr ' ' '\n' | grep -v '^$' | sed -e 's%^%|%' -e 's%$%|%' -e 's%,%|,|%g' -e 's%\\*%.*%g' -e 's%\-%\\-%g'`"
-echo "$xPKG_NAME_IGNORE" > /tmp/petget_pkg_name_ignore_patterns
+echo "$xPKG_NAME_IGNORE" > /tmp/petget/petget_pkg_name_ignore_patterns
 
 repocnt=0
 COMPAT_REPO=""
 COMPAT_DBS=""
-echo -n "" > /tmp/petget_active_repo_list
+echo -n "" > /tmp/petget/petget_active_repo_list
 
 #120831 simplify...
 REPOS_RADIO=""
 repocnt=0
 #sort with -pet-* repos last...
+#20230914 stupid grep: "grep: warning: stray \ before -" use busybox grep...
 if [ "$DISTRO_BINARY_COMPAT" = "puppy" ];then
- aPRE="`echo -n "$PKG_REPOS_ENABLED" | tr ' ' '\n' | grep '\-pet\-' | tr -s '\n' | tr '\n' ' '`"
- bPRE="`echo -n "$PKG_REPOS_ENABLED" | tr ' ' '\n' | grep -v '\-pet\-' | tr -s '\n' | tr '\n' ' '`"
+ aPRE="`echo -n "$PKG_REPOS_ENABLED" | tr ' ' '\n' | busybox grep '\-pet\-' | tr -s '\n' | tr '\n' ' '`"
+ bPRE="`echo -n "$PKG_REPOS_ENABLED" | tr ' ' '\n' | busybox grep -v '\-pet\-' | tr -s '\n' | tr '\n' ' '`"
 else
- aPRE="`echo -n "$PKG_REPOS_ENABLED" | tr ' ' '\n' | grep -v '\-pet\-' | tr -s '\n' | tr '\n' ' '`"
- bPRE="`echo -n "$PKG_REPOS_ENABLED" | tr ' ' '\n' | grep '\-pet\-' | tr -s '\n' | tr '\n' ' '`"
+ aPRE="`echo -n "$PKG_REPOS_ENABLED" | tr ' ' '\n' | busybox grep -v '\-pet\-' | tr -s '\n' | tr '\n' ' '`"
+ bPRE="`echo -n "$PKG_REPOS_ENABLED" | tr ' ' '\n' | busybox grep '\-pet\-' | tr -s '\n' | tr '\n' ' '`"
 fi
 for ONEREPO in $aPRE $bPRE #ex: ' Packages-pet-precise-official Packages-pet-noarch-official Packages-ubuntu-precise-main Packages-ubuntu-precise-multiverse '
 do
@@ -260,8 +266,8 @@ do
  [ "$REPOS_RADIO" = "" ] && FIRST_DB="$REPOCUT"
  xREPOCUT="$(echo -n "$REPOCUT" | sed -e 's%\-official$%%')" #120905 window too wide.
  xREPOCUT="$(echo -n "$xREPOCUT" | sed -e 's%^debian\-%%')" #20230309
- REPOS_RADIO="${REPOS_RADIO}<radiobutton><label>${xREPOCUT}</label><action>/tmp/filterversion.sh ${REPOCUT}</action><action>/usr/local/petget/filterpkgs.sh</action><action>refresh:TREE1</action></radiobutton>"
- echo "$REPOCUT" >> /tmp/petget_active_repo_list #120903 needed in findnames.sh
+ REPOS_RADIO="${REPOS_RADIO}<radiobutton><label>${xREPOCUT}</label><action>/tmp/petget/filterversion.sh ${REPOCUT}</action><action>/usr/local/petget/filterpkgs.sh</action><action>refresh:TREE1</action></radiobutton>"
+ echo "$REPOCUT" >> /tmp/petget/petget_active_repo_list #120903 needed in findnames.sh
  repocnt=`expr $repocnt + 1`
  [ $repocnt -ge 5 ] && break
 done
@@ -271,117 +277,38 @@ if [ "$PARAM1" == "gen-tmp-files-only" ];then
  exit 0
 fi
 
-##100116 quirky...
-#QUIRKY_DB=''
-#if [ "$DISTRO_COMPAT_VERSION" != "wary5" ];then #101126
-# if [ "`echo "$DISTRO_NAME" | grep -i 'quirky'`" != "" ];then
-#  if [ "`echo -n "$PKG_REPOS_ENABLED" | grep 'puppy\-quirky'`" != "" ];then
-#   echo 'puppy-quirky-official' >> /tmp/petget_active_repo_list
-#   QUIRKY_DB='<radiobutton><label>puppy-quirky</label><action>/tmp/filterversion.sh puppy-quirky-official</action><action>/usr/local/petget/filterpkgs.sh</action><action>refresh:TREE1</action></radiobutton>'
-#   FIRST_DB='puppy-quirky-official'
-#   repocnt=1
-#  fi
-# fi
-#fi
-#
-#if [ "$DISTRO_BINARY_COMPAT" != "puppy" ];then #w477 if compat-distro is puppy, bypass.
-# for ONE_DB in `ls -1 /root/.packages/Packages-${DISTRO_BINARY_COMPAT}-${DISTRO_COMPAT_VERSION}* | tr '\n' ' '`
-# do
-#  BASEREPO="`basename $ONE_DB`"
-#  bPATTERN=' '"$BASEREPO"' '
-#  [ "`echo -n "$PKG_REPOS_ENABLED" | grep "$bPATTERN"`" = "" ] && continue
-#  repocnt=`expr $repocnt + 1`
-#  COMPAT_REPO="`echo -n "$ONE_DB" | rev | cut -f 1 -d '/' | rev | cut -f 2-4 -d '-'`"
-#  if [ "$COMPAT_DBS" = "" ];then #101205
-#   COMPAT_DBS="<radiobutton><label>${COMPAT_REPO}</label><action>/tmp/filterversion.sh ${COMPAT_REPO}</action><action>/usr/local/petget/filterpkgs.sh</action><action>refresh:TREE1</action></radiobutton>"
-#  else
-#   COMPAT_DBS="${COMPAT_DBS}
-#<radiobutton><label>${COMPAT_REPO}</label><action>/tmp/filterversion.sh ${COMPAT_REPO}</action><action>/usr/local/petget/filterpkgs.sh</action><action>refresh:TREE1</action></radiobutton>"
-#  fi
-#  echo "${COMPAT_REPO}" >> /tmp/petget_active_repo_list #read in findnames.sh
-#  [ "$FIRST_DB" = "" ] && [ $repocnt = 1 ] && FIRST_DB="$COMPAT_REPO"
-# done
-#fi
-#
-#PUPPY_DBS=""
-#
-##100903 another hack...
-#if [ "$DISTRO_COMPAT_VERSION" == "wary5" ];then
-# if [ "`echo -n "$PKG_REPOS_ENABLED" | grep 'puppy\-wary5'`" != "" ];then
-#  echo 'puppy-wary5-official' >> /tmp/petget_active_repo_list
-#  PUPPY_DBS='<radiobutton><label>puppy-wary5</label><action>/tmp/filterversion.sh puppy-wary5-official</action><action>/usr/local/petget/filterpkgs.sh</action><action>refresh:TREE1</action></radiobutton>'
-#  FIRST_DB='puppy-wary5-official'
-#  repocnt=1
-# fi
-#fi
-#
-##100911 another hack...
-#if [ "$DISTRO_COMPAT_VERSION" == "lucid" ];then
-# if [ "`echo -n "$PKG_REPOS_ENABLED" | grep 'puppy\-lucid'`" != "" ];then
-#  echo 'puppy-lucid-official' >> /tmp/petget_active_repo_list
-#  PUPPY_DBS='<radiobutton><label>puppy-lucid</label><action>/tmp/filterversion.sh puppy-lucid-official</action><action>/usr/local/petget/filterpkgs.sh</action><action>refresh:TREE1</action></radiobutton>'
-#  FIRST_DB='puppy-lucid-official'
-#  repocnt=1
-# fi
-#fi
-#
-#xrepocnt=$repocnt #w476
-#for ONE_DB in `ls -1 /root/.packages/Packages-puppy* | sort -r | tr '\n' ' '`
-#do
-# BASEREPO="`basename $ONE_DB`"
-# #100903 if wary5, want to list quirky repo, as has same code base...
-# [ "$BASEREPO" = "Packages-pet-quirky-official" ] && [ "$DISTRO_COMPAT_VERSION" != "wary5" ] && continue #100126 already handled above. 100903
-# [ "$BASEREPO" = "Packages-pet-wary5-official" ] && continue #100903 already handled above.
-# [ "$BASEREPO" = "Packages-pet-lucid-official" ] && continue #100911 already handled above.
-# bPATTERN=' '"$BASEREPO"' '
-# [ "`echo -n "$PKG_REPOS_ENABLED" | grep "$bPATTERN"`" = "" ] && continue
-# PUPPY_REPO="`echo -n "$ONE_DB" | rev | cut -f 1 -d '/' | rev | cut -f 2-4 -d '-'`"
-# #chop size of label down a bit, to fit in 800x600 window...
-# PUPPY_REPO_CUT="`echo -n "$ONE_DB" | rev | cut -f 1 -d '/' | rev | cut -f 2,3 -d '-'`"
-# PUPPY_REPO_FULL="`echo -n "$ONE_DB" | rev | cut -f 1 -d '/' | rev | cut -f 2-9 -d '-'`"
-# if [ "$PUPPY_DBS" = "" ];then #101205
-#  PUPPY_DBS="<radiobutton><label>${PUPPY_REPO_CUT}</label><action>/tmp/filterversion.sh ${PUPPY_REPO_FULL}</action><action>/usr/local/petget/filterpkgs.sh</action><action>refresh:TREE1</action></radiobutton>"
-# else
-#  PUPPY_DBS="${PUPPY_DBS}
-#<radiobutton><label>${PUPPY_REPO_CUT}</label><action>/tmp/filterversion.sh ${PUPPY_REPO_FULL}</action><action>/usr/local/petget/filterpkgs.sh</action><action>refresh:TREE1</action></radiobutton>"
-# fi
-# echo "${PUPPY_REPO}" >> /tmp/petget_active_repo_list #read in findnames.sh
-# [ "$FIRST_DB" = "" ] && [ $repocnt = $xrepocnt ] && FIRST_DB="$PUPPY_REPO" #w476
-# repocnt=`expr $repocnt + 1`
-#done
-
 FILTER_CATEG="Desktop"
 #note, cannot initialise radio buttons in gtkdialog...
-echo "Desktop" > /tmp/petget_filtercategory #must start with Desktop.
+echo "Desktop" > /tmp/petget/petget_filtercategory #must start with Desktop.
 echo "$FIRST_DB" > /tmp/petget/current-repo-triad #ex: slackware-12.2-official
 
 #if [ "$DISTRO_BINARY_COMPAT" = "ubuntu" -o "$DISTRO_BINARY_COMPAT" = "debian" ];then
 if [ 0 -eq 1 ];then #w020 disable this choice.
  #filter pkgs by first letter, for more speed. must start with ab...
- echo "ab" > /tmp/petget_pkg_first_char
+ echo "ab" > /tmp/petget/petget_pkg_first_char
  FIRSTCHARS="
-<radiobutton><label>a,b</label><action>echo ab > /tmp/petget_pkg_first_char</action><action>/usr/local/petget/filterpkgs.sh</action><action>refresh:TREE1</action></radiobutton>
-<radiobutton><label>c,d</label><action>echo cd > /tmp/petget_pkg_first_char</action><action>/usr/local/petget/filterpkgs.sh</action><action>refresh:TREE1</action></radiobutton>
-<radiobutton><label>e,f</label><action>echo ef > /tmp/petget_pkg_first_char</action><action>/usr/local/petget/filterpkgs.sh</action><action>refresh:TREE1</action></radiobutton>
-<radiobutton><label>g,h</label><action>echo gh > /tmp/petget_pkg_first_char</action><action>/usr/local/petget/filterpkgs.sh</action><action>refresh:TREE1</action></radiobutton>
-<radiobutton><label>i,j</label><action>echo ij > /tmp/petget_pkg_first_char</action><action>/usr/local/petget/filterpkgs.sh</action><action>refresh:TREE1</action></radiobutton>
-<radiobutton><label>k,l</label><action>echo kl > /tmp/petget_pkg_first_char</action><action>/usr/local/petget/filterpkgs.sh</action><action>refresh:TREE1</action></radiobutton>
-<radiobutton><label>m,n</label><action>echo mn > /tmp/petget_pkg_first_char</action><action>/usr/local/petget/filterpkgs.sh</action><action>refresh:TREE1</action></radiobutton>
-<radiobutton><label>o,p</label><action>echo op > /tmp/petget_pkg_first_char</action><action>/usr/local/petget/filterpkgs.sh</action><action>refresh:TREE1</action></radiobutton>
-<radiobutton><label>q,r</label><action>echo qr > /tmp/petget_pkg_first_char</action><action>/usr/local/petget/filterpkgs.sh</action><action>refresh:TREE1</action></radiobutton>
-<radiobutton><label>s,t</label><action>echo st > /tmp/petget_pkg_first_char</action><action>/usr/local/petget/filterpkgs.sh</action><action>refresh:TREE1</action></radiobutton>
-<radiobutton><label>u,v</label><action>echo uv > /tmp/petget_pkg_first_char</action><action>/usr/local/petget/filterpkgs.sh</action><action>refresh:TREE1</action></radiobutton>
-<radiobutton><label>w,x</label><action>echo wx > /tmp/petget_pkg_first_char</action><action>/usr/local/petget/filterpkgs.sh</action><action>refresh:TREE1</action></radiobutton>
-<radiobutton><label>y,z</label><action>echo yz > /tmp/petget_pkg_first_char</action><action>/usr/local/petget/filterpkgs.sh</action><action>refresh:TREE1</action></radiobutton>
-<radiobutton><label>0-9</label><action>echo 0123456789 > /tmp/petget_pkg_first_char</action><action>/usr/local/petget/filterpkgs.sh</action><action>refresh:TREE1</action></radiobutton>
-<radiobutton><label>ALL</label><action>echo ALL > /tmp/petget_pkg_first_char</action><action>/usr/local/petget/filterpkgs.sh</action><action>refresh:TREE1</action></radiobutton>
+<radiobutton><label>a,b</label><action>echo ab > /tmp/petget/petget_pkg_first_char</action><action>/usr/local/petget/filterpkgs.sh</action><action>refresh:TREE1</action></radiobutton>
+<radiobutton><label>c,d</label><action>echo cd > /tmp/petget/petget_pkg_first_char</action><action>/usr/local/petget/filterpkgs.sh</action><action>refresh:TREE1</action></radiobutton>
+<radiobutton><label>e,f</label><action>echo ef > /tmp/petget/petget_pkg_first_char</action><action>/usr/local/petget/filterpkgs.sh</action><action>refresh:TREE1</action></radiobutton>
+<radiobutton><label>g,h</label><action>echo gh > /tmp/petget/petget_pkg_first_char</action><action>/usr/local/petget/filterpkgs.sh</action><action>refresh:TREE1</action></radiobutton>
+<radiobutton><label>i,j</label><action>echo ij > /tmp/petget/petget_pkg_first_char</action><action>/usr/local/petget/filterpkgs.sh</action><action>refresh:TREE1</action></radiobutton>
+<radiobutton><label>k,l</label><action>echo kl > /tmp/petget/petget_pkg_first_char</action><action>/usr/local/petget/filterpkgs.sh</action><action>refresh:TREE1</action></radiobutton>
+<radiobutton><label>m,n</label><action>echo mn > /tmp/petget/petget_pkg_first_char</action><action>/usr/local/petget/filterpkgs.sh</action><action>refresh:TREE1</action></radiobutton>
+<radiobutton><label>o,p</label><action>echo op > /tmp/petget/petget_pkg_first_char</action><action>/usr/local/petget/filterpkgs.sh</action><action>refresh:TREE1</action></radiobutton>
+<radiobutton><label>q,r</label><action>echo qr > /tmp/petget/petget_pkg_first_char</action><action>/usr/local/petget/filterpkgs.sh</action><action>refresh:TREE1</action></radiobutton>
+<radiobutton><label>s,t</label><action>echo st > /tmp/petget/petget_pkg_first_char</action><action>/usr/local/petget/filterpkgs.sh</action><action>refresh:TREE1</action></radiobutton>
+<radiobutton><label>u,v</label><action>echo uv > /tmp/petget/petget_pkg_first_char</action><action>/usr/local/petget/filterpkgs.sh</action><action>refresh:TREE1</action></radiobutton>
+<radiobutton><label>w,x</label><action>echo wx > /tmp/petget/petget_pkg_first_char</action><action>/usr/local/petget/filterpkgs.sh</action><action>refresh:TREE1</action></radiobutton>
+<radiobutton><label>y,z</label><action>echo yz > /tmp/petget/petget_pkg_first_char</action><action>/usr/local/petget/filterpkgs.sh</action><action>refresh:TREE1</action></radiobutton>
+<radiobutton><label>0-9</label><action>echo 0123456789 > /tmp/petget/petget_pkg_first_char</action><action>/usr/local/petget/filterpkgs.sh</action><action>refresh:TREE1</action></radiobutton>
+<radiobutton><label>ALL</label><action>echo ALL > /tmp/petget/petget_pkg_first_char</action><action>/usr/local/petget/filterpkgs.sh</action><action>refresh:TREE1</action></radiobutton>
 "
  xFIRSTCHARS="<hbox>
 ${FIRSTCHARS}
 </hbox>"
 else
  #do not dispay the alphabetic radiobuttons...
- echo "ALL" > /tmp/petget_pkg_first_char
+ echo "ALL" > /tmp/petget/petget_pkg_first_char
  FIRSTCHARS=""
  xFIRSTCHARS=""
 fi
@@ -400,8 +327,8 @@ export GUIONLYSTR ANYTYPESTR GUIEXCSTR NONGUISTR #used in ui_classic and ui_zigg
 
 echo '#!/bin/sh
 echo $1 > /tmp/petget/current-repo-triad
-' > /tmp/filterversion.sh
-chmod 777 /tmp/filterversion.sh
+' > /tmp/petget/filterversion.sh
+chmod 777 /tmp/petget/filterversion.sh
 
 #  <text use-markup=\"true\"><label>\"<b>To install or uninstall,</b>\"</label></text>
 
@@ -413,16 +340,18 @@ fi
 if [ "$DISTRO_BINARY_COMPAT" = "t2" ];then #reintroduce the 'ALL' category.
  ALLCATEGORY="<radiobutton><label>$(gettext 'ALL')</label><action>/usr/local/petget/filterpkgs.sh ALL</action><action>refresh:TREE1</action></radiobutton>"
 fi
-
 #120515 ditto for gentoo build...
 if [ "$DISTRO_BINARY_COMPAT" = "gentoo" ];then #reintroduce the 'ALL' category.
  ALLCATEGORY="<radiobutton><label>$(gettext 'ALL')</label><action>/usr/local/petget/filterpkgs.sh ALL</action><action>refresh:TREE1</action></radiobutton>"
 fi
-
 #180428 ditto for 'oe' (OpenEmbedded) build...
 if [ "$DISTRO_BINARY_COMPAT" = "oe" ];then #reintroduce the 'ALL' category.
  ALLCATEGORY="<radiobutton><label>$(gettext 'ALL')</label><action>/usr/local/petget/filterpkgs.sh ALL</action><action>refresh:TREE1</action></radiobutton>"
 fi
+#20230914 ditto for void... no, it slows the UI down too much
+#if [ "$DISTRO_BINARY_COMPAT" = "void" ];then #reintroduce the 'ALL' category.
+# ALLCATEGORY="<radiobutton><label>$(gettext 'ALL')</label><action>/usr/local/petget/filterpkgs.sh ALL</action><action>refresh:TREE1</action></radiobutton>"
+#fi
 
 DB_ORDERED="$REPOS_RADIO" #120831
 ##w476 reverse COMPAT_DBS, PUPPY_DBS...

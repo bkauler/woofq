@@ -17,6 +17,7 @@
 #120819 fix for 120811.
 #120827 search may find pkgs that are already installed, mark with mini-tick icon.
 #120908 need version field. (used in show_installed_version_diffs.sh). 120909 bug fix.
+#20230914 stupid grep now objects to '\-' use busybox grep. no, grep -P works. no, in case only have busybox grep, it doesn't understand -P
 
 #puppy package database format:
 #pkgname|nameonly|version|pkgrelease|category|size|path|fullfilename|dependencies|description|compileddistro|compiledrelease|repo|
@@ -40,7 +41,7 @@ entryPATTERN3="`echo -n "$ENTRY1" | sed -e 's%\\-%\\\\-%g' -e 's%\\.%\\\\.%g' -e
 entryPATTERN4="`echo -n "$ENTRY1" | sed -e 's%\\-%\\\\-%g' -e 's%\\.%\\\\.%g' -e 's%\\*%.*%g' | awk '{print $4}'`"
 
 CURRENTREPO="`cat /tmp/petget/current-repo-triad`" #search here first.
-ALLACTIVEREPOS="`cat /tmp/petget_active_repo_list`"
+ALLACTIVEREPOS="`cat /tmp/petget/petget_active_repo_list`"
 
 #120504 ask which repos...
 export ASKREPO_DIALOG="<window title=\"$(gettext 'PPM: search')\" icon-name=\"gtk-about\">
@@ -73,7 +74,7 @@ SEARCH_REPOS_FLAG="current"
 if [ "$SEARCH_REPOS_FLAG" = "current" ];then #120504
  REPOLIST="$CURRENTREPO"
 else
- #REPOLIST="${CURRENTREPO} `cat /tmp/petget_active_repo_list | grep -v "$CURRENTREPO" | tr '\n' ' '`" #repo-triads list.
+ #REPOLIST="${CURRENTREPO} `cat /tmp/petget/petget_active_repo_list | grep -v "$CURRENTREPO" | tr '\n' ' '`" #repo-triads list.
  REPOLIST="`echo "$ALLACTIVEREPOS"  | tr '\n' ' '`"
 fi
 
@@ -111,11 +112,11 @@ do
  if [ "$FNDENTRIES" != "" ];then
   FIRSTCHAR="`echo "$FNDENTRIES" | cut -c 1 | tr '\n' ' ' | sed -e 's% %%g'`"
   #write these just in case needed...
-  ALPHAPRE="`cat /tmp/petget_pkg_first_char`"
+  ALPHAPRE="`cat /tmp/petget/petget_pkg_first_char`"
   #if [ "$ALPHAPRE" != "ALL" ];then
-  # echo "$FIRSTCHAR" > /tmp/petget_pkg_first_char
+  # echo "$FIRSTCHAR" > /tmp/petget/petget_pkg_first_char
   #fi
-  #echo "ALL" > /tmp/petget_filtercategory
+  #echo "ALL" > /tmp/petget/petget_filtercategory
   #echo "$ONEREPO" > /tmp/petget/current-repo-triad #ex: slackware-12.2-official. 120504 BK remove.
   #this is read when update TREE1 in pkg_chooser.sh...
   #echo "$FNDENTRIES" | cut -f 1,10 -d '|' > /tmp/petget/filterpkgs.results
@@ -134,7 +135,7 @@ done
 #110530 ignore packages with different kernel version number, format -k2.6.32.28- in pkg name...
 if [ "$FNDIT" = "yes" ];then
  GOODKERNPTN="`uname -r | sed -e 's%\.%\\\.%g' -e 's%^%\\\-k%' -e 's%$%$%'`" #ex: \-k2.6.32$
- BADKERNPTNS="`grep -o '\-k2\.6\.[^-|a-zA-Z]*' /tmp/petget/filterpkgs.results | cut -f 1 -d '|' | grep -v "$GOODKERNPTN" | sed -e 's%$%-%' -e 's%\.%\\\.%g' -e 's%\-%\\\-%g'`" #ex: \-k2\.6\.32\.28\-
+ BADKERNPTNS="`busybox grep -o '\-k2\.6\.[^-|a-zA-Z]*' /tmp/petget/filterpkgs.results | cut -f 1 -d '|' | grep -v "$GOODKERNPTN" | sed -e 's%$%-%' -e 's%\.%\\\.%g' -e 's%\-%\\\-%g'`" #ex: \-k2\.6\.32\.28\- #20230914
  if [ "$BADKERNPTNS" ];then
   echo "$BADKERNPTNS" >> /tmp/petget_badkernptns
   grep -v -f /tmp/petget_badkernptns /tmp/petget/filterpkgs.results > /tmp/petget/filterpkgs.resultsxxx
@@ -150,9 +151,9 @@ if [ "$FNDIT" = "no" ];then
 else
  
  #120827 search may find pkgs that are already installed...
- if [ -f /tmp/petget_installed_patterns_all ];then #precaution.
-  grep -f /tmp/petget_installed_patterns_all -v /tmp/petget/filterpkgs.results > /tmp/petget/filterpkgs.results.notinstalled
-  grep -f /tmp/petget_installed_patterns_all /tmp/petget/filterpkgs.results > /tmp/petget/filterpkgs.results.installed
+ if [ -f /tmp/petget/petget_installed_patterns_all ];then #precaution.
+  grep -f /tmp/petget/petget_installed_patterns_all -v /tmp/petget/filterpkgs.results > /tmp/petget/filterpkgs.results.notinstalled
+  grep -f /tmp/petget/petget_installed_patterns_all /tmp/petget/filterpkgs.results > /tmp/petget/filterpkgs.results.installed
   cp -f /tmp/petget/filterpkgs.results.notinstalled /tmp/petget/filterpkgs.results
   if [ -s /tmp/petget/filterpkgs.results.installed ];then
    #change category field to "tick" (postfilerpkgs.sh converts this to "mini-tick", which will display /usr/local/lib/X11/mini-icons/mini-tick.xpm)...

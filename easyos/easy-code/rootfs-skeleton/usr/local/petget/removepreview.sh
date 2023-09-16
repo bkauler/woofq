@@ -374,9 +374,9 @@ fi
 
 #remove temp file so main gui window will re-filter pkgs display...
 FIRSTCHAR="`echo -n "$DB_pkgname" | cut -c 1 | tr '[A-Z]' '[a-z]'`"
-rm -f /tmp/petget_fltrd_repo_${FIRSTCHAR}* 2>/dev/null
-rm -f /tmp/petget_fltrd_repo_?${FIRSTCHAR}* 2>/dev/null
-[ "`echo -n "$FIRSTCHAR" | grep '[0-9]'`" != "" ] && rm -f /tmp/petget_fltrd_repo_0* 2>/dev/null
+rm -f /tmp/petget/petget_fltrd_repo_${FIRSTCHAR}* 2>/dev/null
+rm -f /tmp/petget/petget_fltrd_repo_?${FIRSTCHAR}* 2>/dev/null
+[ "`echo -n "$FIRSTCHAR" | grep '[0-9]'`" != "" ] && rm -f /tmp/petget/petget_fltrd_repo_0* 2>/dev/null
 
 #announce any deps that might be removable...
 echo -n "" > /tmp/petget-deps-maybe-rem

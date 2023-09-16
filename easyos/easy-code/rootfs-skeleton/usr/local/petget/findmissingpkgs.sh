@@ -2,7 +2,7 @@
 #(c) Copyright Barry Kauler 2009, puppylinux.com
 #2009 Lesser GPL licence v2 (see /usr/share/doc/legal).
 #called from /usr/local/petget/installpreview.sh or check_deps.sh
-#/tmp/petget_pkg_name_aliases_patterns is written by pkg_chooser.sh.
+#/tmp/petget/petget_pkg_name_aliases_patterns is written by pkg_chooser.sh.
 #passed param is a list of dependencies (DB_dependencies field of the pkg database).
 #results format, see comment end of this script.
 #100126 handle PKG_NAME_IGNORE variable from file PKGS_MANAGEMENT.
@@ -33,28 +33,28 @@ xDB_dependencies="`echo -n "$DB_dependencies" | tr ',' '\n' | cut -f 1 -d '&' | 
 
 #make pkg deps into patterns... 110722 change DB_dependencies to xDB_dependencies...
 PKGDEPS_PATTERNS="`echo -n "$xDB_dependencies" | tr ',' '\n' | grep '^+' | sed -e 's%^+%%' -e 's%^%|%' -e 's%$%|%'`"
-echo "$PKGDEPS_PATTERNS" > /tmp/petget_pkg_deps_patterns #ex line, mageia: |libdbus-glib-1_2|
+echo "$PKGDEPS_PATTERNS" > /tmp/petget/petget_pkg_deps_patterns #ex line, mageia: |libdbus-glib-1_2|
 
 #110722 same as above, but with versioning info...
 PKGDEPS_PATTERNS_WITHVER="`echo -n "$DB_dependencies" | tr ',' '\n' | grep '^+' | sed -e 's%^+%%' -e 's%^%|%' -e 's%$%|%' -e 's%&%|%g'`"
-echo "$PKGDEPS_PATTERNS_WITHVER" > /tmp/petget_pkg_deps_patterns_with_versioning #ex line, mageia: |libdbus-glib-1_2|ge2.3.6|
+echo "$PKGDEPS_PATTERNS_WITHVER" > /tmp/petget/petget_pkg_deps_patterns_with_versioning #ex line, mageia: |libdbus-glib-1_2|ge2.3.6|
 
 #110706 mageia, a dep "libdbus-glib-1_2" must be located in variable PKG_ALIASES_INSTALLED (in file PKGS_MANAGEMENT)...
-#/tmp/petget_pkg_name_aliases_patterns[_raw] created in check_deps.sh
-for ONEALIAS in `cat /tmp/petget_pkg_name_aliases_patterns_raw | tr '\n' ' ' | tr ',' ' '` #ex: |cxxlibs|,|glibc.*|,|libc\-.*|
+#/tmp/petget/petget_pkg_name_aliases_patterns[_raw] created in check_deps.sh
+for ONEALIAS in `cat /tmp/petget/petget_pkg_name_aliases_patterns_raw | tr '\n' ' ' | tr ',' ' '` #ex: |cxxlibs|,|glibc.*|,|libc\-.*|
 do
- FNDDEPSPTNS="`grep "$ONEALIAS" /tmp/petget_pkg_deps_patterns`"
+ FNDDEPSPTNS="`grep "$ONEALIAS" /tmp/petget/petget_pkg_deps_patterns`"
  if [ "$FNDDEPSPTNS" != "" ];then
-  echo "$FNDDEPSPTNS" >> /tmp/petget_pkg_name_aliases_patterns
+  echo "$FNDDEPSPTNS" >> /tmp/petget/petget_pkg_name_aliases_patterns
  fi
 done
 
 #need patterns of all installed pkgs...
-#100711 /tmp/petget_installed_patterns_system is created in pkg_chooser.sh.
-cp -f /tmp/petget_installed_patterns_system /tmp/petget_installed_patterns_all
+#100711 /tmp/petget/petget_installed_patterns_system is created in pkg_chooser.sh.
+cp -f /tmp/petget/petget_installed_patterns_system /tmp/petget/petget_installed_patterns_all
 if [ -s /root/.packages/user-installed-packages ];then
  INSTALLED_PATTERNS_USER="`cat /root/.packages/user-installed-packages | cut -f 2 -d '|' | sed -e 's%^%|%' -e 's%$%|%' -e 's%\\-%\\\\-%g'`"
- echo "$INSTALLED_PATTERNS_USER" >> /tmp/petget_installed_patterns_all
+ echo "$INSTALLED_PATTERNS_USER" >> /tmp/petget/petget_installed_patterns_all
  #120822 this code also in pkg_chooser.sh, find alt deb names...
  case $DISTRO_BINARY_COMPAT in
   ubuntu|debian|raspbian|devuan) #150419
@@ -71,12 +71,12 @@ if [ -s /root/.packages/user-installed-packages ];then
      if [ "$INSTALLED_ALT_NAMES" ];then
       INSTALLED_ALT_PTNS="$(echo "$INSTALLED_ALT_NAMES" | sed -e 's%^%|%' -e 's%$%|%' -e 's%\-%\\-%g')"
       echo "$INSTALLED_ALT_PTNS" > /var/local/petget/installed_alt_ptns_pet_user
-      echo "$INSTALLED_ALT_PTNS" >> /tmp/petget_installed_patterns_all
+      echo "$INSTALLED_ALT_PTNS" >> /tmp/petget/petget_installed_patterns_all
      fi
     fi
     touch /var/local/petget/installed_alt_ptns_pet_user
    else
-    cat /var/local/petget/installed_alt_ptns_pet_user >> /tmp/petget_installed_patterns_all
+    cat /var/local/petget/installed_alt_ptns_pet_user >> /tmp/petget/petget_installed_patterns_all
    fi
   ;;
  esac
@@ -84,47 +84,47 @@ fi
 
 #add these alias names to the installed patterns...
 #ALIASES_PATTERNS="`echo -n "$PKG_ALIASES_INSTALLED" | tr -s ' ' | sed -e 's%^ %%' -e 's% $%%' | tr ' ' '\n' | sed -e 's%^%|%' -e 's%$%|%' -e 's%\\-%\\\\-%g'`"
-#echo "$ALIASES_PATTERNS" >> /tmp/petget_installed_patterns_all
+#echo "$ALIASES_PATTERNS" >> /tmp/petget/petget_installed_patterns_all
 #packages may have different names, add them to installed list...
-INSTALLEDALIASES="`grep --file=/tmp/petget_installed_patterns_all /tmp/petget_pkg_name_aliases_patterns | tr ',' '\n'`"
-[ "$INSTALLEDALIASES" ] && echo "$INSTALLEDALIASES" >> /tmp/petget_installed_patterns_all
+INSTALLEDALIASES="`grep --file=/tmp/petget/petget_installed_patterns_all /tmp/petget/petget_pkg_name_aliases_patterns | tr ',' '\n'`"
+[ "$INSTALLEDALIASES" ] && echo "$INSTALLEDALIASES" >> /tmp/petget/petget_installed_patterns_all
 
 #20220905 dpkg/apt support. this code also in pkg_chooser.sh and check_deps.sh
-echo -n '' > /tmp/petget_installed_patterns_dpkg
+echo -n '' > /tmp/petget/petget_installed_patterns_dpkg
 if [ -s /var/local/pkgget/deb_compat_specs ];then
  if [ -d /var/lib/dpkg/info ];then
-  (cd /var/lib/dpkg/info && ls -1 *.list) > /tmp/petget_installed_patterns_dpkg
-  sed -i -e 's%\.list$%%' /tmp/petget_installed_patterns_dpkg
-  sed -i -e 's%^%|%' -e 's%$%|%' -e 's%\-%\\-%g' /tmp/petget_installed_patterns_dpkg
-  if [ -s /tmp/petget_installed_patterns_dpkg ];then
-   cat /tmp/petget_installed_patterns_dpkg >> /tmp/petget_installed_patterns_all
-   sort -u /tmp/petget_installed_patterns_all > /tmp/petget_installed_patterns_allTEMP
-   mv -f /tmp/petget_installed_patterns_allTEMP /tmp/petget_installed_patterns_all
+  (cd /var/lib/dpkg/info && ls -1 *.list) > /tmp/petget/petget_installed_patterns_dpkg
+  sed -i -e 's%\.list$%%' /tmp/petget/petget_installed_patterns_dpkg
+  sed -i -e 's%^%|%' -e 's%$%|%' -e 's%\-%\\-%g' /tmp/petget/petget_installed_patterns_dpkg
+  if [ -s /tmp/petget/petget_installed_patterns_dpkg ];then
+   cat /tmp/petget/petget_installed_patterns_dpkg >> /tmp/petget/petget_installed_patterns_all
+   sort -u /tmp/petget/petget_installed_patterns_all > /tmp/petget/petget_installed_patterns_allTEMP
+   mv -f /tmp/petget/petget_installed_patterns_allTEMP /tmp/petget/petget_installed_patterns_all
   fi
  fi
 fi
 
 #110706 mageia, a dep "libdbus-glib-1_2" must be located in variable PKG_ALIASES_INSTALLED (in file PKGS_MANAGEMENT)...
-#/tmp/petget_pkg_name_aliases_patterns[_raw] created in check_deps.sh, pkg_chooser.sh
-for ONEALIAS in `cat /tmp/petget_pkg_name_aliases_patterns_raw | tr '\n' ' ' | tr ',' ' '` #ex: |cxxlibs|,|glibc.*|,|libc\-.*|
+#/tmp/petget/petget_pkg_name_aliases_patterns[_raw] created in check_deps.sh, pkg_chooser.sh
+for ONEALIAS in `cat /tmp/petget/petget_pkg_name_aliases_patterns_raw | tr '\n' ' ' | tr ',' ' '` #ex: |cxxlibs|,|glibc.*|,|libc\-.*|
 do
- FNDPTN="`grep "$ONEALIAS" /tmp/petget_installed_patterns_all`"
+ FNDPTN="`grep "$ONEALIAS" /tmp/petget/petget_installed_patterns_all`"
  if [ "$FNDPTN" ];then
-  FNDDEPPTN="`grep "$ONEALIAS" /tmp/petget_pkg_deps_patterns`"
-  [ "$FNDDEPPTN" ] && echo "$FNDDEPPTN" >> /tmp/petget_installed_patterns_all
+  FNDDEPPTN="`grep "$ONEALIAS" /tmp/petget/petget_pkg_deps_patterns`"
+  [ "$FNDDEPPTN" ] && echo "$FNDDEPPTN" >> /tmp/petget/petget_installed_patterns_all
  fi
 done
 
 #100126 some names to ignore, as most likely already installed...
-#/tmp/petget_pkg_name_ignore_patterns is created in pkg_choose.sh
-cat /tmp/petget_pkg_name_ignore_patterns >> /tmp/petget_installed_patterns_all
+#/tmp/petget/petget_pkg_name_ignore_patterns is created in pkg_choose.sh
+cat /tmp/petget/petget_pkg_name_ignore_patterns >> /tmp/petget/petget_installed_patterns_all
 
 #clean it up...
-grep -v '^$' /tmp/petget_installed_patterns_all > /tmp/petget_installed_patterns_all-tmp
-mv -f /tmp/petget_installed_patterns_all-tmp /tmp/petget_installed_patterns_all
+grep -v '^$' /tmp/petget/petget_installed_patterns_all > /tmp/petget/petget_installed_patterns_all-tmp
+mv -f /tmp/petget/petget_installed_patterns_all-tmp /tmp/petget/petget_installed_patterns_all
 
 #remove installed pkgs from the list of dependencies... 170107 ignore case...
-MISSINGDEPS_PATTERNS="`grep -i --file=/tmp/petget_installed_patterns_all -v /tmp/petget_pkg_deps_patterns | grep -v '^$'`"
+MISSINGDEPS_PATTERNS="`grep -i --file=/tmp/petget/petget_installed_patterns_all -v /tmp/petget/petget_pkg_deps_patterns | grep -v '^$'`"
 echo "$MISSINGDEPS_PATTERNS" > /tmp/petget_missingpkgs_patterns #can be read by dependencies.sh, find_deps.sh.
 
 #notes on results:
@@ -133,7 +133,7 @@ echo "$MISSINGDEPS_PATTERNS" > /tmp/petget_missingpkgs_patterns #can be read by 
 #  |kdelibs|
 #  |mesa-lib|
 #  |qt|
-#/tmp/petget_installed_patterns_all (read in dependencies.sh) has a list of already installed
+#/tmp/petget/petget_installed_patterns_all (read in dependencies.sh) has a list of already installed
 #  packages, both builtin and user-installed. One on each line, exs:
 #  |915resolution|
 #  |a52dec|
@@ -143,7 +143,7 @@ echo "$MISSINGDEPS_PATTERNS" > /tmp/petget_missingpkgs_patterns #can be read by 
 #  ...notice the '-' are backslashed.
 
 #110722
-MISSINGDEPS_PATTERNS_WITHVER="`grep --file=/tmp/petget_missingpkgs_patterns /tmp/petget_pkg_deps_patterns_with_versioning | grep -v '^$'`"
+MISSINGDEPS_PATTERNS_WITHVER="`grep --file=/tmp/petget_missingpkgs_patterns /tmp/petget/petget_pkg_deps_patterns_with_versioning | grep -v '^$'`"
 echo "$MISSINGDEPS_PATTERNS_WITHVER" > /tmp/petget_missingpkgs_patterns_with_versioning #can be read by dependencies.sh, find_deps.sh.
 #...ex each line: |kdebase|ge2.3.6|
 # ex with chained operators: |kdebase|ge2.3.6|lt2.4.5|

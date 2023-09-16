@@ -37,9 +37,9 @@ echo -n "" > /tmp/missinglibs_hidden.txt #100830
 if [ ! -f /root/.packages/layers-installed-packages ];then
  #need to include devx-only-installed-packages, if loaded...
  if which gcc;then
-  cp -f /root/.packages/woof-installed-packages /tmp/ppm-layers-installed-packages
-  cat /root/.packages/devx-only-installed-packages >> /tmp/ppm-layers-installed-packages
-  sort -u /tmp/ppm-layers-installed-packages > /root/.packages/layers-installed-packages
+  cp -f /root/.packages/woof-installed-packages /tmp/petget/ppm-layers-installed-packages
+  cat /root/.packages/devx-only-installed-packages >> /tmp/petget/ppm-layers-installed-packages
+  sort -u /tmp/petget/ppm-layers-installed-packages > /root/.packages/layers-installed-packages
  else
   cp -f /root/.packages/woof-installed-packages /root/.packages/layers-installed-packages
  fi
@@ -52,63 +52,63 @@ fi
 /usr/local/petget/finduserinstalledpkgs.sh #writes to /tmp/installedpkgs.results
 
 #100711 moved from findmissingpkgs.sh...
-if [ ! -f /tmp/petget_installed_patterns_system ];then
+if [ ! -f /tmp/petget/petget_installed_patterns_system ];then
  INSTALLED_PATTERNS_SYS="`cat /root/.packages/layers-installed-packages | cut -f 2 -d '|' | sed -e 's%^%|%' -e 's%$%|%' -e 's%\\-%\\\\-%g'`"
- echo "$INSTALLED_PATTERNS_SYS" > /tmp/petget_installed_patterns_system
+ echo "$INSTALLED_PATTERNS_SYS" > /tmp/petget/petget_installed_patterns_system
  #PKGS_SPECS_TABLE also has system-installed names, some of them are generic combinations of pkgs...
  INSTALLED_PATTERNS_GEN="`echo "$PKGS_SPECS_TABLE" | grep '^yes' | cut -f 2 -d '|' |  sed -e 's%^%|%' -e 's%$%|%' -e 's%\\-%\\\\-%g'`"
- echo "$INSTALLED_PATTERNS_GEN" >> /tmp/petget_installed_patterns_system
- sort -u /tmp/petget_installed_patterns_system > /tmp/petget_installed_patterns_systemx
- mv -f /tmp/petget_installed_patterns_systemx /tmp/petget_installed_patterns_system
+ echo "$INSTALLED_PATTERNS_GEN" >> /tmp/petget/petget_installed_patterns_system
+ sort -u /tmp/petget/petget_installed_patterns_system > /tmp/petget/petget_installed_patterns_systemx
+ mv -f /tmp/petget/petget_installed_patterns_systemx /tmp/petget/petget_installed_patterns_system
 fi
 #100711 this code repeated in findmissingpkgs.sh...
-cp -f /tmp/petget_installed_patterns_system /tmp/petget_installed_patterns_all
+cp -f /tmp/petget/petget_installed_patterns_system /tmp/petget/petget_installed_patterns_all
 INSTALLED_PATTERNS_USER="`cat /root/.packages/user-installed-packages | cut -f 2 -d '|' | sed -e 's%^%|%' -e 's%$%|%' -e 's%\\-%\\\\-%g'`"
-echo "$INSTALLED_PATTERNS_USER" >> /tmp/petget_installed_patterns_all
+echo "$INSTALLED_PATTERNS_USER" >> /tmp/petget/petget_installed_patterns_all
 
 #20220905 dpkg/apt support. this code also in pkg_chooser.sh and findmissingpkgs.sh
-echo -n '' > /tmp/petget_installed_patterns_dpkg
+echo -n '' > /tmp/petget/petget_installed_patterns_dpkg
 if [ -s /var/local/pkgget/deb_compat_specs ];then
  if [ -d /var/lib/dpkg/info ];then
-  (cd /var/lib/dpkg/info && ls -1 *.list) > /tmp/petget_installed_patterns_dpkg
-  sed -i -e 's%\.list$%%' /tmp/petget_installed_patterns_dpkg
-  sed -i -e 's%^%|%' -e 's%$%|%' -e 's%\-%\\-%g' /tmp/petget_installed_patterns_dpkg
-  if [ -s /tmp/petget_installed_patterns_dpkg ];then
-   cat /tmp/petget_installed_patterns_dpkg >> /tmp/petget_installed_patterns_all
-   sort -u /tmp/petget_installed_patterns_all > /tmp/petget_installed_patterns_allTEMP
-   mv -f /tmp/petget_installed_patterns_allTEMP /tmp/petget_installed_patterns_all
+  (cd /var/lib/dpkg/info && ls -1 *.list) > /tmp/petget/petget_installed_patterns_dpkg
+  sed -i -e 's%\.list$%%' /tmp/petget/petget_installed_patterns_dpkg
+  sed -i -e 's%^%|%' -e 's%$%|%' -e 's%\-%\\-%g' /tmp/petget/petget_installed_patterns_dpkg
+  if [ -s /tmp/petget/petget_installed_patterns_dpkg ];then
+   cat /tmp/petget/petget_installed_patterns_dpkg >> /tmp/petget/petget_installed_patterns_all
+   sort -u /tmp/petget/petget_installed_patterns_all > /tmp/petget/petget_installed_patterns_allTEMP
+   mv -f /tmp/petget/petget_installed_patterns_allTEMP /tmp/petget/petget_installed_patterns_all
   fi
  fi
 fi
 
 #process name aliases into patterns (used in filterpkgs.sh, findmissingpkgs.sh) ... 100126...
 xPKG_NAME_ALIASES="`echo "$PKG_NAME_ALIASES" | tr ' ' '\n' | grep -v '^$' | sed -e 's%^%|%' -e 's%$%|%' -e 's%,%|,|%g' -e 's%\\*%.*%g'`"
-echo "$xPKG_NAME_ALIASES" > /tmp/petget_pkg_name_aliases_patterns_raw #110706
-cp -f /tmp/petget_pkg_name_aliases_patterns_raw /tmp/petget_pkg_name_aliases_patterns #110706 _raw see findmissingpkgs.sh
+echo "$xPKG_NAME_ALIASES" > /tmp/petget/petget_pkg_name_aliases_patterns_raw #110706
+cp -f /tmp/petget/petget_pkg_name_aliases_patterns_raw /tmp/petget/petget_pkg_name_aliases_patterns #110706 _raw see findmissingpkgs.sh
 
-sed -e 's%\\%%g' /tmp/petget_installed_patterns_all > /tmp/petget_installed_patterns_all2 #101220 hack bugfix, \- should be just -.
+sed -e 's%\\%%g' /tmp/petget/petget_installed_patterns_all > /tmp/petget/petget_installed_patterns_all2 #101220 hack bugfix, \- should be just -.
 
 #100711 above has a problem as it has wildcards. need to expand...
 #ex: PKG_NAME_ALIASES has an entry 'cxxlibs,glibc*,libc-*', the above creates '|cxxlibs|,|glibc.*|,|libc\-.*|',
 #    after expansion: '|cxxlibs|,|glibc|,|libc-|,|glibc|,|glibc_dev|,|glibc_locales|,|glibc-solibs|,|glibc-zoneinfo|'
-echo -n "" > /tmp/petget_pkg_name_aliases_patterns_expanded
-for ONEALIASLINE in `cat /tmp/petget_pkg_name_aliases_patterns | tr '\n' ' '` #ex: |cxxlibs|,|glibc.*|,|libc\-.*|
+echo -n "" > /tmp/petget/petget_pkg_name_aliases_patterns_expanded
+for ONEALIASLINE in `cat /tmp/petget/petget_pkg_name_aliases_patterns | tr '\n' ' '` #ex: |cxxlibs|,|glibc.*|,|libc\-.*|
 do
- echo -n "" > /tmp/petget_temp1
+ echo -n "" > /tmp/petget/petget_temp1
  for PARTONELINE in `echo -n "$ONEALIASLINE" | tr ',' ' '`
  do
-  grep "$PARTONELINE" /tmp/petget_installed_patterns_all2 >> /tmp/petget_temp1 #101220 hack see above.
+  grep "$PARTONELINE" /tmp/petget/petget_installed_patterns_all2 >> /tmp/petget/petget_temp1 #101220 hack see above.
  done
  ZZZ="`echo "$ONEALIASLINE" | sed -e 's%\.\*%%g' | tr -d '\\'`"
- [ -s /tmp/petget_temp1 ] && ZZZ="${ZZZ},`cat /tmp/petget_temp1 | tr '\n' ',' | tr -s ',' | tr -d '\\'`"
+ [ -s /tmp/petget/petget_temp1 ] && ZZZ="${ZZZ},`cat /tmp/petget/petget_temp1 | tr '\n' ',' | tr -s ',' | tr -d '\\'`"
  ZZZ="`echo -n "$ZZZ" | sed -e 's%,$%%'`"
- echo "$ZZZ" >> /tmp/petget_pkg_name_aliases_patterns_expanded
+ echo "$ZZZ" >> /tmp/petget/petget_pkg_name_aliases_patterns_expanded
 done
-cp -f /tmp/petget_pkg_name_aliases_patterns_expanded /tmp/petget_pkg_name_aliases_patterns
+cp -f /tmp/petget/petget_pkg_name_aliases_patterns_expanded /tmp/petget/petget_pkg_name_aliases_patterns
 
 #w480 PKG_NAME_IGNORE is definedin PKGS_MANAGEMENT file... 100126...
 xPKG_NAME_IGNORE="`echo "$PKG_NAME_IGNORE" | tr ' ' '\n' | grep -v '^$' | sed -e 's%^%|%' -e 's%$%|%' -e 's%,%|,|%g' -e 's%\\*%.*%g'`"
-echo "$xPKG_NAME_IGNORE" > /tmp/petget_pkg_name_ignore_patterns
+echo "$xPKG_NAME_IGNORE" > /tmp/petget/petget_pkg_name_ignore_patterns
 #######100718 end copied code block#######
 
 dependcheckfunc() {
@@ -171,7 +171,7 @@ missingpkgsfunc() {
  X2PID=$!
   USER_DB_dependencies="`cat /root/.packages/user-installed-packages | cut -f 9 -d '|' | tr ',' '\n' | sort -u | tr '\n' ','`"
   /usr/local/petget/findmissingpkgs.sh "$USER_DB_dependencies"
-  #...returns /tmp/petget_installed_patterns_all, /tmp/petget_pkg_deps_patterns, /tmp/petget_missingpkgs_patterns
+  #...returns /tmp/petget/petget_installed_patterns_all, /tmp/petget/petget_pkg_deps_patterns, /tmp/petget_missingpkgs_patterns
   MISSINGDEPS_PATTERNS="`cat /tmp/petget_missingpkgs_patterns`" #v431
   #/tmp/petget_missingpkgs_patterns has a list of missing dependencies, format ex:
   #|kdebase|
