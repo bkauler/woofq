@@ -1,8 +1,15 @@
 #!/bin/sh
-#041222
+#041222 called from 0setup
 #20230902 remove any utf8 characters, puppy db doesn't like.
+#20230914 fix when in running easyos (curr. dir /root/.packages)
 
-. ./DISTRO_SPECS
+if [ -f ./DISTRO_SPECS ];then #20230914
+. ./DISTRO_SPECS #running woofq
+ PRE='./'
+else
+. /etc/DISTRO_SPECS
+ PRE='/usr/local/petget/'
+fi
 
 case "${DISTRO_TARGETARCH}" in
  amd64) TARGETARCH='x86_64' ;;
@@ -11,7 +18,7 @@ esac
 
 echo "Extracting the Void xml database from the archive"
 mv -f Packages-${DISTRO_BINARY_COMPAT}-${DISTRO_COMPAT_VERSION}pre ${TARGETARCH}-repodata.tar.zst
-rm *.plist
+rm *.plist 2>/dev/null
 tar --zstd -xf ${TARGETARCH}-repodata.tar.zst
 rm ${TARGETARCH}-repodata.tar.zst
 #remove any utf8 characters...
@@ -20,4 +27,4 @@ mv -f index.plistFIXED index.plist
 echo
 echo "Converting the Void xml database to the Puppy PPM format (@JamesBond)"
 rm Packages-${DISTRO_BINARY_COMPAT}-${DISTRO_COMPAT_VERSION}
-support/void/cvt.sh > Packages-${DISTRO_BINARY_COMPAT}-${DISTRO_COMPAT_VERSION}
+${PRE}support/void/cvt.sh > Packages-${DISTRO_BINARY_COMPAT}-${DISTRO_COMPAT_VERSION}
