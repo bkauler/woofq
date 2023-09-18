@@ -797,7 +797,7 @@ exec urxvt -e nmtui' > /usr/local/bin/defaultconnect
  /etc/rc.d/rc.network_basic 
  /etc/rc.d/rc.network_eth_nm &
 else #keeping the old stuff... 190805 190922
- if grep -E 'nmtui|nm\-connection\-editor|nm\-setup' /usr/local/bin/defaultconnect >/dev/null; then
+ if grep -q -E 'nmtui|nm\-connection\-editor|nm\-setup' /usr/local/bin/defaultconnect >/dev/null; then
   echo '#!/bin/sh
 exec connectwizard' > /usr/local/bin/defaultconnect
   chmod 755 /usr/local/bin/defaultconnect
