@@ -33,6 +33,7 @@
 #20221023 ignore /etc/init.d/rcS if exists. this is a special busybox thing.
 #20221102 save /var/cache/fontconfig
 #20221110 kill anything prevent remove .session from aufs layers.
+#20230918 rerwin: remove deprecated ifconfig and iwconfig
 
 #110923
 . /usr/bin/gettext.sh # enables use of eval_gettext (several named variables) and ngettext (plurals)
@@ -113,8 +114,12 @@ modemdisconnect #(if connected)
 # (see also /etc/rc.d/rc.sysinit and network_tray)
 #190922 have precreated rx_bytes_month and tx_bytes_month in rootfs-skeleton, with "0".
 ACTIVE_INTERFACE=""
-[ -f /tmp/sns_interface_success ] && ACTIVE_INTERFACE="`cat /tmp/sns_interface_success`" #SNS
-[ ! "$ACTIVE_INTERFACE" ] && ACTIVE_INTERFACE="`ifconfig | grep '^[a-z]' | grep -v '^lo' | grep 'Link encap:Ethernet' | cut -f 1 -d ' ' | head -n 1`"
+if [ -f /tmp/sns_interface_success ];then
+ ACTIVE_INTERFACE="`cat /tmp/sns_interface_success`" #SNS
+fi
+if [ ! "$ACTIVE_INTERFACE" ];then #20230918...
+ ACTIVE_INTERFACE="$(ip link show | grep -B 1 'link/ether' | grep -w 'UP' | cut -f 2 -d ' ' | tr -d : | head -n 1)" #200206
+fi
 if [ "$ACTIVE_INTERFACE" ];then
  if [ -d /sys/class/net/${ACTIVE_INTERFACE}/statistics ];then
   RX_BYTES="`cat /sys/class/net/${ACTIVE_INTERFACE}/statistics/rx_bytes`"
@@ -152,16 +157,14 @@ done
 #100301 brought down below call to 'stop' service scripts, needed for lamesmbxplorer.
 #bring down network interfaces (prevents shutdown sometimes)...
 [ "`pidof wpa_supplicant`" != "" ] && wpa_cli terminate #100309 kills any running wpa_supplicant.
-if [ "`grep 'net-setup.sh' /usr/local/bin/defaultconnect`" = "" ];then #see connectwizard and connectwizard_2nd.
- for ONENETIF in `ifconfig | grep -E '^wifi[0-9]|^wlan[0-9]|^eth[0-9]' | cut -f 1 -d ' ' | tr '\n' ' '`
- do
-  ifconfig $ONENETIF down 2> /dev/null
-  [ "`iwconfig | grep "^${ONENETIF}" | grep "ESSID"`" != "" ] && iwconfig $ONENETIF essid off #100309
-  dhcpcd --release $ONENETIF 2>/dev/null #100309
- done
-else
- /etc/rc.d/rc.network stop
-fi
+
+#20230918 rerwin: remove deprecated ifconfig and iwconfig...
+for ONENETIF in $(ip link show | grep -B 1 'link/ether' | grep -w 'UP' | cut -f 2 -d ' ' | tr -d : | tr '\n' ' '); do #200206
+    ip link set "$ONENETIF" down 2> /dev/null
+    iw dev "${ONENETIF}" info 2> /dev/null | grep -qw "ssid" \
+      && iw dev "$ONENETIF" connect off
+    dhcpcd --release "$ONENETIF" 2>/dev/null
+done
 
 #100604 reported by shel: http://murga-linux.com/puppy/viewtopic.php?t=56238
 # Unload the Ethernet drivers on shutdown to prevent battery drain.
