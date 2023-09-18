@@ -94,8 +94,8 @@ yes|curl|curl,libcurl,c-ares,libcurl-devel|exe,dev,doc,nls|compat:current|
 yes|curlftpfs|curlftpfs|exe,dev,doc,nls|compat:kirkstone|
 yes|cvs|cvs|exe>dev,dev,doc,nls|compat:current|
 yes|cyrus-sasl2|cyrus-sasl|exe,dev,doc,nls|compat:current|
-yes|dbus|dbus,dbus-libs,dbus-x11,dbus-devel|exe,dev,doc,nls|+lsb-base|compat:current|
-yes|dbus-glib|dbus-glib,dbus-glib-devel|exe,dev,doc,nls|+dbus|compat:current|
+yes|dbus|dbus,dbus-libs,dbus-x11,dbus-devel|exe,dev,doc,nls|compat:current| #20230917
+yes|dbus-glib|dbus-glib,dbus-glib-devel|exe,dev,doc,nls|compat:current| #20230917
 yes|dconf|dconf,dconf-devel|exe,dev,doc,nls|compat:current|
 yes|defaults-chooser||exe|pet:noarch
 yes|dejavu_fonts|dejavu-fonts-ttf|exe,dev,doc,nls|compat:current|
@@ -104,8 +104,9 @@ yes|desk_icon_theme_multicolor_marble2||exe|pet:noarch|
 yes|desk_icon_theme_very-light-orange||exe|pet:noarch|
 yes|desktop-file-utils|desktop-file-utils|exe,dev,doc,nls|compat:current|
 yes|device-mapper|device-mapper,device-mapper-devel|exe,dev,doc,nls|compat:current|
-yes|devxcomps|libdb,libuv,rhash,jsoncpp,libdebuginfod|exe>dev,dev,doc,nls|compat:current|
-yes|dhcpcd|dhcpcd|exe,dev,doc,nls|compat:current|
+yes|devxcomps|libdb,libuv,rhash,libdebuginfod|exe>dev,dev,doc,nls|compat:current|
+no|dhcpcd|dhcpcd|exe,dev,doc,nls|compat:current|
+yes|dhcpcd|dhcpcd|exe,dev,doc,nls|compat:kirkstone| #20230917
 yes|dialog|dialog|exe,dev>null,doc,nls|compat:current|
 yes|diffstat|diffstat|exe,dev>null,doc,nls|compat:current|
 yes|diffutils|diffutils|exe,dev>null,doc,nls|compat:current|
@@ -120,10 +121,11 @@ yes|dvd+rwtools|dvd+rw-tools|exe,dev,doc,nls|compat:current|
 yes|e2fsprogs|e2fsprogs,e2fsprogs-libs,e2fsprogs-devel|exe,dev,doc,nls|compat:current|
 yes|easycast||exe,dev,doc,nls|pet:noarch|
 yes|elfutils|elfutils,libelf,elfutils-devel|exe,dev,doc,nls|compat:current|
+yes|ell|ell,ell-devel|exe,dev,doc,nls|compat:current| #20230917
 yes|elogind|elogind,libelogind,elogind-devel|exe,dev,doc,nls|compat:current|
 yes|empty|empty|exe,dev,doc,nls|compat:kirkstone|
 yes|enchant|enchant,enchant-devel|exe,dev,doc,nls|compat:current|
-yes|ethtool|ethtool|exe,dev>null,doc,nls|compat:current|
+no|ethtool|ethtool|exe,dev>null,doc,nls|compat:current| #20230918
 yes|eudev|eudev,eudev-libudev,eudev-libudev-devel|exe,dev,doc,nls|compat:current|
 no|eudev|eudev|exe,dev,doc,nls|compat:kirkstone|
 yes|evince|evince,libevince|exe,dev,doc,nls|compat:current|
@@ -208,7 +210,6 @@ yes|gobject-introspection|gobject-introspection,libgirepository,libgirepository-
 no|gparted|gparted|exe,dev,doc,nls|compat:kirkstone|
 yes|gparted|gparted,libparted,libparted-devel|exe,dev,doc,nls|compat:current|
 yes|gperf|gperf|exe>dev,dev,doc,nls|compat:current|
-yes|libgpg-error|libgpg-error,libgpg-error-devel|exe,dev,doc,nls|compat:current|
 yes|gpgme|gpgme,libgpgme,gpgmepp,gpgme-devel,gpgmepp-devel|exe,dev,doc,nls|compat:current|
 yes|gpptp|gpptp|exe,dev,doc,nls|compat:kirkstone|
 yes|gpptp-noarch||exe|pet:noarch| #created by jafadmin.
@@ -262,12 +263,14 @@ yes|iproute2|iproute2|exe,dev,doc,nls|compat:current| #20230915 dep of NetworkMa
 yes|iptables|iptables,iptables-devel|exe,dev,doc,nls|compat:current|
 yes|isl|isl-devel|exe>dev,dev,doc,nls|compat:current|
 yes|iw|iw|exe,dev,doc,nls|compat:current|
-yes|jansson|jansson-devel|exe>dev,dev,doc,nls|compat:current|
+yes|jack|jack,libjack,jack-devel|exe,dev,doc,nls|compat:current| #20230917
+yes|jansson|jansson,jansson-devel|exe,dev,doc,nls|compat:current| #20230917
 no|jasper|jasper|exe,dev,doc,nls|compat:kirkstone|
 yes|jasper|jasper,libjasper,jasper-devel|exe,dev,doc,nls|compat:current|
 yes|jbigkit-libs|jbigkit-libs|exe,dev,doc,nls|compat:current|
 yes|jimtcl|jimtcl|exe,dev,doc,nls|compat:kirkstone|
 yes|json-c|json-c,json-c-devel|exe,dev,doc,nls|compat:current|
+yes|jsoncpp|jsoncpp,jsoncpp-devel|exe,dev,doc,nls|compat:current| #20230917
 yes|json-glib|json-glib,json-glib-devel|exe,dev,doc,nls|compat:current|
 yes|judy|judy,judy-devel|exe>dev,dev,doc,nls|compat:current|
 yes|jwm3_theme_black-deep||exe|pet:noarch|
@@ -307,10 +310,12 @@ yes|libcap-ng|libcap-ng|exe,dev,doc,nls|compat:kirkstone|
 yes|libcddb|libcddb,libcddb-devel|exe,dev,doc,nls|compat:current|
 yes|libcdio|libcdio,libcdio-devel|exe,dev,doc,nls|compat:current|
 yes|libcdio-paranoia|libcdio-paranoia,libcdio-paranoia-devel|exe,dev,doc,nls|compat:current|
+no|libclc|libclc|exe,dev,doc,nls|compat:current| #20230917 opencl
 yes|libconfig|libconfig,libconfig-devel|exe,dev,doc,nls|compat:current|
 yes|libcroco|libcroco,libcroco-devel|exe,dev,doc,nls|compat:current|
 yes|libdaemon|libdaemon,libdaemon-devel|exe,dev,doc,nls|compat:current|
 yes|libdatrie|libdatrie,libdatrie-devel|exe,dev,doc,nls|compat:current|
+yes|libdav1d6|libdav1d6,libdav1d-devel|exe,dev,doc,nls|compat:current| #20230917
 yes|djvulibre|djvulibre,libdjvulibre,djvulibre-devel|exe,dev,doc,nls|compat:current|
 yes|libdvdcss|libdvdcss,libdvdcss-devel|exe,dev,doc,nls|compat:current|
 no|libdvdcss|libdvdcss|exe,dev,doc,nls|compat:kirkstone|
@@ -357,20 +362,23 @@ yes|libmagic|libmagic|exe,dev,doc,nls|compat:current|
 yes|libmm-glib|libmm-glib|exe,dev,doc,nls|compat:current| #20230915 dep of NetworkManager
 yes|libmng|libmng,libmng-devel|exe,dev,doc,nls|compat:current|
 yes|libmnl|libmnl,libmnl-devel|exe,dev,doc,nls|compat:current|
+yes|libmodplug|libmodplug,libmodplug-devel|exe,dev,doc,nls|compat:current| #20230917
 yes|libmtp|libmtp,libmtp-devel|exe,dev,doc,nls|compat:current|
 yes|libndp|libndp,libndp-devel|exe,dev,doc,nls|compat:current|
 yes|libnetfilter_conntrack|libnetfilter_conntrack,libnetfilter_conntrack-devel|exe,dev,doc,nls|compat:current|
 yes|libnfnetlink|libnfnetlink,libnfnetlink-devel|exe,dev,doc,nls|compat:current|
+yes|libnewt|libnewt|exe,dev,doc,nls|compat:kirkstone| #needed by kirkstone networkmanager. 20230917
 yes|libnftnl|libnftnl,libnftnl-devel|exe,dev,doc,nls|compat:current|
 yes|libnl3|libnl3,libnl3-devel|exe,dev,doc,nls|compat:current|
 yes|libnl|libnl,libnl-devel|exe,dev,doc,nls|compat:current|
-yes|libnm|libnm|exe,dev,doc,nls|compat:current| #20230915 dep of NetworkManager
+no|libnm|libnm|exe,dev,doc,nls|compat:current| #20230915 dep of NetworkManager 20230917
 yes|libnotify|libnotify,libnotify-devel|exe,dev,doc,nls|compat:current|
 yes|libnsl|libnsl,libnsl-devel|exe,dev,doc,nls|compat:current|
 yes|libogg|libogg,libogg-devel|exe,dev,doc,nls|compat:current|
 yes|liboil|liboil,liboil-devel|exe,dev,doc,nls|compat:current|
 yes|libpcap|libpcap,libpcap-devel|exe,dev,doc,nls|compat:current|
 yes|libpciaccess|libpciaccess,libpciaccess-devel|exe,dev,doc,nls|compat:current|
+yes|libpcre|libpcre|exe,dev,doc,nls|compat:current| #20230917
 yes|libpcre2|libpcre2|exe,dev,doc,nls|compat:current|
 yes|libpcrecpp|libpcrecpp|exe>dev,dev,doc,nls|compat:current|
 yes|libpng12|libpng12|exe,dev,doc,nls|compat:kirkstone|
@@ -381,7 +389,9 @@ yes|libptytty|libptytty,libptytty-devel|exe,dev,doc,nls|compat:current|
 yes|libquadmath|libquadmath,libquadmath-devel|exe,dev,doc,nls|compat:current|
 yes|libraw1394|libraw1394,libraw1394-devel|exe,dev,doc,nls|compat:current|
 yes|libreoffice-icons-colibre-v7.4.2||exe|pet:noarch| #some colibre icons are missing from libreoffice pkg.
+yes|librist|librist,librist-devel|exe,dev,doc,nls|compat:current| #20230917
 yes|librsvg|librsvg,librsvg-utils,librsvg-devel|exe,dev,doc,nls|compat:current|
+yes|librtmp|librtmp,librtmp-devel|exe,dev,doc,nls|compat:current| #20230917
 yes|libsane|libsane|exe,dev,doc,nls|compat:current|
 yes|libsasl|libsasl,libsasl-devel|exe,dev,doc,nls|compat:current|
 yes|libsecret|libsecret,libsecret-devel|exe,dev,doc,nls|compat:current|
@@ -392,9 +402,11 @@ yes|libsndfile|libsndfile,libmpg123,libsndfile-devel|exe,dev,doc,nls|compat:curr
 yes|libsodium|libsodium|exe,dev,doc,nls|compat:current|
 yes|libsoup|libsoup,libpsl,libsoup-devel|exe,dev,doc,nls|compat:current|
 yes|libsoxr|libsoxr,libsoxr-devel|exe,dev,doc,nls|compat:current|
+yes|libsrt|libsrt|exe,dev,doc,nls|compat:current| #20230917
 yes|speex|speex,speexdsp,libspeex,speex-devel,speexdsp-devel|exe,dev,doc,nls|compat:current|
 yes|libssh2|libssh2,libssh2-devel|exe,dev,doc,nls|compat:current|
 yes|libssh|libssh,libssh-devel|exe,dev,doc,nls|compat:current|
+yes|libsvt-av1|libsvt-av1,libsvt-av1-devel|exe,dev,doc,nls|compat:current| #20230917
 yes|libsystem|libsystem|exe,dev,doc,nls|compat:kirkstone|
 yes|libtasn1|libtasn1,libtasn1-devel|exe,dev,doc,nls|compat:current|
 yes|libtermkey|libtermkey,libtermkey-devel|exe,dev,doc,nls|compat:current|
@@ -411,6 +423,8 @@ yes|libunwind|libunwind,libunwind-devel|exe,dev,doc,nls|compat:current|
 yes|libusb|libusb,libusb-devel|exe,dev,doc,nls|compat:current|
 yes|libusb-compat|libusb-compat,libusb-compat-devel|exe,dev,doc,nls|compat:current|
 yes|libutf8proc|libutf8proc,libutf8proc-devel|exe>dev,dev,doc,nls|compat:current|
+yes|libvdpau|libvdpau,libvdpau-devel|exe,dev,doc,nls|compat:current| #20230917
+yes|libvdpau-va-gl|libvdpau-va-gl|exe,dev,doc,nls|compat:current| #20230917
 yes|libvorbis|libvorbis,libvorbis-devel|exe,dev,doc,nls|compat:current|
 yes|libvpx7|libvpx7,libvpx-tools,libvpx-devel|exe,dev,doc,nls|compat:current|
 yes|libwebp|libwebp,libsharpyuv,libsharpyuv-devel,libwebp-devel|exe,dev,doc,nls|compat:current|
@@ -438,8 +452,10 @@ yes|m4|m4|exe>dev,dev,doc,nls|compat:current|
 yes|maag||exe,dev,doc,nls|pet:noarch|
 yes|make|make|exe>dev,dev,doc,nls|compat:current|
 yes|mariadb|mariadb,liburing,liburing-devel|exe>dev,dev,doc,nls|compat:current|
+yes|mbedtls|mbedtls,mbedtls-devel|exe,dev,doc,nls|compat:current| #20230917
 yes|mdview|mdview|exe,dev,doc,nls|compat:kirkstone|
-yes|mesa|mesa,mesa-dri,libglvnd,libglvnd-devel,glew,glew-devel,glu,lm_sensors,glxinfo|exe,dev,doc,nls|compat:current|
+yes|mesa-dri|mesa-dri|exe,dev,doc,nls|compat:current| #20230917 somehow they arent getting installed.
+yes|mesa|mesa,messa-vaapi,mesa-vdpau,mesa-vulkan-radeon,mesa-dri,mesa-ati-dri,mesa-intel-dri,mesa-nouveau-dri,libglvnd,libglvnd-devel,glew,glew-devel,glu,lm_sensors,glxinfo|exe,dev,doc,nls|compat:current| #20230917
 yes|metamail|metamail|exe,dev,doc,nls|compat:kirkstone|
 yes|mingetty|mingetty|exe,dev,doc,nls|compat:kirkstone
 yes|minixcal|minixcal|exe,dev,doc,nls|compat:kirkstone
@@ -466,8 +482,8 @@ yes|netpbm|netpbm,libnetpbm,libnetpbm-devel|exe,dev,doc,nls|compat:current|
 no|nettle7|nettle|exe,dev>null,doc,nls|compat:kirkstone|
 yes|nettle|nettle,nettle-devel|exe,dev>null,doc,nls|compat:current|
 yes|net-tools|net-tools|exe,dev,doc,nls|compat:current|
-no|networkmanager|networkmanager|exe,dev,doc,nls|compat:kirkstone|
-yes|networkmanager|NetworkManager|exe,dev,doc,nls|compat:current| #20230915 see also deps.
+yes|networkmanager|networkmanager|exe,dev,doc,nls|compat:kirkstone| #20230917
+no|networkmanager|NetworkManager|exe,dev,doc,nls|compat:current| #20230915 see also deps.
 yes|network-manager-applet|network-manager-applet|exe,dev,doc,nls|compat:kirkstone|
 yes|network_tray|network-tray|exe,dev,doc,nls|compat:kirkstone|
 yes|newt|newt,newt-devel|exe,dev,doc,nls|compat:current| #20230915 dep of NetworkManager
@@ -479,12 +495,16 @@ yes|npth|npth,npth-devel|exe,dev,doc,nls|compat:current|
 yes|ntfs-3g|ntfs-3g,ntfs-3g-devel|exe,dev,doc,nls|compat:current|
 yes|ntpdate|ntp|exe,dev,doc,nls|compat:kirkstone|
 yes|numlockx|numlockx|exe,dev,doc,nls|compat:current|
-yes|oniguruma|oniguruma,oniguruma-devel|exe,dev,doc,nls|compat:current| #20230915 dep of NetworkManager
+yes|ocl-icd|ocl-icd,ocl-icd-devel,abseil-cpp,libcotp,libprotobuf,libprotoc,libqrencode,libzbar,OpenCL-Headers,protobuf-c,v4l-utils|exe,dev,doc,nls|compat:current| #20230917
+yes|ofono|ofono,ofono-devel|exe,dev,doc,nls|compat:current| #20230917
+no|oniguruma|oniguruma,oniguruma-devel|exe,dev,doc,nls|compat:current| #20230915 dep of NetworkManager
 yes|openblas|openblas,openblas-devel|exe,dev,doc,nls|compat:current|
+no|opencc|opencc,opencc-devel|exe,dev,doc,nls|compat:current| #20230917
 yes|openjpeg|openjpeg,libopenjpeg,libopenjpeg2,libopenjpeg-devel,libopenjpeg2-devel|exe,dev,doc,nls|compat:current|
-yes|openresolv|openresolv|exe,dev,doc,nls|compat:current| #needed by wireguard-tools and NetworkManager.
+no|openresolv|openresolv|exe,dev,doc,nls|compat:current| #needed by wireguard-tools and NetworkManager. 20230917
 yes|openssh_server|openssh,libldns,libldns-devel|exe,dev,doc,nls|compat:current|
 yes|openssl|openssl,libssl1.1,libcrypto1.1,libssl3,libcrypto3,openssl-devel|exe,dev,doc,nls|compat:current|
+yes|opkg-utils|opkg-utils|exe,dev,doc,nls|compat:kirkstone| #needed by mingetty. 20230917
 yes|opus|opus,opus-devel|exe,dev,doc,nls|compat:current|
 yes|orc|orc,orc-devel|exe,dev,doc,nls|compat:current|
 yes|osmo|osmo|exe,dev,doc,nls|compat:kirkstone|
@@ -535,7 +555,8 @@ yes|polkit|polkit,polkit-devel|exe,dev,doc,nls|compat:current|
 yes|poppler|poppler,libpoppler,poppler-glib,poppler-cpp,poppler-devel,poppler-cpp-devel|exe,dev,doc,nls|compat:current|
 yes|popt|popt,popt-devel|exe,dev,doc,nls|compat:current|
 yes|powerapplet_tray|powerapplet-tray|exe,dev,doc,nls|compat:kirkstone|
-yes|ppp|ppp,ppp-devel|exe,dev>null,doc,nls|compat:current|
+no|ppp|ppp,ppp-devel|exe,dev>null,doc,nls|compat:current|
+yes|ppp|ppp|exe,dev,doc,nls|compat:kirkstone| #20230917
 yes|pprocess||exe|pet:noarch
 yes|precord||exe|pet:noarch
 yes|prename||exe,dev,doc,nls|pet:noarch|
@@ -585,6 +606,7 @@ no|python3-scons|python3-scons|exe>dev,dev,doc,nls|compat:current| #does not exi
 yes|python3-setuptools|python3-setuptools|exe,dev,doc,nls|compat:current| #remove exe>dev, symphytum wants.
 yes|python3-six|python3-six|exe,dev,doc,nls|compat:current| #pitivi needs this.
 yes|python3-Markdown|python3-Markdown|exe,dev,doc,nls|compat:current|
+yes|python3-urllib3|python3-urllib3|exe,dev,doc,nls|compat:current| #20230917
 yes|qpdf|qpdf,libqpdf,libqpdf-devel|exe,dev,doc,nls|compat:current|
 yes|rdesktop|rdesktop,libsamplerate,libpcsclite,libsamplerate-devel|exe,dev,doc,nls|compat:current|
 yes|readline|readline,libreadline8,libhistory8,readline-devel|exe,dev,doc,nls|compat:current|
@@ -592,6 +614,7 @@ yes|redshift|redshift|exe,dev,doc,nls|compat:kirkstone|
 yes|refind|refind|exe,dev,doc,nls|compat:kirkstone|
 yes|restarter|restarter|exe,dev,doc,nls|compat:kirkstone|
 yes|rox-filer|rox-filer|exe,dev,doc,nls|compat:kirkstone|
+yes|rp-pppoe|rp-pppoe|exe,dev,doc,nls|compat:kirkstone| #20230917
 yes|rshift_tray||exe|pet:noarch| #requires redshift.
 yes|rsync|rsync,xxHash,libxxHash|exe,dev,doc,nls|compat:current|
 yes|rubix|rubix|exe,dev,doc,nls|compat:kirkstone|
@@ -639,7 +662,7 @@ yes|tcpdump|tcpdump|exe,dev,doc,nls|compat:current|
 yes|tdb|tdb,libtdb,tdb-devel|exe,dev,doc,nls|compat:current|
 yes|tevent|tevent|exe,dev,doc,nls|compat:current|
 yes|texinfo|texinfo|exe>dev,dev,doc,nls|compat:current|
-yes|tiff-lib5|tiff|exe,dev>null,doc>null,nls>null|compat:kirkstone| #put before tiff.
+yes|tiff5|tiff|exe,dev>null,doc>null,nls>null|compat:kirkstone| #put before tiff.
 yes|tiff|tiff,tiff-devel|exe,dev,doc,nls|compat:current|
 yes|translate-shell||exe|pet:noarch| #note gxlat has an older version of trans
 yes|trousers|trousers,trousers-devel|exe,dev,doc,nls|compat:current|
@@ -667,7 +690,8 @@ no|wireguard-tools||exe,dev,doc,nls|pet:void|
 no|wireguard-tools|wireguard-tools|exe,dev,doc,nls|compat:current|
 yes|wireless-regdb||exe|pet:noarch|
 no|wireless-tools||exe,dev,doc,nls|pet:void| #this is deprecated i think.
-yes|wpa_supplicant|wpa_supplicant|exe,dev>null,doc,nls|compat:current|
+no|wpa_supplicant|wpa_supplicant|exe,dev>null,doc,nls|compat:current|
+yes|wpa_supplicant|wpa-supplicant|exe,dev,doc,nls|compat:kirkstone| #20230917
 yes|x264|x264,x264-devel|exe,dev|compat:current|
 yes|x265|x265,x265-devel|exe,dev|compat:current|
 yes|xarchive|xarchive|exe,dev>null,doc,nls|compat:kirkstone|
@@ -697,6 +721,7 @@ yes|xresprobe|xresprobe|exe,dev,doc,nls|compat:kirkstone|
 no|xserver_xorg|xorg-server,xf86-video-*,xf86-input-*,-xf86-input-evdev,-xf86-input-synaptics,libinput,libinput-devel,libwacom,libwacom-devel,xorg-server-devel|exe,dev,doc,nls|compat:current|
 yes|xserver_xorg|xorg-server-common,xorg-server,xorg-server-xephyr,xf86-video-*,xf86-input-*,libinput,libinput-devel,libwacom,libwacom-devel,xorg-server-devel|exe,dev,doc,nls|compat:current|
 yes|xtrans|xtrans|exe>dev,dev,doc,nls|compat:current|
+yes|xvidcore|xvidcore,xvidcore-devel|exe,dev,doc,nls|compat:current| #20230917
 yes|xwd|xwd|exe,dev,doc,nls|compat:current|
 yes|xxHash|xxHash,xxHash-devel|exe,dev,doc,nls|compat:current|
 yes|xz|xz|exe,dev,doc,nls|compat:current| #note there is no xz-devel
