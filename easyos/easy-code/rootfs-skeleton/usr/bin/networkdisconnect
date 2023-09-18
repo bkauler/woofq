@@ -8,6 +8,7 @@
 #190215 BK: /tmp/sns_interface_success no longer used.
 #190219 BK: handle UltraSNS, minibase network utilities.
 #190922 BK: have precreated rx_bytes_month and tx_bytes_month in rootfs-skeleton, with "0". see also rc.shutdown
+#20230918 rerwin: remove deprecated ifconfig and iwconfig
 
 #100814 log the cumulative bytes transmitted on network...
 # (see also /etc/rc.d/rc.sysinit and network_tray)
@@ -36,28 +37,29 @@ if pidof NetworkManager >/dev/null ;then #181118 see also nm-wrapper
 fi
 
 [ "`pidof wpa_supplicant`" != "" ] && wpa_cli terminate #100309 kills any running wpa_supplicant.
-if [ "`grep 'net-setup.sh' /usr/local/bin/defaultconnect`" != "" ];then #see connectwizard and connectwizard_2nd. #180127...
- /etc/rc.d/rc.network stop
-else
- if [ -x /usr/local/bin/frisbee ];then
-  if [ -x /usr/local/frisbee/frisbee-main ];then
-   if frisbee --test_active; then
-    frisbee --disconnect
-    frisbee --deactivate
-   fi
-  else
-   if grep -q 'frisbee_mode=1' /etc/frisbee/frisbee.conf; then
-    /usr/local/frisbee/disconnect
-    frisbee_mode_disable
-   fi
+
+if [ -x /usr/local/bin/frisbee ];then
+ if [ -x /usr/local/frisbee/frisbee-main ];then
+  if frisbee --test_active; then
+   frisbee --disconnect
+   frisbee --deactivate
   fi
- fi #180127 end
- for ONENETIF in `ifconfig | grep -E '^wifi[0-9]|^wlan[0-9]|^eth[0-9]' | cut -f 1 -d ' ' | tr '\n' ' '`
- do
-  ifconfig $ONENETIF down 2> /dev/null
-  [ "`iwconfig | grep "^${ONENETIF}" | grep "ESSID"`" != "" ] && iwconfig $ONENETIF essid off #100309
-  dhcpcd --release $ONENETIF 2>/dev/null #100309
- done
-fi
+ else
+  if grep -q 'frisbee_mode=1' /etc/frisbee/frisbee.conf; then
+   /usr/local/frisbee/disconnect
+   frisbee_mode_disable
+  fi
+ fi
+fi #180127 end
+
+#20230918 rerwin: remove deprecated ifconfig and iwconfig...
+sleep 0.1
+for ONENETIF in $(ip link show | grep -B 1 'link/ether' | grep -w 'UP' | cut -f 2 -d ' ' | tr -d : | tr '\n' ' '); do #200206
+    ip link set "$ONENETIF" down 2> /dev/null
+    iw dev "${ONENETIF}" info 2> /dev/null | grep -qw "ssid" \
+      && iw dev "$ONENETIF" connect off
+    dhcpcd --release "$ONENETIF" 2>/dev/null
+done
+
 
 ###END###
