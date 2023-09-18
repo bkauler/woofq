@@ -3,17 +3,17 @@
 #Easy Linux script for Easy Containers, to run an isolated application.
 #based on ec-chroot, to run in container with full admin rights.
 #first passed-in parameter is name of container (sh0, seamonkey, etc).
-#second passed-in param is name of an executable to run (/usr/bin/urxvt, /usr/bin/eppm, etc).
+#second passed-in param is name of an executable to run. ex: /usr/bin/urxvt
 #third param optional.
 #execution example, run leafpad in the seamonkey container:
 # /usr/local/easy_containers/ec-chroot-admin seamonkey /usr/bin/leafpad /usr/share/doc/home.htm
 #180619 first release.
 #180624 /usr/local/petget/installpkg.sh in container, 'df' may not work.
-#180624 if we run eppm in container, installing DEBs may break running of scripts in /usr/local/petget
 #180703 set timezone.
 #190830 support only one passed param.
 #20221031 if running as zeus, think need to bump up to root.
 #20230626 new sudo-sh replaces sudo.
+#20230918 got rid of remnants of eppm, DEBSHERE
 
 #20230626
 if [ "$(whoami)" != "root" ];then
@@ -73,16 +73,6 @@ export ecSIZEFREEM
 #180624 /usr/local/petget/installpkg.sh in container, 'df' may not work...
 ecTMPK=`df -k /tmp | grep '^tmpfs' | tr -s ' ' | cut -f 4 -d ' '` #free space in /tmp
 export ecTMPK
-
-#180624 if we run eppm in container, installing DEBs may break running of scripts in /usr/local/petget
-if [ ! -f ${CONTAINER}/root/.bin/busybox ];then #note, busybox is static.
- mkdir -p ${CONTAINER}/root/.bin
- cp -f /bin/busybox ${CONTAINER}/root/.bin/
- PWD="`pwd`"
- cd ${CONTAINER}/root/.bin
- ./busybox --list | busybox xargs -I RRR ln -s busybox RRR
- cd "${PWD}"
-fi
 
 #190830 search for executable if no ARG2 defined...
 if [ "$ARG2" == "" ];then

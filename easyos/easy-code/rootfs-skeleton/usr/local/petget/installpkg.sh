@@ -72,8 +72,7 @@
 #170629 tweaks.
 #171109 run update-desktop-database
 #180518 maybe add to rox right-click open-with menu.
-#180624 ec-chroot-admin may run /usr/local/bin/eppm (EasyPak), /usr/local/peget/installpkg.sh runs 'df' which may fail
-#180625 eppm runs in container easypak0, want to install debs to /debs-installed-here
+#180624 /usr/local/peget/installpkg.sh runs 'df' which may fail
 #200402 Exec= must not contain a path.
 #200712 support .pkg.tar.zst (arch linux pkgs), .tar.zst.
 #20210612 replaced all yaf-splash with gtkdialog-splash. note, still ok to kill yaf-splash, see gtkdialog-splash script.
@@ -90,6 +89,7 @@
 #20230718 some fixes
 #20230831 support Void Linux .xbps pkg.
 #20230904 set xARCHDIR
+#20230918 got rid of remnants of EasyPak, DEBSHERE, eppm
 
 #information from 'labrador', to expand a .pet directly to '/':
 #NAME="a52dec-0.7.4"
@@ -102,11 +102,6 @@
 export TEXTDOMAIN=petget___installpkg.sh
 export OUTPUT_CHARSET=UTF-8
 
-#180625 ref: /usr/local/EasyPak/ep_pkg_chooser
-DEBSHERE=''
-if [ -d /debs-installed-here ];then
- DEBSHERE='debs-installed-here'
-fi
 
 APPDIR=$(dirname $0)
 [ -f "$APPDIR/i18n_head" ] && source "$APPDIR/i18n_head"
@@ -290,13 +285,8 @@ case $DLPKG_BASE in
    rm -f /root/.packages/${DLPKG_NAME}.files
    exit_func 1 #exit 1
   fi
-  if [ "${DEBSHERE}" ];then #180625
-   [ -d /${DEBSHERE}/DEBIAN ] && rm -rf /${DEBSHERE}/DEBIAN #precaution.
-   dpkg-deb -e $DLPKG_BASE /${DEBSHERE}/DEBIAN #extracts deb control files to dir. may have a post-install script, see below.
-  else
-   [ -d /DEBIAN ] && rm -rf /DEBIAN #130112 precaution.
-   dpkg-deb -e $DLPKG_BASE /DEBIAN #130112 extracts deb control files to dir /DEBIAN. may have a post-install script, see below.
-  fi
+  [ -d /DEBIAN ] && rm -rf /DEBIAN #130112 precaution.
+  dpkg-deb -e $DLPKG_BASE /DEBIAN #130112 extracts deb control files to dir /DEBIAN. may have a post-install script, see below.
  ;;
  *.tgz)
   DLPKG_MAIN="`basename $DLPKG_BASE .tgz`" #ex: scite-1.77-i686-2as
@@ -663,7 +653,7 @@ _END1
  done
  
  #now write temp-location to final destination... 180625
- cp -a -f --remove-destination ${DIRECTSAVEPATH}/* /${DEBSHERE}  2> /tmp/petget/install-cp-errlog
+ cp -a -f --remove-destination ${DIRECTSAVEPATH}/* /  2> /tmp/petget/install-cp-errlog
  sync
  #note, this code-block is also in /usr/sbin/snapshot-manager (twice)...
  #can have a problem if want to replace a folder with a symlink. for example, got this error:
@@ -777,17 +767,10 @@ if [ -f /install/doinst.sh ];then #slackware pkgs.
  LANG=$LANG_USER sh /install/doinst.sh
  rm -rf /install
 fi
-if [ "${DEBSHERE}" ];then #180625
- if [ -e /${DEBSHERE}/DEBIAN/postinst ];then #deb post-install script.
-  LANG=$LANG_USER chroot /${DEBSHERE} /bin/sh DEBIAN/postinst configure
-  rm -rf /${DEBSHERE}/DEBIAN
- fi
-else
- if [ -e /DEBIAN/postinst ];then #130112 deb post-install script.
-  cd /
-  LANG=$LANG_USER sh DEBIAN/postinst configure #150730 added 'configure'
-  rm -rf /DEBIAN
- fi
+if [ -e /DEBIAN/postinst ];then #130112 deb post-install script.
+ cd /
+ LANG=$LANG_USER sh DEBIAN/postinst configure #150730 added 'configure'
+ rm -rf /DEBIAN
 fi
 #130314 run arch linux pkg post-install script...
 if [ -f /.INSTALL ];then #arch post-install script.
@@ -929,7 +912,7 @@ do
  #w478 find if category is already valid (see also 2createpackages)..
  if [ "$CATDONE" = "no" ];then #121119
   CATFOUND="no"
-  for ONEORIGCAT in `cat ${DEBSHERE}${ONEDOT} | grep '^Categories=' | head -n 1 | cut -f 2 -d '=' | tr ';' ' ' | rev` #search in reverse order.
+  for ONEORIGCAT in `cat ${ONEDOT} | grep '^Categories=' | head -n 1 | cut -f 2 -d '=' | tr ';' ' ' | rev` #search in reverse order.
   do
    ONEORIGCAT="`echo -n "$ONEORIGCAT" | rev`" #restore rev of one word.
    oocPATTERN=' '"$ONEORIGCAT"' '
@@ -942,7 +925,7 @@ do
   done
   #121109 above may fail, as DB_category field may not match that in .desktop file, so leave out that $tPATTERN match in $PUPHIERARCHY...
   if [ "$CATFOUND" = "no" ];then
-   for ONEORIGCAT in `cat ${DEBSHERE}${ONEDOT} | grep '^Categories=' | head -n 1 | cut -f 2 -d '=' | tr ';' ' ' | rev` #search in reverse order.
+   for ONEORIGCAT in `cat ${ONEDOT} | grep '^Categories=' | head -n 1 | cut -f 2 -d '=' | tr ';' ' ' | rev` #search in reverse order.
    do
     ONEORIGCAT="`echo -n "$ONEORIGCAT" | rev`" #restore rev of one word.
     oocPATTERN=' '"$ONEORIGCAT"' '
@@ -955,12 +938,12 @@ do
    done
   fi
  fi
- sed -i -e "$cPATTERN" ${DEBSHERE}$ONEDOT #fix Categories= entry.
+ sed -i -e "$cPATTERN" $ONEDOT #fix Categories= entry.
 
  #w019 does the icon exist?...
- ICON="`grep '^Icon=' ${DEBSHERE}$ONEDOT | cut -f 2 -d '='`"
+ ICON="`grep '^Icon=' $ONEDOT | cut -f 2 -d '='`"
  if [ "$ICON" != "" ];then
-  [ -e "${DEBSHERE}${ICON}" ] && continue #it may have a hardcoded path.
+  [ -e "${ICON}" ] && continue #it may have a hardcoded path.
   ICONBASE="`basename "$ICON"`"
   #110706 fix icon entry in .desktop... 110821 improve...
   #first search where jwm looks for icons... 111207...
@@ -968,7 +951,7 @@ do
   if [ "$FNDICON" ];then
    ICONNAMEONLY="`basename $FNDICON`"
    iPTN="s%^Icon=.*%Icon=${ICONNAMEONLY}%"
-   sed -i -e "$iPTN" ${DEBSHERE}$ONEDOT
+   sed -i -e "$iPTN" $ONEDOT
    continue
   else
    #look elsewhere... 111207...
@@ -983,13 +966,13 @@ do
     if [[ "$FNDICON" != *usr/share/pixmaps/${ICONNAMEONLY} ]];then
      ln -snf "$FNDICON" /usr/share/pixmaps/${ICONNAMEONLY}
      iPTN="s%^Icon=.*%Icon=${ICONNAMEONLY}%"
-     sed -i -e "$iPTN" ${DEBSHERE}${ONEDOT}
+     sed -i -e "$iPTN" ${ONEDOT}
      continue
     fi
    fi
   fi
   #substitute a default icon...
-  sed -i -e "$iPATTERN" ${DEBSHERE}${ONEDOT} #note, ONEDOT is name of .desktop file.
+  sed -i -e "$iPATTERN" ${ONEDOT} #note, ONEDOT is name of .desktop file.
  fi
  
  #120926 if a langpack installed, it will have /usr/share/applications.in (see /usr/sbin/momanager).

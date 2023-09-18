@@ -25,8 +25,6 @@
 #170715 linuxcbon: /root/Startup/freememapplet_tray used to write to /tmp/pup_event_sizefreem, but no more.
 #170815 now PKGget. 170823 indexgen.sh no longer used.
 #180619 df might not work in a container, so ec-chroot-admin exports ecSIZEFREEM
-#180627 if installing an easypak, ep_pkg_chooser will have exported INSIDE_EASYPAK0='yes'
-#180718 INSIDE_EASYPAK0 renamed to INSIDE_easypak0. 181109 EasyPak not used anymore.
 #181122 q*.sfs renamed to easy*.sfs
 #190219 bug fix.
 #200405 no deps, add button to download only.
