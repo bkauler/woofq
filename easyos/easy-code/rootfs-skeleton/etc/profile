@@ -14,6 +14,7 @@
 #20211206 remove path /root/my-applications/bin
 #20230528 change umask to 002. ref: https://bkhome.org/news/202305/setting-up-permissions-under-files-take-2.html
 #20230616 revert umask to 022
+#20230918 unset XLIB_SKIP_ARGB_VISUALS
 
 PATH="/bin:/usr/bin:/sbin:/usr/sbin:/usr/local/bin:/usr/games"
 QT_XFT=true
@@ -45,8 +46,9 @@ INPUTRC=/etc/inputrc
 TERM="xterm"
 export PS1 USER LOGNAME HISTSIZE INPUTRC EDITOR TERM
 
-#v2.10 MU: rox crashes with DRI modules. solution:
-export XLIB_SKIP_ARGB_VISUALS=1
+#20230918 remove... ref: https://github.com/puppylinux-woof-CE/woof-CE/pull/3867
+##v2.10 MU: rox crashes with DRI modules. solution:
+#export XLIB_SKIP_ARGB_VISUALS=1
 
 #this line gets edited by chooselocale script...
 LANG=en_US.UTF-8
