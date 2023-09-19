@@ -52,6 +52,7 @@
 #211215 v3.3 Accommodate spoofed gadget (USB-tethered smartphone) MAC addresses; add spoofing if macchanger installed; override default dhcpcd response timeout if not already in conf file, to compensate for router possibly slowing due to MAC spoofing; improved some variable names; stop waiting for all connections if top-profile connection detected.
 #211231 v3.3 Replace ethtool with ip-show test for LOWER_UP; refine dhcpcd success check; refine module loading check; refine interface trials (re 211002), using grouped connection profiles; skip waiting for module loading and wired connection if not during boot-up.
 #220704 v3.3.1 Increase sleep before dhcpcd, to reduce chance of dhcpcd not receiving valid IP address; add wired dhcpcd messages to bootsysinit.log.
+#20230918 BK: fixes.
 
 #If version is changed, ensure that new VERSION is set in the sns script. #190525
 
@@ -62,10 +63,11 @@ LANGORIG=$LANG
 
 #Running?...
 # shellcheck disable=SC2009
-ps --no-headers -fC rc.network | grep '/usr/local/simple_network_setup' | grep -qvw "$$" \
-  && sleep 5 \
-  && ps --no-headers -fC rc.network | grep '/usr/local/simple_network_setup' | grep -qvw "$$" \
-  && exit 1 #210209
+#ps --no-headers -fC rc.network | grep '/usr/local/simple_network_setup' | grep -qvw "$$" \
+#  && sleep 5 \
+#  && ps --no-headers -fC rc.network | grep '/usr/local/simple_network_setup' | grep -qvw "$$" \
+#  && exit 1 #210209
+pidof -o ${$} rc.network && exit 1 #BK
 
 . /usr/local/simple_network_setup/macaddress_spoofing_functions #211215
 
@@ -227,7 +229,9 @@ initiate_wireless_connection() { #Exits from start_wireless_connection if succes
         -e 's%SSID: \([^\|]*\|\)%\1%g' | \
       sort -g -r -t '|' -k 3)" #170619 210202
     TRIED_WANTS=''  #211215
-    for ONEWANT in $EBSSIDS_WANT; do #211215
+    #for ONEWANT in $EBSSIDS_WANT; do #211215
+    echo "$EBSSIDS_WANT" > /tmp/EBSSIDS_WANT #BK 20230918
+    while read -r ONEWANT <&4 ; do           # "
         grep -wq "${ONEWANT}" <<< "${TRIED_WANTS}" && continue #211215
         IFS='|' read -r WANTSSID WANTBSS <<< "$ONEWANT" #211215
         while IFS='|' read -r CELL_ADDRESS CELL_FREQUENCY _ CELL_ESSID _; do
@@ -258,7 +262,7 @@ initiate_wireless_connection() { #Exits from start_wireless_connection if succes
             fi 
         done <<< "$SRLINES"
         TRIED_WANTS="${TRIED_WANTS}${ONEWANT} " #211215
-    done
+    done 4</tmp/EBSSIDS_WANT #BK 20230918
 } #initiate_wireless_connection
 
 find_available_networks() {
