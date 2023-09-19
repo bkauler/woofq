@@ -11,6 +11,7 @@
 #190805 may have nm-connection-editor (in network-manager-applet pkg) instead of nmtui (in network-manager pkg).
 #190922 BK: 190805: now "nm-setup" in defaultconnect.
 #200609 Use pgprs 2.0 interface and frisbee 1.4 interface.
+#20230918 test exist /etc/init.d/rc.networkmanager
 
 #100227 choose default network tool...
 DEFAULTCONNECT="`cat /usr/local/bin/defaultconnect | tail -n 1 | tr -s " " | cut -f 2 -d " "`"
@@ -65,10 +66,12 @@ case $DEFAULTCONNECT in
 esac
 
 if [ "$NETCHOICE" != "nmtui" -a "$NETCHOICE" != "nm-setup" ];then #181118 190805 190922
- if pidof NetworkManager >/dev/null ;then
-  /etc/init.d/rc.networkmanager stop
+ if [ -e /etc/init.d/rc.networkmanager ];then #20230918
+  if pidof NetworkManager >/dev/null ;then
+   /bin/sh /etc/init.d/rc.networkmanager stop
+  fi
+  chmod 644 /etc/init.d/rc.networkmanager
  fi
- chmod 644 /etc/init.d/rc.networkmanager
 fi
 
 if [ ! -f /tmp/.initial_resolv.conf_cleared ];then #180117...
