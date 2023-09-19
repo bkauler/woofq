@@ -12,6 +12,7 @@
 #190922 BK: 190805: now "nm-setup" in defaultconnect.
 #200609 Use pgprs 2.0 interface and frisbee 1.4 interface.
 #20230918 test exist /etc/init.d/rc.networkmanager
+#20230919 /usr/local/simple_network_setup/rc.network renamed to rc.snsnetwork
 
 #100227 choose default network tool...
 DEFAULTCONNECT="`cat /usr/local/bin/defaultconnect | tail -n 1 | tr -s " " | cut -f 2 -d " "`"
@@ -98,7 +99,7 @@ case $NETCHOICE in
  ;;
  sns) #100306
   /etc/rc.d/rc.network_basic #this only sets up interface 'lo'.
-  /usr/local/simple_network_setup/rc.network &
+  /usr/local/simple_network_setup/rc.snsnetwork & #20230919
  ;;
  usns) #190207
   /etc/rc.d/rc.network_basic #this only sets up interface 'lo'.

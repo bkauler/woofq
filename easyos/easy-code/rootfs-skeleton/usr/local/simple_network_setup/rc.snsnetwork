@@ -53,6 +53,7 @@
 #211231 v3.3 Replace ethtool with ip-show test for LOWER_UP; refine dhcpcd success check; refine module loading check; refine interface trials (re 211002), using grouped connection profiles; skip waiting for module loading and wired connection if not during boot-up.
 #220704 v3.3.1 Increase sleep before dhcpcd, to reduce chance of dhcpcd not receiving valid IP address; add wired dhcpcd messages to bootsysinit.log.
 #20230918 BK: fixes.
+#20230919 BK: /usr/local/simple_network_setup/rc.network renamed to rc.snsnetwork
 
 #If version is changed, ensure that new VERSION is set in the sns script. #190525
 
@@ -67,7 +68,7 @@ LANGORIG=$LANG
 #  && sleep 5 \
 #  && ps --no-headers -fC rc.network | grep '/usr/local/simple_network_setup' | grep -qvw "$$" \
 #  && exit 1 #210209
-pidof -o ${$} rc.network && exit 1 #BK
+pidof -o ${$} rc.snsnetwork && exit 1 #BK
 
 . /usr/local/simple_network_setup/macaddress_spoofing_functions #211215
 
@@ -193,7 +194,7 @@ find_available_interfaces() {
         sleep 1
         ((++WAITCNT))
     done
-    [ "$WAITCNT" -gt 0 ] && echo "SNS rc.network: waited for ethernet interfaces: seconds=${WAITCNT}" #180115
+    [ "$WAITCNT" -gt 0 ] && echo "SNS rc.snsnetwork: waited for ethernet interfaces: seconds=${WAITCNT}" #180115
     [ -z "$AVAILABLE_CONNECTIONS" ] && cancel_splash_and_exit #181109 end
     local AVAILABLE_CONNECTION_MACADDRESSES MACADDR MACINTERFACE
     AVAILABLE_CONNECTION_MACADDRESSES="$(cut -f "$MACADDRESS_FIELD" -d '|' <<< "$AVAILABLE_CONNECTIONS")"
