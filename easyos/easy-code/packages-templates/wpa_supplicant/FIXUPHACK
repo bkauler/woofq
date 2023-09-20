@@ -27,8 +27,9 @@ rm -rf etc/logrotate.d
 [ -f usr/bin/wpa_gui ] && rm -f usr/bin/wpa_gui
 DISABLE_POST_INSTALL_SCRIPT=yes
 
-#190805 buster has it in sbin, pyro has it in usr/sbin
-if [ -f sbin/wpa_supplicant ];then
- mkdir -p usr/sbin
- [ ! -e usr/sbin/wpa_supplicant ] && ln -s ../../sbin/wpa_supplicant usr/sbin/wpa_supplicant
-fi
+#20230919 no longer need this...
+##190805 buster has it in sbin, pyro has it in usr/sbin
+#if [ -f sbin/wpa_supplicant ];then
+# mkdir -p usr/sbin
+# [ ! -e usr/sbin/wpa_supplicant ] && ln -s ../../sbin/wpa_supplicant usr/sbin/wpa_supplicant
+#fi
