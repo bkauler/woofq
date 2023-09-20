@@ -1,0 +1,24 @@
+#!/bin/ash
+#20230919 created.
+
+#called with param "start" when X goes up. ref: /etc/eventmanager,
+# variable PE_SERVICE_MANAGER, and "stop" when X goes down.
+#TODO: /usr/bin/netchg may conflict. running this is also triggered by /usr/bin/delayedrun
+#      network_default_connect also called by /usr/bin/xwin & hostname-set
+#      # /etc/rc.d/rc.sysinit
+
+if [ -x /etc/init.d/rc.networkmanager ];then
+ #NetworkManager is a daemon, that has it's own network up/down detection.
+ exit
+fi
+
+PARAM1="$1"
+
+case "$PARAM1" in
+ start)
+  network_default_connect
+ ;;
+ stop)
+  networkdisconnect
+ ;;
+esac
