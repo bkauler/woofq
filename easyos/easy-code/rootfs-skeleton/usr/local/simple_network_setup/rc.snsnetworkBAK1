@@ -55,8 +55,6 @@
 #20230918 BK: fixes.
 #20230919 BK: /usr/local/simple_network_setup/rc.network renamed to rc.snsnetwork
 #20230919 BK: ongoing wpa_supplicant log.
-#20230920 BK: build_udevmodulelist broken, replace. removed: ensure_driver_modules_loaded
-# at bootup, this script will run after X started. ref: /etc/init.d/rc.network
 
 #If version is changed, ensure that new VERSION is set in the sns script. #190525
 
@@ -65,21 +63,13 @@ export OUTPUT_CHARSET=UTF-8
 . gettext.sh
 LANGORIG=$LANG
 
+#Running?...
+# shellcheck disable=SC2009
+#ps --no-headers -fC rc.network | grep '/usr/local/simple_network_setup' | grep -qvw "$$" \
+#  && sleep 5 \
+#  && ps --no-headers -fC rc.network | grep '/usr/local/simple_network_setup' | grep -qvw "$$" \
+#  && exit 1 #210209
 pidof -o ${$} rc.snsnetwork && exit 1 #BK
-
-#20230920 find i/f, module and macaddress...
-mkdir -p /tmp/simple_network_setup
-echo -n '' > /tmp/simple_network_setup/if_module_address
-for aIF in `ls -1 /sys/class/net | tr '\n' ' '`
-do
- [ "$aIF" == "lo" ] && continue
- aMOD="$(readlink /sys/class/net/${aIF}/device/driver)"
- aADDR="$(cat /sys/class/net/${aIF}/address)"
- echo "${aIF}|${aMOD##*/}|${aADDR}" >> /tmp/simple_network_setup/if_module_address
- #ex: wlan1|rt2800usb|00:0f:53:b0:17:3e
-done
-
-[ ! -s /tmp/simple_network_setup/if_module_address ] && exit
 
 . /usr/local/simple_network_setup/macaddress_spoofing_functions #211215
 
@@ -135,11 +125,53 @@ stop_interface() {
     exit
 } #stop_interface
 
+ensure_driver_modules_loaded() {
+    #181109 Collect driver names from saved connection profiles & make grep patterns...
+    #Determine the modules to wait for to load... #211231...
+    local CONNECTION_DRIVER_LIST CONNECTION_DRIVER_PATTERNS CONNECTION_BUILTIN_DRIVER_LIST
+    CONNECTION_DRIVER_LIST="$(cut -f "$IF_DRIVER_FIELD" -d '|' <<< "$ALL_CONNECTION_PROFILES" | sort -u)"
+# shellcheck disable=SC2001
+    CONNECTION_DRIVER_PATTERNS="$(sed 's%.*%/&.ko%' <<< "$CONNECTION_DRIVER_LIST")"
+    #Determine any built-in drivers to be used...
+    CONNECTION_BUILTIN_DRIVER_LIST="$(grep -soF "${CONNECTION_DRIVER_PATTERNS}" /lib/modules/"$(uname -r)"/modules.builtin | sed 's%.*/\([^/]*\)\.ko%\1%')" #global #201017...
+    WAITCNT=0 ; WAITMAX=12 ; local WAITDRVRS=8 #180108 190525
+    if [ ! -f /tmp/simple_network_setup/initialization_completed ]; then
+        while true; do #Wait until drivers identified by udev rules
+# shellcheck disable=SC2010
+            EXPECTED_DRIVER_LIST="$(ls -1 /tmp/simple_network_setup/udevmodulelist | grep -Fx "$CONNECTION_DRIVER_LIST")" #global
+            [ "$EXPECTED_DRIVER_LIST" = "$CONNECTION_DRIVER_LIST" ] \
+              || [ "$WAITCNT" -ge "$WAITDRVRS" ] && break
+            sleep 1
+            ((++WAITCNT))
+        done
+    fi
+# shellcheck disable=SC2010
+    EXPECTED_DRIVER_LIST="$(ls -1 /tmp/simple_network_setup/udevmodulelist | grep -Fx "$CONNECTION_DRIVER_LIST")" #to check for more drivers
+    local ONEDRIVER EXPECTED_MODULE_STRING='' EXPECTED_MODULE_LIST
+    for ONEDRIVER in $EXPECTED_DRIVER_LIST; do
+        EXPECTED_MODULE_STRING="$EXPECTED_MODULE_STRING$(cat /tmp/simple_network_setup/udevmodulelist/"$ONEDRIVER") "
+    done #Driver entry may have multiple module names from preferences.
+    EXPECTED_MODULE_LIST="$(tr ' ' '\n' <<< "${EXPECTED_MODULE_STRING%% }")"
+    [ -n "$EXPECTED_MODULE_LIST" ] && [ -n "$CONNECTION_BUILTIN_DRIVER_LIST" ] \
+      && EXPECTED_MODULE_LIST="$(grep -vF "$CONNECTION_BUILTIN_DRIVER_LIST" <<< "$EXPECTED_MODULE_LIST")"
+    if [ -n "$EXPECTED_MODULE_LIST" ]; then #201017
+        local EXPECTED_MODULE_COUNT LOADED_MODULE_COUNT
+        EXPECTED_MODULE_COUNT="$(wc -l <<< "$EXPECTED_MODULE_LIST")" #190525
+        #Wait until all expected modules are loaded...
+        while true; do #190525
+            LOADED_MODULE_COUNT="$(lsmod | cut -f 1 -d ' ' | \
+              grep -Fxc "${EXPECTED_MODULE_LIST}")"
+            [ "$LOADED_MODULE_COUNT" -eq "$EXPECTED_MODULE_COUNT" ] && break
+            [ "$WAITCNT" -ge "$WAITDRVRS" ] && break #all modules may not be loaded.
+            sleep 1
+            ((++WAITCNT))
+        done
+    elif [ -z "$CONNECTION_BUILTIN_DRIVER_LIST" ]; then return 1
+    fi
+    return 0
+} #ensure_driver_modules_loaded #211231 end
+
 find_available_interfaces() {
- #20230920...
- WAITCNT=0 ; WAITMAX=1
- EXPECTED_DRIVER_LIST="$(readlink /sys/class/net/*/device/driver | sed -e 's%.*/%%' | tr '\n' ' ')" #busybox readlink does not work.
-    
     AVAILABLE_CONNECTIONS='' #global #190525...
     local PREFERRED_MACADDR EXPECTED_DRIVER_PATTERNS CONNECTION_MACADDRESS_COUNT #190525...
     PREFERRED_MACADDR="$(head -n 1 <<< "$ALL_CONNECTION_PROFILES" | cut -f "$MACADDRESS_FIELD" -d '|')" #211215
@@ -163,7 +195,7 @@ find_available_interfaces() {
         sleep 1
         ((++WAITCNT))
     done
-    #[ $WAITCNT -gt 0 ] && echo "SNS rc.snsnetwork: waited for ethernet interfaces: seconds=${WAITCNT}" #180115
+    [ "$WAITCNT" -gt 0 ] && echo "SNS rc.snsnetwork: waited for ethernet interfaces: seconds=${WAITCNT}" #180115
     [ -z "$AVAILABLE_CONNECTIONS" ] && cancel_splash_and_exit #181109 end
     local AVAILABLE_CONNECTION_MACADDRESSES MACADDR MACINTERFACE
     AVAILABLE_CONNECTION_MACADDRESSES="$(cut -f "$MACADDRESS_FIELD" -d '|' <<< "$AVAILABLE_CONNECTIONS")"
@@ -173,8 +205,6 @@ find_available_interfaces() {
         grep -qw "$MACINTERFACE" <<< "$PRIORITIZED_INTERFACES" \
           || PRIORITIZED_INTERFACES="${PRIORITIZED_INTERFACES}$MACINTERFACE " #190525 end 210205 #211215
     done
- 
- 
 } #find_available_interfaces
 
 initiate_wireless_connection() { #Exits from start_wireless_connection if successful; returns if unsuccessful
@@ -422,7 +452,7 @@ export LANG='C'
 #Argument: 'stop', 'start' from sns, null from network_default_connect or Connect/AppRun
 case "$1" in
   stop) stop_interface ;; #100325
-  start) true ;;
+  start) ;;
   ?*) exit ;;
 esac
 [ ! -s /etc/simple_network_setup/connections ] && cancel_splash_and_exit #170505 171222
@@ -444,9 +474,8 @@ fi
 
 set_dhcpcd_timeout #211215
 ALL_CONNECTION_PROFILES="$(grep -s '^..:' /etc/simple_network_setup/connections 2>/dev/null)" #211215
+ensure_driver_modules_loaded || cancel_splash_and_exit #201017
 find_available_interfaces
-
-[ ! "$PRIORITIZED_INTERFACES" ] && exit 5 #20230920
 
 echo -n "" > /tmp/simple_network_setup/rc_network_wireless_connection_log
 echo -n "" > /tmp/simple_network_setup/rc_network_wired_connection_log #210915

@@ -67,8 +67,10 @@
 #211231 v3.3 Replace ethtool with ip-show test for LOWER_UP.
 #220123 v3.3 Add iw-missing message to wireless configure dialog; remove unnecessary iw splash message (211002) and avoid iw-missing error messages, for clean support of wired interfaces when 'iw' is missing.
 #20230919 BK: /usr/local/simple_network_setup/rc.network renamed to rc.snsnetwork
+#20230919 BK: removed "Barry's ..." from "Simple Network Setup". Removed "Puppy"
+#20230920 BK: chmod 600 /etc/simple_network_setup/connections so non-root apps cannot see it.
 
-export VERSION='3.3.1'  #UPDATE this with each release!
+export VERSION='3.3.2'  #UPDATE this with each release! 20230920
 
 export TEXTDOMAIN=simple_network_setup
 export OUTPUT_CHARSET=UTF-8
@@ -198,15 +200,15 @@ find_usable_interfaces() {
         COLOR_BG='#CE837F'; COLOR_FG='#512323'
     fi
 
-    CLICKMSG="$(/usr/lib/gtkdialog/xml_info fixed "internet_connect.svg" 60 "$(gettext 'Puppy has identified these network interfaces on your computer. Click a button to configure the interface for use.')")"
+    CLICKMSG="$(/usr/lib/gtkdialog/xml_info fixed "internet_connect.svg" 60 "$(gettext 'These network interfaces have been identified on your computer. Click a button to configure the interface for use.')")"
     #100313 add a button for loading a Windows driver...
     if ! grep -q 'ndiswrapper' <<< "$ALL_IF_DRIVER" \
       && modprobe -n ndiswrapper 2>/dev/null; then
-        CLICKMSG="$(/usr/lib/gtkdialog/xml_info fixed "internet_connect.svg" 60 "$(gettext "Puppy has identified these network interfaces on your computer. Click a button to configure the interface for use, or click 'Windows' button if you want to install and use a MS Windows driver.")")"
+        CLICKMSG="$(/usr/lib/gtkdialog/xml_info fixed "internet_connect.svg" 60 "$(gettext "These network interfaces have been identified on your computer. Click a button to configure the interface for use, or click 'Windows' button if you want to install and use a MS Windows driver.")")"
         INTERFACEBUTTONS="${INTERFACEBUTTONS} 
   <button><label>Windows</label><action type=\"exit\">Interface_Windows</action></button>"
     elif [ -z "$ALL_IF_DRIVER" ]; then #210209...
-        CLICKMSG="$(/usr/lib/gtkdialog/xml_info fixed "internet_connect.svg" 60 "$(gettext 'Puppy has not identified any network interfaces on your computer.')")"
+        CLICKMSG="$(/usr/lib/gtkdialog/xml_info fixed "internet_connect.svg" 60 "$(gettext 'No network interfaces have been identified on your computer.')")"
         INTERFACEDESCR=''
         INTERFACEBUTTONS='<text width-request="5"><label>""</label></text>'
     fi
@@ -315,7 +317,7 @@ build_and_display_main_window() {
 
     #bring up the main window...
     SNS_main='
-<window title="SNS '$VERSION' - '$(gettext "Barry's Simple Network Setup")'" icon-name="gtk-network">
+<window title="SNS '$VERSION' - '$(gettext "Simple Network Setup")'" icon-name="gtk-network">
 <vbox spacing="0" space-expand="true" space-fill="true">
   <eventbox name="status" space-expand="false" space-fill="false">
     <text name="status_text" wrap="false" height-request="20" use-markup="true" space-expand="true" space-fill="true"><label>"'${MSGSTATUS}'"</label></text>
@@ -1044,7 +1046,7 @@ build_and_display_wireless_success_window() {
     XML_FIREWALL=""
     if [ ! -x /etc/rc.d/rc.firewall ] && [ ! -x /etc/init.d/rc.firewall ]; then
         XML_FIREWALL='
-         <text><label>"'$(gettext "However, there is one item of recommended housekeeping: you really should be running a firewall. Puppy is inherently secure, however a firewall will give you that extra protection while online. Recommend that you tick the 'Start firewall' checkbox (the firewall will install and will automatically run at all future boots)...")'"</label></text>
+         <text><label>"'$(gettext "However, there is one item of recommended housekeeping: you really should be running a firewall. The operating system is inherently secure, however a firewall will give you that extra protection while online. Recommend that you tick the 'Start firewall' checkbox (the firewall will install and will automatically run at all future boots)...")'"</label></text>
          <checkbox>
            <label>'$(gettext 'Start firewall')'</label>
            <default>true</default>
@@ -1333,6 +1335,7 @@ if [ "$IF_INTTYPE" = "Wireless" ]; then
 elif [ "$IF_INTTYPE" = "Wired" ]; then
     perform_wired_setup
 fi
+chmod 600 /etc/simple_network_setup/connections #20230920
 exit
 
 ###END###

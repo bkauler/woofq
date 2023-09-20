@@ -136,44 +136,27 @@ stop_interface() {
 } #stop_interface
 
 find_available_interfaces() {
- #20230920...
- WAITCNT=0 ; WAITMAX=1
- EXPECTED_DRIVER_LIST="$(readlink /sys/class/net/*/device/driver | sed -e 's%.*/%%' | tr '\n' ' ')" #busybox readlink does not work.
-    
-    AVAILABLE_CONNECTIONS='' #global #190525...
-    local PREFERRED_MACADDR EXPECTED_DRIVER_PATTERNS CONNECTION_MACADDRESS_COUNT #190525...
-    PREFERRED_MACADDR="$(head -n 1 <<< "$ALL_CONNECTION_PROFILES" | cut -f "$MACADDRESS_FIELD" -d '|')" #211215
-# shellcheck disable=SC2001 #${variable//search/replace} not applicable for multiple lines
-    EXPECTED_DRIVER_PATTERNS="$(sed 's%^.*%|&|%' <<< "$EXPECTED_DRIVER_LIST")" #211215
-    CONNECTION_MACADDRESS_COUNT="$(grep -F "$EXPECTED_DRIVER_PATTERNS" <<< "$ALL_CONNECTION_PROFILES" | cut -f "$MACADDRESS_FIELD" -d '|' | sort -u | wc -l)" #211215
-    local ACTIVE_REAL_MACADDRESSES ACTIVE_MACADDRESS_PATTERNS
-    local AVAILABLE_CONNECTION_COUNT
-    while true; do
-        set_active_interface_macaddresses #211215...
-        if [ -n "$ACTIVE_INTERFACE_MACADDRESSES" ]; then
-            ACTIVE_REAL_MACADDRESSES="$(cut -f 3 -d _ <<< "$ACTIVE_INTERFACE_MACADDRESSES")"
-# shellcheck disable=SC2001 #${variable//search/replace} not applicable for appending a character
-            ACTIVE_MACADDRESS_PATTERNS="$(sed 's%^.*%&|%' <<< "$ACTIVE_REAL_MACADDRESSES")"
-            AVAILABLE_CONNECTIONS="$(grep -iF "${ACTIVE_MACADDRESS_PATTERNS}" <<< "$ALL_CONNECTION_PROFILES")" #210202 201017.
-            grep -q "$PREFERRED_MACADDR" <<< "$AVAILABLE_CONNECTIONS" && break #211215 end
-            AVAILABLE_CONNECTION_COUNT="$(wc -l <<< "$AVAILABLE_CONNECTIONS")"
-            [ "$AVAILABLE_CONNECTION_COUNT" -ge "$CONNECTION_MACADDRESS_COUNT" ] && break
-        fi
-        [ "$WAITCNT" -ge "$WAITMAX" ] && break 
-        sleep 1
-        ((++WAITCNT))
-    done
-    #[ $WAITCNT -gt 0 ] && echo "SNS rc.snsnetwork: waited for ethernet interfaces: seconds=${WAITCNT}" #180115
-    [ -z "$AVAILABLE_CONNECTIONS" ] && cancel_splash_and_exit #181109 end
-    local AVAILABLE_CONNECTION_MACADDRESSES MACADDR MACINTERFACE
-    AVAILABLE_CONNECTION_MACADDRESSES="$(cut -f "$MACADDRESS_FIELD" -d '|' <<< "$AVAILABLE_CONNECTIONS")"
-    PRIORITIZED_INTERFACES='' #global #211002...
-    for MACADDR in $AVAILABLE_CONNECTION_MACADDRESSES; do
-        MACINTERFACE="$(grep "$MACADDR" <<< "$ACTIVE_INTERFACE_MACADDRESSES" | cut -f 1 -d _)"
-        grep -qw "$MACINTERFACE" <<< "$PRIORITIZED_INTERFACES" \
-          || PRIORITIZED_INTERFACES="${PRIORITIZED_INTERFACES}$MACINTERFACE " #190525 end 210205 #211215
-    done
- 
+ #20230920 rewritten...
+ #/tmp/simple_network_setup/if_module_address has i/f|module|macaddress tuple. ex: wlan1|rt2800usb|00:0f:53:b0:17:3e
+ #connection ex: 00:0f:53:b0:17:3e|Wireless|rt2800usb|usb|Ralink RT2800 USB Wireless LAN driver.||HUAWEI Y9 Prime 2019|bc:1a:e4:99:6c:4c|WPA2-PSK|myownpw99|nl80211,wext|
+ INTERFACE=''
+ PRIORITIZED_INTERFACES=''
+ while read aC 
+ do
+  #find matching macaddress...
+  aIMA="$(grep -F "${aC/|*/}" /tmp/simple_network_setup/if_module_address)"
+  if [ "$aIMA" ];then
+   #also verify the module...
+   aMOD="${aC#*|}"
+   aMOD="${aMOD/|*/}" #ex: rt2800usb
+   grep -q "|${aMOD}|" <<<"$aIMA"
+   if [ $? -eq 0 ];then
+    PRIORITIZED_INTERFACES="${PRIORITIZED_INTERFACES}${aIMA/|*/} "
+   fi
+  fi
+ done <<_EOF1
+$(cat /etc/simple_network_setup/connections)
+_EOF1
  
 } #find_available_interfaces
 
