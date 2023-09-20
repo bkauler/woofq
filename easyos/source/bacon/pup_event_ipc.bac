@@ -11,6 +11,7 @@
 '180223 pup_event_frontend_d server has 'x'
 '200107 /usr/local/pup_event/bluetoothhw writes to /tmp/pup_event_backend/bluetoothhw_
 '200212 new request dbus started.
+'20230919 detect "netchg" event.
 
 DECLARE helpflg,milliseconds TYPE int
 
@@ -45,6 +46,7 @@ IF helpflg==1 THEN
  PRINT " request: keyword to request information. Supported keywords:"
  PRINT "          mailbox waitmail"
  PRINT "          block dbus network x bluetoothhw timeout1 timeout4 timeout60"
+ PRINT "          netchg"
  PRINT " client:  any single-word to identify client (usually sender) application*."
  PRINT " message: any text string (that other side understands), up to 4000 bytes."
  PRINT "          any characters allowed, including \":\""
@@ -184,6 +186,10 @@ CASE "dbus"
  '"pup_event_ipc dbus:<pid>" will create the file and wait until it is written to.
  thisapp$=CONCAT$("dbus_",field2$)
  thisapp=thisapp$
+CASE "netchg"
+ '20230919
+ thisapp$=CONCAT$("netchg_",field2$)
+ thisapp=thisapp$
 DEFAULT
  otherapp=field1$
  thisapp=field2$
@@ -235,7 +241,7 @@ IF thisapp!=0 THEN
   IF thisdescr<=0 THEN exitsub(4)
   fd1=inotify_init()
   IF fd1<=0 THEN exitsub(5)
-  'CONST IN_MODIFY=2
+  CONST IN_MODIFY=2
   watchdir=inotify_add_watch(fd1,thisfile$,IN_MODIFY)
   IF watchdir<=0 THEN exitsub(6)
  ENDIF
@@ -277,6 +283,7 @@ CASE "x";
 CASE "timeout1";
 CASE "timeout4";
 CASE "timeout60";
+CASE "netchg";
 CASE "block"
  'need to wait for block-drive hotplug event, for thisapp... format: "block:thisapp"
  IF FILEEXISTS(thisfile$)==0 THEN
