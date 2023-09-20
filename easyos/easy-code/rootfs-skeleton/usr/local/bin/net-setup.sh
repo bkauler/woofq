@@ -1,0 +1,1 @@
+../network-wizard/net-setup.sh
