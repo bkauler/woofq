@@ -308,6 +308,7 @@
 #20230909 fix usrmerge paths.
 #20230909 workaround broken usrmerge. ref: https://bkhome.org/news/202309/cannot-execute-usrmerged-binaries-on-non-usrmerged-os.html
 #20230914 removed all reference to usr/local/debget
+#20230921 fix update-ca-certificates did not run.
 
 export LANG=C #faster.
 
@@ -4585,17 +4586,11 @@ if [ "$BUILD_CHOICE_INITD_DAEMON_DEFAULT_OFF" ];then
  done
 fi
 
-#170511 'ca-certificates' package...
-if [ ! -h rootfs-complete/usr/sbin ];then #20230908
- if [ -f rootfs-complete/usr/sbin/update-ca-certificates ];then
-  #191007 pyro: p11-kit pet has this, remove...
-  [ -e rootfs-complete/usr/bin/update-ca-certificates ] && rm -f rootfs-complete/usr/bin/update-ca-certificates
-  if [ "$WOOF_HOSTARCH" == "$WOOF_TARGETARCH" ];then
-   chroot rootfs-complete /usr/sbin/update-ca-certificates
-  else
-   echo "Note, need to run /usr/sbin/update-ca-certificates in rc.sysinit at first bootup."
-  fi
- fi
+#170511 'ca-certificates' package... 20230921 p11-kit fix in packages-templates
+if [ "$WOOF_HOSTARCH" == "$WOOF_TARGETARCH" ];then #20230921 fix wasn't running.
+ chroot rootfs-complete /usr/bin/update-ca-certificates
+else
+ echo "Note, need to run /usr/sbin/update-ca-certificates in rc.sysinit at first bootup."
 fi
 
 #170515 oe, usr/lib/gconv/gconv-modules.cache is missing...
