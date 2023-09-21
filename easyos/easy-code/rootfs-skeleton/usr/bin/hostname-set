@@ -12,6 +12,7 @@
 #130511 shinobar: reconnect only if local dynamic DNS is available. See my modification near bottom of script.
 #180702 improved security for xorg.
 #181221 samba has the hostname in /etc/samba/smb.conf
+#20230921 no longer using /tmp/simple_network_setup/network_default_reconnect_required_flag
 
 export TEXTDOMAIN=hostname-set
 export OUTPUT_CHARSET=UTF-8
@@ -74,7 +75,7 @@ if [ "$NEW_HOSTNAME" != "$HOSTNAME" ];then
   IFCONFIG="`ifconfig | grep '^[pwe]' | grep -v 'wmaster'`"
   if [ "$IFCONFIG" ];then
    networkdisconnect #see /usr/sbin
-   touch /tmp/simple_network_setup/network_default_reconnect_required_flag #/usr/bin/xwin will read this, will call /usr/sbin/network_default_connect
+   #touch /tmp/simple_network_setup/network_default_reconnect_required_flag #/usr/bin/xwin will read this, will call /usr/sbin/network_default_connect
    M_h3b="
 
 $(gettext '\ZbNOTE:\ZB There did appear to be an active network connection, that has now been disconnected. Restart of the network is required for the new hostname to take effect over the network. After restarting X, there should be an automatic reconnection -- if not, you can do it manually by clicking the \Zbconnect\ZB icon on the desktop')"

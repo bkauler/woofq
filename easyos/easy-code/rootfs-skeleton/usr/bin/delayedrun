@@ -303,23 +303,24 @@ else
  fi
 fi
 
-#190215 /etc/rc.d/rc.network_eth brings up interfaces, /usr/local/pup_event/netchg 
-#is called from pup_event_frontend_d whenever network change, however at bootup
-#it might need to be triggered here... only doing this for ethernet... 190217...
-#200521 include networkmanager...
-if grep -E 'connectwizard| sns| nm' /usr/local/bin/defaultconnect >/dev/null; then
- sleep 3
- FIP="$(getlocalip | grep '^[^l]')" #test if already a lease assigned.
- if [ "$FIP" == "" ];then
-  CARS="$(grep -H -x '1' /sys/class/net/eth[0-9]/carrier 2>/dev/null)"
-  if [ "$CARS" ];then
-   #take lo down then up, will trigger network event, end up calling netchg...
-   echo "delayedrun: have ethernet carrier, but no ip lease, take lo down then up, to trigger run netchg"
-   ip link set lo down
-   ip link set lo up
-  fi
- fi
-fi
+#20230921 currently not using this...
+##190215 /etc/rc.d/rc.network_eth brings up interfaces, /usr/local/pup_event/netchg 
+##is called from pup_event_frontend_d whenever network change, however at bootup
+##it might need to be triggered here... only doing this for ethernet... 190217...
+##200521 include networkmanager...
+#if grep -E 'connectwizard| sns| nm' /usr/local/bin/defaultconnect >/dev/null; then
+# sleep 3
+# FIP="$(getlocalip | grep '^[^l]')" #test if already a lease assigned.
+# if [ "$FIP" == "" ];then
+#  CARS="$(grep -H -x '1' /sys/class/net/eth[0-9]/carrier 2>/dev/null)"
+#  if [ "$CARS" ];then
+#   #take lo down then up, will trigger network event, end up calling netchg...
+#   echo "delayedrun: have ethernet carrier, but no ip lease, take lo down then up, to trigger run netchg"
+#   ip link set lo down
+#   ip link set lo up
+#  fi
+# fi
+#fi
 
 touch /tmp/delayedrun_finished_flag #111010
 ###END###

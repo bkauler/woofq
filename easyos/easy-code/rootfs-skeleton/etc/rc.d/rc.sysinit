@@ -61,6 +61,7 @@
 #20221123 top-level /.config and /.local were getting created at startup.
 #20230409 revert, /files now a symlink (ref: init in initrd)
 #20230413 change path to swap file.
+#20230921 no longer using /tmp/simple_network_setup/network_default_reconnect_required_flag
 
 #unset TZ #100319 busybox hwclock gives priority to this (rather than /etc/localtime) and 'init' has set it wrong.
 #...comment-out for now. note, TZ now set in rc.country.
@@ -760,8 +761,8 @@ if [ "$UPDATE_MONTH" != "$CURRENT_MONTH" ];then
  done 
 fi 
 
-#120505 remove this so that /usr/bin/xwin does not try another auto network connect (ref: /usr/sbin/hostname-set)...
-[ -f /tmp/simple_network_setup/network_default_reconnect_required_flag ] && rm -f /tmp/simple_network_setup/network_default_reconnect_required_flag
+##120505 remove this so that /usr/bin/xwin does not try another auto network connect (ref: /usr/sbin/hostname-set)...
+#[ -f /tmp/simple_network_setup/network_default_reconnect_required_flag ] && rm -f /tmp/simple_network_setup/network_default_reconnect_required_flag
 
 #181113 now have networkmanager...
 #120505 ***NOTE: this code block extracted to /usr/sbin/network_default_connect. in future could delete it here and call that script.***
