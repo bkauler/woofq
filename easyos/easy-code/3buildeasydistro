@@ -309,6 +309,7 @@
 #20230909 workaround broken usrmerge. ref: https://bkhome.org/news/202309/cannot-execute-usrmerged-binaries-on-non-usrmerged-os.html
 #20230914 removed all reference to usr/local/debget
 #20230921 fix update-ca-certificates did not run.
+#20230925 rox-filer: usr/local/apps/ROX-Filer/Messages is a symlink, was getting changed to a folder.
 
 export LANG=C #faster.
 
@@ -924,13 +925,16 @@ do
  [ "$ONEPKG" == "busybox" ] && continue #see below.
  
  #20230909 simplified copy, target may have symlinks in path...
+ #20230925 rox-filer: usr/local/apps/ROX-Filer/Messages is a symlink, was getting changed to a folder...
  while read aF
  do
+  aD="$(dirname "$aF")"
+  mkdir -p sandbox3/rootfs-complete/"$aD"/
   if [ -d packages-${DISTRO_FILE_PREFIX}/${ONEPKG}/"$aF" ];then
-   mkdir -p sandbox3/rootfs-complete/"$aF"/
+   if [ -e sandbox3/rootfs-complete/"$aF" ];then
+    continue
+   fi
   else
-   aD="$(dirname "$aF")"
-   mkdir -p sandbox3/rootfs-complete/"$aD"/
    if [ -h packages-${DISTRO_FILE_PREFIX}/${ONEPKG}/"$aF" ];then
     if [ -e sandbox3/rootfs-complete/"$aF" ];then
      if [ ! -h sandbox3/rootfs-complete/"$aF" ];then
@@ -938,8 +942,8 @@ do
      fi
     fi
    fi
-   cp -a --remove-destination packages-${DISTRO_FILE_PREFIX}/${ONEPKG}/"$aF" sandbox3/rootfs-complete/"$aD"/
   fi
+  cp -a --remove-destination packages-${DISTRO_FILE_PREFIX}/${ONEPKG}/"$aF" sandbox3/rootfs-complete/"$aD"/
  done <<_END1
 $(find packages-${DISTRO_FILE_PREFIX}/${ONEPKG} -mindepth 1 | sed -e "s%packages-${DISTRO_FILE_PREFIX}/${ONEPKG}/%%")
 _END1
@@ -5991,22 +5995,25 @@ do
  if [ "`echo "$ALLGENNAMESD" | grep "$devPATTERN"`" != "" ];then
   
   #20230909 simplified copy, target may have symlinks in path...
+  #20230925 rox-filer: usr/local/apps/ROX-Filer/Messages is a symlink, was getting changed to a folder...
   while read aF
   do
+   aD="$(dirname "$aF")"
+   mkdir -p sandbox3/rootfs-complete/"$aD"/
    if [ -d packages-${DISTRO_FILE_PREFIX}/${ONEDEV}/"$aF" ];then
-    mkdir -p sandbox3/devx/"$aF"/
+    if [ -e sandbox3/rootfs-complete/"$aF" ];then
+     continue
+    fi
    else
-    aD="$(dirname "$aF")"
-    mkdir -p sandbox3/devx/"$aD"/
     if [ -h packages-${DISTRO_FILE_PREFIX}/${ONEDEV}/"$aF" ];then
-     if [ -e sandbox3/devx/"$aF" ];then
-      if [ ! -h sandbox3/devx/"$aF" ];then
+     if [ -e sandbox3/rootfs-complete/"$aF" ];then
+      if [ ! -h sandbox3/rootfs-complete/"$aF" ];then
        continue
       fi
      fi
     fi
-    cp -a --remove-destination packages-${DISTRO_FILE_PREFIX}/${ONEDEV}/"$aF" sandbox3/devx/"$aD"/
    fi
+   cp -a --remove-destination packages-${DISTRO_FILE_PREFIX}/${ONEDEV}/"$aF" sandbox3/rootfs-complete/"$aD"/
   done <<_END1
 $(find packages-${DISTRO_FILE_PREFIX}/${ONEDEV} -mindepth 1 | sed -e "s%packages-${DISTRO_FILE_PREFIX}/${ONEDEV}/%%")
 _END1
