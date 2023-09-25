@@ -22,6 +22,7 @@
 #20230210 always load .str.en, in case non-english is incomplete.
 #20230211 .str files folder hierarchy reorganized.
 #20230425 maybe compressed 'e2fsck'
+#20230925 v2 fscrypt, when remount working part have to decrypt.
 
 WKG_DRV=$1 #ex: sda
 WKG_DEV=$2 #ex: sda2
@@ -134,6 +135,13 @@ if [ "$WKG_LOOP" ];then
  #20220304 increase ext4 commit=30 to 1800 (30min)... 20220522 revert.
  mount -t ext4 -o discard,commit=30,rw,relatime,data=ordered /dev/${WKG_LOOP} /mnt/${WKG_DEV}/${WKG_DIR%/}
  [ $? -ne 0 ] && exit 3
+fi
+
+#20230925
+if [ -s /PASSPHRASE ];then
+ #a pw was entered in 'init' so decrypt...
+ fscryptctl add_key /mnt/${WKG_DEV} < /PASSPHRASE > /dev/null
+ sleep 0.1
 fi
 
 rm -f /mnt/${WKG_DEV}/${WKG_DIR}.fsckme.flg #20220801
