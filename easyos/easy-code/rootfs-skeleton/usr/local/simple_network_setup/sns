@@ -69,6 +69,7 @@
 #20230919 BK: /usr/local/simple_network_setup/rc.network renamed to rc.snsnetwork
 #20230919 BK: removed "Barry's ..." from "Simple Network Setup". Removed "Puppy"
 #20230920 BK: chmod 600 /etc/simple_network_setup/connections so non-root apps cannot see it.
+#20230924 fix for tainted module, modinfo doesn't work.
 
 export VERSION='3.3.2'  #UPDATE this with each release! 20230920
 
@@ -101,6 +102,9 @@ find_interface_driver() {
     IF_DRIVER=${FINDTYPE##*/} #basename - ex: ath5k
     IF_BUS="$(grep -o '/bus/[^/]*' <<< "$FINDTYPE" | cut -f 3 -d /)" #210210
     IF_INFO="$(sed -n 's%^description: *%%p' <<< "$(modinfo "$IF_DRIVER" 2>/dev/null)")" #210210
+    if [ ! "$IF_INFO" ];then #20230924 fix for tainted module, modinfo doesn't work.
+     IF_INFO="$(gettext 'No description available')"
+    fi
     if [ "$IF_DRIVER" = "ndiswrapper" ]; then
         WINDRVR="$(ndiswrapper -l | grep '^[a-zA-Z0-9]' | cut -f 1 -d ' ')"
         IF_INFO="MS Windows driver '${WINDRVR}'"
