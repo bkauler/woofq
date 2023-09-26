@@ -19,6 +19,7 @@
 #180923 replace specific exec paths with 'which'; move network wizard.
 #200206 replace deprecated 'ifconfig' with busybox 'ip'; replace 180624.
 #200910 position windows at center of screen; resolve shellcheck warnings.
+#20230926 removed "Puppy" from text messages.
 
 export TEXTDOMAIN=connectwizard_2nd
 export OUTPUT_CHARSET=UTF-8
@@ -52,7 +53,7 @@ fi
 
 if which net-setup.sh >/dev/null 2>&1;then #wizard developed by Dougal.
     NETWIZARD="$(cn_2nd FLAGNETWIZARD network_connect.svg "$(gettext '<b><span color='"'blue'"'>Network Wizard</span></b>.
-This is the most sophisticated tool for network setup in Puppy. It is for both wired (ethernet) and wireless connectivity, <b>with more configuration features</b> than Frisbee and SNS.')")"
+This is a sophisticated tool for network setup. It is for both wired (ethernet) and wireless connectivity, <b>with more configuration features</b> than Frisbee and SNS.')")"
 fi
 
 if which peasywifi >/dev/null 2>&1;then #rcrsn51's wifi connection manager  180919...
@@ -69,7 +70,7 @@ fi
 export Network_Connection_Wizard='
 <window title="'$(gettext 'Network Connection Wizard')'" icon-name="gtk-connect" resizable="false">
 <vbox space-expand="true" space-fill="true">
-  '"$(/usr/lib/gtkdialog/xml_info fixed network_connect.svg 48 "$(gettext 'This build of Puppy has the following choices of GUI tool that you can use to connect to a network (and Internet)...')")"' 
+  '"$(/usr/lib/gtkdialog/xml_info fixed network_connect.svg 48 "$(gettext 'These are the choices of GUI tool that you can use to connect to a network (and Internet)...')")"' 
   <vbox space-expand="true" space-fill="true">
    '${SNS}'
    '${FRISBEE}'
@@ -129,7 +130,7 @@ if [ "$(echo "$RETSTRING" | grep '^EXIT' | grep 'FLAG')" != "" ];then
         IFSUP="$(echo "$IFSUP" | cut -f 1 -d ' ' | tr '\n' ' ')"
         MSG1="$(gettext 'These interfaces are active:')
 <b>${IFSUP}</b>
-$(gettext '...Satisfied? Got online OK? If yes, click <u>Set as default</u> button, so Puppy will be optimised to use this tool for future boots.')"
+$(gettext '...Satisfied? Got online OK? If yes, click <u>Set as default</u> button, to use this tool for future boots.')"
     else
         MSG1="$(gettext 'No interfaces are active, so was the tool unsatisfactory? If it actually was OK, click the <u>Set as default</u> button. But, it seems not, so...')"
     fi
