@@ -36,11 +36,12 @@ case "$PARAM1" in
    fi
    #if working offline, do not want to be checking for network frequently...
    sleep 8
-   [ $CNT -ge 4 ] && exit
+   [ $CNT -ge 8 ] && exit
    CNT=$(($CNT+1))
   done
  ;;
  stop)
+  kill `pidof -o ${$} pupnetwork` 2>/dev/null #20230925
   networkdisconnect
  ;;
 esac
