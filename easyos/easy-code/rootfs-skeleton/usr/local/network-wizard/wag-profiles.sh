@@ -111,75 +111,130 @@
 #190217 v2.1: avoid logging progress updates when X not running; correct use of argument in kill functions.
 #210415 v2.2: Set 'selected device' softlink when "Use This Profile" button selected & remove it if target profile deleted; correct iwconfig check to test for associated AP address; prevent multiple psk= lines in wpa profile; correct PID test; add interface name to dhcpcd progress dialog; for wpa_supplicant progress, delay start of first input to avoid piping errors & pause between initial updates.
 #220704 v2.2.1: Recognize essid '\x00...' as hidden network; pause before running dhcpcd after interface test; collect all dhcpcd runs in dhcpcd.log; remove setting of 'selected device' softlink when "Use This Profile" button selected.
+#20230929 BK: change to gettext
 
-#
-# Paul Siu
-# Ver 1.1 Jun 09, 2007
-#  Added support for ralink wireless network adapters.
-#
-# Rarsa
-# Ver 1.0 Oct 23, 2006
-#  Reorganized code
-#  Integrated into net-setup (the Puppy Ethernet/Network wizard)
+export TEXTDOMAIN=network-wizard
+export OUTPUT_CHARSET=UTF-8
 
-# History of Wifi Access Gadget
-# Keenerd
-# ver 0.4.0
-#  under development
-#  new ping dialog
-#  profile generator
-#  new interface
-#  replace xmessage dialogs
-#  automatic dhcpcd handling
-# ver 0.3.2
-#  10+ cells
-#  socket-test in main program
-#  improved pupget registration
-#  improved ifconfig use
-#  improved ad-hoc support
-#  waiting dialog
-#  slightly prettier xmessage
-# ver 0.3.1
-#  improved 1.0.5 compatability
-#  bug fixes
-# ver 0.3.0
-#  profiles
-#  help interface
-#  install to /usr
-# ver 0.2.6
-#  additional scan error handling
-#  additional dhcpcd error handling
-#  smarter buttons
-#  PCMCIA optional
-#  rewrote everything (bug hunt/verbose code)
-#  new debug script
-# ver 0.2.5
-#  essid with spaces
-#  external wag-conf
-#  no overwrite of user files on reinstall
-#  better socket testing
-# ver 0.2.4
-#  autodetect adapter from /proc/net/wireless
-#  ping moved to seperate button
-#  got rid of silly disk writes
-#  added socket testing
-# ver 0.2.3
-#  usability improvements in documentation and installer
-# ver 0.2.2
-#  reports open networks
-#  refresh in Scan dialog
-#  dotpupped
-# ver 0.2.1
-#  scan bug fixed
-#  partial support of Wifi-Beta
-#  intelligent buttons
-# ver 0.2.0
-#  interactive scanning
-#  public release
-# ver 0.1.0
-#  interactive command buttons
-# ver 0.0.0
-#  basic diagnostic listing
+####
+L_TITLE_Puppy_Network_Wizard="$(gettext "Network Wizard")"
+L_TITLE_Network_Wizard="$(gettext "Network Wizard")"
+L_TITLE_Netwiz_Static_IP="$(gettext "Network Wizard: Static IP")"
+L_BUTTON_Exit="$(gettext "Exit")"
+L_BUTTON_Save="$(gettext "Save")"
+L_BUTTON_Load="$(gettext "Load")"
+L_BUTTON_Unload="$(gettext "Unload")"
+L_BUTTON_Back="$(gettext "Back")"
+L_BUTTON_Blacklist="$(gettext "Blacklist")"
+L_BUTTON_No="$(gettext "No")"
+L_FRAME_Progress="$(gettext "Progress")"
+L_BUTTON_Abort="$(gettext "Abort")"
+L_BUTTON_Retry="$(gettext "Retry")"
+L_TEXT_Dhcpcd_Progress="Connecting to DHCP server... timeout is $MAX_TIME seconds."
+L_TEXT_No_Wpa_p1="$(gettext "Note: The interface you have selected uses the ")"
+L_TEXT_No_Wpa_p2="$(gettext " module, which is not included in our list of modules supporting WPA encryption.")"
+L_BUTTON_Add_WPA="$(gettext "Add To List")"
+L_TEXT_No_Wpa_Ask="$(gettext "However, if you know for a fact that it <i>does</i> support WPA, or wish to test if it does (the only difference is being offered more options in the configuration dialog...), click the '$L_BUTTON_Add_WPA' button. This will add the module to a configuration file for future use.")"
+L_TEXT_Wpa_Add_p1="$(gettext "The following details will be added to the configuration file, ")"
+L_TEXT_Wpa_Add_p2="$(gettext ".")"
+L_ENTRY_Wpa_Add_Module="$(gettext "Module:")"
+L_ENTRY_Wpa_Add_WEXT="$(gettext "wpa_supplicant driver:")"
+L_TEXT_Profiles_Window="$(gettext "Please select a network profile to use.
+To create a new profile, start by scanning for available 
+networks and select the one you would like to configure. 
+Newly created profiles should be <b>saved</b> in order to be used.")"
+L_BUTTON_Scan="$(gettext "Scan")"
+L_FRAME_Load_Existing_Profile="$(gettext "Load an existing profile")"
+L_TEXT_Select_Profile="$(gettext "Select a profile to load:")"
+L_FRAME_Edit_Profile="$(gettext "Edit profile")"
+L_TEXT_Encryption="$(gettext "Encryption:    ")"
+L_BUTTON_Open="$(gettext "Open")"
+L_TEXT_Profile_Nmae="$(gettext "Profile
+Name:   ")"
+L_TEXT_Essid="$(gettext "ESSID:    ")"
+L_TEXT_Mode="$(gettext "Mode:")"
+L_CHECKBOX_Managed="$(gettext "Managed")"
+L_CHECKBOX_Adhoc="$(gettext "Ad-hoc ")"
+L_TEXT_Security="$(gettext "Security: ")"
+L_CHECKBOX_Open="$(gettext "Open")"
+L_CHECKBOX_Restricted="$(gettext "Restricted")"
+L_BUTTON_Delete="$(gettext "Delete")"
+L_BUTTON_Use_Profile="$(gettext "Use This Profile")"
+L_BUTTON_New_Profile="$(gettext "New Profile")"
+L_TEXT_Key="$(gettext "Key:")"
+L_TEXT_AP_Scan="$(gettext "AP Scan:")"
+L_CHECKBOX_Hidden_SSID="$(gettext "Hidden SSID")"
+L_CHECKBOX_Broadcast_SSID="$(gettext "Broadcast SSID")"
+L_CHECKBOX_Driver="$(gettext "Driver")"
+L_TEXT_Shared_Key="$(gettext "Shared Key:")"
+L_LABEL_Advanced="$(gettext "Advanced")"
+L_LABEL_Basic="$(gettext "Basic")"
+L_TEXT_Frequency="$(gettext "Frequency:")"
+L_TEXT_Channel="$(gettext "Channel:")"
+L_TEXT_AP_MAC="$(gettext "Access Point
+     MAC:")"
+L_MESSAGE_Bad_Profile="$(gettext "Error!
+The profile had no network associated with it.
+You must run a wireless scan and select a
+network, then create a profile for it.")"
+L_MESSAGE_Bad_PSK="$(gettext "Error!
+wpa_passphrase failed to generate the psk
+from your key and SSID!
+Please report this on the forum, so that
+we can try and find the problem.
+")"
+L_MESSAGE_Failed_To_Raise_p1="$(gettext "Error!
+Failed to raise interface ")"
+L_MESSAGE_Failed_To_Raise_p2="$(gettext ".
+Failed command was:")"
+L_MESSAGE_Failed_To_Raise_p3="$(gettext "Error returned was:")"
+L_MESSAGE_Configuring_Interface_p1="$(gettext "Configuring interface ")"
+L_MESSAGE_Configuring_Interface_p2="$(gettext " 
+to network ")"
+L_ECHO_Status_p1="$(gettext "Time: ")"
+L_ECHO_Status_p2="$(gettext "	Status: ")"
+L_MESSAGE_No_Wpaconfig_p1="$(gettext "Error!
+Could not find the wpa_supplicant configuration file:")"
+L_MESSAGE_No_Wpaconfig_p2="$(gettext "
+Note that you must save the profile before you can use it!")"
+L_TEXT_WPA_Progress_p1="$(gettext "Acquiring ")"
+L_TEXT_WPA_Progress_p2="$(gettext " connection from ")"
+L_TEXT_WPA_Progress_p3="$(gettext "...(30 sec. timeout)")"
+L_ECHO_Starting="$(gettext "Starting")"
+L_ECHO_Initializing_Wpa="$(gettext "Initializing wpa_supplicant")"
+L_MESSAGE_TKIP_Failed="$(gettext "WPA/TKIP failed, but you can retry with AES.")"
+L_MESSAGE_WPA_Failed="$(gettext "Unable to establish WPA connection")"
+L_BUTTON_Details="$(gettext "Details")"
+L_FRAME_Connection_Info="$(gettext "Connection info")"
+L_FRAME_wpa_cli_Outeput="$(gettext "Output of ")"
+L_BUTTON_Refresh="$(gettext "Refresh")"
+L_PROGRESS_Waiting_For_PCMCIA="$(gettext "Waiting for pcmcia device to settle")"
+L_PROGRESS_Scanning_Wireless="$(gettext "Scanning wireless networks")"
+L_SCANWINDOW_Encryption="$(gettext "Encryption:")"
+L_SCANWINDOW_Channel="$(gettext "Channel:")"
+L_SCANWINDOW_Frequency="$(gettext "Frequency:")"
+L_SCANWINDOW_AP_MAC="$(gettext "AP MAC:")"
+L_SCANWINDOW_Strength="$(gettext "Strength:")"
+L_TEXT_Scanwindow="$(gettext "Select one of the available networks
+	Move the mouse over to see more details.")"
+L_TEXT_No_Networks_Detected="$(gettext "No networks were detected.
+
+Maybe your router is turned off?
+Maybe there is a Wireless switch on your laptop
+that needs to be turned on?")"
+L_TEXT_No_Networks_Retry="$(gettext " No networks were detected. 
+ Would you like to try and scan again?
+")"
+L_TEXT_No_Networks_Retry_Pcmcia="$(gettext "No networks were detected.
+However, you seem to be using a PCMCIA device, 
+which might require resetting in order for the scan to work.
+Would you like to reset the card and scan again?
+")"
+L_SCANWINDOW_Hidden_SSID="$(gettext "(hidden SSID)")"
+L_TEXT_Prism_Scan="$(gettext "Select one of the available networks
+	Move the mouse over to see more details.")"
+L_TEXT_Provide_Key="$(gettext "Provide a key")"
+####
 
 ## Dougal: dirs where config files go
 # network profiles, like the blocks in /etc/WAG/profile-conf used to be
@@ -329,7 +384,6 @@ showProfilesWindow()
 	 ath_pci) modprobe wlan_tkip ; CARD_WPA_DRV="wext" ;;
 	 ath5k*|ath9k*|b43|b43legacy|bcm43xx) CARD_WPA_DRV="wext" ;;
 	 ipw2100|ipw2200|ipw3945|iwl3945|iwl4965|iwl5100|iwlagn) CARD_WPA_DRV="wext" ;;
-	 ndiswrapper|p54pci|p54usb|rndis_wlan) CARD_WPA_DRV="wext" ;;
 	 rt61pci|rt73usb|rt2400pci|rt2500*|rt28[67]0*|rtl8180|rtl8187) CARD_WPA_DRV="wext" ;;
 	 zd1211|zd1211b|zd1211rw) CARD_WPA_DRV="wext" ;;
 	 ar9170usb|at76c50x-usb|libertas_cs|libertas_sdio|libertas_tf_usb|mwl8k|usb8xxx) CARD_WPA_DRV="wext" ;; #v430

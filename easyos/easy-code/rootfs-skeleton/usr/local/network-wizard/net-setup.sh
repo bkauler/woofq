@@ -79,6 +79,229 @@
 #200412 v2.1.2: Increase wait for ethtool link detected, to 15 secs.
 #210415 v2.2: Correct pcmcia check; set 'selected device' softlink when saving configuration; simplify link detection; set IS_WIRELESS; remove v411 BK hack to remove old network wizard configs (*[0-9]mode).
 #220704 v2.2.1: Fixes in wag_profiles.sh and rc.network.
+#20230927 BK: remove "Puppy" from text messages.
+#20230929 BK: change to gettext. remove ndiswrapper.
+
+export TEXTDOMAIN=network-wizard
+export OUTPUT_CHARSET=UTF-8
+
+#####
+L_TITLE_Puppy_Network_Wizard="$(gettext "Network Wizard")"
+L_TITLE_Network_Wizard="$(gettext "Network Wizard")"
+L_TITLE_Netwiz_Static_IP="$(gettext "Network Wizard: Static IP")"
+L_BUTTON_Exit="$(gettext "Exit")"
+L_BUTTON_Save="$(gettext "Save")"
+L_BUTTON_Load="$(gettext "Load")"
+L_BUTTON_Unload="$(gettext "Unload")"
+L_BUTTON_Back="$(gettext "Back")"
+L_BUTTON_Blacklist="$(gettext "Blacklist")"
+L_BUTTON_No="$(gettext "No")"
+
+L_LABEL_Interface_Tree_Header="$(gettext "Interface|Type|Module|Device description")"
+L_ECHO_No_Interfaces_Message="$(gettext "Cannot see any active network interfaces.
+
+If you have one or more network adaptors (interfaces) in the PC and you want to use them, then driver modules will have to be loaded. This is supposed to be autodetected and the correct driver loaded when Puppy boots up, but it hasn't happened in this case. Never mind, you can do it manually!")"
+L_ECHO_One_Interface_Message="$(gettext "The following network interface has been identified on your computer, but it still needs to be configured.
+To test or configure it, click on its button.")"
+L_ECHO_Multiple_Interfaces_Message="$(gettext "The following network interfaces have been identified on your computer, but they still need to be configured.
+To test or configure an interface, click on its button.")"
+L_FRAME_Interfaces="$(gettext "Interfaces")"
+L_FRAME_Network_Modules="$(gettext "Network modules")"
+L_TITLE_Load_Network_Module="$(gettext "Load a network module")"
+L_NOTEBOOK_Modules_Header="$(gettext "Select module|More")"
+L_TEXT_Select_Module_Tab="$(gettext "If you see a module below that matches your hardware (and isn't loaded yet...), select it and press the 'Load' button.
+If not (or you are unsure), go to the 'More' tab.")"
+L_LABEL_Module_Tree_Header="$(gettext "Module|Type|Description")"
+L_TEXT_More_Tab="$(gettext "Click <b>Specify</b> to choose a module that's not listed, or specify a module followed by parameters (might be mandatory for ISA cards, see examples below).
+Click <b>Unload</b> to unload a currently loaded module (so that you can then load an alternative).
+Click <b>Auto-probe</b> to try loading ALL the modules in the list.
+
+Example1: ne io=0x000, 
+Example2: arlan  io=0x300 irq=11
+(Example1 works for most ISA cards and does some autoprobing of io and irq)")"
+L_BUTTON_Specify="$(gettext "Specify")"
+L_BUTTON_Autoprobe="$(gettext "Auto-probe")"
+L_TOPMSG_Load_Module_None_Selected="$(gettext "REPORT ON LOADING OF MODULE: No module was selected")"
+L_TOPMSG_Load_Module_Cancel="$(gettext "REPORT ON LOADING OF MODULE: No module was loaded")"
+L_MESSAGE_One_New_Interface="$(gettext "The following new interface has been found")"
+L_MESSAGE_Multiple_New_Interfaces="$(gettext "The following new interfaces have been found")"
+L_FRAME_New_Interfaces="$(gettext "New interfaces")"
+L_LABEL_New_Interfaces_Tree_Header="$(gettext "Interface|Type|Module|Device description")"
+L_TEXT_New_Interfaces_p1="$(gettext "Click the 'Save' button to save the selection, so that the OS will automatically load")"
+L_TEXT_New_Interfaces_p2="$(gettext "at bootup.
+\\Click Cancel to just go back and configure the new interface.")"
+L_TEXT_No_New_Interfaces1="$(gettext "No new interfaces were detected.")"
+L_TEXT_No_New_Interfaces2="$(gettext "Click the 'Unload' button to unload the new module and try to load another one.")"
+L_TITLE_New_Module_Loaded="$(gettext "New module loaded")"
+L_TEXT_New_Module_Loaded="$(gettext "The following new module has been loaded:")"
+L_TOPMSG_New_Module_Save="$(gettext "New module information saved")"
+L_TOPMSG_New_Module_Unload="$(gettext "New module unloaded")"
+L_TOPMSG_New_Module_Cancelled="$(gettext "Cancelled")"
+L_TOPMSG_Load_Module_None_Loaded="$(gettext "REPORT ON LOADING OF MODULE: No module was loaded")"
+L_TITLE_Netwiz_Hardware="$(gettext "Network Wizard: hardware")"
+L_MESSAGE_Driver_Loaded="$(gettext "The driver is already loaded.\nThat does not mean it will actually work though!\nAfter clicking OK, see if a new interface\nhas been detected.")"
+L_MESSAGE_Driver_Success_p1="$(gettext "Module")"
+L_MESSAGE_Driver_Success_p2="$(gettext "has loaded successfully.
+That does not mean it will actually work though!
+After clicking OK, see if a new interface
+has been detected.")"
+L_MESSAGE_Driver_Failed_p1="$(gettext "Loading ")"
+L_MESSAGE_Driver_Failed_p2="$(gettext "failed with the following message:
+")"
+L_MESSAGE_Driver_Failed_p3="$(gettext "Maybe try a different driver.
+")"
+L_TEXT_Acx_Module_p1="$(gettext "The interface you selected uses the module")"
+L_BUTTON_None="$(gettext "none")"
+L_MESSAGE_Remove_Module_Failed_p1="$(gettext "Error!
+Failed to unload module")"
+L_MESSAGE_Remove_Module_Failed_p2="$(gettext "
+The following error was returned:")"
+L_MESSAGE_Blacklist_Nativemod_p1="$(gettext "The module")"
+L_TITLE_Load_A_Module="$(gettext "Load A Module")"
+L_TEXT_Load_A_Module="$(gettext "Please type the name of a specific module to load
+(extra parameters allowed, but don't type tab chars).")"
+L_MESSAGE_Success_Loading_Module_p1="$(gettext "Success loading the")"
+L_MESSAGE_Success_Loading_Module_p2="$(gettext "module. That does not mean it will actually work though!
+After clicking OK, back on the main window if you see a new active interface
+proceed to configure it.
+
+NOTE: it is possible that a module loads ok, but it is a false hit, that is, does
+not actually work with your network adaptor. In that case, try autoprobing again. 
+This script will remember the previous attempts (until you exit this script) and will
+jump over them.
+If you do get false hits, let us know about it on the Puppy Discussion Forum!")"
+L_MESSAGE_No_Module_Loaded="$(gettext "No module loaded successfully.
+
+Note however that these modules are already loaded:")"
+L_TEXT_Blacklist_Module_p1="$(gettext "Module")"
+L_TEXT_Blacklist_Module_p2="$(gettext "removed successfully.
+
+Would you like to blacklist it, so that in the
+future it will not get loaded while booting?
+")"
+L_MESSAGE_No_Loaded_Items="$(gettext "Error!
+It seems like no network modules are currently loaded...
+")"
+L_TITLE_Unload_A_Module="$(gettext "Unload A Module")"
+L_TEXT_Unload_A_Module="$(gettext "Please select the module you
+wish to unload, then press 'Unload'...")"
+L_COMBO_Module="$(gettext "Module:")"
+L_PROGRESS_Checking_Loaded_Modules="$(gettext "Checking loaded modules")"
+L_MESSAGE_Failed_Raise_Interface_p1="$(gettext "Error!
+Failed to raise interface")"
+L_MESSAGE_Failed_Raise_Interface_p2="$(gettext "Failed command was:")"
+L_MESSAGE_Failed_Raise_Interface_p3="$(gettext "Error returned was:")"
+L_PROGRESS_Testing_Interface="$(gettext "Testing Interface")"
+L_TOPMSG_Report_On_Test='REPORT ON TEST OF $INTERFACE CONNECTION:'
+L_TOPMSG_Unplugged_Wireless="$(gettext "'Unable to connect to a wireless network'
+Verify that the wireless network is available and
+that you have provided the correct wireless parameters.")"
+L_TOPMSG_Unplugged_Wired="$(gettext "'Unable to connect to the network'
+Verify that the network is available and
+that the ethernet cable is plugged in.")"
+L_TOPMSG_Network_Alive="$(gettext "'The OS was able to find a live network'
+You can proceed to acquire an IP address.")"
+L_TOPMSG_Configuration_Cancelled='NETWORK CONFIGURATION OF $INTERFACE CANCELED!'
+L_BUTTON_Done="$(gettext "Done")"
+L_TOPMSG_Configuration_Unsuccessful='NETWORK CONFIGURATION OF $INTERFACE UNSUCCESSFUL!'
+L_TOPMSG_Configuration_Offer_Try_Again="$(gettext "Try again, click 'Back' to try a different interface or click 'Done' to give up for now.")"
+L_TOPMSG_Configuration_Successful='NETWORK CONFIGURATION OF $INTERFACE SUCCESSFUL!'
+L_TOPMSG_Configuration_Offer_To_Save="$(gettext "
+Do you want to save this configuration?
+
+If you want to keep this configuration for next boot: click 'Yes'.
+If you just want to use this configuration for this session: click 'No'.")"
+L_TOPMSG_Configuration_Offer_To_Finish="$(gettext "
+If there are no more interfaces to setup and configure, just click 'Done' to get out.")"
+L_TOPMSG_Configuration_Not_Saved="$(gettext "The configuration was not saved for next boot.
+
+If there are no more interfaces to setup and configure, just click 'Done' to get out.")"
+L_TITLE_Configure_Interface='Configure network interface $INTERFACE'
+L_FRAME_Test_Interface="$(gettext "Test interface")"
+L_BUTTON_Test_Interface="Test $INTERFACE"
+L_FRAME_Configure_Interface="$(gettext "Configure interface")"
+L_BUTTON_Auto_DHCP="$(gettext "Auto DHCP")"
+L_BUTTON_Static_IP="$(gettext "Static IP")"
+L_TOPMSG_Initial_Lets_try="$(gettext "OK, let's try to configure")"
+L_TESTMSG_Initial_p1="$(gettext "You can test if")"
+L_TESTMSG_Initial_p2="$(gettext "is connected to a 'live' network.
+After you confirm that, you can configure the interface.")"
+L_DHCPMSG_Initial="$(gettext "The easiest way to configure the network is by using a DHCP server (usually provided by your network). This will enable the OS to query the server at bootup and automatically be assigned an IP address. The 'dhcpcd' client daemon program is launched and network access happens automatically.")"
+L_STATICMSG_Initial="$(gettext "If a DHCP server is not available, you will have to do everything manually by setting a static IP, but this script will make it easy.")"
+L_FRAME_Configure_Wireless="$(gettext "Configure wireless network")"
+L_TEXT_Configure_Wireless_p1="$(gettext "The OS found that")"
+L_TEXT_Configure_Wireless_p2="$(gettext "is a wireless interface.
+To connect to a wireless network, you must first set the wireless network parameters by clicking on the 'Wireless' button, then assign an IP address to it, either with DHCP or Static IP (see below).")"
+L_BUTTON_Wireless="$(gettext "Wireless")"
+L_TOPMSG_Wireless_Config_Failed_p1="$(gettext "WIRELESS CONFIGURATION OF")"
+L_TOPMSG_Wireless_Config_Failed_p2="$(gettext "FAILED!
+You might want to try using a different profile. ")"
+L_TOPMSG_Wireless_Config_Cancelled_p1="$(gettext "WIRELESS CONFIGURATION OF")"
+L_TOPMSG_Wireless_Config_Cancelled_p2="$(gettext "CANCELED!
+To connect to a wireless network you have to select a profile to use. ")"
+L_TITLE_Set_Static_IP="$(gettext "Set Static IP")"
+L_TEXT_Set_Static_IP="$(gettext "Please enter your static IP parameters:
+- If you use a router, check its status page for these values. 
+- If you connect directly to your modem, you will need
+to get these values from your ISP.
+(To directly connect two computers: set all but the IP and 
+Netmask to 0.0.0.0)
+
+Use only dotted-quad decimal format (xxx.xxx.xxx.xxx).
+Other formats will not be recognized.
+")"
+L_FRAME_Static_IP_Parameters="$(gettext "Static IP parameters")"
+L_ENTRY_IP_Address="$(gettext "IP address:")"
+L_ENTRY_Net_Mask="$(gettext "Net Mask:")"
+L_ENTRY_Gateway="$(gettext "Gateway:")"
+L_FRAME_DNS_Parameters="$(gettext "DNS parameters")"
+L_ENTRY_DNS_Primary="$(gettext "Primary:")"
+L_ENTRY_DNS_Secondary="$(gettext "Secondary:")"
+L_ERROR_Invalid_IP="$(gettext "Invalid IP Address")"
+L_ERROR_Invalid_Netmask="$(gettext "Invalid Netmask")"
+L_ERROR_Invalid_Gateway="$(gettext "Invalid Gateway address")"
+L_ERROR_Invalid_DNS1="$(gettext "Invalid DNS server 1 address")"
+L_ERROR_Invalid_DNS2="$(gettext "Invalid DNS server 2 address")"
+L_MESSAGE_Bad_addresses="$(gettext "Error!
+Some of the addresses provided are invalid.")"
+L_MESSAGE_Bad_Netmask="$(gettext "WARNING:
+Your netmask does not correspond to your network address class.
+
+Are you sure it is correct?")"
+L_MESSAGE_Bad_Gateway_p1="$(gettext "Error!
+Your gateway")"
+L_MESSAGE_Bad_Gateway_p2="$(gettext "is not on this network.
+(You may have entered your address, gateway or netmask incorrectly.)
+")"
+L_MESSAGE_Route_Set='Default route set through $GATEWAY.'
+L_MESSAGE_Route_Failed_p1="$(gettext "Error!
+Could not set default route through")"
+L_MESSAGE_Route_Failed_p2="$(gettext "Note that the OS has tried to do this:")"
+L_MESSAGE_Route_Failed_p3="$(gettext "and got the following error message:")"
+L_MESSAGE_Ifconfig_Failed_p1="$(gettext "Error! Interface configuration failed.
+
+The OS has just tried to do this:")"
+L_MESSAGE_Ifconfig_Failed_p2="$(gettext "and got the following error message:")"
+L_MESSAGE_Ifconfig_Failed_p3="$(gettext "
+If you think that this is incorrect for your system 
+and you can come up with something else that works,
+please post it on the forum, so we can improve the wizard.")"
+L_TOPMSG_Module_Saved_p1="$(gettext "MODULE")"
+L_TOPMSG_Module_Saved_p2="$(gettext "RECORDED IN /etc/ethernetmodules
+The OS will read this when booting up.")"
+L_TOPMSG_Module_Unloaded_p1="$(gettext "MODULE")"
+L_TOPMSG_Module_Unloaded_p2="$(gettext "UNLOADED.
+Also,")"
+L_TOPMSG_Module_Unloaded_p3="$(gettext "removed from /etc/ethernetmodules (if it was there).")"
+L_TEXT_Default_Module_Buttons="$(gettext "If it appears the driver module for a network adaptor isn't loaded, or you want a different one, click on the 'Load module' button.")"
+L_BUTTON_Load_Module="$(gettext "Load module")"
+L_INTTYPE_Wireless="$(gettext "Wireless")"
+L_INTTYPE_Ethernet="$(gettext "Ethernet")"
+L_INFO_Eth_Firewire="$(gettext "Ethernet over firewire")"
+L_MESSAGE_Already_Running="$(gettext "Network Wizard cannot start now because it is already active.")"
+L_MESSAGE_Use_or_Terminate_Existing="$(gettext "Please use the active Network Wizard session or terminate it and start it again.")"
+L_TOPMSG_Initial="$(gettext "Hi, networking is not always easy to setup, but let's give it a go!")"
+#####
 
 # $1: interface
 interface_is_wireless() {
@@ -174,7 +397,6 @@ function validip4() { #replace dotquad.c to parse $1 as a dotted-quad IP address
 #=============================================================================
 #============= FUNCTIONS USED IN THE SCRIPT ==============
 #=============================================================================
-. ${APPDIR}/ndiswrapperGUI.sh
 . ${APPDIR}/wag-profiles.sh
 
 showMainWindow()
@@ -373,24 +595,6 @@ showLoadModuleWindow()
   
   <vbox>
    <text><label>\"     \"</label></text>
-
-    <text use-markup=\"true\">
-     <label>\"$L_TEXT_Ndiswrapper_Tab\"</label>
-    </text>
-    <text>
-     <label>\"     \"</label>
-    </text>
-	<hbox>
-	 <button>
-	  <label>$L_BUTTON_Use_Ndiswrapper</label>
-	  <input file stock=\"gtk-execute\"></input>
-	  <action>EXIT:ndiswrapper</action>
-     </button>
-    </hbox>
-  </vbox>
-  
-  <vbox>
-   <text><label>\"     \"</label></text>
    <hbox>
     <text use-markup=\"true\">
      <label>\"$L_TEXT_More_Tab\"</label>
@@ -439,7 +643,6 @@ showLoadModuleWindow()
   case "$EXIT" in
     auto)	autoLoadModule ;;
     unload)	unloadSpecificModule ; showLoadModuleWindow ;  return ;;
-    ndiswrapper)	loadNdiswrapperModule ;;
     specify)	loadSpecificModule ;;
     load)	if [ "$NEW_MODULE" ] ; then
     		  tryLoadModule "$NEW_MODULE"
@@ -660,141 +863,12 @@ giveAcxDialog(){
      
     case $EXIT in 
      Blacklist) blacklist_module "$1" ; return 1 ;;
-     Unload) return 0 ;; # askWhichInterfaceForNdiswrapper will continue to unload it
+     Unload) return 0 ;;
     esac
     return 1
 }
 
 #=============================================================================
-askWhichInterfaceForNdiswrapper(){
-	TEMP=""
-	for ONE in $INTERFACES
-	do
-	  [ "$ONE" ] || continue
-	  TEMP="$TEMP
-	<button>
-      <label>$ONE</label>
-      <action>EXIT:$ONE</action>
-    </button>"  
-	done
-	# don't ask if there are no interfaces at all...
-	[ "$TEMP" ] || return 0
-	
-	export NETWIZ_Select_Ndiswrapper_Interface_Dialog="<window title=\"$L_TITLE_Puppy_Network_Wizard\" icon-name=\"gtk-network\" window-position=\"1\">
- <vbox>
-  <pixmap icon_size=\"6\">
-      <input file stock=\"gtk-dialog-question\"></input>
-    </pixmap>
-  <text use-markup=\"true\">
-    <label>\"$L_TEXT_Ask_Which_Interface_For_Ndiswrapper\"</label>
-  </text>  
-  <hbox>
-    $TEMP
-    <button>
-      <label>$L_BUTTON_None</label>
-      <action>EXIT:none</action>
-    </button>
-    <button cancel></button>
-  </hbox>
- </vbox>
-</window>"
-
-	I=$IFS; IFS=""
-	for STATEMENT in  $(gtkdialog --program NETWIZ_Select_Ndiswrapper_Interface_Dialog); do
-	eval $STATEMENT
-	done
-	IFS=$I
-	clean_up_gtkdialog NETWIZ_Select_Ndiswrapper_Interface_Dialog
-	unset NETWIZ_Select_Ndiswrapper_Interface_Dialog
-	
-	case $EXIT in 
-	 none) return 0 ;;
-	 Cancel|abort) return 1 ;;
-	esac
-	# if we got here, it's an interface
-	AMOD=$(readlink /sys/class/net/$EXIT/device/driver/module)
-	AMOD=${AMOD##*/}
-	AMOD=${AMOD//_/-}
-	#echo $AMOD
-	##  Need to have an exception for the acx modules, since unloading them
-	##+ causes the kernel to become unstable
-	case $AMOD in acx*) giveAcxDialog "$AMOD" || return 1 ;; esac
-	# Try removing module
-	if ERROR=$(rmmod $AMOD 2>&1) ; then
-	  # ask the user if to blacklist
-	  offerToBlacklistModule "$AMOD"
-	  # need to refresh the main gui, since # of interfaces has changed
-      setDefaultMODULEBUTTONS
-      refreshMainWindowInfo
-	  return 0
-	else # failed to remove: give message
-      giveErrorDialog "$L_MESSAGE_Remove_Module_Failed_p1 $AMOD.
-$L_MESSAGE_Remove_Module_Failed_p2
-$ERROR"
-      return 1
-    fi
-} # end askWhichInterfaceForNdiswrapper
-
-#=============================================================================
-loadNdiswrapperModule ()
-{
-	#  Dougal: ask the user if there's an interface for the HW, so we know
-	#+ to remove the driver for it.
-	askWhichInterfaceForNdiswrapper || return
-	showNdiswrapperGUI
-	[ $? -eq 0 ] || return
-	ndiswrapper -m
-	#v4.00 bugfix...
-	NATIVEMOD=""
-	nwINTERFACE="$(grep '^alias .* ndiswrapper$' /etc/modprobe.conf | cut -f 2 -d ' ')" 
-	#most likely 'wlan0'
-	#if this interface is already claimed by a native linux driver,
-	#then get rid of it...
-	## Dougal: this isn't good: the interface name is not the problem, it's the HW!
-	## Add a dialog at the top for it.
-	if [ -n "$nwINTERFACE" -a -e "/sys/class/net/$nwINTERFACE" ];then
-	  NATIVEMOD="$(readlink /sys/class/net/${nwINTERFACE}/device/driver/module)"
-	  NATIVEMOD=${NATIVEMOD##*/}
-	  if [ "$NATIVEMOD" != "ndiswrapper" ];then
-	    #note 'ndiswrapper -l' also returns the native linux module.
-	    if iwconfig | grep "^${nwINTERFACE} " | grep 'IEEE' | grep -q 'ESSID' ;then
-	      rmmod "$NATIVEMOD"
-	      sleep 6
-	      [ $INTERFACE_NUM -gt 0 ] && INTERFACE_NUM=$((INTERFACE_NUM-1))
-	      #...needed later to determine that number of interfaces has changed with ndiswrapper.
-	      #INTERFACES="$(ifconfig -a | grep -F 'Link encap:Ethernet' | cut -f1 -d' ' | tr '\n' ' ')"
-	      getInterfaceList
-	      #...also needed later.
-	    fi
-	  else
-	    NATIVEMOD=""
-	  fi
-	fi
-	   
-	tryLoadModule "ndiswrapper"
-	ndRETVAL=$?
-	
-	#v4.00...
-	if [ $ndRETVAL -eq 0 ];then
-	  #well let's be radical, blacklist the native driver...
-	  if [ "$NATIVEMOD" != "" ];then
-		#if ! grep "^${NATIVEMOD}$" "$BLACKLIST_FILE" ;then
-		. /etc/rc.d/MODULESCONFIG
-		case $SKIPLIST in *" $NATIVEMOD "*|*" ${NATIVEMOD//_/-} "*) ;; *)
-		  Xdialog --title "$L_TITLE_Puppy_Network_Wizard" --yesno \
-"$L_MESSAGE_Blacklist_Nativemod_p1 ${NATIVEMOD} $L_MESSAGE_Blacklist_Nativemod_p2" 0 0
-		  if [ $? -eq 0 ] ; then
-		    #echo "$NATIVEMOD" >> "$BLACKLIST_FILE"
-		    blacklist_module "$NATIVEMOD"
-		  fi
-		  ;;
-		esac
-		#fi
-	  fi
-	fi #if [ $ndRETVAL -eq 0 ];then
-	return $ndRETVAL
-} # end loadNdiswrapperModule
-
 #=============================================================================
 
 loadSpecificModule (){

@@ -64,6 +64,7 @@
 #200412 v2.1.2: Increase wait for ethtool link detected, to 15 secs.
 #210415 v2.2: Correct wait for initialized interfaces, to retry /sys/class/net/*/address; simplify link detection; try 'selected device' first; correct test for X active.
 #220704 v2.2.1 Pause before running dhcpcd after interface test, to improve chances of obtaining a valid IP address; clear dhcpcd.log, to log only current run; replace temporary file with "here string" for write-then-read reliability.
+#20230929 BK: change to gettext
 
 ######### TODO ###########
 #- need to find out about static ip... can we check somehow (arp)? maybe use
@@ -71,6 +72,31 @@
 #- let user prioritise networks/interfaces?
 #- might want to add something to check if interface is connected already
 # (for running with the "restart" option)
+
+export TEXTDOMAIN=network-wizard
+export OUTPUT_CHARSET=UTF-8
+
+####
+L_TITLE_Puppy_Network_Wizard="$(gettext "Network Wizard")"
+L_TITLE_Network_Wizard="$(gettext "Network Wizard")"
+L_TITLE_Netwiz_Static_IP="$(gettext "Network Wizard: Static IP")"
+L_BUTTON_Exit="$(gettext "Exit")"
+L_BUTTON_Save="$(gettext "Save")"
+L_BUTTON_Load="$(gettext "Load")"
+L_BUTTON_Unload="$(gettext "Unload")"
+L_BUTTON_Back="$(gettext "Back")"
+L_BUTTON_Blacklist="$(gettext "Blacklist")"
+L_BUTTON_No="$(gettext "No")"
+L_TITLE_Success="$(gettext "Success")"
+L_MESSAGE_Success="$(gettext "Success")"
+L_TITLE_Failure="$(gettext "Failure")"
+L_MESSGAE_Failed="$(gettext "Failed")"
+L_MESSAGE_Failed_To_Connect="$(gettext "
+  Failed to connect to any networks.
+  If you have not yet configured any network interfaces,
+  you should do so with the Network Wizard.
+  (debug messages can be found in /tmp/network-connect.log)")"
+####
 
 # Add this to support standard arguments, while being compatible with Puppy
 case $1 in
