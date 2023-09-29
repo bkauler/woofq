@@ -13,6 +13,7 @@
 #200609 Use pgprs 2.0 interface and frisbee 1.4 interface.
 #20230918 test exist /etc/init.d/rc.networkmanager
 #20230919 /usr/local/simple_network_setup/rc.network renamed to rc.snsnetwork
+#20230929 BK: fix net-setup.sh. simplification.
 
 #100227 choose default network tool...
 DEFAULTCONNECT="`cat /usr/local/bin/defaultconnect | tail -n 1 | tr -s " " | cut -f 2 -d " "`"
@@ -23,48 +24,6 @@ DEFAULTCONNECT="`cat /usr/local/bin/defaultconnect | tail -n 1 | tr -s " " | cut
 [ "`grep 'nm\-setup' /usr/local/bin/defaultconnect`" != "" ] && DEFAULTCONNECT='nm-setup' #190922
 
 NETCHOICE="$DEFAULTCONNECT"	#101007 shinobar
-case $DEFAULTCONNECT in
- nmtui) #181118
-  NETCHOICE='nmtui'
- ;;
- nm-setup) #190805 190922
-  NETCHOICE='nm-setup'
- ;;
- Pwireless2)
-  NETCHOICE='Pwireless2'
- ;;
- net-setup.sh)
-  NETCHOICE='net-setup.sh'
- ;;
- net_wiz_classic)
-  NETCHOICE='net_wiz_classic'
- ;;
- sns)
-  NETCHOICE='sns'
- ;;
- usns) #190207
-  NETCHOICE='usns'
- ;;
- connectwizard|frisbee) #try determine which tool was used to setup networking... 101007 180127...
-  if which frisbee >/dev/null 2>&1 && frisbee --test_active; then #200609
-   NETCHOICE='frisbee'
-  elif [ -s /etc/simple_network_setup/connections ];then #100306 180127 end
-   NETCHOICE='sns'
-  else
-   CHECKOLDWIZ="`ls -1 /etc/*[0-9]mode 2>/dev/null`" #ex: eth0mode, wlan0mode.
-   if [ "$CHECKOLDWIZ" != "" -a -d /usr/local/net_setup ];then
-    NETCHOICE='net_wiz_classic'
-   else
-    CHECKNEWWIZ="`ls -1 /etc/network-wizard/network/interfaces 2>/dev/null`"
-    if [ "$CHECKNEWWIZ" != "" ];then
-     NETCHOICE='net-setup.sh'
-    else
-     [ -f /usr/local/Pwireless2/interface ] && NETCHOICE='Pwireless2' #100304
-    fi
-   fi
-  fi
- ;;
-esac
 
 if [ "$NETCHOICE" != "nmtui" -a "$NETCHOICE" != "nm-setup" ];then #181118 190805 190922
  if [ -e /etc/init.d/rc.networkmanager ];then #20230918
@@ -82,20 +41,8 @@ fi
 
 [ -f /etc/init.d/Pwireless2 ] && chmod 644 /etc/init.d/Pwireless2 #prevent jemimah's script from running. 100304 100513
 case $NETCHOICE in
- Pwireless2)
-  #this only sets up interface 'lo'...
-  /etc/rc.d/rc.network_basic
-  #jemimah's script is in /etc/init.d/Pwireless2
-  chmod 755 /etc/init.d/Pwireless2 #make executable so it will run.
-  #i want to run it right now, as a separate process (rc.services will ignore it)...
-  /etc/init.d/Pwireless2 start &
- ;;
- net-setup.sh)
-  /etc/rc.d/rc.network &
- ;;
- net_wiz_classic)
-  #note, old wizard is located in /usr/local/net_setup.
-  /usr/local/net_setup/etc/rc.d/rc.network &
+ net-setup.sh) #20230929
+  /usr/local/network-wizard/rc.wiznetwork &
  ;;
  sns) #100306
   /etc/rc.d/rc.network_basic #this only sets up interface 'lo'.
