@@ -310,6 +310,7 @@
 #20230914 removed all reference to usr/local/debget
 #20230921 fix update-ca-certificates did not run.
 #20230925 rox-filer: usr/local/apps/ROX-Filer/Messages is a symlink, was getting changed to a folder.
+#20230930 previous 20230925 broken devx sfs, fixed.
 
 export LANG=C #faster.
 
@@ -5996,24 +5997,25 @@ do
   
   #20230909 simplified copy, target may have symlinks in path...
   #20230925 rox-filer: usr/local/apps/ROX-Filer/Messages is a symlink, was getting changed to a folder...
+  #20230930 fix...
   while read aF
   do
    aD="$(dirname "$aF")"
-   mkdir -p sandbox3/rootfs-complete/"$aD"/
+   mkdir -p sandbox3/devx/"$aD"/
    if [ -d packages-${DISTRO_FILE_PREFIX}/${ONEDEV}/"$aF" ];then
-    if [ -e sandbox3/rootfs-complete/"$aF" ];then
+    if [ -e sandbox3/devx/"$aF" ];then
      continue
     fi
    else
     if [ -h packages-${DISTRO_FILE_PREFIX}/${ONEDEV}/"$aF" ];then
-     if [ -e sandbox3/rootfs-complete/"$aF" ];then
-      if [ ! -h sandbox3/rootfs-complete/"$aF" ];then
+     if [ -e sandbox3/devx/"$aF" ];then
+      if [ ! -h sandbox3/devx/"$aF" ];then
        continue
       fi
      fi
     fi
    fi
-   cp -a --remove-destination packages-${DISTRO_FILE_PREFIX}/${ONEDEV}/"$aF" sandbox3/rootfs-complete/"$aD"/
+   cp -a --remove-destination packages-${DISTRO_FILE_PREFIX}/${ONEDEV}/"$aF" sandbox3/devx/"$aD"/
   done <<_END1
 $(find packages-${DISTRO_FILE_PREFIX}/${ONEDEV} -mindepth 1 | sed -e "s%packages-${DISTRO_FILE_PREFIX}/${ONEDEV}/%%")
 _END1
