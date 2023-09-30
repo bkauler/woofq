@@ -112,6 +112,7 @@
 #210415 v2.2: Set 'selected device' softlink when "Use This Profile" button selected & remove it if target profile deleted; correct iwconfig check to test for associated AP address; prevent multiple psk= lines in wpa profile; correct PID test; add interface name to dhcpcd progress dialog; for wpa_supplicant progress, delay start of first input to avoid piping errors & pause between initial updates.
 #220704 v2.2.1: Recognize essid '\x00...' as hidden network; pause before running dhcpcd after interface test; collect all dhcpcd runs in dhcpcd.log; remove setting of 'selected device' softlink when "Use This Profile" button selected.
 #20230929 BK: change to gettext
+#20230930 BK: replace ifconfig with ip
 
 export TEXTDOMAIN=network-wizard
 export OUTPUT_CHARSET=UTF-8
@@ -1337,11 +1338,15 @@ cleanUpInterface(){
 	  iwconfig "$1" channel auto
 	fi
 	# put interface down
-	ifconfig "$1" down
+	#ifconfig "$1" down
+    ip link set dev ${1} down #20230930
 	# reset ip address (set a false one)
-	ifconfig "$1" 0.0.0.0
-	if ! ERROR=$(ifconfig "$1" up 2>&1) ; then
-	  giveErrorDialog "${L_MESSAGE_Failed_To_Raise_p1}${1}${L_MESSAGE_Failed_To_Raise_p2} ifconfig $1 up
+	#ifconfig "$1" 0.0.0.0
+	ip a add 0.0.0.0/255.255.255.0 dev ${1} #20230930
+	#if ! ERROR=$(ifconfig "$1" up 2>&1) ; then
+	ERROR="$(ip link set dev ${1} up 2>&1)" #20230930
+	if [ $? -ne 0 ];then
+	  giveErrorDialog "${L_MESSAGE_Failed_To_Raise_p1}${1}${L_MESSAGE_Failed_To_Raise_p2} ip link set dev ${1} up
 $L_MESSAGE_Failed_To_Raise_p3
 $ERROR
 "
@@ -1888,9 +1893,11 @@ ${L_SCANWINDOW_Strength}${CELL_QUALITY}\""
 	
 	#SCAN_LIST="$(cat /tmp/network-wizard/net-setup_scanlist)"
 	read ScanListFile < /tmp/network-wizard/net-setup_scanlistfile
-	# run ifconfig down/up, as apparently it is needed for actually configuring to work properly...
-	ifconfig "$INTERFACE" down
-	ifconfig "$INTERFACE" up
+	# run ifconfig down/up, as apparently it is needed for actually configuring to work properly... 20230930...
+	#ifconfig "$INTERFACE" down
+	#ifconfig "$INTERFACE" up
+	ip link set dev ${INTERFACE} down
+	ip link set dev ${INTERFACE} up
 } #end of buildScanWindow
 
 #=============================================================================
@@ -2044,7 +2051,8 @@ buildPrismScanWindow()
   (
 	# do a cleanup first (raises interface, so need to put it down after)
 	cleanUpInterface "$INTERFACE" >> $DEBUG_OUTPUT 2>&1
-	ifconfig "$INTERFACE" down
+	#ifconfig "$INTERFACE" down
+	ip link set dev ${INTERFACE} down #20230930
 	if runPrismScan "$INTERFACE" ; then
 	  # create buttons (POINTNUM set in function)
 	  for P in $(seq 0 $POINTNUM)
