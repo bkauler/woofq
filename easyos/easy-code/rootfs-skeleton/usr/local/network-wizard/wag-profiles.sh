@@ -268,7 +268,7 @@ setupDHCP()
 	local I_MULTIPLY='3'
 	if [ "$HAVEX" = "yes" ]; then
 		# Create a temporary fifo to pass messages to progressbar (can't just pipe to it)
-		local PROGRESS_OUTPUT=/tmp/progress-fifo$$
+		local PROGRESS_OUTPUT=/tmp/network-wizard/progress-fifo$$
 		mkfifo $PROGRESS_OUTPUT
 		export Dhcpcd_Progress_Dialog="<window title=\"$L_TITLE_Network_Wizard\" icon-name=\"gtk-network\" window-position=\"1\">
 <vbox>
@@ -295,7 +295,7 @@ setupDHCP()
 	else
 		local PROGRESS_OUTPUT=$DEBUG_OUTPUT
 		# we need some marker to let the progress function know we're done
-		local TmpMarker=/tmp/setupDHCP.$(date +%N)
+		local TmpMarker=/tmp/network-wizard/setupDHCP.$(date +%N)
 	fi
 	# Run everything in a subshell, so _all_ the echoes go into gtkdialog
 	# (we can't just use a pipe, since it will be attached to only one process)
@@ -329,10 +329,10 @@ setupDHCP()
 		# Run dhcpcd. The output goes to the text in the progressbar...
 		DHCPCDLOG="$(dhcpcd -d -I '' "$INTERFACE" 2>&1)"
 		HAS_ERROR=$?
-		echo "$DHCPCDLOG" | tee -a /tmp/dhcpcd.log #220704
+		echo "$DHCPCDLOG" | tee -a /tmp/network-wizard/dhcpcd.log #220704
 		echo "$DHCPCDLOG" | grep -q 'Error' && HAS_ERROR=1 #121117
 		# we're in a subshell, so variables set here will not be seen outside...
-		echo "$HAS_ERROR" > /tmp/net-setup_HAS_ERROR.txt
+		echo "$HAS_ERROR" > /tmp/network-wizard/net-setup_HAS_ERROR.txt
 		# close progressbar
 		if [ "$HAVEX" = "yes" ] ; then
 			pidof gtkdialog 2>&1 | grep -q "$XPID" && echo "100"
@@ -343,8 +343,8 @@ setupDHCP()
 	) 2>&1 >> $PROGRESS_OUTPUT
 	
 
-	read HAS_ERROR < /tmp/net-setup_HAS_ERROR.txt
-	rm /tmp/net-setup_HAS_ERROR.txt
+	read HAS_ERROR < /tmp/network-wizard/net-setup_HAS_ERROR.txt
+	rm /tmp/network-wizard/net-setup_HAS_ERROR.txt
 	
 	## Clean up:
 	if [ -n "$XPID" ] ;then
@@ -1263,10 +1263,10 @@ useProfile ()
 	case $PROFILE_ENCRYPTION in
 		WPA|WPA2)
 		    #131225 shinobar: retry with WPA/AES
-		    rm -f /tmp/wag-profiles-retry.flg
+		    rm -f /tmp/network-wizard/wag-profiles-retry.flg
 			useWpaSupplicant wizard
 			STATUS=$?
-			if [ -e /tmp/wag-profiles-retry.flg ]; then
+			if [ -e /tmp/network-wizard/wag-profiles-retry.flg ]; then
 			  switchTkipAes
 			  useWpaSupplicant wizard
 			  STATUS=$?
@@ -1553,7 +1553,7 @@ $L_MESSAGE_No_Wpaconfig_p2"
 	###### run dialog
 	if [ "$HAVEX" = "yes" ]; then 
 		# Create a temporary fifo to pass messages to progressbar (can't just pipe to it)
-		PROGRESS_OUTPUT=/tmp/progress-fifo$$
+		PROGRESS_OUTPUT=/tmp/network-wizard/progress-fifo$$
 		mkfifo $PROGRESS_OUTPUT
 		# The progressbar dialog
 		# It contains a loop that starts from 1 and increments by 3, so 1+33*3=100%
@@ -1608,7 +1608,7 @@ $L_MESSAGE_No_Wpaconfig_p2"
 		case $? in
 		 0) # success  
 		   #WPA_STATUS="COMPLETED"
-		   echo "COMPLETED" >/tmp/wpa_status.txt
+		   echo "COMPLETED" >/tmp/network-wizard/wpa_status.txt
 		   echo "completed" >> $DEBUG_OUTPUT
 		   sleep 1 #210415
 		   # end the progress bar
@@ -1633,7 +1633,7 @@ $L_MESSAGE_No_Wpaconfig_p2"
 		
 		# Dougal: close the -n above
 		echo  >> $DEBUG_OUTPUT 2>&1
-		#echo -n "$WPA_STATUS" > /tmp/wpa_status.txt
+		#echo -n "$WPA_STATUS" > /tmp/network-wizard/wpa_status.txt
 		#echo "---" >> ${TMPLOG} 2>&1
 	) >> $PROGRESS_OUTPUT
 	####################################################################
@@ -1648,16 +1648,16 @@ $L_MESSAGE_No_Wpaconfig_p2"
 		rm $PROGRESS_OUTPUT
 	fi
 	#cat $TMPLOG >> $DEBUG_OUTPUT
-	WPA_STATUS="$(cat /tmp/wpa_status.txt)"
-	rm /tmp/wpa_status.txt
+	WPA_STATUS="$(cat /tmp/network-wizard/wpa_status.txt)"
+	rm /tmp/network-wizard/wpa_status.txt
 	
 	if [ "$WPA_STATUS" = "COMPLETED" ] ; then
 		return 0
 	fi
 	# if we're here, it failed
 	#131225 shinobar: retry with WPA/AES
-	if [ "$PROFILE_ENCRYPTION" = "WPA" ] && [ ! -e /tmp/wag-profiles-retry.flg ]; then
-	  touch  /tmp/wag-profiles-retry.flg
+	if [ "$PROFILE_ENCRYPTION" = "WPA" ] && [ ! -e /tmp/network-wizard/wag-profiles-retry.flg ]; then
+	  touch  /tmp/network-wizard/wag-profiles-retry.flg
 	  WPA_CONF="${WPA_SUPP_DIR}/${PROFILE_AP_MAC}.${PROFILE_ENCRYPTION}.conf"
 	  ENCRYPT_NOW=$(grep 'pairwise=' "$WPA_CONF" |cut -s -d'=' -f2)
 	  [ "$ENCRYPT_NOW" = "TKIP" ] && ENCRYPT_NEXT="CCMP" || ENCRYPT_NEXT="TKIP"
@@ -1680,7 +1680,7 @@ $L_MESSAGE_No_Wpaconfig_p2"
     <button cancel></button>
     </hbox>"
     else
-      rm -f  /tmp/wag-profiles-retry.flg
+      rm -f  /tmp/network-wizard/wag-profiles-retry.flg
       MSG="$L_MESSAGE_WPA_Failed"
       BUTTONS="<hbox>
    <button>
@@ -1709,7 +1709,7 @@ $L_MESSAGE_No_Wpaconfig_p2"
 		clean_up_gtkdialog NETWIZ_No_WPA_Connection_Dialog
 		unset NETWIZ_No_WPA_Connection_Dialog
 		#131225 shinobar: retry with WPA/AES
-		[ "$EXIT" = "retry" ] || rm -f /tmp/wag-profiles-retry.flg
+		[ "$EXIT" = "retry" ] || rm -f /tmp/network-wizard/wag-profiles-retry.flg
 		if [ "$EXIT" = "Details" ] ; then
 		  EXIT="Refresh"
 		  while [ "$EXIT" = "Refresh" ] ; do
@@ -1805,7 +1805,7 @@ showScanWindow()
 	  buildScanWindow
 	fi
 
-	SCANWINDOW_RESPONSE="$(sh /tmp/net-setup_scanwindow)"
+	SCANWINDOW_RESPONSE="$(sh /tmp/network-wizard/net-setup_scanwindow)"
 	# add support for trying again with pcmcia cards
 	case $? in 
 	 101)
@@ -1817,7 +1817,7 @@ showScanWindow()
 	  else
 	    buildScanWindow retry
 	  fi
-	  SCANWINDOW_RESPONSE="$(sh /tmp/net-setup_scanwindow)"
+	  SCANWINDOW_RESPONSE="$(sh /tmp/network-wizard/net-setup_scanwindow)"
 	  ;;
 	 111)
 	  [ -n "$IsPCMCIA" ] && waitForPCMCIA
@@ -1826,7 +1826,7 @@ showScanWindow()
 	  else
 	    buildScanWindow retry
 	  fi
-	  SCANWINDOW_RESPONSE="$(sh /tmp/net-setup_scanwindow)"
+	  SCANWINDOW_RESPONSE="$(sh /tmp/network-wizard/net-setup_scanwindow)"
 	  ;;
 	esac
 	
@@ -1846,20 +1846,20 @@ buildScanWindow()
 	(
 		#  Dougal: use files for the scan results, so we can try a few times
 		#+ and see which is biggest (sometimes not all networks show)
-		rm /tmp/net-setup_scan*.tmp >/dev/null 2>&1
-		iwlist "$INTERFACE" scan >/tmp/net-setup_scan1.tmp 2>>$DEBUG_OUTPUT
+		rm /tmp/network-wizard/net-setup_scan*.tmp >/dev/null 2>&1
+		iwlist "$INTERFACE" scan >/tmp/network-wizard/net-setup_scan1.tmp 2>>$DEBUG_OUTPUT
 		echo "X"
 		
 		#SCANALL=$(iwlist "$INTERFACE" scan 2>>$DEBUG_OUTPUT)
 		sleep 1
-		iwlist "$INTERFACE" scan >/tmp/net-setup_scan2.tmp 2>>$DEBUG_OUTPUT
+		iwlist "$INTERFACE" scan >/tmp/network-wizard/net-setup_scan2.tmp 2>>$DEBUG_OUTPUT
 		echo "X"
 
-		ScanListFile=$(du -b /tmp/net-setup_scan*.tmp |sort -n | tail -n1 |cut -f2)
-		echo "$ScanListFile" > /tmp/net-setup_scanlistfile
-		grep -Eo 'Cell [0-9]+|Signal level=-*[0-9]+ dBm' $ScanListFile | sed -e '/Cell / {;N;s/Cell \([0-9][0-9]*\).*=\([0-9-][0-9]*\).*/\1@\2/;}' > /tmp/net-setup_cell_signal.tmp #170622
+		ScanListFile=$(du -b /tmp/network-wizard/net-setup_scan*.tmp |sort -n | tail -n1 |cut -f2)
+		echo "$ScanListFile" > /tmp/network-wizard/net-setup_scanlistfile
+		grep -Eo 'Cell [0-9]+|Signal level=-*[0-9]+ dBm' $ScanListFile | sed -e '/Cell / {;N;s/Cell \([0-9][0-9]*\).*=\([0-9-][0-9]*\).*/\1@\2/;}' > /tmp/network-wizard/net-setup_cell_signal.tmp #170622
 		#if [ -z "$SCAN_LIST" ]; then
-		if [ ! -s /tmp/net-setup_cell_signal.tmp ]; then #170622
+		if [ ! -s /tmp/network-wizard/net-setup_cell_signal.tmp ]; then #170622
 			# Dougal: a little awkward... want to give an option to reset pcmcia card
 			FI_DRIVER=$(readlink /sys/class/net/$INTERFACE/device/driver)
 			if [ "$1" = "retry" ] ; then # we're on the second try already
@@ -1871,7 +1871,7 @@ buildScanWindow()
 			fi
 		else
 			# give each Cell its own button
-			CELL_LIST="$(sort -g -r -t @ -k 2 /tmp/net-setup_cell_signal.tmp)" #170622
+			CELL_LIST="$(sort -g -r -t @ -k 2 /tmp/network-wizard/net-setup_cell_signal.tmp)" #170622
 			for CELL in $(echo "$CELL_LIST" | cut -f 1 -d '@') ; do #170622
 				#getCellParameters $CELL
 				Get_Cell_Parameters $CELL
@@ -1880,14 +1880,14 @@ buildScanWindow()
 ${L_SCANWINDOW_Strength}${CELL_QUALITY}\"" 
 			done
 			echo "Xdialog --left --no-tags --item-help --stdout --title \"$L_TITLE_Puppy_Network_Wizard\" --radiolist \"$L_TEXT_Scanwindow\"  20 60 4  \
-	${SCANWINDOW_BUTTONS} 2> /dev/null" > /tmp/net-setup_scanwindow #170622
+	${SCANWINDOW_BUTTONS} 2> /dev/null" > /tmp/network-wizard/net-setup_scanwindow #170622
 		fi
 		echo "X"
 	)  | gtkdialog --program=NETWIZ_Scan_Progress_Dialog >/dev/null
 	clean_up_gtkdialog NETWIZ_Scan_Progress_Dialog
 	
-	#SCAN_LIST="$(cat /tmp/net-setup_scanlist)"
-	read ScanListFile < /tmp/net-setup_scanlistfile
+	#SCAN_LIST="$(cat /tmp/network-wizard/net-setup_scanlist)"
+	read ScanListFile < /tmp/network-wizard/net-setup_scanlistfile
 	# run ifconfig down/up, as apparently it is needed for actually configuring to work properly...
 	ifconfig "$INTERFACE" down
 	ifconfig "$INTERFACE" up
@@ -1919,7 +1919,7 @@ export NETWIZ_SCAN_ERROR_DIALOG="<window title=\"'"$L_TITLE_Puppy_Network_Wizard
 gtkdialog --program NETWIZ_SCAN_ERROR_DIALOG
 clean_up_gtkdialog NETWIZ_SCAN_ERROR_DIALOG
 exit 0
-' > /tmp/net-setup_scanwindow #170504
+' > /tmp/network-wizard/net-setup_scanwindow #170504
 }
 
 #=============================================================================
@@ -1961,7 +1961,7 @@ case $EXIT in
 Cancel) exit 0 ;;
 retry) exit 111 ;;
 esac
-' > /tmp/net-setup_scanwindow #170504
+' > /tmp/network-wizard/net-setup_scanwindow #170504
 }
 
 #=============================================================================
@@ -2003,7 +2003,7 @@ case $EXIT in
 Cancel) exit 0 ;;
 retry) exit 101 ;;
 esac
-' > /tmp/net-setup_scanwindow #170504
+' > /tmp/network-wizard/net-setup_scanwindow #170504
 }
 
 #=============================================================================
@@ -2013,23 +2013,23 @@ runPrismScan()
 {
 	INTERFACE="$1"
 	# enable interface
-	wlanctl-ng "$INTERFACE" lnxreq_ifstate ifstate=enable >/tmp/wlan-up 2>&1
+	wlanctl-ng "$INTERFACE" lnxreq_ifstate ifstate=enable >/tmp/network-wizard/wlan-up 2>&1
 	# scan (first X echoed only afterwards!
 	wlanctl-ng "$INTERFACE" dot11req_scan bsstype=any \
 	 bssid=ff:ff:ff:ff:ff:ff ssid="" scantype=both \
 	  channellist="00:01:02:03:04:05:06:07:08:09:0a:0b:00:00" \
-	   minchanneltime=200 maxchanneltime=250 >/tmp/prism-scan-all 2>/dev/null
+	   minchanneltime=200 maxchanneltime=250 >/tmp/network-wizard/prism-scan-all 2>/dev/null
 	echo "X"
 	# get number of access points (make sure we get integer)
-	POINTNUM=$(grep -F 'numbss=' /tmp/prism-scan-all 2>/dev/null | cut -d= -f2 | grep [0-9])
-	rm /tmp/prism-scan-all >/dev/null 2>&1
+	POINTNUM=$(grep -F 'numbss=' /tmp/network-wizard/prism-scan-all 2>/dev/null | cut -d= -f2 | grep [0-9])
+	rm /tmp/network-wizard/prism-scan-all >/dev/null 2>&1
 	## Dougal: not sure about this -- need a way to make sure we get something
-	#if grep -F 'resultcode=success' /tmp/prism-scan-all ; then
+	#if grep -F 'resultcode=success' /tmp/network-wizard/prism-scan-all ; then
 	if [ "$POINTNUM" ] ; then
 	  # get scan results for all access points
 	  for P in $(seq 0 $POINTNUM)
 	  do
-	    wlanctl-ng "$INTERFACE" dot11req_scan_results bssindex=$P >/tmp/prism-scan$P 2>/dev/null
+	    wlanctl-ng "$INTERFACE" dot11req_scan_results bssindex=$P >/tmp/network-wizard/prism-scan$P 2>/dev/null
 	  done
 	  echo "X"
 	else # let us know it failed
@@ -2049,7 +2049,7 @@ buildPrismScanWindow()
 	  # create buttons (POINTNUM set in function)
 	  for P in $(seq 0 $POINTNUM)
 	  do
-	    grep -Fq 'resultcode=success' /tmp/prism-scan$P || continue
+	    grep -Fq 'resultcode=success' /tmp/network-wizard/prism-scan$P || continue
 	    getPrismCellParameters $P
 	    [ "$CELL_ESSID" = "" ] && CELL_ESSID="$L_SCANWINDOW_Hidden_SSID"
 		# might add test here for some params, then maybe skip
@@ -2060,9 +2060,9 @@ buildPrismScanWindow()
 	fi
 	if [ "$SCANWINDOW_BUTTONS" ] ; then
 		echo "Xdialog --left --item-help --stdout --title \"$L_TITLE_Puppy_Network_Wizard\" --radiolist \"$L_TEXT_Prism_Scan\"  20 60 4  \
-	${SCANWINDOW_BUTTONS} 2> /dev/null" > /tmp/net-setup_scanwindow
+	${SCANWINDOW_BUTTONS} 2> /dev/null" > /tmp/network-wizard/net-setup_scanwindow
 	else
-	  #echo "Xdialog --left --title \"Puppy Network Wizard:\" --msgbox \"No networks detected\" 0 0 " > /tmp/net-setup_scanwindow
+	  #echo "Xdialog --left --title \"Puppy Network Wizard:\" --msgbox \"No networks detected\" 0 0 " > /tmp/network-wizard/net-setup_scanwindow
 	  if [ "$1" = "retry" ] ; then # we're on the second try already
 	  	createNoNetworksDialog
 	  elif [ -n "$IsPCMCIA" ] ; then
@@ -2085,7 +2085,7 @@ setupScannedProfile()
 	if [ "$USE_WLAN_NG" = "yes" ] ; then
 	  getPrismCellParameters $CELL
 	  # clean up from earlier
-	  rm -f /tmp/prism-scan*
+	  rm -f /tmp/network-wizard/prism-scan*
 	else
 	  #getCellParameters $CELL
 	  Get_Cell_Parameters $CELL
@@ -2184,14 +2184,14 @@ Get_Cell_Parameters(){
 getPrismCellParameters()
 {
 	CELL=$1
-	CELL_ESSID=$(grep -F 'ssid=' /tmp/prism-scan$CELL | grep -v 'bssid=' | cut -d"'" -f2) 
-	CELL_CHANNEL=$(grep -F 'dschannel=' /tmp/prism-scan$CELL | cut -d= -f2)
+	CELL_ESSID=$(grep -F 'ssid=' /tmp/network-wizard/prism-scan$CELL | grep -v 'bssid=' | cut -d"'" -f2) 
+	CELL_CHANNEL=$(grep -F 'dschannel=' /tmp/network-wizard/prism-scan$CELL | cut -d= -f2)
 	## Dougal: not sure about this: maybe skip ones without anything?
-	CELL_AP_MAC=$(grep -F 'bssid=' /tmp/prism-scan$CELL | cut -d= -f2 | grep -E  '[0-9a-f]{2}:[0-9a-f]{2}:[0-9a-f]{2}:[0-9a-f]{2}:[0-9a-f]{2}:[0-9a-f]{2}')
+	CELL_AP_MAC=$(grep -F 'bssid=' /tmp/network-wizard/prism-scan$CELL | cut -d= -f2 | grep -E  '[0-9a-f]{2}:[0-9a-f]{2}:[0-9a-f]{2}:[0-9a-f]{2}:[0-9a-f]{2}:[0-9a-f]{2}')
 	## Dougal: might need to do something to fit this to checkboxes
-	CELL_MODE=$(grep -F 'bsstype=' /tmp/prism-scan$CELL | cut -d= -f2)
+	CELL_MODE=$(grep -F 'bsstype=' /tmp/network-wizard/prism-scan$CELL | cut -d= -f2)
 	## Dougal: maybe do something with "no_value"
-	CELL_ENCRYPTION=$(grep -F 'privacy=' /tmp/prism-scan$CELL | cut -d= -f2)
+	CELL_ENCRYPTION=$(grep -F 'privacy=' /tmp/network-wizard/prism-scan$CELL | cut -d= -f2)
 } # end of getPrismCellParameters
 
 #=============================================================================
