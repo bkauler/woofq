@@ -81,7 +81,7 @@
 #220704 v2.2.1: Fixes in wag_profiles.sh and rc.network.
 #20230927 BK: remove "Puppy" from text messages.
 #20230929 BK: change to gettext. remove ndiswrapper. write to /tmp/network-wizard
-#20230930 BK: remove iwconfig. replace ifconfig with ip (only partly done!)
+#20230930 BK: remove iwconfig. replace ifconfig with ip
 
 export TEXTDOMAIN=network-wizard
 export OUTPUT_CHARSET=UTF-8
@@ -660,20 +660,17 @@ showLoadModuleWindow()
 	# Dougal: add sleeping a few seconds, in case it takes time to initialize
 	for i in $(seq 1 10)
 	do
-	  #NEW_NUM=$(ifconfig -a | grep -Fc "Link encap:Ethernet")
 	  getInterfaceList
 	  [ $INTERFACE_NUM -gt $OLD_NUM ] && break
 	  sleep 1
 	done
 	
-	#NEW_NUM=$(ifconfig -a | grep -Fc "Link encap:Ethernet")
 	NEW_INTERFACES=""
 	NEW_DATA=""
 	NEW_INTERFACES_FRAME=""
 	if [ $INTERFACE_NUM -gt $OLD_NUM ] ; then # got a new interface
 	  DIFF=$((INTERFACE_NUM-OLD_NUM))
 	  
-	  #for ANEW in $(ifconfig -a | grep -F 'Link encap:Ethernet' |cut -f1 -d' ')
 	  for ANEW in $INTERFACES
 	  do 
 	    case "$OLD_INTERFACES" in *$ANEW*) continue ;; esac
@@ -727,7 +724,7 @@ showLoadModuleWindow()
     
   "
 	
-	else #if [ $NEW_NUM -gt $INTERFACE_NUM ] ; then
+	else
 	  NEW_INTERFACES_CODE="
   <text><label>$L_TEXT_No_New_Interfaces1</label></text>
   <text><label>\" \"</label></text>
@@ -742,7 +739,7 @@ showLoadModuleWindow()
 	    <action>EXIT:unload</action>
 	  </button>
     "
-	fi #if [ $NEW_NUM -gt $INTERFACE_NUM ] 
+	fi
 	# give dialog with two buttons and appropriate message
 	export NETWIZ_NEW_MODULE_DIALOG="<window title=\"$L_TITLE_New_Module_Loaded\" icon-name=\"gtk-execute\" window-position=\"1\">
 <vbox>
@@ -1122,7 +1119,7 @@ testInterface()
 		ERROR="$(ip link set dev ${INTERFACE} up 2>&1)" #20230930
 		if [ $? -ne 0 ];then
 		  giveErrorDialog "$L_MESSAGE_Failed_Raise_Interface_p1 $INTERFACE.
-$L_MESSAGE_Failed_Raise_Interface_p2 ifconfig $INTERFACE up
+$L_MESSAGE_Failed_Raise_Interface_p2 ip link set dev ${INTERFACE} up
 $L_MESSAGE_Failed_Raise_Interface_p3
 $ERROR
 "
@@ -1387,8 +1384,12 @@ configureWireless()
 #=============================================================================
 showStaticIPWindow()
 {
-	IP_ADDRESS="$(ifconfig $INTERFACE | grep 'inet addr' | sed 's/.*inet addr://' | cut -d" " -f1)"
-	NETMASK="$(ifconfig $INTERFACE | grep 'inet addr' | sed 's/.*Mask://')"
+	#20230930
+	#IP_ADDRESS="$(ifconfig $INTERFACE | grep 'inet addr' | sed 's/.*inet addr://' | cut -d" " -f1)"
+	IP_ADDR0="$(ip -f inet -o a show ${INTERFACE} | tr -s ' ' | cut -f 4 -d ' ')"
+	IP_ADDRESS="${IP_ADDR0%/*}" #ex: 192.168.43.115/24 chop off /24
+	#NETMASK="$(ifconfig $INTERFACE | grep 'inet addr' | sed 's/.*Mask://')"
+	NETMASK="$(ipcalc -m $IP_ADDR0 | cut -f 2 -d '=')" #ex: 255.255.255.0
 	GATEWAY="$(iproute | grep default | cut -d" " -f3)"
 	# get current dns servers
 	NUM=1
@@ -1577,18 +1578,27 @@ $ERROR_MSG
 # Dougal: change MODECOMMANDS entirely -- just include the basic info
 setupStaticIP()
 {
-	ifconfig "$INTERFACE" | grep ' UP ' >> $DEBUG_OUTPUT 2>&1
-	if [ ! $? -eq 0 ];then # wired interface (wireless will be up by now)
+	#ifconfig "$INTERFACE" | grep ' UP ' >> $DEBUG_OUTPUT 2>&1
+	ip -f link -o a show "${INTERFACE}" | grep ' UP ' >> $DEBUG_OUTPUT 2>&1 #20230930
+	if [ $? -ne 0 ];then # wired interface (wireless will be up by now)
 		cleanUpInterface "$INTERFACE"
 	fi
+	#20230930 note, interface is now down.
 	BROADCAST=$(ipcalc -b "$IP_ADDRESS" "$NETMASK" | cut -d= -f2)
-	CONVO="ifconfig $INTERFACE $IP_ADDRESS netmask $NETMASK broadcast $BROADCAST"
+	#20230930 i don't understand why specify broadcast; isn't that computed automatically?...
+	#CONVO="ifconfig $INTERFACE $IP_ADDRESS netmask $NETMASK broadcast $BROADCAST"
+	CONVO="ip addr add ${IP_ADDRESS}/${NETMASK} dev ${INTERFACE}"
 	CONVG="route add -net default gw $GATEWAY" #dev $INTERFACE"
 	# Dougal: add a cleanup, just in case
 	#cleanUpInterface "$INTERFACE" >> $DEBUG_OUTPUT 2>&1
 	# do the work
 	# Dougal: add getting error message
-	ERROR=$(ifconfig "$INTERFACE" "$IP_ADDRESS" netmask "$NETMASK" broadcast "$BROADCAST" 2>&1) #up	
+	#20230930 this is the only way I can see to replace ifconfig...
+	#ERROR=$(ifconfig "$INTERFACE" "$IP_ADDRESS" netmask "$NETMASK" broadcast "$BROADCAST" 2>&1) #up	
+	#PREFIX="$(ipcalc -p ${INTERFACE} ${NETMASK} | cut -f 2 -d '=')" #ex: 24 no, don't need this.
+	ERROR="$(ip addr add ${IP_ADDRESS}/${NETMASK} dev ${INTERFACE} 2>&1)"
+	#i think could do this to verify...
+	#ERROR="$(ip -f inet -o a show dev ${INTERFACE} | grep "${BROADCAST}" | grep "${IP_ADDRESS}/${PREFIX}" 2>&1)"
 	if [ $? -eq 0 ];then
 		MODECOMMANDS="STATIC_IP='yes'\nIP_ADDRESS='$IP_ADDRESS'\nNETMASK='$NETMASK'"
 		# Configure a nameserver, if we're supposed to.
@@ -1621,7 +1631,8 @@ $CONVG
 $L_MESSAGE_Route_Failed_p3
 $ERROR
 "
-				ifconfig "$INTERFACE" down
+				#ifconfig "$INTERFACE" down
+				ip link set dev ${INTERFACE} down #20230930
 				return 1
 			fi
 		fi
@@ -1633,7 +1644,8 @@ $CONVO
 $L_MESSAGE_Ifconfig_Failed_p2
 $ERROR
 $L_MESSAGE_Ifconfig_Failed_p3"
-		ifconfig "$INTERFACE" down
+		#ifconfig "$INTERFACE" down
+		ip link set dev ${INTERFACE} down #20230930
 		MODECOMMANDS=""
 		return 1
 	fi
@@ -1643,7 +1655,10 @@ $L_MESSAGE_Ifconfig_Failed_p3"
 killOtherInterface() #190217...
 {
   # derived from rc.network stop_all.
-  for IFACE in $(ifconfig | grep -F 'Link encap:Ethernet' | cut -f 1 -d " " | grep -vw "$INTERFACE") ; do
+  #20230930...
+  #for IFACE in $(ifconfig | grep -F 'Link encap:Ethernet' | cut -f 1 -d " " | grep -vw "$INTERFACE") ; do
+  for IFACE in $(ip -f link -o a | grep 'link/ether' | tr -s ' ' | cut -f 2 -d ' ' | cut -f 1 -d ':' | grep -vw "${INTERFACE}" | tr '\n' ' ' | sed -e 's% $%%')
+  do
     cleanUpInterface "$IFACE" >/dev/null 2>&1
     ip route flush dev "$IFACE"
     ifconfig "$IFACE" down
@@ -1768,7 +1783,10 @@ saveInterfaceSetup()
 {
   local INTERFACE="$1"
   # need to address from ifconfig, for firewire (/sys.../address gives 24-bit)
-  local HWADDRESS=$(ifconfig "$1" | grep "^$1" | tr -s ' ' | cut -d' ' -f5)
+  #20230930...
+  #local HWADDRESS=$(ifconfig "$1" | grep "^$1" | tr -s ' ' | cut -d' ' -f5)
+  local HWADDRESS
+  HWADDRESS="$(ip -f link -o a show ${INTERFACE} | grep -o 'link/ether .*' | cut -f 2 -d ' ')"
   
 # create config file
 		
