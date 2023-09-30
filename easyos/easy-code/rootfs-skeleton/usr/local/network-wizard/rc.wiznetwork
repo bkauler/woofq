@@ -64,7 +64,7 @@
 #200412 v2.1.2: Increase wait for ethtool link detected, to 15 secs.
 #210415 v2.2: Correct wait for initialized interfaces, to retry /sys/class/net/*/address; simplify link detection; try 'selected device' first; correct test for X active.
 #220704 v2.2.1 Pause before running dhcpcd after interface test, to improve chances of obtaining a valid IP address; clear dhcpcd.log, to log only current run; replace temporary file with "here string" for write-then-read reliability.
-#20230929 BK: change to gettext
+#20230929 BK: change to gettext. write to /tmp/network-wizard
 
 ######### TODO ###########
 #- need to find out about static ip... can we check somehow (arp)? maybe use
@@ -95,7 +95,7 @@ L_MESSAGE_Failed_To_Connect="$(gettext "
   Failed to connect to any networks.
   If you have not yet configured any network interfaces,
   you should do so with the Network Wizard.
-  (debug messages can be found in /tmp/network-connect.log)")"
+  (debug messages can be found in /tmp/network-wizard/network-connect.log)")"
 ####
 
 # Add this to support standard arguments, while being compatible with Puppy
@@ -105,6 +105,8 @@ case $1 in
   start|*) ACTION="start" ;; # also supports no args
 esac
 
+mkdir -p /tmp/network-wizard #20230929
+
 # Add path, in case it is run by acpid or such
 PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin
 
@@ -113,17 +115,6 @@ PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin
 # mainly intended to know if interface has been "configured"...
 NETWORK_INTERFACES_DIR='/etc/network-wizard/network/interfaces'
 DEBUG_OUTPUT=/dev/stderr
-
-# Dougal: add localization
-mo=net-setup.mo
-#lng=${LANG%.*}
-# always start by sourceing the English version (to fill in gaps)
-. "/usr/share/locale/en/LC_MESSAGES/$mo"
-if [ -f "/usr/share/locale/${LANG%.*}/LC_MESSAGES/$mo" ];then
-  . "/usr/share/locale/${LANG%.*}/LC_MESSAGES/$mo"
-elif [ -f "/usr/share/locale/${LANG%_*}/LC_MESSAGES/$mo" ];then
-  . "/usr/share/locale/${LANG%_*}/LC_MESSAGES/$mo"
-fi
 
 #  Dougal: want to use functions from wag-profiles (cleanUpInterface...)
 #+ so source it 
@@ -235,7 +226,7 @@ run_iw_scan(){
 	#[ -n "$IsPCMCIA" ] && sleep 5
 	# no try runing twice and redirecting to files, then use bigger one...
 	# clean up any old files
-	rm /tmp/iwscan*.tmp 2>/dev/null
+	rm /tmp/network-wizard/iwscan*.tmp 2>/dev/null
 	#shinobar: more wait
 	W=1
 	for HOTOKE in $(seq 3); do
@@ -250,13 +241,13 @@ run_iw_scan(){
 	#else
 	#  usleep 100000
 	#fi
-	iwlist "$INTERFACE" scan | grep -E 'Cell |ESSID:|Mode:|Frequency:|Quality=|Encryption |Channel:' >/tmp/iwscan2.tmp 2>&1 #190217
-#	ScanListFile=$(du -b /tmp/iwscan*.tmp |sort -n | tail -n1 |cut -f2)
-	ScanListFile=$(ls -1 /tmp/iwscan*.tmp | sort -V | tail -n 1) #170305
+	iwlist "$INTERFACE" scan | grep -E 'Cell |ESSID:|Mode:|Frequency:|Quality=|Encryption |Channel:' >/tmp/network-wizard/iwscan2.tmp 2>&1 #190217
+#	ScanListFile=$(du -b /tmp/network-wizard/iwscan*.tmp |sort -n | tail -n1 |cut -f2)
+	ScanListFile=$(ls -1 /tmp/network-wizard/iwscan*.tmp | sort -V | tail -n 1) #170305
 	# now try scanning
 	#SCAN_LIST=$(iwlist "$INTERFACE" scan | grep 'Cell\|ESSID\|Mode\|Frequency\|Encryption\|Channel')
 	#SCAN_LIST=$(grep 'Cell\|ESSID\|Mode\|Frequency\|Encryption\|Channel' $ScanListFile)
-	#rm /tmp/iwscan*.tmp
+	#rm /tmp/network-wizard/iwscan*.tmp
 	## no, use the file all the time, so just get the cell list
 	CELL_LIST=$(grep -Eo "Cell [0-9]+" $ScanListFile | cut -f2 -d " ")
 	# if it failed, try sleeping and trying again
@@ -270,8 +261,8 @@ run_iw_scan(){
 		fi
 		sleep 1
 		#SCAN_LIST=$(iwlist "$INTERFACE" scan | grep 'Cell\|ESSID\|Mode\|Frequency\|Encryption\|Channel')
-		iwlist "$INTERFACE" scan | grep -E 'Cell |ESSID:|Mode:|Frequency:|Quality=|Encryption |Channel:' >/tmp/iwscan3.tmp 2>&1 #190217
-		ScanListFile="/tmp/iwscan3.tmp"
+		iwlist "$INTERFACE" scan | grep -E 'Cell |ESSID:|Mode:|Frequency:|Quality=|Encryption |Channel:' >/tmp/network-wizard/iwscan3.tmp 2>&1 #190217
+		ScanListFile="/tmp/network-wizard/iwscan3.tmp"
 		CELL_LIST=$(grep -Eo "Cell [0-9]+" $ScanListFile | cut -f2 -d " ")
 	fi
 }
@@ -308,7 +299,7 @@ try_and_connect(){
 rewrite_mac_address () {
   cat /etc/NETWORKING 2>/dev/null | grep -q -i 'yes' || return
   INTERFACES=/etc/network-wizard/network/interfaces
-  TMPFILE=/tmp/$(basename $0)_conf.tmp
+  TMPFILE=/tmp/network-wizard/$(basename $0)_conf.tmp
   for ONEETHINTERFACE in $ETHINTERFACES ; do #190217
     HWADDRESS=$(LANG=C ifconfig $ONEETHINTERFACE | head -n 1 | tr -s ' ' | cut -d' ' -f5) #190217
     [ "$HWADDRESS" != "" ] || return
@@ -331,11 +322,11 @@ rewrite_mac_address () {
 }
 
 SELECTED_HWADDR="$(readlink $NETWORK_INTERFACES_DIR/selected_conf 2>/dev/null | sed 's/.conf//')" #210415
-rm -f /tmp/dhcpcd.log #220704
+rm -f /tmp/network-wizard/dhcpcd.log #220704
 # Dougal: when running after boot, we don't need this
 if [ "$ACTION" = "restart" ] ; then # connect
   [ -n "$DISPLAY" ] && HAVEX="yes" #210415
-  exec 1>/tmp/network-connect.log 2>&1
+  exec 1>/tmp/network-wizard/network-connect.log 2>&1
 else # below only done at boot
   if which connectwizard_exec >/dev/null; then #190209
     [ -f /root/.connectwizardrc ] \
@@ -472,7 +463,7 @@ do
       if runPrismScan "$INTERFACE" ; then #>/dev/null 
         # go over access points (POINTNUM set in function)
         for P in $(seq 0 $POINTNUM) ; do
-          grep -Fq 'resultcode=success' /tmp/prism-scan$P || continue
+          grep -Fq 'resultcode=success' /tmp/network-wizard/prism-scan$P || continue
 	      getPrismCellParameters $P
           # we should have CELL_ESSID, CELL_CHANNEL, 
           # CELL_AP_MAC, CELL_MODE, CELL_ENCRYPTION
@@ -495,7 +486,7 @@ do
               # try and get ip address
               if try_and_connect ; then
                 # done! stop everything. 
-                rm /tmp/wlan-up /tmp/prism-* >/dev/null 2>&1
+                rm /tmp/network-wizard/wlan-up /tmp/network-wizard/prism-* >/dev/null 2>&1
                 success_message
                 #exit
                 # move to next interface (to allow more than one)
@@ -518,7 +509,7 @@ do
           # unset static ip variables
           unset STATIC_IP IP_ADDRESS NETMASK DNS_SERVER1 DNS_SERVER2 GATEWAY
           for P in $OPEN_NETWORKS ; do
-            grep -Fq 'resultcode=success' /tmp/prism-scan$P || continue
+            grep -Fq 'resultcode=success' /tmp/network-wizard/prism-scan$P || continue
             getPrismCellParameters $P
             # set the PROFILE_ variables
             PROFILE_ESSID="$CELL_ESSID"
@@ -528,7 +519,7 @@ do
               # try and get ip address
               if try_and_connect ; then
                 # done! stop everything. 
-                rm /tmp/wlan-up /tmp/prism-* >/dev/null 2>&1
+                rm /tmp/network-wizard/wlan-up /tmp/network-wizard/prism-* >/dev/null 2>&1
                 success_message
                 #exit
                 # move to next interface (to allow more than one)
@@ -542,7 +533,7 @@ do
             fi
           done
         fi
-        rm /tmp/wlan-up /tmp/prism-* >/dev/null 2>&1
+        rm /tmp/network-wizard/wlan-up /tmp/network-wizard/prism-* >/dev/null 2>&1
       else
         echo "wireless scan with wlanctl-ng failed... skipping interface"
         # clean up (kills dhcpcd etc)
@@ -612,7 +603,7 @@ do
                   # done! stop everything.
                   success_message
 				  # clean scan files
-				  rm /tmp/iwscan*.tmp 2>/dev/null
+				  rm /tmp/network-wizard/iwscan*.tmp 2>/dev/null
                   #exit
                   # move to next interface (to allow more than one)
                   GOT_ONE="yes"
@@ -642,7 +633,7 @@ do
                   # done! stop everything.
                   success_message
 				  # clean scan files
-				  rm /tmp/iwscan*.tmp 2>/dev/null
+				  rm /tmp/network-wizard/iwscan*.tmp 2>/dev/null
                   #exit
                   # move to next interface (to allow more than one)
                   GOT_ONE="yes"
@@ -673,7 +664,7 @@ do
               if try_and_connect ; then
                 success_message
 				# clean scan files
-				rm /tmp/iwscan*.tmp 2>/dev/null
+				rm /tmp/network-wizard/iwscan*.tmp 2>/dev/null
                 #exit
                 # move to next interface (to allow more than one)
                 GOT_ONE="yes"
@@ -692,7 +683,7 @@ do
         cleanUpInterface "$INTERFACE"
         ifconfig "$INTERFACE" down
 		# clean scan files
-		rm /tmp/iwscan*.tmp 2>/dev/null
+		rm /tmp/network-wizard/iwscan*.tmp 2>/dev/null
         # go to next interface
         continue
       fi
@@ -727,7 +718,7 @@ do
   cleanUpInterface "$INTERFACE"
   ifconfig "$INTERFACE" down
 done <<< "$CONFIG" #190217 220704
-rm -f /tmp/ifconfig.tmp #190217
+rm -f /tmp/network-wizard/ifconfig.tmp #190217
 
 #  if we got here and have x, it means we're running with the "connect"
 #+ argument and couldn't connect -- maybe no interfaces have been configured yet
