@@ -16,6 +16,7 @@
 #20221023 may be running as zeus super-user. 20221031 think still need to bump to root.
 #20230626 new sudo-sh replaces sudo.
 #20230919 /usr/local/simple_network_setup/rc.network renamed to rc.snsnetwork
+#20230930 fix network-wizard stop.
 
 #20230626
 if [ "$(whoami)" != "root" ];then
@@ -122,7 +123,7 @@ case $RUNMODE in
   ;;
   --disconnect) #disconnect using default tool.
    case $CURREXEC in
-    net-setup.sh)  exec /etc/rc.d/rc.network stop 1>&2 ;; #Dougal.
+    net-setup.sh)  exec /usr/local/network-wizard/rc.wiznetwork stop 1>&2 ;; #20230930
     pgprs) pgprs --disconnect >/dev/null ;;  #200609
     pupdial) killall wvdial; killall pppd ;;
     pppoe_gui) pppoe_gui ;;
