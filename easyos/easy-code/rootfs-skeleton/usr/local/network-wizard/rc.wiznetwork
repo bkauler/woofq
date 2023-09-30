@@ -65,6 +65,7 @@
 #210415 v2.2: Correct wait for initialized interfaces, to retry /sys/class/net/*/address; simplify link detection; try 'selected device' first; correct test for X active.
 #220704 v2.2.1 Pause before running dhcpcd after interface test, to improve chances of obtaining a valid IP address; clear dhcpcd.log, to log only current run; replace temporary file with "here string" for write-then-read reliability.
 #20230929 BK: change to gettext. write to /tmp/network-wizard
+#20230930 BK: replace ifconfig with ip
 
 ######### TODO ###########
 #- need to find out about static ip... can we check somehow (arp)? maybe use
@@ -121,22 +122,27 @@ DEBUG_OUTPUT=/dev/stderr
 . /usr/local/network-wizard/wag-profiles.sh #180923
 #set -x; exec >&2 #DEBUG
 # A function to stop everything (at shutdown, for example)
-# Enable accepting a param to pass to ifconfig (i.e. -a)
+#20230930...
+# Enable accepting param "up" to stop up interfaces only, else stop everything...
 stop_all(){
-	for INTERFACE in $(ifconfig $1 | grep -F 'Link encap:Ethernet' | cut -f 1 -d " ") ; do
+	#for INTERFACE in $(ifconfig $1 | grep -F 'Link encap:Ethernet' | cut -f 1 -d " ") ; do
+	for INTERFACE in $(ip -o link ls ${1} | grep 'link/ether' | tr -s ' ' | cut -f 2 -d ' ' | cut -f 1 -d ':' | tr '\n' ' ')
+	do
+	
 		# Skip it wake-on-lan enabled # 7mar10 stop even wake-on-lan enabled
 		#ethtool $INTERFACE | grep -Fq 'Wake-on: g' && continue
 		# clean up (kills dhcpcd, wpa_supplicant etc.)
     	cleanUpInterface "$INTERFACE" >/dev/null 2>&1
     	ip route flush dev "$INTERFACE"
-    	ifconfig "$INTERFACE" down
+    	#ifconfig "$INTERFACE" down
+    	ip link set dev ${INTERFACE} down #20230930
   	done
 }
 
 # Dougal: add option to run with "stop" at shutdown... 
 # (will enable to add things in the future)
 if [ "$ACTION" = "stop" ] ; then
-  stop_all
+  stop_all up #20230930
   exit
 fi
 
@@ -179,8 +185,9 @@ setupStaticIP()
 	echo "configuring interface $INTERFACE with static ip..."
 	#ifconfig "$INTERFACE" down
 	
-	# do the work
-	ifconfig "$INTERFACE" "$IP_ADDRESS" netmask "$NETMASK" broadcast "$BROADCAST" #up
+	# do the work...  20230930
+	#ifconfig "$INTERFACE" "$IP_ADDRESS" netmask "$NETMASK" broadcast "$BROADCAST" #up
+	ip addr add ${IP_ADDRESS}/${NETMASK} dev ${INTERFACE}
 	if [ $? -eq 0 ];then
 		# Configure a nameserver, if we're supposed to.
 		# This now replaces any existing resolv.conf, which
@@ -202,7 +209,7 @@ setupStaticIP()
 			if [ $? -eq 0 ];then #0=ok.
 				echo "Default route set through $GATEWAY."
 			else
-				echo -e "Could not set default route through $GATEWAY.  Please try again.\nNote that Puppy has tried to do this:\nroute add -net default gw $GATEWAY" #dev $INTERFACE"
+				echo -e "Could not set default route through $GATEWAY.  Please try again.\nNote that the Network-Wizard has tried to do this:\nroute add -net default gw $GATEWAY" #dev $INTERFACE"
 				#ifconfig "$INTERFACE" down
 				return 1
 			fi
@@ -210,7 +217,7 @@ setupStaticIP()
 		
 		return 0
 	else
-		echo -e "Interface configuration failed; please try again.\nWhat Puppy has just tried to do is this:\nifconfig $INTERFACE $IP_ADDRESS netmask $NETMASK broadcast $BROADCAST up"
+		echo -e "Interface configuration failed; please try again.\nWhat the Network-Wizard has just tried to do is this:\nip addr add ${IP_ADDRESS}/${NETMASK} dev ${INTERFACE}"
 		#ifconfig "$INTERFACE" down
 		return 1
 	fi
@@ -301,10 +308,13 @@ rewrite_mac_address () {
   INTERFACES=/etc/network-wizard/network/interfaces
   TMPFILE=/tmp/network-wizard/$(basename $0)_conf.tmp
   for ONEETHINTERFACE in $ETHINTERFACES ; do #190217
-    HWADDRESS=$(LANG=C ifconfig $ONEETHINTERFACE | head -n 1 | tr -s ' ' | cut -d' ' -f5) #190217
+    #20230930...
+    #HWADDRESS=$(LANG=C ifconfig $ONEETHINTERFACE | head -n 1 | tr -s ' ' | cut -d' ' -f5) #190217
+    HWADDRESS="$(ip -f link -o a show ${ONEETHINTERFACE} | grep -o 'link/ether .*' | cut -f 2 -d ' ')"
     [ "$HWADDRESS" != "" ] || return
     rm -f "$TMPFILE"
-    IFCONFIG=$(ifconfig)
+    #IFCONFIG=$(ifconfig)
+    IFCONFIG="$(ip -o link ls up)" #20230930
     CONFS=$(find "$INTERFACES" -follow -type f -name '*.conf' -printf "%P ")
     if [ "$CONFS" != "" ]; then
       for F in $CONFS; do
@@ -333,7 +343,8 @@ else # below only done at boot
      || echo 'CURRENT_EXEC=net-setup.sh' > /root/.connectwizardrc #170309
   fi #190209
   which connectwizard_crd >/dev/null && connectwizard_crd #170612
-  ifconfig lo 127.0.0.1
+  #ifconfig lo 127.0.0.1
+  ip a add 127.0.0.1/8 dev lo #20230930  /8 = netmask 255.0.0.0
   route add -net 127.0.0.0 netmask 255.0.0.0 lo
   #rewrite_mac_address  # 9feb10 moved
   # Dougal: add reloading of bcm43xx
@@ -362,7 +373,7 @@ else # below only done at boot
     fi
     sleep 1 #190217
   fi
-  stop_all -a >/dev/null 2>&1	# 9feb10: reset before sense
+  stop_all >/dev/null 2>&1	# 9feb10: reset before sense 20230930
    # wait up to MAXWAIT seconds, in case some firmware is slow to load
   MAXWAIT=12
   # a list of all the interface config files
@@ -375,10 +386,11 @@ else # below only done at boot
     if [ -z "$SELECTED_HWADDR" ] \
      || echo "$INSTALLED" | grep -iq "$SELECTED_HWADDR" \
      || [ "$I" -gt 5 ] ; then #210415
-      EXIST="$(ifconfig -a | grep 'Link encap:' | grep 'HWaddr')" #190217
+      #EXIST="$(ifconfig -a | grep 'Link encap:' | grep 'HWaddr')" #190217
+      EXIST="$(ip -o link ls)" #20230930
       for ONE in $ETHINTERFACES $CONFIGURED ; do #190217 #210415
         # see if it is detected
-        if ! echo "$EXIST" | grep -qw "$ONE" ; then #190217...
+        if ! echo "$EXIST" | grep -q "${ONE}:" ; then #190217... 20230930
           sleep 1 ; echo -n '.' ; continue 2 # go to the next I
         fi
       done
@@ -404,34 +416,48 @@ fi # if [ "$ACTION" = "restart" ] ; then
 #  (this replaces the cleanUpInterface at the start of the big loop)
 
 rewrite_mac_address  # 20feb10 moved here
-stop_all -a >/dev/null 2>&1
+stop_all >/dev/null 2>&1 #20230930
 
 #190217 Try selected interface first...
-CONFIG="$(ifconfig -a | grep -F 'Link encap:' | grep 'HWaddr')" #210415 220704
+#CONFIG="$(ifconfig -a | grep -F 'Link encap:' | grep 'HWaddr')" #210415 220704
+CONFIG="$(ip -o link ls)" #20230930
 if [ -n "$SELECTED_HWADDR" ] && [ $(wc -l <<< "$CONFIG") -gt 1 ] ; then #220704
   SELECTED_CONFIG="$(grep "$SELECTED_HWADDR" <<< "$CONFIG")" #220704
   if [ -n "$SELECTED_CONFIG" ] ; then #220704
+    #20230930...
     SEDSCRIPT1="/$SELECTED_HWADDR/d"
-    SEDSCRIPT2="1s/^./$SELECTED_CONFIG\n&/"
-    CONFIG="$(sed -e "$SEDSCRIPT1" -e "$SEDSCRIPT2" <<< "$CONFIG")" #220704
+    #SEDSCRIPT2="1s/^./$SELECTED_CONFIG\n&/"
+    #CONFIG="$(sed -e "$SEDSCRIPT1" -e "$SEDSCRIPT2" <<< "$CONFIG")" #220704
+    CONFIG="$(sed -e "$SEDSCRIPT1" <<< "${CONFIG}")" #220704
   fi
 fi
   
 GOT_ONE=""
 # Dougal: read everything, so we get HWaddress, too
-while read INTERFACE A B C HWADDRESS
+#20230930 oh crap, this is now all different...
+# ex using ip: 4: wlan1: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc mq state UP mode DORMANT group default qlen 1000\    link/ether 00:0f:53:b0:17:3e brd ff:ff:ff:ff:ff:ff
+# ex using ifconfig: wlan1     Link encap:Ethernet  HWaddr 00:0F:53:B0:17:3E
+CONFIG="$(echo "$CONFIG"  | cut -f 2- -d ' ' | sed -e 's%: .*link/% link/%' | cut -f 1,2,3 -d ' ')"
+#ex: wlan1 link/ether 00:0f:53:b0:17:3e
+#while read INTERFACE A B C HWADDRESS
+while read INTERFACE LINKTYPE HWADDRESS
 do
-  if [ "$B" = "encap:UNSPEC" ] ; then
-	# check if it's firewire...
-	[ "$(cat /sys/class/net/$INTERFACE/type)" = "24" ] || continue
-  elif [ "$B" != "encap:Ethernet" ] ; then
-    continue
+  #if [ "$B" = "encap:UNSPEC" ] ; then
+  # # check if it's firewire...
+  # [ "$(cat /sys/class/net/$INTERFACE/type)" = "24" ] || continue
+  #elif [ "$B" != "encap:Ethernet" ] ; then
+  #  continue
+  #fi
+  #20230930 ...how to handle firewire? what does encap:UNSPEC mean?
+  if [ "$LINKTYPE" != "link/ether" ];then
+   continue
   fi
   echo "configuring network interface $INTERFACE"
-  if [ "$C" != "HWaddr" -o -z "$HWADDRESS" ] ; then
-    echo "interface $INTERFACE does not seem to have a HWaddress... skipping"
-    continue
-  fi
+  #20230930 seems don't need...
+  #if [ "$C" != "HWaddr" -o -z "$HWADDRESS" ] ; then
+  #  echo "interface $INTERFACE does not seem to have a HWaddress... skipping"
+  #  continue
+  #fi
   # see if already "configured"
   if [ ! -f "${NETWORK_INTERFACES_DIR}/$HWADDRESS.conf" ] ; then
     echo "interface $INTERFACE has not been configured... skipping"
@@ -439,7 +465,9 @@ do
   fi
   # clean up, skip if fails (=ifconfig up failed)
   ## cleanup moved to top, just raise here.
-  if ! ifconfig "$INTERFACE" up ; then
+  #if ! ifconfig "$INTERFACE" up ; then
+  ip link set dev ${INTERFACE} up #20230930
+  if [ $? -ne 0 ];then
     echo "failed to raise interface $INTERFACE... skipping"
     continue
   fi
@@ -538,7 +566,8 @@ do
         echo "wireless scan with wlanctl-ng failed... skipping interface"
         # clean up (kills dhcpcd etc)
         cleanUpInterface "$INTERFACE"
-        ifconfig "$INTERFACE" down
+        #ifconfig "$INTERFACE" down
+        ip link set dev ${INTERFACE} down #20230930
         # go to next interface
         continue
       fi # if runPrismScan
@@ -550,8 +579,10 @@ do
 	  if [ -n "$CELL_LIST" ]; then
 		#  Dougal: something odd. seems like (at least with some drivers), we
 		#+ need to "refresh" after scanning...
-		ifconfig "$INTERFACE" down
-		ifconfig "$INTERFACE" up
+		#ifconfig "$INTERFACE" down
+		ip link set dev ${INTERFACE} down #20230930
+		#ifconfig "$INTERFACE" up
+		ip link set dev ${INTERFACE} up #20230930
 		#CELL_LIST=$(echo "$SCAN_LIST" | grep -Eo "Cell [0-9]+" | cut -f2 -d " ")
         # let the user create a priority list of which networks to use first
         # (will be included in wireless config file, contains mac addresses)
@@ -681,7 +712,8 @@ do
         echo "wireless scan with iwlist failed (no networks found)... skipping interface"
         # clean up (kills dhcpcd etc)
         cleanUpInterface "$INTERFACE"
-        ifconfig "$INTERFACE" down
+        #ifconfig "$INTERFACE" down
+        ip link set dev ${INTERFACE} down
 		# clean scan files
 		rm /tmp/network-wizard/iwscan*.tmp 2>/dev/null
         # go to next interface
@@ -690,7 +722,8 @@ do
     fi
     # if we got here, config file exists, but nothing worked
     echo "failed to configure wireless interface $INTERFACE... skipping"
-    ifconfig "$INTERFACE" down
+    #ifconfig "$INTERFACE" down
+    ip link set dev ${INTERFACE} down #20230930
     continue
   fi # if [ -f "${WLAN_INTERFACES_DIR}/$HWADDRESS.conf" ] ; then
   # if we got here, it's probably not wireless
@@ -710,13 +743,15 @@ do
     fi
   else 
     echo "interface $INTERFACE does not seem to be plugged in... skipping"
-    ifconfig "$INTERFACE" down
+    #ifconfig "$INTERFACE" down
+    ip link set dev ${INTERFACE} down #20230930
     continue
   fi
   # if we got here, nothing worked, clean up
   # clean up (kills dhcpcd etc)
   cleanUpInterface "$INTERFACE"
-  ifconfig "$INTERFACE" down
+  #ifconfig "$INTERFACE" down
+  ip link set dev ${INTERFACE} down #20230930
 done <<< "$CONFIG" #190217 220704
 rm -f /tmp/network-wizard/ifconfig.tmp #190217
 
