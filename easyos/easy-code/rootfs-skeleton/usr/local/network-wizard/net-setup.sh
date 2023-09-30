@@ -80,12 +80,14 @@
 #210415 v2.2: Correct pcmcia check; set 'selected device' softlink when saving configuration; simplify link detection; set IS_WIRELESS; remove v411 BK hack to remove old network wizard configs (*[0-9]mode).
 #220704 v2.2.1: Fixes in wag_profiles.sh and rc.network.
 #20230927 BK: remove "Puppy" from text messages.
-#20230929 BK: change to gettext. remove ndiswrapper.
+#20230929 BK: change to gettext. remove ndiswrapper. write to /tmp/network-wizard
+#20230930 BK: remove iwconfig. replace ifconfig with ip (only partly done!)
 
 export TEXTDOMAIN=network-wizard
 export OUTPUT_CHARSET=UTF-8
 
 #####
+HELP_COMMAND="man 'net_setup'"
 L_TITLE_Puppy_Network_Wizard="$(gettext "Network Wizard")"
 L_TITLE_Network_Wizard="$(gettext "Network Wizard")"
 L_TITLE_Netwiz_Static_IP="$(gettext "Network Wizard: Static IP")"
@@ -199,7 +201,7 @@ that you have provided the correct wireless parameters.")"
 L_TOPMSG_Unplugged_Wired="$(gettext "'Unable to connect to the network'
 Verify that the network is available and
 that the ethernet cable is plugged in.")"
-L_TOPMSG_Network_Alive="$(gettext "'The OS was able to find a live network'
+L_TOPMSG_Network_Alive="$(gettext "'A live network was found'
 You can proceed to acquire an IP address.")"
 L_TOPMSG_Configuration_Cancelled='NETWORK CONFIGURATION OF $INTERFACE CANCELED!'
 L_BUTTON_Done="$(gettext "Done")"
@@ -226,10 +228,10 @@ L_TOPMSG_Initial_Lets_try="$(gettext "OK, let's try to configure")"
 L_TESTMSG_Initial_p1="$(gettext "You can test if")"
 L_TESTMSG_Initial_p2="$(gettext "is connected to a 'live' network.
 After you confirm that, you can configure the interface.")"
-L_DHCPMSG_Initial="$(gettext "The easiest way to configure the network is by using a DHCP server (usually provided by your network). This will enable the OS to query the server at bootup and automatically be assigned an IP address. The 'dhcpcd' client daemon program is launched and network access happens automatically.")"
+L_DHCPMSG_Initial="$(gettext "The easiest way to configure the network is by using a DHCP server (usually provided by your network). This will enable the Operating System to query the server at bootup and automatically be assigned an IP address. The 'dhcpcd' client daemon program is launched and network access happens automatically.")"
 L_STATICMSG_Initial="$(gettext "If a DHCP server is not available, you will have to do everything manually by setting a static IP, but this script will make it easy.")"
 L_FRAME_Configure_Wireless="$(gettext "Configure wireless network")"
-L_TEXT_Configure_Wireless_p1="$(gettext "The OS found that")"
+L_TEXT_Configure_Wireless_p1="$(gettext "Interface")"
 L_TEXT_Configure_Wireless_p2="$(gettext "is a wireless interface.
 To connect to a wireless network, you must first set the wireless network parameters by clicking on the 'Wireless' button, then assign an IP address to it, either with DHCP or Static IP (see below).")"
 L_BUTTON_Wireless="$(gettext "Wireless")"
@@ -300,7 +302,7 @@ L_INTTYPE_Ethernet="$(gettext "Ethernet")"
 L_INFO_Eth_Firewire="$(gettext "Ethernet over firewire")"
 L_MESSAGE_Already_Running="$(gettext "Network Wizard cannot start now because it is already active.")"
 L_MESSAGE_Use_or_Terminate_Existing="$(gettext "Please use the active Network Wizard session or terminate it and start it again.")"
-L_TOPMSG_Initial="$(gettext "Hi, networking is not always easy to setup, but let's give it a go!")"
+L_TOPMSG_Initial="$(gettext "Networking is not always easy to setup, but let's give it a go!")"
 #####
 
 # $1: interface
@@ -314,30 +316,17 @@ interface_is_wireless() {
 	if [ -d /sys/class/net/${1}/wireless ] ; then
 		return 0 #yes
 	fi
-	# k3.2.x: my problematic wireless pci adapter is only recognized by iwconfig..
-	# hmm with 2 pci wireless adapters only iwconfig does the trick
-	if iwconfig ${1} 2>&1 | grep -q 'no wireless' ; then
-		return 1 #no
-	fi
-	return 0 #yes
+	return 1 #no  20230930
 }
+
+
+mkdir -p /tmp/network-wizard #20230929
 
 if [ -d /usr/local/network-wizard ] ; then #180923...
 	APPDIR='/usr/local/network-wizard'
 else
 	APPDIR="$(dirname $0)"
 	[ "$APPDIR" = "." ] && APPDIR="$(pwd)"
-fi
-
-# Dougal: add localization
-mo=net-setup.mo
-#lng=${LANG%.*}
-# always start by sourceing the English version (to fill in gaps)
-. "/usr/share/locale/en/LC_MESSAGES/$mo"
-if [ -f "/usr/share/locale/${LANG%.*}/LC_MESSAGES/$mo" ];then
-  . "/usr/share/locale/${LANG%.*}/LC_MESSAGES/$mo"
-elif [ -f "/usr/share/locale/${LANG%_*}/LC_MESSAGES/$mo" ];then
-  . "/usr/share/locale/${LANG%_*}/LC_MESSAGES/$mo"
 fi
 
 # Check if output should go to the console
@@ -407,6 +396,9 @@ showMainWindow()
 	do
 
 		buildMainWindow
+		if [ ! -e /tmp/network-wizard/NETWIZ_Main_Window ];then #TEST
+		 echo "$NETWIZ_Main_Window" > /tmp/network-wizard/NETWIZ_Main_Window
+		fi
 
 		I=$IFS; IFS=""
 		for STATEMENT in  $(gtkdialog --program NETWIZ_Main_Window); do
@@ -445,9 +437,11 @@ showMainWindow()
 
 #=============================================================================
 getInterfaceList(){
-  #we need to know what ethernet interfaces are there...
-  INTERFACE_NUM=$(ifconfig -a | grep -Fc 'Link encap:Ethernet')
-  INTERFACES="$(ifconfig -a | grep -F 'Link encap:Ethernet' | cut -f1 -d' ' | tr '\n' ' ')"
+  #we need to know what ethernet/wireless interfaces are there... 20230930...
+  #INTERFACE_NUM=$(ifconfig -a | grep -Fc 'Link encap:Ethernet')
+  INTERFACE_NUM=$(ip -f link a | grep -Fc 'link/ether')
+  #INTERFACES="$(ifconfig -a | grep -F 'Link encap:Ethernet' | cut -f1 -d' ' | tr '\n' ' ')"
+  INTERFACES="$(ip -f link -o a | grep 'link/ether' | tr -s ' ' | cut -f 2 -d ' ' | cut -f 1 -d ':' | tr '\n' ' ' | sed -e 's% $%%')"
   # Dougal: this is for ethernet-over-firewire
   for ONE in $(grep -w 24 /sys/class/net/*/type | cut -d '/' -f5) ; do
     case $INTERFACES in *$ONE*) continue ;; esac
@@ -488,12 +482,12 @@ ${INTERFACEBUTTONS}
   if [ "$INTERFACE_DATA" ] ; then
     # Get the right height for the tree...
     case "$INTERFACE_NUM" in
-     1) HEIGHT=70 ;;
-     2) HEIGHT=100 ;;
-     3) HEIGHT=125 ;;
-     4) HEIGHT=150 ;;
-     5) HEIGHT=175 ;;
-     6) HEIGHT=200 ;;
+     1) HEIGHT=76 ;;
+     2) HEIGHT=112 ;;
+     3) HEIGHT=138 ;;
+     4) HEIGHT=174 ;;
+     5) HEIGHT=205 ;;
+     6) HEIGHT=241 ;;
     esac
     INTERFACEBUTTONS="
     <tree>
@@ -509,13 +503,13 @@ ${INTERFACEBUTTONS}
 
   case $INTERFACE_NUM in 
     0) # no interfaces
-      echo "$L_ECHO_No_Interfaces_Message" > /tmp/net-setup_MSGINTERFACES.txt
+      echo "$L_ECHO_No_Interfaces_Message" > /tmp/network-wizard/net-setup_MSGINTERFACES.txt
       ;;
     1) # only one
-      echo "$L_ECHO_One_Interface_Message"  > /tmp/net-setup_MSGINTERFACES.txt
+      echo "$L_ECHO_One_Interface_Message"  > /tmp/network-wizard/net-setup_MSGINTERFACES.txt
       ;;
     *) # more than one interface
-      echo "$L_ECHO_Multiple_Interfaces_Message"  > /tmp/net-setup_MSGINTERFACES.txt
+      echo "$L_ECHO_Multiple_Interfaces_Message"  > /tmp/network-wizard/net-setup_MSGINTERFACES.txt
       ;;
   esac
 
@@ -524,17 +518,17 @@ ${INTERFACEBUTTONS}
 #=============================================================================
 buildMainWindow ()
 {
-	echo "${TOPMSG}" > /tmp/net-setup_TOPMSG.txt
+	echo "${TOPMSG}" > /tmp/network-wizard/net-setup_TOPMSG.txt
 
 
 	export NETWIZ_Main_Window="<window title=\"$L_TITLE_Puppy_Network_Wizard\" icon-name=\"gtk-network\" window-position=\"1\">
 <vbox>
 	
-	<text><label>\"$(cat /tmp/net-setup_TOPMSG.txt)\"</label></text>	
+	<text><label>\"$(cat /tmp/network-wizard/net-setup_TOPMSG.txt)\"</label></text>	
 	<frame  $L_FRAME_Interfaces >
 		<vbox>
 			<text>
-				<label>\"$(cat /tmp/net-setup_MSGINTERFACES.txt)\"</label>
+				<label>\"$(cat /tmp/network-wizard/net-setup_MSGINTERFACES.txt)\"</label>
 			</text>
 			
 			${INTERFACEBUTTONS}
@@ -563,9 +557,9 @@ buildMainWindow ()
 showLoadModuleWindow()
 {
   findLoadedModules
-  echo -n "" > /tmp/ethmoduleyesload.txt
+  echo -n "" > /tmp/network-wizard/ethmoduleyesload.txt
   # Dougal: create list of modules (pipe delimited)
-  sort $TMPDIR/networkmodules | tr '"' '|' | tr ':' '|' | sed 's%|$%%g' | tr -s ' ' >/tmp/module-list
+  sort $TMPDIR/networkmodules | tr '"' '|' | tr ':' '|' | sed 's%|$%%g' | tr -s ' ' >/tmp/network-wizard/module-list
 
   export NETWIZ_LOAD_MODULE_DIALOG="<window title=\"$L_TITLE_Load_Network_Module\" icon-name=\"gtk-execute\" window-position=\"1\">
 <vbox>
@@ -587,7 +581,7 @@ showLoadModuleWindow()
    <pixmap><input file>$BLANK_IMAGE</input></pixmap>
    <tree>
     <label>$L_LABEL_Module_Tree_Header</label>
-    <input>cat /tmp/module-list</input>
+    <input>cat /tmp/network-wizard/module-list</input>
     <height>200</height><width>550</width>
     <variable>NEW_MODULE</variable>
    </tree>
@@ -652,9 +646,9 @@ showLoadModuleWindow()
     cancel) TOPMSG="$L_TOPMSG_Load_Module_Cancel"  ;;
   esac
 
-  #NEWLOADED="$(cat /tmp/ethmoduleyesload.txt)"
+  #NEWLOADED="$(cat /tmp/network-wizard/ethmoduleyesload.txt)"
   #NEWLOADf1=${NEWLOADED%% *} #remove any extra params.
-  read NEWLOADED </tmp/ethmoduleyesload.txt
+  read NEWLOADED </tmp/network-wizard/ethmoduleyesload.txt
   NEWLOADf1=${NEWLOADED%% *}
   if [ "${NEWLOADED}" ];then
 	##### add new code here: find new interface, then give window naming it
@@ -804,15 +798,15 @@ tryLoadModule ()
 	#+ false, while the driver might already be loaded! Trying to reload
 	#+ will then not do anything, I assume... so remove quotes (in loadSpecificModule).
 	MODULE_NAME="$1"
-	if grep -q "$MODULE_NAME" /tmp/loadedeth.txt ; then
+	if grep -q "$MODULE_NAME" /tmp/network-wizard/loadedeth.txt ; then
 		Xdialog --screen-center --title "$L_TITLE_Netwiz_Hardware" \
 		        --msgbox "$L_MESSAGE_Driver_Loaded" 0 0
-		echo -n "${MODULE_NAME}" > /tmp/ethmoduleyesload.txt
+		echo -n "${MODULE_NAME}" > /tmp/network-wizard/ethmoduleyesload.txt
 		return 0
 	else
 		# Dougal: this had just "$MODULE_NAME", change to include parameters
 		if ERROR=$(modprobe $@ 2>&1) ; then
-			echo -n "$*" > /tmp/ethmoduleyesload.txt
+			echo -n "$*" > /tmp/network-wizard/ethmoduleyesload.txt
 			case "$NETWORK_MODULES" in *" $MODULE_NAME "*) ;;
 			 *) echo "$@" >> /etc/networkusermodules ;;
 			esac
@@ -922,10 +916,10 @@ autoLoadModule ()
 		esac
 		
 		#also, do not try if it is already loaded...?
-		grep -q "$CANDIDATE" /tmp/loadedeth.txt && MDOIT="no"
+		grep -q "$CANDIDATE" /tmp/network-wizard/loadedeth.txt && MDOIT="no"
 
 		#in case of false-hits, ignore anything already tried this session...
-		grep -q "$CANDIDATE" /tmp/logethtries.txt && MDOIT="no"
+		grep -q "$CANDIDATE" /tmp/network-wizard/logethtries.txt && MDOIT="no"
 
 		if [ "$MDOIT" = "yes" ];then
 			echo; echo "*** Trying $CANDIDATE."
@@ -934,7 +928,7 @@ autoLoadModule ()
 				SOMETHINGWORKED=true
 				WHATWORKED=$CANDIDATE
 				#add it to the log for this session...
-				echo "$CANDIDATE" >> /tmp/logethtries.txt
+				echo "$CANDIDATE" >> /tmp/network-wizard/logethtries.txt
 				break
 			fi
 		fi
@@ -944,9 +938,9 @@ autoLoadModule ()
 	if $SOMETHINGWORKED
 	then
 		Xdialog --left --wrap --title "$L_TITLE_Puppy_Network_Wizard" --msgbox "$L_MESSAGE_Success_Loading_Module_p1 $WHATWORKED $L_MESSAGE_Success_Loading_Module_p2" 0 0
-		echo -n "$WHATWORKED" > /tmp/ethmoduleyesload.txt
+		echo -n "$WHATWORKED" > /tmp/network-wizard/ethmoduleyesload.txt
 	else
-		MALREADY="$(cat /tmp/loadedeth.txt)"
+		MALREADY="$(cat /tmp/network-wizard/loadedeth.txt)"
 		Xdialog --msgbox "${L_MESSAGE_No_Module_Loaded}\n${MALREADY}" 0 0
 		return 1
 	fi
@@ -1019,7 +1013,7 @@ unloadSpecificModule(){
   do 
     [ "$ONE" ] || continue
     LOADED_ITEMS="$LOADED_ITEMS <item>$ONE</item>"
-  done</tmp/loadedeth.txt
+  done</tmp/network-wizard/loadedeth.txt
   
   # see if there's anything at all...
   if [ ! "$LOADED_ITEMS" ] ; then
@@ -1063,7 +1057,7 @@ unloadSpecificModule(){
   if [ "$EXIT" = "Unload" ] ; then
     if [ "$COMBOBOX" ] ; then #making sure there was something
       if ERROR=$(rmmod $COMBOBOX 2>&1) ; then # it worked, remove from list
-        sed -i "/^ $COMBOBOX*/d" /tmp/loadedeth.txt
+        sed -i "/^ $COMBOBOX*/d" /tmp/network-wizard/loadedeth.txt
         # ask the user about blacklisting
         offerToBlacklistModule "$COMBOBOX"
         # need to refresh the main gui, since # of interfaces has changed
@@ -1082,7 +1076,7 @@ $ERROR"
 #=============================================================================
 findLoadedModules ()
 {
-  echo -n " " > /tmp/loadedeth.txt
+  echo -n " " > /tmp/network-wizard/loadedeth.txt
 
   LOADED_MODULES="$(lsmod | cut -f1 -d' ' | sort)"
   NETWORK_MODULES=" $(cat $TMPDIR/networkmodules /etc/networkusermodules  2>/dev/null | cut -f1 -d' ' | tr '\n' ' ') "
@@ -1100,12 +1094,12 @@ findLoadedModules ()
 			# Also try and retain original module names (removed "tr '-' '_')
 			case "$NETWORK_MODULES" in 
 			 *" $AMOD "*)
-			   echo "$AMOD" >> /tmp/loadedeth.txt
-			   echo -n " " >> /tmp/loadedeth.txt #space separation
+			   echo "$AMOD" >> /tmp/network-wizard/loadedeth.txt
+			   echo -n " " >> /tmp/network-wizard/loadedeth.txt #space separation
 			   ;;
 			 *" ${AMOD/_/-} "*) # kernel shows module with underscore...
-			  echo "${AMOD/_/-}" >> /tmp/loadedeth.txt
-			  echo -n " " >> /tmp/loadedeth.txt #space separation
+			  echo "${AMOD/_/-}" >> /tmp/network-wizard/loadedeth.txt
+			  echo -n " " >> /tmp/network-wizard/loadedeth.txt #space separation
 			  ;;
 			esac
 		done
@@ -1119,11 +1113,14 @@ testInterface()
   TIMEOUT=15 #210415
   
   (
-	ifconfig "$INTERFACE" | grep ' UP ' >> $DEBUG_OUTPUT 2>&1
-	if [ ! $? -eq 0 ];then #=0 if found
+	#ifconfig "$INTERFACE" | grep ' UP ' >> $DEBUG_OUTPUT 2>&1
+	ip -f link -o a show "${INTERFACE}" | grep ' UP ' >> $DEBUG_OUTPUT 2>&1 #20230930
+	if [ $? -ne 0 ];then #=0 if found
 		#cleanUpInterface "$INTERFACE" >> $DEBUG_OUTPUT 2>&1
 		# Dougal: add check for error -- maybe it fails to be raised?
-		if ! ERROR=$(ifconfig "$INTERFACE" up 2>&1) ; then
+		#if ! ERROR=$(ifconfig "$INTERFACE" up 2>&1) ; then
+		ERROR="$(ip link set dev ${INTERFACE} up 2>&1)" #20230930
+		if [ $? -ne 0 ];then
 		  giveErrorDialog "$L_MESSAGE_Failed_Raise_Interface_p1 $INTERFACE.
 $L_MESSAGE_Failed_Raise_Interface_p2 ifconfig $INTERFACE up
 $L_MESSAGE_Failed_Raise_Interface_p3
@@ -1143,13 +1140,14 @@ $ERROR
 			echo "X"
 		fi
 	done
-	echo -n "${UNPLUGGED}" > /tmp/net-setup_UNPLUGGED.txt
+	echo -n "${UNPLUGGED}" > /tmp/network-wizard/net-setup_UNPLUGGED.txt
   ) | Xdialog --title "$L_TITLE_Network_Wizard" --progress "$L_PROGRESS_Testing_Interface ${INTERFACE}" 0 0 "$TIMEOUT" #210415 end
-  UNPLUGGED=$(cat /tmp/net-setup_UNPLUGGED.txt)
+  UNPLUGGED=$(cat /tmp/network-wizard/net-setup_UNPLUGGED.txt)
 
   if [ "$UNPLUGGED" != "false" ];then #BK1.0.7
     #no cable plugged in, no network connection possible...
-    ifconfig "$INTERFACE" down
+    #ifconfig "$INTERFACE" down
+    ip link set dev "$INTERFACE" down
     BGCOLOR="#ffc0c0"
     if [ "${IS_WIRELESS}" ] ; then
       TOPMSG="$(eval echo $L_TOPMSG_Report_On_Test) 
@@ -1777,7 +1775,7 @@ saveInterfaceSetup()
   if checkIfIsWireless "$INTERFACE" ; then
     # Dougal: only need to do this once
     if [ ! -s "${WLAN_INTERFACES_DIR}/$HWADDRESS.conf" ] ; then
-      #cp -a /tmp/wireless-config "${WLAN_INTERFACES_DIR}/$HWADDRESS.conf"
+      #cp -a /tmp/network-wizard/wireless-config "${WLAN_INTERFACES_DIR}/$HWADDRESS.conf"
       echo -e "INT_WPA_DRV='$PROFILE_WPA_DRV'\nUSE_WLAN_NG='$USE_WLAN_NG'" > ${WLAN_INTERFACES_DIR}/$HWADDRESS.conf
     fi
     # create interface config file
@@ -1799,12 +1797,12 @@ saveInterfaceSetup()
 #=============================================================================
 # Dougal: a little function to clean up /tmp when we're done...
 cleanUpTmp(){
-	rm -f /tmp/ethmoduleyesload.txt 2>/dev/null
-	rm -f /tmp/loadedeth.txt 2>/dev/null
-#	rm -f /tmp/wag-profiles_iwconfig.sh 2>/dev/null
-	rm -f /tmp/net-setup_* 2>/dev/null
-	rm -f /tmp/wpa_status.txt 2>/dev/null
-	rm -f /tmp/net-setup_scan*.tmp 2>/dev/null
+	rm -f /tmp/network-wizard/ethmoduleyesload.txt 2>/dev/null
+	rm -f /tmp/network-wizard/loadedeth.txt 2>/dev/null
+#	rm -f /tmp/network-wizard/wag-profiles_iwconfig.sh 2>/dev/null
+	rm -f /tmp/network-wizard/net-setup_* 2>/dev/null
+	rm -f /tmp/network-wizard/wpa_status.txt 2>/dev/null
+	rm -f /tmp/network-wizard/net-setup_scan*.tmp 2>/dev/null
 }
 
 #=============================================================================
