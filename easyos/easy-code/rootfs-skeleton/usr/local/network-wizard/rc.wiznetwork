@@ -65,7 +65,7 @@
 #210415 v2.2: Correct wait for initialized interfaces, to retry /sys/class/net/*/address; simplify link detection; try 'selected device' first; correct test for X active.
 #220704 v2.2.1 Pause before running dhcpcd after interface test, to improve chances of obtaining a valid IP address; clear dhcpcd.log, to log only current run; replace temporary file with "here string" for write-then-read reliability.
 #20230929 BK: change to gettext. write to /tmp/network-wizard
-#20230930 BK: replace ifconfig with ip
+#20230930 BK: replace ifconfig with ip. 20231001 fix.
 
 ######### TODO ###########
 #- need to find out about static ip... can we check somehow (arp)? maybe use
@@ -418,19 +418,24 @@ fi # if [ "$ACTION" = "restart" ] ; then
 rewrite_mac_address  # 20feb10 moved here
 stop_all >/dev/null 2>&1 #20230930
 
+#20231001 sed error with SEDSCRIPT2, fixing...
 #190217 Try selected interface first...
 #CONFIG="$(ifconfig -a | grep -F 'Link encap:' | grep 'HWaddr')" #210415 220704
+CONFIG1=''; CONFIG0=''
 CONFIG="$(ip -o link ls)" #20230930
 if [ -n "$SELECTED_HWADDR" ] && [ $(wc -l <<< "$CONFIG") -gt 1 ] ; then #220704
-  SELECTED_CONFIG="$(grep "$SELECTED_HWADDR" <<< "$CONFIG")" #220704
+  SELECTED_CONFIG="$(grep -F "$SELECTED_HWADDR" <<< "$CONFIG")" #220704
   if [ -n "$SELECTED_CONFIG" ] ; then #220704
     #20230930...
+    CONFIG1="${SELECTED_CONFIG}"
     SEDSCRIPT1="/$SELECTED_HWADDR/d"
     #SEDSCRIPT2="1s/^./$SELECTED_CONFIG\n&/"
     #CONFIG="$(sed -e "$SEDSCRIPT1" -e "$SEDSCRIPT2" <<< "$CONFIG")" #220704
-    CONFIG="$(sed -e "$SEDSCRIPT1" <<< "${CONFIG}")" #220704
+    CONFIG0="$(sed -e "$SEDSCRIPT1" <<< "${CONFIG}")" #220704
   fi
 fi
+CONFIG="${CONFIG1}
+${CONFIG0}"
   
 GOT_ONE=""
 # Dougal: read everything, so we get HWaddress, too
@@ -442,6 +447,7 @@ CONFIG="$(echo "$CONFIG"  | cut -f 2- -d ' ' | sed -e 's%: .*link/% link/%' | cu
 #while read INTERFACE A B C HWADDRESS
 while read INTERFACE LINKTYPE HWADDRESS
 do
+  [ "$INTERFACE" == "" ] && continue #20231001
   #if [ "$B" = "encap:UNSPEC" ] ; then
   # # check if it's firewire...
   # [ "$(cat /sys/class/net/$INTERFACE/type)" = "24" ] || continue
