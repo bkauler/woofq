@@ -1,5 +1,6 @@
 #!/bin/bash
 #20230805 called from /usr/sbin/loginmanager
+#20231003 more exclude.
 
 export TEXTDOMAIN=clients
 export OUTPUT_CHARSET=UTF-8
@@ -16,6 +17,20 @@ xAPPS="$(grep -h -v '^NoDisplay=true' /usr/share/applications/*.desktop | grep '
 for aAPP in $xAPPS
 do
  if [ "$aAPP" == "" ];then continue; fi
+ #20231003 some to definitely exclude...
+ case "$aAPP" in
+  awf-gtk2|awf-gtk3|bluepup|bluetooth-sendto|bootmanager|butniso2cd|ccrypt_gui) continue ;;
+  cdburner-wizard|chooselocale|cups_shell|date-time-wizard) continue ;;
+  default*|droidcam|easy*|eventmanager|ffconvert|ff*) continue ;;
+  filemnt|firewall_ng|flapi|Floppy_Formatter|flsynclient|fluid|ghostview|glade) continue ;;
+  gparted_shell|gtk3*|hostname-set|icon_switcher|input-wizard|ipinfo|jwmthememaker) continue ;;
+  limine-installer|loginmanager|momanager|mount-img|moveicons|mscw|mtpaintsnapshot.sh) continue ;;
+  notification-daemon|partview|pburn|Pdisk|petget|pmount|pprocess|Pudd|pupx) continue ;;
+  pupzip|pwsget|qsync|quicksetup|qwallpaper|rox|rxvt|sakura|screeny|set_*|set-*) continue ;;
+  tas|timezone-set|touchpad-toggle|urxvt*|usbviewshell|vv-dl-latest|wcpufreq|xarchive) continue ;;
+  xdelt_gui|xfdiff-cut|xfontsel|xorgwizard|xvkbd-wrapper|youtubedl-gui|zarfywrapper) continue ;;
+  gfnrename|gfontsel|gpptp|gtk*|pgprs|precord|prename|pupcamera|xdelta_gui) continue ;;
+ esac
  xFspec="$(which $aAPP)"
  if [ "$xFspec" == "" ];then continue; fi
  if [ -h "$xFspec" ];then
