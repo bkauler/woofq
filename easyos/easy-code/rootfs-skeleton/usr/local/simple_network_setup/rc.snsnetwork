@@ -57,6 +57,7 @@
 #20230919 BK: ongoing wpa_supplicant log.
 #20230920 BK: build_udevmodulelist broken, replace. removed: ensure_driver_modules_loaded
 # at bootup, this script will run after X started. ref: /etc/init.d/rc.network
+#20231004 minor message change.
 
 #If version is changed, ensure that new VERSION is set in the sns script. #190525
 
@@ -428,7 +429,7 @@ esac
 [ ! -s /etc/simple_network_setup/connections ] && cancel_splash_and_exit #170505 171222
 
 if [ -z "$1" ] && [ -n "$DISPLAY" ]; then
-    gtkdialog-splash -bg orange -close never -fontsize large -text "$(gettext 'Attempting to reconnect to a network...')" >/dev/null &
+    gtkdialog-splash -bg orange -close never -fontsize large -text "$(gettext 'Attempting to connect to a network...')" >/dev/null &
     echo $! >/tmp/sns_splash_pid
 fi
 
