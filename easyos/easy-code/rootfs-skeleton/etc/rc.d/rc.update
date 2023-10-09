@@ -9,12 +9,17 @@
 #200827 200609: removing old .desktop files code moved to rc.sysinit
 #20211207 check that /root/.mozilla/seamonkey exists.
 #20230718 rebuild /etc/xdg/rox.sourceforge.net
+#20231010 don't know why, 20230718 not always rebuild sendto when needed.
 
-#20230718 when update, not first pristine-boot...
-if [ -f /.sfschg.flg -a -f /etc/networkmodules ];then
- #init script in initrd erases /etc/xdg when update, need to rebuild right-click
- #menu if there are user-installed packages...
- build-rox-sendto
+#20230718 when update, not first pristine-boot... 20231010...
+#if [ -f /.sfschg.flg -a -f /etc/networkmodules ];then
+if [ -f /etc/networkmodules ];then #avoid 1st boot.
+ if [ -f /.sfschg.flg -o ! -e /mnt/wkg/.session/etc/xdg/rox.sourceforge.net/OpenWith/.application_gzip ];then
+  #init script in initrd erases /etc/xdg when update, need to rebuild right-click
+  #menu if there are user-installed packages...
+  echo -n "build-rox-sendto " > /dev/console
+  build-rox-sendto
+ fi
 fi
 
 #131217 only do this on very first boot... 170920...
