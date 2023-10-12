@@ -62,7 +62,7 @@
 #20230409 revert, /files now a symlink (ref: init in initrd)
 #20230413 change path to swap file.
 #20230921 no longer using /tmp/simple_network_setup/network_default_reconnect_required_flag
-#20231001 enable/disable Internet-Connection-Wizard.desktop
+#20231001 enable/disable Internet-Connection-Wizard.desktop  20231011 pgprs-connect.desktop
 
 #unset TZ #100319 busybox hwclock gives priority to this (rather than /etc/localtime) and 'init' has set it wrong.
 #...comment-out for now. note, TZ now set in rc.country.
@@ -793,8 +793,8 @@ exec urxvt -e nmtui' > /usr/local/bin/defaultconnect
    NMflg=1
   fi
  done
- #20231001 vice versa...
- for aNM in Internet-Connection-Wizard
+ #20231001 vice versa... 20231011
+ for aNM in Internet-Connection-Wizard pgprs-connect
  do
   [ ! -f /usr/share/applications/${aNM}.desktop ] && continue
   grep '^NoDisplay=false' /usr/share/applications/${aNM}.desktop >/dev/null
