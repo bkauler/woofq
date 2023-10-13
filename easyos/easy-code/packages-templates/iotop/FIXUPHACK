@@ -1,6 +1,6 @@
 
-#20220512 debian bookworm, executable is iotop-py
-if [ -e usr/sbin/iotop-py ];then
+#20220512 debian bookworm, executable is iotop-py 20231013
+if [ -e usr/bin/iotop-py ];then
  IOTOPEXE='iotop-py'
 else
  IOTOPEXE='iotop'
@@ -133,7 +133,7 @@ Name[yo]=iotop atẹle I/O aṣayan iṣẹ-ṣiṣe
 Name[zh]=iotop 监控 I/O 活动
 Name[zu]=Umsebenzi we-iotop qapha I/O
 Name=iotop monitor I/O activity
-Icon=mini-run.xpm
+Icon=iotop.png
 Comment[af]=iotop monitor I/O aktiwiteit
 Comment[am]=iotop ሞኒተሪ I/O እንቅስቃሴ
 Comment[ar]=iotop ﺐﻗﺍﺮﻣ I / O ﻁﺎﺸﻨﻟﺍ
@@ -258,8 +258,14 @@ Comment[yo]=iotop atẹle I/O aṣayan iṣẹ-ṣiṣe
 Comment[zh]=iotop 监控 I/O 活动
 Comment[zu]=Umsebenzi we-iotop qapha I/O
 Comment=iotop monitor I/O activity
-Exec=urxvt -bg \"#f0f0f0\" -fg black -T iotop -n iotop -e ${IOTOPEXE} -o -a
+Exec=iotop-wrapper
 Terminal=false
 Type=Application
 Categories=X-System-process
 GenericName=iotop" > usr/share/applications/iotop.desktop
+
+#20231013
+echo "#!/bin/ash
+exec urxvt -bg '#f0f0f0' -fg black -name iotop -fn 'xft:Roboto Mono:style=Regular:pixelsize=14' -fb 'xft:Roboto Mono:style=Bold:pixelsize=14' -e ${IOTOPEXE} -o -a
+" > usr/bin/iotop-wrapper
+chmod 755 usr/bin/iotop-wrapper
