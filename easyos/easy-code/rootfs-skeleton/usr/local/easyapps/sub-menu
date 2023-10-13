@@ -82,6 +82,7 @@ elif [ "$MAINCAT" == "utility" ];then
   systeminformation) CATS='^Exec=hardinfo|^Exec=ipinfo|^Exec=pprocess|^Exec=Pup-SysInfo|^Exec=pupscan|^Exec=usbviewshell'; EXCLUDE='pprocess'; ;;
   terminalemulator) CATS='^Categories.*TerminalEmulator'; EXCLUDE='ec-console'; ;;
   encryption) CATS='^Categories.*X-Personal-security|^Exec=gtkhash|^Categories.*Security' ;;
+  processes)  CATS='^Categories.*X-System-process|^Exec=pprocess'; EXCLUDE='pschedule' ;;
  esac
 else #precaution
  exit
