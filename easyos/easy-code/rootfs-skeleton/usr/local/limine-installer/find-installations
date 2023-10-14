@@ -13,6 +13,8 @@
 #20221003 fix variable names. thanks Caramel
 #20221230 fix detect new installation of EasyOS. sleep before umount.
 #20230103 log all partition UUIDs etc, want to find any that are not unique.
+#20231015 ignore path with "/releases/". ref: https://forum.puppylinux.com/viewtopic.php?p=100954#p100954
+#20231015 ignore path with space char.
 
 export LANG=C
 
@@ -148,11 +150,13 @@ do
  ###find frugal installs###
  case "$FSTYPE" in
   ext2|ext3|ext4|f2fs|ntfs|vfat)
-   LINUZS="$(find ${MOUNTPOINT} -mindepth 2 -maxdepth 4 -type f -name vmlinuz | sed -e "s%^${MOUNTPOINT}%%")"
+   #20231015 ignore path with space char...
+   LINUZS="$(find ${MOUNTPOINT} -mindepth 2 -maxdepth 4 -type f -name vmlinuz | sed -e "s%^${MOUNTPOINT}%%" | grep -v ' ')"
    for bLINUZ in $LINUZS
    do
     [ "$bLINUZ" == "" ] && continue
     [ "${bLINUZ:0:2}" == "/." ] && continue #20220712 ignore path starting with "."
+    if grep -q '/releases/' ${bLINUZ};then continue; fi #20231015 ignore this path.
     bPATH="${bLINUZ%/*}"
     
     ###find easyos###
