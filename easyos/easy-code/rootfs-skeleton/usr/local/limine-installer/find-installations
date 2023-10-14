@@ -14,7 +14,7 @@
 #20221230 fix detect new installation of EasyOS. sleep before umount.
 #20230103 log all partition UUIDs etc, want to find any that are not unique.
 #20231015 ignore path with "/releases/". ref: https://forum.puppylinux.com/viewtopic.php?p=100954#p100954
-#20231015 ignore path with space char.
+#20231015 ignore path with space char. limine only recognizes vfat and ext2/3/4
 
 export LANG=C
 
@@ -118,7 +118,11 @@ do
  . /tmp/limine-installer/lsblk-${aDEV}
  
  case "$FSTYPE" in
-  ext2|ext3|ext4|f2fs|ntfs|vfat) true ;;
+  #20231015 limine only recognizes vfat and ext2/3/4....
+  #ext2|ext3|ext4|f2fs|ntfs|vfat) true ;;
+  ext2|ext3|ext4|vfat)
+   true
+  ;;
   *)
    rm -f /tmp/limine-installer/lsblk-${aDEV} 2>/dev/null
    continue
@@ -149,7 +153,9 @@ do
  
  ###find frugal installs###
  case "$FSTYPE" in
-  ext2|ext3|ext4|f2fs|ntfs|vfat)
+  #20231015 limine only recognizes vfat and ext2/3/4....
+  #ext2|ext3|ext4|f2fs|ntfs|vfat)
+  ext2|ext3|ext4|vfat)
    #20231015 ignore path with space char...
    LINUZS="$(find ${MOUNTPOINT} -mindepth 2 -maxdepth 4 -type f -name vmlinuz | sed -e "s%^${MOUNTPOINT}%%" | grep -v ' ')"
    for bLINUZ in $LINUZS
@@ -261,7 +267,9 @@ SAVEFILE='${SAVEFILE}'" > /tmp/limine-installer/i-fatdog-${fdCNT}
  esac
  
  case "$FSTYPE" in
-  ext2|ext3|ext4|f2fs)
+  #20231015 limine only recognizes vfat and ext2/3/4....
+  #ext2|ext3|ext4|f2fs)
+  ext2|ext3|ext4)
    ###find linux###
    #WARNING: this code could be wrong, as /boot may be a different partition from
    # the full install, only mounted on /boot in install-partition after bootup.
