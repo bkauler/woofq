@@ -303,3 +303,7 @@ rm -rf usr/share/doc 2>/dev/null
 if [ -f usr/share/applications/firefox-esr.desktop ];then
  rm -f usr/share/applications/firefox-esr.desktop
 fi
+
+#20231105
+#ref: https://github.com/OldManYellsAtCloud/meta-browser/issues/50
+sed -i '/autoDisableScopes/d' usr/lib/firefox/defaults/pref/vendor.js
