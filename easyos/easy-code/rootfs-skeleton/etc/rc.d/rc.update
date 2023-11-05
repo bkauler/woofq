@@ -10,11 +10,19 @@
 #20211207 check that /root/.mozilla/seamonkey exists.
 #20230718 rebuild /etc/xdg/rox.sourceforge.net
 #20231010 don't know why, 20230718 not always rebuild sendto when needed.
+#20231103 change how test exist /.sfschg.flg: as passed flag.
+
+#20231103
+if [ "$1" ];then
+ CHGflg=1
+else
+ CHGflg=0
+fi
 
 #20230718 when update, not first pristine-boot... 20231010...
 #if [ -f /.sfschg.flg -a -f /etc/networkmodules ];then
 if [ -f /etc/networkmodules ];then #avoid 1st boot.
- if [ -f /.sfschg.flg -o ! -e /mnt/wkg/.session/etc/xdg/rox.sourceforge.net/OpenWith/.application_gzip ];then
+ if [ $CHGflg -eq 1 ];then
   #init script in initrd erases /etc/xdg when update, need to rebuild right-click
   #menu if there are user-installed packages...
   echo -n "build-rox-sendto " > /dev/console
@@ -23,7 +31,7 @@ if [ -f /etc/networkmodules ];then #avoid 1st boot.
 fi
 
 #131217 only do this on very first boot... 170920...
-if [ -f /.sfschg.flg -o ! -f /etc/networkmodules ];then
+if [ $CHGflg -eq 1 -o ! -f /etc/networkmodules ];then
  echo -n " network-drivers-list " >/dev/console
  /usr/sbin/updatenetmoduleslist.sh
 fi

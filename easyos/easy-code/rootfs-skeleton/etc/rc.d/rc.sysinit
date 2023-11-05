@@ -63,6 +63,7 @@
 #20230413 change path to swap file.
 #20230921 no longer using /tmp/simple_network_setup/network_default_reconnect_required_flag
 #20231001 enable/disable Internet-Connection-Wizard.desktop  20231011 pgprs-connect.desktop
+#20231103 rc.update: change how test exist /.sfschg.flg: as passed flag.
 
 #unset TZ #100319 busybox hwclock gives priority to this (rather than /etc/localtime) and 'init' has set it wrong.
 #...comment-out for now. note, TZ now set in rc.country.
@@ -500,9 +501,13 @@ if [ $DTflg -eq 1 ];then #200827
  /usr/sbin/fixmenus #Reconstruct configuration files for JWM, Fvwm95, IceWM.
 fi
 
-#131217 keeping a cutdown rc.update, but run it in background for speed...
-/etc/rc.d/rc.update &
-[ -f /.sfschg.flg ] && rm -f /.sfschg.flg #170920
+#131217 keeping a cutdown rc.update, but run it in background for speed... 20231103...
+if [ -f /.sfschg.flg ];then
+ /etc/rc.d/rc.update "1" &
+ rm -f /.sfschg.flg
+else
+ /etc/rc.d/rc.update &
+fi
 
 #110814 01micko: http://www.murga-linux.com/puppy/viewtopic.php?p=550932#550932
 #171214 changed "easypc" to "EASYPC"
