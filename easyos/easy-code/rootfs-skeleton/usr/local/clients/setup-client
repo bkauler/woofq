@@ -58,6 +58,7 @@
 #20230617 create /files/apps/$APPname (but not when called from 3buildeasydistro or dir2sfs)
 #20230708 scribus.
 #20230904 set xARCHDIR
+#20231105 remove old fscrypt v1 code. firefox: test policies.js exist.
 
 APPname="${1/=*/}"  #ex: seamonkey
 APPflag="${1/*=/}" #ex: true
@@ -372,24 +373,9 @@ if [ $Cflg -eq 0 ];then #running on main desktop.
    eval "${DESKTOPCODE}"
   fi
   
-  #if booted with a password, there will be fscrypt encrypted folders, in which
-  #case /proc/keys will have a line with " logon " in it, in which case
-  #have to assign the fscrypt key to the non-root user, which is done in
-  #run-client-indirect. complicated, but need to do this
-  #to allow write inside encrypted fs...
-  IDflg=""
-  #20230502 do not need to test EOS_FSCRYPT_VER, as v2 will not have " logon "...
-  which keyctl >/dev/null #precaution. easyos 3.0+ will have this!
-  if [ $? -eq 0 ];then
-   IDflg="$(grep -o " logon " /proc/keys)"
-  fi
-  #go for it...
-  if [ "$IDflg" ];then
-   exec su -l ${APPname} -s /bin/sh -c "DISPLAY=${DISPLAY} /usr/local/clients/run-client-indirect \"${APPbin}\" ${ALWAYSOPTS} ${NONROOTMAINOPTS} ${ARGS}"
-  else
-   #filesystem not encrypted, so no need for the indirection script...
-   exec su -l ${APPname} -s /bin/sh -c "DISPLAY=${DISPLAY} \"$APPbin\" ${ALWAYSOPTS} ${NONROOTMAINOPTS} ${ARGS}"
-  fi
+  #go for it... 20231105 removed old fscrypt v1 code
+  exec su -l ${APPname} -s /bin/sh -c "DISPLAY=${DISPLAY} \"$APPbin\" ${ALWAYSOPTS} ${NONROOTMAINOPTS} ${ARGS}"
+  
  else
   #intention is to run app as root.
   #kill any left-over processes from previous run of app...
@@ -732,21 +718,23 @@ APPname='${APPname}'" > ${PREFIXDIR1}${APPpath}/${APPname}
   chown firefox:firefox /usr/lib/firefox #without recursion.
   CR="
 "
-  case "${LANG/_*/}" in
-   de)
-    FFmsg1="NOTIZ:"
-    FFmsg2="Die Hardwarebeschleunigung wurde aus Stabilitätsgründen deaktiviert. Bearbeiten Sie zum Aktivieren /usr/lib/firefox/distribution/policies.js, starten Sie dann Firefox und aktivieren Sie es in den Einstellungen."
-   ;;
-   fr)
-    FFmsg1="AVIS:"
-    FFmsg2="Accélération matérielle a été désactivée pour plus de stabilité. Pour activer, modifiez /usr/lib/firefox/distribution/policies.js, puis démarrez Firefox et activez-le dans Paramètres."
-   ;;
-   *)
-    FFmsg1="NOTICE:"
-    FFmsg2="Hardware acceleration has been disabled for stability. To enable, edit /usr/lib/firefox/distribution/policies.js, then start Firefox and enable in Settings."
-   ;;
-  esac
-  popup "background=#F0C0F0 level=top terminate=15 timecount=dn name=ffmsg1|<big><b>${FFmsg1}</b>${CR}${FFmsg2}</big>"
+  if [ -f /usr/lib/firefox/distribution/policies.js ];then #20231105
+   case "${LANG/_*/}" in
+    de)
+     FFmsg1="NOTIZ:"
+     FFmsg2="Die Hardwarebeschleunigung wurde aus Stabilitätsgründen deaktiviert. Bearbeiten Sie zum Aktivieren /usr/lib/firefox/distribution/policies.js, starten Sie dann Firefox und aktivieren Sie es in den Einstellungen."
+    ;;
+    fr)
+     FFmsg1="AVIS:"
+     FFmsg2="Accélération matérielle a été désactivée pour plus de stabilité. Pour activer, modifiez /usr/lib/firefox/distribution/policies.js, puis démarrez Firefox et activez-le dans Paramètres."
+    ;;
+    *)
+     FFmsg1="NOTICE:"
+     FFmsg2="Hardware acceleration has been disabled for stability. To enable, edit /usr/lib/firefox/distribution/policies.js, then start Firefox and enable in Settings."
+    ;;
+   esac
+   popup "background=#F0C0F0 level=top terminate=15 timecount=dn name=ffmsg1|<big><b>${FFmsg1}</b>${CR}${FFmsg2}</big>"
+  fi
  fi'
 EOF
  
