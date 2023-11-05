@@ -58,7 +58,8 @@
 #20230617 create /files/apps/$APPname (but not when called from 3buildeasydistro or dir2sfs)
 #20230708 scribus.
 #20230904 set xARCHDIR
-#20231105 remove old fscrypt v1 code. firefox: test policies.js exist.
+#20231105 remove old fscrypt v1 code. firefox: test policies.json exist. run firefox-pre-start
+#20231105 new $ALWAYSCODE -- always run this.
 
 APPname="${1/=*/}"  #ex: seamonkey
 APPflag="${1/*=/}" #ex: true
@@ -283,6 +284,7 @@ RUNASCLIENT="#CLIENTMARKER ${APPname}"'
 # CONTAINERCODE: extra code to run if app running in container.
 #   firefox, have to set sandbox to level 1, in file prefs.js
 # DESKTOPCODE: extra code to run if not in container (and running as a client).
+# ALWAYSCODE: extra code to always run, regardless user/root main-fs/container.
 
 #20210917 normally these are prepended to this script, but just in case...
 if [ ! "$APPname" ];then
@@ -372,6 +374,9 @@ if [ $Cflg -eq 0 ];then #running on main desktop.
   if [ "${DESKTOPCODE}" ];then
    eval "${DESKTOPCODE}"
   fi
+  if [ "${ALWAYSCODE}" ];then #20231105
+   eval "${ALWAYSCODE}"
+  fi
   
   #go for it... 20231105 removed old fscrypt v1 code
   exec su -l ${APPname} -s /bin/sh -c "DISPLAY=${DISPLAY} \"$APPbin\" ${ALWAYSOPTS} ${NONROOTMAINOPTS} ${ARGS}"
@@ -382,6 +387,9 @@ if [ $Cflg -eq 0 ];then #running on main desktop.
   #warning, if app is running in a container, that will also be killed.
   echo -n "new${APPname}" > /proc/${$}/comm #change name of current process.
   killall ${APPname}
+  if [ "${ALWAYSCODE}" ];then #20231105
+   eval "${ALWAYSCODE}"
+  fi
   #run it...
   exec "${APPbin}" ${ALWAYSOPTS} ${ROOTOPTS} ${ARGS}
  fi
@@ -396,29 +404,16 @@ else #running in container
  if [ "${CONTAINERCODE}" ];then #20211107
   eval "${CONTAINERCODE}"
  fi
+ if [ "${ALWAYSCODE}" ];then #20231105
+  eval "${ALWAYSCODE}"
+ fi
  WHOIAM="$(whoami)"
  if [ "$WHOIAM" == "spot" ];then #20220923
   export XAUTHORITY=/home/spot/.Xauthority  
   export XDG_CONFIG_HOME=/home/spot/.config
   export XDG_CACHE_HOME=/home/spot/.cache
   export XDG_DATA_HOME=/home/spot/.local/share
-  #code from run-client-indirect...
-  which keyctl >/dev/null
-  if [ $? -eq 0 ];then
-   ID="$(grep " logon " /proc/keys | head -n 1 | cut -f 1 -d " ")"
-   if [ "$ID" ];then
-    #we can read files, but need to do this to be able to write...
-    KEYfnd="$(keyctl list @us | grep -o "logon:")"
-    if [ "$KEYfnd" == "" ];then
-     keyctl link 0x${ID} @us #link fscrypt key to user-session.
-     sleep 0.1
-    fi
-    KEYfnd="$(keyctl list @us | grep -o "logon:")"
-    if [ "$KEYfnd" == "" ];then
-     sleep 0.2
-    fi
-   fi
-  fi
+  #20231105 removed old fscrypt v1 code.
   #run it...
   exec ${CONTAINERVARS} "${APPbin}" ${ALWAYSOPTS} ${ARGS}
  else
@@ -718,24 +713,25 @@ APPname='${APPname}'" > ${PREFIXDIR1}${APPpath}/${APPname}
   chown firefox:firefox /usr/lib/firefox #without recursion.
   CR="
 "
-  if [ -f /usr/lib/firefox/distribution/policies.js ];then #20231105
+  if [ -f /usr/lib/firefox/distribution/policies.json ];then #20231105
    case "${LANG/_*/}" in
     de)
      FFmsg1="NOTIZ:"
-     FFmsg2="Die Hardwarebeschleunigung wurde aus Stabilitätsgründen deaktiviert. Bearbeiten Sie zum Aktivieren /usr/lib/firefox/distribution/policies.js, starten Sie dann Firefox und aktivieren Sie es in den Einstellungen."
+     FFmsg2="Die Hardwarebeschleunigung wurde aus Stabilitätsgründen deaktiviert. Bearbeiten Sie zum Aktivieren /usr/lib/firefox/distribution/policies.json, starten Sie dann Firefox und aktivieren Sie es in den Einstellungen."
     ;;
     fr)
      FFmsg1="AVIS:"
-     FFmsg2="Accélération matérielle a été désactivée pour plus de stabilité. Pour activer, modifiez /usr/lib/firefox/distribution/policies.js, puis démarrez Firefox et activez-le dans Paramètres."
+     FFmsg2="Accélération matérielle a été désactivée pour plus de stabilité. Pour activer, modifiez /usr/lib/firefox/distribution/policies.json, puis démarrez Firefox et activez-le dans Paramètres."
     ;;
     *)
      FFmsg1="NOTICE:"
-     FFmsg2="Hardware acceleration has been disabled for stability. To enable, edit /usr/lib/firefox/distribution/policies.js, then start Firefox and enable in Settings."
+     FFmsg2="Hardware acceleration has been disabled for stability. To enable, edit /usr/lib/firefox/distribution/policies.json, then start Firefox and enable in Settings."
     ;;
    esac
    popup "background=#F0C0F0 level=top terminate=15 timecount=dn name=ffmsg1|<big><b>${FFmsg1}</b>${CR}${FFmsg2}</big>"
   fi
  fi'
+ ALWAYSCODE='/usr/bin/firefox-pre-start #20231105'
 EOF
  
  if [ -f ${PREFIXDIR1}/usr/lib${xARCHDIR}/firefox/firefox ];then #20220107
