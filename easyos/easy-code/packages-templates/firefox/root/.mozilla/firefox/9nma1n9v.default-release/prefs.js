@@ -1,5 +1,5 @@
 user_pref("browser.startup.homepage", "file:///usr/share/doc/home.htm");
-user_pref("browser.startup.homepage_override.mstone", "97.0");
+user_pref("browser.startup.homepage_override.mstone", "119.0");
 user_pref("browser.tabs.warnOnClose", false);
 user_pref("layers.acceleration.disabled", true);
 user_pref("startup.homepage_override_url","file:///usr/share/doc/home.htm");
@@ -18,3 +18,6 @@ user_pref("browser.download.dir", "/files/downloads");
 user_pref("browser.download.folderList", 2);
 user_pref("browser.download.useDownloadDir", false);
 user_pref("extensions.pictureinpicture.enable_picture_in_picture_overrides", true);
+user_pref("media.eme.enabled", true);
+user_pref("media.gmp-widevinecdm.enabled", true);
+user_pref("spellchecker.dictionary_path", "/usr/share/hunspell");
