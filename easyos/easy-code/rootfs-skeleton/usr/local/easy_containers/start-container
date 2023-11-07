@@ -38,7 +38,7 @@
 #20230326 layer may be folder (abs. path) not a sfs, so doesn't require unmounting.
 #20230326 appimage, exec script will be at top-level, modify $PATH add "/"
 #20230327 if top ro layer is an appimage, mount it.
-#20231107 if nvidia sfs loaded in main f.s., also load in container.
+#20231107 if nvidia sfs loaded in main f.s., also load in container. 20231108 fix.
 
 export TEXTDOMAIN=easy-containers #190813
 export OUTPUT_CHARSET=UTF-8
@@ -46,6 +46,7 @@ export OUTPUT_CHARSET=UTF-8
 [ ! $1 ] && exit 1
 EXE="$1"
 
+KERNVER="$(uname -r)" #20231108
 . /etc/DISTRO_SPECS
 . /etc/rc.d/PUPSTATE #has BOOT_DEV, BOOT_FS, BOOT_DIR, WKG_DEV, WKG_FS, WKG_DIR, QSFS_PATH
 mkdir -p /tmp/easy_containers
@@ -76,7 +77,7 @@ rm -rf /mnt/${WKG_DEV}/${WKG_DIR}containers/${EXE}/container/.[a-zA-Z]* 2>/dev/n
 . /usr/local/easy_containers/config #180928 has EC_GLOBAL_CHROOT
 cd /mnt/${WKG_DEV}/${WKG_DIR}containers/${EXE}
 
-#20231107 if nvidia sfs loaded in main f.s., also load in container...
+#20231107 if nvidia sfs loaded in main f.s., also load in container... 20231108 fix...
 NOTOK=0
 if [ -f /mnt/${WKG_DEV}/${WKG_DIR}containers/${EXE}/specs ];then
  grep -qF "easyos/${DISTRO_BINARY_COMPAT}/${DISTRO_COMPAT_VERSION}" /mnt/${WKG_DEV}/${WKG_DIR}containers/${EXE}/specs
@@ -88,7 +89,7 @@ if [ $NOTOK -eq 0 ];then
  grep -q '/dev/loop.*easy_ro/nvidia ' /proc/mounts
  if [ $? -eq 0 ];then
   sed -i '/EASY_LAYER_RO4/d' ./configuration
-  NVIDIASFS="$(find /mnt/${WKG_DEV}/${WKG_DIR}sfs/easyos/${DISTRO_BINARY_COMPAT}/${DISTRO_COMPAT_VERSION} -maxdepth 1 -type f -name "nvidia_${DISTRO_VERSION}-*.sfs" | head -n 1)"  #sfs/easyos/oe/kirkstone
+  NVIDIASFS="$(find /mnt/${WKG_DEV}/${WKG_DIR}sfs/easyos/${DISTRO_BINARY_COMPAT}/${DISTRO_COMPAT_VERSION} -maxdepth 1 -type f -name "nvidia_${KERNVER}-*.sfs" | head -n 1)"  #sfs/easyos/oe/kirkstone
   if [ "$NVIDIASFS" ];then
    ln -srnf ${NVIDIASFS} /mnt/${WKG_DEV}/${WKG_DIR}containers/${EXE}/nvidia.sfs
    echo "EASY_LAYER_RO4='nvidia.sfs'" >> ./configuration
