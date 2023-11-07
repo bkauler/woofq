@@ -46,6 +46,7 @@
 #20230910 fix for usr-merge. 20230911
 #20230921 easy 5.5.2+ has pup network tools instead of networkmanager.
 #20230922 need to check the two globicons files separately.
+#20231107 tweak 20230723: retention of /usr/local/bin/default*
 
 WKG_DRV=$1 #ex: sda
 WKG_DEV=$2 #ex: sda2
@@ -122,7 +123,13 @@ do
    ;;
    usr/local/bin/default*)
     #20230723 retain any user-set defaults...
-    continue
+    #20231107 but only if exec exists...
+    DEFEXEC="$(grep '^exec ' ${onespec} | tr -s ' ' | cut -f 2 -d ' ')"
+    if [ -x usr/bin/${DEFEXEC} -o -x /easy_ro/easy_sfs/usr/bin/${DEFEXEC} ];then
+     continue
+    else
+     rm -f ./${onespec}
+    fi
    ;;
    *.desktop)
     if [ -e /easy_ro/easy_sfs/"$onespec" ];then
