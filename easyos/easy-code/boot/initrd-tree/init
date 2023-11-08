@@ -1826,18 +1826,26 @@ if [ "$prevVER" ];then
   case "$anameSFS" in
    easy*|rw-*|devx*) continue ;;
    kernel*|nvidia*)
-    arealSFS="$(readlink /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${prevVER}/${anameSFS})"
+    arealSFS="$(realpath /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${prevVER}/${anameSFS})" #a relative link.
     [ ! -e "$arealSFS" ] && continue
-    echo -n "$arealSFS" | grep -F "_${KERNVER}-"
+    echo -n "$arealSFS" | grep -qF "_${KERNVER}-"
     if [ $? -eq 0 ];then
      sed -i "/${aprevSFS/=*/}/d" /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${INIT_DISTRO_VERSION}/configuration #precaution
      echo "$aprevSFS" >> /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${INIT_DISTRO_VERSION}/configuration
      cp -a -f --remove-destination /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${prevVER}/${anameSFS} /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${INIT_DISTRO_VERSION}/
+    else
+     #check if easy-update has downloaded an update nvidia sfs...
+     newNVSFS="$(find /mnt/${WKG_DEV}/${WKG_DIR}sfs/easyos/${DISTRO_BINARY_COMPAT}/${DISTRO_COMPAT_VERSION} -maxdepth 1 -type f -name "nvidia_${KERNVER}-*sfs" | head -n 1)"
+     if [ "$newNVSFS" ];then
+      sed -i "/${aprevSFS/=*/}/d" /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${INIT_DISTRO_VERSION}/configuration #precaution
+      echo "$aprevSFS" >> /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${INIT_DISTRO_VERSION}/configuration #ex: EASY_LAYER_RO1=nvidia.sfs
+      ln -srnf ${newNVSFS} /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${INIT_DISTRO_VERSION}/nvidia.sfs
+     fi
     fi
    ;;
    *)
     #any others, carry them over...
-    arealSFS="$(readlink /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${prevVER}/${anameSFS})"
+    arealSFS="$(realpath /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${prevVER}/${anameSFS})"
     [ ! -e "$arealSFS" ] && continue
     sed -i "/${aprevSFS/=*/}/d" /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${INIT_DISTRO_VERSION}/configuration #precaution
     echo "$aprevSFS" >> /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${INIT_DISTRO_VERSION}/configuration
@@ -1854,7 +1862,7 @@ fi
 #if [ "$xWKG_DEV" == "" ];then #190817 190914
  for NUM in 4 3 2 1
  do
-  eval "ROsfs=\$EASY_LAYER_RO${NUM}" #implements indirection. EASY_LAYER_RO1='devx*.sfs' in configuration file, will assign 'devx*.sfs' to ROsfs. 170320 170523
+  eval "ROsfs=\$EASY_LAYER_RO${NUM}" #implements indirection. EASY_LAYER_RO1=devx.sfs in configuration file, will assign 'devx.sfs' to ROsfs. 170320 170523
   if [ "$ROsfs" ];then
    #170523 check file exists...
    #181029 no longer have glob wildcard. ex: devx.sfs which is a symlink into 'sfs' folder...
