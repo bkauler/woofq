@@ -32,6 +32,7 @@
 #20230305 easy-*.img may have a different name. note: "easy.sfs" changed in 3buildeasydistro
 #20230328 ask if current .img is elsewhere.
 #20230503 cannot update fscrypt v1 to v2.  20230504
+#20231108 offer to update nvidia sfs. (see also initrd init)
 
 export TEXTDOMAIN=easy-update
 export OUTPUT_CHARSET=UTF-8
@@ -43,6 +44,7 @@ else
 fi
 PARENT="${$}"
 
+KERNVER="$(uname -r)" #20231108
 . /etc/rc.d/PUPSTATE #has PUP_HOME
 . /etc/DISTRO_SPECS #has DISTRO_BINARY_COMPAT, DISTRO_COMPAT_VERSION DISTRO_TARGETARCH
 . /root/.packages/DISTRO_PET_REPOS #has PET_REPOS, PACKAGELISTS_PET_ORDER, SFS_REPOS
@@ -460,8 +462,9 @@ chown root:root /mnt/${WKG_DEV}/${WKG_DIR}${DISTRO_NAME_SHORT,,}-${latestVER}-${
 echo -en '\033[1;35m' #bright magenta
 echo "$(gettext 'This file has been downloaded:')"
 echo "/mnt/${WKG_DEV}/${WKG_DIR}${DISTRO_NAME_SHORT,,}-${latestVER}-${DISTRO_TARGETARCH}.img"
+
 if [ "$KERNAME" == "kernel8.img" ];then #20210125 rpi  20210701
- echo "$(gettext 'You may do a manual update, by clicking on the file to open it up, drag kernel8.img, initrd and the device-tree files to the boot-partition, and easy.sfs to the working-partition, then click on initrd to fix the BOOT_SPECS file. These steps are documented online.')" | fold -s -w ${COLUMNS}
+ echo "$(gettext 'You may do a manual update, by clicking on the image file to open it up, drag kernel8.img, initrd and the device-tree files to the boot-partition, and easy.sfs to the working-partition, then click on initrd to fix the BOOT_SPECS file. These steps are documented online.')" | fold -s -w ${COLUMNS}
 else
  echo "$(gettext 'You may do a manual update, by clicking on the image file to open it up, drag vmlinuz, initrd and easy.sfs to the working-partition, then click on the file again to unmount, then reboot. Easy-peasy.')" | fold -s -w ${COLUMNS}
 fi
@@ -524,6 +527,54 @@ if [ "$BOOT_DEV" ];then #this is for the rpi4
   mkdir -p /mnt/${BOOT_DEV}
   mount -t ${BOOT_FS} /dev/${BOOT_DEV} /mnt/${BOOT_DEV}
   BOOTflg=1
+ fi
+fi
+
+###offer to update nvidia sfs###
+#20231108
+#note, init in initrd will carry-over sfs files.
+if [ -e /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${DISTRO_VERSION}/nvidia.sfs ];then
+ #check that it is mounted...
+ grep -q 'easy_ro/nvidia' /proc/mounts
+ if [ $? -eq 0 ];then
+  realNVSFS="$(realpath /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${DISTRO_VERSION}/nvidia.sfs)" #symlink
+  #...ex: /mnt/sdb3/easyos-kirkstone/sfs/easyos/oe/kirkstone/nvidia_5.15.137-525.106.06_amd64.sfs
+  #we need to know the kernel version of the new easyos version...
+  newKERNVER="$(LANG=C file ${MNTPT2}/easyos/${KERNAME} | grep -o 'version [^ ]*' | cut -f 2 -d ' ')"
+  if [ "$newKERNVER" != "$KERNVER" ];then
+   download_file https://distro.ibiblio.org/easyos/${DISTRO_TARGETARCH}/packages/sfs/sfs-repo-file-list
+   if [ $? -eq 0 ];then
+    newNVSFSurl="$(grep -F "easyos/${DISTRO_BINARY_COMPAT}/${DISTRO_COMPAT_VERSION}/nvidia_${newKERNVER}-" sfs-repo-file-list | grep 'sfs$' | sed -e 's%\.sfs$%%')"
+    if [ "$newNVSFSurl" ];then #ex: easyos/oe/kirkstone/nvidia_5.15.137-525.106.06_amd64
+     echo
+     echo "$(gettext 'The kernel version in the next release of EasyOS is different, which will require a new NVIDIA SFS.')"
+     echo "$(gettext 'Current kernel version:') ${KERNVER}"
+     echo "$(gettext 'Next kernel version:') ${newKERNVER}"
+     echo "$(gettext 'If you download the latest NVIDIA SFS, it will be automatically applied at the EasyOS version update.')"
+     echo -n "$(gettext 'Press ENTER key to update NVIDIA SFS, any other key to decline:') "
+     read dlnvidia
+     if [ "$dlnvidia" == "" ];then
+      download_file https://distro.ibiblio.org/easyos/${DISTRO_TARGETARCH}/packages/sfs/${newNVSFSurl}.sfs
+      if [ $? -eq 0 ];then
+       mv ${newNVSFSurl##*/}.sfs /mnt/${WKG_DEV}/${WKG_DIR}sfs/easyos/${DISTRO_BINARY_COMPAT}/${DISTRO_COMPAT_VERSION}/
+       sync
+       download_file https://distro.ibiblio.org/easyos/${DISTRO_TARGETARCH}/packages/sfs/${newNVSFSurl}.specs
+       if [ $? -eq 0 ];then
+        mv ${newNVSFSurl##*/}.specs /mnt/${WKG_DEV}/${WKG_DIR}sfs/easyos/${DISTRO_BINARY_COMPAT}/${DISTRO_COMPAT_VERSION}/
+        sync
+       fi
+      else
+       echo "$(gettext '...error, download failed.')"
+      fi
+      rm -f ${newNVSFSurl##*/}.sfs 2>/dev/null
+      rm -f ${newNVSFSurl##*/}.specs 2>/dev/null
+     else
+      echo "$(gettext '...declined')"
+     fi
+    fi
+   fi
+   rm -f sfs-repo-file-list 2>/dev/null
+  fi
  fi
 fi
 
