@@ -167,6 +167,7 @@
 #20230718 fix for /etc/xdg/rox.sourceforge.net erased when update.
 #20230910 now have usr-merge, may have to fix old .session folder. 20230911 20230912
 #20230913 pre-usrmerge .session may now have circular symlink.
+#20231108 version update, conditionally load sfs's from previous version.
 
 #20230429
 . /build-choices #3buildeasydistro copies it here.
@@ -1814,6 +1815,38 @@ EXTRASFS=""; sessionSFS=""; NEWEXTRASFSLIST=""
 . /easy_ro/easy_sfs/etc/DISTRO_SPECS
 [ "$DISTRO_VERSION" != "$INIT_DISTRO_VERSION" ] && echo -e "\\033[1;31m${S194} initrd: ${INIT_DISTRO_VERSION}, easy.sfs: ${DISTRO_VERSION}\\033[0;39m" #red
 
+###carry-over load sfs from previous version###
+#20231108
+if [ "$prevVER" ];then
+ prevSFSS="$(grep '^EASY_LAYER_RO' /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${prevVER}/configuration | tr '\n' ' ')"
+ for aprevSFS in $prevSFSS
+ do
+  anameSFS="${aprevSFS/*=/}" #ex: devx.sfs
+  [ ! -e /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${prevVER}/${anameSFS} ] && continue
+  case "$anameSFS" in
+   easy*|rw-*|devx*) continue ;;
+   kernel*|nvidia*)
+    arealSFS="$(readlink /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${prevVER}/${anameSFS})"
+    [ ! -e "$arealSFS" ] && continue
+    echo -n "$arealSFS" | grep -F "_${KERNVER}-"
+    if [ $? -eq 0 ];then
+     sed -i "/${aprevSFS/=*/}/d" /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${INIT_DISTRO_VERSION}/configuration #precaution
+     echo "$aprevSFS" >> /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${INIT_DISTRO_VERSION}/configuration
+     cp -a -f --remove-destination /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${prevVER}/${anameSFS} /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${INIT_DISTRO_VERSION}/
+    fi
+   ;;
+   *)
+    #any others, carry them over...
+    arealSFS="$(readlink /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${prevVER}/${anameSFS})"
+    [ ! -e "$arealSFS" ] && continue
+    sed -i "/${aprevSFS/=*/}/d" /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${INIT_DISTRO_VERSION}/configuration #precaution
+    echo "$aprevSFS" >> /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${INIT_DISTRO_VERSION}/configuration
+    cp -a -f --remove-destination /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${prevVER}/${anameSFS} /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${INIT_DISTRO_VERSION}/
+   ;;
+  esac
+ done
+fi
+
 ###load extra sfs on ro layer###
 #the configuration file defines any more sfs files to load. easy.sfs is always loaded
 # (on bottom), and session.sfs on top of ro layers.
@@ -1823,8 +1856,8 @@ EXTRASFS=""; sessionSFS=""; NEWEXTRASFSLIST=""
  do
   eval "ROsfs=\$EASY_LAYER_RO${NUM}" #implements indirection. EASY_LAYER_RO1='devx*.sfs' in configuration file, will assign 'devx*.sfs' to ROsfs. 170320 170523
   if [ "$ROsfs" ];then
-   #170523 check file exists. note, may have a glob wildcard...
-   #181029 no longer have wildcard. ex: devx.sfs which is a symlink into 'sfs' folder...
+   #170523 check file exists...
+   #181029 no longer have glob wildcard. ex: devx.sfs which is a symlink into 'sfs' folder...
    #20211122 if $ROsfs is a broken symlink, still want to detect it (see 20211111 below)...
    #FNDSFSS="$(ls -1 /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${INIT_DISTRO_VERSION}/${ROsfs} | tr '\n' ' ')"
    FNDSFSS="$(find /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${INIT_DISTRO_VERSION} -mindepth 1 -maxdepth 1 -name "${ROsfs}" | tr '\n' ' ')"
@@ -1847,7 +1880,7 @@ EXTRASFS=""; sessionSFS=""; NEWEXTRASFSLIST=""
      rm -f /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${INIT_DISTRO_VERSION}/${ANAME}.sfs
      sed -i "/EASY_LAYER_RO${NUM}/d" /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${INIT_DISTRO_VERSION}/configuration
      sed -i "/EASY_LAYER_RO${NUM}/d" /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${INIT_DISTRO_VERSION}/configuration-${INIT_DISTRO_VERSION} 2>/dev/null
-     echo "  ${ANAME}.sfs ${S195}"
+     echo "  ${ANAME}.sfs ${S195}" #S195='extra squashfs file does not exist, removed from load-list.'
      continue
     fi
     
