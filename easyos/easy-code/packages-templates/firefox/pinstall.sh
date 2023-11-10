@@ -21,6 +21,8 @@
 
 #fi
 
+#20231109 ***TODO*** oe has usr/share/mozilla/extensions/{ec8030f7-c20a-464f-9b0e-13a3a9e97384}
+#         ***TODO*** with langpacks
 #20230310 debian bookworm, have all translations in pkg-list, cutdown...
 if [ -d usr/lib/firefox/browser/extensions ];then
  FFext='usr/lib/firefox/browser/extensions'
@@ -57,3 +59,7 @@ sed -i -e 's%^empty .*%empty -f ec-chroot www firefox%' usr/sbin/ec-chroot-www
 #also fix rootfs-skeleton/usr/share/applications/ec-www.desktop ...
 sed -i -e 's%Chromium%Firefox%' usr/share/applications/ec-www.desktop
 
+#20231109 update mstone entry in prefs.js...
+FFver="$(grep -F '|firefox|' root/.packages/woof-installed-packages | cut -f 3 -d '|' | sed -e 's%-r[0-9]$%%')"
+sed -i '/mstone/d' root/.mozilla/firefox/9nma1n9v.default-release/prefs.js
+echo "user_pref(\"browser.startup.homepage_override.mstone\", \"${FFver}\");" >> root/.mozilla/firefox/9nma1n9v.default-release/prefs.js
