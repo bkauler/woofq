@@ -32,7 +32,7 @@
 #20230305 easy-*.img may have a different name. note: "easy.sfs" changed in 3buildeasydistro
 #20230328 ask if current .img is elsewhere.
 #20230503 cannot update fscrypt v1 to v2.  20230504
-#20231108 offer to update nvidia sfs. (see also initrd init)
+#20231108 offer to update nvidia sfs. (see also initrd init). 20231109 check nv major version.
 
 export TEXTDOMAIN=easy-update
 export OUTPUT_CHARSET=UTF-8
@@ -531,7 +531,7 @@ if [ "$BOOT_DEV" ];then #this is for the rpi4
 fi
 
 ###offer to update nvidia sfs###
-#20231108
+#20231108 20231109
 #note, init in initrd will carry-over sfs files.
 if [ -e /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${DISTRO_VERSION}/nvidia.sfs ];then
  #check that it is mounted...
@@ -544,7 +544,8 @@ if [ -e /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${DISTRO_VERSION}/nvidia.sfs ];t
   if [ "$newKERNVER" != "$KERNVER" ];then
    download_file https://distro.ibiblio.org/easyos/${DISTRO_TARGETARCH}/packages/sfs/sfs-repo-file-list
    if [ $? -eq 0 ];then
-    newNVSFSurl="$(grep -F "easyos/${DISTRO_BINARY_COMPAT}/${DISTRO_COMPAT_VERSION}/nvidia_${newKERNVER}-" sfs-repo-file-list | grep 'sfs$' | sed -e 's%\.sfs$%%')"
+    NVmajorver="$(echo -n "$realNVSFS" | rev | cut -f 1 -d '-' | rev | cut -f 1 -d '.')" #ex: 525
+    newNVSFSurl="$(grep -F "easyos/${DISTRO_BINARY_COMPAT}/${DISTRO_COMPAT_VERSION}/nvidia_${newKERNVER}-${NVmajorver}." sfs-repo-file-list | grep 'sfs$' | sed -e 's%\.sfs$%%')"
     if [ "$newNVSFSurl" ];then #ex: easyos/oe/kirkstone/nvidia_5.15.137-525.106.06_amd64
      echo
      echo "$(gettext 'The kernel version in the next release of EasyOS is different, which will require a new NVIDIA SFS.')"

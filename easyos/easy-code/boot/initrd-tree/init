@@ -168,6 +168,7 @@
 #20230910 now have usr-merge, may have to fix old .session folder. 20230911 20230912
 #20230913 pre-usrmerge .session may now have circular symlink.
 #20231108 version update, conditionally load sfs's from previous version.
+#20231109 hack for nvidia sfs. NO, reverted. check nvidia major version.
 
 #20230429
 . /build-choices #3buildeasydistro copies it here.
@@ -1834,8 +1835,9 @@ if [ "$prevVER" ];then
      echo "$aprevSFS" >> /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${INIT_DISTRO_VERSION}/configuration
      cp -a -f --remove-destination /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${prevVER}/${anameSFS} /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${INIT_DISTRO_VERSION}/
     else
-     #check if easy-update has downloaded an update nvidia sfs...
-     newNVSFS="$(find /mnt/${WKG_DEV}/${WKG_DIR}sfs/easyos/${DISTRO_BINARY_COMPAT}/${DISTRO_COMPAT_VERSION} -maxdepth 1 -type f -name "nvidia_${KERNVER}-*sfs" | head -n 1)"
+     #check if easy-update has downloaded an update nvidia sfs... 20231109
+     NVmajorver="$(echo -n "$aprevSFS" | cut -f 2 -d '_' | cut -f 2 -d '-' | cut -f 1 -d '.')" #ex: get 525 out of nvidia_5.15.137-525.147.05_amd64.sfs
+     newNVSFS="$(find /mnt/${WKG_DEV}/${WKG_DIR}sfs/easyos/${DISTRO_BINARY_COMPAT}/${DISTRO_COMPAT_VERSION} -maxdepth 1 -type f -name "nvidia_${KERNVER}-${NVmajorver}.*sfs" | head -n 1)"
      if [ "$newNVSFS" ];then
       sed -i "/${aprevSFS/=*/}/d" /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${INIT_DISTRO_VERSION}/configuration #precaution
       echo "$aprevSFS" >> /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${INIT_DISTRO_VERSION}/configuration #ex: EASY_LAYER_RO1=nvidia.sfs
@@ -1935,6 +1937,19 @@ fi
      fi
      continue
     fi
+    
+    #20231109 hack for nvidia sfs. NO, my sfs now has separate /etc/modprobe.d/nvidia.conf
+    #case "$ANAME" in
+    # nvidia*)
+    #  #my sfs has nouveau in SKIPLIST, but user may have edited MODULESCONFIG...
+    #  if [ -f /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/rc.d/MODULESCONFIG ];then
+    #   grep -q ' nouveau ' /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/rc.d/MODULESCONFIG
+    #   if [ $? -ne 0 ];then
+    #    sed -i -e 's%^SKIPLIST=" %SKIPLIST=" nouveau %' /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/rc.d/MODULESCONFIG
+    #   fi
+    #  fi
+    # ;;
+    #esac
     
     EXTRASFS="/easy_ro/${ANAME}${RO}:${EXTRASFS}" #170206
     NEWEXTRASFSLIST="${ANAME}:${NEWEXTRASFSLIST}" #170919
