@@ -1495,12 +1495,12 @@ if [ ! -d /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${INIT_DISTRO_VERSION} ];then
   for ADEL in `echo "$sortedVERS" | head -n -${DEPTH_MAX} | tr '\n' ' '`
   do
    if [ -d /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${ADEL} ];then
-    MSGdel="${S173}"
+    MSGdel="${S173}" #'Warning, deleting old version:'
     echo -e "  \\033[1;31m${MSGdel} easy-${ADEL}\\033[0;39m" #red
     #181205 remove sfs files symlinked to sfs folder...
     #20230231 however, not if sfs in use in a container...
     realpath /mnt/${WKG_DEV}/${WKG_DIR}containers/*/*.sfs 2>/dev/null >/sfss-in-use
-    for aSL in `realpath /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${ADEL}/*.sfs | tr '\n' ' '`
+    for aSL in `realpath /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${ADEL}/*.sfs | grep -vF '*' | tr '\n' ' '` #20231111
     do
      if [ -s /sfss-in-use ];then #20230131
       echo -n "$aSL" >/sfs-want-del
@@ -1510,8 +1510,8 @@ if [ ! -d /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${INIT_DISTRO_VERSION} ];then
       fi
      fi
      aMAIN="${aSL/.sfs/}"
-     rm -f ${aSL}
-     [ -f ${aMAIN}.specs ] && rm -f ${aMAIN}.specs
+     rm -f ${aSL} 2>/dev/null
+     [ -f ${aMAIN}.specs ] && rm -f ${aMAIN}.specs 2>/dev/null
     done
     rm -rf /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${ADEL}
    fi
