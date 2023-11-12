@@ -11,6 +11,7 @@
 #190806 added help button.
 #200924 lockdown (running in ram), have to create 'configuration' path in zram0.
 #20231107 filter nvidia sfs. 20231108 fix.
+#20231112 filter kernel src sfs.
 
 export TEXTDOMAIN=easy-containers
 export OUTPUT_CHARSET=UTF-8
@@ -30,20 +31,23 @@ SFSVARS="$(grep '^EASY_LAYER_RO' /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${DISTR
 echo -n "$SFSVARS" > /tmp/easy_containers/sfs-list-wanted #170527
 
 #181029 .sfs files are now in 'sfs' folder, including easy.sfs (which is renamed)... 181108...
-#20231107 nvidia sfs... 20231108 fix...
+#20231107 nvidia sfs... 20231108 fix... 20231112 kernel_
 DEVX_PTNver="$(echo -n "devx_${DISTRO_VERSION}[_-]" | sed -e 's%\.%\\.%g')" #convert 1.2.3 to 1\.2\.3
 NVIDIA_PTNver="$(echo -n "nvidia_${KERNVER}[_-]" | sed -e 's%\.%\\.%g')" #convert 1.2.3 to 1\.2\.3
+KERN_PTNver="$(echo -n "kernel_${KERNVER}[_-]" | sed -e 's%\.%\\.%g')" #convert 1.2.3 to 1\.2\.3  2023112
 EXTRASFSS0="$(find /mnt/${WKG_DEV}/${WKG_DIR}sfs/easyos/${DISTRO_BINARY_COMPAT}/${DISTRO_COMPAT_VERSION} -maxdepth 1 -type f -name '*.sfs' | grep "_${DISTRO_TARGETARCH}\.sfs" | grep -v '/easy_.*\.sfs' | grep -v '/devx_.*\.sfs' | grep -v '/nvidia_.*\.sfs' | rev | cut -f 1 -d '/' | rev)"
 EXTRADEVXSFSS="$(find /mnt/${WKG_DEV}/${WKG_DIR}sfs/easyos/${DISTRO_BINARY_COMPAT}/${DISTRO_COMPAT_VERSION} -maxdepth 1 -type f -name '*.sfs' | grep "${DEVX_PTNver}" | grep "_${DISTRO_TARGETARCH}\.sfs" | rev | cut -f 1 -d '/' | rev)"
 EXTRANVIDIASFSS="$(find /mnt/${WKG_DEV}/${WKG_DIR}sfs/easyos/${DISTRO_BINARY_COMPAT}/${DISTRO_COMPAT_VERSION} -maxdepth 1 -type f -name '*.sfs' | grep "${NVIDIA_PTNver}" | grep "_${DISTRO_TARGETARCH}\.sfs" | rev | cut -f 1 -d '/' | rev)"
-#181120 also offer no-arch sfs files...
-SRCSFSS="$(find /mnt/${WKG_DEV}/${WKG_DIR}sfs/easyos/${DISTRO_BINARY_COMPAT}/${DISTRO_COMPAT_VERSION} -maxdepth 1 -type f -name '*.sfs' | grep -E '_src\.sfs|_all\.sfs' | rev | cut -f 1 -d '/' | rev)"
+EXTRAKERNSFSS="$(find /mnt/${WKG_DEV}/${WKG_DIR}sfs/easyos/${DISTRO_BINARY_COMPAT}/${DISTRO_COMPAT_VERSION} -maxdepth 1 -type f -name '*.sfs' | grep "${KERN_PTNver}" | rev | cut -f 1 -d '/' | rev)"
+#181120 also offer other no-arch sfs files... 20231112
+SRCSFSS="$(find /mnt/${WKG_DEV}/${WKG_DIR}sfs/easyos/${DISTRO_BINARY_COMPAT}/${DISTRO_COMPAT_VERSION} -maxdepth 1 -type f -name '*.sfs' | grep -E '_src\.sfs|_all\.sfs' | grep -v 'kernel_' | rev | cut -f 1 -d '/' | rev)"
 
 #181108
 echo -n '' > /tmp/easy_containers/extrasfss-found
 [ "$EXTRASFSS0" ] && echo "$EXTRASFSS0" >> /tmp/easy_containers/extrasfss-found
 [ "$EXTRADEVXSFSS" ] && echo "$EXTRADEVXSFSS" >> /tmp/easy_containers/extrasfss-found
 [ "$EXTRANVIDIASFSS" ] && echo "$EXTRANVIDIASFSS" >> /tmp/easy_containers/extrasfss-found
+[ "$EXTRAKERNSFSS" ] && echo "$EXTRAKERNSFSS" >> /tmp/easy_containers/extrasfss-found
 [ "$SRCSFSS" ] && echo "$SRCSFSS" >> /tmp/easy_containers/extrasfss-found
 EXTRASFSS="$(cat /tmp/easy_containers/extrasfss-found)"
 
