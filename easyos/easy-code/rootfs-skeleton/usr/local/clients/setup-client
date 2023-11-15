@@ -60,6 +60,7 @@
 #20230904 set xARCHDIR
 #20231105 remove old fscrypt v1 code. firefox: test policies.json exist. run firefox-pre-start
 #20231105 new $ALWAYSCODE -- always run this.
+#20231115 client scripts must all run as root.
 
 APPname="${1/=*/}"  #ex: seamonkey
 APPflag="${1/*=/}" #ex: true
@@ -428,10 +429,11 @@ seamonkey_true() {
  #[ ! -e ${PREFIXDIR1}${APPpath}/${APPname}.bin ] && cp -a -f ${PREFIXDIR1}${APPpath}/${APPname} ${PREFIXDIR1}${APPpath}/${APPname}.bin
  gen_bin_func #${PREFIXDIR1}${APPpath}/${APPname} #20230511 20230512
  rm -f ${PREFIXDIR1}${APPpath}/${APPname} #in case it is a symlink.
- echo "#!/bin/bash
-APPbin='${APPpath}/${APPname}.bin'
+ echo '#!/bin/bash
+if [ "$(whoami)" != "root" ];then exec sudo-sh ${PPID} ${0} ${@}; fi' > ${PREFIXDIR1}${APPpath}/${APPname}
+ echo "APPbin='${APPpath}/${APPname}.bin'
 APPname='${APPname}'
-ROOTARG=' \-edit '" > ${PREFIXDIR1}${APPpath}/${APPname} #20210915 note, the leading "-" has to be escaped.
+ROOTARG=' \-edit '" >> ${PREFIXDIR1}${APPpath}/${APPname} #20210915 note, the leading "-" has to be escaped.
  
  #150108 script launched by /usr/bin/seamonkey.bin cannot relink /usr/bin/seamonkey.bin, do it here:
  # refer: woof rootfs-complete/usr/bin/seamonkeyQNEW
@@ -524,9 +526,10 @@ generic_func() {
    #[ ! -e ${PREFIXDIR1}${APPpath}/${APPname}.bin ] && cp -a -f ${PREFIXDIR1}${APPpath}/${APPname} ${PREFIXDIR1}${APPpath}/${APPname}.bin
    gen_bin_func #${PREFIXDIR1}${APPpath}/${APPname} #20230511 20230511
    rm -f ${PREFIXDIR1}${APPpath}/${APPname} #in case it is a symlink.
-   echo "#!/bin/bash
-APPbin='${APPpath}/${APPname}.bin'
-APPname='${APPname}'" > ${PREFIXDIR1}${APPpath}/${APPname}
+ echo '#!/bin/bash
+if [ "$(whoami)" != "root" ];then exec sudo-sh ${PPID} ${0} ${@}; fi' > ${PREFIXDIR1}${APPpath}/${APPname}
+   echo "APPbin='${APPpath}/${APPname}.bin'
+APPname='${APPname}'" >> ${PREFIXDIR1}${APPpath}/${APPname}
    echo "$RUNASCLIENT" >> ${PREFIXDIR1}${APPpath}/${APPname}
    chmod 755 ${PREFIXDIR1}${APPpath}/${APPname}
   ;;
@@ -559,11 +562,12 @@ vivaldi_func() { #20230302
    #[ ! -e ${PREFIXDIR1}${APPpath}/${APPname}.bin ] && cp -a -f ${PREFIXDIR1}${APPpath}/${APPname} ${PREFIXDIR1}${APPpath}/${APPname}.bin
    gen_bin_func #${PREFIXDIR1}${APPpath}/${APPname} #20230511 20230512
    rm -f ${PREFIXDIR1}${APPpath}/${APPname} #in case it is a symlink.
-   echo "#!/bin/bash
-APPbin='${APPpath}/${APPname}.bin'
+ echo '#!/bin/bash
+if [ "$(whoami)" != "root" ];then exec sudo-sh ${PPID} ${0} ${@}; fi' > ${PREFIXDIR1}${APPpath}/${APPname}
+   echo "APPbin='${APPpath}/${APPname}.bin'
 APPname='${APPname}'
 ROOTOPTS='--no-sandbox'
-" > ${PREFIXDIR1}${APPpath}/${APPname}
+" >> ${PREFIXDIR1}${APPpath}/${APPname}
    echo "$RUNASCLIENT" >> ${PREFIXDIR1}${APPpath}/${APPname}
    chmod 755 ${PREFIXDIR1}${APPpath}/${APPname}
   ;;
@@ -596,8 +600,9 @@ scribus_func() {
   true)
    gen_bin_func
    rm -f ${PREFIXDIR1}${APPpath}/${APPname} #in case it is a symlink.
-   echo "#!/bin/bash
-APPbin='${APPpath}/${APPname}.bin'
+ echo '#!/bin/bash
+if [ "$(whoami)" != "root" ];then exec sudo-sh ${PPID} ${0} ${@}; fi' > ${PREFIXDIR1}${APPpath}/${APPname}
+   echo "APPbin='${APPpath}/${APPname}.bin'
 APPname='${APPname}'
 DESKTOPCODE='if [ ! -e /home/scribus/.config/scribus/scribus150.rc ];then
  mkdir -p /home/scribus/.config/scribus
@@ -605,7 +610,7 @@ DESKTOPCODE='if [ ! -e /home/scribus/.config/scribus/scribus150.rc ];then
  sed -i -e s%/files/%/files/apps/scribus/% /home/scribus/.config/scribus/
  chown -R scribus:scribus /home/scribus/.config
 fi
-'" > ${PREFIXDIR1}${APPpath}/${APPname}
+'" >> ${PREFIXDIR1}${APPpath}/${APPname}
    echo "$RUNASCLIENT" >> ${PREFIXDIR1}${APPpath}/${APPname}
    chmod 755 ${PREFIXDIR1}${APPpath}/${APPname}
   ;;
@@ -639,8 +644,9 @@ blender_func() {
    #[ ! -e ${PREFIXDIR1}${APPpath}/${APPname}.bin ] && cp -a -f ${PREFIXDIR1}${APPpath}/${APPname} ${PREFIXDIR1}${APPpath}/${APPname}.bin
    gen_bin_func #${PREFIXDIR1}${APPpath}/${APPname} #20230511 20230512
    rm -f ${PREFIXDIR1}${APPpath}/${APPname} #in case it is a symlink.
-   echo "#!/bin/bash
-APPbin='${APPpath}/${APPname}.bin'
+ echo '#!/bin/bash
+if [ "$(whoami)" != "root" ];then exec sudo-sh ${PPID} ${0} ${@}; fi' > ${PREFIXDIR1}${APPpath}/${APPname}
+   echo "APPbin='${APPpath}/${APPname}.bin'
 APPname='${APPname}'
 DESKTOPCODE='
 if [ ! -e /home/blender/.config/blender/3.3/config/recent-files.txt ];then
@@ -648,7 +654,7 @@ if [ ! -e /home/blender/.config/blender/3.3/config/recent-files.txt ];then
  echo /files/apps/blender/new1.blend > /home/blender/.config/blender/3.3/config/recent-files.txt
  chown -R blender:blender /home/blender/.config
 fi
-'" > ${PREFIXDIR1}${APPpath}/${APPname}
+'" >> ${PREFIXDIR1}${APPpath}/${APPname}
    echo "$RUNASCLIENT" >> ${PREFIXDIR1}${APPpath}/${APPname}
    chmod 755 ${PREFIXDIR1}${APPpath}/${APPname}
   ;;
@@ -680,9 +686,10 @@ firefox_true() {
  #[ ! -e ${PREFIXDIR1}${APPpath}/${APPname}.bin ] && cp -a -f ${PREFIXDIR1}${APPpath}/${APPname} ${PREFIXDIR1}${APPpath}/${APPname}.bin
  gen_bin_func #${PREFIXDIR1}${APPpath}/${APPname} #20230511 20230512
  rm -f ${PREFIXDIR1}${APPpath}/${APPname} #in case it is a symlink.
- echo "#!/bin/bash
-APPbin='${APPpath}/${APPname}.bin'
-APPname='${APPname}'" > ${PREFIXDIR1}${APPpath}/${APPname}
+ echo '#!/bin/bash
+if [ "$(whoami)" != "root" ];then exec sudo-sh ${PPID} ${0} ${@}; fi' > ${PREFIXDIR1}${APPpath}/${APPname}
+ echo "APPbin='${APPpath}/${APPname}.bin'
+APPname='${APPname}'" >> ${PREFIXDIR1}${APPpath}/${APPname}
  
 # #20211107 set sandbox to lowest level...
 # cat <<'EOF' >> ${PREFIXDIR1}${APPpath}/${APPname}
@@ -788,9 +795,10 @@ opera_true() {
  #[ ! -e ${PREFIXDIR1}${APPpath}/${APPname}.bin ] && cp -a -f ${PREFIXDIR1}${APPpath}/${APPname} ${PREFIXDIR1}${APPpath}/${APPname}.bin
  gen_bin_func #${PREFIXDIR1}${APPpath}/${APPname} #20230511 20230512
  rm -f ${PREFIXDIR1}${APPpath}/${APPname} #in case it is a symlink.
- echo "#!/bin/bash
-APPbin='${APPpath}/${APPname}.bin'
-APPname='${APPname}'" > ${PREFIXDIR1}${APPpath}/${APPname}
+ echo '#!/bin/bash
+if [ "$(whoami)" != "root" ];then exec sudo-sh ${PPID} ${0} ${@}; fi' > ${PREFIXDIR1}${APPpath}/${APPname}
+ echo "APPbin='${APPpath}/${APPname}.bin'
+APPname='${APPname}'" >> ${PREFIXDIR1}${APPpath}/${APPname}
  echo "$RUNASCLIENT" >> ${PREFIXDIR1}${APPpath}/${APPname}
  chmod 755 ${PREFIXDIR1}${APPpath}/${APPname}
  
@@ -862,15 +870,16 @@ chromium_true() {
  
  #20230411 ALWAYSOPTS removed "--use-gl=desktop" doesn't work.
  rm -f ${PREFIXDIR1}${APPpath}/${APPname} #in case it is a symlink.
- echo "#!/bin/bash
-APPbin='${APPpath}/${APPname}.bin'
+ echo '#!/bin/bash
+if [ "$(whoami)" != "root" ];then exec sudo-sh ${PPID} ${0} ${@}; fi' > ${PREFIXDIR1}${APPpath}/${APPname}
+ echo "APPbin='${APPpath}/${APPname}.bin'
 APPname='${APPname}'
 ALWAYSOPTS='--no-default-browser-check --no-first-run'
 ROOTOPTS='--no-sandbox --test-type'
 #note, currently not using these two...
 CONTAINEROPTS='--no-sandbox --disable-features=AudioServiceSandbox' #20211007
 NONROOTMAINOPTS='--disable-features=AudioServiceSandbox' #20211007
-" > ${PREFIXDIR1}${APPpath}/${APPname}
+" >> ${PREFIXDIR1}${APPpath}/${APPname}
  
  echo 'export CHROME_WRAPPER=$(readlink -f "$0")' >> ${PREFIXDIR1}${APPpath}/${APPname}
  echo "export CHROME_DESKTOP=${APPname}.desktop" >> ${PREFIXDIR1}${APPpath}/${APPname} #20211022
