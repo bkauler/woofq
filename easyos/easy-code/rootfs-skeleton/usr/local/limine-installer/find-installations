@@ -15,6 +15,7 @@
 #20230103 log all partition UUIDs etc, want to find any that are not unique.
 #20231015 ignore path with "/releases/". ref: https://forum.puppylinux.com/viewtopic.php?p=100954#p100954
 #20231015 ignore path with space char. limine only recognizes vfat and ext2/3/4
+#20231116 bug fix wrong path.
 
 export LANG=C
 
@@ -162,7 +163,7 @@ do
    do
     [ "$bLINUZ" == "" ] && continue
     [ "${bLINUZ:0:2}" == "/." ] && continue #20220712 ignore path starting with "."
-    if grep -q '/releases/' ${bLINUZ};then continue; fi #20231015 ignore this path.
+    if grep -q '/releases/' ${MOUNTPOINT}${bLINUZ};then continue; fi #20231015 ignore this path. 20231116
     bPATH="${bLINUZ%/*}"
     
     ###find easyos###
