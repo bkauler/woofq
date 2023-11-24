@@ -170,6 +170,7 @@
 #20231108 version update, conditionally load sfs's from previous version.
 #20231109 hack for nvidia sfs. NO, reverted. check nvidia major version.
 #20231111 fix history depth detection.
+#20231124 for nvidia.sfs check that nvidia gpu exists.
 
 #20230429
 . /build-choices #3buildeasydistro copies it here.
@@ -1894,6 +1895,17 @@ fi
      echo "  ${ANAME}.sfs ${S195}" #S195='extra squashfs file does not exist, removed from load-list.'
      continue
     fi
+    
+    #20231124 for nvidia.sfs check that nvidia gpu exists...
+    case "$ANAME" in
+     nvidia*)
+      lspci | grep -qF 'Class 10de:' #note, requires busybox lspci
+      if [ $? -ne 0 ];then
+       echo -e "\\033[1;31m${S400}\\033[0;39m" #red 'No NVIDIA GPU detected, so will not load NVIDIA SFS'
+       continue
+      fi
+     ;;
+    esac
     
     mkdir /easy_ro/$ANAME
     if [ "$xWKG_DEV" ];then #190914 copying session to ram.
