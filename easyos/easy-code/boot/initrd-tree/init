@@ -1141,6 +1141,12 @@ if [ -d /mnt/${WKG_DEV}/${WKG_DIR}v1tov2 ];then #created by easy-update script.
  sync
 fi
 
+###keyboard hw profile###
+#20231125 keyboard hardware profile, as need to detect if kb changed...
+#keyboard detection based upon existence of *::capslock folder...
+NEW_KB_HW_PROFILE="$(ls -1 -d /sys/class/input/*/*::capslock 2>/dev/null | cut -f 1-5 -d '/' | xargs -I XXX cat XXX/name | tr -d '\n'| sed -e 's%[^0-9a-zA-Z]%%g')"
+
+###handle 1st or subsequent bootup###
 if [ ! -d /mnt/${WKG_DEV}/${WKG_DIR}.session ];then
  for aDIR in containers releases files sfs .tempwork data #sanity check  20210919 20211212
  do
@@ -1260,6 +1266,7 @@ ${S133}\\033[0;39m" #red.
  cp -a -f /skeleton/sfs /mnt/${WKG_DEV}/${WKG_DIR}
  echo "KEYMAP='${KEYMAP}'" > /mnt/${WKG_DEV}/${WKG_DIR}sfs/settings/initrd/CONFIG
  echo "ALLOW_ASK_PW='${ALLOW_ASK_PW}'" >> /mnt/${WKG_DEV}/${WKG_DIR}sfs/settings/initrd/CONFIG
+ echo "KB_HW_PROFILE='${NEW_KB_HW_PROFILE}'" >> /mnt/${WKG_DEV}/${WKG_DIR}sfs/settings/initrd/CONFIG
 
  if [ -d /mnt/${WKG_DEV}/${WKG_DIR}v1tov2 ];then #20230503
   cp -a -f /mnt/${WKG_DEV}/${WKG_DIR}v1tov2/containers/* /mnt/${WKG_DEV}/${WKG_DIR}containers/
@@ -1285,16 +1292,26 @@ else
    POLICYflg='xxx'
   fi
  fi
+ 
  #20231125 moved up; want to read KEYMAP further down even if no fscrypt...
  touch /mnt/${WKG_DEV}/${WKG_DIR}sfs/settings/initrd/CONFIG
  . /mnt/${WKG_DEV}/${WKG_DIR}sfs/settings/initrd/CONFIG #has KEYMAP, ALLOW_ASK_PW
+ #20231125 keyboard hardware profiling...
+ if [ ! "$KB_HW_PROFILE" ];then #for easy versions <5.6.4
+  echo "KB_HW_PROFILE='${NEW_KB_HW_PROFILE}'" >> /mnt/${WKG_DEV}/${WKG_DIR}sfs/settings/initrd/CONFIG
+  KB_HW_PROFILE="${NEW_KB_HW_PROFILE}"
+ fi
+ if [ ! -f /mnt/${WKG_DEV}/${WKG_DIR}/.session/etc/keymap.${NEW_KB_HW_PROFILE} ];then
+  ask_kb
+ fi
+ mkdir -p /mnt/${WKG_DEV}/${WKG_DIR}/.session/etc
+ echo -n "$KEYMAP" > /mnt/${WKG_DEV}/${WKG_DIR}/.session/etc/keymap.${NEW_KB_HW_PROFILE}
+ echo -n "$KEYMAP" > /mnt/${WKG_DEV}/${WKG_DIR}/.session/etc/keymap
+ sed -i -e "s%^KEYMAP=.*%KEYMAP='${KEYMAP}'%" /mnt/${WKG_DEV}/${WKG_DIR}sfs/settings/initrd/CONFIG
+ [ "$KEYMAP" != "us" ] && gunzip -c /lib/keymaps/${KEYMAP}.gz | loadkmap
+ 
  if [ "$POLICYflg" == "" ];then
   #folder has fscrypt enabled.
-  #20211212 took out some "precaution stuff". cannot read .session folder yet anyway.
-  #if [ ! "$QLANG" ];then #20230113 20230522
-  # load_font ${KEYMAP:0:2}
-  #fi
-  [ "$KEYMAP" != "us" ] && gunzip -c /lib/keymaps/${KEYMAP}.gz | loadkmap
   echo
   if [ "$ALLOW_ASK_PW" == "yes" ];then
    while [ 1 ];do
@@ -1388,10 +1405,12 @@ fi
 #fi
 
 ###preset country settings for after switch_root###
+#20231125 note, this already done above. um, but not on 1st bootup. keep as precaution...
 if [ "$KEYMAP" ];then
  if [ ! -s /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/keymap ];then
   mkdir -p /mnt/${WKG_DEV}/${WKG_DIR}.session/etc
   echo -n "$KEYMAP" > /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/keymap
+  echo -n "$KEYMAP" > /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/keymap.${NEW_KB_HW_PROFILE}
  fi
 fi
 
