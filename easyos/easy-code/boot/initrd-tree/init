@@ -171,6 +171,7 @@
 #20231109 hack for nvidia sfs. NO, reverted. check nvidia major version.
 #20231111 fix history depth detection.
 #20231124 for nvidia.sfs check that nvidia gpu exists.
+#20231125 moved up reading sfs/settings/initrd/CONFIG; want to read KEYMAP further down even if no fscrypt.
 
 #20230429
 . /build-choices #3buildeasydistro copies it here.
@@ -302,6 +303,7 @@ ask_kb() { #181010
  43 sv-latin1  44 tr   45 us        46 wangbe                                               \e[0;;m'
  
  #20210424 want word-wrapped text block in background colour rectangle...
+ #S015='Please enter the number corresponding to your keyboard layout.'
  echo -n -e '\033[1;;44m'
  while read aLINE
  do
@@ -324,7 +326,7 @@ $(echo "${S017}" | fold -s -w 70)
 EOT
  echo -n -e '\033[0;;m'
  
- echo -n " ${S018} "
+ echo -n " ${S018} " #S018='Keyboard layout:'
  read -r -t 300 KBnum
  [ $? -ne 0 ] && return 1 #timed out
  KBnum=$(echo -n "$KBnum" | sed -e 's%[^0-9]%%g')
@@ -332,7 +334,7 @@ EOT
  [ $KBnum -gt 46 ] && KBnum=45 #20230622
  [ $KBnum -eq 0 ] && KBnum=45  #20230622
  KEYMAP="$(ls -1 /lib/keymaps | head -n ${KBnum} | tail -n 1 | sed -e 's%\.gz%%')"
- echo " ${S019} ${KEYMAP}"
+ echo " ${S019} ${KEYMAP}" #S019='...ok, keymap chosen:'
  return 0
 }
 
@@ -1283,10 +1285,11 @@ else
    POLICYflg='xxx'
   fi
  fi
+ #20231125 moved up; want to read KEYMAP further down even if no fscrypt...
+ touch /mnt/${WKG_DEV}/${WKG_DIR}sfs/settings/initrd/CONFIG
+ . /mnt/${WKG_DEV}/${WKG_DIR}sfs/settings/initrd/CONFIG #has KEYMAP, ALLOW_ASK_PW
  if [ "$POLICYflg" == "" ];then
   #folder has fscrypt enabled.
-  touch /mnt/${WKG_DEV}/${WKG_DIR}sfs/settings/initrd/CONFIG
-  . /mnt/${WKG_DEV}/${WKG_DIR}sfs/settings/initrd/CONFIG #has KEYMAP, ALLOW_ASK_PW
   #20211212 took out some "precaution stuff". cannot read .session folder yet anyway.
   #if [ ! "$QLANG" ];then #20230113 20230522
   # load_font ${KEYMAP:0:2}

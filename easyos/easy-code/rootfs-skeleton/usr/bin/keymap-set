@@ -13,6 +13,7 @@
 #150302 handle srp (serbia).
 #160914 no longer using mouse and keyboard xorg drivers, now evdev, see /etc/X11/xorg.conf.d/10-evdev-puppy.conf
 #160914 remove writing to xorg.conf
+#20231125 also update KEYMAP in /mnt/wkg/sfs/settings/initrd/CONFIG; read in initrd.
 
 MYNAME=$(basename $0)
 VERSION=20100812
@@ -181,6 +182,10 @@ if [ "$NEW" != "" ];then
   #[ "$NEWMAP" = "$OLDMAP" ] && exit 0
   [ "$VERBOSE" ] && echo -ne "Loading \"$NEWMAP\" keyboard map... "
   echo -n $NEWMAP > /etc/keymap
+  #20231125 also write here, read in initrd...
+  if [ "$KMAPPATH" == "/lib/keymaps" ];then #check same keymaps as used in initrd.
+   sed -i -e "s%^KEYMAP=.*%KEYMAP='${KMAP}'%" /mnt/wkg/sfs/settings/initrd/CONFIG
+  fi
   cp -f /etc/keymap /etc/keymap_previous	# prevent xwin rewrites
   case $NEWMAP in
     *.map|*.kmap) loadkeys $NEWMAP || exit 1 #120627
@@ -194,6 +199,10 @@ elif [ -s /usr/share/i18n/layouts ]; then
 fi
 [ "$NEW" != "" ] && NEWMAP=$NEW || exit 1
 echo -n $NEWMAP > /etc/keymap
+#20231125 also write here, read in initrd... hmmm, maybe check why doing twice
+if [ "$KMAPPATH" == "/lib/keymaps" ];then #check same keymaps as used in initrd.
+ sed -i -e "s%^KEYMAP=.*%KEYMAP='${KMAP}'%" /mnt/wkg/sfs/settings/initrd/CONFIG
+fi
 
 #[ "$NEWMAP" = "$OLDMAP" ] && exit 0
 # apply xkeymap now

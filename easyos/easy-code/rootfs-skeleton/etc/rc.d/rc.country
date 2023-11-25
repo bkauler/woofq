@@ -12,6 +12,7 @@
 #20220715 hardware-profile /etc/clock, see also /usr/sbin/quicksetup, /usr/sbin/delayedrun
 #20220912 PC_HARDWARE_PROFILE not set, try hack.
 #20230622 new tr console keyboard layout.
+#20231125 also update KEYMAP in /mnt/wkg/sfs/settings/initrd/CONFIG; read in initrd.
 
 . /etc/rc.d/PUPSTATE
 . /etc/DISTRO_SPECS #has DISTRO_XORG_AUTO
@@ -152,6 +153,10 @@ askkbdlayout ()
   tr*) echo -n "857" > /etc/codepage  ;; #20230622
  esac
  echo -n "${KMAP}${KEXT}" > /etc/keymap
+ #20231125 also write here, read in initrd...
+ if [ "$KMAPPATH" == "/lib/keymaps" ];then #check same keymaps as used in initrd.
+  sed -i -e "s%^KEYMAP=.*%KEYMAP='${KMAP}'%" /mnt/wkg/sfs/settings/initrd/CONFIG
+ fi
  return 0
 }
 

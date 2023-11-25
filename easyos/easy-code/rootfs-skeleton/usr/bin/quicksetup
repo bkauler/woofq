@@ -136,6 +136,7 @@
 #20230511 make sure /etc/clock.$PC_HARDWARE_PROFILE gets created.
 #20230622 new tr console keyboard layout.
 #20230626 new sudo-sh replaces sudo.
+#20231125 also update KEYMAP in /mnt/wkg/sfs/settings/initrd/CONFIG; read in initrd.
 
 #20230626
 if [ "$(whoami)" != "root" ];then
@@ -1299,6 +1300,10 @@ if [ "$SET_KEYBOARD" ];then
    ;;
   esac
   echo -n "${NEW_KMAP}${KEXT}" > /etc/keymap #120627
+  #20231125 also write here, read in initrd...
+  if [ "$KMAPPATH" == "/lib/keymaps" ];then #check same keymaps as used in initrd.
+   sed -i -e "s%^KEYMAP=.*%KEYMAP='${NEW_KMAP}'%" /mnt/wkg/sfs/settings/initrd/CONFIG
+  fi
   #echo -n "$FONTMAP" > /etc/fontmap
   echo -n "$CODEPAGE" > /etc/codepage
   
