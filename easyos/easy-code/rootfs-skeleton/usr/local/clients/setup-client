@@ -61,6 +61,7 @@
 #20231105 remove old fscrypt v1 code. firefox: test policies.json exist. run firefox-pre-start
 #20231105 new $ALWAYSCODE -- always run this.
 #20231115 client scripts must all run as root.
+#20231126 chromium: avoid "CBCM is not enabled" msg in terminal.
 
 APPname="${1/=*/}"  #ex: seamonkey
 APPflag="${1/*=/}" #ex: true
@@ -869,12 +870,13 @@ chromium_true() {
  fi
  
  #20230411 ALWAYSOPTS removed "--use-gl=desktop" doesn't work.
+ #20231126 avoid "CBCM is not enabled" msg: --enable-chrome-browser-cloud-management=no
  rm -f ${PREFIXDIR1}${APPpath}/${APPname} #in case it is a symlink.
  echo '#!/bin/bash
 if [ "$(whoami)" != "root" ];then exec sudo-sh ${PPID} ${0} ${@}; fi' > ${PREFIXDIR1}${APPpath}/${APPname}
  echo "APPbin='${APPpath}/${APPname}.bin'
 APPname='${APPname}'
-ALWAYSOPTS='--no-default-browser-check --no-first-run'
+ALWAYSOPTS='--no-default-browser-check --no-first-run --enable-chrome-browser-cloud-management=no'
 ROOTOPTS='--no-sandbox --test-type'
 #note, currently not using these two...
 CONTAINEROPTS='--no-sandbox --disable-features=AudioServiceSandbox' #20211007
