@@ -62,6 +62,7 @@
 #20231105 new $ALWAYSCODE -- always run this.
 #20231115 client scripts must all run as root.
 #20231126 chromium: avoid "CBCM is not enabled" msg in terminal.
+#20231126 chromium: disable hw accel.
 
 APPname="${1/=*/}"  #ex: seamonkey
 APPflag="${1/*=/}" #ex: true
@@ -897,6 +898,9 @@ NONROOTMAINOPTS='--disable-features=AudioServiceSandbox' #20211007
  fi
  if [ ! -f ${PREFIXDIR1}/home/${APPname}/.config/${APPname}/Default/Preferences ];then
   echo "{\"download\":{\"default_directory\":\"/files\",\"directory_upgrade\":true,\"prompt_for_download\":true},\"savefile\":{\"default_directory\":\"/files\"}}" > ${PREFIXDIR1}/home/${APPname}/.config/${APPname}/Default/Preferences
+ fi
+ if [ -f "${PREFIXDIR1}/root/.config/${APPname}/Local State" ];then #20231126
+  cp -f "${PREFIXDIR1}/root/.config/${APPname}/Local State" ${PREFIXDIR1}/home/${APPname}/.config/${APPname}/
  fi
  #in case want to go back to root...
  if [ ! -f ${PREFIXDIR1}/root/.config/${APPname}/Default/Preferences ];then
