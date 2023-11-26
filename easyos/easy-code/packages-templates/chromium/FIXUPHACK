@@ -287,7 +287,7 @@ Actions=NewWindow;Incognito;TempProfile;
 X-AppInstall-Package=chromium-browser" > usr/share/applications/chromium.desktop
 
 mkdir -p root/.config/chromium/Default
-echo '{"download":{"default_directory":"/files/downloads","directory_upgrade":true,"prompt_for_download":true},"savefile":{"default_directory":"/files"}}' > root/.config/chromium/Default/Preferences
+echo '{"download":{"default_directory":"/files/downloads","directory_upgrade":true,"prompt_for_download":true},"savefile":{"default_directory":"/files"},"session":{"restore_on_startup":4,"startup_urls":["file:///usr/share/doc/home.htm"]},"sessions":{"signin":{"allowed":false}}}' > root/.config/chromium/Default/Preferences
 
 mkdir -p ../chromium_NLS/usr/lib/chromium
 mv -f usr/lib/chromium/locales ../chromium_NLS/usr/lib/chromium/locales
