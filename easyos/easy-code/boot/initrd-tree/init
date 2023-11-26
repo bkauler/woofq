@@ -172,7 +172,7 @@
 #20231111 fix history depth detection.
 #20231124 for nvidia.sfs check that nvidia gpu exists.
 #20231125 moved up reading sfs/settings/initrd/CONFIG; want to read KEYMAP further down even if no fscrypt.
-#20231125 keyboard hardware profile, as need to detect if kb changed.
+#20231125 keyboard hardware profile, as need to detect if kb changed. 20231126 fix.
 
 #20230429
 . /build-choices #3buildeasydistro copies it here.
@@ -1144,8 +1144,8 @@ fi
 
 ###keyboard hw profile###
 #20231125 keyboard hardware profile, as need to detect if kb changed...
-#keyboard detection based upon existence of *::capslock folder...
-NEW_KB_HW_PROFILE="$(ls -1 -d /sys/class/input/*/*::capslock 2>/dev/null | cut -f 1-5 -d '/' | xargs -I XXX cat XXX/name | tr -d '\n'| sed -e 's%[^0-9a-zA-Z]%%g')"
+#keyboard detection based upon existence of *::capslock folder... 20231126...
+NEW_KB_HW_PROFILE="$(ls -1 -d /sys/class/input/*/*::capslock 2>/dev/null | cut -f 1-5 -d '/' | xargs -I XXX cat XXX/name | tr -d '\n'| sed -e 's%[^0-9a-zA-Z]%%g' | cut -c 1-60)"
 
 ###handle 1st or subsequent bootup###
 if [ ! -d /mnt/${WKG_DEV}/${WKG_DIR}.session ];then
@@ -1267,7 +1267,8 @@ ${S133}\\033[0;39m" #red.
  cp -a -f /skeleton/sfs /mnt/${WKG_DEV}/${WKG_DIR}
  echo "KEYMAP='${KEYMAP}'" > /mnt/${WKG_DEV}/${WKG_DIR}sfs/settings/initrd/CONFIG
  echo "ALLOW_ASK_PW='${ALLOW_ASK_PW}'" >> /mnt/${WKG_DEV}/${WKG_DIR}sfs/settings/initrd/CONFIG
- echo "KB_HW_PROFILE='${NEW_KB_HW_PROFILE}'" >> /mnt/${WKG_DEV}/${WKG_DIR}sfs/settings/initrd/CONFIG
+ echo "KB_HW_PROFILE='${NEW_KB_HW_PROFILE}'" >> /mnt/${WKG_DEV}/${WKG_DIR}sfs/settings/initrd/CONFIG #20231125
+ echo -n "${KEYMAP}" > /mnt/${WKG_DEV}/${WKG_DIR}sfs/settings/initrd/keymap.${NEW_KB_HW_PROFILE} #20231126
 
  if [ -d /mnt/${WKG_DEV}/${WKG_DIR}v1tov2 ];then #20230503
   cp -a -f /mnt/${WKG_DEV}/${WKG_DIR}v1tov2/containers/* /mnt/${WKG_DEV}/${WKG_DIR}containers/
@@ -1297,18 +1298,25 @@ else
  #20231125 moved up; want to read KEYMAP further down even if no fscrypt...
  touch /mnt/${WKG_DEV}/${WKG_DIR}sfs/settings/initrd/CONFIG
  . /mnt/${WKG_DEV}/${WKG_DIR}sfs/settings/initrd/CONFIG #has KEYMAP, ALLOW_ASK_PW
- #20231125 keyboard hardware profiling...
+ #20231125 keyboard hardware profiling... 20231126 fix...
  if [ ! "$KB_HW_PROFILE" ];then #for easy versions <5.6.4
   echo "KB_HW_PROFILE='${NEW_KB_HW_PROFILE}'" >> /mnt/${WKG_DEV}/${WKG_DIR}sfs/settings/initrd/CONFIG
+  echo -n "$KEYMAP" > /mnt/${WKG_DEV}/${WKG_DIR}sfs/settings/initrd/keymap.${NEW_KB_HW_PROFILE} #20231126
   KB_HW_PROFILE="${NEW_KB_HW_PROFILE}"
  fi
- if [ ! -f /mnt/${WKG_DEV}/${WKG_DIR}/.session/etc/keymap.${NEW_KB_HW_PROFILE} ];then
+ if [ ! -f /mnt/${WKG_DEV}/${WKG_DIR}sfs/settings/initrd/keymap.${NEW_KB_HW_PROFILE} ];then
   ask_kb
+  echo -n "$KEYMAP" > /mnt/${WKG_DEV}/${WKG_DIR}sfs/settings/initrd/keymap.${NEW_KB_HW_PROFILE}
+  sed -i -e "s%^KEYMAP=.*%KEYMAP='${KEYMAP}'%" /mnt/${WKG_DEV}/${WKG_DIR}sfs/settings/initrd/CONFIG
+  sed -i -e "s%^KB_HW_PROFILE.*%KB_HW_PROFILE='${NEW_KB_HW_PROFILE}'%" /mnt/${WKG_DEV}/${WKG_DIR}sfs/settings/initrd/CONFIG
+  . /mnt/${WKG_DEV}/${WKG_DIR}sfs/settings/initrd/CONFIG
  fi
- mkdir -p /mnt/${WKG_DEV}/${WKG_DIR}/.session/etc
- echo -n "$KEYMAP" > /mnt/${WKG_DEV}/${WKG_DIR}/.session/etc/keymap.${NEW_KB_HW_PROFILE}
- echo -n "$KEYMAP" > /mnt/${WKG_DEV}/${WKG_DIR}/.session/etc/keymap
- sed -i -e "s%^KEYMAP=.*%KEYMAP='${KEYMAP}'%" /mnt/${WKG_DEV}/${WKG_DIR}sfs/settings/initrd/CONFIG
+ if [ "$KB_HW_PROFILE" != "$NEW_KB_HW_PROFILE" ];then
+  KEYMAP="$(cat /mnt/${WKG_DEV}/${WKG_DIR}sfs/settings/initrd/keymap.${NEW_KB_HW_PROFILE})"
+  sed -i -e "s%^KEYMAP=.*%KEYMAP='${KEYMAP}'%" /mnt/${WKG_DEV}/${WKG_DIR}sfs/settings/initrd/CONFIG
+  sed -i -e "s%^KB_HW_PROFILE.*%KB_HW_PROFILE='${NEW_KB_HW_PROFILE}'%" /mnt/${WKG_DEV}/${WKG_DIR}sfs/settings/initrd/CONFIG
+  . /mnt/${WKG_DEV}/${WKG_DIR}sfs/settings/initrd/CONFIG
+ fi
  [ "$KEYMAP" != "us" ] && gunzip -c /lib/keymaps/${KEYMAP}.gz | loadkmap
  
  if [ "$POLICYflg" == "" ];then
@@ -1342,6 +1350,11 @@ else
   menu_func nopw
   menu_delay_func
  fi
+ #20231125  20231126...
+ mkdir -p /mnt/${WKG_DEV}/${WKG_DIR}.session/etc
+ #echo -n "$KEYMAP" > /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/keymap.${NEW_KB_HW_PROFILE}
+ echo -n "$KEYMAP" > /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/keymap
+ 
  #20211212 problem if update from <3.1.14 data folder not exist...
  if [ ! -d /mnt/${WKG_DEV}/${WKG_DIR}data ];then
   mkdir /mnt/${WKG_DEV}/${WKG_DIR}data
@@ -1407,11 +1420,12 @@ fi
 
 ###preset country settings for after switch_root###
 #20231125 note, this already done above. um, but not on 1st bootup. keep as precaution...
+#20231126 fix...
 if [ "$KEYMAP" ];then
  if [ ! -s /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/keymap ];then
   mkdir -p /mnt/${WKG_DEV}/${WKG_DIR}.session/etc
   echo -n "$KEYMAP" > /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/keymap
-  echo -n "$KEYMAP" > /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/keymap.${NEW_KB_HW_PROFILE}
+  #echo -n "$KEYMAP" > /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/keymap.${NEW_KB_HW_PROFILE}
  fi
 fi
 

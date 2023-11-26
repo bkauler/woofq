@@ -12,7 +12,7 @@
 #20220715 hardware-profile /etc/clock, see also /usr/sbin/quicksetup, /usr/sbin/delayedrun
 #20220912 PC_HARDWARE_PROFILE not set, try hack.
 #20230622 new tr console keyboard layout.
-#20231125 also update KEYMAP in /mnt/wkg/sfs/settings/initrd/CONFIG; read in initrd.
+#20231125 also update KEYMAP in /mnt/wkg/sfs/settings/initrd/CONFIG; read in initrd. 20231126 fix.
 
 . /etc/rc.d/PUPSTATE
 . /etc/DISTRO_SPECS #has DISTRO_XORG_AUTO
@@ -156,6 +156,11 @@ askkbdlayout ()
  #20231125 also write here, read in initrd...
  if [ "$KMAPPATH" == "/lib/keymaps" ];then #check same keymaps as used in initrd.
   sed -i -e "s%^KEYMAP=.*%KEYMAP='${KMAP}'%" /mnt/wkg/sfs/settings/initrd/CONFIG
+  #20231126 see init... hmmm, recalc KB_HW_PROFILE as maybe kb plugged in just now...
+  KB_HW_PROFILE="$(ls -1 -d /sys/class/input/*/*::capslock 2>/dev/null | cut -f 1-5 -d '/' | xargs -I XXX cat XXX/name | tr -d '\n'| sed -e 's%[^0-9a-zA-Z]%%g' | cut -c 1-60)"
+  #. /mnt/wkg/sfs/settings/initrd/CONFIG #has KEYMAP, KB_HW_PROFILE
+  echo -n "$KMAP" > /mnt/wkg/sfs/settings/initrd/keymap.${KB_HW_PROFILE}
+  sed -i -e "s%^KB_HW_PROFILE.*%KB_HW_PROFILE='${KB_HW_PROFILE}'%" /mnt/wkg/sfs/settings/initrd/CONFIG
  fi
  return 0
 }
