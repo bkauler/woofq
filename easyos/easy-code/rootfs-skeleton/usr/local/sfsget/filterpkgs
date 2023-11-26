@@ -12,6 +12,7 @@
 #200826 filter out easy, devx and kernel sfs's if running in ram.
 #20220603 replace DB_* with SFS_DB_* in sfs .specs files.
 #20220607 improve filtering.
+#20231126 filter nvidia sfs's.
 
 . /etc/DISTRO_SPECS #181106
 . /etc/rc.d/PUPSTATE #200826
@@ -84,6 +85,9 @@ do
   if [ "$aNAME" == "kernel" ];then #181119
    [ "$SFS_DB_version" != "$KERNVER" ] && continue
    [ "$BOOT_LOCK" ] && continue #200826 running in ram. ref: /etc/rc.d/PUPSTATE
+  fi
+  if [ "$aNAME" == "nvidia" ];then #20231126
+   [ "$SFS_DB_version" != "$KERNVER" ] && continue
   fi
   #the second field is the icon...
   echo "${SFS_DB_fullfilename}|${aNAME}|${SFS_DB_description}" >> /tmp/sfsget/filterpkgs.results.tree
