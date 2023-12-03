@@ -7,6 +7,7 @@
 #190904 shared common code for security options, with /usr/local/easy_containers/easy-containers
 #20220922 EC_ENV_ZEUS changed to EC_ENV_SPOT
 #20221006 new EC_ACCESS_DRI enable 3D graphics.
+#20231201 fix text in ec-configuration.
 
 [ ! $1 ] && exit 1
 [ ! -f /tmp/sfsget/security-overrides ] && exit 2
@@ -99,11 +100,10 @@ echo '#Tick to run as user spot in container:' >> /tmp/sfsget/ec-configuration
   echo "EC_CAP_resource='${CAP_resource}'" >> /tmp/sfsget/ec-configuration
   echo "EC_CAP_mount='${CAP_mount}'" >> /tmp/sfsget/ec-configuration
   echo "
-#if you want to load another .sfs file, resident in the releases folder of the
-#current version of Easy, for example: releases/easy-0.1.6/devx.sfs
-#then uncomment this. Glob wildcard accepted, in fact is recommended
-#for automatic version updating:
-#EASY_LAYER_RO1='devx*.sfs'" >> /tmp/sfsget/ec-configuration
+#if you want to load another .sfs file, link resident in the releases folder of
+#the current version of Easy, for example: releases/easy-0.1.6/devx.sfs
+#then uncomment this:
+#EASY_LAYER_RO1='devx.sfs'" >> /tmp/sfsget/ec-configuration
 
 
 ###end###
