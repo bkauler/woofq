@@ -47,6 +47,7 @@
 #20230921 easy 5.5.2+ has pup network tools instead of networkmanager.
 #20230922 need to check the two globicons files separately.
 #20231107 tweak 20230723: retention of /usr/local/bin/default*
+#20231203 usr-merge: fix PuppyPin and globicons in kirkstone container.
 
 WKG_DRV=$1 #ex: sda
 WKG_DEV=$2 #ex: sda2
@@ -63,6 +64,8 @@ if [ "$QLANG" ];then
 . /nls/${QLANG}/fixlayers.str
  fi
 fi
+
+. /INIT_DISTRO_SPECS #20231203
 
 EXTRASFSDIRS=''
 [ "${3}" ] && EXTRASFSDIRS="$(echo -n "$3" | sed -e 's%:$%%' -e 's%:%\n%g' | sed -e 's%^%/easy_ro/%' | tr '\n' ' ' | sed -e 's% $%%')" #tricky, need two sed's
@@ -385,32 +388,36 @@ fi
 #sed -i -e 's%label="petget"%label="pkg"%' /mnt/${WKG_DEV}/${WKG_DIR}.session/root/Choices/ROX-Filer/PuppyPin
 
 #20230423 make sure "pkg" icon runs pkg-wrap (easy 5.2.2) --can remove this later, after everyone hass updated. 20230911
-if [ -s /mnt/${WKG_DEV}/${WKG_DIR}.session/root/Choices/ROX-Filer/PuppyPin ];then
- sed -i -e 's%/usr/sbin/%/usr/bin/%' /mnt/${WKG_DEV}/${WKG_DIR}.session/root/Choices/ROX-Filer/PuppyPin
- grep -q '/usr/bin/pkg-wrap' /mnt/${WKG_DEV}/${WKG_DIR}.session/root/Choices/ROX-Filer/PuppyPin
- if [ $? -ne 0 ];then
-  sed -i -e 's%/usr/bin/dotpup%/usr/bin/pkg-wrap%' /mnt/${WKG_DEV}/${WKG_DIR}.session/root/Choices/ROX-Filer/PuppyPin
+#20231203 may also have to fix kirkstone container...
+for aSESSION in .session containers/${INIT_DISTRO_COMPAT_VERSION}/.session
+do
+ if [ -s /mnt/${WKG_DEV}/${WKG_DIR}${aSESSION}/root/Choices/ROX-Filer/PuppyPin ];then
+  sed -i -e 's%/usr/sbin/%/usr/bin/%' /mnt/${WKG_DEV}/${WKG_DIR}${aSESSION}/root/Choices/ROX-Filer/PuppyPin
+  grep -q '/usr/bin/pkg-wrap' /mnt/${WKG_DEV}/${WKG_DIR}${aSESSION}/root/Choices/ROX-Filer/PuppyPin
+  if [ $? -ne 0 ];then
+   sed -i -e 's%/usr/bin/dotpup%/usr/bin/pkg-wrap%' /mnt/${WKG_DEV}/${WKG_DIR}${aSESSION}/root/Choices/ROX-Filer/PuppyPin
+  fi
+  grep -q 'sfsget' /mnt/${WKG_DEV}/${WKG_DIR}${aSESSION}/root/Choices/ROX-Filer/PuppyPin
+  if [ $? -eq 0 ];then
+   sed -i '/sfsget/d' /mnt/${WKG_DEV}/${WKG_DIR}${aSESSION}/root/Choices/ROX-Filer/PuppyPin
+  fi
  fi
- grep -q 'sfsget' /mnt/${WKG_DEV}/${WKG_DIR}.session/root/Choices/ROX-Filer/PuppyPin
- if [ $? -eq 0 ];then
-  sed -i '/sfsget/d' /mnt/${WKG_DEV}/${WKG_DIR}.session/root/Choices/ROX-Filer/PuppyPin
+ if [ -s /mnt/${WKG_DEV}/${WKG_DIR}${aSESSION}/root/Choices/ROX-Filer/globicons ];then
+  sed -i -e 's%/usr/sbin/%/usr/bin/%' /mnt/${WKG_DEV}/${WKG_DIR}${aSESSION}/root/Choices/ROX-Filer/globicons
+  grep -q '/usr/bin/pkg-wrap' /mnt/${WKG_DEV}/${WKG_DIR}${aSESSION}/root/Choices/ROX-Filer/globicons
+  if [ $? -ne 0 ];then
+   sed -i -e 's%dotpup%pkg-wrap%' /mnt/${WKG_DEV}/${WKG_DIR}${aSESSION}/root/Choices/ROX-Filer/globicons
+  fi
  fi
-fi
-if [ -s /mnt/${WKG_DEV}/${WKG_DIR}.session/root/Choices/ROX-Filer/globicons ];then
- sed -i -e 's%/usr/sbin/%/usr/bin/%' /mnt/${WKG_DEV}/${WKG_DIR}.session/root/Choices/ROX-Filer/globicons
- grep -q '/usr/bin/pkg-wrap' /mnt/${WKG_DEV}/${WKG_DIR}.session/root/Choices/ROX-Filer/globicons
- if [ $? -ne 0 ];then
-  sed -i -e 's%dotpup%pkg-wrap%' /mnt/${WKG_DEV}/${WKG_DIR}.session/root/Choices/ROX-Filer/globicons
+ #20230922 need to check this separately...
+ if [ -s /mnt/${WKG_DEV}/${WKG_DIR}${aSESSION}/root/.config/rox.sourceforge.net/ROX-Filer/globicons ];then
+  sed -i -e 's%/usr/sbin/%/usr/bin/%' /mnt/${WKG_DEV}/${WKG_DIR}${aSESSION}/root/.config/rox.sourceforge.net/ROX-Filer/globicons
+  grep -q '/usr/bin/pkg-wrap' /mnt/${WKG_DEV}/${WKG_DIR}${aSESSION}/root/.config/rox.sourceforge.net/ROX-Filer/globicons
+  if [ $? -ne 0 ];then
+   sed -i -e 's%dotpup%pkg-wrap%' /mnt/${WKG_DEV}/${WKG_DIR}${aSESSION}/root/.config/rox.sourceforge.net/ROX-Filer/globicons
+  fi
  fi
-fi
-#20230922 need to check this separately...
-if [ -s /mnt/${WKG_DEV}/${WKG_DIR}.session/root/.config/rox.sourceforge.net/ROX-Filer/globicons ];then
- sed -i -e 's%/usr/sbin/%/usr/bin/%' /mnt/${WKG_DEV}/${WKG_DIR}.session/root/.config/rox.sourceforge.net/ROX-Filer/globicons
- grep -q '/usr/bin/pkg-wrap' /mnt/${WKG_DEV}/${WKG_DIR}.session/root/.config/rox.sourceforge.net/ROX-Filer/globicons
- if [ $? -ne 0 ];then
-  sed -i -e 's%dotpup%pkg-wrap%' /mnt/${WKG_DEV}/${WKG_DIR}.session/root/.config/rox.sourceforge.net/ROX-Filer/globicons
- fi
-fi
+done
 
 #20230423 remove...
 ##fix globicons...

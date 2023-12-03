@@ -173,6 +173,8 @@
 #20231124 for nvidia.sfs check that nvidia gpu exists.
 #20231125 moved up reading sfs/settings/initrd/CONFIG; want to read KEYMAP further down even if no fscrypt.
 #20231125 keyboard hardware profile, as need to detect if kb changed. 20231126 fix.
+#20231128 fix 20231124
+#20231203 usr-merge: may also have to fix kirkstone container.
 
 #20230429
 . /build-choices #3buildeasydistro copies it here.
@@ -1372,31 +1374,36 @@ if [ -d /mnt/${WKG_DEV}/${WKG_DIR}.session-transit ];then
  #rm -rf /mnt/${WKG_DEV}/${WKG_DIR}.session-transit  20220530 remove in rw-merge.
 fi
 
-#20230911 now have usr-merge, may have to fix old .session...
-mkdir -p /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/bin
-mkdir -p /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/lib
-for aD in bin sbin usr/sbin
+#20230911 now have usr-merge, may have to fix old .session... ***remove at later date***
+#20231203 may also have to fix kirkstone container...
+for aSESSION in .session containers/${INIT_DISTRO_COMPAT_VERSION}/.session
 do
- if [ -d /mnt/${WKG_DEV}/${WKG_DIR}.session/${aD} ];then
-  if [ ! -h /mnt/${WKG_DEV}/${WKG_DIR}.session/${aD} ];then
-   cp -a --remove-destination /mnt/${WKG_DEV}/${WKG_DIR}.session/${aD}/* /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/bin/ 2>/dev/null
-   rm -rf /mnt/${WKG_DEV}/${WKG_DIR}.session/${aD}
-  else
-   rm -f /mnt/${WKG_DEV}/${WKG_DIR}.session/${aD}
+ mkdir -p /mnt/${WKG_DEV}/${WKG_DIR}${aSESSION}/usr/bin
+ mkdir -p /mnt/${WKG_DEV}/${WKG_DIR}${aSESSION}/usr/lib
+ for aD in bin sbin usr/sbin
+ do
+  if [ -d /mnt/${WKG_DEV}/${WKG_DIR}${aSESSION}/${aD} ];then
+   if [ ! -h /mnt/${WKG_DEV}/${WKG_DIR}${aSESSION}/${aD} ];then
+    cp -a --remove-destination /mnt/${WKG_DEV}/${WKG_DIR}${aSESSION}/${aD}/* /mnt/${WKG_DEV}/${WKG_DIR}${aSESSION}/usr/bin/ 2>/dev/null
+    rm -rf /mnt/${WKG_DEV}/${WKG_DIR}${aSESSION}/${aD}
+   else
+    rm -f /mnt/${WKG_DEV}/${WKG_DIR}${aSESSION}/${aD}
+   fi
   fi
- fi
-done
-for aD in lib lib64 usr/lib64 usr/lib/x86_64-linux-gnu usr/lib/aarch64-linux-gnu
-do
- if [ -d /mnt/${WKG_DEV}/${WKG_DIR}.session/${aD} ];then
-  if [ ! -h /mnt/${WKG_DEV}/${WKG_DIR}.session/${aD} ];then
-   cp -a --remove-destination /mnt/${WKG_DEV}/${WKG_DIR}.session/${aD}/* /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/lib/ 2>/dev/null
-   rm -rf /mnt/${WKG_DEV}/${WKG_DIR}.session/${aD}
-  else
-   rm -f /mnt/${WKG_DEV}/${WKG_DIR}.session/${aD}
+ done
+ for aD in lib lib64 usr/lib64 usr/lib/x86_64-linux-gnu usr/lib/aarch64-linux-gnu
+ do
+  if [ -d /mnt/${WKG_DEV}/${WKG_DIR}${aSESSION}/${aD} ];then
+   if [ ! -h /mnt/${WKG_DEV}/${WKG_DIR}${aSESSION}/${aD} ];then
+    cp -a --remove-destination /mnt/${WKG_DEV}/${WKG_DIR}${aSESSION}/${aD}/* /mnt/${WKG_DEV}/${WKG_DIR}${aSESSION}/usr/lib/ 2>/dev/null
+    rm -rf /mnt/${WKG_DEV}/${WKG_DIR}${aSESSION}/${aD}
+   else
+    rm -f /mnt/${WKG_DEV}/${WKG_DIR}${aSESSION}/${aD}
+   fi
   fi
- fi
+ done
 done
+
 #20230912 update from 5.4.10 i had this symlink, get rid of it....
 if [ -e /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/lib/ld-linux-x86-64.so.2 ];then
  rm -f /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/lib/ld-linux-x86-64.so.2
@@ -1933,10 +1940,10 @@ fi
      continue
     fi
     
-    #20231124 for nvidia.sfs check that nvidia gpu exists...
+    #20231124 for nvidia.sfs check that nvidia gpu exists... 20231118 fix...
     case "$ANAME" in
      nvidia*)
-      lspci | grep -qF 'Class 10de:' #note, requires busybox lspci
+      lspci | grep -qF 'Class 0300: 10de:' #note, requires busybox lspci
       if [ $? -ne 0 ];then
        echo -e "\\033[1;31m${S400}\\033[0;39m" #red 'No NVIDIA GPU detected, so will not load NVIDIA SFS'
        continue
