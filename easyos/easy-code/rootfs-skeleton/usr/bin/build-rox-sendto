@@ -18,6 +18,7 @@
 #20230313 add audacity, phototool. 20230705 add gwaveedit
 #20230902 add application_x-zstd to xarchive (notice 20220126).
 #20231205 add application_x-7z-compressed to xarchive
+#20231206 screen out firefox & vivaldi if not installed.
 
 #may call this in woofQ, when current dir is sandbox3/rootfs-complete, so test...
 CWD="`pwd`"
@@ -53,6 +54,11 @@ do
  aDTbase="$(basename $aDT .desktop)"
  case $aDTbase in
   default*) continue ;;
+  firefox|vivaldi) #20231206
+   #these are ask entries in the menu. they have NoDisplay=true
+   #need to check if installed...
+   [ ! -e /usr/bin/${aDTbase} ] && continue
+  ;;
  esac
  aEXE="$(grep '^Exec=' $aDT | head -n 1 | cut -f 2 -d '=' | cut -f 1 -d ' ' | rev | cut -f 1 -d '/' | rev)"
  [ "$aEXE" == "" ] && continue
