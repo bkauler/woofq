@@ -115,7 +115,7 @@ gen_bin_func() {
  #hmmm, 3buildeasydistro creates chromium.bin with APPin=rootfs-complete/usr/bin/chromium
  #20231213 prevent 2nd instance dbus-daemon...
  echo "#!/bin/sh
-busybox ps | grep -q '${APPname}.*dbus\-daemon'
+busybox ps | grep -q '${APPname:0:8}.*dbus\-daemon'
 DBUSflg=\$?
 if [ \$DBUSflg -ne 0 ];then
  export \$(dbus-launch) #if app needs to access dbus.

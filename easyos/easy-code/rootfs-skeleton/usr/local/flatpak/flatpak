@@ -584,7 +584,8 @@ fi
 # same for gtk " --env=GDK_DPI_SCALE=1.2"  20230516 reduce both to 1.1
 #20231213 prevent 2nd instance dbus-daemon...
 echo "#!/bin/sh
-busybox ps | grep -q '${APPname}.*dbus\-daemon'
+APPlow=\"${aAPP,,}\"
+busybox ps | grep -q '${APPlow:0:8}.*dbus\-daemon'
 DBUSflg=\$?
 if [ \$DBUSflg -ne 0 ];then
  export \$(dbus-launch) #if app needs to access dbus.
