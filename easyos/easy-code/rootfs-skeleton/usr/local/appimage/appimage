@@ -7,6 +7,7 @@
 #20230527 update kdenlive to 23.04.1
 #20230528 setgid (see blog post).
 #20230617 note: set-client now has already created /files/apps/<appname>
+#20231213 firefox: fix start 2nd instance. ref: https://discourse.mozilla.org/t/how-does-firefox-discover-a-running-instance-to-connect-to/109957
 
 if [ "$(whoami)" != "root" ];then
  if [ -x /usr/bin/sudo-sh ];then
@@ -568,19 +569,51 @@ if [ "$UPDATEflg" == "yesyes" ];then
  cp -a -f /mnt/wkg/appimage/${aAPP,,}/${aAPP,,}.specs /mnt/wkg/appimage/${aAPP,,}/${aAPP,,}.specsOLD
  #20230415 script instead of symlink...
  #ln -snf /mnt/wkg/appimage/${aAPP,,}/${APPname} /usr/bin/${aAPP,,}.bin
+ #20231213 prevent 2nd instance dbus-daemon...
  echo "#!/bin/sh
-export \$(dbus-launch) #if app needs to access dbus.
+busybox ps | grep -q '${APPname}.*dbus\-daemon'
+DBUSflg=\$?
+if [ \$DBUSflg -ne 0 ];then
+ export \$(dbus-launch) #if app needs to access dbus.
+ echo \"DBUS_SESSION_BUS_ADDRESS='\${DBUS_SESSION_BUS_ADDRESS}'
+DBUS_SESSION_BUS_PID='\${DBUS_SESSION_BUS_PID}'\" > \${HOME}/.DBUS-DAEMON-VARS
+else 
+ if [ -s \${HOME}/.DBUS-DAEMON-VARS ];then
+  eval $(cat \${HOME}/.DBUS-DAEMON-VARS)
+  export DBUS_SESSION_BUS_ADDRESS DBUS_SESSION_BUS_PID
+ fi
+fi
 /mnt/wkg/appimage/${aAPP,,}/${APPname}
-kill \$DBUS_SESSION_BUS_PID" > /usr/bin/${aAPP,,}.bin
+if [ \$DBUSflg -ne 0 ];then
+ kill \$DBUS_SESSION_BUS_PID
+ rm -f \${HOME}/.DBUS-DAEMON-VARS 2>/dev/null
+fi
+" > /usr/bin/${aAPP,,}.bin
  chmod 755 /usr/bin/${aAPP,,}.bin
 else
  #this symlink is correct, later setup-client will rename to .bin ...
  #20230415 script instead of symlink...
  #ln -snf /mnt/wkg/appimage/${aAPP,,}/${APPname} /usr/bin/${aAPP,,}
+ #20231213 prevent 2nd instance dbus-daemon...
  echo "#!/bin/sh
-export \$(dbus-launch) #if app needs to access dbus.
+busybox ps | grep -q '${APPname}.*dbus\-daemon'
+DBUSflg=\$?
+if [ \$DBUSflg -ne 0 ];then
+ export \$(dbus-launch) #if app needs to access dbus.
+ echo \"DBUS_SESSION_BUS_ADDRESS='\${DBUS_SESSION_BUS_ADDRESS}'
+DBUS_SESSION_BUS_PID='\${DBUS_SESSION_BUS_PID}'\" > \${HOME}/.DBUS-DAEMON-VARS
+else 
+ if [ -s \${HOME}/.DBUS-DAEMON-VARS ];then
+  eval $(cat \${HOME}/.DBUS-DAEMON-VARS)
+  export DBUS_SESSION_BUS_ADDRESS DBUS_SESSION_BUS_PID
+ fi
+fi
 /mnt/wkg/appimage/${aAPP,,}/${APPname}
-kill \$DBUS_SESSION_BUS_PID" > /usr/bin/${aAPP,,}
+if [ \$DBUSflg -ne 0 ];then
+ kill \$DBUS_SESSION_BUS_PID
+ rm -f \${HOME}/.DBUS-DAEMON-VARS 2>/dev/null
+fi
+" > /usr/bin/${aAPP,,}
  chmod 755 /usr/bin/${aAPP,,}
 fi
 

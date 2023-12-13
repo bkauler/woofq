@@ -14,6 +14,7 @@
 #20230617 note: set-client now has already created /files/apps/<appname>
 #20230619 remove runtimes and extensions that are not used by any installed applications.
 #20230701 fix when cannot register with flathub.org
+#20231213 firefox: fix start 2nd instance. ref: https://discourse.mozilla.org/t/how-does-firefox-discover-a-running-instance-to-connect-to/109957
 
 if [ "$(whoami)" != "root" ];then
  if [ -x /usr/bin/sudo-sh ];then
@@ -581,11 +582,27 @@ fi
 #but want to be able to open with any file via right-click menu in rox...
 #20230505 make qt fonts bigger "--env=QT_SCALE_FACTOR=1.2"
 # same for gtk " --env=GDK_DPI_SCALE=1.2"  20230516 reduce both to 1.1
+#20231213 prevent 2nd instance dbus-daemon...
 echo "#!/bin/sh
-export \$(dbus-launch) #if app needs to access dbus.
+busybox ps | grep -q '${APPname}.*dbus\-daemon'
+DBUSflg=\$?
+if [ \$DBUSflg -ne 0 ];then
+ export \$(dbus-launch) #if app needs to access dbus.
+ echo \"DBUS_SESSION_BUS_ADDRESS='\${DBUS_SESSION_BUS_ADDRESS}'
+DBUS_SESSION_BUS_PID='\${DBUS_SESSION_BUS_PID}'\" > \${HOME}/.DBUS-DAEMON-VARS
+else 
+ if [ -s \${HOME}/.DBUS-DAEMON-VARS ];then
+  eval $(cat \${HOME}/.DBUS-DAEMON-VARS)
+  export DBUS_SESSION_BUS_ADDRESS DBUS_SESSION_BUS_PID
+ fi
+fi
 export XDG_DATA_DIRS=/mnt/wkg/flatpak/exports/share:/home/${aAPP,,}/.local/share/flatpak/exports/share:${XDG_DATA_DIRS} #need to fool flatpak.
 flatpak run --env=GDK_DPI_SCALE=1.1 --env=QT_SCALE_FACTOR=1.1 --filesystem=host --socket=system-bus --socket=cups --socket=ssh-auth --socket=session-bus ${TRIPLET}
-kill \$DBUS_SESSION_BUS_PID" > /usr/bin/${aAPP,,}
+if [ \$DBUSflg -ne 0 ];then
+ kill \$DBUS_SESSION_BUS_PID
+ rm -f \${HOME}/.DBUS-DAEMON-VARS 2>/dev/null
+fi
+" > /usr/bin/${aAPP,,}
 chmod 755 /usr/bin/${aAPP,,}
 
 if [ "${LANG:0:2}" == "en" ];then
