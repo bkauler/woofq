@@ -312,13 +312,12 @@ sed -i '/autoDisableScopes/d' usr/lib/firefox/defaults/pref/vendor.js
 #mkdir -p usr/lib/firefox/dictionaries
 
 #20231114 make sure gpu accel is disabled...
+#20231212 remove:  "DisableAppUpdate":true, "ExtensionUpdate":false,
 mkdir -p usr/lib/firefox/distribution
 echo '{
 	"policies":
 	{
-		"DisableAppUpdate":true,
 		"DontCheckDefaultBrowser":true,
-		"ExtensionUpdate":false,
 		"HardwareAcceleration":false
 	}
 }

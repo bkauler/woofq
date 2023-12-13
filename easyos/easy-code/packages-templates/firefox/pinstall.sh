@@ -26,12 +26,13 @@
 #20230310 debian bookworm, have all translations in pkg-list, cutdown...
 if [ -d usr/lib/firefox/browser/extensions ];then
  FFext='usr/lib/firefox/browser/extensions'
+elif [ -d usr/lib/firefox-esr/browser/extensions ];then
+ FFext='usr/lib/firefox-esr/browser/extensions'
+elif [ -d usr/share/mozilla/extensions ];then #20231212 ff compiled in oe
+ FFext0="$(find usr/share/mozilla/extensions -mindepth 2 -maxdepth 2 -type f -name langpack-de@firefox.mozilla.org.xpi | head -n 1)"
+ FFext="${FFext0%/*}" #ex: usr/share/mozilla/extensions/{ec8030f7-c20a-464f-9b0e-13a3a9e97384}
 else
- if [ -d usr/lib/firefox-esr/browser/extensions ];then
-  FFext='usr/lib/firefox-esr/browser/extensions'
- else
-  FFext=''
- fi
+ FFext=''
 fi
 if [ "$FFext" ];then
  mkdir -p /tmp/3buildeasydistro-pinstall-ff
