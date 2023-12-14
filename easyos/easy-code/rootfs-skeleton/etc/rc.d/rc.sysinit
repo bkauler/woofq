@@ -64,6 +64,7 @@
 #20230921 no longer using /tmp/simple_network_setup/network_default_reconnect_required_flag
 #20231001 enable/disable Internet-Connection-Wizard.desktop  20231011 pgprs-connect.desktop
 #20231103 rc.update: change how test exist /.sfschg.flg: as passed flag.
+#20231214 some code deletes .desktop files moved to initrd.
 
 #unset TZ #100319 busybox hwclock gives priority to this (rather than /etc/localtime) and 'init' has set it wrong.
 #...comment-out for now. note, TZ now set in rc.country.
@@ -450,27 +451,29 @@ fi
 #200609 if an sfs has been removed, ex firefox, it may have left behind a .desktop file...
 DTflg=0
 if [ -f /.sfschg.flg ];then
- for aDT in `find /mnt/wkg/.session/usr/share/applications -mindepth 1 -maxdepth 1 -type f -name '[a-zA-Z0-9]*.desktop'`
- do
-  [ "$aDT" == "" ] && continue
-  bDT="${aDT##*/}"
-  grep -q '^NoDisplay=true' /usr/share/applications/${bDT}
-  [ $? -eq 0 ] && continue
-  aEXEC="$(grep '^Exec=' /usr/share/applications/${bDT} | cut -f 2 -d '=' | cut -f 1 -d ' ')"
-  [ "$aEXEC" == "" ] && continue
-  if [ "${aEXEC:0:1}" == "/" ];then
-   if [ ! -e $aEXEC ];then
-    rm -f /usr/share/applications/${bDT}
-    DTflg=1
-   fi
-  else
-   which $aEXEC >/dev/null
-   if [ $? -ne 0 ];then
-    rm -f /usr/share/applications/${bDT}
-    DTflg=1
-   fi
-  fi
- done
+ 
+ #20231214 replaced with code in initrd fixlayers...
+ #for aDT in `find /mnt/wkg/.session/usr/share/applications -mindepth 1 -maxdepth 1 -type f -name '[a-zA-Z0-9]*.desktop'`
+ #do
+ # [ "$aDT" == "" ] && continue
+ # bDT="${aDT##*/}"
+ # grep -q '^NoDisplay=true' /usr/share/applications/${bDT}
+ # [ $? -eq 0 ] && continue
+ # aEXEC="$(grep '^Exec=' /usr/share/applications/${bDT} | cut -f 2 -d '=' | cut -f 1 -d ' ')"
+ # [ "$aEXEC" == "" ] && continue
+ # if [ "${aEXEC:0:1}" == "/" ];then
+ #  if [ ! -e $aEXEC ];then
+ #   rm -f /usr/share/applications/${bDT}
+ #   DTflg=1
+ #  fi
+ # else
+ #  which $aEXEC >/dev/null
+ #  if [ $? -ne 0 ];then
+ #   rm -f /usr/share/applications/${bDT}
+ #   DTflg=1
+ #  fi
+ # fi
+ #done
  
  #20210423 precaution, always run this, even though slows bootup a few seconds...
  if [ -f /etc/networkmodules ];then #but not on first bootup.

@@ -136,15 +136,31 @@ do
    ;;
    *.desktop)
     if [ -e /easy_ro/easy_sfs/"$onespec" ];then
+     Cflg=0
      #20230802 check if a pre-install .desktop underneath...
      grep -q '^Exec=.*\.install$' /easy_ro/easy_sfs/"$onespec"
      if [ $? -eq 0 ];then
-      continue
+      #continue
+      Cflg=1
      fi
      #also, there may be an installed app on top of this...
      grep -q '^NoDisplay=true' /easy_ro/easy_sfs/"$onespec"
      if [ $? -eq 0 ];then
-      continue
+      #continue
+      Cflg=1
+     fi
+     if [ $Cflg -eq 1 ];then #20231214
+      #check that the executable exists...
+      aEXEC="$(grep '^Exec=' ${onespec} | cut -f 2 -d '=' | cut -f 1 -d ' ')"
+      if [ "${aEXEC:0:1}" == "/" ];then
+       if [ -e .${aEXEC} ];then
+        continue
+       fi
+      else
+       if [ -e usr/bin/${aEXEC} -o -e usr/local/bin/${aEXEC} ];then
+        continue
+       fi
+      fi
      fi
      rm -f "$onespec"
     fi
@@ -153,6 +169,7 @@ do
     basefile="${onespec##*.}" #ex: usr/lib/.wh.afile becomes afile
     basepath="${onespec%/*}"  #ex: usr/lib/.wh.afile usr/lib
     [ -e /easy_ro/easy_sfs/"${basepath}"/${basefile} ] && rm -f "$onespec"
+    [ -e "${basepath}"/${basefile} ] && rm -f "$onespec" #20231214
    ;;
    *)
     if [ -e /easy_ro/easy_sfs/"$onespec" ];then
