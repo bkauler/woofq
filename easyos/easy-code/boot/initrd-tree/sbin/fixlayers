@@ -163,6 +163,19 @@ do
       fi
      fi
      rm -f "$onespec"
+    else #20231214
+     #wider sweep, delete any .desktop that no longer exists the executable...
+     aEXEC="$(grep '^Exec=' ${onespec} | cut -f 2 -d '=' | cut -f 1 -d ' ')"
+     if [ "${aEXEC:0:1}" == "/" ];then
+      if [ -e .${aEXEC} ];then
+       continue
+      fi
+     else
+      if [ -e usr/bin/${aEXEC} -o -e usr/local/bin/${aEXEC} ];then
+       continue
+      fi
+     fi
+     rm -f "$onespec"
     fi
    ;;
    */.wh.*)
