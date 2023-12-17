@@ -593,7 +593,7 @@ if [ \$DBUSflg -ne 0 ];then
 DBUS_SESSION_BUS_PID='\${DBUS_SESSION_BUS_PID}'\" > \${HOME}/.DBUS-DAEMON-VARS
 else 
  if [ -s \${HOME}/.DBUS-DAEMON-VARS ];then
-  eval $(cat \${HOME}/.DBUS-DAEMON-VARS)
+  eval \$(cat \${HOME}/.DBUS-DAEMON-VARS)
   export DBUS_SESSION_BUS_ADDRESS DBUS_SESSION_BUS_PID
  fi
 fi

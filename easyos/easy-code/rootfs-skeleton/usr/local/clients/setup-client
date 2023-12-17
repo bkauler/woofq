@@ -64,6 +64,8 @@
 #20231126 chromium: avoid "CBCM is not enabled" msg in terminal.
 #20231126 chromium: disable hw accel.
 #20231213 firefox: fix start 2nd instance. ref: https://discourse.mozilla.org/t/how-does-firefox-discover-a-running-instance-to-connect-to/109957
+#20231215 chrome fix.
+#20231217 ff: remove hardware accel has been disabled popup msg.
 
 APPname="${1/=*/}"  #ex: seamonkey
 APPflag="${1/*=/}" #ex: true
@@ -123,7 +125,7 @@ if [ \$DBUSflg -ne 0 ];then
 DBUS_SESSION_BUS_PID='\${DBUS_SESSION_BUS_PID}'\" > \${HOME}/.DBUS-DAEMON-VARS
 else 
  if [ -s \${HOME}/.DBUS-DAEMON-VARS ];then
-  eval $(cat \${HOME}/.DBUS-DAEMON-VARS)
+  eval \$(cat \${HOME}/.DBUS-DAEMON-VARS)
   export DBUS_SESSION_BUS_ADDRESS DBUS_SESSION_BUS_PID
  fi
 fi
@@ -731,30 +733,13 @@ APPname='${APPname}'" >> ${PREFIXDIR1}${APPpath}/${APPname}
 # fi'
 #EOF
 
- #20211110 put up a msg...  20211201
+ #20211110 put up a msg...  20211201  20231217 remove msg.
  cat <<'EOF' >> ${PREFIXDIR1}${APPpath}/${APPname}
  DESKTOPCODE='FFUSER="$(stat -c %U /usr/lib/firefox)"
  if [ "$FFUSER" != "firefox" ];then
   chown firefox:firefox /usr/lib/firefox #without recursion.
   CR="
 "
-  if [ -f /usr/lib/firefox/distribution/policies.json ];then #20231105
-   case "${LANG/_*/}" in
-    de)
-     FFmsg1="NOTIZ:"
-     FFmsg2="Die Hardwarebeschleunigung wurde aus Stabilitätsgründen deaktiviert. Bearbeiten Sie zum Aktivieren /usr/lib/firefox/distribution/policies.json, starten Sie dann Firefox und aktivieren Sie es in den Einstellungen."
-    ;;
-    fr)
-     FFmsg1="AVIS:"
-     FFmsg2="Accélération matérielle a été désactivée pour plus de stabilité. Pour activer, modifiez /usr/lib/firefox/distribution/policies.json, puis démarrez Firefox et activez-le dans Paramètres."
-    ;;
-    *)
-     FFmsg1="NOTICE:"
-     FFmsg2="Hardware acceleration has been disabled for stability. To enable, edit /usr/lib/firefox/distribution/policies.json, then start Firefox and enable in Settings."
-    ;;
-   esac
-   popup "background=#F0C0F0 level=top terminate=15 timecount=dn name=ffmsg1|<big><b>${FFmsg1}</b>${CR}${FFmsg2}</big>"
-  fi
  fi'
  ALWAYSCODE='/usr/bin/firefox-pre-start #20231105'
 EOF
@@ -907,21 +892,27 @@ NONROOTMAINOPTS='--disable-features=AudioServiceSandbox' #20211007
  chmod 755 ${PREFIXDIR1}${APPpath}/${APPname}
    
  #setup default file open & download paths... 20211022... 20211213
- mkdir -p ${PREFIXDIR1}/root/.config/${APPname}/Default
- mkdir -p ${PREFIXDIR1}/home/${APPname}/.config/${APPname}/Default
- if [ -f ${PREFIXDIR1}/root/.config/${APPname}/Default/Preferences ];then
-  cp -f ${PREFIXDIR1}/root/.config/${APPname}/Default/Preferences ${PREFIXDIR1}/home/${APPname}/.config/${APPname}/Default/
+ if [ "$APPname" == "chrome" -a -e ${PREFIXDIR1}/root/.config/google-chrome ];then #20231215
+  APPname1='google-chrome'
+ else
+  APPname1='chrome'
  fi
- if [ ! -f ${PREFIXDIR1}/home/${APPname}/.config/${APPname}/Default/Preferences ];then
-  echo "{\"download\":{\"default_directory\":\"/files\",\"directory_upgrade\":true,\"prompt_for_download\":true},\"savefile\":{\"default_directory\":\"/files\"}}" > ${PREFIXDIR1}/home/${APPname}/.config/${APPname}/Default/Preferences
+ mkdir -p ${PREFIXDIR1}/root/.config/${APPname1}/Default
+ mkdir -p ${PREFIXDIR1}/home/${APPname}/.config/${APPname1}/Default
+ if [ -f ${PREFIXDIR1}/root/.config/${APPname1}/Default/Preferences ];then
+  cp -f ${PREFIXDIR1}/root/.config/${APPname1}/Default/Preferences ${PREFIXDIR1}/home/${APPname}/.config/${APPname1}/Default/
  fi
- if [ -f "${PREFIXDIR1}/root/.config/${APPname}/Local State" ];then #20231126
-  cp -f "${PREFIXDIR1}/root/.config/${APPname}/Local State" ${PREFIXDIR1}/home/${APPname}/.config/${APPname}/
+ if [ ! -f ${PREFIXDIR1}/home/${APPname}/.config/${APPname1}/Default/Preferences ];then
+  echo "{\"download\":{\"default_directory\":\"/files\",\"directory_upgrade\":true,\"prompt_for_download\":true},\"savefile\":{\"default_directory\":\"/files\"}}" > ${PREFIXDIR1}/home/${APPname}/.config/${APPname1}/Default/Preferences
+ fi
+ if [ -f "${PREFIXDIR1}/root/.config/${APPname1}/Local State" ];then #20231126
+  cp -f "${PREFIXDIR1}/root/.config/${APPname1}/Local State" ${PREFIXDIR1}/home/${APPname}/.config/${APPname1}/
  fi
  #in case want to go back to root...
- if [ ! -f ${PREFIXDIR1}/root/.config/${APPname}/Default/Preferences ];then
-  cp -f ${PREFIXDIR1}/home/${APPname}/.config/${APPname}/Default/Preferences ${PREFIXDIR1}/root/.config/${APPname}/Default/
+ if [ ! -f ${PREFIXDIR1}/root/.config/${APPname1}/Default/Preferences ];then
+  cp -f ${PREFIXDIR1}/home/${APPname}/.config/${APPname1}/Default/Preferences ${PREFIXDIR1}/root/.config/${APPname1}/Default/
  fi
+ 
  return 0
 }
 chromium_false() {
