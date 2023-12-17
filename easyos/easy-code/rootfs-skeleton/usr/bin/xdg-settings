@@ -1,5 +1,6 @@
 #!/bin/sh
 #20230627 from xdg-utils, modified.
+#20231217 for "set" may need to run this script twice, to set for user and globally. *NO*
 
 #---------------------------------------------
 #   xdg-settings
@@ -32,14 +33,15 @@
 #
 #---------------------------------------------
 
-#BK 20230627
+#BK 20230627 20231217 no.
 if [ "$1" == "set" ];then
  if [ "$(whoami)" != "root" ];then
-  if [ -x /usr/bin/sudo-sh ];then
-   exec sudo-sh ${PPID} ${0} ${@}
-  else
-   exec sudo -A ${0} ${@}
-  fi
+  #NO: see root/.config/mimeapps.list and code in 3buildeasydistro
+  ##an app running non-root may want to set a browser as default. need to do it
+  ##for both the user and globally. first, run as the user...
+  #/usr/bin/xdg-settings-orig ${@} &
+  #now bump to root to set globally...
+  exec sudo-sh ${PPID} ${0} ${@}
  fi
 fi
 
