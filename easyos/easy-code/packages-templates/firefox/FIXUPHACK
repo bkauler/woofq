@@ -327,10 +327,12 @@ sed -i '/autoDisableScopes/d' usr/lib/firefox/defaults/pref/vendor.js
 #' > usr/lib/firefox/distribution/policies.json
 
 #20231217
+#20231219 gmail open an email in new window was blocked; user_pref("dom.disable_open_during_load", false);
 mkdir -p etc/firefox/defaults/pref
 echo 'user_pref("browser.preferences.defaultPerformanceSettings.enabled", false);
 user_pref("layers.acceleration.disabled", true);
 user_pref("browser.shell.checkDefaultBrowser", false);
 user_pref("browser.shell.defaultBrowserCheckCount", 3);
 user_pref("browser.shell.didSkipDefaultBrowserCheckOnFirstRun", true);
-user_pref("app.update.auto", false);' > etc/firefox/defaults/pref/defaults.js
+user_pref("app.update.auto", false);
+user_pref("dom.disable_open_during_load", false);' > etc/firefox/defaults/pref/defaults.js
