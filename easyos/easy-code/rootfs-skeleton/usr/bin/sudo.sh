@@ -4,6 +4,7 @@
 #script that wants to run as root has code that runs sudo-sh (suid binary)
 # hence here. ex: /usr/sbin/bootmanager
 #20230630 type-hint="6", ref: https://oldforum.puppylinux.com/viewtopic.php?t=115554
+#20231218 added cancel button.
 
 export TEXTDOMAIN=sudo-sh
 export OUTPUT_CHARSET=UTF-8
@@ -65,6 +66,8 @@ if [ $DISPLAY ];then
      <variable>ALLOW_CHK</variable>
     </checkbox>
     <hbox>
+     <button space-expand=\"false\" space-fill=\"false\"><label>$(gettext 'Cancel')</label><action>exit:CANCEL</action></button>
+     <text space-expand=\"true\" space-fill=\"true\"><label>\"  \"</label></text>
      <button ok></button>
      <button><input file>/usr/local/lib/X11/mini-icons/mini-question.xpm</input><action type=\"launch\">DLG_HELP_SUDOSH</action></button>
     </hbox>
@@ -73,8 +76,11 @@ if [ $DISPLAY ];then
 </window>
 "
  RETVAL="$(gtkdialog --program=SUDOSH_DLG 2>/dev/null)"
- xRETVAL="$(echo "$RETVAL" | grep -E 'rootPW|ALLOW_CHK')"
+ xRETVAL="$(echo "$RETVAL" | grep -E 'rootPW|ALLOW_CHK|^EXIT')"
  eval "$xRETVAL"
+ if [ "$EXIT" == "CANCEL" ];then #20231218
+  exit 1
+ fi
 else
  echo >/dev/console
  echo -n "$(gettext 'Type admin password required to run this app:') " >/dev/console
