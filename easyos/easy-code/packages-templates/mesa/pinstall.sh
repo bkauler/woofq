@@ -13,7 +13,8 @@ else
  fi
 fi
 
-if [ -d ${PREFIX}dri ];then
+#20240114 this code messes up easyvoid; test hyperlink crocus_dri.so exists...
+if [ -d ${PREFIX}dri -a ! -h usr/lib/dri/crocus_dri.so ];then
  DRVS0="$(ls -1 ${PREFIX}dri)"
  
  while [ "$DRVS0" ];do

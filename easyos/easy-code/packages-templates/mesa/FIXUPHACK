@@ -52,3 +52,9 @@ if [ -e usr/lib/libGL.so.1 ];then
   cp -a usr/lib/libGL.so.1 usr/lib/libGLX.so.0
  fi
 fi
+
+#20240113 easyvoid
+#as far as i know, only wine uses direct3d. the lib is 26MB
+if [ -d usr/lib/d3d ];then
+ rm -rf usr/lib/d3d
+fi
