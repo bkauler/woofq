@@ -143,6 +143,12 @@ case $DISTRO_BINARY_COMPAT in #110705
   IGNORE_XSERVER_XORG='xserver-xorg xf86-input-evdev xf86-input-keyboard xf86-input-mouse xf86-input-synaptics xf86-video-fbdev xf86-video-intel xf86-video-vesa'
   PKG_NAME_IGNORE="alsa-state base-files base-passwd bash-completion gnome-themes-standard initscripts keymaps linux-quirky opkg-utils petget run-postinsts shadow shadow-securetty shadow-sysroot sysfiles sysklogd sysvinit-inittab update-rc.d update-rc xserver-nodm-init ${IGNORE_X11_PROTO} ${IGNORE_XORG_BASE}"
  ;;
+ void) #20240115
+  #this is a hack for now, as using dbus and dbus-glib from kirkstone.
+  # in that case, must not install these, ignore them if deps for any xbps pkg...
+  #also ignore gsfonts, which is a dep of gimp and inkscape ...
+  PKG_NAME_IGNORE="dbus-x11 dbus-libs gsfonts ${PKG_NAME_IGNORE}"
+ ;;
 esac
 case $DISTRO_FILE_PREFIX in #111003
  racy)

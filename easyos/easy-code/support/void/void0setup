@@ -1,7 +1,8 @@
-#!/bin/sh
+#!/bin/bash
 #041222 called from 0setup
 #20230902 remove any utf8 characters, puppy db doesn't like.
 #20230914 fix when in running easyos (curr. dir /root/.packages)
+#20240113 ONE_PKGLISTS_COMPAT exported from 0setup
 
 if [ -f ./DISTRO_SPECS ];then #20230914
 . ./DISTRO_SPECS #running woofq
@@ -17,7 +18,8 @@ case "${DISTRO_TARGETARCH}" in
 esac
 
 echo "Extracting the Void xml database from the archive"
-mv -f Packages-${DISTRO_BINARY_COMPAT}-${DISTRO_COMPAT_VERSION}pre ${TARGETARCH}-repodata.tar.zst
+#mv -f Packages-${DISTRO_BINARY_COMPAT}-${DISTRO_COMPAT_VERSION}pre ${TARGETARCH}-repodata.tar.zst
+mv -f ${ONE_PKGLISTS_COMPAT}pre ${TARGETARCH}-repodata.tar.zst
 rm *.plist 2>/dev/null
 tar --zstd -xf ${TARGETARCH}-repodata.tar.zst
 rm ${TARGETARCH}-repodata.tar.zst
@@ -26,5 +28,12 @@ iconv -c -f utf-8 -t ascii index.plist > index.plistFIXED
 mv -f index.plistFIXED index.plist
 echo
 echo "Converting the Void xml database to the Puppy PPM format (@JamesBond)"
-rm Packages-${DISTRO_BINARY_COMPAT}-${DISTRO_COMPAT_VERSION}
-${PRE}support/void/cvt.sh > Packages-${DISTRO_BINARY_COMPAT}-${DISTRO_COMPAT_VERSION}
+#20240113...
+#rm Packages-${DISTRO_BINARY_COMPAT}-${DISTRO_COMPAT_VERSION}
+#${PRE}support/void/cvt.sh > Packages-${DISTRO_BINARY_COMPAT}-${DISTRO_COMPAT_VERSION}
+rm -f ${ONE_PKGLISTS_COMPAT}
+${PRE}support/void/cvt.sh > ${ONE_PKGLISTS_COMPAT}
+grep -q 'nonfree' <<< ${ONE_PKGLISTS_COMPAT}
+if [ $? -eq 0 ];then
+ sed -i -e 's%[|]current[|]%|current/nonfree|%' ${ONE_PKGLISTS_COMPAT}
+fi

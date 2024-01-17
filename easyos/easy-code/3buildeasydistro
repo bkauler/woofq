@@ -312,6 +312,8 @@
 #20230925 rox-filer: usr/local/apps/ROX-Filer/Messages is a symlink, was getting changed to a folder.
 #20230930 previous 20230925 broken devx sfs, fixed.
 #20231217 set xdg default browser.
+#20240113 delete .po files in usr/share/locale
+#20240117 handle 6.x kernel.
 
 export LANG=C #faster.
 
@@ -500,8 +502,8 @@ else
  echo "The kernel pkg that you are using is: $KERNELPKG"
  echo "This is specified in variable DISTRO_KERNEL_PET in file DISTRO_SPECS."
  echo "Note, the linux_kernel PET needs to be in directory packages-pet."
- #110826
- KERNELVER="`tar --list -z -f packages-pet/${KERNELPKG} 2>/dev/null | grep -o '/lib/modules/[2345]\..*' | head -n 1 | cut -f 4 -d '/'`" #120502 hide error msg. 150704 4.x kernel. 190708 5.x kernel.
+ #110826 20240117 6.x kernel...
+ KERNELVER="`tar --list -z -f packages-pet/${KERNELPKG} 2>/dev/null | grep -o '/lib/modules/[23456]\..*' | head -n 1 | cut -f 4 -d '/'`" #120502 hide error msg. 150704 4.x kernel. 190708 5.x kernel.
  
  if [ "$KERNELVER" == "" ];then #20220108
   echo "Uh oh, it seems the kernel PET is missing."
@@ -5358,6 +5360,9 @@ done
 sync
 #20230222 code-block removed. rootfs-complete/usr/share/locale.in no longer exists
 
+#20240113 easyvoid; have some usr/share/locale/*/*.po
+find rootfs-complete/usr/share/locale -type f -name '*.po' -delete
+
 echo "Merge .xml.in to .xml ..."
 #20230215 there may be .xml.in files created via momanager, merge them...
 for aXML in $(find ../rootfs-skeleton/usr/local -type f -name '*.xml.in' | sed -e 's%\.\./rootfs-skeleton%%' | tr '\n' ' ')
@@ -5387,8 +5392,9 @@ echo "Creating ${DISTRO_NAME_SHORT,,}.sfs..."
 #rm -rf rootfs-complete/boot/* 2>/dev/null #20210113 keep.
 mkdir -p rootfs-complete/sys
 
+#20240117 6.x kernel...
 echo "depmod..."
-KERNELVER="$(find rootfs-complete/lib/modules -mindepth 1 -maxdepth 1 -type d -name '[2345].*' | head -n 1 | rev | cut -f 1 -d '/' | rev)" #190730 fix
+KERNELVER="$(find rootfs-complete/lib/modules -mindepth 1 -maxdepth 1 -type d -name '[23456].*' | head -n 1 | rev | cut -f 1 -d '/' | rev)" #190730 fix
 rm -f rootfs-complete/lib/modules/$KERNELVER/modules.*
 cp -a -f rootfs-complete/etc/modules/modules.builtin rootfs-complete/lib/modules/$KERNELVER/
 cp -a -f rootfs-complete/etc/modules/modules.order rootfs-complete/lib/modules/$KERNELVER/
@@ -6613,11 +6619,11 @@ Name=devx
 Exec=ec-chroot-devx
 Icon=ec-devx48.png
 Categories=X-Utility" > devx_${VER}_${DISTRO_TARGETARCH}/usr/share/applications/devx.desktop
- #run script...
- mkdir -p devx_${VER}_${DISTRO_TARGETARCH}/usr/sbin
+ #run script... 20240113 change sbin to bin...
+ mkdir -p devx_${VER}_${DISTRO_TARGETARCH}/usr/bin
  echo "#!/bin/sh
-empty -f ec-chroot devx sakura" > devx_${VER}_${DISTRO_TARGETARCH}/usr/sbin/ec-chroot-devx
- chmod 755 devx_${VER}_${DISTRO_TARGETARCH}/usr/sbin/ec-chroot-devx
+empty -f ec-chroot devx sakura" > devx_${VER}_${DISTRO_TARGETARCH}/usr/bin/ec-chroot-devx
+ chmod 755 devx_${VER}_${DISTRO_TARGETARCH}/usr/bin/ec-chroot-devx
  #***NOTICE*** haven't created .control/devx.configuration (190830: have /usr/local/easy_containers/templates/devx/configuration)
 fi
 sync

@@ -56,6 +56,7 @@
 #20230914 remove all reference to usr/local/debget
 #20230914 void: run everytime in pkgget, so have "q" on cmdline.
 #20230915 copy void pkg db back to woofq easy-distro
+#20240112 fix PROJECTPATH. 20240113 get void nonfree. 20240116 fix 20230915
 
 LANGORG="$(locale | grep '^LANG=' | cut -d '=' -f 2)" #121116
 export LANG=C #faster.
@@ -84,6 +85,7 @@ if [ -f ./DISTRO_SPECS ];then
  fi
 . ./PKGS_MANAGEMENT
 . ./DISTRO_PET_REPOS
+. ./PROJECTPATH #20240112
  RUNNINGPUP='no'
 else
  SPEC_DS="/etc/DISTRO_SPECS"
@@ -680,6 +682,7 @@ _EOF1
   ;;
   void) #20230901 from woof-ce testing
    echo "executing void0setup..."
+   export ONE_PKGLISTS_COMPAT #20240113
    if [ "$RUNNINGPUP" = "no" ];then
     support/void/void0setup
    else
@@ -716,6 +719,13 @@ _EOF1
  mv -f ${ONE_PKGLISTS_COMPAT}pre /tmp/ 2>/dev/null
  sort --field-separator='|' --key=1 ${ONE_PKGLISTS_COMPAT} > /tmp/$PKGLISTFILE
  mv -f /tmp/$PKGLISTFILE ${ONE_PKGLISTS_COMPAT}
+
+ if [ "$DISTRO_BINARY_COMPAT" == "void" ];then #20230915  20240116 moved up, as to copy both db's.
+  if [ "$RUNNINGPUP" == "no" ];then
+   cp -a -f ${ONE_PKGLISTS_COMPAT} ${PROJECTPATH}/easy-distro/${DISTRO_TARGETARCH}/void/current/
+  fi
+ fi
+
 done
 echo
 
@@ -875,12 +885,6 @@ if [ "$DISTRO_BINARY_COMPAT" == "slackware" ];then
    cp -f ${pkgDB} /tmp/0setup_tmp/${pkgDB}prev
    cp -f /tmp/0setup_tmp/${pkgDB} ${pkgDB}
   done
- fi
-fi
-
-if [ "$DISTRO_BINARY_COMPAT" == "void" ];then #20230915
- if [ "$RUNNINGPUP" = "no" ];then
-  cp -a -f ${ONE_PKGLISTS_COMPAT} ${PROJECTPATH}/easy-distro/${DISTRO_TARGETARCH}/void/current/
  fi
 fi
 
