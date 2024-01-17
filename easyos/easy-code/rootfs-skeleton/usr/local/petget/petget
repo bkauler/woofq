@@ -266,7 +266,7 @@ export INSTALL_DIALOG="<window title=\"$(gettext 'PKGget Package Manager')\" ico
    </hbox>
   </vbox>
  </window>" 
-RETPARAMS="`gtkdialog --program=INSTALL_DIALOG`"
+RETPARAMS="`gtkdialog --program=INSTALL_DIALOG --center`"
 eval "$RETPARAMS"
 [ "$EXIT" != "OK" ] && exit
 
@@ -314,7 +314,7 @@ if [ $RETVAL -ne 0 -o ! -s /tmp/petget-installed-pkgs-log ];then
    </hbox>
   </vbox>
  </window>" 
- gtkdialog --program=FAIL_DIALOG
+ gtkdialog --program=FAIL_DIALOG --center
  exit
 fi
 
@@ -385,7 +385,7 @@ export INSTALL_DIALOG="<window title=\"$(gettext 'PKGget Package Manager')\" ico
  </vbox>
 </window>
 "
-gtkdialog --program=INSTALL_DIALOG
+gtkdialog --program=INSTALL_DIALOG --center
 
 RESTARTMSG="$(gettext 'Please wait, updating help page and menu...')"
 if [ "`pidof jwm`" != "" ];then #120101

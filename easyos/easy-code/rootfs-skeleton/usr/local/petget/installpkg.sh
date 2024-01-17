@@ -90,6 +90,7 @@
 #20230831 support Void Linux .xbps pkg.
 #20230904 set xARCHDIR
 #20230918 got rid of remnants of EasyPak, DEBSHERE, eppm
+#20240114 fix 20230708
 
 #information from 'labrador', to expand a .pet directly to '/':
 #NAME="a52dec-0.7.4"
@@ -156,7 +157,7 @@ install_path_check() {
   </hbox>
   </vbox>
   </window>"
-  RETPARAMS=`gtkdialog3 --program=DIALOG` || echo "$DIALOG" >&2
+  RETPARAMS=`gtkdialog --program=DIALOG --center` || echo "$DIALOG" >&2
   eval "$RETPARAMS"
   LANG=C
   [ "$EXIT" = "INSTALL" ]  && return 0
@@ -508,7 +509,7 @@ if [ "$DIRECTSAVEPATH" ];then #131230
     ppPATTERN="s%/tmp/petget/template%${DIRECTSAVEPATH}%"
     TARGETPATH="`echo -n "$TEMPLATEPATH" | sed -e "$ppPATTERN"`"
     mkdir -p $TARGETPATH
-    TMPPATH="`echo -n "$TEMPLATEPATH" | sed -e 's%/tmp/template%/tmp/original%'`"
+    TMPPATH="$(echo -n "$TEMPLATEPATH" | sed -e 's%/tmp/petget/template%/tmp/petget/original%')" #20240114 fix.
     #bit radical, but if dir in template has one or more files, truncate those in target...
     if [ ! -f $TEMPLATEPATH/PLUSEXTRAFILES ];then #marker-file, that all files in deb to be kept.
      #for ONEDEL in `find ${TARGETPATH} -maxdepth 1 -type f` #ignore symlinks.

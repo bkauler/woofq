@@ -65,6 +65,7 @@
 #20231001 enable/disable Internet-Connection-Wizard.desktop  20231011 pgprs-connect.desktop
 #20231103 rc.update: change how test exist /.sfschg.flg: as passed flag.
 #20231214 some code deletes .desktop files moved to initrd.
+#20240115 create symlink /var/service to /etc/service, for runit.
 
 #unset TZ #100319 busybox hwclock gives priority to this (rather than /etc/localtime) and 'init' has set it wrong.
 #...comment-out for now. note, TZ now set in rc.country.
@@ -283,6 +284,9 @@ if [ -d /var/run ];then #20221102
  fi
 fi
 ln -snf /tmp/run /var/run
+
+#for easyvoid
+ln -snf /etc/service /var/service
 
 #redirect all output to a log file (must do after remount rw)... 11214 moved down.
 [ ! "$LOGLEVEL" ] && exec 1>/tmp/bootsysinit.log 2>&1

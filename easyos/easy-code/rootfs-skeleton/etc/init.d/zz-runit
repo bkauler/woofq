@@ -1,0 +1,25 @@
+#!/bin/ash
+#20240115 easyvoid uses pup_event to manage running services.
+# however, a symlink /etc/service/<service> to /etc/sv/<service>
+# can be handled by the runsvdir daemon. runit has very inefficient
+# polling, so only run daemon if there is something in /etc/service
+
+if [ ! -x /usr/bin/runsvdir ];then
+ exit
+fi
+
+[ -z "$(find /etc/service -mindepth 1 -maxdepth 1)" ] && exit
+
+case "$1" in
+ start)
+  runsvdir -P /etc/service &
+ ;;
+ stop)
+  killall runsvdir
+ ;;
+ restart)
+  killall runsvdir
+  sleep 3
+  runsvdir -P /etc/service &
+ ;;
+esac

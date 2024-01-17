@@ -1,29 +1,39 @@
-#!/bin/sh
+#!/bin/bash
 #(c) Copyright Barry kauler 2017. license gpl v3 (ref: /usr/share/doc/legal).
 #for a tarball, such as *.tar.xz, could be a pkg to install, or could be source.
 #in former case, offer to install. latter, open in Xarchive.
-#200711 update. add zstd, bzip2, gz.
+#200711 update. add zstd, bzip2, gz. 
+#20240113 add .xbps, some code rewritten.
 
 PKGSPEC="$@"
 [ ! -f "$PKGSPEC" ] && exit 1
 
 #oe builds, binary pkgs are .tar.xz
 case "$PKGSPEC" in
- *.tar.xz|*.txz|*.tar.zstd|*.tar.zst|*.tar.bz2|*.tbz2|*.tar.gz|*.tgz) #200711
+ *.tar.xz|*.txz|*.tar.zstd|*.tar.zst|*.tar.bz2|*.tbz2|*.tar.gz|*.tgz|*.xbps)
   #-t = --list, -J = --xz
   #PFILES="$(tar -t -J -f "$PKGSPEC")"
-  PFILES="$(tar -t -f "$PKGSPEC")" #200711
-  PKGflg="$(echo "$PFILES" | grep -E '^usr/|^opt/|^dev/|^lib/|^bin/|^sbin/|^boot/|^include/|^root/|^var/')"
-  if [ "$PKGflg" ];then
+  if [ "${PKGSPEC##*.}" == "xbps" ];then
+   PFILES="$(tar --zstd -t -f "$PKGSPEC")"
+  else
+   PFILES="$(tar -t -f "$PKGSPEC")"
+  fi
+  grep -q -E '^usr/|^opt/|^dev/|^lib/|^bin/|^sbin/|^boot/|^include/|^root/|^var/' <<<${PFILES}
+  FLG1=$?
+  grep -q -E '^\./usr/|^\./opt/|^\./dev/|^\./lib/|^\./bin/|^\./sbin/|^\./boot/|^\./include/|^\./root/|^\./var/' <<<${PFILES}
+  FLG2=$?
+  if [ $FLG1 -eq 0 -o $FLG2 -eq 0 ];then
    NAMEONLY="$(basename "$PKGSPEC")"
    pupdialog --backtitle "${NAMEONLY}" --background "#FFC080" --yes-label "Install" --no-label "Xarchive" --yesno "Choose whether to install, or open in Xarchive" 0 0
    if [ $? -eq 0 ];then
     exec petget "$PKGSPEC"
    else
-    exec pupzip "$PKGSPEC"
+    #exec pupzip "$PKGSPEC"
+    exec xarchive "$PKGSPEC"
    fi
   else
    exec pupzip "$PKGSPEC"
   fi
  ;;
 esac
+###end###
