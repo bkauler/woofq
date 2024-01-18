@@ -1,6 +1,7 @@
 #!/bin/sh
 # JWMDesk - define current desktop themes in JWM environment
 #20230523 some woof-ce stuff removed.
+#20240118 now have global /etc/gtk-3.0/settings.ini
 
 export TEXTDOMAIN=easyjwm
 export OUTPUT_CHARSET=UTF-8
@@ -12,10 +13,10 @@ export OUTPUT_CHARSET=UTF-8
  CURRENT_WALLPAPER=$(cat $HOME/.config/wallpaper/bg_img 2>/dev/null | awk -F'/' '{print $NF}')
  [ ! "$CURRENT_WALLPAPER" ] && CURRENT_WALLPAPER="NA"
 
-# GTK3 theme
- if [ -e "$HOME/.config/gtk-3.0/settings.ini" ]; then
-  if [ "`grep 'gtk-theme-name' $HOME/.config/gtk-3.0/settings.ini 2>/dev/null`" ] ; then
-   THEME=$(grep 'gtk-theme-name' $HOME/.config/gtk-3.0/settings.ini | cut -d '=' -f2 | awk '{$1=$1};1')
+# GTK3 theme  20240118
+ if [ -e "/etc/gtk-3.0/settings.ini" ]; then
+  if [ "`grep 'gtk-theme-name' /etc/gtk-3.0/settings.ini 2>/dev/null`" ] ; then
+   THEME=$(grep 'gtk-theme-name' /etc/gtk-3.0/settings.ini | cut -d '=' -f2 | awk '{$1=$1};1')
    [ "$THEME" ] && CURRENT_GTK3THEME=$THEME || CURRENT_GTK3THEME="NA"
   else
    CURRENT_GTK3THEME="NA"
@@ -50,8 +51,8 @@ JWMTHEME="$(gettext 'JWM Theme'):"
   else
    CURRENT_GTKICONS="NA"
   fi
- elif [[ $(grep -a 'gtk-icon-theme-name' $HOME/.config/gtk-3.0/settings.ini 2>/dev/null) ]]; then
-  GTK_ICON_THEME=$(grep -a 'gtk-icon-theme-name' $HOME/.config/gtk-3.0/settings.ini | cut -d '=' -f2 | awk '{$1=$1};1')
+ elif [[ $(grep -a 'gtk-icon-theme-name' /etc/gtk-3.0/settings.ini 2>/dev/null) ]]; then
+  GTK_ICON_THEME=$(grep -a 'gtk-icon-theme-name' /etc/gtk-3.0/settings.ini | cut -d '=' -f2 | awk '{$1=$1};1')
   if [ "$GTK_ICON_THEME" ]; then
    CURRENT_GTKICONS="$GTK_ICON_THEME"
   else

@@ -66,6 +66,7 @@
 #20231213 firefox: fix start 2nd instance. ref: https://discourse.mozilla.org/t/how-does-firefox-discover-a-running-instance-to-connect-to/109957
 #20231215 chrome fix.
 #20231217 ff: remove hardware accel has been disabled popup msg.
+#20240118 now have global /etc/gtk-3.0/settings.ini
 
 APPname="${1/=*/}"  #ex: seamonkey
 APPflag="${1/*=/}" #ex: true
@@ -175,12 +176,13 @@ CHGflg=0 #20210916  20210918 revert 20210917...
    #20230528 if admin creates files/folders, setgid so they will be group $APPname...
    chmod 2700 ${PREFIXDIR1}/home/${APPname}
   fi
-  if [ ! -d ${PREFIXDIR1}/home/${APPname}/.config/gtk-3.0 ];then #20210927
-   CHGflg=1 #20211103
-   mkdir -p ${PREFIXDIR1}/home/${APPname}/.config/gtk-3.0
-   cp -f /root/.config/gtk-3.0/settings.ini ${PREFIXDIR1}/home/${APPname}/.config/gtk-3.0/
-   cp -f /root/.config/gtk-3.0/gtk.css ${PREFIXDIR1}/home/${APPname}/.config/gtk-3.0/
-  fi
+  #20240118 no longer need this, as have global /etc/gtk-3.0/settings.ini ...
+  #if [ ! -d ${PREFIXDIR1}/home/${APPname}/.config/gtk-3.0 ];then #20210927
+  # CHGflg=1 #20211103
+  # mkdir -p ${PREFIXDIR1}/home/${APPname}/.config/gtk-3.0
+  # cp -f /root/.config/gtk-3.0/settings.ini ${PREFIXDIR1}/home/${APPname}/.config/gtk-3.0/
+  # cp -f /root/.config/gtk-3.0/gtk.css ${PREFIXDIR1}/home/${APPname}/.config/gtk-3.0/
+  #fi
   
   if [ ! -e ${PREFIXDIR1}/home/${APPname}/.config/pulse/client.conf ];then #20211103
    #20211103 pulseaudio work in client... ref: http://billauer.co.il/blog/2014/01/pa-multiple-users/
