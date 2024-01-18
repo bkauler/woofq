@@ -314,6 +314,9 @@
 #20231217 set xdg default browser.
 #20240113 delete .po files in usr/share/locale
 #20240117 handle 6.x kernel.
+#20240118 change logo color. choices: blue, green, grey, orange
+#20240118 /root/.config/gtk-3.0/settings.ini moved to /etc/gtk-3.0/. also gtk2 global gtkrc
+#20240118 set default gtk3 font.
 
 export LANG=C #faster.
 
@@ -2564,6 +2567,9 @@ include \"/root/.gtkrc.mine\"
 # -- THEME AUTO-WRITTEN DO NOT EDIT
 gtk-theme-name=\"${GTKTHEME}\"" > rootfs-complete/root/.gtkrc-2.0
 
+#20240118 also have global...
+cp -a -f rootfs-complete/root/.gtkrc-2.0 rootfs-complete/etc/gtk-2.0/gtkrc
+
 #190910...
 ##130401 01micko...
 ## gtk3 theme support thunor http://murga-linux.com/puppy/viewtopic.php?p=695722#695722
@@ -2578,8 +2584,13 @@ gtk-theme-name=\"${GTKTHEME}\"" > rootfs-complete/root/.gtkrc-2.0
 #fi
 if [ "$DEFAULT_THEME_GTK3" ];then #see file 'default-theme'
  #ex: gtk_theme_clearlooks_overcast:Clearlooks-Overcast
- #this file is in rootfs-skeleton...
- sed -i -e "s%^gtk-theme-name .*%gtk-theme-name = ${DEFAULT_THEME_GTK3/*:/}%" rootfs-complete/root/.config/gtk-3.0/settings.ini
+ #this file is in rootfs-skeleton... 20240118...
+ sed -i -e "s%^gtk-theme-name .*%gtk-theme-name = ${DEFAULT_THEME_GTK3/*:/}%" rootfs-complete/etc/gtk-3.0/settings.ini
+fi
+
+#20240118 file default-theme has this...
+if [ "$DEFAULT_GTK3_FONT_NAME" ];then
+ sed -i -e "s%^gtk-font-name .*%gtk-font-name = ${DEFAULT_GTK3_FONT_NAME}%" rootfs-complete/etc/gtk-3.0/settings.ini
 fi
 
 #echo
@@ -3837,6 +3848,12 @@ if [ "$dpisizeflag" ];then #130512 scsijon: fix size...
  fsPTN='s%^Xft\.dpi:.*%Xft.dpi: '"${dpisizeflag}%"
  sed -i -e "$fsPTN" rootfs-complete/root/.Xresources
  echo "...ok, dpi now ${dpisizeflag}"
+fi
+
+#20240118 change logo color... choices: blue, green, grey, orange
+if [ "$DEFAULT_THEME_BASE_COLOR" != "" ];then #in file default-theme
+ cp -a -f rootfs-complete/usr/share/doc/colors/${DEFAULT_THEME_BASE_COLOR}/easy48.png rootfs-complete/usr/share/doc/easy48.png
+ cp -a -f rootfs-complete/usr/share/doc/colors/${DEFAULT_THEME_BASE_COLOR}/easy96.png rootfs-complete/usr/share/doc/easy96.png
 fi
 
 #130226 wary: /usr/bin/X was missing...
