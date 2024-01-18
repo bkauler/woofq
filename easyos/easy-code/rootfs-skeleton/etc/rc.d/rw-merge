@@ -11,7 +11,7 @@
 #20220614 .session/.sfschg.flg created in initrd, erased in rc.sysinit, but top-level doesn't flush down.
 #20220626 constrain sub-folder (/mnt/.easy_rw/sub-folder) optional $2. now called from easy-version-control. 20220627 fixes.
 #20220907 /var no longer a symlink. ref: rc.sysinit  20220918
-#20221102 exclude /var/lock
+#20221102 exclude /var/lock  20240118 exclude /var/lib/flatpak
 
 export LANG=C
 . /etc/rc.d/PUPSTATE
@@ -119,7 +119,8 @@ _END2
  #tar -cpf - --exclude={./files,./dev,./mnt,./var,./run,./.*,*/.cache,./proc,./sys,./tmp} --one-file-system . | tar -xf - -C ${DEST} --overwrite --warning=none
  #...seems need bash for this exclude pattern. this works...
  #20221102 add /var/lock
- tar -cpf - --exclude='./files' --exclude='./dev' --exclude='./mnt' --exclude=${VAREXC} ${VARREXC} --exclude='./run' --exclude='./.*' --exclude='*/.cache' --exclude='./proc' --exclude='./sys' --exclude='./tmp' --exclude='./lost+found' --exclude='./root/.XLOADED' --exclude='./var/lock' --one-file-system . | tar -xf - -C ${DEST} --overwrite --warning=none
+ #20240118 add /var/lib/flatpak, as it is a symlink to /mnt/wkg/flatpak (see rc.sysinit)
+ tar -cpf - --exclude='./files' --exclude='./dev' --exclude='./mnt' --exclude=${VAREXC} ${VARREXC} --exclude='./run' --exclude='./.*' --exclude='*/.cache' --exclude='./proc' --exclude='./sys' --exclude='./tmp' --exclude='./lost+found' --exclude='./root/.XLOADED' --exclude='./var/lock' --exclude='./var/lib/flatpak' --one-file-system . | tar -xf - -C ${DEST} --overwrite --warning=none
 done
 sync
 
