@@ -6,3 +6,9 @@
 if [ -d etc/profile.d ];then
  rm -rf etc/profile.d
 fi
+
+#20240118 in oe, this path is compiled-in in the recipe. for easyvoid need to set...
+# note: see also rc.sysinit 20240118
+mkdir -p etc/profile.d
+echo '#20240118 in oe, this path is compiled-in in the recipe. for easyvoid need to set
+export FLATPAK_SYSTEM_DIR=/mnt/wkg/flatpak' > etc/profile.d/flatpak

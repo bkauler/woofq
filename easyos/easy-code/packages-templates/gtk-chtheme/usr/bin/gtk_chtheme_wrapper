@@ -5,6 +5,8 @@
 #130401 01micko: preliminary gtk3 support.
 #130404 01micko: link to actual theme.
 #190910 gtk3 support, not a link.
+#20240118 /root/.config/gtk-3.0/settings.ini moved to /etc/gtk-3.0/
+#20240118 also have global /etc/gtk-2.0/gtkrc
 
 gtk-chtheme
 
@@ -31,9 +33,12 @@ if [ "$THEREBEFORE" = "" ];then
  # ln -snf "$pathGTK3THEME" ${XDG_CONFIG_HOME}/gtk-3.0
  #fi
 fi
-if ! grep "${CURRGTKTHEME}" /root/.config/gtk-3.0/settings.ini >/dev/null ; then #190910
+#20240118...
+cp -a -f /root/.gtkrc-2.0 /etc/gtk-2.0/gtkrc
+#20240118...
+if ! grep "${CURRGTKTHEME}" /etc/gtk-3.0/settings.ini >/dev/null ; then #190910
  if [ -d /usr/share/themes/${CURRGTKTHEME}/gtk-3.0 ];then
-  sed -i -e "s%^gtk-theme-name .*%gtk-theme-name = ${CURRGTKTHEME}%" /root/.config/gtk-3.0/settings.ini
+  sed -i -e "s%^gtk-theme-name .*%gtk-theme-name = ${CURRGTKTHEME}%" /etc/gtk-3.0/settings.ini
  fi
 fi
 
