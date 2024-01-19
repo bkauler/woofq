@@ -317,6 +317,7 @@
 #20240118 change logo color. choices: blue, green, grey, orange
 #20240118 /root/.config/gtk-3.0/settings.ini moved to /etc/gtk-3.0/. also gtk2 global gtkrc
 #20240118 set default gtk3 font.
+#20240119 hack, remove /var/lib/flatpak, as rc.sysinit creates symlink.
 
 export LANG=C #faster.
 
@@ -5379,6 +5380,15 @@ sync
 
 #20240113 easyvoid; have some usr/share/locale/*/*.po
 find rootfs-complete/usr/share/locale -type f -name '*.po' -delete
+
+#20240119 hack, do not know what created /var/lib/flatpak, but rc.sysinit creates symlink...
+if [ -d rootfs-complete/var/lib/flatpak ];then
+ if [ -h rootfs-complete/var/lib/flatpak ];then
+  rm -f rootfs-complete/var/lib/flatpak
+ else
+  rm -rf rootfs-complete/var/lib/flatpak
+ fi
+fi
 
 echo "Merge .xml.in to .xml ..."
 #20230215 there may be .xml.in files created via momanager, merge them...

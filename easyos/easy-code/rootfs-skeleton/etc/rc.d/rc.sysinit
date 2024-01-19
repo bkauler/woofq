@@ -286,10 +286,20 @@ if [ -d /var/run ];then #20221102
 fi
 ln -snf /tmp/run /var/run
 
-#for easyvoid
+#20240117 for easyvoid
+if [ -d /var/service ];then #20240119 precaution, in case it somehow got created.
+ if [ ! -h /var/service ];then
+  rm -rf /var/service
+ fi
+fi
 ln -snf /etc/service /var/service
 #20240118 easyvoid: have set system path in /etc/profile.d/flatpak,
 # however shotcut ignores that variable. have to also do this...
+if [ -d /var/lib/flatpak ];then #precaution, in case it somehow got created.
+ if [ ! -h /var/lib/flatpak ];then
+  rm -rf /var/lib/flatpak
+ fi
+fi
 ln -snf /mnt/wkg/flatpak /var/lib/flatpak
 
 #redirect all output to a log file (must do after remount rw)... 11214 moved down.
