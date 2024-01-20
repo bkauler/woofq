@@ -15,6 +15,7 @@
 #20230619 remove runtimes and extensions that are not used by any installed applications.
 #20230701 fix when cannot register with flathub.org
 #20231213 firefox: fix start 2nd instance. ref: https://discourse.mozilla.org/t/how-does-firefox-discover-a-running-instance-to-connect-to/109957
+#20240120 fix start and stop client dbus-daemon
 
 if [ "$(whoami)" != "root" ];then
  if [ -x /usr/bin/sudo-sh ];then
@@ -134,6 +135,7 @@ do
   *diy_fever.DIYLayoutCreator) aFP='DIYLC' ;;
   *spotify.Client) aFP='Spotify' ;;
   *torbrowser-launcher) aFP='Tor' ;;
+  *UngoogledChromium) aFP='UnGoogled' ;;
  esac
  
  #20230510 custom
@@ -363,6 +365,7 @@ case "${aAPP}" in
  Stremio) TRIPLET='com.stremio.Stremio'; MENUcat='X-Multimedia-mediaplayer'; MENUtop='Multimedia'; MENUname='Stremio streaming media player'; ;;
  GnuCash) TRIPLET='org.gnucash.GnuCash'; MENUcat='X-Business-finance'; MENUtop='Business'; MENUname='GnuCash accounting software'; ;;
  Tor) TRIPLET='com.github.micahflee.torbrowser-launcher'; MENUcat='X-Internet-browser'; MENUtop='Internet'; MENUname='Tor secure web browser'; ;;
+ UnGoogled) TRIPLET='com.github.Eloston.UngoogledChromium'; MENUcat='X-Internet-browser'; MENUtop='Internet'; MENUname='Un-Googled Chromium web browser' ;;
  ZZZ) TRIPLET=''; MENUcat=''; MENUtop=''; MENUname=''; ;;
 esac
 
@@ -582,10 +585,10 @@ fi
 #but want to be able to open with any file via right-click menu in rox...
 #20230505 make qt fonts bigger "--env=QT_SCALE_FACTOR=1.2"
 # same for gtk " --env=GDK_DPI_SCALE=1.2"  20230516 reduce both to 1.1
-#20231213 prevent 2nd instance dbus-daemon...
+#20231213 prevent 2nd instance dbus-daemon... 20240120 fix...
 echo "#!/bin/sh
 APPlow=\"${aAPP,,}\"
-busybox ps | grep -q '${APPlow:0:8}.*dbus\-daemon'
+busybox ps | grep -q ' \${APPlow:0:8}.*dbus\-daemon'
 DBUSflg=\$?
 if [ \$DBUSflg -ne 0 ];then
  export \$(dbus-launch) #if app needs to access dbus.
@@ -599,7 +602,8 @@ else
 fi
 export XDG_DATA_DIRS=/mnt/wkg/flatpak/exports/share:/home/${aAPP,,}/.local/share/flatpak/exports/share:${XDG_DATA_DIRS} #need to fool flatpak.
 flatpak run --env=GDK_DPI_SCALE=1.1 --env=QT_SCALE_FACTOR=1.1 --filesystem=host --socket=system-bus --socket=cups --socket=ssh-auth --socket=session-bus ${TRIPLET}
-if [ \$DBUSflg -ne 0 ];then
+pidof -o \${$} \${APPlow}.bin >/dev/null
+if [ \$? -ne 0 ];then
  kill \$DBUS_SESSION_BUS_PID
  rm -f \${HOME}/.DBUS-DAEMON-VARS 2>/dev/null
 fi
