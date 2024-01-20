@@ -318,6 +318,7 @@
 #20240118 /root/.config/gtk-3.0/settings.ini moved to /etc/gtk-3.0/. also gtk2 global gtkrc
 #20240118 set default gtk3 font.
 #20240119 hack, remove /var/lib/flatpak, as rc.sysinit creates symlink.
+#20240120 fix usrmerge in devx.
 
 export LANG=C #faster.
 
@@ -6504,7 +6505,8 @@ fi
 #20220125 arch-linux, make sure libs are symlinks...
 if [ "$DISTRO_BINARY_COMPAT" == "arch" -o "$DISTRO_BINARY_COMPAT" == "void" ];then #20220121 20230903
  cd devx_${VER}_${DISTRO_TARGETARCH}
- for aLIB in lib lib64 usr/lib64
+ #20240120 fix...
+ for aLIB in lib lib64 #20240120 removed usr/lib64
  do
   if [ -d $aLIB ];then
    if [ ! -h $aLIB ];then
@@ -6530,10 +6532,37 @@ if [ "$DISTRO_BINARY_COMPAT" == "arch" -o "$DISTRO_BINARY_COMPAT" == "void" ];th
    ln -snf -r usr/lib ${aLIB}
   fi
  done
+
+ for aLIB in usr/lib64 #20240120
+ do
+  if [ -d $aLIB ];then
+   if [ ! -h $aLIB ];then
+    #do extra checking...
+    #cp -a ${aLIB}/* usr/lib/
+    for aF in `find ${aLIB} -mindepth 1 -maxdepth 1`
+    do
+     [ "$aF" == "" ] && continue
+     if [ -h "$aF" ];then
+      if [ ! -e usr/lib/${aF/*\//} ];then #instead of using cp -n (no clobber)
+       cp -a $aF usr/lib/
+      fi
+     else
+      cp -a -f --remove-destination $aF usr/lib/
+     fi
+    done
+    rm -rf ./${aLIB}
+    ln -s -r lib ${aLIB}
+   else
+    ln -snf -r lib ${aLIB}
+   fi
+  else
+   ln -snf -r lib ${aLIB}
+  fi
+ done
  
- #do bin folders also...
+ #do bin folders also... 20240120 fix...
  mkdir -p usr/bin
- for aBIN in bin sbin usr/sbin
+ for aBIN in bin sbin #20240120 removed usr/sbin
  do
   if [ -d ${aBIN} ];then
    if [ ! -h ${aBIN} ];then
@@ -6558,6 +6587,31 @@ if [ "$DISTRO_BINARY_COMPAT" == "arch" -o "$DISTRO_BINARY_COMPAT" == "void" ];th
    fi
   else #redundant
    ln -snf usr/bin ${aBIN}
+  fi
+ done
+
+ for aBIN in usr/sbin #20240120
+ do
+  if [ -d ${aBIN} ];then
+   if [ ! -h ${aBIN} ];then
+    for aF in `find ${aBIN} -mindepth 1 -maxdepth 1`
+    do
+     [ "$aF" == "" ] && continue
+     if [ -h "$aF" ];then
+      if [ ! -e usr/bin/${aF/*\//} ];then #instead of using cp -n (no clobber)
+       cp -a $aF usr/bin/ #-n  is no clobber
+      fi
+     else
+      cp -a -f --remove-destination $aF usr/bin/
+     fi
+    done
+    rm -rf ./${aBIN}
+    ln -s -r bin ${aBIN}
+   else #redundant
+    ln -snf bin ${aBIN}
+   fi
+  else #redundant
+   ln -snf bin ${aBIN}
   fi
  done
 
