@@ -314,11 +314,12 @@
 #20231217 set xdg default browser.
 #20240113 delete .po files in usr/share/locale
 #20240117 handle 6.x kernel.
-#20240118 change logo color. choices: blue, green, grey, orange
+#20240118 change logo color. choices: blue, green, grey, orange. 20240121
 #20240118 /root/.config/gtk-3.0/settings.ini moved to /etc/gtk-3.0/. also gtk2 global gtkrc
 #20240118 set default gtk3 font.
 #20240119 hack, remove /var/lib/flatpak, as rc.sysinit creates symlink.
 #20240120 fix usrmerge in devx.
+#20240121 run void post-install scripts in devx.
 
 export LANG=C #faster.
 
@@ -3857,6 +3858,7 @@ if [ "$DEFAULT_THEME_BASE_COLOR" != "" ];then #in file default-theme
  cp -a -f rootfs-complete/usr/share/doc/colors/${DEFAULT_THEME_BASE_COLOR}/easy48.png rootfs-complete/usr/share/doc/easy48.png
  cp -a -f rootfs-complete/usr/share/doc/colors/${DEFAULT_THEME_BASE_COLOR}/easy96.png rootfs-complete/usr/share/doc/easy96.png
 fi
+rm -rf rootfs-complete/usr/share/doc/colors #20240121
 
 #130226 wary: /usr/bin/X was missing...
 if [ ! -e rootfs-complete/usr/bin/X ];then
@@ -6169,6 +6171,16 @@ do
  fi
 done
 sync
+
+#20240121 2createpackages accumulated INSTALL:${DB_nameonly}:${DB_version}
+if [ "${DISTRO_BINARY_COMPAT}" = "void" ]; then
+ echo 'Running Void post-install scripts in devx...'
+ cp -a ./support/void/accum-install.sh layer_top/
+ chroot layer_top /accum-install.sh
+ rm -f layer_top/accum-install.sh
+ sync
+fi
+
 umount layer_top
 rm -rf tempwork 2>/dev/null #160902
 rmdir layer_top
