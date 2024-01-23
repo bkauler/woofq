@@ -1,0 +1,160 @@
+#create_savefile_func()
+S001='Luodaan tallennustiedostoa easysave.ext4...'
+
+#exit_to_initrd()
+S002='Line'
+S003='Huomautus 1: Kirjoita "exit", aloitusskripti yrittää jatkaa.'
+S004='Huomautus 2: Joissakin tietokoneissa näppäimistö ei toimi käynnistyksen tässä vaiheessa.'
+S005='Huomautus 3: jos "ctrl-alt-del" ei toimi, sammuta virta pitämällä virtapainiketta painettuna.'
+S006='Huomautus 4: Konsolin tekstieditori "mp" on saatavilla.'
+S007='Huomautus 5: Konsolin tiedostonhallinta "shfm": Navigoi nuolinäppäimillä "!" kutea'
+S008=' kuori, "?" popup help, "q" lopettaaksesi. Ohjetiedosto on "/shfm.txt"'
+S009='Huomautus 6: Konsolin tiedostonhallinta "nnn": Samat avaimet. Ohjetiedosto "/nnn.txt"'
+
+#err_exit()
+S010='VIRHE:'
+S011='Olet nyt pudonnut kuoreen initramfsissa.'
+S012='Paina näppäinyhdistelmää CTRL-ALT-DEL käynnistääksesi uudelleen,'
+S013='tai SAMMUTA PIDÄ VIRTAPAINIKE'
+S014='Seuraavat ohjeet ovat vain kehittäjille:'
+
+#ask_kb()
+S015='Syötä numero, joka vastaa näppäimistöasetteluasi.'
+S016='Valitse lähin vastaavuus, voit hienosäätää asettelua työpöydän latautumisen jälkeen. Paina ENTER vain Yhdysvalloissa.'
+S017='Huomaa: joissakin tietokoneissa näppäimistö ei toimi käynnistyksen tässä vaiheessa. Odota siinä tapauksessa 5 minuuttia käynnistystä.'
+S018='Näppäimistön asettelu:'
+S019='...ok, näppäinkartta valittu:'
+
+#menu_func()
+S020='Älä tee mitään, palaa syöttämään salasana'
+S021='Poista lukitus, palauta normaali käynnistys'
+S022='Käynnistys vain komentoriville, ei X'
+S023='Palautus viimeiseen tallennettuun istuntoon'
+S024='Palautus koskemattomaan ensimmäiseen käynnistykseen'
+S025='Työosion tiedostojärjestelmän tarkistus'
+S026='Paina ENTER-näppäintä tai odota 15 sekuntia normaalia käynnistystä'
+S027='Kirjoita numero vasemmasta sarakkeesta:'
+S028='...olet valinnut normaalin käynnistyksen palauttamisen; kuitenkin,'
+S029='normaali käynnistys palautetaan SEURAAVANA käynnistyksen yhteydessä'
+S030='...käynnistyy komentoriville, ei X'
+S031='...palaa viimeiseen tallennettuun istuntoon'
+S032='...palautuu koskemattomaan ensimmäiseen käynnistykseen'
+S033='...suorittaa tiedostojärjestelmän tarkistuksen'
+
+#ask_pw()
+S034='Anna salasana, mitkä tahansa merkit a-z, A-Z, 0-9, mikä tahansa pituus. Salasana salaa työosion osia, ja se on muistettava, koska se on syötettävä jokaisen käynnistyksen yhteydessä.'
+S035='Tai paina ENTER-näppäintä ilman salasanaa.'
+S036='Turvallisuutesi vuoksi suosittelemme salasanaa'
+S037='Salasana:'
+S038='Anteeksi, vain a-z, A-Z, 0-9 merkkiä sallittu, yritä uudelleen'
+S039='Anna salasana purkaaksesi työosion salauksen'
+S040='TAI paina vain ENTER avataksesi käynnistysasetusten valikon'
+S041='Salasana:'
+
+#cp_verify_func()
+S042='Tämä kopio epäonnistui:'
+S043='On mahdollista, että asemassa on vika.'
+S044='Yritetään kopioida uudelleen...'
+S045='Toinen yritys epäonnistui. Yritä palauttaa palauttamalla'
+S046='vmlinuz, initrd ja easy.sfs edellisestä versiosta.'
+S047='Toinen yritys kopioida tiedosto epäonnistui. Ehkä ajo ei toimi.'
+S048='Toinen yritys onnistui, mutta varoitusasema saattaa epäonnistua.'
+
+###etsi asemat###
+S100='Etsi ajoja'
+S101='osioilla on ristiriitainen tunnus'
+S102='HUOM: EI! Sinulla ei ole vielä istuntoa, teet normaalin käynnistyksen'
+S103='Poistui aloitusskriptistä aikaisin, mitään ei ole vielä liitetty.'
+
+###erittäin alhainen ram###
+S110='ILMOITUS: Lukitus poistettu käytöstä, RAM-muisti ei riitä'
+S111='HUOM: EasyOS toimii täysin RAM-muistissa, ei pysyvää tallennustilaa'
+S112='HUOM: Istunto kopioidaan RAM-muistiin ja EasyOS toimii RAM-muistissa'
+S113='Luodaan pakattu zram. RAM varattu:'
+S114='Työosio:'
+S115='Työkoneen lukunopeuden testi (pienempi sen parempi):'
+
+###asenna ja asenna toimiva osio###
+S120='Muutetaan työosion kokoa aseman täyttämiseksi'
+S121='VIRHE: työosion kokoa ei voi muuttaa'
+S122='Muutetaan ext4-tiedostojärjestelmän kokoa työosion täyttämiseksi, koko:'
+S123='VIRHE: ext4-tiedostojärjestelmän kokoa ei voi muuttaa työosion täyttämiseksi, koko:'
+S124='Työosion kokoa ei voi muuttaa. Ei turvallista jatkaa'
+S125='Työosiota ei voi asentaa:'
+S126='Poistui aloitusskriptistä, wkg-osio liitetty.'
+
+###luo $WKG_DIR ja kansiot###
+S130='on jo olemassa'
+S131='Työosion ext4-salaustoiminto ei ole käytössä.'
+S132='Tätä toimintoa tarvitaan kansioiden salaamiseen. Suositellaan turvallisuutesi vuoksi.'
+S133='Jos hylkäät, tulevat käynnistykset eivät kysy salasanaa.'
+S134='VAROITUS: vanhat käynnistyslataimet, kuten GRUB v1, GRUB4DOS ja GRUB v2 ennen '
+S135='versio 2.0.4 (julkaistu 2019), ei tunnista nykyaikaisia ext4-ominaisuuksia'
+S136='kuten kansion salaus, eikä se enää toimi osion kanssa '
+S137='jos otat salauksen käyttöön (osiota ei enää tunnisteta). '
+S138='Paina ENTER-näppäintä ottaaksesi salauksen käyttöön, mitä tahansa muuta avainta ei:'
+S139='Otetaan käyttöön ext4-kansion salaus...'
+S140='Anteeksi, kansion salauksen käyttöönotto epäonnistui.'
+S141='...salaus käytössä.'
+S142='Huomaa, jos jostain syystä haluat sammuttaa sen, poista EasyOS-asennus. Sitten Internetissä on ohjeita salauksen poistamiseksi käytöstä.'
+S143='Työosion asennus epäonnistui.'
+S144='Kansion salauksen tuki ei ole käytössä.'
+S145='Valitettavasti työosion kansioita ei voi salata. Salasana asetetaan vain pääkäyttäjään kirjautumiseen.'
+S146='Salasana väärä. Yritä uudelleen'
+S147='Viimeisen istunnon tallennus lykätty, odota...'
+
+###TRIMMATA###
+S150='Suoritetaan fstrimiä SSD-työosiossa...'
+S151='Poistui aloitusskriptistä ennen palautus- ja ylläpitotoimia.'
+
+###palautus, huolto###
+S160='Kohottava virhe tiedostojärjestelmän tarkistuksessa'
+S161='Poistui aloitusskriptistä ennen versionhallintaa.'
+
+###versionhallinta###
+S170='Ainoastaan kertaluonteinen toiminto, luodaan tilannekuva EasyOS:stä'
+S171='Tämä mahdollistaa tulevan palautuksen Easy Version Control Managerilla'
+S172='Täytetään:'
+S173='Varoitus, poistetaan vanha versio:'
+S174='Ei löydy easy.sfs'
+
+S180='Miksi tämä tiedosto on olemassa? Sen poistaminen.'
+S181='Poistui aloitusskriptistä ennen SFS-tasojen asettamista.'
+
+###asenna alempi ro-kerros easy.sfs###
+S190='Asennus vain luku -kerroksen kerrokselliseen tiedostojärjestelmään'
+S191='Squashfs-tiedoston asentaminen easy.sfs'
+S192='Kopioidaan easy.sfs RAM-muistiin ja sitten liitetään'
+S193='Easy.sfs-liittäminen epäonnistui'
+S194='VAROITUS, versiot eivät täsmää.'
+S195='ylimääräistä squashfs-tiedostoa ei ole olemassa, poistettu latausluettelosta.'
+S196='Kopioidaan RAM-muistiin ja liitetään ylimääräistä squashfs-tiedostoa:'
+S197='Liitetään ylimääräistä squashfs-tiedostoa:'
+S198='VIRHE: /usr/lib64 väärä polku SFS:ssä:'
+S199='TÄTÄ SFS:ää EI LADATA'
+S200='VIRHE: SFS:ssä ei ole usr-merge kansioita:'
+S201='Ensimmäisen käynnistyksen suojausasetukset...'
+S202='Asetetaan sama salasana käyttäjille zeus ja root'
+
+###ehkä kopioi istunto zramiin###
+S210='Kopioidaan viimeistä työistuntoa RAM-muistiin'
+
+###suuri hetki, luo kerrostettu f.s.###
+S220='Luodaan kerrostettua tiedostojärjestelmää, kirjoita:'
+S221='Tasoisen tiedostojärjestelmän luominen epäonnistui'
+S222='Poistui aloitusskriptistä ennen liitospisteiden siirtämistä wkg f.s.:hen.'
+
+###siirrä liitoskohdat ennen switch_rootia###
+S230='Switch_rootin suorittaminen kerrostetulle tiedostojärjestelmälle'
+S231='Virran sammuttaminen:'
+S232='Poistui aloitusskriptistä juuri ennen switch_rootia.'
+
+###root pw###
+S300='Päätit, että et syötä salasanaa työosion kansioiden salaamiseksi; sinun tulee kuitenkin syöttää ainakin pääkäyttäjän salasana.'
+S301='Huomautus1: tulevissa käynnistyksissä salasanaa ei tarvita kirjautumiseen.'
+S302='Huomautus2: jos näppäimistö ei toimi näin aikaisin käynnistyksen aikana, aikakatkaisu tapahtuu 300 sekunnin kuluttua.'
+S303='Kirjoita salasana, jossa on merkit a-z, A-Z, 0-9, vähintään 6 merkkiä, jonka muistat.'
+S304='Luodaan gnupg-allekirjoitettua avainparia osoitteessa /root/.gnupg'
+
+######
+S400='NVIDIA GPU:ta ei havaittu, joten NVIDIA SFS:ää ei ladata'

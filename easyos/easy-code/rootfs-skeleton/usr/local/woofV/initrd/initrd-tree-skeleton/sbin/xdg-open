@@ -1,0 +1,32 @@
+#!/bin/ash
+#200801 needed by nnn.
+
+NAMEonly="$(basename "${@}")"
+
+case "$NAMEonly" in
+ *.txt|*.doc|*.h|*.log|*.bac|*.c|*.cpp|*.sh|*.conf|*.cfg|*.xml)
+  mp "$@"
+ ;;
+ *gz|*xz|*bz2|*.zip|*.sfs)
+  exit 1
+ ;;
+ *.png|*.gif|*.jpg)
+  exit 1
+ ;;
+ *)
+  SHEBANG="$(dd if="$@" status=none bs=1 count=3)"
+  if [ "$SHEBANG" == "#!/" ];then
+   mp "$@"
+  else
+   #printable ascii \040-\177 (32-127 decimal), \012=LF, \015=CR (10, 13 dec.)
+   NONTXT="$(cat -n 1 "${@}" | tr -d '[\040-\177\012\015]' | wc -c)"
+   if [ "$NONTXT" == "0" ];then
+    mp "$@"
+   else
+    exit 1
+   fi
+  fi
+esac
+
+exit 0
+###end###

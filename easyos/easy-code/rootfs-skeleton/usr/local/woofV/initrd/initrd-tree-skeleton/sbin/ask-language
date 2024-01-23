@@ -1,0 +1,48 @@
+#!/bin/ash
+#20230423 no equivalent to nb
+#20230425 support compressed 'dialog'.
+#20230522 LANG=en_US.UTF-8 fixes dialog display psfu utf-8 text.
+
+#20230210
+. /build-choices #copied from easy.sfs, see init script. 202304 3buildeasydistro copies it here.
+if [ "$BUILD_SUPPORT_LANGS" ];then #cutdown lang list.
+ echo -n "$BUILD_SUPPORT_LANGS" > al-build-support-langs
+ CODES="$(sed -e 's%:% %g' al-build-support-langs)"
+else
+ CODES='af Afrikaans am Amharic ar Arabic as Assamese be Byelorussian bg Bulgarian bn Bengali bo Tibetan br Breton ca Catalan cs Czech cy Welsh da Danish de German dz Bhutani el Greek en English eo Esperanto es Spanish et Estonian eu Basque fa Persian fi Finnish fr French fy Frisian ga Irish gd Gaelic gl Galician gu Gujarati hi Hindi hr Croatian hu Hungarian is Icelandic it Italian ja Japanese ka Georgian kk Kazakh  km Cambodian kn Kannada ko Korean ks Kashmiri lo Laothian lt Lithuanian lv Latvian mk Macedonian ml Malayalam mn Mongolian mr Marathi my Burmese ne Nepali nl Dutch no Norwegian oc Occitan om Oromo or Oriya pa Punjabi pl Polish pt Portuguese ro Romanian ru Russian rw Kinyarwanda sa Sanskrit sd Sindhi si Singhalese sk Slovak sl Slovenian sq Albanian sr Serbian ss Siswati st Sesotho sv Swedish sw Swahili ta Tamil te Tegulu tg Tajik th Thai tn Setswana tr Turkish ts Tsonga tt Tatar uk Ukrainian uz Uzbek vi Vietnamese xh Xhosa zh Chinese zu Zulu'
+fi
+
+CODES2=' af am ar as be bg bn bo br ca cs cy da de dz el en eo es et eu fa fi fr fy ga gd gl gu hi hr hu is it ja ka kk km kn ko ks lo lt lv mk ml mn mr my ne nl no oc om or pa pl pt ro ru rw sa sd si sk sl sq sr ss st sv sw ta te tg th tn tr ts tt uk uz vi xh zh zu '
+echo -n "$CODES2" > codes2
+
+echo -n 'zz' > qlang #20230210 default invalid lang.
+if [ -f /bin/dialog.gz ];then #20230425
+ cd /bin
+ gunzip dialog.gz
+ chmod 755 dialog
+ cd ..
+fi
+LANG=en_US.UTF-8 dialog --no-cancel --timeout 240 --menu "Choose language" 0 0 0 $CODES 2>qlang
+
+grep -q -w -f qlang codes2
+if [ $? -ne 0 ];then #precaution.
+ echo -n 'en' >qlang
+fi
+clear
+
+#20230221 need matching country... 20230222 fix 20230423 add no_NO
+LANGS12='bg_BG cs_CZ da_DK de_DE el_GR en_US es_ES et_EE fi_FI fr_FR hr_HR hu_HU is_IS it_IT lt_LT lv_LV mk_MK nl_NL no_NO pl_PL pt_PT ro_RO ru_RU sk_SK sl_SK sq_AL sr_RS sv_SE tr_TR uk_UA'
+echo -n "$LANGS12" > LANGS12
+QLANG="$(cat qlang)"
+grep -o "${QLANG}_[A-Z][A-Z]" LANGS12 > DEFLANG12
+#precaution...
+DEFLANG12="$(cat DEFLANG12)"
+if [ "$DEFLANG12" == "" ];then
+ echo -n 'en' > qlang
+ echo -n 'en_US' > DEFLANG12
+fi
+
+#bring back the logo... 20230222 it may not be visible
+#if [ -e /dev/fb0 ];then
+# idump -f logo1920x1440.png 2>/dev/null
+#fi

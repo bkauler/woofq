@@ -1,0 +1,160 @@
+#create_safefile_func()
+S001='Easysave.ext4 saqlash fayli yaratilmoqda...'
+
+#exit_to_initrd()
+S002='Chiziq'
+S003='1-Izoh: “exit” deb yozing, init skripti davom etishga harakat qiladi.'
+S004='Izoh 2: Ba´zi shaxsiy kompyuterlarda klaviatura ishga tushirishning ushbu bosqichida ishlamaydi.'
+S005='Eslatma 3: agar "ctrl-alt-del" ishlamasa, o´chirish uchun quvvat tugmasini bosib turing.'
+S006='Izoh 4: "mp" konsol matn muharriri mavjud.'
+S007='Eslatma 5: Konsol fayl boshqaruvchisi "shfm": O´q tugmachalari bilan navigatsiya qiling, "!" urug´lantirish'
+S008=' qobiq, "?" Qalqib chiquvchi yordam, chiqish uchun "q". Yordam fayli "/shfm.txt"'
+S009='Izoh 6: Konsol fayl boshqaruvchisi "nnn": Xuddi shu kalitlar. Yordam fayli "/nnn.txt"'
+
+#err_exit()
+S010='XATO:'
+S011='Endi initramflarda qobiqqa tushdik.'
+S012='Iltimos, qayta ishga tushirish uchun CTRL-ALT-DEL tugmalar birikmasini bosing,'
+S013='yoki O´CHIRISH UCHUN QUVVAT TUG´MASINI TUTIB BOSING'
+S014='Quyidagi ko‘rsatmalar faqat ishlab chiquvchilar uchun mo‘ljallangan:'
+
+#ask_kb()
+S015='Iltimos, klaviatura tartibiga mos keladigan raqamni kiriting.'
+S016='Eng yaqin moslikni tanlang, ish stoli yuklangandan keyin tartibni aniq sozlash imkoniyati bo´ladi. Faqat US uchun ENTER tugmasini bosing.'
+S017='Izoh: ba´zi shaxsiy kompyuterlarda klaviatura ishga tushirishning ushbu bosqichida ishlamaydi. Bunday holda, ishga tushirish uchun 5 daqiqa kuting.'
+S018='Klaviatura tartibi:'
+S019='...yaxshi, klaviatura xaritasi tanlandi:'
+
+#menu_func()
+S020='Hech narsa qilmang, parolni kiritish uchun orqaga qayting'
+S021='Blokirovkani olib tashlash, normal ishga tushirishni tiklash'
+S022='Faqat buyruq qatoriga yuklash, X yo´q'
+S023='Oxirgi saqlangan seansga qaytish'
+S024='Birinchi yuklash holatiga qaytish'
+S025='Ishchi qismning fayl tizimini tekshirish'
+S026='ENTER tugmasini bosing yoki normal ishga tushish uchun 15 soniya kuting'
+S027='Chap ustundan raqamni kiriting:'
+S028='...siz normal yuklashni tiklashni tanladingiz; ammo,'
+S029='Oddiy yuklash KEYINGI yuklashda tiklanadi'
+S030='...buyruqlar qatoriga yuklanadi, X yo´q'
+S031='...oxirgi saqlangan seansga qaytadi'
+S032='...birinchi yuklash holatiga qaytadi'
+S033='...fayl tizimini tekshirishni amalga oshiradi'
+
+#ask_pw()
+S034='Iltimos, a-z, A-Z, 0-9 belgilar, istalgan uzunlikdagi parolni kiriting. Parol ishchi bo´limning qismlarini shifrlaydi va eslab qolish kerak, chunki uni har ishga tushirishda kiritish kerak bo´ladi.'
+S035='Yoki parolsiz ENTER tugmasini bosing.'
+S036='Xavfsizligingiz uchun parol tavsiya etiladi'
+S037='Parol:'
+S038='Kechirasiz, faqat a-z, A-Z, 0-9 belgilarga ruxsat berilgan, qayta urinib ko´ring'
+S039='Iltimos, ishchi qism shifrini ochish uchun parolni kiriting'
+S040='Yoki yuklash opsiyalari menyusini ochish uchun ENTER tugmasini bosing.'
+S041='Parol:'
+
+#cp_verify_func()
+S042='Ushbu nusxa ko´chirilmadi:'
+S043='Drayver ishlamay qolgan bo´lishi mumkin.'
+S044='Yana nusxa olishga urinish...'
+S045='Ikkinchi urinish muvaffaqiyatsiz tugadi. Qayta tiklash orqali tiklashga harakat qiling'
+S046='vmlinuz, initrd va oldingi versiyadagi easy.sfs.'
+S047='Faylni nusxalashga ikkinchi urinish muvaffaqiyatsiz tugadi. Balki haydovchi ishlamay qolgandir.'
+S048='Ikkinchi urinish muvaffaqiyatli bo´ldi, lekin ogohlantirish diski muvaffaqiyatsiz bo´lishi mumkin.'
+
+###disklarni toping###
+S100='Drayvlarni topish'
+S101='bo´limlarning identifikatori ziddiyatli'
+S102='DIQQAT: YO´Q! Siz hali seansga ega emassiz, oddiy ishga tushirilmoqda'
+S103='Init skriptidan erta chiqdi, hali hech narsa o´rnatilmagan.'
+
+###juda kam qo'chqor###
+S110='DIQQAT: Bloklash o´chirilgan, RAM yetarli emas'
+S111='DIQQAT: EasyOS to´liq RAMda ishlaydi, doimiy xotira yo´q'
+S112='DIQQAT: Seans RAMga ko´chiriladi va EasyOS operativ xotirada ishlaydi'
+S113='Siqilgan zram yaratilmoqda. Ajratilgan RAM:'
+S114='Ishchi bo´lim:'
+S115='Ishchi diskni o´qish tezligi testi (pasaytirsa yaxshiroq):'
+
+### ishchi bo´limni sozlash va o´rnatish###
+S120='Diskni to´ldirish uchun ishchi qism o´lchamini o´zgartirish'
+S121='XATO: ishchi qism hajmini o‘zgartirib bo‘lmadi'
+S122='Ext4 fayl tizimining o´lchamini ishchi qismni to´ldirish uchun o´zgartirish, hajmi:'
+S123='XATO: ishchi bo´limni to´ldirish uchun ext4 fayl tizimining hajmini o´zgartirib bo´lmadi, o´lcham:'
+S124='Ishchi qism hajmini o‘zgartirib bo‘lmadi. Davom etish xavfsiz emas'
+S125='Ishchi bo´limni o´rnatib bo´lmadi:'
+S126='Init skriptidan chiqdi, wkg bo´limi o´rnatildi.'
+
+###$WKG_DIR va papkalarni yarating###
+S130='allaqachon mavjud'
+S131='Ishchi qismda ext4 shifrlash funksiyasi yoqilmagan.'
+S132='Ushbu xususiyat papkalarni shifrlash uchun kerak. Xavfsizligingiz uchun tavsiya etiladi.'
+S133='Agar siz rad qilsangiz, keyingi ishga tushirishlar parol so´ramaydi.'
+S134='OGOHLANTIRISH: GRUB v1, GRUB4DOS va GRUB v2 kabi eski yuklovchilar '
+S135='2.0.4 versiyasi (2019-yilda chiqarilgan), zamonaviy ext4 funksiyalarini taniy olmaydi '
+S136='papka shifrlash kabi va endi bo´lim bilan ishlamaydi '
+S137='agar siz shifrlashni yoqsangiz (bo‘lim endi tanib olinmaydi). '
+S138='Shifrlashni yoqish uchun ENTER tugmasini bosing, boshqa tugmalar esa:'
+S139='Ext4 jild shifrlash yoqilmoqda...'
+S140='Kechirasiz, jild shifrlashni yoqish muvaffaqiyatsiz tugadi.'
+S141='...shifrlash yoqilgan.'
+S142='Eslatma, agar biron sababga ko´ra uni o´chirmoqchi bo´lsangiz, EasyOS o´rnatilishini olib tashlang. Keyin Internetda shifrlashni o´chirish bo´yicha ko´rsatmalar mavjud.'
+S143='Ishchi qismni o´rnatib bo´lmadi.'
+S144='Papkani shifrlash qo‘llab-quvvatlanmagan.'
+S145='Kechirasiz, ishchi qismdagi papkalarni shifrlab bo´lmaydi. Parol faqat ildiz tizimiga kirish uchun o´rnatiladi.'
+S146='Parol noto‘g‘ri. Qayta urinib ko´ring'
+S147='Oxirgi seansni saqlash kechiktirildi, kuting...'
+
+###TRIM###
+S150='SSD ishchi qismida fstrim bajarilmoqda...'
+S151='Qayta tiklash va texnik xizmat ko´rsatish operatsiyalaridan oldin init skriptidan chiqdi.'
+
+###tiklash, parvarishlash###
+S160='Fayl tizimini tekshirishda halokatli xatolik'
+S161='Init skriptidan versiyani boshqarishdan oldin chiqdi.'
+
+###versiyani boshqarish###
+S170='Faqat bir martalik operatsiya, EasyOS ning suratini yaratish'
+S171='Bu Oson Versiyani boshqarish menejeri bilan kelajakda orqaga qaytarish imkonini beradi'
+S172='To´ldirilmoqda:'
+S173='Ogohlantirish, eski versiyani o´chirish:'
+S174='Easy.sfs topilmadi'
+
+S180='Bu fayl nima uchun mavjud? Uni olib tashlash.'
+S181='SFS qatlamlarini o´rnatishdan oldin init skriptidan chiqdi.'
+
+###pastki ro qatlamini oson.sfs bilan sozlash###
+S190='Qatlamli fayl tizimining faqat o´qish uchun mo´ljallangan qatlamini o´rnatish'
+S191='Squashfs faylini o´rnatish easy.sfs'
+S192='Easy.sfs ni RAMga nusxalash, keyin o´rnatish'
+S193='Easy.sfs-ni o´rnatib bo´lmadi'
+S194='DIQQAT, versiyalar mos emas.'
+S195='qo‘shimcha squashfs fayli mavjud emas, yuklash ro‘yxatidan olib tashlangan.'
+S196='RAMga nusxalash va qo´shimcha squashfs faylini o´rnatish:'
+S197='Qo´shimcha squashfs faylini o´rnatish:'
+S198='XATO: /usr/lib64 SFSda noto g ri yo´l:'
+S199='BU SFS YUKLANMAYDI'
+S200='XATO: SFSda usr-birlashtirish papkalari mavjud emas:'
+S201='Birinchi yuklashda xavfsizlikni sozlash...'
+S202='Zeus va root foydalanuvchilari uchun bir xil parol o´rnatish'
+
+###seansni zramga nusxalash mumkin###
+S210='Oxirgi ish seansini RAMga nusxalash'
+
+###buyuk lahza, qatlamli f.s. yarating###
+S220='Qatlamli fayl tizimini yaratish, yozing:'
+S221='Qatlamli fayl tizimini yaratib bo´lmadi'
+S222='O´rnatish nuqtalarini wkg f.s ga ko´chirishdan oldin, boshlang´ich skriptdan chiqdi.'
+
+###switch_rootdan oldin o´rnatish nuqtalarini ko´chiring###
+S230='Qatlamli fayl tizimida switch_root-ni bajarish'
+S231='Drayvni yoqish:'
+S232='Init skriptidan switch_root oldidan chiqdi.'
+
+###root pw###
+S300='Siz ishchi qismdagi papkalarni shifrlash uchun parol kiritmaslikni tanladingiz; ammo, hech bo´lmaganda, root foydalanuvchisi uchun parolni kiritishingiz kerak.'
+S301='Eslatma1: kelgusi ishga tushirishda tizimga kirish uchun parol talab qilinmaydi.'
+S302='Eslatma2: agar klaviatura ishga tushirilganda shu qadar erta ishlamasa, 300 soniyadan so´ng vaqt tugaydi.'
+S303='Iltimos, a-z, A-Z, 0-9, kamida 6 ta belgidan iborat bo´lgan parolni eslab qoladigan parol kiriting.'
+S304='Gnupg imzolangan kalitlar juftligi yaratilmoqda, /root/.gnupg'
+
+######
+S400='Hech qanday NVIDIA GPU aniqlanmadi, shuning uchun NVIDIA SFS yuklanmaydi'

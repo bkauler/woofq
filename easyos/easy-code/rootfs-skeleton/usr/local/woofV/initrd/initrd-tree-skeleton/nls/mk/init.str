@@ -1,0 +1,160 @@
+#create_savefile_func()
+S001='Kreiranje začuvana datoteka easysave.ext4...'
+
+#exit_to_initrd()
+S002 = 'Linija'
+S003='Zabeleška 1: Napišete „exit“, skriptata za početok ḱe se obide da prodolži.'
+S004='Zabeleška 2: Na nekoi kompjuteri tastaturata ne raboti vo ovaa faza na podignuvanje.'
+S005='Zabeleška 3: ako „ctrl-alt-del“ ne raboti, držete go kopčeto za vklučuvanje za da se iskluči.'
+S006='Zabeleška 4: Dostapen e ureduvač na tekst na konzolata „mp“.'
+S007='Zabeleška 5: Upravuvač so datoteki na konzolata "shfm": Navigirajte so kopčinjata so strelki, "!" da se mrestat'
+S008=' školka, "?" skokački prozorec pomoš, "q" za da se otkažete. Datotekata za pomoš e „/shfm.txt“'
+S009='Zabeleška 6: Upravuvač so datoteki na konzolata „nnn“: isti kopčinja. Datoteka za pomoš „/nnn.txt“'
+
+#err_exit()
+S010='GREŠKA:'
+S011='Sega padnav vo školka vo initramfot.'
+S012='Ve molime pritisnete ja kombinacijata na kopčinja CTRL-ALT-DEL za da se restartira,'
+S013='ili DRŽETE GO KOPČETO ZA VKLUČUVANJE ZA ISKLUČUVANJE'
+S014='Slednive instrukcii se samo za programeri:'
+
+#ask_kb()
+S015='Vnesete go brojot što odgovara na rasporedot na vašata tastatura.'
+S016='Izberete go najbliskoto sovpaǵanje, ḱe ima možnost fino da go podesite rasporedot otkako ḱe se včita rabotnata površina. Pritisnete ENTER samo za NAS.'
+S017='Zabeleška: na nekoi kompjuteri tastaturata ne raboti vo ovaa faza na podignuvanje. Vo toj slučaj, počekajte 5 minuti za podignuvanje.'
+S018='Izgled na tastatura:'
+S019='...vo red, izbrana e mapata na kopčinjata:'
+
+#menu_func()
+S020='Ne pravete ništo, vratete se za da vnesete lozinka'
+S021='Otstranete go zaklučuvanjeto, vratete go normalnoto podiganje'
+S022='Samo podiganje na komandnata linija, bez X'
+S023='Vraḱanje na poslednata začuvana sesija'
+S024='Vraḱanje na čistoto prvo podiganje'
+S025='Proverka na datotečen sistem na rabotna particija'
+S026='Pritisnete go kopčeto ENTER ili počekajte 15 sekundi za normalno podiganje'
+S027='Vnesete broj od levata kolona:'
+S028='...izbravte da go vratite normalnoto podiganje; sepak,'
+S029='normalnoto podiganje ḱe se vrati na SLEDNOto podiganje'
+S030='...ḱe se podigne na komandnata linija, nema X'
+S031='...ḱe se vrati na poslednata začuvana sesija'
+S032='...ḱe se vrati na besprekornoto prvo podiganje'
+S033='...ḱe izvrši proverka na datotečniot sistem'
+
+#prašaj_pw()
+S034='Vnesete lozinka, site znaci a-z, A-Z, 0-9, koja bilo dolžina. Lozinkata ḱe šifrira delovi od rabotnata particija i mora da se zapomni, bidejḱi ḱe treba da se vnesuva pri sekoe podiganje.'
+S035='Ili, samo pritisnete go kopčeto ENTER bez lozinka.'
+S036='Za vaša bezbednost, silno se preporačuva lozinka'
+S037='Lozinka:'
+S038='Izvinete, dozvoleni se samo a-z, A-Z, 0-9 znaci, obidete se povtorno'
+S039='Vnesete lozinka za dešifriranje na rabotnata particija'
+S040='ILI samo pritisnete ENTER za da se pojavi meni so opcii za podiganje'
+S041='Lozinka:'
+
+#cp_verify_func()
+S042='Ovaa kopija ne uspea:'
+S043='Možno e diskot da otkažuva.'
+S044='Se obiduvam povtorno da kopiram...'
+S045='Vtoriot obid ne uspea. Obidete se da zakrepnete so obnovuvanje'
+S046='vmlinuz, initrd i easy.sfs od prethodnata verzija.'
+S047='Vtoriot obid za kopiranje na datotekata ne uspea. Možebi vozenjeto ne uspeva.'
+S048='Vtoriot obid beše uspešen, no predupreduvačkiot pogon može da ne uspee.'
+
+###najdi diskovi###
+S100='Naoǵanje diskovi'
+S101='particiite imaat konflikten ID'
+S102='IZVESTUVANJE: NE! Sè ušte nemate sesija, pravite normalno podiganje'
+S103='Izleze od početnata skripta rano, sè ušte ništo ne e montirano.'
+
+###mnogu nizok ram###
+S110='IZVESTUVANJE: Zaklučuvanjeto e onevozmoženo, nedovolna RAM memorija'
+S111='IZVESTUVANJE: EasyOS ḱe raboti celosno vo RAM memorija, bez postojano skladiranje'
+S112='IZVESTUVANJE: Sesijata ḱe se kopira vo RAM i EasyOS ḱe raboti vo RAM memorija'
+S113='Kreiranje na komprimiran zram. Dodelena RAM memorija:'
+S114='Rabotna particija:'
+S115='Test na brzina na čitanje na rabotniot pogon (namaluvanje tolku podobro):'
+
+###postavuvanje i montiranje rabotna particija###
+S120='Promena na goleminata na rabotnata particija za popolnuvanje na diskot'
+S121='GREŠKA: ne možam da ja smenam goleminata na rabotnata particija'
+S122='Promena na goleminata na datotečen sistem ext4 za popolnuvanje na rabotnata particija, golemina:'
+S123='GREŠKA: ne može da se promeni goleminata na datotečen sistem ext4 za da se popolni rabotnata particija, golemina:'
+S124='Ne možam da ja smenam goleminata na rabotnata particija. Nebezbedno da se prodolži“
+S125='Ne možam da ja montiram rabotnata particija:'
+S126='Izlezeno od početnata skripta, particijata wkg e montirana.'
+
+###sozdadete $WKG_DIR i papki###
+S130='veḱe postoi'
+S131='Rabotnata particija nema ovozmožena funkcija za šifriranje ext4.'
+S132='Ovaa funkcija e potrebna za šifriranje papki. Se preporačuva za vaša bezbednost.'
+S133='Ako odbiete, idnite podignuvanja nema da baraat lozinka.'
+S134='PREDUPREDUVANJE: stari podignuvači kako što se GRUB v1, GRUB4DOS i GRUB v2 pred '
+S135='verzija 2.0.4 (objavena 2019 godina), ne gi prepoznava modernite ext4 karakteristiki '
+S136='kako šifriranje na papki i poveḱe nema da raboti so particijata'
+S137='ako ovozmožite šifriranje (particijata poveḱe nema da se prepoznava).'
+S138='Pritisnete go kopčeto ENTER za da ovozmožite šifriranje, a koj bilo drug kluč ne:'
+S139='Ovozmožuvanje šifriranje na papkata ext4...'
+S140='Za žal, ne uspea da se ovozmoži šifriranje na papkata.'
+S141='...šifriranjeto e ovozmoženo.'
+S142='Zabeležete, ako poradi nekoja pričina sakate da go isklučite, otstranete ja instalacijata EasyOS. Potoa, na Internet ima instrukcii za isklučuvanje na šifriranjeto.'
+S143='Montiranjeto na rabotnata particija ne uspea.'
+S144='Poddrškata za šifriranje na papkata ne e ovozmožena.'
+S145='Za žal, papkite vo rabotnata particija ne možat da se šifriraat. Lozinkata ḱe bide postavena samo za root najavuvanje.'
+S146='Lozinkata ne e točna. Obidi se povtorno'
+S147='Odloženo začuvuvanje na poslednata sesija, počekajte...'
+
+###KRIM###
+S150='Se izvršuva fstrim na rabotna particija na SSD...'
+S151='Izleze od početnata skripta, pred operaciite za obnovuvanje i održuvanje.'
+
+###obnovuvanje, održuvanje###
+S160='Fatalna greška pri proverka na datotečniot sistem'
+S161='Izlezeno od početnata skripta, pred kontrola na verzijata.'
+
+###kontrola na verzija###
+S170='Ednokratna operacija, kreiranje slika na EasyOS'
+S171='Ova ḱe ovozmoži idno vraḱanje nazad so Easy Version Control Manager'
+S172='Se naseluva:'
+S173='Predupreduvanje, brišenje na starata verzija:'
+S174='Ne možam da najdam lesen.sfs'
+
+S180='Zošto postoi ovaa datoteka? Otstranuvanjeto.'
+S181='Izleze od početnata skripta, pred da se postavat sloevite SFS.'
+
+###postavi dolen ro sloj, so easy.sfs###
+S190='Montiram sloj samo za čitanje na sloevit datotečen sistem'
+S191='Montiram datoteka squashfs easy.sfs'
+S192='Kopiranje easy.sfs vo RAM memorija, a potoa montiranje'
+S193='Ne uspea da se montira easy.sfs'
+S194='PREDUPREDUVANJE, verziite ne se sovpaǵaat.'
+S195='ne postoi dopolnitelna datoteka squashfs, otstraneta od spisokot za včituvanje.'
+S196='Kopiranje vo RAM i montiranje dopolnitelna datoteka squashfs:'
+S197='Montiram dopolnitelna datoteka squashfs:'
+S198='GREŠKA: /usr/lib64 netočna pateka vo SFS:'
+S199='OVOJ SFS NEMA DA BIDE Včitan'
+S200='ГРЕШКА: SFS нема папки за спојување на usr:'
+S201='Postavuvanje bezbednost za prvo podignuvanje...'
+S202='Postavuvanje ista lozinka za korisnicite zeus i root'
+
+###možebi kopirajte sesija vo zram###
+S210='Kopiranje na poslednata rabotna sesija vo RAM memorija'
+
+###golemiot moment, kreirajte sloeviti f.s.###
+S220='Sozdavanje sloevit datotečen sistem, napišete:'
+S221='Ne uspea da se sozdade sloevit datotečen sistem'
+S222='Izleze od početnata skripta, pred da se premestat točkite za montiranje vo wkg f.s.'
+
+###premesti gi točkite za montiranje pred da go prefrliš_root###
+S230='Izveduvanje switch_root na sloevit datotečen sistem'
+S231='Pogon za spuštanje:'
+S232='Izleze od početnata skripta, neposredno pred switch_root.'
+
+###root pw###
+S300='Izbravte da ne vnesuvate lozinka za šifriranje na papkite vo rabotnata particija; sepak, treba barem da vnesete lozinka za root korisnikot.'
+S301='Zabeleška1: pri idni podignuvanja, lozinkata nema da bide potrebna za najavuvanje.'
+S302='Zabeleška2: ako tastaturata ne raboti tolku rano pri podignuvanje, ḱe ima istek na vreme za 300 sekundi.'
+S303='Ve molime vnesete lozinka, so znaci a-z, A-Z, 0-9, minimum 6 znaci, što ḱe ja zapomnite.'
+S304='Создавање пар клучеви со потпишан gnupg, на /root/.gnupg'
+
+######
+S400='Не е откриен NVIDIA GPU, така што нема да се вчита NVIDIA SFS'

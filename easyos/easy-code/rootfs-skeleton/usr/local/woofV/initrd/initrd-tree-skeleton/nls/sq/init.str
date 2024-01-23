@@ -1,0 +1,160 @@
+#create_savefile_func()
+S001='Krijimi i skedarit ruajtës easysave.ext4...'
+
+#exit_to_initrd()
+S002 = 'Linja'
+S003='Shënim 1: Shkruani "exit", skripti init do të përpiqet të vazhdojë.'
+S004='Shënim 2: Në disa kompjuterë tastiera nuk funksionon në këtë fazë të nisjes.'
+S005='Shënim 3: nëse "ctrl-alt-del" nuk funksionon, mbani shtypur butonin e ndezjes për ta fikur.'
+S006='Shënim 4: Editori i tekstit të konsolës "mp" është i disponueshëm.'
+S007='Shënim 5: Menaxheri i skedarëve të konsolës "shfm": Navigoni me tastet e shigjetave, "!" të pjellë'
+S008=' një guaskë, "?" ndihmë popup, "q" për të lënë. Skedari i ndihmës është "/shfm.txt"'
+S009='Shënim 6: Menaxheri i skedarëve të konsolës "nnn": Të njëjtat çelësa. Skedari i ndihmës "/nnn.txt"'
+
+#gabim_dalje()
+S010='GABIM:'
+S011='Tani ka rënë në një guaskë në initramfs.'
+S012='Ju lutemi shtypni kombinimin e tastit CTRL-ALT-DEL për të rindezur,'
+S013='ose MBYTE BUTONIN E FINESISË PËR TË FIKUR'
+S014='Udhëzimet e mëposhtme janë vetëm për zhvilluesit:'
+
+#pyet_kb()
+S015='Ju lutemi, vendosni numrin që korrespondon me paraqitjen e tastierës tuaj.'
+S016='Zgjidhni përputhjen më të afërt, do të ketë një mundësi për të rregulluar mirë paraqitjen pasi të jetë ngarkuar desktopi. Shtypni ENTER vetëm për NE.'
+S017='Shënim: në disa PC tastiera nuk funksionon në këtë fazë të nisjes. Në atë rast, prisni 5 minuta për të nisur.'
+S018='Struktura e tastierës:'
+S019='...ok, harta e çelësit e zgjedhur:'
+
+#menu_func()
+S020='Mos bëj asgjë, kthehu për të futur fjalëkalimin'
+S021='Hiq bllokimin, rivendos nisjen normale'
+S022='Ngritja vetëm në vijën e komandës, jo X'
+S023='Rikthim në sesionin e fundit të ruajtur'
+S024='Rikthim në fillimin e parë të pacenuar'
+S025='Kontrollimi i sistemit të skedarëve të ndarjes së punës'
+S026='Shtypni tastin ENTER ose prisni 15 sekonda për nisjen normale'
+S027='Shkruani një numër nga kolona e majtë:'
+S028='...keni zgjedhur të rivendosni nisjen normale; megjithatë,'
+S029='Ngritja normale do të rikthehet në nisjen TJETËR'
+S030='...do të niset në vijën e komandës, jo X'
+S031='...do të kthehet në sesionin e fundit të ruajtur'
+S032='...do të rikthehet në fillimin e parë të pacenuar'
+S033='...do të kryejë kontrollin e sistemit të skedarëve'
+
+#pyet_pw()
+S034='Ju lutemi vendosni një fjalëkalim, çdo karakter a-z, A-Z, 0-9, çdo gjatësi. Fjalëkalimi do të kodojë pjesë të ndarjes së punës dhe duhet mbajtur mend, pasi do të duhet të futet në çdo bootup.'
+S035='Ose, thjesht shtyp tastin ENTER pa fjalëkalim.'
+S036='Për sigurinë tuaj, rekomandohet një fjalëkalim'
+S037='Fjalëkalimi:'
+S038='Na falni, lejohen vetëm a-z, A-Z, 0-9 karaktere, provoni përsëri'
+S039='Ju lutemi vendosni fjalëkalimin për të deshifruar ndarjen e punës'
+S040='OSE thjesht shtyp ENTER për të shfaqur një meny të opsioneve të nisjes'
+S041='Fjalëkalimi:'
+
+#cp_verify_func()
+S042='Kjo kopje dështoi:'
+S043='Ka mundësi që disku të dështojë.'
+S044='Përpjekja për të kopjuar përsëri...'
+S045='Përpjekja e dytë dështoi. Përpiquni të rikuperoni duke rivendosur'
+S046='vmlinuz, initrd dhe easy.sfs të versionit të mëparshëm.'
+S047='Përpjekja e dytë për të kopjuar skedarin dështoi. Ndoshta ngasja po dështon.'
+S048='Përpjekja e dytë pati sukses, por ngasja paralajmëruese mund të dështojë.'
+
+###gjeni disqet###
+S100='Gjeni disqet'
+S101='ndarjet kanë ID konfliktuale'
+S102='SHENIM: JO! Ju nuk keni ende një seancë, duke bërë një bootup normal'
+S103='Dal nga skripti init herët, asgjë ende nuk është montuar.'
+
+###ram shumë i ulët###
+S110='SHËNIM: Bllokimi i çaktivizuar, RAM i pamjaftueshëm'
+S111='SHËNIM: EasyOS do të funksionojë plotësisht në RAM, pa ruajtje të vazhdueshme'
+S112='SHËNIM: Sesioni do të kopjohet në RAM dhe EasyOS do të funksionojë në RAM'
+S113='Krijimi i zram-it të ngjeshur. RAM i ndarë:'
+S114='Ndarja e punës:'
+S115='Testi i shpejtësisë së leximit të makinës së punës (më i ulët aq më mirë):'
+
+###konfigurimi dhe montimi i ndarjes së punës###
+S120='Ndryshimi i madhësisë së ndarjes së punës për të mbushur diskun'
+S121='GABIM: nuk mund të ndryshohet përmasat e ndarjes së punës'
+S122='Ndryshimi i madhësisë së sistemit të skedarëve ext4 për të mbushur ndarjen e punës, madhësia:'
+S123='GABIM: nuk mund të ndryshohet përmasat e sistemit të skedarëve ext4 për të mbushur ndarjen e punës, madhësia:'
+S124='Nuk mund të ndryshohet përmasat e ndarjes së punës. E pasigurt për të vazhduar'
+S125='Nuk mund të montojë ndarjen e punës:'
+S126='Dal nga skripti fillestar, ndarja wkg u montua.'
+
+###krijo $WKG_DIR dhe dosje###
+S130='ekziston tashmë'
+S131='Ndarja e punës nuk ka të aktivizuar funksionin e enkriptimit ext4.'
+S132='Kjo veçori kërkohet për të enkriptuar dosjet. Rekomanduar për sigurinë tuaj.'
+S133='Nëse refuzoni, nisjet e ardhshme nuk do të kërkojnë fjalëkalim.'
+S134='PARALAJMËRIM: ngarkues të vjetër si GRUB v1, GRUB4DOS dhe GRUB v2 para '
+S135='versioni 2.0.4 (lëshuar në 2019), nuk i njeh veçoritë moderne ext4'
+S136='siç është enkriptimi i dosjeve dhe nuk do të funksionojë më me ndarjen '
+S137='nëse aktivizoni enkriptimin (ndarja nuk do të njihet më). '
+S138='Shtypni tastin ENTER për të aktivizuar enkriptimin, çdo çelës tjetër jo për:'
+S139='Po aktivizon enkriptimin e dosjes ext4...'
+S140='Na vjen keq, aktivizimi i enkriptimit të dosjeve dështoi.'
+S141='...enkriptimi u aktivizua.'
+S142='Vini re, nëse për ndonjë arsye dëshironi ta çaktivizoni, hiqni instalimin e EasyOS. Pastaj, ka udhëzime në internet për të fikur enkriptimin.'
+S143='Mountimi i ndarjes së punës dështoi.'
+S144='Mbështetja e enkriptimit të dosjeve nuk është aktivizuar.'
+S145='Na falni, dosjet në ndarjen e punës nuk mund të enkriptohen. Fjalëkalimi do të vendoset vetëm për hyrjen në rrënjë.'
+S146='Fjalëkalimi është i pasaktë. Provo përsëri'
+S147='Ruajtja e sesionit të fundit u shty, ju lutem prisni...'
+
+###TRIM###
+S150='Po ekzekutohet fstrim në ndarjen e punës SSD...'
+S151='Dal nga skripti fillestar, përpara operacioneve të rikuperimit dhe mirëmbajtjes.'
+
+###rikuperim, mirëmbajtje###
+S160='Gabim fatal gjatë kontrollit të sistemit të skedarëve'
+S161='Dal nga skripti fillestar, përpara kontrollit të versionit.'
+
+###kontrolli i versionit###
+S170='Operacion vetëm një herë, duke krijuar një fotografi të EasyOS'
+S171='Kjo do të lejojë rikthimin në të ardhmen me menaxherin e kontrollit të versionit të thjeshtë'
+S172='Popullohet:'
+S173='Paralajmërim, fshirja e versionit të vjetër:'
+S174='Nuk mund të gjendet lehtë.sfs'
+
+S180='Pse ekziston ky skedar? Duke e hequr atë.'
+S181='Dal nga skripti fillestar, përpara se të konfigurosh shtresat SFS.'
+
+###konfigurimi i shtresës së poshtme ro, me easy.sfs###
+S190='Momentimi i shtresës vetëm për lexim të sistemit të skedarëve me shtresa'
+S191='Montimi i skedarit squashfs easy.sfs'
+S192='Kopjimi i easy.sfs në RAM, më pas montimi'
+S193='Dështoi në montimin e easy.sfs'
+S194='PARALAJMËRIM, versionet nuk përputhen.'
+S195='skedari shtesë squashfs nuk ekziston, është hequr nga lista e ngarkesës.'
+S196='Kopjimi në RAM dhe montimi i skedarit shtesë squashfs:'
+S197='Mountimi i skedarit shtesë squashfs:'
+S198='GABIM: /usr/lib64 shteg i pasaktë në SFS:'
+S199='KY SFS NUK DO TË NGARKOHET'
+S200='GABIM: SFS nuk ka dosje të bashkimit të usr:'
+S201='Konfigurimi i sigurisë së nisjes së parë...'
+S202='Vendosja e të njëjtit fjalëkalim për përdoruesit zeus dhe root'
+
+###ndoshta kopjoni seancën në zram###
+S210='Po kopjohet sesioni i fundit i punës në RAM'
+
+###momenti i madh, krijoni f.s. me shtresa###
+S220='Krijimi i sistemit të skedarëve me shtresa, shkruani:'
+S221='Dështoi në krijimin e sistemit të skedarëve me shtresa'
+S222='Dal nga skripti fillestar, përpara se të zhvendosen pikat e montimit në wkg f.s.'
+
+###zhvendosni pikat e montimit përpara se të kaloni_rrënjën###
+S230='Kryerja e një switch_root në sistemin e skedarëve me shtresa'
+S231='Faktivizimi i makinës:'
+S232='Dal nga skripti fillestar, pak përpara switch_root.'
+
+###root pw###
+S300='Zgjodhe të mos futësh një fjalëkalim për të enkriptuar dosjet në ndarjen e punës; megjithatë, të paktën duhet të futni një fjalëkalim për përdoruesin rrënjë.'
+S301='Shënim1: në nisjet e ardhshme, fjalëkalimi nuk do të kërkohet për t´u identifikuar.'
+S302='Shënim2: nëse tastiera nuk funksionon kaq herët gjatë nisjes, do të ketë një afat kohor në 300 sekonda.'
+S303='Ju lutemi shkruani një fjalëkalim, me karaktere a-z, A-Z, 0-9, minimumi 6 karaktere, që do ta mbani mend.'
+S304='Krijimi i çiftit të çelësave të nënshkruar gnupg, në /root/.gnupg'
+
+######
+S400='Nuk u zbulua GPU NVIDIA, kështu që nuk do të ngarkojë NVIDIA SFS'

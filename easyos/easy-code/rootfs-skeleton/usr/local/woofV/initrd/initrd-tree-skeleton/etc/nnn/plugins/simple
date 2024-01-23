@@ -1,0 +1,35 @@
+#!/bin/env sh
+
+# #############################################################################
+# Description: Script to play files in apps by file type or mime
+# 200801 BK for nnn running in initrd in EasyOS.
+#
+# Integration with nnn:
+#   1. Export the required config:
+#         export NNN_OPENER=/absolute/path/to/simple
+#         # Otherwise, if simple is in $PATH
+#         # export NNN_OPENER=simple
+#   2. Run nnn with the program option to indicate a CLI opener
+#         nnn -c
+#         # The -c program option overrides option -e
+#
+# #############################################################################
+
+set -euf -o noclobber -o noglob -o nounset
+IFS="$(printf '%b_' '\n')"; IFS="${IFS%_}" # protect trailing \n
+
+PATH=$PATH:"/etc/nnn/plugins"
+
+FPATH="$1"
+FNAME=$(basename "$1")
+EDITOR="${EDITOR:-mp}"
+PAGER="${PAGER:-less -R}"
+ext="${FNAME##*.}"
+if ! [ -z "$ext" ]; then
+    ext="$(printf "%s" "${ext}" | tr '[:upper:]' '[:lower:]')"
+fi
+
+#BK
+xdg-open "${FPATH}" >/dev/null 2>&1
+exit 0
+###########

@@ -1,0 +1,160 @@
+#create_savefile_func()
+S001='Oppretter lagringsfil easysave.ext4...'
+
+#exit_to_initrd()
+S002='Linje'
+S003='Merk 1: Skriv "exit", init-skriptet vil forsøke å fortsette.'
+S004='Merk 2: På noen PC-er fungerer ikke tastaturet på dette stadiet av oppstart.'
+S005='Merk 3: hvis "ctrl-alt-del" ikke fungerer, hold nede strømknappen for å slå av.'
+S006='Merk 4: Konsolltekstredigerer "mp" er tilgjengelig.'
+S007='Merk 5: Konsollfilbehandling "shfm": Naviger med piltastene, "!" å gyte'
+S008=' et skall, "?" popup-hjelp, "q" for å avslutte. Hjelpefilen er "/shfm.txt"'
+S009='Merk 6: Konsollfilbehandling "nnn": Samme nøkler. Hjelpefil "/nnn.txt"'
+
+#err_exit()
+S010='FEIL:'
+S011='Har nå falt inn i et skall i initramfs.'
+S012='Vennligst trykk tastekombinasjonen CTRL-ALT-DEL for å starte på nytt,'
+S013='eller HOLD STRØM-KNAPPEN NEDE FOR Å SLÅ AV'
+S014='Følgende instruksjoner er kun for utviklere:'
+
+#ask_kb()
+S015='Vennligst skriv inn nummeret som tilsvarer tastaturoppsettet ditt.'
+S016='Velg den nærmeste matchen, det vil være en mulighet til å finjustere oppsettet etter at skrivebordet er lastet. Trykk ENTER bare for USA.'
+S017='Merk: på noen PC-er fungerer ikke tastaturet på dette stadiet av oppstart. I så fall, vent 5 minutter på oppstart.'
+S018='Tastaturoppsett:'
+S019='...ok, tastaturet er valgt:'
+
+#menu_func()
+S020='Gjør ingenting, gå tilbake for å skrive inn passord'
+S021='Fjern lockdown, gjenopprett normal oppstart'
+S022='Oppstart kun til kommandolinje, ingen X'
+S023='Rull tilbake til siste lagrede økt'
+S024='Rull tilbake til uberørt første støvel'
+S025='Filsystemsjekk av arbeidspartisjon'
+S026='Trykk ENTER-tasten eller vent 15 sekunder for normal oppstart'
+S027='Skriv inn et tall fra venstre kolonne:'
+S028='...du har valgt å gjenopprette normal oppstart; derimot,'
+S029='normal oppstart vil bli gjenopprettet ved NESTE oppstart'
+S030='...vil starte opp til kommandolinje, ingen X'
+S031='...vil rulle tilbake til siste lagrede økt'
+S032='...vil rulle tilbake til uberørt førstestart'
+S033='...vil utføre filsystemsjekk'
+
+#ask_pw()
+S034='Vennligst skriv inn et passord, alle tegn a-z, A-Z, 0-9, hvilken som helst lengde. Passordet vil kryptere deler av arbeidspartisjonen, og må huskes, da det må angis ved hver oppstart.'
+S035='Eller, bare trykk ENTER-tasten uten passord.'
+S036='For din sikkerhet anbefales et passord'
+S037='Passord:'
+S038='Beklager, bare a-z, A-Z, 0-9 tegn tillatt, prøv igjen'
+S039='Vennligst skriv inn passord for å dekryptere arbeidspartisjonen'
+S040='ELLER bare trykk ENTER for å få opp en meny med oppstartsalternativer'
+S041='Passord:'
+
+#cp_verify_func()
+S042='Denne kopien mislyktes:'
+S043='Det er mulig at stasjonen feiler.'
+S044='Forsøker å kopiere igjen...'
+S045='Andre forsøk mislyktes. Forsøk å gjenopprette ved å gjenopprette'
+S046='vmlinuz, initrd og easy.sfs fra forrige versjon.'
+S047='Andre forsøk på å kopiere fil mislyktes. Kanskje stasjonen svikter.
+S048='Andre forsøk lyktes, men advarselsstasjonen kan mislykkes.'
+
+###finn stasjoner###
+S100='Finne stasjoner'
+S101='partisjoner har motstridende id'
+S102='MERK: NEI! Du har ikke en økt ennå, gjør en normal oppstart'
+S103='Forlot init-skriptet tidlig, ingenting er montert ennå.'
+
+###veldig lav ram###
+S110='MERK: Låsing deaktivert, utilstrekkelig RAM'
+S111='MERK: EasyOS vil kjøre helt i RAM, ingen vedvarende lagring'
+S112='MERK: Økten vil bli kopiert til RAM og EasyOS vil kjøre i RAM'
+S113='Oppretter komprimert zram. RAM tildelt:'
+S114='Arbeidspartisjon:'
+S115='Leshastighetstest for arbeidsstasjon (lavere jo bedre):'
+
+###oppsett og monter arbeidspartisjon###
+S120='Endre størrelse på arbeidspartisjon for å fylle stasjonen'
+S121='FEIL: Kan ikke endre størrelse på arbeidspartisjonen'
+S122='Endre størrelse på ext4 filsystem for å fylle arbeidspartisjonen, størrelse:'
+S123='FEIL: Kan ikke endre størrelsen på ext4 filsystem for å fylle arbeidspartisjonen, størrelse:'
+S124='Kan ikke endre størrelse på arbeidspartisjonen. Utrygt å fortsette'
+S125='Kan ikke montere arbeidspartisjon:'
+S126='Avsluttet init script, wkg partisjon montert.'
+
+###opprett $WKG_DIR og mapper###
+S130='eksisterer allerede'
+S131='Arbeidspartisjonen har ikke ext4 krypteringsfunksjonen aktivert.'
+S132='Denne funksjonen er nødvendig for å kryptere mapper. Anbefalt for din sikkerhet.'
+S133='Hvis du avslår, vil fremtidige oppstarter ikke be om passord.'
+S134='ADVARSEL: gamle oppstartslastere som GRUB v1, GRUB4DOS og GRUB v2 før '
+S135='versjon 2.0.4 (utgitt 2019), gjenkjenner ikke moderne ext4-funksjoner '
+S136='som mappekryptering, og vil ikke lenger fungere med partisjonen '
+S137='hvis du aktiverer kryptering (partisjonen vil ikke lenger bli gjenkjent). '
+S138='Trykk ENTER-tasten for å aktivere kryptering, hvilken som helst annen nøkkel ikke for å:'
+S139='Aktiverer ext4 mappekryptering...'
+S140='Beklager, aktivering av mappekryptering mislyktes.'
+S141='...krypter aktivert.'
+S142='Merk, hvis du av en eller annen grunn vil slå den av, fjern EasyOS-installasjonen. Deretter er det instruksjoner på Internett for å slå av kryptering.'
+S143='Montering av arbeidspartisjonen mislyktes.'
+S144='Støtte for mappekryptering ikke aktivert.'
+S145='Beklager, mappene i arbeidspartisjonen kan ikke krypteres. Passordet vil kun bli satt for root-pålogging.'
+S146='Passord feil. Prøv igjen'
+S147='Utsatt lagring av siste økt, vennligst vent...'
+
+###LISTVERK###
+S150='Utfører fstrim på SSD-arbeidspartisjon...'
+S151='Avsluttet init-skriptet før gjenopprettings- og vedlikeholdsoperasjoner.'
+
+###gjenoppretting, vedlikehold###
+S160='Alvorlig feil ved filsystemkontroll'
+S161='Avsluttet init script, før versjonskontroll.'
+
+###versjonskontroll###
+S170='Engangsoperasjon, lager et øyeblikksbilde av EasyOS'
+S171='Dette vil tillate fremtidig tilbakeføring med Easy Version Control Manager'
+S172='Befolker:'
+S173='Advarsel, sletter gammel versjon:'
+S174='Kan ikke finne easy.sfs'
+
+S180='Hvorfor eksisterer denne filen? Fjerner den.'
+S181='Avsluttet init-skriptet, før du satte opp SFS-lag.'
+
+###oppsett nederste ro-lag, med easy.sfs###
+S190='Monterer skrivebeskyttet lag av lagdelt filsystem'
+S191='Montering av squashfs-fil easy.sfs'
+S192='Kopierer easy.sfs til RAM, deretter monterer'
+S193='Kunne ikke montere easy.sfs'
+S194='ADVARSEL, versjoner samsvarer ikke.'
+S195='ekstra squashfs-fil eksisterer ikke, fjernet fra lastelisten.'
+S196='Kopierer til RAM og monterer ekstra squashfs-fil:'
+S197='Montering av ekstra squashfs-fil:'
+S198='FEIL: /usr/lib64 feil bane i SFS:'
+S199='DENNE SFS BLIR IKKE LASTET'
+S200='FEIL: SFS har ikke usr-merge-mapper:'
+S201='Sikkerhetsoppsett ved første oppstart...'
+S202='Angi samme passord for brukere zeus og root'
+
+###kanskje kopiere økten til zram###
+S210='Kopierer siste arbeidsøkt til RAM'
+
+###det store øyeblikket, lag lagdelte f.s.###
+S220='Oppretter lagdelt filsystem, skriv:'
+S221='Kunne ikke opprette lagdelt filsystem'
+S222='Forlot init-skriptet, før monteringspunktene flyttes til wkg f.s.'
+
+###flytte monteringspunkter før switch_root###
+S230='Utfører en switch_root på det lagdelte filsystemet'
+S231='Slå av stasjonen:'
+S232='Avsluttet init-skriptet, like før switch_root.'
+
+###root pw###
+S300='Du valgte å ikke skrive inn et passord for å kryptere mapper i arbeidspartisjonen; men du bør i det minste angi et passord for root-brukeren.'
+S301='Merk1: ved fremtidige oppstarter vil ikke passordet være nødvendig for å logge inn.'
+S302='Merk2: Hvis tastaturet ikke fungerer så tidlig under oppstart, vil det være en timeout om 300 sekunder.'
+S303='Vennligst skriv inn et passord, med tegnene a-z, A-Z, 0-9, minimum 6 tegn, som du vil huske.'
+S304='Oppretter gnupg-signert nøkkelpar, på /root/.gnupg'
+
+######
+S400='Ingen NVIDIA GPU oppdaget, så vil ikke laste inn NVIDIA SFS'

@@ -1,0 +1,160 @@
+#create_savefile_func()
+S001='Criando arquivo save easysave.ext4...'
+
+#exit_to_initrd()
+S002='Linha'
+S003='Nota 1: Digite "exit", o script de inicialização tentará continuar.'
+S004='Nota 2: Em alguns PCs, o teclado não funciona neste estágio de inicialização.'
+S005='Nota 3: se "ctrl-alt-del" não funcionar, mantenha pressionado o botão liga/desliga para desligar.'
+S006='Nota 4: O editor de texto do console "mp" está disponível.'
+S007='Nota 5: Gerenciador de arquivos do console "shfm": Navegue com as teclas de seta, "!" Aparecer'
+S008=' uma concha, "?" pop-up de ajuda, "q" para sair. O arquivo de ajuda é "/shfm.txt"'
+S009='Nota 6: Gerenciador de arquivos do console "nnn": Mesmas chaves. Arquivo de ajuda "/nnn.txt"'
+
+#err_exit()
+S010='ERRO:'
+S011='Já caiu em um shell no initramfs.'
+S012='Por favor, pressione a combinação de teclas CTRL-ALT-DEL para reiniciar,'
+S013='ou SEGURE O BOTÃO POWER PARA DESLIGAR'
+S014='As instruções a seguir são apenas para desenvolvedores:'
+
+#ask_kb()
+S015='Digite o número correspondente ao seu layout de teclado.'
+S016='Escolha a correspondência mais próxima, haverá uma oportunidade de ajustar o layout após o carregamento da área de trabalho. Pressione ENTER apenas para os EUA.'
+S017='Nota: em alguns PCs, o teclado não funciona nesta fase de inicialização. Nesse caso, aguarde 5 minutos para inicializar.'
+S018='Disposição do teclado:'
+S019='...ok, mapa de teclas escolhido:'
+
+#menu_func()
+S020='Não faça nada, volte para digitar a senha'
+S021='Remova o bloqueio, restaure a inicialização normal'
+S022='Inicialização apenas na linha de comando, sem X'
+S023='Reversão para a última sessão salva'
+S024='Reversão para primeira inicialização original'
+S025='Verificação do sistema de arquivos da partição de trabalho'
+S026='Pressione a tecla ENTER ou aguarde 15 segundos para inicialização normal'
+S027='Digite um número na coluna da esquerda:'
+S028='...você optou por restaurar a inicialização normal; no entanto,'
+S029='inicialização normal será restaurada na PRÓXIMA inicialização'
+S030='...irá inicializar na linha de comando, sem X'
+S031='...irá reverter para a última sessão salva'
+S032='...irá reverter para a primeira inicialização original'
+S033='...realizará a verificação do sistema de arquivos'
+
+#ask_pw()
+S034='Por favor, digite uma senha, qualquer caractere a-z, A-Z, 0-9, qualquer tamanho. A senha irá criptografar partes da partição de trabalho e deve ser lembrada, pois terá que ser digitada a cada inicialização.'
+S035='Ou, apenas pressione a tecla ENTER para não ter senha.'
+S036='Para sua segurança, recomenda-se uma senha'
+S037='Senha:'
+S038='Desculpe, apenas a-z, A-Z, 0-9 caracteres são permitidos, tente novamente'
+S039='Digite a senha para descriptografar a partição de trabalho'
+S040='OU apenas pressione ENTER para abrir um menu de opções de inicialização'
+S041='Senha:'
+
+#cp_verify_func()
+S042='Esta cópia falhou:'
+S043='É possível que a unidade esteja falhando.'
+S044='Tentando copiar novamente...'
+S045='Falha na segunda tentativa. Tente a recuperação restaurando'
+S046='vmlinuz, initrd e easy.sfs da versão anterior.'
+S047='Falha na segunda tentativa de copiar o arquivo. Talvez a unidade esteja falhando.'
+S048='Segunda tentativa bem-sucedida, mas o drive de aviso pode estar falhando.'
+
+###encontrar drives###
+S100='Encontrar drives'
+S101='partições têm id conflitantes'
+S102='AVISO: NÃO! Você ainda não tem uma sessão, fazendo uma inicialização normal'
+S103='Sair do script de inicialização antecipadamente, nada ainda montado.'
+
+###ramo muito baixo###
+S110='AVISO: Bloqueio desativado, RAM insuficiente'
+S111='AVISO: EasyOS rodará totalmente em RAM, sem armazenamento persistente'
+S112='AVISO: A sessão será copiada para a RAM e o EasyOS será executado na RAM'
+S113='Criando zram compactado. RAM alocada:'
+S114='Partição de trabalho:'
+S115='Teste de velocidade de leitura da unidade de trabalho (menor melhor):'
+
+###configurar e montar a partição de trabalho###
+S120='Redimensionando a partição de trabalho para preencher o drive'
+S121='ERRO: impossível redimensionar a partição de trabalho'
+S122='Redimensionando o sistema de arquivos ext4 para preencher a partição de trabalho, tamanho:'
+S123='ERRO: impossível redimensionar o sistema de arquivos ext4 para preencher a partição de trabalho, tamanho:'
+S124='Não foi possível redimensionar a partição de trabalho. Inseguro para continuar'
+S125='Não foi possível montar a partição de trabalho:'
+S126='Sair do script de inicialização, partição wkg montada.'
+
+###criar $WKG_DIR e pastas###
+S130='já existe'
+S131='A partição de trabalho não tem o recurso de criptografia ext4 habilitado.'
+S132='Este recurso é necessário para criptografar pastas. Recomendado para sua segurança.'
+S133='Se você recusar, futuras inicializações não solicitarão uma senha.'
+S134='AVISO: bootloaders antigos como GRUB v1, GRUB4DOS e GRUB v2 antes de '
+S135='versão 2.0.4 (lançada em 2019), não reconhece recursos ext4 modernos '
+S136='como criptografia de pasta e não funcionará mais com a partição '
+S137='se você ativar a criptografia (a partição não será mais reconhecida). '
+S138='Pressione a tecla ENTER para habilitar a criptografia, qualquer outra tecla não para:'
+S139='Habilitando criptografia de pasta ext4...'
+S140='Desculpe, falha ao habilitar a criptografia da pasta.'
+S141='...encriptação activada.'
+S142='Observação, se por algum motivo você quiser desativá-lo, remova a instalação do EasyOS. Em seguida, há instruções na Internet para desativar a criptografia.'
+S143='A montagem da partição de trabalho falhou.'
+S144='Suporte de criptografia de pasta não ativado.'
+S145='Desculpe, as pastas na partição de trabalho não podem ser criptografadas. A senha será definida apenas para login root.'
+S146='Senha incorreta. Tente novamente'
+S147='Salvamento da última sessão adiado, aguarde...'
+
+###APARAR###
+S150='Executando fstrim na partição de trabalho do SSD...'
+S151='Sair do script de inicialização, antes das operações de recuperação e manutenção.'
+
+###recuperação, manutenção###
+S160='Erro fatal ao verificar o sistema de arquivos'
+S161='Sair do script de inicialização, antes do controle de versão.'
+
+###controle de versão###
+S170='Operação única, criando um instantâneo do EasyOS'
+S171='Isso permitirá reversão futura com o Easy Version Control Manager'
+S172='Preenchendo:'
+S173='Atenção, deletar versão antiga:'
+S174='Não foi possível encontrar easy.sfs'
+
+S180='Por que este arquivo existe? Removê-lo.'
+S181='Sair do script de inicialização, antes de configurar as camadas SFS.'
+
+###configurar a camada inferior, com easy.sfs###
+S190='Montando a camada somente leitura do sistema de arquivos em camadas'
+S191='Montando arquivo squashfs easy.sfs'
+S192='Copiando easy.sfs para RAM, depois montando'
+S193='Falha ao montar easy.sfs'
+S194='ATENÇÃO, as versões não coincidem.'
+S195='arquivo squashfs extra não existe, removido da lista de carregamento.'
+S196='Copiando para RAM e montando arquivo extra squashfs:'
+S197='Montando arquivo extra squashfs:'
+S198='ERRO: /usr/lib64 caminho incorreto no SFS:'
+S199='ESTE SFS NÃO SERÁ CARREGADO'
+S200='ERRO: SFS não possui pastas usr-merge:'
+S201='Configuração de segurança na primeira inicialização...'
+S202='Definindo a mesma senha para usuários zeus e root'
+
+###talvez copie a sessão para zram###
+S210='Copiando última sessão de trabalho para RAM'
+
+###o grande momento, crie camadas f.s.###
+S220='Criando sistema de arquivos em camadas, digite:'
+S221='Falha ao criar sistema de arquivos em camadas'
+S222='Sair do script de inicialização, antes de mover os pontos de montagem para wkg f.s.'
+
+###realocar pontos de montagem antes de switch_root###
+S230='Executando um switch_root no sistema de arquivos em camadas'
+S231='Desligamento do drive:'
+S232='Sair do script de inicialização, pouco antes do switch_root.'
+
+###root pw###
+S300='Você optou por não inserir uma senha para criptografar pastas na partição de trabalho; no entanto, você deve, pelo menos, inserir uma senha para o usuário root.'
+S301='Nota1: em futuras inicializações, a senha não será necessária para o login.'
+S302='Nota2: se o teclado não funcionar tão cedo na inicialização, haverá um tempo limite de 300 segundos.'
+S303='Por favor, digite uma senha, com caracteres a-z, A-Z, 0-9, mínimo de 6 caracteres, que você lembrará.'
+S304='Criando par de chaves assinadas gnupg, em /root/.gnupg'
+
+######
+S400='Nenhuma GPU NVIDIA detectada, portanto não carregará NVIDIA SFS'

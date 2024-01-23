@@ -1,0 +1,160 @@
+#create_savefile_func()
+S001='Stvaranje datoteke za spremanje easysave.ext4...'
+
+#izlaz_na_initrd()
+S002='Linija'
+S003='Napomena 1: Upišite "exit", početna skripta će pokušati nastaviti.'
+S004='Napomena 2: Na nekim računalima tipkovnica ne radi u ovoj fazi podizanja sustava.'
+S005='Napomena 3: ako "ctrl-alt-del" ne radi, držite pritisnut gumb za uključivanje da isključite.'
+S006='Napomena 4: Dostupan je uređivač teksta konzole "mp".'
+S007='Napomena 5: Upravitelj datoteka konzole "shfm": Krećite se tipkama sa strelicama, "!" izroditi se'
+S008=' školjka, "?" skočna pomoć, "q" za izlaz. Datoteka pomoći je "/shfm.txt"'
+S009='Napomena 6: Upravitelj datoteka konzole "nnn": Isti ključevi. Datoteka pomoći "/nnn.txt"'
+
+#pogreška_izlaz()
+S010='GREŠKA:'
+S011='Sada sam pao u ljusku u initramfs.'
+S012='Pritisnite kombinaciju tipki CTRL-ALT-DEL za ponovno pokretanje,'
+S013='ili DRŽITE GUMB NAPAJANJA ZA ISKLJUČIVANJE'
+S014='Sljedeće upute su samo za programere:'
+
+#ask_kb()
+S015='Molimo unesite broj koji odgovara vašem rasporedu tipkovnice.'
+S016='Odaberite najbliže podudaranje, bit će prilike za fino podešavanje izgleda nakon što se radna površina učita. Pritisnite ENTER samo za SAD.'
+S017='Napomena: na nekim računalima tipkovnica ne radi u ovoj fazi podizanja sustava. U tom slučaju pričekajte 5 minuta za podizanje sustava.'
+S018='Raspored tipkovnice:'
+S019='...ok, odabrana mapa tipki:'
+
+#menu_func()
+S020='Ne čini ništa, vrati se da uneseš lozinku'
+S021='Ukloni zaključavanje, vrati normalno pokretanje'
+S022='Pokretanje samo na naredbenoj liniji, bez X'
+S023='Povratak na posljednju spremljenu sesiju'
+S024='Povratak na netaknuto prvo pokretanje'
+S025='Provjera datotečnog sustava radne particije'
+S026='Pritisnite tipku ENTER ili pričekajte 15 sekundi za normalno pokretanje'
+S027='Upišite broj iz lijevog stupca:'
+S028='...odabrali ste vratiti normalno podizanje sustava; međutim,'
+S029='normalno podizanje sustava bit će vraćeno pri SLJEDEĆEM pokretanju'
+S030='...pokrenut će se na naredbenoj liniji, bez X'
+S031='...vratit će se na posljednju spremljenu sesiju'
+S032='...vratit će se na izvorno prvo pokretanje'
+S033='...provest će provjeru datotečnog sustava'
+
+#ask_pw()
+S034='Molimo unesite lozinku, bilo koje znakove a-z, A-Z, 0-9, bilo koje duljine. Lozinka će šifrirati dijelove radne particije i mora se zapamtiti jer će se morati unijeti pri svakom dizanju sustava.'
+S035='Ili, samo pritisnite tipku ENTER ako nemate lozinku.'
+S036='Za vašu sigurnost preporučuje se lozinka'
+S037='Zaporka:'
+S038='Žao nam je, dozvoljeni su samo a-z, A-Z, 0-9 znakova, pokušajte ponovno'
+S039='Molimo unesite lozinku za dešifriranje radne particije'
+S040='ILI samo pritisnite ENTER za prikaz izbornika opcija pokretanja'
+S041='Zaporka:'
+
+#cp_verify_func()
+S042='Ova kopija nije uspjela:'
+S043='Moguće je da pogon ne radi.'
+S044='Ponovni pokušaj kopiranja...'
+S045='Drugi pokušaj nije uspio. Pokušaj oporavka obnavljanjem'
+S046='vmlinuz, initrd i easy.sfs prethodne verzije.'
+S047='Drugi pokušaj kopiranja datoteke nije uspio. Možda pogon ne radi.'
+S048='Drugi pokušaj uspio, ali pogon upozorenja možda ne uspijeva.'
+
+###pronađi pogone###
+S100='Pronalaženje pogona'
+S101='particije imaju sukobljeni ID'
+S102='OBAVIJEST: NE! Još nemate sesiju, izvodite normalno podizanje sustava'
+S103='Rano izašao iz init skripte, još ništa nije montirano.'
+
+###vrlo nizak ram###
+S110='OBAVIJEST: Zaključavanje onemogućeno, nedovoljno RAM-a'
+S111='OBAVIJEST: EasyOS će raditi u potpunosti u RAM-u, bez trajne pohrane'
+S112='OBAVIJEST: Sesija će se kopirati u RAM i EasyOS će se izvoditi u RAM-u'
+S113='Stvaranje komprimiranih zram. Dodijeljeni RAM:'
+S114='Radna-particija:'
+S115='Radni test brzine čitanja pogona (što niže to bolje):'
+
+###postavljanje i montiranje radne particije###
+S120='Promjena veličine radne particije za popunjavanje pogona'
+S121='GREŠKA: nije moguće promijeniti veličinu radne particije'
+S122='Promjena veličine ext4 datotečnog sustava za popunjavanje radne particije, veličina:'
+S123='GREŠKA: nije moguće promijeniti veličinu ext4 datotečnog sustava da ispuni radnu particiju, veličina:'
+S124='Nije moguće promijeniti veličinu radne particije. Nije sigurno nastaviti'
+S125='Nije moguće montirati radnu particiju:'
+S126='Izlaz iz init skripte, wkg particija montirana.'
+
+###stvori $WKG_DIR i mape###
+S130='već postoji'
+S131='Radna particija nema omogućenu značajku šifriranja ext4.'
+S132='Ova značajka je potrebna za šifriranje mapa. Preporučeno za vašu sigurnost.'
+S133='Ako odbijete, buduća dizanja neće tražiti lozinku.'
+S134='UPOZORENJE: stari bootloaderi kao što su GRUB v1, GRUB4DOS i GRUB v2 prije '
+S135='verzija 2.0.4 (objavljena 2019), ne prepoznaje moderne ext4 značajke '
+S136='kao što je enkripcija mape, i više neće raditi s particijom '
+S137='ako omogućite šifriranje (particija se više neće prepoznavati). '
+S138='Pritisnite tipku ENTER da omogućite šifriranje, bilo koju drugu tipku ne da:'
+S139='Omogućivanje enkripcije mape ext4...'
+S140='Nažalost, omogućavanje enkripcije mape nije uspjelo.'
+S141='...šifriranje omogućeno.'
+S142='Napomena, ako ga iz nekog razloga želite isključiti, uklonite EasyOS instalaciju. Zatim, na internetu postoje upute za isključivanje šifriranja.'
+S143='Montiranje radne particije nije uspjelo.'
+S144='Podrška za šifriranje mape nije omogućena.'
+S145='Nažalost, mape na radnoj particiji ne mogu se šifrirati. Lozinka će biti postavljena samo za root prijavu.'
+S146='Lozinka nije točna. pokušaj ponovo'
+S147='Odgođeno spremanje zadnje sesije, pričekajte...'
+
+###STRIM###
+S150='Izvršavanje fstrima na SSD radnoj particiji...'
+S151='Izlaz iz init skripte, prije operacija oporavka i održavanja.'
+
+###oporavak, održavanje###
+S160='Kobna pogreška prilikom provjere datotečnog sustava'
+S161='Izlaz iz init skripte, prije kontrole verzije.'
+
+###kontrola verzije###
+S170='Samo jednokratna operacija, stvaranje snimke EasyOS-a'
+S171='Ovo će omogućiti buduće vraćanje s Easy Version Control Managerom'
+S172='Popunjavanje:'
+S173='Upozorenje, brisanje stare verzije:'
+S174='Ne mogu pronaći easy.sfs'
+
+S180='Zašto ova datoteka postoji? Uklanjanje.'
+S181='Izlaz iz init skripte, prije postavljanja SFS slojeva.'
+
+###postavite donji ro sloj, s easy.sfs###
+S190='Montiranje sloja samo za čitanje slojevitog datotečnog sustava'
+S191='Montiranje squashfs datoteke easy.sfs'
+S192='Kopiranje easy.sfs u RAM, zatim montiranje'
+S193='Nije uspjelo montiranje easy.sfs'
+S194='UPOZORENJE, verzije se ne podudaraju.'
+S195='extra squashfs datoteka ne postoji, uklonjena s popisa učitavanja.'
+S196='Kopiranje u RAM i montiranje dodatne squashfs datoteke:'
+S197='Montiranje dodatne squashfs datoteke:'
+S198='GREŠKA: /usr/lib64 netočna staza u SFS-u:'
+S199='OVAJ SFS NEĆE BITI UČITAN'
+S200='GREŠKA: SFS nema usr-merge mape:'
+S201='Sigurnosna postavka prvog pokretanja...'
+S202='Postavljanje iste lozinke za korisnike zeus i root'
+
+###možda kopiraj sesiju u zram###
+S210='Kopiranje zadnje radne sesije u RAM'
+
+###veliki trenutak, stvorite slojeviti f.s.###
+S220='Stvaranje slojevitog datotečnog sustava, upišite:'
+S221='Nije uspjelo stvaranje slojevitog datotečnog sustava'
+S222='Izlaz iz init skripte, prije premještanja točaka montiranja na wkg f.s.'
+
+###premještanje točaka montiranja prije switch_root###
+S230='Izvođenje switch_root na slojevitom datotečnom sustavu'
+S231='Isključivanje pogona:'
+S232='Izlaz iz init skripte, neposredno prije switch_root.'
+
+###root pw###
+S300='Odabrali ste ne unijeti lozinku za šifriranje mapa na radnoj particiji; međutim, trebali biste barem unijeti lozinku za root korisnika.'
+S301='Napomena1: prilikom budućih pokretanja, lozinka neće biti potrebna za prijavu.'
+S302='Napomena2: ako tipkovnica ne radi ovako rano u pokretanju, doći će do vremenskog ograničenja za 300 sekundi.'
+S303='Molimo upišite lozinku sa znakovima a-z, A-Z, 0-9, minimalno 6 znakova, koju ćete zapamtiti.'
+S304='Stvaranje gnupg potpisanog para ključeva, na /root/.gnupg'
+
+######
+S400='Nije otkriven NVIDIA GPU, pa se neće učitati NVIDIA SFS'

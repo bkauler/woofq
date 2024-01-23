@@ -1,0 +1,268 @@
+﻿NNN
+Section: User Commands (1)
+Index Return to Main Contents
+
+
+BSD mandoc
+  
+NAME
+nnn - the missing terminal file manager for X   
+SYNOPSIS
+[-a ] [-A ] [-b key ] [-c ] [-C ] [-d ] [-e ] [-E ] [-f ] [-F ] [-g ] [-H ] [-K ] [-l ] [-n ] [-p file ] [-P key ] [-Q ] [-r ] [-R ] [-s name ] [-S ] [-t secs ] [-T key ] [-u ] [-V ] [-x ] [-h ] [PATH ]   
+DESCRIPTION
+(Nnn's Not Noice) is a performance-optimized, feature-packed fork of noice (http://git.2f30.org/noice/) with seamless desktop integration, simplified navigation, type-to-nav mode with auto select, disk usage analyzer mode, bookmarks, contexts, application launcher, familiar navigation shortcuts, subshell spawning and much more.It remains a simple and efficient file manager that stays out of your way. 
+opens the current working directory by default if PATH is not specified.   
+KEYBINDS
+Press ? in to see the list of keybinds.   
+OPTIONS
+supports the following options: 
+-a 
+        auto-setup temporary NNN_FIFO (described in ENVIRONMENT section) 
+-A 
+        disable directory auto-select in type-to-nav mode 
+-b key 
+        specify bookmark key to open 
+-c 
+        indicates that the opener is a cli-only opener (overrides -e) 
+-C 
+        place hardware cursor on hovered entry 
+-d 
+        detail mode 
+-e 
+        open text files in $VISUAL (else $EDITOR, fallback vi) [preferably CLI] 
+-E 
+        use $EDITOR for internal undetached edits 
+-f 
+        use readline history file 
+-F 
+        show fortune in help and settings screen 
+-g 
+        use regex filters instead of substring match 
+-H 
+        show hidden files 
+-K 
+        test for keybind collision 
+-l val 
+        number of lines to move per mouse wheel scroll 
+-n 
+        start in type-to-nav mode 
+-o 
+        open files only on Enter key 
+-p file 
+        copy (or pick) selection to file, or stdout if file='-' 
+-P key 
+        specify plugin key to run 
+-Q 
+        disable confirmation on quit with multiple contexts active 
+-r 
+        show cp, mv progress 
+        (Linux-only, needs advcpmv; '^T' shows the progress on BSD/macOS) 
+-R 
+        disable rollover at edges 
+-s name 
+        load a session by name 
+-S 
+        persistent session 
+-t secs 
+        idle timeout in seconds to lock terminal 
+-T key 
+        sort order 
+        keys: 'a'u / 'd'u / 'e'xtension / 'r'everse / 's'ize / 't'ime / 'v'ersion 
+-u 
+        use selection if available, don't prompt to choose between selection and hovered entry 
+-V 
+        show version and exit 
+-x 
+        show notis on selection cp, mv, rm completion 
+        copy path to system clipboard on select 
+-h 
+        show program help and exit   
+CONFIGURATION
+There is no configuration file. Associated files are at 
+${XDG_CONFIG_HOME:-$HOME/.config}/nnn/ 
+Configuration is done using a few optional (set if you need) environment variables. See ENVIRONMENT section. 
+uses xdg-open (on Linux), open(1) (on macOS), cygstart on (Cygwin) and open on (Haiku) as the desktop opener. It's also possible to specify a custom opener. See ENVIRONMENT section.   
+CONTEXTS
+Open multiple locations with 4 contexts. The status is shown in the top left corner: 
+- the current context is in reverse video 
+- other active contexts are underlined 
+- rest are inactive 
+A new context copies the state of the previous context. Each context can have its own color. See ENVIRONMENT section.   
+SESSIONS
+Sessions are a way to save and restore states of work. A session stores the settings and contexts. 
+Sessions can be loaded dynamically at runtime or with a program option. 
+When a session is loaded dynamically, the last working session is saved automatically to a dedicated -- "last session" -- session file. The "last session" is also used in persistent session mode. 
+All the session files are located by session name in the directory 
+${XDG_CONFIG_HOME:-$HOME/.config}/nnn/sessions 
+"@" is the "last session" file.   
+FILTERS
+Filters are strings (or regex patterns) to find matching entries in the current directory instantly (search-as-you-type). Matches are case-insensitive by default. The last filter in each context is persisted at runtime or in saved sessions. 
+Special keys at filter prompt: 
+-------- + ---------------------------------------
+  Key    |                Function
+-------- + ---------------------------------------
+ ^char   | Usual keybind functionality
+ Esc     | Exit filter prompt but skip dir refresh
+ Alt+Esc | Exit filter prompt and refresh dir
+-------- + ---------------------------------------
+Special keys at empty filter prompt: 
+------ + ---------------------------------------
+  Key  |                Function
+------ + ---------------------------------------
+   ?   | Show help and config screen
+   /   | Toggle between string and regex
+   :   | Toggle case-sensitivity
+  ^L   | Clear filter (if prompt is non-empty)
+       | OR apply last filter
+------ + ---------------------------------------
+Additional special keys at empty filter prompt in type-to-nav mode: 
+------ + ------------------------
+  Key  |         Function
+------ + ------------------------
+   '   | Go to first non-dir file
+   +   | Toggle auto-advance
+   ,   | Mark CWD
+   -   | Go to last visited dir
+   .   | Show hidden files
+   ;   | Run a plugin by its key
+   =   | Launch a GUI application
+   >   | Export file list
+   @   | Visit start dir
+   ]   | Show command prompt
+   `   | Visit /
+   ~   | Go HOME
+------ + ------------------------
+Common regex use cases: 
+(1) To list all matches starting with the filter expression, 
+    start the expression with a '^' (caret) symbol. 
+(2) Type '\.mkv' to list all MKV files. 
+(3) Use '.*' to match any character (sort of fuzzy search). 
+(4) Exclude filenames having 'nnn' (compiled with PCRE lib): '^(?!nnn)' 
+In the type-to-nav mode directories are opened in filter mode, allowing continuous navigation. 
+When there's a unique match and it's a directory, auto selects the directory and enters it in this mode. Use the relevant program option to disable this behaviour.   
+SELECTION
+allows file selection across directories and contexts! 
+There are 3 groups of keybinds to add files to selection: 
+(1) hovered file selection toggle 
+    - deselects if '+' is visible before the entry, else adds to selection 
+(2) add a range of files to selection 
+    - repeat the range key on the same entry twice to clear selection completely 
+(3) add all files in the current directory to selection 
+A selection can be edited, copied, moved, removed, archived or linked. 
+Absolute paths of the selected files are copied to .selection file in the config directory. The selection file is shared between multiple program instances. The most recent instance writing to the file overwrites the entries from earlier writes. If you have 2 instances if open in 2 panes of a terminal multiplexer, you can select in one pane and use the selection (e.g. to copy or move) in the other pane (if the instance doesn't have any local selection already). 
+clears the selection after file removal, batch-rename and link creation with selection. However, it is retained after archive creation with selection as the user may want to delete the archived files next. 
+To edit the selection use the _edit selection_ key. Use this key to remove a file from selection after you navigate away from its directory. Editing doesn't end the selection mode. You can add more files to the selection and edit the list again. If no file is selected in the current session, this option attempts to list the selection file.   
+FIND AND LIST
+There are two ways to search and list: 
+- feed a list of file paths as input 
+- search using a plugin (e.g. finder) and list the results 
+File paths must be NUL-separated ('\0'). Paths and can be relative to the current directory or absolute. Invalid paths in the input are ignored. Input limit is 65,536 paths or 256 MiB of data. 
+To list the input stream, start by writing to its standard input. E.g., to list files in current directory larger than 1M: 
+    find -maxdepth 1 -size +1M -print0 | nnn
+or redirect a list from a file: 
+    nnn < files.txt
+Handy bash/zsh shell function to list files by mime-type in current directory: 
+    # to show video files, run: list video
+
+    list ()
+    {
+        find . -maxdepth 1 | file -if- | grep "$1" | awk -F: '{printf "%s", $1}' | nnn
+    }
+A temporary directory will be created containing symlinks to the given paths. Any action performed on these symlinks will be performed only on their targets, after which they might become invalid. 
+Right arrow or 'l' on a symlink in the listing dir takes to the target file. Press '-' to return to the listing dir. Press 'Enter' to open the symlink.   
+UNITS
+The minimum file size unit is byte (B). The rest are K, M, G, T, P, E, Z, Y (powers of 1024), same as the default units in ls.   
+ENVIRONMENT
+The SHELL, EDITOR (VISUAL, if defined) and PAGER environment variables are used. A single combination of arguments is supported for SHELL and PAGER. 
+NNN_OPTS: binary options to 
+    export NNN_OPTS="cEnrx"
+NNN_OPENER: specify a custom file opener. 
+    export NNN_OPENER=nuke
+
+    NOTE: 'nuke' is a file opener available in the plugin repository.
+NNN_BMS: bookmark string as key_char:location pairs separated by ;: 
+    export NNN_BMS='d:~/Documents;u:/files/user/Cam Uploads;D:~/Downloads/'
+NNN_PLUG: directly executable plugins as key_char:plugin pairs separated by ;: 
+    export NNN_PLUG='f:finder;o:fzopen;p:mocplay;d:diffs;t:nmount;v:imgview'
+
+    NOTES:
+    1. To run a plugin directly, press ; followed by the key.
+    2. Alternatively, combine with Alt (i.e. Alt+key).
+    3. To skip directory refresh after running a plugin, prefix with -.
+
+    export NNN_PLUG='m:-mediainf'
+
+    To assign keys to arbitrary non-background non-shell-interpreted cli 
+    commands and invoke like plugins, add _ (underscore) before the 
+    command. 
+    export NNN_PLUG='x:_chmod +x $nnn;g:_git log;s:_smplayer $nnn'
+
+    NOTES:
+    1. Use single quotes for $NNN_PLUG so $nnn is not interpreted
+    2. $nnn should be the last argument (IF used)
+    3. (Again) add _ before the command
+    4. To disable directory refresh after running a command as plugin,
+       prefix with -_
+    5. To skip user confirmation after command execution, suffix with *
+       Note: Do not use * with programs those run and exit e.g. cat
+
+    export NNN_PLUG='y:-_sync*'
+
+    6. To run a GUI app as plugin, add a | after _
+
+    export NNN_PLUG='m:-_|mousepad $nnn'
+
+    EXAMPLES:
+    ----------------------------------- + -------------------------------------------------
+                Key:Command             |                   Description
+    ----------------------------------- + -------------------------------------------------
+    g:-_git diff                        | Show git diff
+    k:-_fuser -kiv $nnn*                | Interactively kill process(es) using hovered file
+    l:-_git log                         | Show git log
+    n:-_vi /files/user/Dropbox/dir/note* | Take quick notes in a synced file/dir of notes
+    p:-_less -iR $nnn*                  | Page through hovered file in less
+    s:-_|smplayer -minigui $nnn         | Play hovered media file, even unfinished download
+    x:_chmod +x $nnn                    | Make the hovered file executable
+    y:-_sync*                           | Flush cached writes
+    ----------------------------------- + -------------------------------------------------
+NNN_COLORS: string of color codes for each context, e.g.: 
+    export NNN_COLORS='1234'
+
+    codes: 0-black, 1-red, 2-green, 3-yellow, 4-blue (default), 5-magenta, 6-cyan, 7-white
+NNN_ARCHIVE: archive types to be handled silently (default: bzip2, (g)zip, tar). 
+    export NNN_ARCHIVE="\\.(7z|bz2|gz|tar|tgz|zip)$"
+
+    NOTE: Non-default formats may require a third-party utility.
+NNN_SSHFS: pass additional options to sshfs command: 
+    export NNN_SSHFS='sshfs -o reconnect,idmap=user,cache_timeout=3600'
+
+    NOTE: The options must be preceded by "sshfs" and comma-separated without any space between them.
+NNN_RCLONE: pass additional options to rclone command: 
+    export NNN_RCLONE='rclone mount --read-only --no-checksum'
+
+    NOTE: The options must be preceded by "rclone" and max 5 flags are supported.
+NNN_TRASH: trash (instead of delete) files to desktop Trash. 
+    export NNN_TRASH=1
+NNN_SEL: absolute path to custom selection file. 
+NNN_FIFO: path of a named pipe to write the hovered file path: 
+    export NNN_FIFO='/tmp/nnn.fifo'
+
+    NOTES:
+    1. Overridden by a temporary path with -a option.
+    2. If the FIFO file doesn't exist it will be created, but not removed (unless it is generated by -a option).
+NNN_LOCKER: terminal locker program. 
+    export NNN_LOCKER='bmon -p wlp1s0'
+    export NNN_LOCKER='cmatrix'
+NNN_MCLICK: key emulated by a middle mouse click. 
+    export NNN_MCLICK='^R'
+
+    NOTE: Only the first character is considered if not a Ctrl+key combo.
+nnn: this is a special variable set to the hovered entry before executing a command from the command prompt or spawning a shell. 
+NO_COLOR: disable ANSI color output (overridden by NNN_COLORS).   
+KNOWN ISSUES
+may not handle keypresses correctly when used with tmux (see issue #104 for more details). Set TERM=xterm-256color to address it.   
+AUTHORS
+An Arun Prakash Jana Aq Mt engineerarun@gmail.com , An Lazaros Koromilas Aq Mt lostd@2f30.org , An Dimitris Papastamos Aq Mt sin@2f30.org .   
+HOME
+https://github.com/jarun/nnn 
+ 

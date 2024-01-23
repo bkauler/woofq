@@ -1,0 +1,41 @@
+
+181012
+------
+see ../console/bk-notes
+
+181013
+------
+.sessionSKEL/etc/xdg/templates/_root_.jwmrc is modified, as inside container.
+"<!-- EC " shows sections removed.
+
+Also, some of the usr/share/applications/*.desktop need to be removed.
+.sessionSKEL/usr/bin/desk gets called when 'ec-chroot-desk' is run in host,
+this will delete some .desktop files and run 'fixmenus'.
+
+181014
+------
+very strange, desk container starts ok from a terminal, running 'ec-chroot-desk',
+and from jwm menu, however from "desk" icon on desktop fails -- either jwm fails
+or rox is messed up.
+
+couldn't fix, so 'ec-chroot-desk' now runs "urxvt -name ecxephyr ...", and /root/.jwmrc
+has specified this window name "ecxephyr" is hidden.
+ref: /etc/xdg/templates/_root_.jwmrc
+
+181120
+------
+SFS files now have startup scripts in /.control
+For "easy", easy.sfs already has the appropriate startup script, /.control/easy
+Note that these startup scripts were created by 3buildeasydistro.
+Note also, when someone creates a SFS using 'dir2sfs', that script creates
+the startup scripts.
+
+190911
+------
+"easy" container gets renamed to "pyro" or "buster" in 3buildeasydistro (woofQ).
+Also, the launch script /usr/sbin/ec-chroot-easy gets renamed.
+This is done so that there is no conflict if have both pyro and buster 
+containerized-desktop icons on the desktop.
+
+note: awhile back, ec-chroot-desk.desktop renamed to ec-chroot-easy.desktop
+

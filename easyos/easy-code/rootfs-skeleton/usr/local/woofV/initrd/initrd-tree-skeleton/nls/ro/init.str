@@ -1,0 +1,160 @@
+#create_savefile_func()
+S001='Se creează fișierul de salvare easysave.ext4...'
+
+#exit_to_initrd()
+S002='Linie'
+S003='Notă 1: Tastați „exit”, scriptul de inițializare va încerca să continue.'
+S004='Notă 2: Pe unele PC-uri tastatura nu funcționează în această etapă a pornirii.'
+S005='Notă 3: dacă „ctrl-alt-del” nu funcționează, țineți apăsat butonul de pornire pentru a opri.'
+S006='Notă 4: Editorul de text din consolă „mp” este disponibil.'
+S007='Nota 5: Managerul de fișiere din consolă „shfm”: Navigați cu tastele săgeată, „!” a da icre'
+S008=' o coajă, "?" pop-up ajutor, „q” pentru a ieși. Fișierul de ajutor este „/shfm.txt”’
+S009='Nota 6: Managerul de fișiere din consolă „nnn”: Aceleași taste. Fișierul de ajutor „/nnn.txt”’
+
+#err_exit()
+S010='EROARE:'
+S011='Acum au căzut într-un shell în initramfs.'
+S012='Vă rugăm să apăsați combinația de taste CTRL-ALT-DEL pentru a reporni,'
+S013='sau Țineți apăsat BUTONUL DE PORNIRE PENTRU OPRIRE'
+S014='Următoarele instrucțiuni sunt numai pentru dezvoltatori:'
+
+#ask_kb()
+S015='Vă rugăm să introduceți numărul corespunzător aspectului tastaturii dvs.'
+S016='Alegeți cea mai apropiată potrivire, va exista posibilitatea de a ajusta aspectul după ce desktop-ul s-a încărcat. Apăsați ENTER numai pentru SUA.'
+S017='Notă: pe unele PC-uri tastatura nu funcționează în această etapă a pornirii. În acest caz, așteptați 5 minute pentru pornire.'
+S018='Dispunerea tastaturii:'
+S019='...ok, harta tastelor a fost aleasă:'
+
+#menu_func()
+S020='Nu face nimic, întoarce-te pentru a introduce parola'
+S021='Eliminați blocarea, restabiliți pornirea normală'
+S022='Pornire numai la linia de comandă, fără X'
+S023='Revenire la ultima sesiune salvată'
+S024='Revenire la prima pornire impecabilă'
+S025='Verificarea sistemului de fișiere a partiției de lucru'
+S026='Apăsați tasta ENTER sau așteptați 15 secunde pentru pornirea normală'
+S027='Tastați un număr din coloana din stânga:'
+S028='...ai ales să restabiliți pornirea normală; in orice caz,'
+S029='pornirea normală va fi restabilită la NEXT bootup'
+S030='...se va porni la linia de comandă, fără X'
+S031='...se va reveni la ultima sesiune salvată'
+S032='...se va reveni la prima pornire impecabilă'
+S033='...va efectua verificarea sistemului de fișiere'
+
+#ask_pw()
+S034='Vă rugăm să introduceți o parolă, orice caractere a-z, A-Z, 0-9, orice lungime. Parola va cripta părți ale partiției de lucru și trebuie reținută, deoarece va trebui introdusă la fiecare pornire.'
+S035='Sau, apăsați tasta ENTER pentru nicio parolă.'
+S036='Pentru securitatea dvs., este recomandată o parolă'
+S037='Parola:'
+S038='Ne pare rău, numai a-z, A-Z, 0-9 caractere permise, încercați din nou'
+S039='Vă rugăm să introduceți parola pentru a decripta partiția de lucru'
+S040='SAU apăsați ENTER pentru a afișa un meniu cu opțiuni de pornire'
+S041='Parola:'
+
+#cp_verify_func()
+S042='Această copie a eșuat:'
+S043='Este posibil ca unitatea să se defecteze.'
+S044='Se încearcă copierea din nou...'
+S045='A doua încercare a eșuat. Încercați recuperarea prin restaurare'
+S046='vmlinuz, initrd și easy.sfs din versiunea anterioară.'
+S047='A doua încercare de copiere a fișierului a eșuat. Poate că unitatea este în eroare.'
+S048='A doua încercare a reușit, dar unitatea de avertizare ar putea eșua.'
+
+###găsește unități###
+S100='Găsirea unităților'
+S101='partițiile au id-uri conflictuale'
+S102='OBSERVAȚI: NU! Nu ai încă o sesiune, făcând o pornire normală'
+S103='A ieșit din scriptul de pornire mai devreme, nu s-a montat încă nimic.'
+
+###berbec foarte scăzut###
+S110='NOTĂ: Blocarea este dezactivată, RAM insuficientă'
+S111='OBSERVAȚI: EasyOS va rula complet în RAM, fără stocare persistentă'
+S112='OBSERVAȚI: Sesiunea va fi copiată în RAM și EasyOS va rula în RAM'
+S113='Se creează zram comprimat. RAM alocată:'
+S114='Partiția de lucru:'
+S115='Test de viteză de citire a unității de funcționare (mai mic cu atât mai bine):'
+
+###configurați și montați partiția de lucru###
+S120='Redimensionarea partiției de lucru pentru a umple unitatea'
+S121='EROARE: nu se poate redimensiona partiția de lucru'
+S122='Redimensionarea sistemului de fișiere ext4 pentru a umple partiția de lucru, dimensiune:'
+S123='EROARE: Imposibil de redimensionat sistemul de fișiere ext4 pentru a umple partiția de lucru, dimensiune:'
+S124='Nu se poate redimensiona partiția de lucru. Nesigur să continui'
+S125='Nu se poate monta partiția de lucru:'
+S126='S-a ieșit din scriptul init, partiția wkg montată.'
+
+###creează $WKG_DIR și foldere###
+S130='există deja'
+S131='Partiția de lucru nu are funcția de criptare ext4 activată.'
+S132='Această caracteristică este necesară pentru a cripta folderele. Recomandat pentru securitatea ta.'
+S133='Dacă refuzați, viitoarele porniri nu vă vor cere o parolă.'
+S134='AVERTISMENT: încărcătoare vechi, cum ar fi GRUB v1, GRUB4DOS și GRUB v2, înainte de '
+S135='versiunea 2.0.4 (lansată în 2019), nu recunosc funcțiile ext4 moderne '
+S136='cum ar fi criptarea folderului și nu va mai funcționa cu partiția '
+S137='dacă activați criptarea (partiția nu va mai fi recunoscută). '
+S138='Apăsați tasta ENTER pentru a activa criptarea, orice altă cheie nu:'
+S139='Se activează criptarea folderului ext4...'
+S140='Ne pare rău, activarea criptării folderului a eșuat.'
+S141='...criptare activată.'
+S142='Rețineți, dacă dintr-un motiv oarecare doriți să îl dezactivați, eliminați instalarea EasyOS. Apoi, există instrucțiuni pe Internet pentru a dezactiva criptarea.'
+S143='Montarea partiției de lucru a eșuat.'
+S144='Suportul pentru criptarea folderelor nu este activat.'
+S145='Ne pare rău, folderele din partiția de lucru nu pot fi criptate. Parola va fi setată doar pentru autentificare root.'
+S146='Parola incorectă. Încearcă din nou'
+S147='Salvare amânată ultima sesiune, vă rugăm să așteptați...'
+
+###TUNDE###
+S150='Se execută fstrim pe partiția de lucru SSD...'
+S151='A ieșit din scriptul de pornire, înainte de operațiunile de recuperare și întreținere.'
+
+###recuperare, întreținere###
+S160='Eroare fatală la verificarea sistemului de fișiere'
+S161='A ieșit din scriptul de pornire, înainte de controlul versiunii.'
+
+###controlul versiunii###
+S170='Operațiune o singură dată, creând un instantaneu al EasyOS'
+S171='Acest lucru va permite derularea viitoare cu Managerul de control al versiunilor ușoare'
+S172='Se popula:'
+S173='Atenție, ștergerea versiunii vechi:'
+S174='Nu pot găsi easy.sfs'
+
+S180='De ce există acest fișier? Îndepărtând-o.'
+S181='S-a ieșit din scriptul de pornire, înainte de a configura straturi SFS.'
+
+###configurați stratul inferior ro, cu easy.sfs###
+S190='Se montează stratul numai pentru citire al sistemului de fișiere stratificat'
+S191='Se montează fișierul squashfs easy.sfs'
+S192='Se copiează easy.sfs pe RAM, apoi se montează'
+S193='Eșuat la montarea easy.sfs'
+S194='ATENȚIE, versiunile nu se potrivesc.'
+S195='fișierul squashfs suplimentar nu există, eliminat din lista de încărcare.'
+S196='Se copiează în RAM și se montează fișierul squashfs suplimentar:'
+S197='Se montează un fișier squashfs suplimentar:'
+S198='EROARE: /usr/lib64 cale incorectă în SFS:'
+S199='ACEST SFS NU VA FI ÎNCĂRCAT'
+S200='EROARE: SFS nu are foldere usr-merge:'
+S201='Configurare de securitate la prima pornire...'
+S202='Setarea aceleiași parole pentru utilizatorii zeus și root'
+
+###poate copiați sesiunea în zram###
+S210='Se copiează ultima sesiune de lucru în RAM'
+
+###cel mare, creați f.s. stratificati###
+S220='Se creează un sistem de fișiere stratificat, tastați:'
+S221='Nu s-a putut crea un sistem de fișiere stratificat'
+S222='S-a ieșit din scriptul de pornire, înainte de a muta punctele de montare în wkg f.s.'
+
+###relocați punctele de montare înainte de switch_root###
+S230='Efectuarea unui switch_root pe sistemul de fișiere stratificat'
+S231='Oprirea unității:'
+S232='S-a ieșit din scriptul init, chiar înainte de switch_root.'
+
+###root pw###
+S300='Ați ales să nu introduceți o parolă pentru a cripta folderele din partiția de lucru; totuși, ar trebui, cel puțin, să introduceți o parolă pentru utilizatorul root.'
+S301='Notă1: la pornirile viitoare, parola nu va fi necesară pentru autentificare.'
+S302='Notă2: dacă tastatura nu funcționează atât de devreme la pornire, va exista un timeout în 300 de secunde.'
+S303='Vă rugăm să introduceți o parolă, cu caractere a-z, A-Z, 0-9, minim 6 caractere, de care să vă amintiți.'
+S304='Se creează perechea de chei semnate gnupg, la /root/.gnupg'
+
+######
+S400='Nu a fost detectat niciun GPU NVIDIA, așa că nu se va încărca NVIDIA SFS'

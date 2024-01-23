@@ -1,0 +1,160 @@
+#create_savefile_func()
+S001='Tworzenie pliku zapisu easysave.ext4...'
+
+#exit_to_initrd()
+S002='Linia'
+S003='Uwaga 1: Wpisz "exit", skrypt startowy spróbuje kontynuować.'
+S004='Uwaga 2: W niektórych komputerach klawiatura nie działa na tym etapie uruchamiania.'
+S005='Uwaga 3: jeśli "ctrl-alt-del" nie działa, przytrzymaj przycisk zasilania, aby wyłączyć.'
+S006='Uwaga 4: Edytor tekstu konsoli "mp" jest dostępny.'
+S007='Uwaga 5: Menedżer plików konsoli „shfm”: Nawiguj za pomocą klawiszy strzałek, „!” rozmnażać się'
+S008=' powłoka, "?" wyskakujące okienko pomocy, „q”, aby wyjść. Plik pomocy to „/shfm.txt”'
+S009='Uwaga 6: Menedżer plików konsoli "nnn": Te same klawisze. Plik pomocy "/nnn.txt"'
+
+#err_exit()
+S010='BŁĄD:'
+S011='Wpadłem teraz do powłoki w pliku initramfs.'
+S012='Wciśnij kombinację klawiszy CTRL-ALT-DEL, aby ponownie uruchomić komputer,'
+S013='lub PRZYTRZYMAJ PRZYCISK ZASILANIA, ABY WYŁĄCZYĆ'
+S014='Poniższe instrukcje są przeznaczone wyłącznie dla programistów:'
+
+#zapytaj_kb()
+S015='Wprowadź liczbę odpowiadającą Twojemu układowi klawiatury.'
+S016='Wybierz najbliższe dopasowanie, będzie możliwość dostrojenia układu po załadowaniu pulpitu. Naciśnij ENTER tylko dla USA.'
+S017='Uwaga: na niektórych komputerach klawiatura nie działa na tym etapie uruchamiania. W takim przypadku poczekaj 5 minut na uruchomienie.'
+S018='Układ klawiatury:'
+S019='...ok, mapa klawiszy wybrana:'
+
+#funkcja_menu()
+S020='Nic nie rób, wróć, aby wprowadzić hasło'
+S021='Usuń blokadę, przywróć normalne uruchamianie'
+S022='Uruchom tylko z wiersza poleceń, bez X'
+S023='Przywróć do ostatniej zapisanej sesji'
+S024='Przywracanie do nieskazitelnego pierwszego rozruchu'
+S025='Sprawdzanie systemu plików partycji roboczej'
+S026='Naciśnij klawisz ENTER lub poczekaj 15 sekund na normalne uruchomienie'
+S027='Wpisz liczbę z lewej kolumny:'
+S028='...zdecydowałeś się przywrócić normalne uruchamianie; Jednakże,'
+S029='normalne uruchamianie zostanie przywrócone przy NASTĘPNYM uruchomieniu'
+S030='...załaduje się do wiersza poleceń, bez X'
+S031='...powróci do ostatniej zapisanej sesji'
+S032='...powróci do nieskazitelnego stanu pierwszego uruchomienia'
+S033='...przeprowadzi kontrolę systemu plików'
+
+#ask_pw()
+S034='Wprowadź hasło, dowolne znaki a-z, A-Z, 0-9, dowolna długość. Hasło zaszyfruje części partycji roboczej i musi być zapamiętane, ponieważ będzie musiało być wprowadzane przy każdym uruchomieniu.'
+S035='Lub po prostu naciśnij klawisz ENTER bez hasła.'
+S036='Ze względów bezpieczeństwa zalecane jest podanie hasła'
+S037='Hasło:'
+S038='Przepraszamy, dozwolone tylko znaki a-z, A-Z, 0-9, spróbuj ponownie'
+S039='Wprowadź hasło aby odszyfrować partycję roboczą'
+S040='LUB po prostu naciśnij ENTER, aby wyświetlić menu opcji rozruchu'
+S041='Hasło:'
+
+#cp_verify_func()
+S042='Kopiowanie nie powiodło się:'
+S043='Możliwa awaria dysku.'
+S044='Ponowna próba kopiowania...'
+S045='Druga próba nie powiodła się. Spróbuj odzyskać przez przywrócenie'
+S046='vmlinuz, initrd i easy.sfs poprzedniej wersji.'
+S047='Druga próba skopiowania pliku nie powiodła się. Może dysk zawodzi.'
+S048='Druga próba powiodła się, ale dysk ostrzegawczy może się nie udać.'
+
+###znajdź dyski###
+S100='Znajdowanie dysków'
+S101='partycje mają sprzeczny identyfikator'
+S102='UWAGA: NIE! Nie masz jeszcze sesji, trwa normalne uruchamianie'
+S103='Wyszedł wcześniej ze skryptu startowego, nic jeszcze nie zostało zamontowane.'
+
+###bardzo niski baran###
+S110='UWAGA: Blokada wyłączona, brak pamięci RAM'
+S111='UWAGA: EasyOS będzie działał całkowicie w pamięci RAM, bez trwałej pamięci'
+S112='UWAGA: Sesja zostanie skopiowana do pamięci RAM i EasyOS będzie działał w pamięci RAM'
+S113='Tworzę skompresowany zram. Przydzielona pamięć RAM:'
+S114='Partycja-robocza:'
+S115='Test prędkości odczytu dysku roboczego (im niższy tym lepszy):'
+
+###skonfiguruj i zamontuj partycję roboczą###
+S120='Zmiana rozmiaru partycji roboczej, aby zapełnić dysk'
+S121='BŁĄD: nie można zmienić rozmiaru partycji roboczej'
+S122='Zmiana rozmiaru systemu plików ext4 w celu wypełnienia partycji roboczej, rozmiar:'
+S123='BŁĄD: nie można zmienić rozmiaru systemu plików ext4, aby wypełnić partycję roboczą, rozmiar:'
+S124='Nie można zmienić rozmiaru partycji roboczej. Kontynuacja niebezpieczna'
+S125='Nie można zamontować partycji roboczej:'
+S126='Wyjście ze skryptu startowego, zamontowana partycja wkg.'
+
+###utwórz $WKG_DIR i foldery###
+S130='już istnieje'
+S131='Partycja robocza nie ma włączonej funkcji szyfrowania ext4.'
+S132='Ta funkcja jest wymagana do szyfrowania folderów. Zalecane dla twojego bezpieczeństwa.'
+S133='Jeśli odmówisz, przyszłe rozruchy nie będą wymagać podania hasła.'
+S134='OSTRZEŻENIE: stare programy ładujące, takie jak GRUB v1, GRUB4DOS i GRUB v2 przed'
+S135='wersja 2.0.4 (wydana w 2019 r.), nie rozpoznaje nowoczesnych funkcji ext4 '
+S136='takich jak szyfrowanie folderów i nie będzie już działać z partycją '
+S137='jeśli włączysz szyfrowanie (partycja nie będzie już rozpoznawana). '
+S138='Naciśnij klawisz ENTER, aby włączyć szyfrowanie, dowolny inny klawisz, aby:'
+S139='Włączanie szyfrowania folderu ext4...'
+S140='Przepraszamy, włączenie szyfrowania folderu nie powiodło się.'
+S141='...szyfrowanie włączone.'
+S142='Uwaga, jeśli z jakiegoś powodu chcesz to wyłączyć, usuń instalację EasyOS. Następnie w Internecie są instrukcje wyłączania szyfrowania.'
+S143='Podłączanie partycji roboczej nie powiodło się.'
+S144='Obsługa szyfrowania folderów nie jest włączona.'
+S145='Przepraszamy, foldery na partycji roboczej nie mogą być zaszyfrowane. Hasło zostanie ustawione tylko dla logowania root.'
+S146='Hasło niepoprawne. Spróbuj ponownie'
+S147='Odroczone zapisywanie ostatniej sesji, proszę czekać...'
+
+###PRZYCINAĆ###
+S150='Wykonywanie fstrim na roboczej partycji SSD...'
+S151='Wyszedł ze skryptu startowego, przed operacjami odzyskiwania i konserwacji.'
+
+###odzyskiwanie, konserwacja###
+S160='Błąd krytyczny podczas sprawdzania systemu plików'
+S161='Wyszedł ze skryptu startowego, przed kontrolą wersji.'
+
+###kontrola wersji###
+S170='Jednorazowa operacja, tworzenie migawki EasyOS'
+S171='Umożliwi to przyszłe wycofanie zmian za pomocą Easy Version Control Manager'
+S172='Wypełnianie:'
+S173='Ostrzeżenie, usuwanie starej wersji:'
+S174='Nie można znaleźć easy.sfs'
+
+S180='Dlaczego ten plik istnieje? Usuwanie go.'
+S181='Wyszedł ze skryptu startowego, przed skonfigurowaniem warstw SFS.'
+
+###skonfiguruj dolną warstwę ro za pomocą easy.sfs###
+S190='Montowanie warstwy tylko do odczytu warstwowego systemu plików'
+S191='Montowanie pliku squashfs easy.sfs'
+S192='Kopiowanie easy.sfs do RAM, następnie montowanie'
+S193='Zamontowanie easy.sfs nie powiodło się'
+S194='OSTRZEŻENIE, wersje się nie zgadzają.'
+S195='dodatkowy plik squashfs nie istnieje, usunięto z listy ładowania.'
+S196='Kopiowanie do RAM i montowanie dodatkowego pliku squashfs:'
+S197='Montowanie dodatkowego pliku squashfs:'
+S198='BŁĄD: /usr/lib64 niepoprawna ścieżka w SFS:'
+S199='TEN SFS NIE ZOSTANIE ZAŁADOWANY'
+S200='BŁĄD: SFS nie ma folderów scalanych usr:'
+S201='Konfiguracja zabezpieczeń przy pierwszym uruchomieniu...'
+S202='Ustawianie tego samego hasła dla użytkowników zeus i root'
+
+###może skopiuj sesję do zram###
+S210='Kopiowanie ostatniej sesji roboczej do RAM'
+
+###wielka chwila, utwórz warstwowe f.s.###
+S220='Tworzenie warstwowego systemu plików, wpisz:'
+S221='Nie udało się utworzyć warstwowego systemu plików'
+S222='Wyszedł ze skryptu startowego, przed przeniesieniem punktów montowania do wkg f.s.'
+
+###przenieś punkty montowania przed switch_root###
+S230='Wykonywanie switch_root na warstwowym systemie plików'
+S231='Wyłączanie napędu:'
+S232='Wyszedł ze skryptu init, tuż przed switch_root.'
+
+###root pw###
+S300='Zdecydowałeś się nie wprowadzać hasła do szyfrowania folderów na partycji roboczej; jednakże powinieneś przynajmniej wprowadzić hasło dla użytkownika root.'
+S301='Uwaga 1: przy kolejnych uruchomieniach hasło nie będzie wymagane do logowania.'
+S302='Uwaga 2: jeśli klawiatura nie działa na tak wczesnym etapie uruchamiania, za 300 sekund nastąpi przekroczenie limitu czasu.'
+S303='Wpisz hasło składające się ze znaków a-z, A-Z, 0-9, minimum 6 znaków, które zapamiętasz.'
+S304='Tworzę parę podpisanych kluczy gnupg w /root/.gnupg'
+
+######
+S400='Nie wykryto procesora graficznego NVIDIA, więc nie załaduje NVIDIA SFS'

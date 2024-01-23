@@ -1,0 +1,160 @@
+#create_savefile_func()
+S001='Skapar spara-fil easysave.ext4...'
+
+#exit_to_initrd()
+S002='Linje'
+S003='Obs 1: Skriv "exit", init-skriptet kommer att försöka fortsätta.'
+S004='Obs 2: På vissa datorer fungerar inte tangentbordet i detta skede av uppstart.'
+S005='Obs 3: om "ctrl-alt-del" inte fungerar, håll ner strömknappen för att stänga av.'
+S006='Obs 4: Konsolens textredigerare "mp" är tillgänglig.'
+S007='Obs 5: Konsolfilhanteraren "shfm": Navigera med piltangenterna, "!" att spawna'
+S008=' ett skal, "?" popup-hjälp, "q" för att avsluta. Hjälpfilen är "/shfm.txt"'
+S009='Obs 6: Konsolfilhanteraren "nnn": Samma nycklar. Hjälpfil "/nnn.txt"'
+
+#err_exit()
+S010='FEL:'
+S011='Har nu fallit in i ett skal i initramfs.'
+S012='Tryck på tangentkombinationen CTRL-ALT-DEL för att starta om,'
+S013='eller håll nere POWER-KNAPPEN FÖR ATT STÄNGA AV'
+S014='Följande instruktioner är endast för utvecklare:'
+
+#ask_kb()
+S015='Vänligen ange numret som motsvarar din tangentbordslayout.'
+S016='Välj den närmaste matchningen, det kommer att finnas möjlighet att finjustera layouten efter att skrivbordet har laddats. Tryck på ENTER endast för USA.'
+S017='Obs: på vissa datorer fungerar inte tangentbordet i detta skede av uppstart. Vänta i så fall 5 minuter för att starta upp.'
+S018='Tangentbordslayout:'
+S019='...okej, tangentkarta valt:'
+
+#menu_func()
+S020='Gör ingenting, gå tillbaka för att ange lösenord'
+S021='Ta bort låsning, återställ normal uppstart'
+S022='Bootup endast till kommandorad, inget X'
+S023='Återställ till senast sparade session'
+S024='Återställ till ren första start'
+S025='Filsystemkontroll av arbetspartition'
+S026='Tryck ENTER eller vänta 15 sekunder för normal uppstart'
+S027='Skriv ett nummer från den vänstra kolumnen:'
+S028='...du har valt att återställa normal uppstart; dock,'
+S029='normal uppstart kommer att återställas vid NÄSTA uppstart'
+S030='...startar till kommandoraden, inget X'
+S031='...kommer att återställa till senast sparade session'
+S032='...kommer att återgå till ren första start'
+S033='...kommer att utföra filsystemkontroll'
+
+#ask_pw()
+S034='Vänligen ange ett lösenord, alla tecken a-z, A-Z, 0-9, valfri längd. Lösenordet kommer att kryptera delar av arbetspartitionen och måste komma ihåg, eftersom det måste anges vid varje uppstart.'
+S035='Eller, tryck bara på ENTER för inget lösenord.'
+S036='För din säkerhet rekommenderas ett lösenord'
+S037='Lösenord:'
+S038='Tyvärr, endast a-z, A-Z, 0-9 tecken tillåtna, försök igen'
+S039='Ange lösenord för att dekryptera arbetspartitionen'
+S040='ELLER tryck bara på ENTER för att få fram en meny med startalternativ'
+S041='Lösenord:'
+
+#cp_verify_func()
+S042='Denna kopia misslyckades:'
+S043='Det är möjligt att enheten inte fungerar.'
+S044='Försöker kopiera igen...'
+S045='Andra försöket misslyckades. Försök att återställa genom att återställa'
+S046='vmlinuz, initrd och easy.sfs från tidigare version.'
+S047='Andra försöket att kopiera filen misslyckades. Drivningen kanske misslyckas.'
+S048='Andra försöket lyckades, men varningsenheten kan misslyckas.'
+
+###hitta enheter###
+S100='Hittar enheter'
+S101='partitioner har motstridiga id'
+S102='OBS: NEJ! Du har ännu inte en session, gör en normal uppstart'
+S103='Avslutat från init-skriptet tidigt, inget har monterats ännu.'
+
+###mycket låg ram###
+S110='OBS: Låsning inaktiverad, otillräckligt RAM-minne'
+S111='OBS: EasyOS kommer att köras helt i RAM, ingen beständig lagring'
+S112='OBS: Sessionen kommer att kopieras till RAM och EasyOS kommer att köras i RAM'
+S113='Skapar komprimerad zram. RAM tilldelat:'
+S114='Arbetspartition:'
+S115='Läshastighetstest för arbetsenhet (lägre desto bättre):'
+
+###installera och montera arbetspartition###
+S120='Ändra storlek på arbetspartitionen för att fylla enheten'
+S121='FEL: kunde inte ändra storlek på arbetspartitionen'
+S122='Ändra storlek på ext4 filsystem för att fylla arbetspartition, storlek:'
+S123='FEL: kunde inte ändra storlek på ext4 filsystem för att fylla arbetspartitionen, storlek:'
+S124='Kan inte ändra storlek på arbetspartitionen. Osäkert att fortsätta'
+S125='Kan inte montera arbetspartitionen:'
+S126='Avslutat från init-skriptet, wkg-partitionen monterad.'
+
+###skapa $WKG_DIR och mappar###
+S130='finns redan'
+S131='Arbetspartitionen har inte ext4-krypteringsfunktionen aktiverad.'
+S132='Denna funktion krävs för att kryptera mappar. Rekommenderas för din säkerhet.'
+S133='Om du avböjer kommer framtida uppstarter inte att be om ett lösenord.'
+S134='VARNING: gamla bootloaders som GRUB v1, GRUB4DOS och GRUB v2 före '
+S135='version 2.0.4 (släppt 2019), känner inte igen moderna ext4-funktioner '
+S136='såsom mappkryptering, och kommer inte längre att fungera med partitionen '
+S137='om du aktiverar kryptera (partitionen kommer inte längre att kännas igen). '
+S138='Tryck på ENTER-tangenten för att aktivera kryptera, vilken annan nyckel som helst för att inte:'
+S139='Aktiverar ext4-mappkryptering...'
+S140='Tyvärr, aktivering av mappkryptering misslyckades.'
+S141='...kryptera aktiverat.'
+S142='Obs, om du av någon anledning vill stänga av det, ta bort EasyOS-installationen. Sedan finns det instruktioner på Internet för att stänga av kryptering.'
+S143='Montering av arbetspartitionen misslyckades.'
+S144='Stöd för mappkryptering är inte aktiverat.'
+S145='Tyvärr, mapparna i arbetspartitionen kan inte krypteras. Lösenordet kommer endast att ställas in för root-inloggning.'
+S146='Felaktigt lösenord. Försök igen'
+S147='Uppskjuten lagring av senaste session, vänligen vänta...'
+
+###TRIM###
+S150='Kör fstrim på SSD-arbetspartition...'
+S151='Avslutat från init-skriptet, före återställnings- och underhållsoperationer.'
+
+###återställning, underhåll###
+S160='Dödligt fel vid filsystemkontroll'
+S161='Avslutat från init-skriptet, före versionskontroll.'
+
+###versionskontroll###
+S170='Engångsoperation, skapar en ögonblicksbild av EasyOS'
+S171='Detta kommer att möjliggöra framtida återställning med Easy Version Control Manager'
+S172='Befolkar:'
+S173='Varning, tar bort gammal version:'
+S174='Kan inte hitta easy.sfs'
+
+S180='Varför finns den här filen? Ta bort den.'
+S181='Avslutade från init-skriptet, innan du satte upp SFS-lager.'
+
+###setup botten ro lager, med easy.sfs###
+S190='Montering av skrivskyddat lager av lagerfilsystem'
+S191='Montering av squashfs-fil easy.sfs'
+S192='Kopierar easy.sfs till RAM, sedan monterar'
+S193='Det gick inte att montera easy.sfs'
+S194='VARNING, versioner stämmer inte överens.'
+S195='extra squashfs-fil finns inte, borttagen från laddningslistan.'
+S196='Kopierar till RAM och monterar extra squashfs-fil:'
+S197='Montering av extra squashfs-fil:'
+S198='FEL: /usr/lib64 felaktig sökväg i SFS:'
+S199='DENNA SFS KOMMER INTE LADAS'
+S200='FEL: SFS har inte usr-merge-mappar:'
+S201='Säkerhetsinställningar för första start...'
+S202='Ställer in samma lösenord för användare zeus och root'
+
+###kanske kopiera sessionen till zram###
+S210='Kopierar senaste arbetssession till RAM'
+
+###det stora ögonblicket, skapa lagerf.s.###
+S220='Skapar lager filsystem, skriv:'
+S221='Det gick inte att skapa ett lager filsystem'
+S222='Avslutade från init-skriptet, innan monteringspunkterna flyttades till wkg f.s.'
+
+###flytta monteringspunkter före switch_root###
+S230='Utföra en switch_root på det lagrade filsystemet'
+S231='Stänger av enheten:'
+S232='Avslutat från init-skriptet, strax före switch_root.'
+
+###root pw###
+S300='Du valde att inte ange ett lösenord för att kryptera mappar i arbetspartitionen; dock bör du åtminstone ange ett lösenord för root-användaren.'
+S301='Obs1: vid framtida uppstarter kommer lösenordet inte att krävas för att logga in.'
+S302='Obs2: om tangentbordet inte fungerar så här tidigt i uppstarten kommer det att finnas en timeout om 300 sekunder.'
+S303='Skriv ett lösenord, med tecknen a-z, A-Z, 0-9, minst 6 tecken, som du kommer ihåg.'
+S304='Skapar gnupg-signerat nyckelpar, på /root/.gnupg'
+
+######
+S400='Ingen NVIDIA GPU upptäckt, så kommer inte att ladda NVIDIA SFS'

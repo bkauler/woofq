@@ -1,0 +1,303 @@
+shfm
+________________________________________________________________________________
+
+file manager written in posix shell
+
+screenshot: https://user-images.githubusercontent.com/6799467/89270554-2b40ab00-d644-11ea-9f2b-bdabcba61a09.png
+
+
+features
+________________________________________________________________________________
+
+* no dependencies other than a POSIX shell + POSIX [, printf, dd and stty ***
+* tiny
+* single file
+* no compilation needed
+* correctly handles files with funky names (newlines, etc)
+* works with very small terminal sizes.
+* cd on exit
+* works when run in subshell $(shfm)
+
+*** see portability notes towards bottom of README.
+
+
+keybinds
+________________________________________________________________________________
+
+j - down
+k - up
+l - open file or directory
+h - go up level
+g - go to top
+G - go to bottom
+q - quit
+: - cd to <input>
+/ - search current directory <input>*
+- - go to last directory
+~ - go home
+! - spawn shell
+. - toggle hidden files
+? - show help
+
+Also supported:
+
+down arrow  - down
+up arrow    - up
+left arrow  - go up level
+right arrow - open file or directory
+
+backspace   - up
+enter       - open file or directory
+
+
+todo
+________________________________________________________________________________
+
+- [x] sanitize filenames for display.
+- [ ] print directories first (hard).
+- [x] fix buggy focus after exit from inline editor.
+- [ ] maybe file operations.
+- [x] add / to directories.
+- [x] going up directories should center entry.
+- [x] abstract over sequences.
+- [x] look into whether tput is feasible.
+
+
+cd on exit
+________________________________________________________________________________
+
+On exit, the utility will print the path to working directory to <stdout>. To
+disable this behavior, run with 'shfm >/dev/null'. Usage of this output is
+rather flexible.
+
+    # cd to directory on exit
+    cd "$(shfm)"
+
+    # store pwd in var on exit
+    var=$(shfm)
+
+    # store pwd in a file on exit
+    shfm > file
+
+For ease of use, a wrapper function can be added to your .shellrc (.bashrc, etc).
+
+    shfm() {
+        cd "$(command shfm "$@")"
+    }
+
+
+opener
+________________________________________________________________________________
+
+Opening files in different applications (based on mime-type or file extension)
+can be achieved via an environment variable (SHFM_OPENER) set to the location of
+a small external script. If unset, the default for all files is '$EDITOR' (and
+if that is unset, 'vi').
+
+The script receives a single argument, the full path to the selected file.
+The opener script is also useful on the command-line. The environment variable
+is set as follows.
+
+    export SHFM_OPENER=/path/to/script
+
+Example scripts:
+
+    #!/bin/sh -e
+    #
+    # open file in application based on file extension
+
+    case $1 in
+        *.mp3|*.flac|*.wav)
+            mpv --no-video "$1"
+        ;;
+
+        *.mp4|*.mkv|*.webm)
+            mpv "$1"
+        ;;
+
+        *.png|*.gif|*.jpg|*.jpe|*.jpeg)
+            gimp "$1"
+        ;;
+
+        *.html|*.pdf)
+            firefox "$1"
+        ;;
+
+        # all other files
+        *)
+            "${EDITOR:=vi}" "$1"
+        ;;
+    esac
+
+
+    #!/bin/sh -e
+    #
+    # open file in application based on mime-type
+
+    mime_type=$(file -bi)
+
+    case $mime_type in
+        audio/*)
+           mpv --no-video "$1"
+        ;;
+
+        video/*)
+            mpv "$1"
+        ;;
+
+        image/*)
+            gimp "$1"
+        ;;
+
+        text/html*|application/pdf*)
+            firefox "$1"
+        ;;
+
+        text/*|)
+            "${EDITOR:=vi}" "$1"
+        ;;
+
+        *)
+            printf 'unknown mime-type %s\n' "$mime_type"
+        ;;
+    esac
+
+
+portability notes
+________________________________________________________________________________
+
+* SIGWINCH and the size parameter to stty are not /yet/ POSIX (but will be).
+
+  - https://austingroupbugs.net/view.php?id=1053
+  - https://austingroupbugs.net/view.php?id=1151
+
+
+* VT100/ANSI escape sequences (widely available) are used in place of tput. A
+  few non-VT100 sequences /are/ needed however.
+
+  - IL      vt102  \033[L:         upwards scroll.    (required)
+  -         xterm  \033[?1049[lh]: alternate screen.  (optional)
+  - DECTCEM vt520  \033[?25[lh]:   cursor visibility. (optional)
+
+  Why avoid tput?
+
+  POSIX only specifies three operands for tput; clear, init and reset [0]. We
+  cannot rely on anything additional working across operating systems and tput
+  implementations.
+
+  Further, a tput implementation may use terminfo names (example: setaf) or
+  termcap names (example: AF). We cannot blindly use tput and expect it to
+  work everywhere. [1]
+
+  We could simply follow terminfo and yell at anyone who doesn't though I'm
+  also not too keen on requiring tput as a dependency as not all systems have
+  it. I've found that raw VT100/VT102 sequences work widely.
+
+  Neofetch uses them and supports a wide array of operating systems (Linux,
+  IRIX, AIX, HP-UX, various BSDs, Haiku, MINIX, OpenIndiana, FreeMiNT, etc.
+  YMMV
+
+  [0] https://pubs.opengroup.org/onlinepubs/009695399/utilities/tput.html
+  [1] https://invisible-island.net/ncurses/man/tput.1.html#h2-PORTABILITY
+
+
+implementation details
+________________________________________________________________________________
+
+* Draws are partial!
+
+  The file manager will only redraw what is necessary. Every line scrolled
+  corresponds to three lines being redrawn. The current line (clear highlight),
+  the destination line (set highlight) and the status line (update location).
+
+
+* POSIX shell has no arrays.
+
+  It does however have an argument list (used for passing command-line arguments
+  to the script and when calling functions).
+
+  Restrictions:
+
+  - Can only have one list at a time (in the same scope).
+  - Can restrict a list's scope but cannot extend it.
+  - Cannot grab element by index.
+
+  Things I'm thankful for:
+
+  - Elements can be "popped" off the front of the list (using shift).
+  - List size is given to us (via $#).
+  - No need to use a string delimited by some character.
+  - Can loop over elements.
+
+
+* Cursor position is tracked manually.
+
+  Grabbing the current cursor position cannot be done reliably from POSIX shell.
+  Instead, the cursor starts at 0,0 and each movement modifies the value of a
+  variable (relative Y position in screen). This variable is how the file
+  manager knows which line of the screen the cursor is on.
+
+
+* Multi-byte input is handled by using a 2D case statement.
+
+  (I don't really know what to call this, suggestions appreciated)
+
+  Rather than using read timeouts (we can't sleep < 1s in POSIX shell anyway)
+  to handle multi-byte input, shfm tracks location within sequences and handles
+  this in a really nice way.
+
+  The case statement matches "$char$esc" with "$esc" being an integer holding
+  position in sequences. To give an example, down arrow emits '\033[B'.
+
+  - When '\033?' is found, the value of 'esc' is set to '1'.
+  - When '[1'    is found, the value of 'esc' is set to '2'.
+  - When 'B2'    is found, we know it's '\033[B' and handle down arrow.
+  - If input doesn't follow this sequence, 'esc' is reset to '0'.
+
+
+* Filename escaping works via looping over a string char by char.
+
+  I didn't think this was possible in POSIX shell until I needed to do this in
+  KISS Linux's package manager and found a way to do so.
+
+  I'll let the code speak for itself (comments added for clarity):
+
+      file_escape() {
+          # store the argument (file name) in a temporary variable.
+          # ensure that 'safe' is empty (we have no access to the local keyword
+          # and can't use local variables without also using a sub-shell). This
+          # variable will contain its prior value (if it has one) otherwise.
+          tmp=$1 safe=
+
+          # loop over string char by char.
+          # this takes the approach of infinite loop + inner break condition as
+          # we have no access to [ (personal restriction).
+          while :; do
+              # Remove everything after the first character.
+              c=${tmp%"${tmp#?}"*}
+
+              # Construct a new string, replacing anything unprintable with '?'.
+              case $c in
+                  [[:print:]]) safe=$safe$c ;;
+                  '')          return ;; # we have nothing more to do, return.
+                  *)           safe=$safe\? ;;
+              esac
+
+              # Remove the first character.
+              # This shifts our position forward.
+              tmp=${tmp#?}
+          done
+      }
+
+      # Afterwards, the variable 'safe' contains the escaped filename. Using
+      # globals here is a must. Printing to the screen and capturing that
+      # output is too slow.
+
+
+* SIGWINCH handler isn't executed until key press is made.
+
+  SIGWINCH doesn't seem to execute asynchronously when the script is also
+  waiting for input. This causes resize to require a key press.
+
+  I'm not too bothered by this. It does save me implementing resize logic which
+  is utter torture. :)

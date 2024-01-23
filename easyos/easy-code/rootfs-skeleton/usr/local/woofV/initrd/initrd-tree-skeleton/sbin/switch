@@ -1,0 +1,9 @@
+#!/bin/sh
+#if have dropped to a shell in initramfs, type 'exec switch' to keep going.
+#181122 q*.sfs renamed to easy*.sfs, also q_new to easy_new
+
+sync
+umount /sys
+umount /proc
+
+exec switch_root  /easy_new /sbin/init

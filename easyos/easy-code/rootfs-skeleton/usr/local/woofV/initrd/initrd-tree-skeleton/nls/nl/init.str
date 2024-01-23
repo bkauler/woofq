@@ -1,0 +1,160 @@
+#create_savefile_func()
+S001='Bezig met opslaan-bestand easysave.ext4...'
+
+#exit_to_initrd()
+S002='Lijn'
+S003='Opmerking 1: typ "exit", het init-script zal proberen verder te gaan.'
+S004='Opmerking 2: Op sommige pc´s werkt het toetsenbord niet in deze fase van opstarten.'
+S005='Opmerking 3: als "ctrl-alt-del" niet werkt, houd dan de aan/uit-knop ingedrukt om uit te schakelen.'
+S006='Opmerking 4: Consoleteksteditor "mp" is beschikbaar.'
+S007='Opmerking 5: Bestandsbeheerconsole "shfm": Navigeer met de pijltjestoetsen, "!" spawnen'
+S008=' een schelp, "?" pop-up help, "q" om te stoppen. Help-bestand is "/shfm.txt"'
+S009='Opmerking 6: Console bestandsbeheerder "nnn": Dezelfde toetsen. Help-bestand "/nnn.txt"'
+
+#err_exit()
+S010='FOUT:'
+S011='Ben nu gedropt in een shell in de initramfs.'
+S012='Gelieve toetscombinatie CTRL-ALT-DEL in te drukken om opnieuw op te starten,'
+S013='OF HOUD DE AAN/UIT-KNOP INGEDRUKT OM UIT TE SLUITEN'
+S014='De volgende instructies zijn alleen voor ontwikkelaars:'
+
+#ask_kb()
+S015='Voer het nummer in dat overeenkomt met uw toetsenbordindeling.'
+S016='Kies de beste match, er zal een mogelijkheid zijn om de lay-out te verfijnen nadat het bureaublad is geladen. Druk alleen op ENTER voor VS.'
+S017='Opmerking: op sommige pc´s werkt het toetsenbord niet in deze fase van opstarten. Wacht in dat geval 5 minuten met opstarten.'
+S018='Toetsenbordindeling:'
+S019='...ok, toetsenbordindeling gekozen:'
+
+#menu_func()
+S020='Niets doen, ga terug om wachtwoord in te voeren'
+S021='Verwijder vergrendeling, herstel normaal opstarten'
+S022='Opstarten alleen naar commandoregel, geen X'
+S023='Terugdraaien naar laatst opgeslagen sessie'
+S024='Rollback naar oorspronkelijke eerste keer opstarten'
+S025='Bestandssysteemcontrole van werkpartitie'
+S026='Druk op ENTER of wacht 15 seconden voor normaal opstarten'
+S027='Typ een nummer uit de linkerkolom:'
+S028='...u hebt ervoor gekozen om de normale opstartprocedure te herstellen; Echter,'
+S029='normale opstart wordt hersteld bij de VOLGENDE opstart'
+S030='...zal opstarten naar commandoregel, geen X'
+S031='...zal terugdraaien naar de laatst opgeslagen sessie'
+S032='...wordt teruggezet naar oorspronkelijke eerste keer opstarten'
+S033='...zal bestandssysteemcontrole uitvoeren'
+
+#ask_pw()
+S034='Voer een wachtwoord in, alle tekens a-z, A-Z, 0-9, elke lengte. Het wachtwoord versleutelt delen van de werkpartitie en moet worden onthouden, aangezien het bij elke opstart moet worden ingevoerd.'
+S035='Of druk gewoon op de ENTER-toets voor geen wachtwoord.'
+S036='Voor uw veiligheid wordt een wachtwoord aanbevolen'
+S037='Wachtwoord:'
+S038='Sorry, alleen a-z, A-Z, 0-9 tekens toegestaan, probeer het opnieuw'
+S039='Voer het wachtwoord in om de werkpartitie te decoderen'
+S040='OF druk gewoon op ENTER om een menu met opstartopties te openen'
+S041='Wachtwoord:'
+
+#cp_verify_func()
+S042='Deze kopie is mislukt:'
+S043='Het is mogelijk dat de schijf defect is.'
+S044='Opnieuw proberen te kopiëren...'
+S045='Tweede poging mislukt. Poging tot herstel door te herstellen'
+S046='vmlinuz, initrd en easy.sfs van vorige versie.'
+S047='Tweede poging om bestand te kopiëren mislukt. Misschien werkt de aandrijving niet.'
+S048='Tweede poging geslaagd, maar waarschuwingsschijf werkt mogelijk niet.'
+
+###drives zoeken###
+S100='Stations zoeken'
+S101='partities hebben conflicterende id'
+S102='LET OP: NEE! Je hebt nog geen sessie, bezig met een normale opstart'
+S103='Init-script vroegtijdig verlaten, nog niets aangekoppeld.'
+
+###zeer lage ram###
+S110='LET OP: Lockdown uitgeschakeld, onvoldoende RAM'
+S111='OPMERKING: EasyOS draait volledig in RAM, geen permanente opslag'
+S112='LET OP: de sessie wordt gekopieerd naar RAM en EasyOS zal in RAM draaien'
+S113='Gecomprimeerde zram maken. RAM toegewezen:'
+S114='Werkpartitie:'
+S115='Werkende drive leessnelheidstest (hoe lager hoe beter):'
+
+###werkpartitie instellen en aankoppelen###
+S120='Grootte van werkpartitie wijzigen om schijf te vullen'
+S121='ERROR: kan de grootte van de werkpartitie niet wijzigen'
+S122='Formaat wijzigen van ext4 bestandssysteem om werkpartitie te vullen, grootte:'
+S123='FOUT: kan de grootte van het ext4-bestandssysteem niet wijzigen om de werkpartitie te vullen, grootte:'
+S124='Kan de grootte van de werkpartitie niet wijzigen. Onveilig om door te gaan'
+S125='Kan werkpartitie niet koppelen:'
+S126='Verlaten van init-script, wkg-partitie aangekoppeld.'
+
+###maak $WKG_DIR en mappen###
+S130='bestaat al'
+S131='De werkpartitie heeft geen ext4 coderingsfunctie ingeschakeld.'
+S132='Deze functie is nodig om mappen te versleutelen. Aanbevolen voor uw veiligheid.'
+S133='Als u weigert, zullen toekomstige opstartsessies niet om een wachtwoord vragen.'
+S134='WAARSCHUWING: oude bootloaders zoals GRUB v1, GRUB4DOS en GRUB v2 ouder dan '
+S135='versie 2.0.4 (uitgebracht in 2019), herkent moderne ext4-functies niet'
+S136='zoals mapcodering, en werkt niet meer met de partitie'
+S137='als u codering inschakelt (de partitie wordt niet meer herkend).'
+S138='Druk op de ENTER-toets om de codering in te schakelen, een andere toets niet om:'
+S139='Encryptie van ext4-map inschakelen...'
+S140='Sorry, het inschakelen van mapcodering is mislukt.'
+S141='...codering ingeschakeld.'
+S142='Let op, als u het om een of andere reden wilt uitschakelen, verwijder dan de EasyOS-installatie. Dan staan er instructies op internet om encryptie uit te zetten.'
+S143='Het koppelen van de werkpartitie is mislukt.'
+S144='Ondersteuning voor het versleutelen van mappen niet ingeschakeld.'
+S145='Sorry, de mappen in de werkpartitie kunnen niet worden gecodeerd. Het wachtwoord wordt alleen ingesteld voor root login.'
+S146='Wachtwoord onjuist. Probeer het nog eens'
+S147='Opslaan van laatste sessie uitgesteld, een ogenblik geduld...'
+
+###TRIM###
+S150='Fstrim uitvoeren op SSD-werkpartitie...'
+S151='Verlaten van init-script, vóór herstel- en onderhoudsoperaties.'
+
+###herstel, onderhoud###
+S160='Fatale fout bij controle bestandssysteem'
+S161='Verlaten van init-script, vóór versiebeheer.'
+
+###versiebeheer###
+S170='Eenmalige handeling, een momentopname maken van EasyOS'
+S171='Dit maakt toekomstig terugdraaien mogelijk met de Easy Version Control Manager'
+S172='Invullen:'
+S173='Waarschuwing, oude versie verwijderen:'
+S174='Kan easy.sfs niet vinden'
+
+S180='Waarom bestaat dit bestand? Verwijderen.'
+S181='Verlaten van init-script, voordat SFS-lagen werden ingesteld.'
+
+###setup onderste ro-laag, met easy.sfs###
+S190='Alleen-lezen laag van gelaagd bestandssysteem aankoppelen'
+S191='Mounting squashfs-bestand easy.sfs'
+S192='Kopieer easy.sfs naar RAM, dan mounten'
+S193='Kan easy.sfs niet koppelen'
+S194='WAARSCHUWING, versies komen niet overeen.'
+S195='extra squashfs-bestand bestaat niet, verwijderd uit laadlijst.'
+S196='Kopiëren naar RAM en extra squashfs-bestand aankoppelen:'
+S197='Extra squashfs-bestand aankoppelen:'
+S198='ERROR: /usr/lib64 onjuist pad in SFS:'
+S199='DEZE SFS WORDT NIET GELADEN'
+S200='FOUT: SFS heeft geen usr-merge-mappen:'
+S201='Beveiligingsinstellingen bij eerste keer opstarten...'
+S202='Hetzelfde wachtwoord instellen voor gebruikers zeus en root'
+
+###misschien sessie kopiëren naar zram###
+S210='Kopieer laatste werksessie naar RAM'
+
+###het grote moment, creëer gelaagde f.s.###
+S220='Gelaagd bestandssysteem maken, type:'
+S221='Aanmaken van gelaagd bestandssysteem mislukt'
+S222='Verlaten van init-script, voordat koppelpunten naar wkg f.s. werden verplaatst'
+
+###verplaats koppelpunten vóór switch_root###
+S230='Een switch_root uitvoeren op het gelaagde bestandssysteem'
+S231='Uitschakelen aandrijving:'
+S232='Verlaten van init script, net voor switch_root.'
+
+###root pw###
+S300='U hebt ervoor gekozen geen wachtwoord in te voeren om de mappen in de werkpartitie te versleutelen; je moet echter op zijn minst een wachtwoord invoeren voor de rootgebruiker.'
+S301='Opmerking1: bij toekomstige herstarts is het wachtwoord niet nodig om in te loggen.'
+S302='Opmerking 2: als het toetsenbord zo vroeg tijdens het opstarten niet werkt, treedt er een time-out op van 300 seconden.'
+S303='Voer een wachtwoord in, met karakters a-z, A-Z, 0-9, minimum 6 karakters, dat u zult onthouden.'
+S304='Gnupg ondertekend sleutelpaar maken, op /root/.gnupg'
+
+######
+S400='Er is geen NVIDIA GPU gedetecteerd, dus NVIDIA SFS kan niet worden geladen'

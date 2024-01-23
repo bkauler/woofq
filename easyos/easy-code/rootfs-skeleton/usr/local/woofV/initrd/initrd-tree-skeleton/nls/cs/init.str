@@ -1,0 +1,160 @@
+#create_savefile_func()
+S001='Vytváří se soubor pro uložení easysave.ext4...'
+
+#exit_to_initrd()
+S002='Řádek'
+S003='Poznámka 1: Napište "exit", init skript se pokusí pokračovat.'
+S004='Poznámka 2: Na některých počítačích nefunguje klávesnice v této fázi spouštění.'
+S005='Poznámka 3: pokud "ctrl-alt-del" nefunguje, vypněte jej podržením tlačítka napájení.'
+S006='Poznámka 4: Konzolový textový editor "mp" je dostupný.'
+S007='Poznámka 5: Správce souborů konzoly "shfm": Navigujte pomocí kláves se šipkami, "!" plodit se'
+S008=' shell, "?" vyskakovací nápověda, "q" pro ukončení. Soubor nápovědy je "/shfm.txt"'
+S009='Poznámka 6: Správce souborů konzoly "nnn": Stejné klíče. Soubor nápovědy "/nnn.txt"'
+
+#err_exit()
+S010='CHYBA:'
+S011='Nyní jsme se dostali do shellu v initramfs.'
+S012='Prosím, stiskněte kombinaci kláves CTRL-ALT-DEL pro restart,'
+S013='nebo DRŽTE TLAČÍTKO NAPÁJENÍ PRO VYPNUTÍ'
+S014='Následující pokyny jsou pouze pro vývojáře:'
+
+#ask_kb()
+S015='Zadejte prosím číslo odpovídající rozložení vaší klávesnice.'
+S016='Vyberte nejbližší shodu, po načtení plochy bude možnost doladit rozvržení. Stiskněte ENTER pouze pro USA.'
+S017='Poznámka: na některých počítačích klávesnice v této fázi spouštění nefunguje. V takovém případě počkejte 5 minut na spuštění.'
+S018='Rozvržení klávesnice:'
+S019='...ok, vybrána mapa kláves:'
+
+#menu_func()
+S020='Nedělejte nic, vraťte se a zadejte heslo'
+S021='Odstranit uzamčení, obnovit normální spouštění'
+S022='Zavedení pouze do příkazového řádku, žádné X'
+S023='Vrátit se k poslední uložené relaci'
+S024='Vrácení zpět k původnímu prvnímu spuštění'
+S025='Kontrola souborového systému pracovního oddílu'
+S026='Stiskněte klávesu ENTER nebo počkejte 15 sekund na normální spuštění'
+S027='Napište číslo z levého sloupce:'
+S028='...zvolili jste obnovení normálního spouštění; nicméně,'
+S029='normální bootování bude obnoveno při NEXT bootup'
+S030='...bude spuštěn do příkazového řádku, žádné X'
+S031='...vrátí se zpět k poslední uložené relaci'
+S032='...se vrátí k původnímu prvnímu spuštění'
+S033='...provede kontrolu souborového systému'
+
+#ask_pw()
+S034='Zadejte prosím heslo, libovolné znaky a-z, A-Z, 0-9, libovolnou délku. Heslo zašifruje části pracovního oddílu a musí si ho zapamatovat, protože ho bude nutné zadat při každém spuštění.'
+S035='Nebo stačí stisknout klávesu ENTER pro zadání hesla.'
+S036='Pro vaši bezpečnost se doporučuje heslo'
+S037='Heslo:'
+S038='Omlouvám se, povoleno pouze a-z, A-Z, 0-9 znaků, zkuste to znovu'
+S039='Prosím zadejte heslo pro dešifrování pracovního oddílu'
+S040='NEBO stačí stisknout ENTER pro vyvolání nabídky možností spouštění'
+S041='Heslo:'
+
+#cp_verify_func()
+S042='Tato kopie selhala:'
+S043='Je možné, že disk selhává.'
+S044='Znovu se pokouším kopírovat...'
+S045='Druhý pokus se nezdařil. Pokus o obnovení obnovením'
+S046='vmlinuz, initrd a easy.sfs předchozí verze.'
+S047='Druhý pokus o kopírování souboru selhal. Možná selhává pohon.'
+S048='Druhý pokus byl úspěšný, ale varovný disk může selhat.'
+
+###najít disky###
+S100='Hledání disků'
+S101='oddíly mají konfliktní ID'
+S102='UPOZORNĚNÍ: NE! Ještě nemáte relaci, provádíte normální spouštění'
+S103='Ukončeno z init skriptu předčasně, ještě nic není připojeno.'
+
+###velmi nízký beran###
+S110='UPOZORNĚNÍ: Uzamčení zakázáno, nedostatečná RAM'
+S111='UPOZORNĚNÍ: EasyOS poběží zcela v RAM, žádné trvalé úložiště'
+S112='UPOZORNĚNÍ: Relace bude zkopírována do RAM a EasyOS poběží v RAM'
+S113='Vytváření komprimovaného zram. Přidělená RAM:'
+S114='Pracovní oddíl:'
+S115='Test rychlosti čtení pracovního disku (nižší, tím lepší):'
+
+###nastavení a připojení pracovního oddílu###
+S120='Změna velikosti pracovního oddílu na vyplnění disku'
+S121='CHYBA: nelze změnit velikost pracovního oddílu'
+S122='Změna velikosti souborového systému ext4 tak, aby zaplnil pracovní oddíl, velikost:'
+S123='CHYBA: nelze změnit velikost souborového systému ext4 tak, aby zaplnil pracovní oddíl, velikost:'
+S124='Nelze změnit velikost pracovního oddílu. Není bezpečné pokračovat'
+S125='Nelze připojit pracovní oddíl:'
+S126='Ukončeno ze skriptu init, oddíl wkg připojen.'
+
+###vytvořit $WKG_DIR a složky###
+S130='již existuje'
+S131='Pracovní oddíl nemá povolenou funkci šifrování ext4.'
+S132='Tato funkce je vyžadována pro šifrování složek. Doporučeno pro vaši bezpečnost.“
+S133='Pokud odmítnete, budoucí spouštění nebude vyžadovat heslo.'
+S134='VAROVÁNÍ: staré bootloadery jako GRUB v1, GRUB4DOS a GRUB v2 před'
+S135='verze 2.0.4 (vydaná v roce 2019), nerozpoznává moderní funkce ext4'
+S136='jako je šifrování složek a již nebude fungovat s oddílem'
+S137='pokud povolíte šifrování (oddíl již nebude rozpoznán).'
+S138='Stiskněte klávesu ENTER pro aktivaci šifrování, jakýkoli jiný klíč ne:'
+S139='Povoluji šifrování složky ext4...'
+S140='Omlouvám se, aktivace šifrování složky selhala.'
+S141='...šifrování povoleno.'
+S142='Poznámka, pokud jej z nějakého důvodu chcete vypnout, odeberte instalaci EasyOS. Pak jsou na internetu pokyny k vypnutí šifrování.'
+S143='Montáž pracovní části selhala.'
+S144='Podpora šifrování složek není povolena.'
+S145='Omlouvám se, složky v pracovním oddílu nelze zašifrovat. Heslo bude nastaveno pouze pro přihlášení root.'
+S146='Nesprávné heslo. Zkus to znovu'
+S147='Odloženo ukládání poslední relace, čekejte prosím...'
+
+###TRIM###
+S150='Probíhá fstrim na pracovním oddílu SSD...'
+S151='Ukončeno z iniciačního skriptu před operacemi obnovy a údržby.'
+
+###obnovení, údržba###
+S160='Závažná chyba při kontrole souborového systému'
+S161='Ukončeno z iniciačního skriptu před kontrolou verze.'
+
+###kontrola verzí###
+S170='Pouze jednorázová operace, vytvoření snímku EasyOS'
+S171='To umožní budoucí návrat pomocí Správce snadné správy verzí'
+S172='Naplňování:'
+S173='Upozornění, mazání staré verze:'
+S174='Nelze najít easy.sfs'
+
+S180='Proč tento soubor existuje? Odstraňuji to.'
+S181='Ukončeno z init skriptu před nastavením vrstev SFS.'
+
+###nastavení spodní vrstvy ro pomocí easy.sfs###
+S190='Připojování vrstvy vrstveného souborového systému pouze pro čtení'
+S191='Montáž squashfs souboru easy.sfs'
+S192='Kopírování easy.sfs do RAM, následné připojení'
+S193='Nepodařilo se připojit easy.sfs'
+S194='POZOR, verze se neshodují.'
+S195='další soubor squashfs neexistuje, odstraněn ze seznamu zatížení.'
+S196='Kopírování do RAM a připojení extra squashfs souboru:'
+S197='Připojuji extra soubor squashfs:'
+S198='CHYBA: /usr/lib64 nesprávná cesta v SFS:'
+S199='TENTO SFS NEBUDE NAČÍTÁN'
+S200='CHYBA: SFS nemá složky usr-merge:'
+S201='Nastavení zabezpečení při prvním spuštění...'
+S202='Nastavení stejného hesla pro uživatele zeus a root'
+
+###možná zkopírujte relaci do zram###
+S210='Kopírování poslední pracovní relace do RAM'
+
+###velký okamžik, vytvořte vrstvené f.s.###
+S220='Vytvářím vrstvený souborový systém, zadejte:'
+S221='Nepodařilo se vytvořit vrstvený souborový systém'
+S222='Ukončeno z init skriptu před přesunem přípojných bodů na wkg f.s.'
+
+###přemístit přípojné body před switch_root###
+S230='Provádění switch_root na vrstveném souborovém systému'
+S231='Vypínání disku:'
+S232='Ukončeno z init skriptu, těsně před switch_root.'
+
+###root pw###
+S300='Rozhodli jste se nezadávat heslo pro šifrování složek v pracovním oddílu; ale měli byste alespoň zadat heslo pro uživatele root.'
+S301='Poznámka 1: při budoucích startech nebude pro přihlášení vyžadováno heslo.'
+S302='Poznámka 2: pokud klávesnice nebude fungovat tak brzy během spouštění, dojde k vypršení časového limitu za 300 sekund.'
+S303='Zadejte heslo se znaky a-z, A-Z, 0-9, minimálně 6 znaků, které si zapamatujete.'
+S304='Vytváření páru klíčů podepsaných gnupg, v /root/.gnupg'
+
+######
+S400='Nebyl zjištěn žádný GPU NVIDIA, takže se nenačte NVIDIA SFS'
