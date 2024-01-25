@@ -1,7 +1,7 @@
 #!/bin/ash
 #create /mnt/wkg/data/woofV/initrd/initrd-tree, hence file initrd.
 
-. /etc/DISTRO_SPECS
+. /usr/local/woofV/configure/DISTRO_SPECS
 case "$DISTRO_TARGETARCH" in
  amd64) xARCH='x86_64' ;;
  *)     xARCH="$DISTRO_TARGETARCH" ;;
@@ -87,10 +87,11 @@ fi
 sync
 
 ###DISTRO_SPECS###
-cp -a -f /etc/DISTRO_SPECS ${E2}/etc/
+cp -a -f /usr/local/woofV/configure/DISTRO_SPECS ${E2}/etc/
 DATE="$(date +%y%m%d)" #ex: 240128
 echo "$DATE" > ${E1}/DATEinitrd
 sed -i -e "s%^DISTRO_VERSION=.*%DISTRO_VERSION=${DATE}%" ${E2}/etc/DISTRO_SPECS
+sed -i -e "s%^DISTRO_VERSION=.*%DISTRO_VERSION=${DATE}%" /usr/local/woofV/configure/DISTRO_SPECS
 
 ###create file initrd###
 echo "Creating ${E1}/initrd ..."

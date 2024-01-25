@@ -1,0 +1,148 @@
+#!/bin/ash
+#create a rootfs that has just enough to chroot into, with xbps pkg management.
+
+. /etc/rc.d/PUPSTATE
+. /usr/local/woofV/configure/DISTRO_SPECS
+case "$DISTRO_TARGETARCH" in
+ amd64) xARCH='x86_64' ;;
+ *)     xARCH="$DISTRO_TARGETARCH" ;;
+esac
+
+install_func() {
+ #pass in folder to be installed.
+ #currently in 'sandbox' folder.
+ #this will follow symlink folders in rootfs,
+ #do not follow if target file exists and is a symlink.
+ FOLDER="$1"
+ while read aF
+ do
+  if [ -d ${FOLDER}/"$aF" ];then
+   mkdir -p ../rootfs/"$aF"/
+  else
+   aD="$(dirname "$aF")"
+   mkdir -p ../rootfs/"$aD"/
+   if [ -h ${FOLDER}/"$aF" ];then
+    if [ -e ../rootfs/"$aF" ];then
+     if [ ! -h ../rootfs/"$aF" ];then
+      continue
+     fi
+    fi
+   fi
+   cp -a --remove-destination ${FOLDER}/"$aF" ../rootfs/"$aD"/
+  fi
+ done <<_END1
+$(find ${FOLDER} -mindepth 1 | sed -e "s%${FOLDER}/%%")
+_END1
+}
+
+fix_symlinks_func() {
+ #simplify the symlinks. also detect circular symlinks.
+ #currently in 'sandbox' folder.
+ while read aL
+ do
+  [ ! "$aL" ] && continue
+  LANG=C busybox realpath ${aL} 2>&1 | grep -q 'Symbolic link loop'
+  if [ $? -eq 0 ];then
+   rm -f ../rootfs/usr/bin/${aL##*/} #delete circular loop.
+   continue
+  fi
+  aT="$(busybox readlink -n $aL)"
+  if [ -f ../rootfs/usr/bin/${aT##*/} ];then
+   if [ ! -h ../rootfs/usr/bin/${aT##*/} ];then
+    ln -snf ${aT##*/} ${aL} #simplify symlink.
+   fi
+  fi
+ done <<_END2
+$(find ../rootfs/usr/bin -mindepth 1 -maxdepth 1 -type l)
+_END2
+ while read aL
+ do
+  [ ! "$aL" ] && continue
+  LANG=C busybox realpath ${aL} 2>&1 | grep -q 'Symbolic link loop'
+  if [ $? -eq 0 ];then
+   rm -f ../rootfs/usr/lib/${aL##*/} #delete circular loop.
+   continue
+  fi
+  aT="$(busybox readlink -n $aL)"
+  if [ -f ../rootfs/usr/lib/${aT##*/} ];then
+   if [ ! -h ../rootfs/usr/lib/${aT##*/} ];then
+    ln -snf ${aT##*/} ${aL}
+   fi
+  fi
+ done <<_END2
+$(find ../rootfs/usr/lib -mindepth 1 -maxdepth 1 -type l)
+_END2
+}
+
+PWD="`pwd`"
+if [ ! -d /mnt/wkg/data/woofV/dl-start ];then
+ echo 'have to run 1dl-start-pkgs first'
+ exit 1
+fi
+cd /mnt/wkg/data/woofV
+
+rm -rf rootfs 2>/dev/null
+rm -rf sandbox 2>/dev/null
+sync
+
+cp -a -f /usr/local/woofV/rootfs/chroot-rootfs ./ 2>/dev/null
+cp -a -f /usr/local/woofV/rootfs/pet2dir ./ 2>/dev/null
+
+#pre-populate rootfs...
+cp -a /usr/local/woofV/rootfs/rootfs-skeleton ./rootfs
+find rootfs -type f -name EMPTYDIRMARKER -delete
+sync
+
+###local non-xbps pkgs###
+mkdir sandbox
+cd sandbox
+BB="$(ls -1 ../dl-start | grep 'busybox')"
+pet2dir ../dl-start/${BB}
+install_func ${BB/.pet/}
+fix_symlinks_func
+rm -f ../rootfs/pet.specs
+rm -f ../rootfs/pinstall.sh
+
+###static xbps pkg###
+mkdir xbps
+tar -x --zstd --directory=xbps/ -f ../dl-start/xbps-static-latest.${xARCH}-musl.tar.xz
+install_func xbps
+
+cd ..
+
+###online xbps pkgs###
+export XBPS_ARCH="$xARCH"
+#register online repo...
+#ref: https://docs.voidlinux.org/xbps/repositories/custom.html
+mkdir -p rootfs/etc/xbps.d
+echo 'repository=https://ftp.swin.edu.au/voidlinux/current' > rootfs/etc/xbps.d/00-repository-main.conf
+echo 'repository=https://ftp.swin.edu.au/voidlinux/current/nonfree' > rootfs/etc/xbps.d/10-repository-nonfree.conf
+
+###startup rootfs###
+#ref: https://man.voidlinux.org/xbps-install.1
+#SSL_NO_VERIFY_PEER=1 ./chroot-rootfs rootfs xbps-install -Suy xbps-triggers base-files xbps
+#getting some "can't create ... system group (missing groupadd)" try add 'shadow' pkg...
+SSL_NO_VERIFY_PEER=1 ./chroot-rootfs rootfs xbps-install -Suy xbps-triggers shadow xbps
+rm -f rootfs/usr/bin/*.static
+sync
+
+#installed:
+#xbps-triggers glibc pam-base pam-libs pam acl attr shadow libcrypto3 libssl3
+#openssl run-parts ca-certificates install bzip2 liblz4 liblzma libzstd zlib
+#libarchive libxbps xbps    
+
+
+exit
+####
+
+#delete any circular symlinks...
+FNDall="$(busybox find rootfs -mindepth 1 -maxdepth 4 -type d 2>/dev/null | busybox xargs -I ZZZ busybox find ZZZ -mindepth 1 -maxdepth 1 -follow 2>&1)"
+#ex: usr/lib/ld-linux-x86-64.so.2 symlink to ../../lib/ld-linux-x86-64.so.2
+# busybox find: find: rootfs/usr/lib/ld-linux-x86-64.so.2: Symbolic link loop
+# full find: find: ‘rootfs/usr/lib/ld-linux-x86-64.so.2’: Too many levels of symbolic links
+LNKcirc="$(echo "$FNDall" | grep 'Symbolic link loop' | cut -f 2 -d ' ' | cut -f 1 -d ':' | tr '\n' ' ')"
+for aLNK in $LNKcirc
+do
+ rm -f ./${aLNK}
+done
+

@@ -1,0 +1,43 @@
+#!/bin/ash
+#d/l packages to build the getting-started rootfs.
+
+. /usr/local/woofV/configure/DISTRO_SPECS
+case "$DISTRO_TARGETARCH" in
+ amd64) xARCH='x86_64' ;;
+ *)     xARCH="$DISTRO_TARGETARCH" ;;
+esac
+
+#d/l static xbps
+PWD="`pwd`"
+if [ -d /mnt/wkg/data/woofV/dl-start ];then
+ rm -rf /mnt/wkg/data/woofV/dl-start
+fi
+mkdir -p /mnt/wkg/data/woofV/dl-start
+cd /mnt/wkg/data/woofV/dl-start
+download_file https://repo-default.voidlinux.org/static/sha256sums.txt
+F1="xbps-static-latest.${xARCH}-musl.tar.xz"
+SHAa="$(grep -F "$F1" sha256sums.txt | cut -f 1 -d ' ')"
+rm -f sha256sums.txt
+download_file https://repo-default.voidlinux.org/static/${F1}
+SHAb="$(sha256sum ${F1} | cut -f 1 -d ' ')"
+if [ "$SHAa" != "$SHAb" ];then
+ echo "sha256sum wrong"
+ exit 1
+fi
+echo "pkg ${F1} has been downloaded"
+
+#d/l busybox static pet
+download_file https://distro.ibiblio.org/easyos/${DISTRO_TARGETARCH}/packages/pet/Packages-pet-void-official
+if [ $? -ne 0 ];then
+ echo 'd/l busybox pet failed'
+ exit 2
+fi
+BB="$(grep -F '|busybox|' Packages-pet-void-official | cut -f 8 -d '|')"
+#ex: busybox-1.36.1-static-amd64.pet
+rm -f Packages-pet-void-official
+download_file https://distro.ibiblio.org/easyos/${DISTRO_TARGETARCH}/packages/pet/pet_packages-void/${BB}
+echo "pkg ${BB} has been downloaded"
+
+cd $PWD
+exit 0
+###end###
