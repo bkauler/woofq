@@ -1,0 +1,34 @@
+
+#20190801 buster
+F1="$(find usr/bin -type f -name 'python3.[23456789]' | head -n 1)"
+if [ "$F1" ];then
+ F2="$(dirname $F1)"
+ F3="$(basename $F1)"
+ [ ! -e ${F2}/python3 ] && ln -s ${F3} ${F2}/python3
+fi
+
+#20220512 bookworm now have 3.10
+F1="$(find usr/bin -type f -name 'python3.1[0123456789]' | head -n 1)"
+if [ "$F1" ];then
+ F2="$(dirname $F1)"
+ F3="$(basename $F1)"
+ [ ! -e ${F2}/python3 ] && ln -s ${F3} ${F2}/python3
+fi
+
+#20220519 as in python3-tiny
+PYMOD="$(find usr/lib* -type f -name 'pydoc.py' | head -n 1)"
+PYDIR="$(dirname $PYMOD)" #ex: usr/lib/python3.10
+
+UPDIR="$(dirname ${PYDIR})"   #ex: usr/lib
+PYNAME="$(basename ${PYDIR})" #ex: python3.10
+if [ -d ${UPDIR}/python3 ];then
+ if [ ! -h ${UPDIR}/python3 ];then
+  cp -a -f ${UPDIR}/python3/* ${PYDIR}/
+  rm -rf ${UPDIR}/python3
+ fi
+fi
+
+if [ ! -e ${UPDIR}/python3 ];then
+ ln -s ${PYNAME} ${UPDIR}/python3
+fi
+

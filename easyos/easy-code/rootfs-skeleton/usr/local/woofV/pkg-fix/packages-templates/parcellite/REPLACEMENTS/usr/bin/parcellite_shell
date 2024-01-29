@@ -1,0 +1,28 @@
+#!/bin/sh
+#20230804 based on glipper-lite
+
+export TEXTDOMAIN=parcellite_shell
+export OUTPUT_CHARSET=UTF-8
+
+Xdialog --center --title "$(gettext 'Parcellite clipboard manager')" --ok-label "$(gettext 'Enable Parcellite')" --cancel-label "$(gettext 'Disable Parcellite')" --yesno "$(gettext 'Paecellite is a great little taskbar applet for managing the clipboard.')
+
+$(gettext "If you click the 'Enable Parcellite' button, then Parcellite will appear in
+the tray, and will also start automatically in the future.")
+$(gettext "If you click the 'Disable Parcellite' button, then if Parcellite is running
+it will be terminated now and will not be started in the future.")" 0 0
+
+RETVAL=$?
+
+if [ $RETVAL -eq 0 ];then
+ ln -snf ../../usr/bin/parcellite /root/Startup/parcellite_tray
+ PSRUN="`ps`"
+ [ "`echo "$PSRUN" | grep -v 'parcellite_shell' | grep 'parcellite'`" = "" ] && /root/Startup/parcellite_tray &
+ exit
+fi
+
+if [ $RETVAL -eq 1 ];then
+ rm -f /root/Startup/parcellite_tray
+ killall parcellite
+ killall parcellite_tray
+ exit
+fi

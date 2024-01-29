@@ -1,0 +1,13 @@
+
+[ -d usr/share/gutenprint/samples ] && rm -rf usr/share/gutenprint/samples
+
+GPSHDIR="`find usr/share/gutenprint -maxdepth 1 -type d -name 5.* | head -n 1`"
+
+# the rest in usr/share/gutenprint needed.
+
+#20240113 easyvoid
+#oh man, this is 97MB of .gz files!
+if [ -d usr/share/cups/model/gutenprint ];then
+ rm -rf usr/share/cups/model/gutenprint
+ mkdir -p usr/share/cups/model/gutenprint
+fi

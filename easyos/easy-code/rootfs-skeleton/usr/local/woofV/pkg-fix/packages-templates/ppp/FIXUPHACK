@@ -1,0 +1,12 @@
+
+if [ -d etc ];then
+ rm -rf etc
+fi
+
+mkdir -p usr/bin
+#keep only these (requires bash)...
+GLOBIGNORE='chat:pppd:pppdump:pppoe-discovery:pppstats'
+cd usr/bin
+rm *
+cd ../../
+unset GLOBIGNORE

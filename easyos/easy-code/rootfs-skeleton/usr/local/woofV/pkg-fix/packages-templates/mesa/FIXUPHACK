@@ -1,0 +1,55 @@
+
+mkdir -p usr/lib
+
+#libGL* etc might be somewhere strange...
+for ANAMEONLY in libGL
+do
+ FNDLIBGL="$(find usr -type f -name "${ANAMEONLY}.so.*" | head -n 1)"
+ if [ "$FNDLIBGL" ];then
+  FNDLIBPATH="$(dirname $FNDLIBGL)"
+  FNDLIBNAME="$(basename $FNDLIBGL)"
+  AHYPLIB=""
+  for AHYPLIB in `find $FNDLIBPATH -maxdepth 1 -type l -name "${ANAMEONLY}.so.*" | tr '\n' ' '`
+  do
+   AHYPNAME="$(basename $AHYPLIB)" #ex: libGL.so.1
+   [ ! -e usr/lib/${AHYPNAME} ] && ln -s --relative ${FNDLIBGL} usr/lib/${AHYPNAME}
+  done
+  [ ! -e usr/lib/${ANAMEONLY}.so ] && ln -s --relative ${FNDLIBGL} usr/lib/${ANAMEONLY}.so
+ fi
+done
+
+#these drivers might be in /usr/lib/mesa (for example)...
+mkdir -p usr/lib/dri
+FNDSWRAST="$(find usr -type f -name swrast_dri.so | head -n 1)"
+if [ "$FNDSWRAST" ];then
+ FNDSRPATH="$(dirname $FNDSWRAST)"
+ if [ ! -f usr/lib/dri/swrast_dri.so ];then
+  cp -a ${FNDSRPATH}/* usr/lib/dri/
+  sync
+  rm -rf ./${FNDSRPATH}
+  ln -s --relative usr/lib/dri ${FNDSRPATH}
+ fi
+fi
+
+#20230318 nanosaur appimage game wants libOpenGL.so.0
+if [ -e usr/lib/libGL.so.1 ];then
+ if [ ! -e usr/lib/libOpenGL.so.0 ];then
+  cp -a usr/lib/libGL.so.1 usr/lib/libOpenGL.so.0
+ fi
+fi
+
+#20230610 kdenlive appimage wants libGLX.so.0
+#this is in libglvnd, however easy 5.3.2 doesn't have this pkg.
+#mesa libGL contains all the libGLX exported functions...
+# ...found by running "nm -D --defined-only" on each lib
+if [ -e usr/lib/libGL.so.1 ];then
+ if [ ! -e usr/lib/libGLX.so.0 ];then
+  cp -a usr/lib/libGL.so.1 usr/lib/libGLX.so.0
+ fi
+fi
+
+#20240113 easyvoid
+#as far as i know, only wine uses direct3d. the lib is 26MB
+if [ -d usr/lib/d3d ];then
+ rm -rf usr/lib/d3d
+fi

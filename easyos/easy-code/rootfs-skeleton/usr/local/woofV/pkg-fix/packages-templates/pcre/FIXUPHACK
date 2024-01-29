@@ -1,0 +1,83 @@
+
+LIBSPEC="$(find . -type f -name 'libpcre.so.0*' | head -n 1)"
+if [ "$LIBSPEC" ];then
+ LIBPATH="$(dirname $LIBSPEC)"
+ LIBNAME="$(basename $LIBSPEC)"
+ LIBLINK="$(find . -name libpcre.so.0)"
+ [ ! "$LIBLINK" ] && ln -s $LIBNAME ${LIBPATH}/libpcre.so.0
+fi
+LIBSPEC="$(find . -type f -name 'libpcre.so.1*' | head -n 1)"
+if [ "$LIBSPEC" ];then
+ LIBPATH="$(dirname $LIBSPEC)"
+ LIBNAME="$(basename $LIBSPEC)"
+ LIBLINK="$(find . -name libpcre.so.0)"
+ [ ! "$LIBLINK" ] && ln -s $LIBNAME ${LIBPATH}/libpcre.so.0
+ LIBLINK="$(find . -name libpcre.so.1)"
+ [ ! "$LIBLINK" ] && ln -s $LIBNAME ${LIBPATH}/libpcre.so.1
+fi
+LIBSPEC="$(find . -type f -name 'libpcre.so.2*' | head -n 1)"
+if [ "$LIBSPEC" ];then
+ LIBPATH="$(dirname $LIBSPEC)"
+ LIBNAME="$(basename $LIBSPEC)"
+ LIBLINK="$(find . -name libpcre.so.0)"
+ [ ! "$LIBLINK" ] && ln -s $LIBNAME ${LIBPATH}/libpcre.so.0
+ LIBLINK="$(find . -name libpcre.so.1)"
+ [ ! "$LIBLINK" ] && ln -s $LIBNAME ${LIBPATH}/libpcre.so.1
+ LIBLINK="$(find . -name libpcre.so.2)"
+ [ ! "$LIBLINK" ] && ln -s $LIBNAME ${LIBPATH}/libpcre.so.2
+fi
+LIBSPEC="$(find . -type f -name 'libpcre.so.3*' | head -n 1)"
+if [ "$LIBSPEC" ];then
+ LIBPATH="$(dirname $LIBSPEC)"
+ LIBNAME="$(basename $LIBSPEC)"
+ LIBLINK="$(find . -name libpcre.so.0)"
+ [ ! "$LIBLINK" ] && ln -s $LIBNAME ${LIBPATH}/libpcre.so.0
+ LIBLINK="$(find . -name libpcre.so.1)"
+ [ ! "$LIBLINK" ] && ln -s $LIBNAME ${LIBPATH}/libpcre.so.1
+ LIBLINK="$(find . -name libpcre.so.2)"
+ [ ! "$LIBLINK" ] && ln -s $LIBNAME ${LIBPATH}/libpcre.so.2
+ LIBLINK="$(find . -name libpcre.so.3)"
+ [ ! "$LIBLINK" ] && ln -s $LIBNAME ${LIBPATH}/libpcre.so.3
+fi
+
+LIBSPEC="$(find . -type f -name 'libpcreposix.so.0*' | head -n 1)"
+if [ "$LIBSPEC" ];then
+ LIBPATH="$(dirname $LIBSPEC)"
+ LIBNAME="$(basename $LIBSPEC)"
+ LIBLINK="$(find . -name libpcreposix.so.0)"
+ [ ! "$LIBLINK" ] && ln -s $LIBNAME ${LIBPATH}/libpcreposix.so.0
+fi
+LIBSPEC="$(find . -type f -name 'libpcreposix.so.1*' | head -n 1)"
+if [ "$LIBSPEC" ];then
+ LIBPATH="$(dirname $LIBSPEC)"
+ LIBNAME="$(basename $LIBSPEC)"
+ LIBLINK="$(find . -name libpcreposix.so.0)"
+ [ ! "$LIBLINK" ] && ln -s $LIBNAME ${LIBPATH}/libpcreposix.so.0
+ LIBLINK="$(find . -name libpcreposix.so.1)"
+ [ ! "$LIBLINK" ] && ln -s $LIBNAME ${LIBPATH}/libpcreposix.so.1
+fi
+LIBSPEC="$(find . -type f -name 'libpcreposix.so.2*' | head -n 1)"
+if [ "$LIBSPEC" ];then
+ LIBPATH="$(dirname $LIBSPEC)"
+ LIBNAME="$(basename $LIBSPEC)"
+ LIBLINK="$(find . -name libpcreposix.so.0)"
+ [ ! "$LIBLINK" ] && ln -s $LIBNAME ${LIBPATH}/libpcreposix.so.0
+ LIBLINK="$(find . -name libpcreposix.so.1)"
+ [ ! "$LIBLINK" ] && ln -s $LIBNAME ${LIBPATH}/libpcreposix.so.1
+ LIBLINK="$(find . -name libpcreposix.so.2)"
+ [ ! "$LIBLINK" ] && ln -s $LIBNAME ${LIBPATH}/libpcreposix.so.2
+fi
+LIBSPEC="$(find . -type f -name 'libpcreposix.so.3*' | head -n 1)"
+if [ "$LIBSPEC" ];then
+ LIBPATH="$(dirname $LIBSPEC)"
+ LIBNAME="$(basename $LIBSPEC)"
+ LIBLINK="$(find . -name libpcreposix.so.0)"
+ [ ! "$LIBLINK" ] && ln -s $LIBNAME ${LIBPATH}/libpcreposix.so.0
+ LIBLINK="$(find . -name libpcreposix.so.1)"
+ [ ! "$LIBLINK" ] && ln -s $LIBNAME ${LIBPATH}/libpcreposix.so.1
+ LIBLINK="$(find . -name libpcreposix.so.2)"
+ [ ! "$LIBLINK" ] && ln -s $LIBNAME ${LIBPATH}/libpcreposix.so.2
+ LIBLINK="$(find . -name libpcreposix.so.3)"
+ [ ! "$LIBLINK" ] && ln -s $LIBNAME ${LIBPATH}/libpcreposix.so.3
+fi
+

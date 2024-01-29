@@ -1,0 +1,7 @@
+#!/bin/sh
+#20230616 set umask. ref: https://bkhome.org/news/202305/setting-up-permissions-under-files-take-2.html
+#20230918 moved XLIB_SKIP_ARGB_VISUALS=1 from /etc/profile
+
+export XLIB_SKIP_ARGB_VISUALS=1
+umask 002
+exec /usr/local/apps/ROX-Filer/AppRun "$@"

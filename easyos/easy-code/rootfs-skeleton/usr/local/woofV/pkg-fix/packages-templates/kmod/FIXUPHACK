@@ -1,0 +1,17 @@
+
+#for slackware...
+DISABLE_POST_INSTALL_SCRIPT=yes
+
+#get rid of stuff we don't need...
+rm -rf etc
+rm -rf usr/share
+
+if [ -f usr/bin/kmod ];then
+ ln -snf kmod usr/bin/lsmod
+ ln -snf kmod usr/bin/depmod
+ ln -snf kmod usr/bin/insmod
+ ln -snf kmod usr/bin/modinfo
+ ln -snf kmod usr/bin/modprobe
+ ln -snf kmod usr/bin/rmmod
+fi
+

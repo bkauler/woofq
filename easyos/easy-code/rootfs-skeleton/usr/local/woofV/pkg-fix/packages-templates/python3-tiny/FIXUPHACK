@@ -1,0 +1,85 @@
+#delete what we don't want, to make this tiny...
+#note, similar to perl-tiny template.
+#180317 youtube-dl needs heaps of modules, so delete a lot less.
+#200929 converted for python3.
+#20220130 fixes for oe.
+#20220519 python3 symlink.
+
+mkdir -p ../tempdir1
+cp -a ./* ../tempdir1/
+
+#executable...
+mkdir -p usr/bin
+cp -a ../tempdir1/usr/bin/python* usr/bin/
+PYEXE="$(find usr/bin -maxdepth 1 -type f | head -n 1 | rev | cut -f 1 -d '/' | rev)"
+[ ! -e usr/bin/python ] && ln -snf $PYEXE usr/bin/python
+
+#20220519 bookworm
+[ ! -e usr/bin/python3 ] && ln -snf $PYEXE usr/bin/python3
+
+#libs...
+PYLIB="$(find ../tempdir1/usr/lib* -type f -name 'libpython3*' | head -n 1 | sed -e 's%^\.\./tempdir1/%%')"
+PYDIR="$(dirname $PYLIB)"
+mkdir -p $PYDIR
+cp -a -f ../tempdir1/$PYDIR/libpython3*.so* $PYDIR/
+sync
+
+#180317
+PYMOD="$(find ../tempdir1/usr/lib* -type f -name 'pydoc.py' | head -n 1 | sed -e 's%^\.\./tempdir1/%%')"
+PYDIR="$(dirname $PYMOD)" #ex: usr/lib/python3.8
+mkdir -p $PYDIR
+cp -a -f ../tempdir1/$PYDIR/* $PYDIR/
+sync
+for aDIR in config ensurepip test lib-tk compiler email/test bsddb/test sqlite3/test unittest/test ctypes/test idlelib lib2to3/tests distutils/tests json/tests 
+do
+ [ -d ${PYDIR}/${aDIR} ] && rm -rf ${PYDIR}/${aDIR}
+done
+sync
+
+#20220130
+for aA in `find ${PYDIR} -mindepth 1 -type f -name '*.a'`
+do
+ [ "$aA" == "" ] && continue
+ rm -f ./${aA}
+done
+
+rm -rf ../tempdir1
+
+#20220118 for compatibility with debian...
+UPDIR="$(dirname ${PYDIR})"   #ex: usr/lib
+PYNAME="$(basename ${PYDIR})" #ex: python3.8
+
+#20220519...
+if [ -d ${UPDIR}/python3 ];then
+ if [ ! -h ${UPDIR}/python3 ];then
+  cp -a -f ${UPDIR}/python3/* ${PYDIR}/
+  rm -rf ${UPDIR}/python3
+ fi
+fi
+
+if [ ! -e ${UPDIR}/python3 ];then
+ ln -s ${PYNAME} ${UPDIR}/python3
+fi
+
+#debian installs modules to /usr/lib/python3/dist-packages
+#however python3 in easyos doesn't look there...
+if [ ! -e ${PYDIR}/dist-packages ];then
+ if [ -d ${PYDIR}/site-packages ];then
+  ln -s site-packages ${PYDIR}/dist-packages
+ fi
+fi
+
+#20220130 note: to find all python files reqd by pitivi, at pristine 1st bootup
+# loaded devx so that pitivi will start, then examined all .pyc created in
+# __pycache__ folders and located corresponding .py files, then examined
+# woofq packages-dunfell, ignoring _DEV pkgs was able to see what .py are missing.
+# found these missing:
+# /usr/lib/python3.8/site-packages/six.py
+# /usr/lib/python3.8/site-packages/pyparsing.py
+# ...python3-six and python3-pyparsing were in the devx only.
+
+#note also, pitivi wants /usr/lib/lipython3.8.so
+# like this...
+if [ ! -f ${PYLIB/.so*/.so} ];then
+ ln -s -r ${PYLIB} ${PYLIB/.so*/.so}
+fi

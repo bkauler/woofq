@@ -1,0 +1,14 @@
+
+##161231 get rid of everything except one lib...
+#if [ -d ../lvm2_DEV ];then
+# cp -a -f --remove-destination * ../lvm2_DEV/
+# sync
+# rm -rf ./*
+# mkdir -p usr/lib${xARCHDIR}
+# cp -a ../lvm2_DEV/usr/lib${xARCHDIR}/libdevmapper.so.* usr/lib${xARCHDIR}/ 2>/dev/null
+# mkdir -p lib${xARCHDIR}
+# cp -a ../lvm2_DEV/lib${xARCHDIR}/libdevmapper.so.* lib${xARCHDIR}/ 2>/dev/null
+#fi
+
+#20240128
+rm -rf usr/bin

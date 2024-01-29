@@ -1,0 +1,10 @@
+
+mkdir -p usr/bin
+#keep only these (requires bash)...
+GLOBIGNORE='ps:free:pgrep:sysctl'
+cd usr/bin
+rm *
+cd ../../
+unset GLOBIGNORE
+
+mv -f usr/bin/ps usr/bin/ps-FULL

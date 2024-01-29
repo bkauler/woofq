@@ -1,0 +1,12 @@
+#need this so pavucontrol can find pulseaudio daemon socket...
+export PULSE_RUNTIME_PATH=/run/pulse
+
+#pipewire-pulse daemon will create /run/pulse/pulse
+# and pavucontrol won't know where socket is (/run is symlink to /tmp/run)...
+if [ ! -d /run/pulse ];then
+ mkdir -p /run/pulse
+ chmod 755 /run/pulse
+fi
+if [ ! -e /run/pulse/pulse ];then
+ ln -s . /run/pulse/pulse 2>/dev/null
+fi

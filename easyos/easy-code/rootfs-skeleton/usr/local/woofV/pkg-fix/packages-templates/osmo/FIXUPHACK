@@ -1,0 +1,36 @@
+
+#20220116 now running at startup in systray
+if [ -d usr/share/applications ];then
+ rm -rf usr/share/applications
+fi
+
+#20230419 want a .desktop for easyapps...
+mkdir -p usr/share/applications
+echo '[Desktop Entry]
+Encoding=UTF-8
+Name[fr]=Organisateur personnel Osmo
+Name[da]=Osmo personlig arrangør
+Name[de]=Osmo persönlicher Organizer
+Name[el]=προσωπικός διοργανωτής Osmo
+Name[es]=organizador personal osmo
+Name[fi]=Osmo henkilökohtainen järjestäjä
+Name[hu]=Osmo személyi szervező
+Name[is]=Osmo persónulegur skipuleggjandi
+Name[it]=Organizzatore personale Osmo
+Name[no]=Osmo personlig arrangør
+Name[nb]=Osmo personlig arrangør
+Name[pl]=Organizator osobisty Osmo
+Name[pt]=Organizador pessoal Osmo
+Name[ru]=Osmo персональный органайзер
+Name[se]=Osmo personlig arrangör
+Name[tr]=Osmo kişisel organizatör
+Name=Osmo personal organizer
+Icon=osmo.png
+Comment=Osmo personal organizer
+Exec=osmo-run
+Terminal=false
+Type=Application
+Categories=X-Personal-date
+GenericName=Osmo
+' > usr/share/applications/osmo.desktop
+

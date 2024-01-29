@@ -1,0 +1,10 @@
+
+#20210819 ignore ln err msg.
+#easy buster, 190801
+if [ -e usr/bin/xtables-legacy-multi ];then
+ for F1 in ip6tables ip6tables-restore ip6tables-save iptables iptables-restore iptables-save
+ do
+  ln -s xtables-legacy-multi usr/bin/${F1} 2>/dev/null
+ done
+fi
+

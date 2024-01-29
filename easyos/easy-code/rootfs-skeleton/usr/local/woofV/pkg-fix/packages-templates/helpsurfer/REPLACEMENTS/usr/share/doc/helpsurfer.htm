@@ -1,0 +1,109 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html><head>
+<meta http-equiv="content-type" content="text/html; charset=windows-1252">
+<title></title>
+</head>
+<body>
+
+<table cellspacing="2" cellpadding="2" align="center" width="600" border="0">
+  <tbody>
+    <tr>
+      <td valign="top">
+        <h1>HelpSurfer</h1>
+HelpSurfer is a simple web page viewer, intended for viewing local HTML 
+help files. It supports HTML v4 and some CSS v1 and v2, not Javascript. <br>
+        <br>
+Dependencies are libgtkhtml-2, gnet, libsystem and gtk+.<br>
+        <br>
+        <hr size="2" width="100%">
+        <h2>exec: <br>
+        </h2>
+ref: <a href="http://bkhome.org/news/201708/helpsurfer-03.html">http://bkhome.org/news/201708/helpsurfer-03.html</a><br>
+        <br>
+There was something else that I wanted HelpSurfer to be able to do:
+    execute local executables.
+    <br>
+
+    This is not a web browser, it is a local help viewer, so I can
+    justify doing things that would be unacceptable in a browser.
+    <br>
+
+    Although it is not legitimate html, HelpSurfer 0.3 supports
+    hyperlinks to
+    <br>
+
+    <br>
+
+    <i>"exec:&lt;executable&gt;[ &lt;parameters&gt;]"</i>
+    <br>
+
+    <br>
+
+    For example:
+    <br>
+
+    <br>
+
+    <i>&lt;a href="exec:leafpad /usr/share/doc/home.htm"&gt;EXECUTE
+      LEAFPAD&lt;/a&gt;</i>
+    <br>
+
+    <br>
+
+    I have a requirement for this feature. <br>
+
+    <br>
+
+    Announced on the Puppy Forum, with source and PET links:
+    <br>
+
+    <a href="http://murga-linux.com/puppy/viewtopic.php?p=963385#963385">http://murga-linux.com/puppy/viewtopic.php?p=963385#963385</a><br>
+        <br>
+        <hr size="2" width="100%">
+        <h2>http: <br>
+        </h2>
+ref: <a href="http://bkhome.org/news/201708/helpsurfer-02.html">http://bkhome.org/news/201708/helpsurfer-02.html</a><br>
+ref: <a href="http://bkhome.org/news/201708/improving-surfer-tiny-web-browser.html">http://bkhome.org/news/201708/improving-surfer-tiny-web-browser.html</a><br>
+        <br>
+The chap who created Surfer, many years ago created version 0.0.7 which worked with libgtkhtml, forming a very tiny HTML viewer.
+        <br>
+
+        <br>
+This tiny version has been in many pups (Puppy Linux and derivatives) as the internal HTML documentation viewer.
+        <br>
+
+        <br>
+Tiny, which is great, very useful just to look at local HTML files, 
+but there is one major problem -- libgtkhtml supports HTML4 and some 
+CSS, there is no support for javascript.
+        <br>
+Consequently, web pages on the Internet cannot be reliably displayed, and in many cases will crash Surfer.
+        <br>
+
+        <br>
+What is needed is for Surfer to treat Internet links in local web 
+pages as a special case, and launch "defaultbrowser" (which is the main 
+browser, ex SeaMonkey).
+        <br>
+
+        <br>
+I looked at the source code, and it wasn't obvious how to do that, so I posted the question to the Puppy Forum:
+        <br>
+        <a href="http://murga-linux.com/puppy/viewtopic.php?t=111186">http://murga-linux.com/puppy/viewtopic.php?t=111186</a>
+        <br>
+
+        <br>
+Fantastic, forum member SFR has created a patch!
+        <br>
+        <br>
+        <hr size="2" width="100%"><br>
+Ref: <a href="http://ftp.gnome.org/pub/GNOME/sources/libgtkhtml/2.11/">http://ftp.gnome.org/pub/GNOME/sources/libgtkhtml/2.11/</a><br>
+        <br>
+        <br>
+        <br>
+      </td>
+    </tr>
+  </tbody>
+</table>
+<br>
+</body></html>

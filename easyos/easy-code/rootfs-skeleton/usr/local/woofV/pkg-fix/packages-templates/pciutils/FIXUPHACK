@@ -1,0 +1,45 @@
+
+#T2 pkg has both pci.ids and pci.ids.gz...
+if [ -f ./usr/share/pci.ids.gz ];then
+ if [ -f ./usr/share/pci.ids ];then
+  rm -f ./usr/share/pci.ids.gz
+ else #20211001
+  cd usr/share
+  gunzip pci.ids.gz
+  cd ../../
+ fi
+fi
+
+if [ -f usr/share/pci.ids ];then #20211001
+ if [ ! -e usr/share/misc/pci.ids ];then
+  mkdir -p usr/share/misc
+  ln -s ../pci.ids usr/share/misc/pci.ids
+ fi
+fi
+
+#20150723 running quirky april 7.0.4.1, 32-bit, trying compile qt 5.5.0
+#bits of pciutils are missing. do not get installed by stupid src pkg.
+FNDLIBPCI="$(find usr -type f -name 'libpci.so.*' | tail -n 1)"
+if [ "$FNDLIBPCI" ];then
+ FNDPATH="$(dirname "$FNDLIBPCI")"
+ FNDNAME="$(basename "$FNDLIBPCI")"
+ FNDVER="$(echo -n "$FNDNAME" | cut -f 3- -d '.')" #ex: 3.3.0
+ NAMECUT="$(echo -n "$FNDNAME" | cut -f 1-3 -d '.')" #libpci.so.3
+ [ ! -e ${FNDPATH}/${NAMECUT} ] && ln -s ${FNDNAME} ${FNDPATH}/${NAMECUT}
+ [ ! -e ${FNDPATH}/libpci.so ] && ln -s ${NAMECUT} ${FNDPATH}/libpci.so
+ mkdir -p ${FNDPATH}/pkgconfig
+ if [ ! -e ${FNDPATH}/pkgconfig/libpci.pc ];then
+  echo 'prefix=/usr
+includedir=/usr/include
+libdir=/usr/lib
+idsdir=/usr/share
+
+Name: libpci
+Description: libpci' > ${FNDPATH}/pkgconfig/libpci.pc
+  echo "Version: ${FNDVER}" >> ${FNDPATH}/pkgconfig/libpci.pc
+  echo 'Libs: -L${libdir} -lpci
+Libs.private: 
+Cflags: -I${includedir}' >> ${FNDPATH}/pkgconfig/libpci.pc
+ fi
+fi
+

@@ -1,0 +1,12 @@
+#!/bin/ash
+
+#20221028 nm-applet must run as root...
+if [ "$(whoami)" != "root" ];then
+ if [ -x /usr/bin/sudo-sh ];then
+  exec sudo-sh ${PPID} ${0} ${@}
+ else
+  exec sudo -A ${0} ${@}
+ fi
+fi
+
+exec nm-applet

@@ -1,0 +1,12 @@
+#!/bin/sh
+#/root/.osmo/config.xml is configured to launch minimized, in systray only.
+
+#20220308 bill reported that if untick start in systray in prefs, it starts
+# at each boot.
+sed -i -e 's%.*enable_systray.*%    <enable_systray>1</enable_systray>%' /root/.osmo/config.xml
+
+#20220323 baby laptop, restart x, osmo not captured in systray. sleep 2 fixes it...
+#20231129 increase to 3. ref: https://forum.puppylinux.com/viewtopic.php?t=10007
+sleep 3
+
+exec osmo
