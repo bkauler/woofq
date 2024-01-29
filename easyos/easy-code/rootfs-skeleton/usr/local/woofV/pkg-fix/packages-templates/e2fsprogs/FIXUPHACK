@@ -1,0 +1,35 @@
+
+#20230910 fix for usr-merge...
+#20201024 oe dunfell. 20210819 fix find err msg.
+#some of the utilities have ".e2fsprogs" appended to their name
+EXEAPPEND="$(find usr/bin -type f -name '*.e2fsprogs' 2>/dev/null | tr '\n' ' ')"
+for aAPPEND in $EXEAPPEND
+do
+ aDIR="$(dirname $aAPPEND)"
+ aNAME="$(basename $aAPPEND .e2fsprogs)"
+ mv -f $aAPPEND ${aDIR}/${aNAME}
+done
+
+for AFILE in tune2fs e2fsck mke2fs
+do
+ FNDFILE="$(find . -type f -name ${AFILE} | head -n 1)"
+ if [ "$FNDFILE" ];then
+  FNDDIR="$(dirname "${FNDFILE}")"
+  case $AFILE in
+   tune2fs)
+    ln -snf $AFILE $FNDDIR/e2label 2>/dev/null
+    ln -snf $AFILE $FNDDIR/findfs 2>/dev/null
+   ;;
+   e2fsck)
+    ln -snf $AFILE $FNDDIR/fsck.ext2 2>/dev/null
+    ln -snf $AFILE $FNDDIR/fsck.ext3 2>/dev/null
+    ln -snf $AFILE $FNDDIR/fsck.ext4 2>/dev/null
+   ;;
+   mke2fs)
+    ln -snf $AFILE $FNDDIR/mkfs.ext2 2>/dev/null
+    ln -snf $AFILE $FNDDIR/mkfs.ext3 2>/dev/null
+    ln -snf $AFILE $FNDDIR/mkfs.ext4 2>/dev/null
+   ;;
+  esac
+ fi
+done

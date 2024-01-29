@@ -1,0 +1,13 @@
+
+mkdir -p usr/bin
+
+#120526 precise pangolin. 140117...
+if [ -e usr/lib/libaudiofile.so.1 ];then
+ [ ! -e usr/lib/libaudiofile.so.0 ] && ln -s libaudiofile.so.1 usr/lib/libaudiofile.so.0
+fi
+
+GLOBIGNORE='sfconvert:sfinfo'
+cd usr/bin
+rm *
+cd ../../
+unset GLOBIGNORE

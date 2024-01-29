@@ -1,0 +1,645 @@
+#!/bin/sh
+
+GTKDIALOG=gtkdialog
+
+# Pfeme (c) Thunor 2012
+# GNU GENERAL PUBLIC LICENSE Version 2, June 1991
+# See http://www.gnu.org/licenses/gpl-2.0.txt
+
+## Strip comments from the entire project using:
+## for f in func* main; do sed -i -e '/## /d' -e '/ ##/d' $f; done
+## 
+## Exiting and Restarting
+## ----------------------
+## 
+## It's possible to exit via the menu or the button but the button will
+## activate the menuitem because it's faster -- presumably because it
+## doesn't require animating like a button -- which is useful to know.
+## 
+##  +---------+       +-------------------------------+
+##  | btnQuit |       |        btnReadmeApply         |
+##  +---------+       +-------------------------------+
+##       |                            |
+##       |                            v Launches
+##       |                            |
+##       |            +-------------------------------+
+##       v            | winReadmeApplyRestartRequired |
+##       |            +-------------------------------+
+##       |                            |
+##       |                            v Activates
+##       | Activates                  |
+##       |            +-------------------------------+            +--------------------------+
+##       +----->------|            muiQuit            |------>-----| winProfileNotSavedOnQuit |
+##                    +-------------------------------+  Launches  +--------------------------+
+##                                    |                                         |
+##                                    v Activates                               v
+##                                    |                               Activates |
+##                    +-------------------------------+                         |
+##                    |            muiExit            |------------<------------+
+##                    +-------------------------------+
+## 
+
+## ----------------------------------------------------------------------------
+## Constants
+## ----------------------------------------------------------------------------
+## These are application defaults which may be updated from rcfiles.
+
+TARGET=pfeme
+TITLE=Pfeme
+VERSION=0.1.1
+LOCAL_DATA_DIR=$HOME/.$TARGET
+PACKAGE_DATA_DIR=`pwd`
+PROFILE_MAX=5
+## Setting these to non-zero will generate lots of useful debugging info.
+DEBUG_CONTENT=0
+DEBUG_TRANSITS=0
+
+## These don't require exporting.
+DebugSpacer=
+#"[]"
+DebugTime=
+#time
+ImageSize=240
+OutputForeground="#ffffff"
+OutputBackground="#000000"
+OutputFontName="Monospace 10"
+ProfileSelected=0
+ProfileVisible=0
+ReadmeForeground="#000000"
+ReadmeBackground="#ffffff"
+ReadmeFontName="Monospace 10"
+WindowWidth=600
+WindowHeight=400
+
+## ----------------------------------------------------------------------------
+## Includes
+## ----------------------------------------------------------------------------
+## These files are sourced from the PATH.
+
+PATH=$PACKAGE_DATA_DIR:$PATH
+
+. funcDialogsCreate
+. funcGameListCreate
+. funcgtkrcCreate
+. funcImagesUpdate
+. funcProfileImagesUpdate
+. funcProfileLoad
+. funcReadmeUpdate
+. funcrcCreate
+. funcrcGet
+. funcrcSet
+. functmpGet
+. functmpSet
+
+## ----------------------------------------------------------------------------
+## Local Functions
+## ----------------------------------------------------------------------------
+
+## Enable the embedding of comments within the XML.
+Comment() { :; }
+
+## Get major/minor/micro version of an application.
+## On entry: $1 = command
+##           $2 = index into string to locate version
+##  On exit: Initialises major/minor/micro_version
+funcAppVersionGet() {
+	local field
+	local index=0
+
+	for field in `$1`; do
+		if [ $index -eq $2 ]; then break; fi; index=$((index + 1))
+	done
+	major_version=${field%%.*}; field=${field#*.}
+	minor_version=${field%%.*}
+	micro_version=${field#*.}
+}
+
+## Create the XML for the Games tab.
+funcTabGamesCreate() {
+	echo '<vbox border-width="5">
+			<tree column-type="string|string|string|uint64" has-focus="true"
+				column-visible="false" rules-hint="true" selection-mode="2"
+				auto-sort="true" sort-column="1">
+				<variable>treGameList</variable>
+				<label>Path|Name|Type|x Played</label>
+				<input file>'$LOCAL_DATA_DIR'/GameList</input>
+				<action>activate:tgbGamePlay</action>
+				<action signal="cursor-changed">enable:tgbGamePlay</action>
+				<action signal="cursor-changed">enable:entProfileCommandLineArgs</action>
+				<action signal="cursor-changed">. funcImagesUpdate; funcImagesUpdate</action>
+				<action signal="cursor-changed">refresh:chkImagesRefreshCheck</action>
+		</tree>
+			<hbox homogeneous="true" space-expand="false" space-fill="true">
+				<text><label>"'$DebugSpacer'"</label></text>
+'`Comment ##
+## Using a togglebutton here instead of a button allows gtk to repaint
+## the window in-between clearing and disabling and refreshing which is
+## preferential to having everything freeze and then update all at once.
+## `'
+				<togglebutton use-stock="true" label="gtk-refresh">
+					<variable export="false">tgbGameListRefresh</variable>
+					<action>if true clear:treGameList</action>
+					<action>if true clear:stbGameCount</action>
+					<action>if true disable:tgbGamePlay</action>
+					<action>if true disable:entProfileCommandLineArgs</action>
+					<action>if true . funcImagesUpdate; funcImagesUpdate 2</action>
+					<action>if true activate:tgbGameListRefresh</action>
+					<action>if false . funcGameListCreate; '$DebugTime' funcGameListCreate</action>
+					<action>if false refresh:treGameList</action>
+					<action>if false refresh:stbGameCount</action>
+					<action>if false grabfocus:treGameList</action>
+					<action>if false refresh:chkImagesRefreshCheck</action>
+				</togglebutton>
+'`Comment ##
+## Getting the window to hide before executing the emulator requires that
+## gtk returns to its main loop, so its a two stage process made possible
+## by the use of the activate function. Initially I had the Play button
+## hide the window before activating a second button which executed the
+## emulator but I managed to combine the two into a tidier togglebutton.
+## `'
+				<togglebutton use-underline="true">
+					<variable export="false">tgbGamePlay</variable>
+					<label>_Play</label>
+					<sensitive>false</sensitive>
+					<input file stock="gtk-execute"></input>
+					<action>if true hide:winMain</action>
+					<action>if true activate:tgbGamePlay</action>
+					<action>if false . funcProfileSave; funcProfileSave 1; . funcxPlayedUpdate; funcxPlayedUpdate; . funcGamePlay; funcGamePlay; . funcImagesUpdate; funcImagesUpdate 1</action>
+					<action>if false refresh:chkImagesRefreshCheck</action>
+					<action>if false clear:ediOutput</action>
+					<action>if false refresh:ediOutput</action>
+					<action>if false show:winMain</action>
+				</togglebutton>
+				<text><label>"'$DebugSpacer'"</label></text>
+			</hbox>
+		</vbox>'
+}
+
+## Create the XML for the Profiles tab.
+funcTabProfilesCreate() {
+	local f tab
+
+	echo '<vbox border-width="5">
+			<hbox>'
+	f=0; while [ $f -lt $PROFILE_MAX ]; do
+		echo '<button>
+				<variable export="false">btnProfile'$f'</variable>
+				<width>48</width><height>48</height>
+				<input file>'$TEMP_DIR'/Profile'$f'</input>
+				<action>. functmpSet; functmpSet ProfileTarget '$f'</action>
+				<action condition="sensitive_is_true(btnProfileApply)">launch:winProfileNotSavedOnChange</action>
+'`Comment ##
+## If btnProfileApply was sensitive and winProfileNotSavedOnChange was
+## launched then we won't reach this point because launching doesn't
+## return to process the remaining actions so we can safely assume that
+## btnProfileApply is not sensitive which makes a condition redundant.
+## `'
+				<action>activate:muiProfileChange</action>
+			</button>'
+		f=$((f + 1))
+	done
+	echo '</hbox>
+			<frame>'
+	for f in Executable Arguments Readme; do
+		echo '<hbox>
+				<text space-expand="false" space-fill="false"
+					width-request="70">
+					<label>"'$f'"</label>
+				</text>
+				<entry fs-action="file" fs-folder="'$HOME'" fs-title="'$TITLE'"
+					space-expand="true" space-fill="true"
+					width-request="314">
+					<variable>entProfile'$f'</variable>
+					<input file>'$TEMP_DIR'/Profile'$f'</input>
+					<action signal="changed">enable:btnProfileApply</action>
+					<action signal="changed">disable:btnProfileSelect</action>
+				</entry>
+				<vbox>'
+		## Arguments doesn't require a fileselect button so we'll use a
+		## label with a fixed size. Nothing is going to be perfect here
+		## since the theme controls button and image properties but it's
+		## correct most of the time with the themes that I've tested.
+		## The button has to go inside a vbox to isolate it otherwise it
+		## stretches vertically which is not what we want here.
+		if [ $f = "Arguments" ]; then
+			echo '<text space-expand="true" space-fill="false"
+					width-request="30">
+					<label>"'$DebugSpacer'"</label>
+				</text>'
+		else
+			echo '<button space-expand="true" space-fill="false">
+					<input file stock="gtk-new"></input>
+					<action>fileselect:entProfile'$f'</action>
+				</button>'
+		fi
+		echo '</vbox>'
+		## If the button was up against the edge it would stretch
+		## horizontally which an invisible label luckily prevents.
+		echo '<text space-expand="false" space-fill="false"
+				width-request="0" visible="false">
+				<label>"'$DebugSpacer'"</label>
+			</text>'
+		echo '</hbox>'
+	done
+	echo '</frame>
+			<notebook tab-labels="ROMs|Images">
+				<vbox border-width="5">'
+	for f in 0 1 2 3 4 5; do
+		if [ $f -lt 3 ]; then
+			tab=ROMs
+		else
+			tab=Images
+		fi
+		echo '<hbox>
+				<text space-expand="false" space-fill="false">
+					<label>Path</label>
+				</text>
+				<entry fs-action="folder" fs-folder="'$HOME'" fs-title="'$TITLE'"
+					space-expand="true" space-fill="true"
+					width-request="220">
+					<variable>entProfile'$tab'Path'$((f % 3))'</variable>
+					<input file>'$TEMP_DIR'/Profile'$tab'Path'$((f % 3))'</input>
+					<action signal="changed">enable:btnProfileApply</action>
+					<action signal="changed">disable:btnProfileSelect</action>
+				</entry>
+				<vbox>
+					<button space-expand="true" space-fill="false">
+						<input file stock="gtk-open"></input>
+						<action>fileselect:entProfile'$tab'Path'$((f % 3))'</action>
+					</button>
+				</vbox>
+				<text space-expand="false" space-fill="false">
+					<label>Pattern</label>
+				</text>
+				<entry space-expand="true" space-fill="true"
+					width-request="80">
+					<variable>entProfile'$tab'Pattern'$((f % 3))'</variable>
+					<input file>'$TEMP_DIR'/Profile'$tab'Pattern'$((f % 3))'</input>
+					<action signal="changed">enable:btnProfileApply</action>
+					<action signal="changed">disable:btnProfileSelect</action>
+				</entry>
+			</hbox>'
+		if [ $f -eq 2 ]; then
+			echo '</vbox>
+				<vbox border-width="5">'
+		fi
+	done
+	echo '</vbox>
+			</notebook>
+			<hbox homogeneous="true" space-expand="false" space-fill="true">
+				<text><label>"'$DebugSpacer'"</label></text>
+				<button use-stock="true" label="gtk-apply">
+					<variable export="false">btnProfileApply</variable>
+					<sensitive>false</sensitive>
+					<action>. funcProfileSave; funcProfileSave</action>
+					<action>disable:btnProfileApply</action>
+					<action>enable:btnProfileSelect</action>
+					<action condition="command_is_true([ `. funcrcGet; funcrcGet ProfileSelected` -ne `. functmpGet; functmpGet ProfileVisible` ] && echo true)" function="break">""</action>
+					<action>. funcWidgetSchedule; funcWidgetSchedule chkContentRefreshCheck ContentRefreshCheck</action>
+					<action>refresh:chkContentRefreshCheck</action>
+					<action>disable:btnProfileSelect</action>
+				</button>
+				<button use-underline="true">
+					<variable export="false">btnProfileSelect</variable>
+					<label>_Select</label>
+					<sensitive>false</sensitive>
+					<input file stock="gtk-ok"></input>
+					<action>. funcProfileSave; funcProfileSave 1; . funcProfileSelect; funcProfileSelect</action>
+					<action>refresh:entProfileCommandLineArgs</action>
+					<action>refresh:chkContentRefreshCheck</action>
+					<action>disable:btnProfileSelect</action>
+					<action>activate:muiProfileButtonsUpdate</action>
+				</button>
+				<text><label>"'$DebugSpacer'"</label></text>
+			</hbox>
+		</vbox>'
+}
+
+## Create the XML for the Readme tab.
+funcTabReadmeCreate() {
+	echo '<vbox border-width="5">
+			<edit name="TabReadme" editable="false" cursor-visible="false">
+				<variable export="false">ediReadme</variable>
+				<input file>'$TEMP_DIR'/Readme</input>
+			</edit>
+			<expander use-underline="true" space-expand="false" space-fill="true">
+				<hbox>
+					<colorbutton tooltip-text="Foreground">
+						<variable>clbReadmeForeground</variable>
+						<default>'$ReadmeForeground'</default>
+						<action>enable:btnReadmeApply</action>
+					</colorbutton>
+					<colorbutton tooltip-text="Background">
+						<variable>clbReadmeBackground</variable>
+						<default>'$ReadmeBackground'</default>
+						<action>enable:btnReadmeApply</action>
+					</colorbutton>
+					<fontbutton tooltip-text="Font Name">
+						<variable>ftbReadmeFontName</variable>
+						<default>'$ReadmeFontName'</default>
+						<action>enable:btnReadmeApply</action>
+					</fontbutton>
+					<button use-stock="true" label="gtk-apply">
+						<variable export="false">btnReadmeApply</variable>
+						<sensitive>false</sensitive>
+						<action>. funcrcSet; funcrcSet ReadmeForeground "$clbReadmeForeground"; funcrcSet ReadmeBackground "$clbReadmeBackground"; funcrcSet ReadmeFontName "$ftbReadmeFontName"</action>
+						<action>launch:winReadmeApplyRestartRequired</action>
+					</button>
+				</hbox>
+				<variable>expReadmeOptions</variable>
+				<label>_Options</label>
+				<input file>'$TEMP_DIR'/ReadmeOptions</input>
+			</expander>
+		</vbox>'
+}
+
+## Create the XML for the Output tab.
+funcTabOutputCreate() {
+	echo '<vbox border-width="5">
+			<edit name="TabOutput" editable="false" cursor-visible="false">
+				<variable export="false">ediOutput</variable>
+				<input file>'$TEMP_DIR'/Output</input>
+			</edit>
+		</vbox>'
+}
+
+## Create the XML for the Images tabs.
+funcTabsImagesCreate() {
+	for f in 0 1 2; do
+		echo '<eventbox name="TabsImages" border-width="5">
+				<pixmap>
+					<variable export="false">pmpImage'$f'</variable>
+					<width>'$ImageSize'</width>
+					<height>'$ImageSize'</height>
+					<input file>'$TEMP_DIR'/Image'$f'</input>
+				</pixmap>
+			</eventbox>'
+	done
+}
+
+## ----------------------------------------------------------------------------
+## Main
+## ----------------------------------------------------------------------------
+
+## Check requirements.
+if [ ! `command -v $GTKDIALOG` ]; then
+	echo "Couldn't find $GTKDIALOG"
+	exit 1
+fi
+funcAppVersionGet "$GTKDIALOG -v" 2
+if [ $minor_version -ge 8 -a $micro_version -ge 3 ]; then
+	true
+else
+	echo "Couldn't find $GTKDIALOG >= 0.8.3"
+	exit 1
+fi
+
+## Create the local data directory if it doesn't already exist.
+if [ ! -d $LOCAL_DATA_DIR ]; then
+	mkdir $LOCAL_DATA_DIR
+	if [ $? -ne 0 ]; then
+		echo "Couldn't create $LOCAL_DATA_DIR"
+		exit 1
+	fi
+fi
+
+## Create the rcfiles.
+funcrcCreate
+
+## Process the command-line argument(s).
+if [ "$1" = -h -o "$1" = --help ]; then
+	echo "$TITLE $VERSION (C) 2012 Thunor
+Usage: $TARGET
+
+See $PACKAGE_DATA_DIR/README for more information.
+"
+	exit 1
+fi
+
+## Create a temporary directory.
+TEMP_DIR=`mktemp -d -t ${TARGET}.XXXXXXXX`
+if [ $? -ne 0 ]; then
+	echo "Couldn't create temporary directory."
+	exit 1
+fi
+
+## Application restart loop if required.
+while [ true ]; do
+
+	## Load the initial rcfiles required.
+	ReadmeForeground="`funcrcGet ReadmeForeground`"
+	ReadmeBackground="`funcrcGet ReadmeBackground`"
+	ReadmeFontName="`funcrcGet ReadmeFontName`"
+	ProfileSelected="`funcrcGet ProfileSelected`"
+	WindowWidth="`funcrcGet WindowWidth`"
+	WindowHeight="`funcrcGet WindowHeight`"
+
+	## Create a custom style.
+	funcgtkrcCreate
+
+	## Create the initial files required.
+	functmpSet Output ""
+	functmpSet ContentRefreshCheck false
+	functmpSet ImagesRefreshCheck false
+	funcProfileLoad $ProfileSelected 1
+	funcProfileImagesUpdate
+	funcGameListCreate 1
+	funcReadmeUpdate
+	funcImagesUpdate 2
+	## These are retained on an application restart.
+	if [ ! -f $TEMP_DIR/ApplicationRestart ]; then
+		functmpSet ApplicationRestart false
+		functmpSet NotebookMainPage 0
+		functmpSet NotebookImagesPage 0
+		functmpSet ReadmeOptions false
+	fi
+
+	## Create the XML for the pop-up dialogs.
+	funcDialogsCreate
+
+	## Create the XML for the main dialog.
+	echo '
+<window title="'$TITLE'" icon-name="'$TARGET'" window-position="1"
+	default-width="'$WindowWidth'" default-height="'$WindowHeight'" border-width="0">
+	<vbox spacing="0">
+		<menubar space-expand="false" space-fill="false">
+			<menu use-underline="true" label="_File">
+				<menuitem stock-id="gtk-quit" accel-key="0x51" accel-mods="4">
+					<variable export="false">muiQuit</variable>
+					<action condition="sensitive_is_true(btnProfileApply)">launch:winProfileNotSavedOnQuit</action>
+'`Comment ##
+## We won't reach this point if winProfileNotSavedOnQuit was launched.
+## `'
+					<action>activate:muiExit</action>
+				</menuitem>
+			</menu>
+			<menu use-underline="true" label="_Help">
+				<menuitem stock-id="gtk-help" accel-key="0xffbe" accel-mods="0">
+					<action>launch:winHelp</action>
+				</menuitem>
+				<menuitem use-underline="true" label="_Website">
+					<action>. funcURLOpen; funcURLOpen "http://www.murga-linux.com/puppy/viewtopic.php?t=83564"</action>
+				</menuitem>
+				<menuitemseparator></menuitemseparator>
+				<menuitem stock-id="gtk-about">
+					<action>launch:winAbout</action>
+				</menuitem>
+			</menu>
+			<menu visible="false">
+'`Comment ##
+## This menuitem -- activated by all of the buttons that change the
+## visible profile -- is loading a profile and refreshing the widgets.
+## This enables a list of actions to be executed as a function.
+## `'
+				<menuitem>
+					<variable export="false">muiProfileChange</variable>
+					<action>. funcProfileLoad; funcProfileLoad `. functmpGet; functmpGet ProfileTarget`</action>
+					<action>refresh:entProfileExecutable</action>
+					<action>refresh:entProfileArguments</action>
+					<action>refresh:entProfileReadme</action>
+					<action>refresh:entProfileROMsPath0</action>
+					<action>refresh:entProfileROMsPattern0</action>
+					<action>refresh:entProfileROMsPath1</action>
+					<action>refresh:entProfileROMsPattern1</action>
+					<action>refresh:entProfileROMsPath2</action>
+					<action>refresh:entProfileROMsPattern2</action>
+					<action>refresh:entProfileImagesPath0</action>
+					<action>refresh:entProfileImagesPattern0</action>
+					<action>refresh:entProfileImagesPath1</action>
+					<action>refresh:entProfileImagesPattern1</action>
+					<action>refresh:entProfileImagesPath2</action>
+					<action>refresh:entProfileImagesPattern2</action>
+					<action>disable:btnProfileApply</action>
+					<action>disable:btnProfileSelect</action>
+					<action condition="command_is_true([ `. funcrcGet; funcrcGet ProfileSelected` -ne `. functmpGet; functmpGet ProfileVisible` ] && echo true)">enable:btnProfileSelect</action>
+					<action>activate:muiProfileButtonsUpdate</action>
+				</menuitem>
+'`Comment ##
+## This enables a list of actions to be executed as a function.
+## `'
+				<menuitem>
+					<variable export="false">muiProfileButtonsUpdate</variable>
+					<action>. funcProfileImagesUpdate; funcProfileImagesUpdate</action>
+					<action>refresh:btnProfile0</action>
+					<action>refresh:btnProfile1</action>
+					<action>refresh:btnProfile2</action>
+					<action>refresh:btnProfile3</action>
+					<action>refresh:btnProfile4</action>
+				</menuitem>
+'`Comment ##
+## The application is exited via this menuitem so that anything that
+## needs to be saved can be managed here and only here.
+## `'
+				<menuitem>
+					<variable export="false">muiExit</variable>
+					<action>. funcProfileSave; funcProfileSave 1; . funcWindowDimSave; funcWindowDimSave "'$TITLE'"; . functmpSet; functmpSet ReadmeOptions $expReadmeOptions; functmpSet NotebookMainPage $nbkMain; functmpSet NotebookImagesPage $nbkImages</action>
+					<action>exit:Quit</action>
+				</menuitem>
+			</menu>
+		</menubar>
+		<vbox border-width="5" space-expand="true" space-fill="true">
+			<hbox>
+				<vbox width-request="">
+					<notebook tab-labels="Games|Profiles|Readme|Output">
+						'"`funcTabGamesCreate`"'
+						'"`funcTabProfilesCreate`"'
+						'"`funcTabReadmeCreate`"'
+						'"`funcTabOutputCreate`"'
+						<variable>nbkMain</variable>
+						<input file>'$TEMP_DIR'/NotebookMainPage</input>
+					</notebook>
+				</vbox>
+				<vbox>
+					<notebook tab-prefix="Image ">
+						'"`funcTabsImagesCreate`"'
+						<variable>nbkImages</variable>
+						<input file>'$TEMP_DIR'/NotebookImagesPage</input>
+					</notebook>
+					<text height-request=""><label>"'$DebugSpacer'"</label></text>
+				</vbox>
+			</hbox>
+			<hbox space-expand="false" space-fill="true">
+				<text space-expand="false" space-fill="true">
+					<label>Command Line Args.</label>
+				</text>
+				<entry secondary-icon-stock="gtk-clear"
+					space-expand="true" space-fill="true">
+					<variable>entProfileCommandLineArgs</variable>
+					<sensitive>false</sensitive>
+					<input file>'$TEMP_DIR'/ProfileCommandLineArgs</input>
+					<action signal="activate">activate:tgbGamePlay</action>
+					<action signal="secondary-icon-release">clear:entProfileCommandLineArgs</action>
+				</entry>
+				<button use-stock="true" label="gtk-quit"
+					space-expand="false" space-fill="false">
+					<action>activate:muiQuit</action>
+				</button>
+			</hbox>
+		</vbox>
+		<statusbar space-expand="false" space-fill="false">
+			<variable export="false">stbGameCount</variable>
+			<input file>'$TEMP_DIR'/GameCount</input>
+		</statusbar>
+'`Comment ##
+## This enables the conditional refreshing of the main content.
+## `'
+		<checkbox visible="false">
+			<variable>chkContentRefreshCheck</variable>
+			<input file>'$TEMP_DIR'/ContentRefreshCheck</input>
+			<action>. funcReadmeUpdate; funcReadmeUpdate</action>
+			<action>refresh:ediReadme</action>
+			<action>activate:tgbGameListRefresh</action>
+		</checkbox>
+'`Comment ##
+## This enables the conditional refreshing of the game images.
+## `'
+		<checkbox visible="false">
+			<variable>chkImagesRefreshCheck</variable>
+			<input file>'$TEMP_DIR'/ImagesRefreshCheck</input>
+			<action>refresh:pmpImage0</action>
+			<action>refresh:pmpImage1</action>
+			<action>refresh:pmpImage2</action>
+		</checkbox>
+	</vbox>
+	<variable export="false">winMain</variable>
+'`Comment ##
+## Notebook pages are set from here because the initial input from file
+## doesn't have an effect as the notebook widget isn't realized then.
+## The page property isn't suitable because I need the widgets on page0
+## to realize first otherwise several widgets don't get initialised.
+## `'
+	<action signal="show" condition="command_is_true([ `. functmpGet; functmpGet ApplicationRestart` = false ] && echo true)" function="break">""</action>
+	<action signal="show">. functmpSet; functmpSet ApplicationRestart false</action>
+	<action signal="show">refresh:nbkMain</action>
+	<action signal="show">refresh:nbkImages</action>
+</window>
+' > $TEMP_DIR/winMain
+
+	## Export everything necessary.
+	export GTKDIALOG
+	export TARGET
+	export TITLE
+	export VERSION
+	export LOCAL_DATA_DIR
+	export PACKAGE_DATA_DIR
+	export PROFILE_MAX
+	export DEBUG_CONTENT
+	export DEBUG_TRANSITS
+	export PATH
+	export TEMP_DIR
+	export GTK2_RC_FILES
+	export winProfileNotSavedOnChange
+	export winProfileNotSavedOnQuit
+	export winReadmeApplyRestartRequired
+	export winAbout
+	export winHelp
+
+	## And off we go...
+	$GTKDIALOG --space-expand=true --space-fill=true --file=$TEMP_DIR/winMain
+
+	if [ `functmpGet ApplicationRestart` = false ]; then break; fi
+
+done
+
+## Remove the temporary files.
+rm -rf $TEMP_DIR

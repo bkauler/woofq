@@ -1,0 +1,36 @@
+#!/bin/sh
+
+## Includes.
+. funcrcSet
+
+## Create the rcfiles.
+
+funcrcCreate() {
+	if [ -z "$BASH" ]; then local FUNCNAME=funcrcCreate; fi
+	if [ $DEBUG_TRANSITS -ne 0 ]; then echo "$FUNCNAME(): IN"; fi
+
+	## Create the missing rcfiles.
+	if [ ! -f $LOCAL_DATA_DIR/Version ]; then
+		funcrcSet Version "$VERSION"
+	fi
+	if [ ! -f $LOCAL_DATA_DIR/FamilyTextState ]; then
+		funcrcSet FamilyTextState $FamilyTextState
+	fi
+	if [ ! -f $LOCAL_DATA_DIR/StyleTextState ]; then
+		funcrcSet StyleTextState $StyleTextState
+	fi
+	if [ ! -f $LOCAL_DATA_DIR/FontButtonState ]; then
+		funcrcSet FontButtonState $FontButtonState
+	fi
+	if [ ! -f $LOCAL_DATA_DIR/PreviewText ]; then
+		funcrcSet PreviewText "$PreviewText"
+	fi
+	if [ ! -f $LOCAL_DATA_DIR/WindowWidth ]; then
+		funcrcSet WindowWidth $WindowWidth
+	fi
+	if [ ! -f $LOCAL_DATA_DIR/WindowHeight ]; then
+		funcrcSet WindowHeight $WindowHeight
+	fi
+
+	if [ $DEBUG_TRANSITS -ne 0 ]; then echo "$FUNCNAME(): OUT"; fi
+}

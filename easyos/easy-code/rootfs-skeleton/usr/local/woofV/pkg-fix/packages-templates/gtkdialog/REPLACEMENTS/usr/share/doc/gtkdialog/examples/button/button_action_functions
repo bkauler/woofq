@@ -1,0 +1,96 @@
+#!/bin/sh
+
+#
+# Some action function types are still missing.
+# See execute_action() for more information.
+#
+
+GTKDIALOG=gtkdialog
+
+DIALOG='
+<window>
+	<vbox>
+		<text>
+			<label>This is another dialog window.</label>
+		</text>
+		<button>
+			<label>Close</label>
+			<action function="closewindow">DIALOG</action>
+		</button>
+	</vbox>
+	<variable>DIALOG</variable>
+</window>
+'
+export DIALOG
+
+MAIN_DIALOG='
+<window>
+	<vbox>
+		<frame Widgets>
+			<checkbox>
+				<label>This is a checkbox</label>
+				<variable>CHECKBOX</variable>
+			</checkbox>
+			<entry>
+				<input>date</input>
+				<variable>ENTRY</variable>
+			</entry>
+		</frame>
+		<frame Button actions>
+			<hbox>
+				<button>
+					<label>exit</label>
+					<action>echo You pressed the exit button</action>
+					<action function="exit">Exit by button</action>
+				</button>
+			</hbox>
+			<hbox>
+				<button>
+					<label>launch</label>
+					<action function="launch">DIALOG</action>
+				</button>
+				<button>
+					<label>closewindow</label>
+					<action function="closewindow">DIALOG</action>
+				</button>
+			</hbox>
+			<hbox>
+				<button>
+					<label>enable</label>
+					<action function="enable">ENTRY</action>
+					<action function="enable">CHECKBOX</action>
+				</button>
+				<button>
+					<label>disable</label>
+					<action function="disable">ENTRY</action>
+					<action function="disable">CHECKBOX</action>
+				</button>
+			</hbox>
+			<hbox>
+				<button>
+					<label>refresh</label>
+					<action function="refresh">ENTRY</action>
+				</button>
+				<button>
+					<label>clear</label>
+					<action function="clear">ENTRY</action>
+				</button>
+				<button>
+					<label>fileselect</label>
+					<action function="fileselect">ENTRY</action>
+				</button>
+			</hbox>
+		</frame>
+		<hbox>
+			<button ok></button>
+			<button cancel></button>
+		</hbox>
+	</vbox>
+</window>
+'
+export MAIN_DIALOG
+
+case $1 in
+	-d | --dump) echo "$DIALOG" "$MAIN_DIALOG" ;;
+	*) $GTKDIALOG --program=MAIN_DIALOG ;;
+esac

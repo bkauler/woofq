@@ -1,0 +1,25 @@
+
+#arch has the fortran compiler in the gcc pkg...
+rm -f usr/lib/libgfortran* 2> /dev/null
+BADFINCLUDE="`find usr/lib/gcc -type d -name finclude 2>/dev/null | head -n 1`"
+[ "$BADFINCLUDE" != "" ] && rm -rf $BADFINCLUDE
+#also ada... um, no, arch gcc pkg does not have ada, but leave this here...
+BADFINCLUDE="`find usr/lib/gcc -type d -name adainclude 2>/dev/null | head -n 1`"
+[ "$BADFINCLUDE" != "" ] && rm -rf $BADFINCLUDE
+BADFINCLUDE="`find usr/lib/gcc -type d -name adalib 2>/dev/null | head -n 1`"
+[ "$BADFINCLUDE" != "" ] && rm -rf $BADFINCLUDE
+#also objc...
+rm -f usr/lib/libobjc* 2> /dev/null
+
+#130707... 20210819 fix find err msg.
+BADPYLIB="$(find usr/lib -mindepth 1 -maxdepth 2 -iname 'libstdc*.py' 2>/dev/null | tr '\n' ' ')"
+if [ "$BADPYLIB" ];then
+ for ABADPYLIB in $BADPYLIB
+ do
+  rm -f $ABADPYLIB
+ done
+fi
+
+#20220124 arch-linux
+rm -f usr/lib/libgo.so*
+rm -f usr/lib/libgphobos.so*

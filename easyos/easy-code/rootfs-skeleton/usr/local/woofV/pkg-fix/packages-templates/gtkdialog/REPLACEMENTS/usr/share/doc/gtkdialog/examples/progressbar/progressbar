@@ -1,0 +1,29 @@
+#!/bin/sh
+
+GTKDIALOG=gtkdialog
+
+MAIN_DIALOG='
+<window>
+	<vbox>
+		<frame Progress>
+			<text>
+				<label>Some text describing what is happening.</label>
+			</text>
+			<progressbar>
+				<label>Some Text</label>
+				<input>for i in $(seq 0 10 100); do echo $i; sleep 0.3; done</input>
+				<action function="exit">Ready</action>
+			</progressbar>
+		</frame>
+		<hbox>
+			<button cancel></button>
+		</hbox>
+	</vbox>
+</window>
+'
+export MAIN_DIALOG
+
+case $1 in
+	-d | --dump) echo "$MAIN_DIALOG" ;;
+	*) $GTKDIALOG --program=MAIN_DIALOG ;;
+esac

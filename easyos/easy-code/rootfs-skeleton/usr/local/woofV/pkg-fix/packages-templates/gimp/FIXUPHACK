@@ -1,0 +1,40 @@
+
+# 170511 oe build
+rm -f usr/bin/gimp-console* 2>/dev/null
+
+rm -rf usr/share/icons/hicolor/22x22 2>/dev/null
+rm -rf usr/share/icons/hicolor/24x24 2>/dev/null
+rm -rf usr/share/icons/hicolor/32x32 2>/dev/null
+rm -rf usr/share/icons/hicolor/256x256 2>/dev/null
+
+mkdir -p usr/share/pixmaps
+ln -s ../icons/hicolor/48x48/apps/gimp.png usr/share/pixmaps/gimp.png
+
+# gimp-splash.png is 222KB...
+ln -snf gimp-logo.png usr/share/gimp/2.0/images/gimp-splash.png 2>/dev/null
+
+#190731 buster. cut down some more...
+
+ln -snf gimp-logo.png usr/share/gimp/2.0/images/wilber.png 2>/dev/null
+
+mkdir temp1
+cp -a usr/share/gimp/2.0/brushes temp1/
+rm -rf usr/share/gimp/2.0/brushes/*
+cp -a temp1/brushes/Basic usr/share/gimp/2.0/brushes/
+cp -a temp1/brushes/Sketch usr/share/gimp/2.0/brushes/
+
+cp -a usr/share/gimp/2.0/icons temp1/
+rm -rf usr/share/gimp/2.0/icons/*
+cp -a temp1/icons/Color usr/share/gimp/2.0/icons/
+cp -a temp1/icons/hicolor usr/share/gimp/2.0/icons/
+ln -s Color usr/share/gimp/2.0/icons/Symbolic
+# ...I think because Symbolic is the default.
+
+cp -a usr/share/gimp/2.0/themes temp1/
+rm -rf usr/share/gimp/2.0/themes/*
+cp -a temp1/themes/System usr/share/gimp/2.0/themes/
+ln -s System usr/share/gimp/2.0/themes/Dark
+# ...I think because Dark is the default.
+
+rm -rf temp1
+

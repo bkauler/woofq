@@ -1,0 +1,24 @@
+#!/bin/sh
+
+GTKDIALOG=gtkdialog
+
+MAIN_DIALOG='
+<window>
+	<vbox>
+		<entry>
+			<default>Default value</default>
+			<variable>ENTRY</variable>
+		</entry>
+		<hbox>
+			<button ok></button>
+			<button cancel></button>
+		</hbox>
+	</vbox>
+</window>
+'
+export MAIN_DIALOG
+
+case $1 in
+	-d | --dump) echo "$MAIN_DIALOG" ;;
+	*) $GTKDIALOG --program=MAIN_DIALOG ;;
+esac

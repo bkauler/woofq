@@ -1,0 +1,70 @@
+#!/bin/bash
+
+# This example requires bash.
+
+GTKDIALOG=gtkdialog
+
+TMPDIR=/tmp/gtkdialog/examples/"`basename $0`"
+mkdir -p "$TMPDIR"
+
+funcinputfileCreate() {
+	printf "" > "$TMPDIR"/inputfile
+	f=1
+	while [ $f -le 1001 ]; do
+		echo "$f|$RANDOM|$((1002 - $f))|$RANDOM" >> "$TMPDIR"/inputfile
+		f=$(($f + 1))
+	done
+}; funcinputfileCreate
+
+funcbtnCreate() {
+	echo '<button>
+			<label>'$2'</label>
+			<input file stock="'$3'"></input>
+			<action>echo "'$1' - '$4'"</action>
+			<action>'$2':'$1'</action>
+		</button>'
+}
+
+export MAIN_DIALOG='
+<window title="Table">
+	<vbox>
+		<text justify="2">
+			<label>"exported-column='"'2'"' selected-row='"'1'"' sort-function='"'1'"'
+column-header-active='"'true|true|true|false'"'"</label>
+		</text>
+		<table exported-column="2" selected-row="1" sort-function="1"
+			column-header-active="true|true|true|false">
+			<height>200</height>
+			<width>400</width>
+			<variable>tbl0</variable>
+			<label>Column 0    |Column 1    |Column 2    |Column 3</label>
+			<input>bash -c "echo \"0|\$RANDOM|1002|\$RANDOM\""</input>
+			<input file>'"$TMPDIR"'/inputfile</input>
+			<item>1002|'$RANDOM'|0|'$RANDOM'</item>
+			<action>echo "tbl0=$tbl0"</action>
+		</table>
+		<hbox>
+			<vbox>
+				'"`funcbtnCreate tbl0 Disable gtk-no Disabling`"'
+				'"`funcbtnCreate tbl0 Hide gtk-cancel Hiding`"'
+				'"`funcbtnCreate tbl0 Clear gtk-clear Clearing`"'
+			</vbox>
+			<vbox>
+				'"`funcbtnCreate tbl0 Enable gtk-yes Enabling`"'
+				'"`funcbtnCreate tbl0 Show gtk-apply Showing`"'
+				'"`funcbtnCreate tbl0 Refresh gtk-refresh Refreshing`"'
+			</vbox>
+			<vbox>
+				'"`funcbtnCreate tbl0 Grabfocus gtk-index Focusing`"'
+				'"`funcbtnCreate tbl0 Removeselected gtk-delete Removing`"'
+				<button use-stock="true" label="gtk-quit"></button>
+			</vbox>
+		</hbox>
+	</vbox>
+</window>
+'
+
+case $1 in
+	-d | --dump) echo "$MAIN_DIALOG" ;;
+	*) $GTKDIALOG --space-expand=true --space-fill=true --program=MAIN_DIALOG ;;
+esac

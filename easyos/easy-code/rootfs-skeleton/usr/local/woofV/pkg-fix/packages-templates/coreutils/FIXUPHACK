@@ -1,0 +1,30 @@
+#new for woofV
+#this file is included into script template-fix
+#note: oe pkgs are usr-merge, but not /usr/sbin!
+# --this fixed beforehand in 3populate-rootfs
+#current directory is inside the pkg folder
+
+mkdir -p usr/bin
+
+if [ "${Ecompatname}" == "oe" ];then
+ FNDCU="$(find usr/bin -mindepth 1 -maxdepth 1 -type f -name '*.coreutils*')"
+ if [ "$FNDCU" ];then
+  for ANAME in $FNDCU
+  do
+   mv -f ${ANAME} ${ANAME/.coreutils/}
+  done
+ fi
+fi
+
+#remove all files except those in this list...
+#requires bash...
+cd usr/bin
+GLOBIGNORE='arch:cat:chmod:chroot:cksum:comm:cp:cut:date:dd:df:dirname:du:env:expand:fmt:fold:ginstall:head:install:join:ln:ls:md5sum:mktemp:mv:od:paste:pr:readlink:realpath:rm:rmdir:seq:sha224sum:sha256sum:sha384sum:sha512sum:shred:sleep:sort:split:stat:tac:tail:test:touch:uname:uniq:wc'
+rm *
+unset GLOBIGNORE
+
+#df is a script in rootfs-skeleton/usr/bin
+mv -f df df-FULL
+
+cd ../../
+

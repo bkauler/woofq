@@ -1,0 +1,12 @@
+
+mkdir -p usr/share/pixmaps
+[ ! -e usr/share/pixmaps/dia.png ] && ln -s ../icons/hicolor/48x48/apps/dia.png usr/share/pixmaps/dia.png
+
+#20151013 can reduce size...
+rm -rf usr/share/dia/shapes/Cisco #very big
+rm -rf usr/share/dia/shapes/Jigsaw #poorly designed
+rm -f usr/share/dia/sheets/cisco*.sheet
+rm -f usr/share/dia/sheets/jigsaw*.sheet
+
+#20160908 quirky xerus armv7
+[ -e usr/bin/dia-normal ] && [ ! -e usr/bin/dia ] && ln -s dia-normal usr/bin/dia

@@ -1,0 +1,13 @@
+
+#quirky has his own rules, delete these:
+
+if [ -d usr/lib/udev/rules.d ];then
+ rm -f usr/lib/udev/rules.d/*.rules
+fi
+
+
+#170527 oe pyro
+#we run udevd in rc.sysinit, so delete:
+[ -d etc/init.d ] && rm -rf etc/init.d
+[ -d etc/default ] && rm -rf etc/default
+

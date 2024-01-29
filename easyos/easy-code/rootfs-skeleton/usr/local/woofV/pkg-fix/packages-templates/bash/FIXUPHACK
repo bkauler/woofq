@@ -1,0 +1,13 @@
+
+#20210822 slackware 15.0
+[ -f bin/bash5.new ] && mv -f bin/bash5.new usr/bin/bash
+
+#bash has 'which' utility, which is broken (i found "which pwd" does not work).
+#instead, have script rootfs-skeleton/usr/bin/which
+if [ -e usr/bin/which ];then
+ rm -f usr/bin/which
+fi
+
+#150826 might as well check this:
+ln -snf bash usr/bin/sh
+

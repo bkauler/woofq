@@ -1,0 +1,59 @@
+#!/bin/sh
+
+#
+# The <item> tag can hold the following attributes:
+#   o stock or stock-id
+#   o icon or icon-name
+#
+
+GTKDIALOG=gtkdialog
+
+TMPDIR=/tmp/gtkdialog/examples/"`basename $0`"
+mkdir -p "$TMPDIR"
+
+cat <<EOF > "$TMPDIR"/inputfile0
+gtk-harddisk | Hard Disk     | /harddisk/ | ak.ps
+gtk-network  | Network Drive | /network/  | ak.pdf
+             | Trash         | /trash/    | ak.old
+EOF
+
+cat <<EOF > "$TMPDIR"/inputfile1
+abiword      | Hard Disk     | /harddisk/ | ak.abw
+geany        | Network Drive | /network/  | ak.c
+             | Trash         | /trash/    | ak.old
+EOF
+
+MAIN_DIALOG='
+<window>
+	<vbox>
+		<text label="Mixed data input sources"></text>
+		<tree>
+			<variable>TREE1</variable>
+			<height>400</height>
+			<width>400</width>
+			<label>Device                           | Directory | File</label>
+			<item>CD_ROM Drive                      | /cdrom/   | ak.iso</item>
+			<item>Floppy Disk                       | /floppy/  | ak.bin</item>
+			<item>Trash                             | /trash/   | ak.old</item>
+			<item stock-id="gtk-cdrom">CD_ROM Drive | /cdrom/   | ak.idx</item>
+			<item stock-id="gtk-floppy">Floppy Disk | /floppy/  | ak.tex</item>
+			<item stock-id="gtk-delete">Trash       | /trash/   | ak.old</item>
+			<item icon-name="gimp">CD_ROM Drive     | /cdrom/   | ak.png</item>
+			<item icon-name="gnumeric">Floppy Disk  | /floppy/  | ak.ods</item>
+			<item icon-name="">Trash                | /trash/   | ak.old</item>
+			<input file stock-column="0">'"$TMPDIR"'/inputfile0</input>
+			<input file icon-column="0">'"$TMPDIR"'/inputfile1</input>
+		</tree>
+		<hseparator></hseparator>
+		<hbox homogeneous="true">
+			<button ok></button>
+		</hbox>
+	</vbox>
+</window>
+'
+export MAIN_DIALOG
+
+case $1 in
+	-d | --dump) echo "$MAIN_DIALOG" ;;
+	*) $GTKDIALOG --program=MAIN_DIALOG ;;
+esac

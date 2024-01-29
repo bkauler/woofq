@@ -1,0 +1,46 @@
+#!/bin/sh
+
+GTKDIALOG=gtkdialog
+
+funcentCreate() {
+	local f=$1
+
+	while [ $f -lt $2 ]; do
+		echo '<entry editable="false"><default>"'$f'"</default></entry>'
+		f=$((f + 1))
+	done
+}
+
+MAIN_DIALOG='
+<window title="VBox Scrollable" resizable="false">
+	<vbox>
+		<frame vbox widget scrolled window functionality>
+			<hbox>
+				<vbox scrollable="true" width="200" height="200">
+					'"`funcentCreate 0 10`"'
+				</vbox>
+				<vbox scrollable="true" width-request="500" width="400" height="200">
+					'"`funcentCreate 0 10`"'
+				</vbox>
+			</hbox>
+			<hbox>
+				<vbox scrollable="true" height-request="500" width="400" height="200">
+					'"`funcentCreate 0 10`"'
+				</vbox>
+				<vbox scrollable="true" width-request="500" height-request="500" width="200" height="200">
+					'"`funcentCreate 0 10`"'
+				</vbox>
+			</hbox>
+		</frame>
+		<hbox homogeneous="true">
+			<button ok></button>
+		</hbox>
+	</vbox>
+</window>
+'
+export MAIN_DIALOG
+
+case $1 in
+	-d | --dump) echo "$MAIN_DIALOG" ;;
+	*) $GTKDIALOG --program=MAIN_DIALOG ;;
+esac

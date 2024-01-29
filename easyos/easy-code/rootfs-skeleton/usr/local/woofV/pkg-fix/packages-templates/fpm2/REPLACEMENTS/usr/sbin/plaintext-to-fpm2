@@ -1,0 +1,105 @@
+#!/usr/bin/python
+# plaintext-to-fpm2: convert plaintext files to XML files importable into FPM2
+# Copyright 2011 Marcin Owsiany <marcin@owsiany.pl>
+#
+#  This program is free software: you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation, either version 3 of the License, or
+#  (at your option) any later version.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+# 
+# Usage:
+#
+# cd directory/with/password-files
+# find . -type f | cut -c 3- | plaintext-to-fpm2 > ../passwords.xml
+#
+# The files read are converted to password entries as follows:
+# - name of the file as the title and URL
+# - basedir of filename (if any) as category
+# - first line as the username
+# - second line as tht password
+# - subsequent lines (if any) as 'notes'
+#
+# Creates a document with a schema which Figaro's Password Manager 2 exported
+# and imported as of version 0.76.1
+
+from xml.dom import minidom
+
+def maybe_append_element_with_text(doc, pwe, name, contents):
+  """Adds an element into a password entry element.
+
+  Args:
+    doc: DOM document object
+    pwe: password entry DOM element object
+    name: str, name of the element to create
+    contents: str or None: contents of the element to create
+  """
+  if contents is None:
+    return
+  e = minidom.Element(name)
+  e.appendChild(doc.createTextNode(contents))
+  pwe.appendChild(e)
+
+def create_doc(filenames):
+  """Creates a DOM document object from the given list of files.
+
+  Args:
+    filenames: sequence of str, names of password files to import, relative to CWD
+
+  Returns:
+    a minidom.Document object
+  """
+  doc = minidom.Document()
+  fpm = minidom.Element('FPM')
+  fpm.appendChild(minidom.Element('KeyInfo'))
+  pwl = minidom.Element('PasswordList')
+  fpm.appendChild(pwl)
+  for filename in filenames:
+    # read the file in
+    f = open(filename)
+    lines = f.readlines()
+    if len(lines) < 2:
+      raise Exception('file %s too short' % filename)
+    # create a notes element if it would be non-empty
+    notes = lines[2:]
+    if ''.join([l.strip() for l in notes]):
+      notes = ''.join(notes)
+    else:
+      notes = None
+    # create a category element if the filename has a basename
+    if '/' in filename:
+      category = filename[0:filename.rindex('/')]
+    else:
+      category = None
+    # create a password item element and populate it with data
+    pwe = minidom.Element('PasswordItem')
+    attrs = {
+      'title': filename,
+      'url': filename,
+      'user': lines[0].strip(),
+      'password': lines[1].strip(),
+      'notes': notes,
+      'category': category}
+    for n, p in attrs.iteritems():
+      maybe_append_element_with_text(doc, pwe, n, p)
+    # add the item to the document
+    pwl.appendChild(pwe)
+  doc.appendChild(fpm)
+  return doc
+
+if __name__ == '__main__':
+  import sys
+  # read filenames from stdin
+  filenames = [f.rstrip() for f in sys.stdin.readlines()]
+  # prepare and print the XML document
+  doc = create_doc(filenames)
+  print doc.toxml()
+  # nicer for humans to read, but too much whitespace for a good import:
+  # print doc.toprettyxml()

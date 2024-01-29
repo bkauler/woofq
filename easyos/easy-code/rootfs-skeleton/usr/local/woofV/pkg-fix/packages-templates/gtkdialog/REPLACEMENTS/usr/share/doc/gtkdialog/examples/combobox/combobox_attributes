@@ -1,0 +1,42 @@
+#!/bin/sh
+
+GTKDIALOG=gtkdialog
+
+MAIN_DIALOG='
+<window>
+	<vbox>
+		<hbox>
+			<text>
+				<label>value-in-list:</label>
+			</text>
+			<combobox case-sensitive="false" value-in-list="true">
+				<variable>COMBOBOX1</variable>
+				<item>First</item>
+				<item>Second</item>
+				<item>Third</item>
+			</combobox>
+		</hbox>
+		<hbox>
+			<text>
+				<label>allow-empty:</label>
+			</text>
+			<combobox allow-empty="false" value-in-list="true">
+				<variable>COMBOBOX2</variable>
+				<item>First</item>
+				<item>Second</item>
+				<item>Third</item>
+			</combobox>
+		</hbox>
+		<hbox>
+			<button ok></button>
+			<button cancel></button>
+		</hbox>
+	</vbox>
+</window>
+'
+export MAIN_DIALOG
+
+case $1 in
+	-d | --dump) echo "$MAIN_DIALOG" ;;
+	*) $GTKDIALOG --program=MAIN_DIALOG ;;
+esac

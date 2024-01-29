@@ -1,0 +1,31 @@
+#!/bin/sh
+
+# Thunor: I'm not sure that this example is doing what was originally intended.
+
+GTKDIALOG=gtkdialog
+
+MAIN_DIALOG='
+<window>
+	<vbox>
+		<hbox>
+			<text>
+				<label>Input:</label>
+			</text>
+			<entry>
+				<variable>ENTRY</variable>
+			</entry>
+		</hbox>
+		<hbox>
+			<button help></button>
+			<button cancel></button>
+			<button ok></button>
+		</hbox>
+	</vbox>
+</window>
+'
+export MAIN_DIALOG
+
+case $1 in
+	-d | --dump) echo "$MAIN_DIALOG" ;;
+	*) $GTKDIALOG --program=MAIN_DIALOG ;;
+esac

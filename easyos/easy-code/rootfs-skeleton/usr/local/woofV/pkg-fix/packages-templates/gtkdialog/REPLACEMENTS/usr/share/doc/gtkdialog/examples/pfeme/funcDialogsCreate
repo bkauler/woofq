@@ -1,0 +1,208 @@
+#!/bin/sh
+
+## Create the XML for the pop-up dialogs.
+
+funcDialogsCreate() {
+	if [ -z "$BASH" ]; then local FUNCNAME=funcDialogsCreate; fi
+	if [ $DEBUG_TRANSITS -ne 0 ]; then echo "$FUNCNAME(): IN"; fi
+
+	## Create the XML for the profile not saved on change warning dialog.
+	winProfileNotSavedOnChange='
+<window title=" " icon-name="'$TARGET'" window-position="1" modal="true"
+	resizable="false">
+	<vbox>
+		<hbox>
+			<vbox>
+				<pixmap stock-icon-size="6">
+					<input file stock="gtk-dialog-question"></input>
+				</pixmap>
+				<text><label>"'$DebugSpacer'"</label></text>
+			</vbox>
+			<text use-markup="true">
+				<label>"<b>The visible profile is not saved.</b>
+
+Do you want to save it now?
+"</label>
+			</text>
+		</hbox>
+		<hbox homogeneous="true">
+			<button cancel>
+				<action>closewindow:winProfileNotSavedOnChange</action>
+			</button>
+			<button use-underline="true">
+				<label>_Don'"'"'t save</label>
+				<input file stock="gtk-clear"></input>
+				<action>activate:muiProfileChange</action>
+				<action>closewindow:winProfileNotSavedOnChange</action>
+			</button>
+			<button use-underline="true">
+				<label>_Save</label>
+				<input file stock="gtk-save"></input>
+				<action>. funcProfileSave; funcProfileSave</action>
+				<action>if [ `. funcrcGet; funcrcGet ProfileSelected` -eq `. functmpGet; functmpGet ProfileVisible` ]; then . funcWidgetSchedule; funcWidgetSchedule chkContentRefreshCheck ContentRefreshCheck; fi</action>
+				<action>refresh:chkContentRefreshCheck</action>
+				<action>activate:muiProfileChange</action>
+				<action>closewindow:winProfileNotSavedOnChange</action>
+			</button>
+		</hbox>
+	</vbox>
+	<variable export="false">winProfileNotSavedOnChange</variable>
+</window>
+'
+	## Create the XML for the profile not saved on quit warning dialog.
+	winProfileNotSavedOnQuit='
+<window title=" " icon-name="'$TARGET'" window-position="1" modal="true"
+	resizable="false">
+	<vbox>
+		<hbox>
+			<vbox>
+				<pixmap stock-icon-size="6">
+					<input file stock="gtk-dialog-question"></input>
+				</pixmap>
+				<text><label>"'$DebugSpacer'"</label></text>
+			</vbox>
+			<text use-markup="true">
+				<label>"<b>The visible profile is not saved.</b>
+
+Do you want to save it now?
+"</label>
+			</text>
+		</hbox>
+		<hbox homogeneous="true">
+			<button cancel>
+				<action>closewindow:winProfileNotSavedOnQuit</action>
+			</button>
+			<button use-underline="true">
+				<label>_Don'"'"'t save</label>
+				<input file stock="gtk-clear"></input>
+				<action>activate:muiExit</action>
+			</button>
+			<button use-underline="true">
+				<label>_Save</label>
+				<input file stock="gtk-save"></input>
+				<action>. funcProfileSave; funcProfileSave</action>
+				<action>activate:muiExit</action>
+			</button>
+		</hbox>
+	</vbox>
+	<variable export="false">winProfileNotSavedOnQuit</variable>
+</window>
+'
+	## Create the XML for the Readme Apply restart required dialog.
+	winReadmeApplyRestartRequired='
+<window title=" " icon-name="'$TARGET'" window-position="1" modal="true"
+	resizable="false">
+	<vbox>
+		<hbox>
+			<vbox>
+				<pixmap stock-icon-size="6">
+					<input file stock="gtk-dialog-question"></input>
+				</pixmap>
+				<text><label>"'$DebugSpacer'"</label></text>
+			</vbox>
+			<text use-markup="true">
+				<label>"<b>A restart is required for the
+changes to take effect.</b>
+
+Do you want to restart now?
+"</label>
+			</text>
+		</hbox>
+		<hbox homogeneous="true">
+			<button cancel>
+				<action>. functmpSet; functmpSet ApplicationRestart false</action>
+				<action>closewindow:winReadmeApplyRestartRequired</action>
+			</button>
+			<button use-underline="true">
+				<label>_Restart now</label>
+				<input file stock="gtk-refresh"></input>
+				<action>. functmpSet; functmpSet ApplicationRestart true</action>
+				<action>activate:muiQuit</action>
+			</button>
+		</hbox>
+	</vbox>
+	<variable export="false">winReadmeApplyRestartRequired</variable>
+'`Comment ##
+## The delete-event is triggered when closing via the window manager.
+## `'
+	<action signal="delete-event">. functmpSet; functmpSet ApplicationRestart false</action>
+</window>
+'
+	## Create the XML for the About dialog.
+	winAbout='
+<window title="About '$TITLE'" icon-name="'$TARGET'" window-position="1"
+	modal="true" resizable="false">
+	<vbox>
+		<eventbox name="AboutHeader">
+			<hbox>
+				<pixmap space-expand="false" space-fill="false">
+					<width>48</width>
+					<height>48</height>
+					<input file icon="'$TARGET'"></input>
+				</pixmap>
+				<text use-markup="true" space-expand="false" space-fill="false">
+					<label>"<span fgcolor='"'"'white'"'"'><big><b>'$TITLE' '$VERSION'</b></big></span>"</label>
+				</text>
+				<text><label>"'$DebugSpacer'"</label></text>
+			</hbox>
+		</eventbox>
+		<notebook tab-labels="Info|Licence">
+			<vbox border-width="5">
+				<text use-markup="true">
+					<label>"
+<b>A front-end for multiple emulators</b>"</label>
+				</text>
+				<hbox homogeneous="true" space-expand="false" space-fill="false">
+					<button relief="2">
+						<label>Made with Gtkdialog</label>
+						<action>. funcURLOpen; funcURLOpen "http://code.google.com/p/gtkdialog/"</action>
+					</button>
+				</hbox>
+				<text justify="2">
+					<label>"Copyright (c) 2013
+Thunor
+"</label>
+				</text>
+			</vbox>
+			<hbox>
+				<text justify="2">
+					<label>"'$TITLE',
+Elementary Icon,
+Fast Forward Icon:
+GNU GENERAL PUBLIC LICENSE
+
+Nuvola Icon:
+GNU LESSER GENERAL PUBLIC LICENSE"</label>
+				</text>
+			</hbox>
+		</notebook>
+		<hbox space-expand="false" space-fill="false">
+			<button use-stock="true" label="gtk-close" width-request="90">
+				<action>closewindow:winAbout</action>
+			</button>
+		</hbox>
+	</vbox>
+	<variable export="false">winAbout</variable>
+</window>
+'
+	## Create the XML for the Help dialog.
+	winHelp='
+<window title="'$TITLE' - Help" icon-name="'$TARGET'" window-position="1"
+	default-width="600" default-height="400" resizable="true">
+	<vbox>
+		<edit name="HelpText" editable="false">
+			<input file>'$PACKAGE_DATA_DIR'/README</input>
+		</edit>
+		<hseparator space-expand="false" space-fill="false"></hseparator>
+		<hbox space-expand="false" space-fill="false">
+			<button use-stock="true" label="gtk-close" is-focus="true"
+				width-request="90">
+				<action>closewindow:winHelp</action>
+			</button>
+		</hbox>
+	</vbox>
+	<variable export="false">winHelp</variable>
+</window>
+'
+	if [ $DEBUG_TRANSITS -ne 0 ]; then echo "$FUNCNAME(): OUT"; fi
+}

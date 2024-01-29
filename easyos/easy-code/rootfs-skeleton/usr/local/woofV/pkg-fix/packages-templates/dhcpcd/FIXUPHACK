@@ -1,0 +1,8 @@
+
+#20160908 quirky xerus armv7
+
+#has etc/init.d/dhcpcd, runa daemon. don't want...
+[ -d etc/init.d ] && rm -rf etc/init.d
+
+[ ! -e usr/bin/dhcpcd ] && [ -e usr/bin/dhcpcd5 ] && ln -s dhcpcd5 usr/bin/dhcpcd
+

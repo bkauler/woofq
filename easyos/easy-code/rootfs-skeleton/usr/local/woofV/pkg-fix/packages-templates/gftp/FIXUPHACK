@@ -1,0 +1,15 @@
+
+echo "GPL, see /usr/share/doc/legal" > usr/share/gftp/COPYING
+
+#20230710 oe
+if [ -x usr/bin/gftp-text ];then
+ rm -f usr/bin/gftp-text
+fi
+if [ -x usr/bin/gftp-gtk ];then
+ if [ -e usr/bin/gftp ];then
+  rm -f usr/bin/gftp
+ fi
+ mv -f usr/bin/gftp-gtk usr/bin/gftp
+fi
+
+mkdir -p etc/gftp

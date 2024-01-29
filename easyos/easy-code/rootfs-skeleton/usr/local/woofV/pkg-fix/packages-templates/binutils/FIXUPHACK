@@ -1,0 +1,20 @@
+
+# fix for OE build
+NAMEAR="$(find usr/bin -mindepth 1 -maxdepth 1 -type f -name '*-ar')" #ex: usr/bin/x86_64-oe-linux-ar
+if [ "$NAMEAR" ];then
+ NAMEPRE="$(echo -n "$NAMEAR" | cut -f 3 -d '/' | rev | cut -f 2- -d '-' | rev)"
+ NAMESALL="$(find usr/bin -mindepth 1 -maxdepth 1 -type f -name "${NAMEPRE}-*" | tr '\n' ' ')"
+ for ANAME in $NAMESALL
+ do
+  NAMEBASE="$(echo -n "$ANAME" | rev | cut -f 1 -d '-' | rev)"
+  [ ! -e usr/bin/${NAMEBASE} ] && ln -s ${NAMEPRE}-${NAMEBASE} usr/bin/${NAMEBASE}
+  # ...ex, links 'ar' to 'x6_64-oe-linux-ar'
+ done
+fi
+
+# 20180916 bionic beaver has ld.bfd and ld.gold, need to create ld...
+if [ ! -e usr/bin/ld ];then
+ if [ -e usr/bin/ld.bfd ];then
+  cp -a usr/bin/ld.bfd usr/bin/ld
+ fi
+fi
