@@ -1,0 +1,207 @@
+    The YCALC man page
+     groff -man -Tascii ycalc.1 | more 
+ 
+     Created from original ycalc MANUAL file Mon Dec  1 23:13:33 GMT 
+     1997 by  ben @dl6rai.muc.de
+ 
+     additions by un@pobox.com
+     980122 : added url to archive
+     980205 : description of LRN SST BST GTO RST R/S
+Name
+ycalc - An X Window Calculator, Based on Texas Instruments TI-59 
+
+Synopsis ycalc 
+
+Description
+
+Scientific calculator for X-windows, heavily influenced by TI-59.
+Named  ycalc to avoid confusion with  xcalc. 
+
+Operation of the calculator is performed by clicking with any of the
+mouse buttons on the keys, or - in many cases - by using the keyboard. 
+
+Calculator key usage
+
+0 1 2 3 4 5 6 7 8 9 . / x - + = ( ) +/- 
+Do the same as on every calculator, the calculator follows standard
+operator precedence which can be altered using  ( and ). 
+
+CE 
+Clear entry, clears the last entry, ie. the X register.
+
+CLR 
+Clears the calculator stack. 
+
+EE 
+Enter exponent. 
+
+2nd 
+Makes available a second function for certain keys, these keys changes
+when 2nd is pressed (see   2nd function keys below). 
+
+INV 
+Inverts the function of cartain keys.
+
+LRN 
+Toggle between programming (LeaRN) and normal mode. 
+
+SST 
+Single step, in programming mode step to show next program line, in
+normal mode execute one program line. 
+
+BST 
+Back step, in programming mode step to show previous program line, no
+effect in normal mode. 
+
+GTO 
+Goto a specific program line, not implemented yet. 
+
+RST 
+Reset program counter to line 0. 
+
+R/S 
+Toggle between Run and Stop of program. 
+
+A B C D E F 
+For entering hex digits when the calculator is in base 16 mode. 
+
+STO 
+Stores the X register in one of memory 00-99, the next two digits
+entered defines the memory number. 
+
+RCL 
+Recall one of memory 00-99 to the X register, the next two digits
+entered defines the memory number. 
+
+SUM 
+Adds the X register to the contents in memory 00-99, the next two
+digits entered are the memory number. 
+
+Hex 
+Places the calculator in hex (base 16) mode. 
+
+Dec 
+Places the calculator in decimal (base 10) mode. 
+
+Bin
+Brings up the binary window. x<->t Exchange the X and T registers. 
+
+x^2 
+Squares the X register. sqrt Calcuates the square root of the X
+register. 
+
+1/x 
+Inverts the X register. y^x Raises Y register to X:th power. 
+
+lnx 
+Caclulates the natural logarithm of the X register. 
+
+Off 
+Exits the calculator if pressed twice without any other key between. 
+
+About 
+Brings up a window with version information and short copyright and
+GNU license information. 
+
+2nd function keys
+
+Rad 
+Puts the calculator in radian mode for trigonometric functions. 
+
+Deg 
+Puts the calculator in degree mode for trigonometric functions. 
+
+Pi 
+Enters an approximation of PI into the x register. 
+
+Eng 
+Puts the calculator in engineering exponent mode, ie. the exponent is
+a multiple of three. 
+
+CMs 
+Clear all memories. 
+
+Exc
+Exchanges one of memory 00-99 with the X register, the next two digits
+entered defines the memory number. 
+
+Prd 
+Multiplies the X register with one of memory 00-99, the next two
+digits entered defines the memory number. 
+
+sin 
+Calculates the sine of the X register. 
+
+cos 
+Calculates the cosine of the X register.
+
+tan 
+Calculates the tangent of the X register. 
+
+1st 
+Reverts keys to the normal function. INV Inverts the function of
+cartain keys. 
+
+log 
+Calculates the 10 logarithm of the X register. 
+
+CP 
+Clear program. 
+
+Off 
+Exits the calculator if pressed twice without any other key between. 
+
+Asc 
+Brings up the ASCII table window. 
+
+Oct 
+Places the calculator in octal (base 8) mode. 
+
+x! 
+Calculates the faculty of the X register. 
+
+Cut 
+Copies the X window global paste buffer to the X register. 
+
+Pas 
+Copies the X register to the X window global paste buffer.
+
+Mod 
+The modulus operator. 
+
+DMs 
+Brings up the memory window. 
+ 
+Binary window
+
+The binary window has three rows of 32-bit binary display, three
+markers to right of the binary display rows and eleven buttons. 
+
+The bits of the binary display rows can set/cleared by clicking with
+any of the mouse buttons on it. The three markers selects, by clicking
+on one of them, which binary display row is the active. The active row
+is the one mirroring the main calculator display and the one affected
+by the shift, rotate and inv keys.
+
+The three operator keys - and, or & xor -  operate on row  one &  two
+and put the result in row  three. 
+ 
+ASCII table window
+
+The ASCII table window has a main area with the ASCII table, a four
+character display at the left upper corner and an off key at the upper
+right corner. 
+
+The display mirrors the main calculator display but is displaying it
+as four ASCII characters instead. By clicking with a mouse button on
+an ASCII table entry, its value is entered into the calulator display.
+
+Memory window
+
+The memory window displays the contents of twenty of the calculator
+memories. By clicking a mouse button on the keys, the previous twenty
+or the next twenty are displayed. 
+
+Author
+Ulf Nordquist <un@pobox.com>. 
+http://home.swipnet.se/~w-33493/ycalc.html

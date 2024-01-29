@@ -1,0 +1,15 @@
+#!/bin/sh
+
+export TEXTDOMAIN=zarfywrapper
+export OUTPUT_CHARSET=UTF-8
+
+CR='
+'
+
+M_z1="$(gettext 'Zarfy is a GUI for managing multiple monitors')"
+M_z5="$(gettext 'Note1: Settings are saved in folder /root/.zarfy, which will be automatically loaded everytime X starts.')"
+M_z2="$(gettext 'Note2: To remove, delete /root/.zarfy, or change /root/Startup/zarfy_load to non-executable.')"
+M_z4="$(gettext 'Note3: There is documentation at /usr/share/doc/zarfy.htm')"
+M_z3="$(gettext 'Click OK button to run Zarfy:')"
+popup "terminate=ok background=#ffc080 process=wait level=top|<big><b>${M_z1}</b>${CR}${CR}${M_z5}${CR}${M_z2}${CR}${M_z4}${CR}${CR}${M_z3}</big>"
+exec zarfy
