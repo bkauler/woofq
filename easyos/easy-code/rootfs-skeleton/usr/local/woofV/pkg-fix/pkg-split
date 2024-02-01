@@ -1,0 +1,63 @@
+#!/bin/bash
+#called from 3populate-rootfs
+#this is for kirkstone pkgs, split into exe, dev, doc
+#$1 is split-rules, $2 is folder of expanded pkg.
+#current path is same as $2 folder (normally /mnt/wkg/data/woofV/sandbox)
+
+PSTsplit="$1" #ex: exe,doc>null  ex: exe,dev,doc  ex: dev
+Pdir="$2"     #ex: acl-2.3.1-r6-nocona-64
+[ ! -d "$Pdir" ] && exit 1
+
+#create little script to move a folder or file to new location...
+if [ ! -x /tmp/woofV/move2other ];then
+ mkdir -p /tmp/woofV
+ echo '#!/bin/ash
+P="${1#*/}"
+mkdir -p "${2}/${P%/*}"
+mv -f "${1}" ${2}/${P%/*}/' /tmp/woofV/move2other
+ chmod 755 /tmp/woofV/move2other
+fi
+
+#PKGS_SPECS_TABLE has PSTgeneric, PSTpkgs, PSTsplit, PSTrepo
+#apply PSTsplit. exs: exe,doc>null exe,dev,doc>dev  dev  exe,dev>null,doc>null
+EXE='null'; DEV='null'; DOC='null'
+for aS in ${PSTsplit//,/ }
+do
+ case "$aS" in
+  exe*) EXE="${aS/*>/}" ;; #ex: exe>dev becomes dev. just exe stays as exe
+  dev*) DEV="${aS/*>/}" ;;
+  doc*) DOC="${aS/*>/}" ;;
+ esac
+done
+EXE="${EXE^^}"
+DEV="${DEV^^}"
+DOC="${DOC^^}"
+
+for aX in EXE DEV DOC NULL
+do
+ if [ -d ${Pdir}_${aX} ];then
+  rm -rf ${Pdir}_${aX}
+ fi
+done
+
+if [ "$DOC" != "EXE" ];then
+ #want to delete all doc files, unless redirected to DEV
+ mkdir ${Pdir}_${DOC} #exs: DOC=NULL DOC=DEV
+ #this will move out all doc files...
+ find ${Pdir} -type d -regextype egrep -regex '.*/man|.*/doc|.*/doc-base|.*/docs|.*/info|.*/gtk-doc|.*/faq|.*/manual|.*/examples|.*/help|.*/htdocs|.*/tutorials' -exec /tmp/woofV/move2other \{\} ${Pdir}_${DOC} \; 2>/dev/null
+fi
+
+if [ "$EXE" == "DEV" ];then
+ mv -f ${Pdir} ${Pdir}_${DEV}
+ mkdir ${Pdir}
+elif [ "$DEV" != "EXE" ];then
+ mkdir -p ${Pdir}_${DEV}
+ #these folders will get moved out...
+ find ${Pdir} -type d -regextype egrep -regex '.*/X11/config|.*/include|.*/pkgconfig|.*/aclocal.*|.*/cvs|.*/svn.*|.*/mkspecs|.*\.git|.*/cmake' -exec /tmp/woofV/move2other \{\} ${Pdir}_${DEV} \; 2>/dev/null
+ #move all .so symlinks...
+ find ${Pdir} -type l -name '*.so' -exec /tmp/woofV/move2other \{\} ${Pdir}_${DEV} \; 2>/dev/null
+ #move various files...
+ find ${Pdir} -type f -regextype egrep -regex '.*-config|.*/config.sh|.*/Conf.sh|.*\.a|.*\.la|.*\.m4' -exec /tmp/woofV/move2other \{\} ${Pdir}_${DEV} \;
+fi
+
+###end###
