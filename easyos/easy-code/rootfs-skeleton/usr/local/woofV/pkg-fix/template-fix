@@ -1,0 +1,35 @@
+#!/bin/bash
+#called from 3populate-rootfs
+#enter with $1=generic-name, $2=compat-name, $3=path to expanded pkg
+#ex: acl, void, /mnt/wkg/data/woofV/sandbox/acl-1.2.3_1.x86_64
+
+Egeneric="$1"
+export Ecompatname="$2" #exs: void oe
+Pdir="$3"
+
+E1='/mnt/wkg/data/woofV'
+E2="${E1}/pkg-fix/packages-templates"
+L1='/usr/local/woofV'
+[ ! -d ${E2}/${Egeneric} ] && exit 1 #precaution
+
+. ${L1}/configure/DISTRO_SPECS
+
+echo "Applying template fix to ${Pdir##*/}"
+cd ${Pdir}
+if [ -f ${E2}/${Egeneric}/FIXUPHACK ];then
+. ${E2}/${Egeneric}/FIXUPHACK
+fi
+
+if [ -f ${E2}/${Egeneric}/pinstall.sh ];then
+ cp -a -f ${E2}/${Egeneric}/pinstall.sh ${Pdir}
+fi
+if [ "$DISABLE_POST_INSTALL_SCRIPT" == "yes" ];then #this may be in FIXUPHACK
+ if [ -f ${Pdir}/INSTALL ];then
+  rm -f ${Pdir}/INSTALL
+ fi
+fi
+
+if [ -d ${E2}/${Egeneric}/REPLACEMENTS ];then
+ cp -a -f --remove-destination ${E2}/${Egeneric}/REPLACEMENTS/* ./
+fi
+

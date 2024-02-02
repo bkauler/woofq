@@ -1,0 +1,44 @@
+#!/bin/ash
+#called from 3populate-rootfs
+#$1 expanded pkg folder, $2 temp usrmerge-fixed folder.
+#need to be in same path as $1 and $2
+
+#$F2 will have copy of $F1 except with usr-merge.
+F1="$1"; F2="$2"
+
+if [ ! -d "$F1" -o ! -d "$F2" ];then
+ echo "ERROR: usrmerge-fix: folder does not exist"
+ exit 1
+fi
+
+#skeleton with all correct usr-merge symlinks...
+rm -rf ./${F2} 2>/dev/null
+cp -a /usr/local/woofV/pkg-fix/usrmerge-template ${F2}
+
+#we also need to be careful not to write a symlink, say a busybox applet
+#that will overwrite an already-installed full utility. see section-B below.
+ROOTFS="/mnt/wkg/woofV/data/woofV/rootfs"
+
+while read aF
+do
+ if [ -d ${F1}/"$aF" ];then
+  #the trailing-slash is important...
+  mkdir -p ${F2}/"$aF"/
+ else
+  aD="$(dirname "$aF")"
+  mkdir -p ${F2}/"$aD"/
+  if [ -h ${F1}/"$aF" ];then
+   #section-B
+   if [ -e ${ROOTFS}/"$aF" ];then
+    if [ ! -h ${ROOTFS}/"$aF" ];then
+     continue
+    fi
+   fi
+  fi
+  cp -a --remove-destination ${F1}/"$aF" ${F2}/"$aD"/
+ fi
+done <<_END1
+$(find ${F1} -mindepth 1 | sed -e "s%${F1}/%%")
+_END1
+
+###end###

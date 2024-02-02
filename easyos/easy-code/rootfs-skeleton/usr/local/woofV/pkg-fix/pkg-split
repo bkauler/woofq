@@ -33,14 +33,29 @@ EXE="${EXE^^}"
 DEV="${DEV^^}"
 DOC="${DOC^^}"
 
-for aX in EXE DEV DOC NULL
+for aX in DEV DOC NULL
 do
  if [ -d ${Pdir}_${aX} ];then
   rm -rf ${Pdir}_${aX}
  fi
 done
 
+case "${EXE}${DEV}${DOC}" in
+ EXENULLNULL|NULLNULLNULL)
+  exit 0 #nothing to do
+ ;;
+ NULLDEVNULL)
+  mv -f ${Pdir} ${Pdir}_DEV
+  exit 0
+ ;;
+ NULLNULLDOC)
+  mv -f ${Pdir} ${Pdir}_DOC
+  exit 0
+ ;;
+esac
+
 if [ "$DOC" != "EXE" ];then
+ #note, we would never have doc>exe anyway. above test is just a precaution.
  #want to delete all doc files, unless redirected to DEV
  mkdir ${Pdir}_${DOC} #exs: DOC=NULL DOC=DEV
  #this will move out all doc files...
@@ -48,9 +63,14 @@ if [ "$DOC" != "EXE" ];then
 fi
 
 if [ "$EXE" == "DEV" ];then
- mv -f ${Pdir} ${Pdir}_${DEV}
- mkdir ${Pdir}
+ if [ -d ${Pdir}_DEV ];then
+  cp -a -f --remove-destination ${Pdir}/* ${Pdir}_DEV/
+  rm -rf ./${Pdir}
+ else
+  mv -f ${Pdir} ${Pdir}_DEV
+ fi
 elif [ "$DEV" != "EXE" ];then
+ #note, we would never have dev>exe anyway. above test is just a precaution.
  mkdir -p ${Pdir}_${DEV}
  #these folders will get moved out...
  find ${Pdir} -type d -regextype egrep -regex '.*/X11/config|.*/include|.*/pkgconfig|.*/aclocal.*|.*/cvs|.*/svn.*|.*/mkspecs|.*\.git|.*/cmake' -exec /tmp/woofV/move2other \{\} ${Pdir}_${DEV} \; 2>/dev/null

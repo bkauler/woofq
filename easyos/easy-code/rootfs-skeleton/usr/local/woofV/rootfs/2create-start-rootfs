@@ -86,7 +86,7 @@ rm -rf sandbox 2>/dev/null
 sync
 
 cp -a -f /usr/local/woofV/rootfs/chroot-rootfs ./ 2>/dev/null
-cp -a -f /usr/local/woofV/rootfs/pet2dir ./ 2>/dev/null
+cp -a -f /usr/local/woofV/support/pet2dir ./ 2>/dev/null
 
 #pre-populate rootfs...
 cp -a /usr/local/woofV/rootfs/rootfs-skeleton ./rootfs
@@ -122,7 +122,9 @@ echo 'repository=https://ftp.swin.edu.au/voidlinux/current/nonfree' > rootfs/etc
 #ref: https://man.voidlinux.org/xbps-install.1
 #SSL_NO_VERIFY_PEER=1 ./chroot-rootfs rootfs xbps-install -Suy xbps-triggers base-files xbps
 #getting some "can't create ... system group (missing groupadd)" try add 'shadow' pkg...
-SSL_NO_VERIFY_PEER=1 ./chroot-rootfs rootfs xbps-install -Suy xbps-triggers shadow xbps
+#20240129 'shadow' requires 'pam', which causes trouble... i will later install 'shadow' from kirkstone
+#SSL_NO_VERIFY_PEER=1 ./chroot-rootfs rootfs xbps-install -Suy xbps-triggers shadow xbps
+SSL_NO_VERIFY_PEER=1 ./chroot-rootfs rootfs xbps-install -Suy xbps-triggers xbps
 rm -f rootfs/usr/bin/*.static
 sync
 

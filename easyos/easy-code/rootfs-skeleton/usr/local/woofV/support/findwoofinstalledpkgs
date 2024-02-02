@@ -1,0 +1,73 @@
+#!/bin/bash
+#called from 3populate-rootfs
+#create woof-installed-packages and devx-only-installed-packages
+
+export LANG=C
+
+mkdir -p /tmp/woofV
+E1='/mnt/wkg/data/woofV'
+mkdir -p ${E1}
+L1='/usr/local/woofV'
+. ${L1}/DISTRO_SPECS
+. ${L1}/DISTRO_PKGS_SPECS
+
+echo -n '' > ${E1}/woof-installed-packages
+echo -n '' > ${E1}/devx-only-installed-packages
+echo -n '' > /tmp/woofV/woof-installed-packages
+echo -n '' > /tmp/woofV/devx-only-installed-packages
+
+while read aL
+do
+ Egeneric="$(cut -f 1 -d '|' <<<${aL})" #ex: acl
+ Epkgs="$(cut -f 2 -d '|' <<<${aL} | tr ',' ' ')"    #ex: acl,acl-devel
+ Esplit="$(cut -f 3 -d '|' <<<${aL})"   #ex: exe,dev,doc,nls
+ Erepo="$(cut -f 4 -d '|' <<<${aL})"    #exs: compat:current compat:kirkstone pet:noarch pet:void
+ 
+ case "$Erepo" in
+  pet:*)
+   #these do not have a Epkgs field
+   aDB="$(grep "|${Egeneric}|" ${L1}/configure/Packages-pet-${Erepo#*:}-official)"
+   grep -q -F 'exe>dev' <<<${Esplit}
+   if [ $? -eq 0 ];then
+    cat <<<${aDB} >> /tmp/woofV/devx-only-installed-packages
+   else
+    cat <<<${aDB} >> /tmp/woofV/woof-installed-packages
+   fi
+   continue
+  ;;
+ esac
+ 
+ case "$Erepo" in
+  compat:*)
+   #$Epkgs contains the pkgs...
+   for aPKG in ${Epkgs}
+   do
+    aDB="$(grep "|${Egeneric}|" ${L1}/configure/Packages-*-${Erepo#*:}-official | tail -n 1)"
+    #...there should only be one hit
+    # ex: acl-2.3.1_1|acl|2.3.1|1|BuildingBlock|16K|current|acl-2.3.1_1.x86_64.xbps|+glibc|Access Control List filesystem support|void|current||
+    case "$Egeneric" in
+     *-devel)
+      cat <<<${aDB} >> /tmp/woofV/devx-only-installed-packages
+      continue
+     ;;
+    esac
+    grep -q -F 'exe>dev' <<<${Esplit}
+    if [ $? -eq 0 ];then
+     cat <<<${aDB} >> /tmp/woofV/devx-only-installed-packages
+    else
+     cat <<<${aDB} >> /tmp/woofV/woof-installed-packages
+    fi
+   done
+  ;;
+ esac
+
+done <<_EOF
+$(grep '^yes' <<<${PKGS_SPECS_TABLE} | cut -f 2,3,4,5 -d '|')
+_EOF
+
+sort --key=1 --field-separator="|" /tmp/woofV/woof-installed-packages-tmp > ${E1}/woof-installed-packages
+if [ -s /tmp/devx-only-installed-packages-tmp ];then
+ sort --key=1 --field-separator="|" /tmp/woofV/devx-only-installed-packages-tmp > ${E1}/devx-only-installed-packages
+fi
+
+###end###

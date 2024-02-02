@@ -1,0 +1,87 @@
+#!/bin/bash
+#called from 3populate-rootfs
+#sort pkg-list into dependency-order.
+#must run after support/findwoofinstalledpkgs
+
+export LANG=C
+
+L1='/usr/local/woofV'
+. ${L1}/DISTRO_SPECS
+. ${L1}/DISTRO_PKGS_SPECS
+. ${L1}/PKGS_MANAGEMENT #has PKG_NAME_ALIASES, PKG_NAME_IGNORE
+
+E1='/mnt/wkg/data/woofV'
+mkdir -p /tmp/woofV
+echo -n '' > /tmp/woofV/woof-installed-packages-sorted
+echo -n '' > /tmp/woofV/woof-installed-packages-nodeps
+echo -n '' > /tmp/woofV/woof-installed-packages-pre1
+mv -f ${E1}/woof-installed-packages ${E1}/woof-installed-packages-orig
+
+echo "Sorting woof-installed-packages into dependency-order..."
+
+#handle aliases, \+ escape also required...
+aliasesPTNS="$(echo "$PKG_NAME_ALIASES" | tr ' ' '\n' | grep -v '^$' | sed -e 's%,%|%g' -e 's%\*%.*%g' -e 's%\-%\\-%g' -e 's%\+%\\+%g')"
+#ex: PKG_NAME_ALIASES has an entry cxxlibs,glibc*,libc-* the above creates cxxlibs|glibc.*|libc\-.*
+echo "$aliasesPTNS" > ${S1}/aliasesPTNS
+
+#remove all pkgs with no deps...
+while read aL
+do
+ Edeps="$(cut -f 9 -d '|' <<<${aL} | tr -d '+' | tr ',' ' ')"    #ex: +libuuid,+glibc
+ if [ -z "$Edeps" ];then
+  cat <<<${aL} >> /tmp/woofV/woof-installed-packages-nodeps
+ else
+  cat <<<${aL} >> /tmp/woofV/woof-installed-packages-pre1
+  #find deps that are not in woof-installed-packages...
+  for adep in ${Edeps}
+  do
+   grep -q "|${adep}|" ${E1}/woof-installed-packages-notsorted
+   if [ $? -ne 0 ];then
+    #grab missing dep out of the database... Packages-void-current
+    grep "|${adep}|" ${L1}/configure/Packages-${DISTRO_BINARY_COMPAT}-${DISTRO_COMPAT_VERSION} >> /tmp/woofV/woof-installed-packages-pre1
+   fi
+  done
+ fi
+done <<_EOF
+$(cat ${E1}/woof-installed-packages)
+_EOF
+fsync /tmp/woofV/woof-installed-packages-pre1
+cp -f /tmp/woofV/woof-installed-packages-pre1 /tmp/woofV/woof-installed-packages-pre2
+
+CNT=0
+while [ $FLG1 -eq 1 ];do
+ while read -r aL
+ do
+  [ -z "$aL" ] && continue
+  Ename="$(cut -f 2 -d '|' <<<${aL})" #ex: apr
+  Edeps="$(cut -f 9 -d '|' <<<${aL} | tr -d '+' | tr ',' ' ')" #ex: +libuuid,+glibc
+  FLG2=0
+  for adep in ${Edeps}
+  do
+   grep -q -F "|${aDEP}|" /tmp/woofV/woof-installed-packages-sorted
+   if [ $? -ne 0 ];then FLG2=1; fi
+  done
+  if [ $FLG2 -eq 0 ];then
+   cat <<<${aL} >> /tmp/woofV/woof-installed-packages-sorted
+   sed -i "/|${Ename}|/d" /tmp/woofV/woof-installed-packages-pre2
+   [ ! -s /tmp/woofV/woof-installed-packages-pre2 ] && break 2
+  fi
+ done < /tmp/woofV/woof-installed-packages-pre1
+ #precaution endless loop...
+ #if cmp -s /tmp/woofV/woof-installed-packages-pre1 /tmp/woofV/woof-installed-packages-pre; then
+ CNT=$((${CNT}+1))
+ echo -n "${CNT} "
+ if [ $CNT -gt 500 ];then
+  #0= files are the same. hack...
+  cat /tmp/woofV/woof-installed-packages-pre2 >> /tmp/woofV/woof-installed-packages-sorted
+  break
+ fi
+ cat /tmp/woofV/woof-installed-packages-pre2 > /tmp/woofV/woof-installed-packages-pre1
+done
+
+cat /tmp/woofV/woof-installed-packages-sorted > ${E1}/woof-installed-packages-dep-order
+cat /tmp/woofV/woof-installed-packages-nodeps >> ${E1}/woof-installed-packages-dep-order
+
+#restore alphabetic order...
+sort --key=1 --field-separator="|" ${E1}/woof-installed-packages-dep-order > ${E1}/woof-installed-packages
+###end###

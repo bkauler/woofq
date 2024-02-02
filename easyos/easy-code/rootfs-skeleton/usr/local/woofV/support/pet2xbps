@@ -1,0 +1,82 @@
+#!/bin/ash
+#pass in path to PET pkg to convert, and file with required DB entry.
+
+export LANG=C
+. /etc/rc.d/PUPSTATE
+
+case "$DISTRO_TARGETARCH" in
+ amd64) xARCH='x86_64' ;;
+ *)     xARCH="$DISTRO_TARGETARCH" ;;
+esac
+export XBPS_ARCH="$xARCH"
+
+PETpath="$1" #ex: /mnt/wkg/data/woofV/dl-pets/align-1.7.5.pet
+PETname="${PETpath##*/}"
+[ ! -f "$PETpath" ] && exit 1
+DBentry="${2}" #ex: /tmp/woofV/aDBentry
+[ ! -f "$DBentry" ] && exit 2
+
+E1='/mnt/wkg/data/woofV'
+L1='/usr/local/woofV'
+
+mkdir -p ${E1}/sandbox
+cd ${E1}/sandbox
+tar -xf ${PETpath} 2>/dev/null
+rm -f ${PETname}
+F1="${PETname/.pet/}"
+DIR=${E1}/sandbox/${F1}
+
+if [ -f ${DIR}/pinstall.sh ];then
+ cat >> ${DIR}/INSTALL <<'_EOF'
+#!/bin/sh
+export PATH="/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin"
+ACTION="$1"
+case "${ACTION}" in
+pre)
+	;;
+post)
+_EOF
+ cat ${DIR}/pinstall.sh >> ${DIR}/INSTALL
+ echo '	;;
+esac
+exit 0' >> ${DIR}/INSTALL
+ chmod 755 ${DIR}/INSTALL
+ rm -f ${DIR}/pinstall.sh
+fi
+
+if [ -f ${DIR}/pet.specs ];then
+ rm -f ${DIR}/pet.specs
+fi
+if [ -f ${DIR}/puninstall.sh ];then
+ rm -f ${DIR}/puninstall.sh
+fi
+
+DEPS="$(cut -f 9 -d '|' ${DBentry} | tr -d '+' | tr ',' ' ')"
+if [ "$DEPS" ]; then
+ for i in $DEPS; do
+  DEP=$(echo "$i>=0.0_0 $DEP")
+ done
+fi
+#***note*** for pet pkgs, ignore deps...
+DEP=""
+
+DESC="$(cut -f 10 -d '|' ${DBentry})"
+Enameonly="$(cut -f 2 -d '|' ${DBentry})"
+VER="$(cut -f 3 -d '|' ${DBentry})_199" #big build-number.
+
+#may have to fix for usr-merge...
+#currently in 'sandbox', expanded pet is folder ${F1}
+#process, install to a temp dir sandbox/temp1
+/usr/local/woofV/pkg-fix/usrmerge-fix ${F1} temp1
+#rearranging folders to usrmerge may have broken symlinks...
+/usr/local/woofV/pkg-fix/symlinks-fix temp1
+DIR2=${E1}/sandbox/temp1
+cd ${E1}/dl-pets
+xbps-create -n "$Enameonly-$VER" -s "$DESC" -A $xARCH -D "$DEP" "$DIR2"
+if [ $? -ne 0 ];then
+ echo "ERROR: Enameonly='${Enameonly}' VER='${VER}'"
+ echo "ERROR failed: xbps-create -n \"$Enameonly-$VER\" -s \"$DESC\" -A $xARCH -D \"$DEP\" \"$DIR2\""
+ exit 3
+fi
+
+###end###
