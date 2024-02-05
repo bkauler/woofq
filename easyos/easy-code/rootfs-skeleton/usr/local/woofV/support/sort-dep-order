@@ -16,15 +16,16 @@ echo -n '' > /tmp/woofV/woof-installed-packages-sorted
 echo -n '' > /tmp/woofV/woof-installed-packages-nodeps
 echo -n '' > /tmp/woofV/woof-installed-packages-pre1
 mv -f ${E1}/woof-installed-packages ${E1}/woof-installed-packages-orig
+tr ' ' '\n' <<<${PKG_NAME_IGNORE} > /tmp/woofV/PKG_NAME_IGNORElines
 
 echo "Sorting woof-installed-packages into dependency-order..."
 
-#handle aliases, \+ escape also required...
-aliasesPTNS="$(echo "$PKG_NAME_ALIASES" | tr ' ' '\n' | grep -v '^$' | sed -e 's%,%|%g' -e 's%\*%.*%g' -e 's%\-%\\-%g' -e 's%\+%\\+%g')"
-#ex: PKG_NAME_ALIASES has an entry cxxlibs,glibc*,libc-* the above creates cxxlibs|glibc.*|libc\-.*
-echo "$aliasesPTNS" > ${S1}/aliasesPTNS
+##handle aliases, \+ escape also required...
+#aliasesPTNS="$(echo "$PKG_NAME_ALIASES" | tr ' ' '\n' | grep -v '^$' | sed -e 's%,%|%g' -e 's%\*%.*%g' -e 's%\-%\\-%g' -e 's%\+%\\+%g')"
+##ex: PKG_NAME_ALIASES has an entry cxxlibs,glibc*,libc-* the above creates cxxlibs|glibc.*|libc\-.*
+#echo "$aliasesPTNS" > ${S1}/aliasesPTNS
 
-#remove all pkgs with no deps...
+#remove all pkgs with no deps, and find missing deps...
 while read aL
 do
  Edeps="$(cut -f 9 -d '|' <<<${aL} | tr -d '+' | tr ',' ' ')"    #ex: +libuuid,+glibc
@@ -35,21 +36,34 @@ do
   #find deps that are not in woof-installed-packages...
   for adep in ${Edeps}
   do
-   grep -q "|${adep}|" ${E1}/woof-installed-packages-notsorted
+   grep -q "|${adep}|" ${E1}/woof-installed-packages-orig
    if [ $? -ne 0 ];then
-    #grab missing dep out of the database... Packages-void-current
-    grep "|${adep}|" ${L1}/configure/Packages-${DISTRO_BINARY_COMPAT}-${DISTRO_COMPAT_VERSION} >> /tmp/woofV/woof-installed-packages-pre1
+    #grab missing dep out of the void database... Packages-void-current
+    #lookup support/name-oe2void find if name change required
+    #note, have left out file 'maybe'...
+    F1="$(grep -m 1 "^{adep}|" ${L1}/support/name-oe2void/exact ${L1}/support/name-oe2void/case ${L1}/support/name-oe2void/hyphen ${L1}/support/name-oe2void/number)"
+    if [ ! -z "$F1" ];then
+     Newdep="${F1/*|/}"
+    else
+     Newdep="${adep}"
+    fi
+    #but, may need to ignore dep...
+    grep -q -x -f /tmp/woofV/PKG_NAME_IGNORElines <<<${Newdep}
+    if [ $? -ne 0 ];then
+     grep "|${Newdep}|" ${L1}/configure/Packages-${DISTRO_BINARY_COMPAT}-${DISTRO_COMPAT_VERSION} >> /tmp/woofV/woof-installed-packages-pre1
+    fi
    fi
   done
  fi
 done <<_EOF
-$(cat ${E1}/woof-installed-packages)
+$(cat ${E1}/woof-installed-packages-orig)
 _EOF
 fsync /tmp/woofV/woof-installed-packages-pre1
 cp -f /tmp/woofV/woof-installed-packages-pre1 /tmp/woofV/woof-installed-packages-pre2
 
+#now sort into dep order...
 CNT=0
-while [ $FLG1 -eq 1 ];do
+while [ true ];do
  while read -r aL
  do
   [ -z "$aL" ] && continue
@@ -67,6 +81,7 @@ while [ $FLG1 -eq 1 ];do
    [ ! -s /tmp/woofV/woof-installed-packages-pre2 ] && break 2
   fi
  done < /tmp/woofV/woof-installed-packages-pre1
+ 
  #precaution endless loop...
  #if cmp -s /tmp/woofV/woof-installed-packages-pre1 /tmp/woofV/woof-installed-packages-pre; then
  CNT=$((${CNT}+1))

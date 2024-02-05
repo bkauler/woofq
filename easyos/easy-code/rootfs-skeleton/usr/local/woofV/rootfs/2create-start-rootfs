@@ -1,8 +1,16 @@
 #!/bin/ash
 #create a rootfs that has just enough to chroot into, with xbps pkg management.
 
+E1='/mnt/wkg/data/woofV'
+L1='/usr/local/woofV'
+
+if [ ! -d ${E1}/rootfs-skeleton ];then
+ echo "ERROR: have to run 0rootfs-skeleton/create-skel first"
+ exit 1
+fi
+
 . /etc/rc.d/PUPSTATE
-. /usr/local/woofV/configure/DISTRO_SPECS
+. ${L1}/configure/DISTRO_SPECS
 case "$DISTRO_TARGETARCH" in
  amd64) xARCH='x86_64' ;;
  *)     xARCH="$DISTRO_TARGETARCH" ;;
@@ -85,11 +93,11 @@ rm -rf rootfs 2>/dev/null
 rm -rf sandbox 2>/dev/null
 sync
 
-cp -a -f /usr/local/woofV/rootfs/chroot-rootfs ./ 2>/dev/null
+cp -a -f /usr/local/woofV/support/chroot-rootfs ./ 2>/dev/null
 cp -a -f /usr/local/woofV/support/pet2dir ./ 2>/dev/null
 
 #pre-populate rootfs...
-cp -a /usr/local/woofV/rootfs/rootfs-skeleton ./rootfs
+cp -a ${E1}/rootfs-skeleton ./rootfs
 find rootfs -type f -name EMPTYDIRMARKER -delete
 sync
 

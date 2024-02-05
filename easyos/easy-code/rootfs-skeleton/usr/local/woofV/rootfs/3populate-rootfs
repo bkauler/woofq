@@ -44,6 +44,8 @@ while read aL
 do
  cat <<<${aL} > /tmp/woofV/aDBentry
  WIPnameonly="$(cut -f 2 -d '|' <<<${aL})"    #ex: 9menu
+ WIPversion="$(cut -f 3 -d '|' <<<${aL})"     #ex: 1.2.3
+ WIPrevision="$(cut -f 4 -d '|' <<<${aL})"    #ex: r6
  WIPpkg="$(cut -f 8 -d '|' <<<${aL})"         #ex: 9menu-1.10_1.x86_64.xbps
  WIPcompatname="$(cut -f 11 -d '|' <<<${aL})" #ex: void
  WIPcompatver="$(cut -f 12 -d '|' <<<${aL})"  #ex: current
@@ -51,6 +53,8 @@ do
  
  #read generic-name and pkgs-split...
  PST="$(grep "^yes.*[,|]${WIPnameonly}[,|]" <<<${PKG_SPECS_TABLE} | head -n 1)"
+ #do it this way, more definite... nah
+ #PST="$(grep "|${WIPnameonly}|${WIPversion}|${WIPrevision}" ${E1}/woof-installed-packages-PST | cut -f 13- -d '|')"
  #ex: yes|acl|acl|exe,doc>null|compat:current|
  PSTgeneric="$(cut -f 2 -d '|' <<<${PST})"
  PSTpkgs="$(cut -f 3 -d '|' <<<${PST})"
@@ -106,8 +110,8 @@ do
    INST="$(chroot ${E1}/rootfs /usr/bin/xbps-query --show ${WIPnameonly}-${VER} --property state)"
    if [ "$INST" != "installed" ];then
     #register pkg in local repo inside rootfs...
-    cp -a -f ${E1}/dl-pets/${Pxbps##*/} ${E1}/rootfs/repo/
-    chroot ${E1}/rootfs /usr/bin/xbps-rindex --add /repo/${Pxbps##*/}
+    cp -a -f ${E1}/dl-pets/${Pxbps} ${E1}/rootfs/repo/
+    chroot ${E1}/rootfs /usr/bin/xbps-rindex --add /repo/${Pxbps}
     #install...
     echo -n "${Pxbps} "
     chroot ${E1}/rootfs /usr/bin/xbps-install --yes --ignore-file-conflicts --ignore-conf-repos --repository=/repo ${WIPnameonly}-${VER}
@@ -248,12 +252,10 @@ do
    if [ ! -z "$F1" ];then
     Newnameonly="${F1/*|/}"
    else
-    Newnameonly="{WIPnameonly}"
+    Newnameonly="${WIPnameonly}"
    fi
    
    #convert pkg-folder to .xbps
-   WIPversion="$(cut -f 3 -d '|' <<<${aL})"    #ex: 1.2.3
-   WIPrevision="$(cut -f 4 -d '|' <<<${aL})"    #ex: r6
    DESC="$(cut -f 10 -d '|' <<<${aL})"
    #deps need to be converted to xbps repo names if possible...
    DEPS="$(cut -f 9 -d '|' <<<${aL} | tr '+' '\n' | tr -d ',' | tr '\n' ' ')"

@@ -12,9 +12,14 @@ L1='/usr/local/woofV'
 . ${L1}/DISTRO_PKGS_SPECS
 
 echo -n '' > ${E1}/woof-installed-packages
+#will have matching line (fields 2,3,4,5) from PACKAGES_SPECS_TABLE appended...
+echo -n '' > ${E1}/woof-installed-packages-PST
 echo -n '' > ${E1}/devx-only-installed-packages
+echo -n '' > ${E1}/devx-only-installed-packages-PST
 echo -n '' > /tmp/woofV/woof-installed-packages
+echo -n '' > /tmp/woofV/woof-installed-packages-PST
 echo -n '' > /tmp/woofV/devx-only-installed-packages
+echo -n '' > /tmp/woofV/devx-only-installed-packages-PST
 
 while read aL
 do
@@ -30,8 +35,10 @@ do
    grep -q -F 'exe>dev' <<<${Esplit}
    if [ $? -eq 0 ];then
     cat <<<${aDB} >> /tmp/woofV/devx-only-installed-packages
+    cat <<<${aDB}${AL} >> /tmp/woofV/devx-only-installed-packages-PST
    else
     cat <<<${aDB} >> /tmp/woofV/woof-installed-packages
+    cat <<<${aDB}${aL} >> /tmp/woofV/woof-installed-packages-PST
    fi
    continue
   ;;
@@ -48,14 +55,17 @@ do
     case "$Egeneric" in
      *-devel)
       cat <<<${aDB} >> /tmp/woofV/devx-only-installed-packages
+      cat <<<${aDB}${AL} >> /tmp/woofV/devx-only-installed-packages-PST
       continue
      ;;
     esac
     grep -q -F 'exe>dev' <<<${Esplit}
     if [ $? -eq 0 ];then
      cat <<<${aDB} >> /tmp/woofV/devx-only-installed-packages
+     cat <<<${aDB}${AL} >> /tmp/woofV/devx-only-installed-packages-PST
     else
      cat <<<${aDB} >> /tmp/woofV/woof-installed-packages
+     cat <<<${aDB}${aL} >> /tmp/woofV/woof-installed-packages-PST
     fi
    done
   ;;
@@ -65,9 +75,13 @@ done <<_EOF
 $(grep '^yes' <<<${PKGS_SPECS_TABLE} | cut -f 2,3,4,5 -d '|')
 _EOF
 
-sort --key=1 --field-separator="|" /tmp/woofV/woof-installed-packages-tmp > ${E1}/woof-installed-packages
-if [ -s /tmp/devx-only-installed-packages-tmp ];then
- sort --key=1 --field-separator="|" /tmp/woofV/devx-only-installed-packages-tmp > ${E1}/devx-only-installed-packages
+sort --key=1 --field-separator="|" /tmp/woofV/woof-installed-packages > ${E1}/woof-installed-packages
+if [ -s /tmp/devx-only-installed-packages ];then
+ sort --key=1 --field-separator="|" /tmp/woofV/devx-only-installed-packages > ${E1}/devx-only-installed-packages
+fi
+sort --key=1 --field-separator="|" /tmp/woofV/woof-installed-packages-PST > ${E1}/woof-installed-packages-PST
+if [ -s /tmp/devx-only-installed-packages-PST ];then
+ sort --key=1 --field-separator="|" /tmp/woofV/devx-only-installed-packages-PST > ${E1}/devx-only-installed-packages-PST
 fi
 
 ###end###
