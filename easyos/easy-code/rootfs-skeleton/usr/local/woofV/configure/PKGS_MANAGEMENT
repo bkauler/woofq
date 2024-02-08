@@ -1,0 +1,19 @@
+#PKG_NAME_ALIASES
+#these are alternative names for pkgs that are already installed in easyos.
+#this list prevents them from being listed in the package manager gui.
+#problem arises for pet pkgs, where same pkgs in compat-db may have slightly different names.
+
+#alternate names of a package (used in filterpkgs.sh, findpkgs)...
+PKG_NAME_ALIASES='enchant,enchant2 coreutils,core-utils obs,obs-studio firefox,firefox-skel* qtbase,qt5-base,qt5-basic pburn* cdparanoia,libcdio,libcdio-paranoia dvd_close,dvd-close mp,mp5,mped mplayer,mplayer_* rxvt-unicode,urxvt,urxvt-unicode cxxlibs,glibc gdk-pixbuf,gdk-pixbuf0,gdk-pixbuf2 glib,glib12 glibc-solibs,glibcsolibs alsalib,alsa-lib,alsa-lib2* gtk+,gtk+2,gtk+2* gtk+3,gtk+3* gtkdialog,gtkdialog3,gtkdialog4 alsautils,alsa-utils,alsa-utils2* libungif,libgif,giflib zip,infozip e3,e3_utf8 hal,libhal* jwm,jwm2 mesa,mesa_*,libgl1-mesa*,mesa-common* libxcb,libxcb_base ostree,libostree qt4,qt4_minimal,qt4-x11-free rox_filer,rox-filer,rox-filer-easy,rox-filer-quirky sane,sane-backends samba,samba-tng,samba_*,mountcifs SDL,libsdl,sdl peasyport,peasyport-noarch peasyscale-noarch,peasyscale-exec,peasyscale peasyscan-noarch,peasyscan-exec,peasyscan pure_ftpd,pure-ftpd rp_pppoe*,rp-pppoe skype,skype_static udev,udev_*,libudev*,libgudev*,eudev util-linux-ng,util-linux,utillinuxng vlc,vlc_nogui,VLC_Plus_Extras xf86-video-ati,xf86-video-ati-* xfdiff,xfdiff-cut xorg_base,xorg_base_t2*,x11-common,x-dev,xorg,xorg73_base_t2 acl,libacl* xdg-puppy,xdg-utils perl_tiny,perl-base,perl-modules,perlapi* xorg-util-macros,util-macros busybox,busybox-static'
+
+#some pkgs no longer exist, maybe now builtin to the skeleton f.s. (for ex, 'petget')...
+#variable PKG_NAME_IGNORE is processed in /usr/local/petget/pkg_chooser.sh, used in /usr/local/petget/filterpkgs.sh
+PKG_NAME_IGNORE="fbset petget rgb sysfiles sysklogd getcurpos mktemp xdg-utils"
+
+#this is a hack for now, as using dbus and dbus-glib from kirkstone.
+# in that case, must not install dbus-x11, dbus-libs, ignore them if deps for any xbps pkg...
+#also ignore gsfonts, which is a dep of gimp and inkscape ...
+#20240120 libEGL is dep for some pkgs, but there is no such pkg...
+#20240129 add: pam shadow sudo
+PKG_NAME_IGNORE="pam shadow sudo libEGL dbus-x11 dbus-libs gsfonts ${PKG_NAME_IGNORE}"
+
