@@ -1,0 +1,24 @@
+#!/bin/sh
+
+[ ! $1 ] && exit 1
+[ ! -d "$1" ] && exit 2
+
+CONTAINER="$1"
+
+ busybox mount -o bind /proc ${CONTAINER}/proc
+ busybox mount -o bind /sys ${CONTAINER}/sys
+ busybox mount -o bind /dev ${CONTAINER}/dev
+ busybox mount -o bind /dev/pts ${CONTAINER}/dev/pts
+ busybox mount -o bind /dev/shm ${CONTAINER}/dev/shm
+
+#for internet access...
+cp -f /etc/resolv.conf ${CONTAINER}/etc/resolv.conf
+
+chroot ${@}
+
+sync
+busybox umount ${CONTAINER}/dev/shm
+busybox umount ${CONTAINER}/dev/pts
+busybox umount ${CONTAINER}/dev
+busybox umount ${CONTAINER}/sys
+busybox umount ${CONTAINER}/proc
