@@ -1,5 +1,5 @@
 #!/bin/ash
-#pass in path to PET pkg to convert, and file with required DB entry.
+#pass in path to PET pkg to convert, file with required DB entry, and generic-name.
 
 export LANG=C
 . /etc/rc.d/PUPSTATE
@@ -15,6 +15,7 @@ PETname="${PETpath##*/}"
 [ ! -f "$PETpath" ] && exit 1
 DBentry="${2}" #ex: /tmp/woofV/aDBentry
 [ ! -f "$DBentry" ] && exit 2
+PSTgeneric="${3}" #ex: align
 
 E1='/mnt/wkg/data/woofV'
 L1='/usr/local/woofV'
@@ -62,7 +63,9 @@ DEP=""
 
 DESC="$(cut -f 10 -d '|' ${DBentry})"
 Enameonly="$(cut -f 2 -d '|' ${DBentry})"
-VER="$(cut -f 3 -d '|' ${DBentry})_199" #big build-number.
+
+#pets may have weird versioning, remove any alpha chars... also append revision-number...
+VER="$(cut -f 3 -d '|' ${DBentry} | sed -e 's%[^0-9.]%%g')_1"
 
 #may have to fix for usr-merge...
 #currently in 'sandbox', expanded pet is folder ${F1}
@@ -72,10 +75,10 @@ VER="$(cut -f 3 -d '|' ${DBentry})_199" #big build-number.
 /usr/local/woofV/pkg-fix/symlinks-fix temp1
 DIR2=${E1}/sandbox/temp1
 cd ${E1}/dl-pets
-xbps-create -n "$Enameonly-$VER" -s "$DESC" -A $xARCH -D "$DEP" "$DIR2"
+xbps-create -n "${PSTgeneric}-$VER" -s "$DESC" -A $xARCH -D "$DEP" "$DIR2"
 if [ $? -ne 0 ];then
- echo "ERROR: Enameonly='${Enameonly}' VER='${VER}'"
- echo "ERROR failed: xbps-create -n \"$Enameonly-$VER\" -s \"$DESC\" -A $xARCH -D \"$DEP\" \"$DIR2\""
+ echo "ERROR: Enameonly='${Enameonly}' PSTgeneric='${PSTgeneric}' VER='${VER}'"
+ echo "ERROR failed: xbps-create -n \"${PSTgeneric}-$VER\" -s \"$DESC\" -A $xARCH -D \"$DEP\" \"$DIR2\""
  exit 3
 fi
 

@@ -25,6 +25,8 @@ mkdir -p ${E1}/dl-xbps
 mkdir -p ${E1}/dl-txz
 mkdir -p ${E1}/rootfs/repo
 mkdir -p /tmp/woofV
+mkdir -p ${E1}/sandbox
+rm -f ${E1}/sandbox/pinstall.sh 2>/dev/null
 
 echo "$(LANG=${LANGorig} gettext 'Installing pkgs to:') ${E1}/rootfs"
 
@@ -76,10 +78,15 @@ do
    esac
    #is it already downloaded?...
    VER="$(cut -f 3 -d '|' <<<${aL})_1"
+   #pets may have weird versioning, need to remove any alpha chars...
+   xWIPversion="$(echo -n "$WIPversion" | sed -e 's%[^0-9.]%%g')"
+   VER="${xWIPversion}_1" #append a revision-number
    #test if already converted to .xbps...
-   ls ${E1}/dl-pets/${WIPnameonly}-${VER}*.xbps >/dev/null 2>&1
+   #ls ${E1}/dl-pets/${WIPnameonly}-${VER}*.xbps >/dev/null 2>&1
+   #as pets may have weird naming, it will be converted to ${PSTgeneric}-*.xbps...
+   ls ${E1}/dl-pets/${PSTgeneric}-${VER}*.xbps >/dev/null 2>&1
    if [ $? -ne 0 ];then
-    PETname="${WIPpkg}"
+    PETname="${WIPpkg}" #ex: align-1.7.5.pet
     if [ ! -f ${E1}/dl-pets/${PETname} ];then
      cd ${E1}/dl-pets
      download_file ${URL}/${PETname}
@@ -91,12 +98,12 @@ do
      fi
     fi
     #convert it to an .xbps pkg...
-    ${L1}/support/pet2xbps ${E1}/dl-pets/${PETname} /tmp/woofV/aDBentry
+    ${L1}/support/pet2xbps ${E1}/dl-pets/${PETname} /tmp/woofV/aDBentry ${PSTgeneric}
     #....xbps will be in ${E1}/dl-pets/
    fi
-   Pxbps="$(ls ${E1}/dl-pets/${WIPnameonly}-${VER}*.xbps)"
+   Pxbps="$(ls ${E1}/dl-pets/${PSTgeneric}-${VER}*.xbps)"
    if [ -z "$Pxbps" ];then #paranoid
-    echo "ERROR: NOT FND: ls ${E1}/dl-pets/${WIPnameonly}-${VER}*.xbps"
+    echo "ERROR: NOT FND: ls ${E1}/dl-pets/${PSTgeneric}-${VER}*.xbps"
     exit 3
    fi
    WC=$(echo -n "$Pxbps" | wc -l)
@@ -107,17 +114,17 @@ do
    fi
    Pxbps="${Pxbps##*/}"
    #check if already installed...
-   INST="$(chroot ${E1}/rootfs /usr/bin/xbps-query --show ${WIPnameonly}-${VER} --property state)"
+   INST="$(chroot ${E1}/rootfs /usr/bin/xbps-query --show ${PSTgeneric}-${VER} --property state)"
    if [ "$INST" != "installed" ];then
     #register pkg in local repo inside rootfs...
     cp -a -f ${E1}/dl-pets/${Pxbps} ${E1}/rootfs/repo/
     chroot ${E1}/rootfs /usr/bin/xbps-rindex --add /repo/${Pxbps}
     #install...
     echo -n "${Pxbps} "
-    chroot ${E1}/rootfs /usr/bin/xbps-install --yes --ignore-file-conflicts --ignore-conf-repos --repository=/repo ${WIPnameonly}-${VER}
+    chroot ${E1}/rootfs /usr/bin/xbps-install --yes --ignore-file-conflicts --ignore-conf-repos --repository=/repo ${PSTgeneric}-${VER}
     sync
     #in case there is a pkg in void repo with same name, prevent the pet from being replaced...
-    chroot ${E1}/rootfs /usr/bin/xbps-pkgdb -m hold ${WIPnameonly}-${VER}
+    chroot ${E1}/rootfs /usr/bin/xbps-pkgdb -m hold ${PSTgeneric}-${VER}
     rm -rf ${E1}/rootfs/repo/* #stop from growing.
     #log pet name vs xbps pkg name...
     echo "CONV_PKG_DB='${aL}'" > ${E1}/converted-pkgs/${PSTgeneric}
@@ -147,7 +154,9 @@ do
     #before installing. so, open it up, apply fixes, then repackage...
       
     #apply fixes, then put together again...
+    GENflg=0
     if [ -d /usr/local/woofV/pkg-fix/packages-templates/${PSTgeneric} ];then
+     GENflg=1
      #based on 2createpackages in woofQ, but simplified...
      cd ${E1}/sandbox
      Pdir="${WIPpkg/.xbps/}"  #ex: WIPpkg=libgcc-12.2.0_4.x86_64.xbps
@@ -158,6 +167,12 @@ do
        
      #apply fixes...
      /usr/local/woofV/pkg-fix/template-fix ${PSTgeneric} ${WIPcompatname} ${E1}/sandbox/${Pdir}
+     
+     #if there is a pinstall.sh, remove it. accumulate to execute later...
+     if [ -e ${E1}/sandbox/${Pdir}/pinstall.sh ];then
+      cat ${E1}/sandbox/${Pdir}/pinstall.sh >> ${E1}/sandbox/pinstall.sh
+      rm -f ${E1}/sandbox/${Pdir}/pinstall.sh
+     fi
        
      #repackage as .xbps...
      #***WARNING*** .plist file will be different from online repo!!!
@@ -194,6 +209,10 @@ do
     #install it...
     chroot ${E1}/rootfs /usr/bin/xbps-install --yes --repository=/repo ${WIPnameonly}-${VER}
     sync
+    if [ $GENflg -eq 1 ];then
+     #prevent xbps from updating this pkg...
+     chroot ${E1}/rootfs /usr/bin/xbps-pkgdb -m hold ${WIPnameonly}-${VER}
+    fi
     rm -rf ${E1}/rootfs/repo/* #stop from growing.
    fi
   ;;
@@ -244,6 +263,12 @@ do
    #if pkg-fix/packages-templates/$PSTgeneric, than call template-fix
    if [ -d /usr/local/woofV/pkg-fix/packages-templates/${PSTgeneric} ];then
     /usr/local/woofV/pkg-fix/template-fix ${PSTgeneric} ${WIPcompatname} ${E1}/sandbox/${Pdir}
+     
+    #if there is a pinstall.sh, remove it. accumulate to execute later...
+    if [ -e ${E1}/sandbox/${Pdir}/pinstall.sh ];then
+     cat ${E1}/sandbox/${Pdir}/pinstall.sh >> ${E1}/sandbox/pinstall.sh
+     rm -f ${E1}/sandbox/${Pdir}/pinstall.sh
+    fi
    fi
    
    #lookup support/name-oe2void find if name change required

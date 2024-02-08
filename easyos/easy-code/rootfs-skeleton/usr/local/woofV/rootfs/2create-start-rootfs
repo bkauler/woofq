@@ -1,6 +1,7 @@
-#!/bin/ash
+#!/bin/bash
 #create a rootfs that has just enough to chroot into, with xbps pkg management.
 
+export LANG=C
 E1='/mnt/wkg/data/woofV'
 L1='/usr/local/woofV'
 
@@ -10,6 +11,7 @@ if [ ! -d ${E1}/rootfs-skeleton ];then
 fi
 
 . /etc/rc.d/PUPSTATE
+. ${L1}/configure/PKGS_MANAGEMENT #has PKG_NAME_IGNORE
 . ${L1}/configure/DISTRO_SPECS
 case "$DISTRO_TARGETARCH" in
  amd64) xARCH='x86_64' ;;
@@ -101,6 +103,10 @@ cp -a ${E1}/rootfs-skeleton ./rootfs
 find rootfs -type f -name EMPTYDIRMARKER -delete
 sync
 
+#xbps manager to ignore some pkgs...
+mkdir -p rootfs/etc/xbps.d
+sed -e 's%^%ignorepkg=%' -e 's% %\nignorepkg=%g' <<<${PKG_NAME_IGNORE} > rootfs/etc/xbps.d/20-ignore.conf
+
 ###local non-xbps pkgs###
 mkdir sandbox
 cd sandbox
@@ -122,7 +128,7 @@ cd ..
 export XBPS_ARCH="$xARCH"
 #register online repo...
 #ref: https://docs.voidlinux.org/xbps/repositories/custom.html
-mkdir -p rootfs/etc/xbps.d
+#mkdir -p rootfs/etc/xbps.d
 echo 'repository=https://ftp.swin.edu.au/voidlinux/current' > rootfs/etc/xbps.d/00-repository-main.conf
 echo 'repository=https://ftp.swin.edu.au/voidlinux/current/nonfree' > rootfs/etc/xbps.d/10-repository-nonfree.conf
 

@@ -29,6 +29,7 @@
 #20221118 fix refresh not working. fix paths.
 #20221122 note: alternative to "arp-scan --localnet": nmap -PR -sn 192.168.1.1/24
 #20221212 fix detect more than one network.
+#20240201 easyVoid does not have iptables only iptables-legacy
 
 if [ "$(whoami)" != "root" ];then
  if [ -x /usr/bin/sudo-sh ];then
@@ -70,6 +71,14 @@ ln -snf ../../usr/local/EasyShare/samba-setup /tmp/easyshare/setup
 touch /var/local/easyshare/remote-ip-hn
 echo -n 'false' > /tmp/easyshare/scan_change_flg
 echo -n 'false' > /tmp/easyshare/need-to-restart-easyshare #20220506
+
+#20240201
+which iptables-legacy
+if [ $? -eq 0 ];then
+ IPTABLES='iptables-legacy'
+else
+ IPTABLES='iptables'
+fi
 
 M_t1="$(gettext 'Scanned for remote shares, no change')"
 echo "popup 'level=top background=#a0a0ff terminate=ok|<b><big>${M_t1}</big></b>'" > /tmp/easyshare/msg-no-change
@@ -982,7 +991,7 @@ CONFIG_DNS=$CONFIG_DNS
 CONFIG_IDENT=$CONFIG_IDENT
 CONFIG_DHCP=$CONFIG_DHCP
 CONFIG_NFS=$CONFIG_NFS" > /root/.config/firewall/fw.conf2
- if [ "$(iptables -L -n | grep -E '^ACCEPT |^DROP |^RETURN ')" == "" ];then #check if already running.
+ if [ "$(${IPTABLES} -L -n | grep -E '^ACCEPT |^DROP |^RETURN ')" == "" ];then #check if already running. 20240201
   true #no, so run the installer.
  else
   if [ -e /etc/init.d/rc.firewall ];then
