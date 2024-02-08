@@ -1,0 +1,29 @@
+#!/bin/sh
+#in delayedrun, instead of running mscw at first bootup, run this.
+
+export TEXTDOMAIN=mscw-not
+export OUTPUT_CHARSET=UTF-8
+CR='
+'
+
+export MSCW_NOT_DLG="
+ <window title=\"$(gettext 'Setup Audio')\" image-name=\"/usr/local/lib/X11/mini-icons/mini-speaker.xpm\">
+  <vbox>
+   <text use-markup=\"true\"><label>\"<big><b>$(gettext 'Setup Audio!')</b></big>\"</label></text>
+   <text><label>\"  \"</label></text>
+   <text use-markup=\"true\"><label>\"$(gettext 'If the speaker icon in the tray has an <b>x</b> on it, then sound is muted. Press the mouse middle-button on the speaker icon to toggle mute off.')
+$(gettext 'Press the mouse left button on the speaker to popup the volume slider.')
+
+$(gettext 'There are some small audio files in /usr/share/audio; click on one to test audio.')
+$(gettext 'If audio is still not working, which may be the case if your audio output is to HDMI on a TV or some other interface such as USB, then right-click on the speaker icon and choose <b>MSCW</b> (Multiple Sound Card Wizard).')
+\"</label></text>
+   <hbox>
+    <button ok></button>
+   </hbox>
+  </vbox>
+ </window>
+"
+
+RET1="$(gtkdialog --program=MSCW_NOT_DLG --center)"
+ 
+

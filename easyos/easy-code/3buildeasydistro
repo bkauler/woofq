@@ -320,6 +320,7 @@
 #20240119 hack, remove /var/lib/flatpak, as rc.sysinit creates symlink.
 #20240120 fix usrmerge in devx.
 #20240121 run void post-install scripts in devx.
+#20240127 if not easyVoid build, delete rootfs-complete/usr/local/woofV
 
 export LANG=C #faster.
 
@@ -835,6 +836,12 @@ mkdir sandbox3/rootfs-complete
 cp -a -f --remove-destination rootfs-skeleton/* sandbox3/rootfs-complete/
 sync
 
+#20240127 note, this repeated further down...
+if [ "${DISTRO_BINARY_COMPAT}" != "void" ]; then
+ rm -rf sandbox3/rootfs-complete/usr/local/woofV
+ sync
+fi
+
 #150731 moved this up, as some pkgs were overwriting skeleton scripts...
 #20230909 only want busybox...
 if [ -f status/findpkgs_GENERIC_NAMES-${DISTRO_BINARY_COMPAT}-${DISTRO_COMPAT_VERSION} ];then #150714
@@ -880,6 +887,12 @@ rm -rf sandbox3/rootfs-complete/INSTALL* 2> /dev/null #void
 #20230909 copy the skeleton, yes, again, as a pkg may have overwritten a skeleton file...
 cp -a -f --remove-destination rootfs-skeleton/* sandbox3/rootfs-complete/ #150731
 sync
+
+#20240127
+if [ "${DISTRO_BINARY_COMPAT}" != "void" ]; then
+ rm -rf sandbox3/rootfs-complete/usr/local/woofV
+ sync
+fi
 
 mkdir -p sandbox3/rootfs-complete/etc
 #cp DISTRO_SPECS sandbox3/rootfs-complete/etc/
