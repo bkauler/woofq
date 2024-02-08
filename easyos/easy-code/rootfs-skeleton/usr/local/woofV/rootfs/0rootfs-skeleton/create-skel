@@ -1,0 +1,91 @@
+#!/bin/sh
+#folder 'rootfs-skeleton' is the skeleton rootfs for creating easyVoid.
+#'rootfs-skeleton' is read in script '2create-start-rootfs'
+
+export TEXTDOMAIN=woofV
+export OUTPUT_CHARSET=UTF-8
+LANGorig="$LANG"
+export LANG=C
+
+. /etc/rc.d/PUPSTATE
+. /usr/local/woofV/configure/DISTRO_SPECS
+mkdir -p /tmp/woofV
+
+case "$DISTRO_TARGETARCH" in
+ amd64) xARCH='x86_64' ;;
+ *)     xARCH="$DISTRO_TARGETARCH" ;;
+esac
+export XBPS_ARCH="$xARCH"
+
+E1='/mnt/wkg/data/woofV'
+L1='/usr/local/woofV'
+
+if [ -e ${E1}/rootfs-skeleton ];then
+ rm -rf ${E1}/rootfs-skeleton
+fi
+
+#create usr-merge folders...
+cp -a ${L1}/pkg-fix/usrmerge-template ${E1}/rootfs-skeleton
+
+#copy folders first...
+echo -n '' > /tmp/woofV/skel-folders-files-missing
+echo -n '' > /tmp/woofV/skel-folders-wrong-link
+while read aL
+do
+ echo -n '.'
+ #the folders are read from easy.sfs...
+ if [ ! -e /mnt/.easy_ro/easy_sfs/"$aL" ];then
+  if [ ! -e ${L1}/rootfs/0rootfs-skeleton/extra/${aL} ];then
+   echo "$aL" >> /tmp/woofV/skel-folders-files-missing
+  fi
+  continue
+ fi
+ if [ ! -d /mnt/.easy_ro/easy_sfs/"$aL" ];then
+  continue
+ fi
+ if [ ! -h /mnt/.easy_ro/easy_sfs/"$aL" ];then
+  mkdir -p ${E1}/rootfs-skeleton/${aL}
+  continue
+ fi
+ if [ -e ${E1}/rootfs-skeleton/${aL} ];then
+  if [ ! -h ${E1}/rootfs-skeleton/${aL} ];then
+   echo "$aL" >> /tmp/woofV/skel-folders-wrong-link
+  fi
+ fi
+ mkdir -p ${E1}/rootfs-skeleton/${aL%/*}
+ cp -a -f /mnt/.easy_ro/easy_sfs/${aL} ${E1}/rootfs-skeleton/${aL%/*}/
+done < ${L1}/rootfs/0rootfs-skeleton/skel-files
+sync
+
+while read aL
+do
+ #the folders and files are read from easy.sfs...
+ if [ -d /mnt/.easy_ro/easy_sfs/"$aL" ];then
+  continue
+ fi
+ mkdir -p ${E1}/rootfs-skeleton/${aL%/*}
+ if [ ! -e /mnt/.easy_ro/easy_sfs/${aL} ];then
+  if [ ! -e ${L1}/rootfs/0rootfs-skeleton/extra/${aL} ];then
+   echo "/mnt/.easy_ro/easy_sfs/${aL}" >> /tmp/woofV/skel-files-missing
+  fi
+ else
+  cp -a -f /mnt/.easy_ro/easy_sfs/${aL} ${E1}/rootfs-skeleton/${aL%/*}/
+ fi
+done < ${L1}/rootfs/0rootfs-skeleton/skel-files
+sync
+
+#extras...
+cp -a -f --remove-destination ${L1}/rootfs/0rootfs-skeleton/extra/* ${E1}/rootfs-skeleton/
+
+#copy latest woofV...
+rm -rf ${E1}/rootfs-skeleton/usr/local/woofV 2>/dev/null
+cp -a -f --remove-destination /usr/local/woofV ${E1}/rootfs-skeleton/usr/local/
+
+#apply any desired updates...
+cp -a -f --remove-destination ${L1}/rootfs/0rootfs-skeleton/updates/* ${E1}/rootfs-skeleton/ 2>/dev/null
+#empty the updates folder in rootfs-skeleton...
+rm -rf ${E1}/rootfs-skeleton/usr/local/woofV/rootfs/0rootfs-skeleton/updates
+mkdir ${E1}/rootfs-skeleton/usr/local/woofV/rootfs/0rootfs-skeleton/updates
+sync
+
+###end###
