@@ -1,101 +1,158 @@
 #!/bin/ash
 #create /mnt/wkg/data/woofV/initrd/initrd-tree, hence file initrd.
 
-. /usr/local/woofV/configure/DISTRO_SPECS
+L1='/usr/local/woofV'
+. ${L1}/configure/DISTRO_SPECS
 case "$DISTRO_TARGETARCH" in
  amd64) xARCH='x86_64' ;;
  *)     xARCH="$DISTRO_TARGETARCH" ;;
 esac
 
-E1='/mnt/wkg/data/woofV/initrd'
-if [ -d ${E1} ];then
- rm -rf ${E1}
+E1='/mnt/wkg/data/woofV'
+E2='/mnt/wkg/data/woofV/initrd'
+if [ -d ${E2} ];then
+ rm -rf ${E2}
 fi
-mkdir -p ${E1}
+mkdir -p ${E2}
 
 ###copy skeleton initrd###
-E2="${E1}/initrd-tree"
-cp -a /usr/local/woofV/initrd/initrd-tree-skeleton ${E2}
+E3="${E2}/initrd-tree"
+cp -a /usr/local/woofV/initrd/initrd-tree-skeleton ${E3}
 sync
 
 ###get static binaries out of the initrd###
 echo 'Copying static binary executables out of /mnt/wkg/initrd...'
-mkdir ${E1}/initrd-skel-expanded
-cd ${E1}/initrd-skel-expanded
+mkdir ${E2}/initrd-skel-expanded
+cd ${E2}/initrd-skel-expanded
 cat /mnt/wkg/initrd | cpio -i -d -m
 sync
 for aF in argon2 busybox capsh dialog e2fsck fdisk fscryptctl gpg idump mke2fs mksquashfs mp readlink resize2fs tune2fs vercmp
 do
  if [ -f bin/${aF} ];then
-  cp -a -u bin/${aF} ${E2}/bin/
+  cp -a -u bin/${aF} ${E3}/bin/
  fi
 done
-cp -a -u bin/*.gz ${E2}/bin/ 2>/dev/null #some are compressed.
+cp -a -u bin/*.gz ${E3}/bin/ 2>/dev/null #some are compressed.
 sync
 cd ..
 rm -rf initrd-skel-expanded
 
 #some of them are gzipped...
 #gzipped was done to make smaller, but hassles, some have symlinks.
-cd ${E2}/bin
+cd ${E3}/bin
 for aGZ in `find . -maxdepth 1 -type f -name '*.gz' | tr '\n' ' '`
 do
  gunzip ${aGZ}
 done
-cd ${E1}
+cd ${E2}
 
 ###create busybox symlinks###
-echo "populating symlinks in ${E2}/bin..."
+echo "populating symlinks in ${E3}/bin..."
 
-if [ -f ${E2}/bin/ntfs-3g ];then
- ln -s ntfs-3g ${E2}/bin/mount.ntfs-3g
+if [ -f ${E3}/bin/ntfs-3g ];then
+ ln -s ntfs-3g ${E3}/bin/mount.ntfs-3g
 fi
 
-if [ -f ${E2}/bin/e2fsck ];then
- ln -s e2fsck ${E2}/bin/fsck.ext2
- ln -s e2fsck ${E2}/bin/fsck.ext3
- ln -s e2fsck ${E2}/bin/fsck.ext4
+if [ -f ${E3}/bin/e2fsck ];then
+ ln -s e2fsck ${E3}/bin/fsck.ext2
+ ln -s e2fsck ${E3}/bin/fsck.ext3
+ ln -s e2fsck ${E3}/bin/fsck.ext4
 fi
 
-if [ -f ${E2}/bin/coreutils ];then
- APPLETS="$(${E2}/bin/coreutils --help | grep basename | tr '[' ' ')"
+if [ -f ${E3}/bin/coreutils ];then
+ APPLETS="$(${E3}/bin/coreutils --help | grep basename | tr '[' ' ')"
  #ex: base32 base64 basename cat chcon chgrp chmod chown chroot cksum comm cp csplit cut date dd df dir dircolors dirname du echo env expand expr factor false fmt fold ginstall groups head hostid id join kill link ln logname ls md5sum mkdir mkfifo mknod mktemp mv nice nl nohup nproc numfmt od paste pathchk pinky pr printenv printf ptx pwd readlink realpath rm rmdir runcon seq sha1sum sha224sum sha256sum sha384sum sha512sum shred shuf sleep sort split stat stty sum sync tac tail tee test timeout touch tr true truncate tsort tty uname unexpand uniq unlink uptime users vdir wc who whoami yes
  for ONEAPPLET in $APPLETS
  do
-  [ -e ${E2}/bin/${ONEAPPLET} ] && continue
-  echo "#!/bin/coreutils --coreutils-prog-shebang=${ONEAPPLET}" > ${E2}/bin/${ONEAPPLET}
-  chmod 755 ${E2}/bin/${ONEAPPLET}
+  [ -e ${E3}/bin/${ONEAPPLET} ] && continue
+  echo "#!/bin/coreutils --coreutils-prog-shebang=${ONEAPPLET}" > ${E3}/bin/${ONEAPPLET}
+  chmod 755 ${E3}/bin/${ONEAPPLET}
  done
 fi
 
-if [ -f ${E2}/bin/busybox ];then
- APPLETS="$(${E2}/bin/busybox --list | tr '\n' ' ' | tr '[' ' ')"
+if [ -f ${E3}/bin/busybox ];then
+ APPLETS="$(${E3}/bin/busybox --list | tr '\n' ' ' | tr '[' ' ')"
  #ex: acpid addgroup adduser ash base64 basename bbconfig beep blkdiscard blkid blockdev bunzip2 bzcat bzip2 cal cat chgrp chmod chown chpasswd chroot chvt cksum clear cmp cp cpio crond crontab cryptpw cut date dc dd deallocvt delgroup deluser depmod devmem df dhcprelay diff dirname dmesg dnsdomainname dos2unix dpkg dpkg-deb du dumpkmap dumpleases echo ed egrep eject env expand expr false fatattr fbset fbsplash fdflush fdformat fdisk fgconsole fgrep find findfs flash_eraseall flash_lock flash_unlock flashcp fold free freeramdisk fsck fstrim fsync ftpget ftpput fuser getopt getty grep groups guess_fstype gunzip gzip halt hd hdparm head hexdump hostid hostname httpd hwclock i2cdetect i2cdump i2cget i2cset id ifconfig ifdown ifplugd ifup init inotifyd insmod ionice iostat ip ipaddr ipcalc iplink iproute iprule iptunnel kbd_mode kill killall klogd less linux32 linux64 linuxrc ln loadfont loadkmap logger login logname logread losetup ls lsmod lsof lspci lsusb lzcat lzma lzop lzopcat makedevs man md5sum mdev mesg microcom mkdir mkdosfs mke2fs mkfifo mkfs.ext2 mkfs.reiser mkfs.vfat mknod mkpasswd mkswap mktemp modinfo modprobe more mount mountpoint mpstat mv nameif nc netstat nice nohup nsenter nslookup od openvt passwd patch pgrep pidof ping ping6 pipe_progress pivot_root pkill pmap poweroff powertop printenv printf ps pscan pstree pwd pwdx rdate rdev readahead readlink realpath reboot renice reset resize rev rfkill rm rmdir rmmod route rpm rpm2cpio rtcwake run-parts sed seq setarch setconsole setfont setkeycodes setlogcons setserial sh sha1sum sha256sum sha3sum sha512sum showkey shuf sleep sort split start-stop-daemon stat strings stty su sulogin sum swapoff swapon switch_root sync sysctl syslogd tac tail tar tee telnet test tftp time timeout top touch tr traceroute traceroute6 true truncate tty ttysize tune2fs ubirename udhcpc udhcpd uevent umount uname uncompress unexpand uniq unix2dos unlink unlzma unlzop unshare unxz unzip uptime usleep uudecode uuencode vi vlock volname watch wc wget which whoami xargs xz xzcat yes zcat
  for ONEAPPLET in $APPLETS
  do
-  [ -e ${E2}/bin/${ONEAPPLET} ] && continue
-  ln -s busybox ${E2}/bin/${ONEAPPLET}
+  [ -e ${E3}/bin/${ONEAPPLET} ] && continue
+  ln -s busybox ${E3}/bin/${ONEAPPLET}
  done
- ln -s busybox "${E2}/bin/["
- ln -s busybox "${E2}/bin/[["
- ln -s ../bin/busybox ${E2}/sbin/chroot #must match host!
- ln -s ../bin/busybox ${E2}/sbin/getty
- ln -s ../bin/busybox ${E2}/sbin/init
- ln -s ../bin/busybox ${E2}/sbin/poweroff
- ln -s ../bin/busybox ${E2}/sbin/reboot
+ ln -s busybox "${E3}/bin/["
+ ln -s busybox "${E3}/bin/[["
+ ln -s ../bin/busybox ${E3}/sbin/chroot #must match host!
+ ln -s ../bin/busybox ${E3}/sbin/getty
+ ln -s ../bin/busybox ${E3}/sbin/init
+ ln -s ../bin/busybox ${E3}/sbin/poweroff
+ ln -s ../bin/busybox ${E3}/sbin/reboot
 fi
 sync
 
 ###DISTRO_SPECS###
-cp -a -f /usr/local/woofV/configure/DISTRO_SPECS ${E2}/etc/
+cp -a -f /usr/local/woofV/configure/DISTRO_SPECS ${E3}/etc/
 DATE="$(date +%y%m%d)" #ex: 240128
-echo "$DATE" > ${E1}/DATEinitrd
-sed -i -e "s%^DISTRO_VERSION=.*%DISTRO_VERSION=${DATE}%" ${E2}/etc/DISTRO_SPECS
+echo "$DATE" > ${E2}/DATEinitrd
+sed -i -e "s%^DISTRO_VERSION=.*%DISTRO_VERSION=${DATE}%" ${E3}/etc/DISTRO_SPECS
 sed -i -e "s%^DISTRO_VERSION=.*%DISTRO_VERSION=${DATE}%" /usr/local/woofV/configure/DISTRO_SPECS
 
+#replace "EasyOS" in translation strings...
+#also replace "easy.sfs"
+cd ${E2}/initrd-tree
+if [ "${DISTRO_NAME_NORMAL}" != "EasyOS" ];then
+ for aSTR in $(find nls -type f -name 'init.str' | tr '\n' ' ')
+ do
+  sed -i -e "s%EasyOS%${DISTRO_NAME_NORMAL}%g" $aSTR
+  sed -i -e "s%easy\.sfs%${DISTRO_NAME_SHORT,,}.sfs%g" $aSTR
+ done
+ for aSCRIPT in init sbin/uninstall sbin/rollback sbin/fixlayers sbin/ask-language sbin/fscheck skeleton/containers/easy/bk-notes skeleton/containers/console/bk-notes
+ do
+  sed -i -e "s%easy\.sfs%${DISTRO_NAME_SHORT,,}.sfs%g" $aSCRIPT
+ done
+fi
+
+#190123 need easy.png here, as initrd will copy easy.sfs here at 1st bootup...
+mkdir -p sfs/easyos/${DISTRO_BINARY_COMPAT}/${DISTRO_COMPAT_VERSION}
+cp -f ${L1}/rootfs/0rootfs-skeleton/extra/usr/share/doc/colors/grey/easy48.png sfs/easyos/${DISTRO_BINARY_COMPAT}/${DISTRO_COMPAT_VERSION}/easy.png
+#also need easy_${DISTRO_VERSION}_${DISTRO_TARGETARCH}.specs, but as that will need
+#to be generated at every upgrade (update initrd etc files in boot-partition),
+#it is being generated in init script, initrd (see same date 190123).
+
+#190911 change name of pre-created "easy" container, to "pyro" or "buster"...
+mv -f skeleton/containers/easy skeleton/containers/${DISTRO_COMPAT_VERSION}
+echo "#these variables read by ec-fix-desktop via /root/.xinitc when X starts.
+#the icon is created in woofq, 3buildeasydistro.
+#as this is a pre-created container, ec-chroot-${DISTRO_COMPAT_VERSION} is created in woofq by 3buildeasydistro.
+EC_LABEL=${DISTRO_COMPAT_VERSION}
+EC_PATH=/usr/sbin/ec-chroot-${DISTRO_COMPAT_VERSION}
+EC_ICON=/usr/local/lib/X11/pixmaps/ec-easy48.png" > skeleton/containers/${DISTRO_COMPAT_VERSION}/desktop
+
+#***TODO*** move away from having this in initrd
+cp -a -f ${L1}/configure/DISTRO_SPECS etc/
+
+#20230125 escape single-quote chars in translations. ' replaced with '\''
+#20230211 fix if ' missing on end. also folder hierarchy changed.
+for aNLS in `ls -1 nls/*/*str`
+do
+ sed -i -e "s%\(^S[0-9][0-9][0-9]\) %\1='%" $aNLS #fix space after variable.
+ sed -i -e "s%\([^']\)$%\1'%" $aNLS #make sure ' on end.
+ sed -i -e "s%='%=___%" -e "s%'$%___%" -e "s%'%'\\\''%g" -e "s%___%'%g" $aNLS
+done
+
+#20230220 /sbin/ask-language in initrd wants this...
+cp -a -f ${L1}/configure/build-choices ./
+
+#20230416 pre-populate sfs .png and .specs files...
+for aF in $(find /mnt/wkg/sfs -type f -name '*.png' -o -name '*.specs' | sed -e 's%/mnt/wkg/sfs/%%' | tr '\n' ' ')
+do
+ aD="$(dirname $aF)"
+ mkdir -p skeleton/${aD}
+ cp -f /mnt/wkg/sfs/${aF} skeleton/${aD}/
+done
+
+
 ###create file initrd###
-echo "Creating ${E1}/initrd ..."
-cd ${E1}/initrd-tree
+echo "Creating ${E2}/initrd ..."
+cd ${E2}/initrd-tree
 find . | cpio -o -H newc > ../initrd
 sync
 cd ..
