@@ -26,7 +26,6 @@ mkdir -p ${E1}/dl-txz
 mkdir -p ${E1}/rootfs/repo
 mkdir -p /tmp/woofV
 mkdir -p ${E1}/sandbox
-rm -f ${E1}/sandbox/pinstall.sh 2>/dev/null
 
 echo "$(LANG=${LANGorig} gettext 'Installing pkgs to:') ${E1}/rootfs"
 
@@ -321,9 +320,31 @@ do
  esac
 done < ${E1}/woof-installed-packages-dep-order
 
-#do this to entire rootfs...
-#      #fix .desktop files to suit EasyOS menu hierarchy...
-#      /usr/local/woofV/pkg-fix/dot-desktop-fix ${E1}/sandbox/${Pdir}
-# remove many sizes from /usr/share/icons
-# fix any cicular symlinks --see code at end of 2create-start-rootfs
+###post-processing###
 
+#delete any circular symlinks...
+echo "Looking for circular symlinks"
+FNDall="$(busybox find rootfs -mindepth 1 -maxdepth 4 -type d 2>/dev/null | busybox xargs -I ZZZ busybox find ZZZ -mindepth 1 -maxdepth 1 -follow 2>&1)"
+#ex: usr/lib/ld-linux-x86-64.so.2 symlink to ../../lib/ld-linux-x86-64.so.2
+# busybox find: find: rootfs/usr/lib/ld-linux-x86-64.so.2: Symbolic link loop
+# full find: find: ‘rootfs/usr/lib/ld-linux-x86-64.so.2’: Too many levels of symbolic links
+LNKcirc="$(echo "$FNDall" | grep 'Symbolic link loop' | cut -f 2 -d ' ' | cut -f 1 -d ':' | tr '\n' ' ')"
+for aLNK in $LNKcirc
+do
+ rm -f ./${aLNK}
+done
+
+#packages-templates and pet pkgs may have these. accumulated...
+if [ -s ${E1}/sandbox/pinstall.sh ];then
+ echo "Executing ${E1}/sandbox/pinstall.sh"
+ cd ${E1}/rootfs
+ /bin/sh ../sandbox/pinstall.sh
+fi
+
+cd ${E1}
+#copy the skeleton, yes, again, as a pkg may have overwritten a skeleton file...
+cp -a -f --remove-destination rootfs-skeleton/* rootfs/
+sync
+
+#post-processing continues in 4post-process-rootfs
+###end###

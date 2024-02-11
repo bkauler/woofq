@@ -147,18 +147,16 @@ sync
 #openssl run-parts ca-certificates install bzip2 liblz4 liblzma libzstd zlib
 #libarchive libxbps xbps    
 
+#20230222 merge usr/share/locale.in into usr/share/locale
+cp -a -f --remove-destination rootfs/usr/share/locale/* rootfs/usr/share/locale.in/
+sync
+rm -rf rootfs/usr/share/locale
+mv -f rootfs/usr/share/locale.in rootfs/usr/share/locale
+
+mkdir -p sandbox
+rm -f sandbox/pinstall.sh 2>/dev/null
+mv -f rootfs/pinstall.sh sandbox/
 
 exit
 ####
-
-#delete any circular symlinks...
-FNDall="$(busybox find rootfs -mindepth 1 -maxdepth 4 -type d 2>/dev/null | busybox xargs -I ZZZ busybox find ZZZ -mindepth 1 -maxdepth 1 -follow 2>&1)"
-#ex: usr/lib/ld-linux-x86-64.so.2 symlink to ../../lib/ld-linux-x86-64.so.2
-# busybox find: find: rootfs/usr/lib/ld-linux-x86-64.so.2: Symbolic link loop
-# full find: find: ‘rootfs/usr/lib/ld-linux-x86-64.so.2’: Too many levels of symbolic links
-LNKcirc="$(echo "$FNDall" | grep 'Symbolic link loop' | cut -f 2 -d ' ' | cut -f 1 -d ':' | tr '\n' ' ')"
-for aLNK in $LNKcirc
-do
- rm -f ./${aLNK}
-done
 

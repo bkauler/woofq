@@ -1,0 +1,942 @@
+#!/bin/bash
+#rootfs has been populated by 3populate-rootfs
+#now perform post-processing, prior to building easy.sfs
+
+export TEXTDOMAIN=woofV
+export OUTPUT_CHARSET=UTF-8
+LANGorig="$LANG"
+export LANG=C
+
+. /etc/rc.d/PUPSTATE
+
+E1='/mnt/wkg/data/woofV'
+L1='/usr/local/woofV'
+mkdir -p /tmp/woofV
+
+. ${L1}/configure/DISTRO_SPECS
+. ${L1}/configure/DISTRO_PET_REPOS
+. ${L1}/configure/build-choices
+. ${L1}/configure/default-theme
+
+#sanity check that busybox applets not overwritten others...
+cd ${E1}
+LNK="$(readlink rootfs/usr/bin/depmod)"
+if [ "$LNK" != "kmod" ];then
+ echo "ERROR: rootfs/usr/bin/depmod not link to kmod"
+ exit 1
+fi
+rootfs/usr/bin/readlink --version | grep -q 'coreutils'
+if [ $? -ne 0 ];then
+ echo "ERROR: rootfs/usr/bin/readlink not full version from coreutils"
+ exit 1
+fi
+
+#install kernel modules...
+cd ${E1}/sandbox
+download_file https://distro.ibiblio.org/easyos/${DISTRO_TARGETARCH}/packages/pet/pet_packages-void/${DISTRO_KERNEL_PET}
+[ $? -ne 0 ] && exit 1
+tar -xf ${DISTRO_KERNEL_PET} 2>dev/null
+sync
+rm -f ${DISTRO_KERNEL_PET}
+mkdir -p ${E1}/rootfs/etc/modules
+cp -a -f ${DISTRO_KERNEL_PET/.pet/}/etc/modules/* ${E1}/rootfs/etc/modules/
+mkdir -p ${E1}/rootfs/usr/lib/modules
+cp -a -f ${DISTRO_KERNEL_PET/.pet/}/lib/modules/* ${E1}/rootfs/usr/lib/modules/
+FND1="$(find ${DISTRO_KERNEL_PET/.pet/}/lib/modules -mindepth 1 -maxdepth 1 -type d)"
+KERNVER="${FND1##*/}"
+cp -a -f ${DISTRO_KERNEL_PET/.pet/}/etc/modules/modules.builtin ${E1}/rootfs/usr/lib/modules/${KERNVER}/
+cp -a -f ${DISTRO_KERNEL_PET/.pet/}/etc/modules/modules.order ${E1}/rootfs/usr/lib/modules/${KERNVER}/
+sync
+depmod -b ${E1}/rootfs -F ${DISTRO_KERNEL_PET/.pet/}/boot/System.map ${KERNVER}
+
+#also get out the linux kernel...
+cp -a -f ${DISTRO_KERNEL_PET/.pet/}/boot/vmlinuz ./
+
+cd ${E1}
+
+#delete invalid symlinks...
+echo '#!/bin/ash
+while read aS
+do
+ readlink -e "$aS"
+ if [ $? -ne 0 ];then
+  rm -f "$aS"
+ fi
+done _EOL
+$(find . -type l)
+_EOL' > rootfs/del-invalid-syms
+chmod 755 rootfs/del-invalid-syms
+chroot rootfs ./del-invalid-syms
+rm -f rootfs/del-invalid-syms
+
+#all config files are in rootfs/.packages...
+mkdir -p rootfs/.packages
+cp -a -f ${L1}/configure/* rootfs/.packages/
+cp -a ${E1}/woof-installed-packages rootfs/.packages/
+cp -a ${E1}/woof-installed-packages-dep-order rootfs/.packages/
+cp -a ${E1}/devx-only-installed-packages rootfs/.packages/
+
+#create rootfs/etc/ld.so.cache ...
+chroot rootfs /usr/bin/ldconfig
+
+#create rootfs/root/.jwmrc
+chroot rootfs /usr/bin/fixmenus
+
+[ -e rootfs/etc/cron.daily ] && rm -rf rootfs/etc/cron.daily
+
+#make sure these are overwritten...
+cp -a -f rootfs-skeleton/etc/ssh/* rootfs/etc/ssh/
+
+#setup default theme...
+. ${L1}/configure/default-theme
+BACKGROUNDIMAGE="$(echo -n "$DEFAULT_THEME_WALLPAPER" | cut -f 2 -d ':')"
+DESKICONS="$(echo -n "$DEFAULT_THEME_DESK_ICONS" | cut -f 2 -d ':')"
+GTKTHEME="$(echo -n "$DEFAULT_THEME_GTK2" | cut -f 2 -d ':')"
+JWMTHEME="$(echo -n "$DEFAULT_THEME_JWM" | cut -f 2 -d ':')"
+OBTHEME="$(echo -n "$DEFAULT_THEME_OPENBOX" | cut -f 2 -d ':')"
+case $BACKGROUNDIMAGE in
+ *.png|*.PNG)
+  mv -f rootfs/usr/share/backgrounds/$BACKGROUNDIMAGE rootfs/usr/share/backgrounds/default.png
+  sed -i -e 's%default\.jpg%default.png%' rootfs/root/Choices/ROX-Filer/PuppyPin
+  #i don't know what uses this, but change it anyway...
+  sed -i -e 's%default\.jpg%default.png%' rootfs/etc/Puppybackgroundpicture
+  #20220325 for case of rox handling the wallpaper...
+  sed -i -e 's%default\.jpg%default.png%' rootfs/root/.jwm/jwmrc-personal
+ ;;
+ *)
+  mv -f rootfs/usr/share/backgrounds/$BACKGROUNDIMAGE rootfs/usr/share/backgrounds/default.jpg
+ ;;
+esac
+echo "# -- THEME AUTO-WRITTEN DO NOT EDIT
+include \"/usr/share/themes/${GTKTHEME}/gtk-2.0/gtkrc\"
+
+include \"/root/.gtkrc.mine\"
+
+# -- THEME AUTO-WRITTEN DO NOT EDIT
+gtk-theme-name=\"${GTKTHEME}\"" > rootfs/root/.gtkrc-2.0
+#also have global...
+cp -a -f rootfs/root/.gtkrc-2.0 rootfs/etc/gtk-2.0/gtkrc
+if [ "$DEFAULT_THEME_GTK3" ];then
+ #ex: gtk_theme_clearlooks_overcast:Clearlooks-Overcast
+ sed -i -e "s%^gtk-theme-name .*%gtk-theme-name = ${DEFAULT_THEME_GTK3/*:/}%" rootfs/etc/gtk-3.0/settings.ini
+fi
+if [ "$DEFAULT_GTK3_FONT_NAME" ];then
+ sed -i -e "s%^gtk-font-name .*%gtk-font-name = ${DEFAULT_GTK3_FONT_NAME}%" rootfs/etc/gtk-3.0/settings.ini
+fi
+echo -n "$DESKICONS" > rootfs/etc/desktop_icon_theme
+if [ -d rootfs/root/.jwm/themes ];then
+ cp -f rootfs/root/.jwm/themes/${JWMTHEME}-jwmrc rootfs/root/.jwm/jwmrc-theme
+ cp -f rootfs/root/.jwm/themes/${JWMTHEME}-colors rootfs/root/.jwm/jwm_colors 2>/dev/null
+fi
+if [ -f rootfs/root/.config/openbox/rc.xml ];then
+ obPATTERN="s%Natura%${OBTHEME}%"
+ sed -i -e "$obPATTERN" rootfs/root/.config/openbox/rc.xml
+fi
+#have copied code from icon_switcher_cli to here, modified...
+NEWTHEME="$DESKICONS" #see above
+for ONESVG in `find rootfs/usr/local/lib/X11/themes/${NEWTHEME}/ -maxdepth 1 -type f -name \*.svg | tr '\n' ' '`
+do
+ ONEBASENAME="`basename $ONESVG .svg`"
+ rm -f rootfs/usr/local/lib/X11/pixmaps/${ONEBASENAME}48.png
+ rsvg-convert -w 48 -h 48 -o rootfs/usr/local/lib/X11/pixmaps/${ONEBASENAME}48.png $ONESVG
+ rm -f rootfs/usr/local/lib/X11/pixmaps/${ONEBASENAME}24.png
+ rsvg-convert -w 24 -h 24 -o rootfs/usr/local/lib/X11/pixmaps/${ONEBASENAME}24.png $ONESVG
+done
+for ONEPNG in `find rootfs/usr/local/lib/X11/themes/${NEWTHEME}/ -maxdepth 1 -type f -name \*.png | tr '\n' ' '`
+do
+ ONEBASENAME="`basename $ONEPNG .png`"
+ cp -f $ONEPNG rootfs/usr/local/lib/X11/pixmaps/
+ touch -m rootfs/usr/local/lib/X11/pixmaps/${ONEBASENAME}.png
+ xONEBASENAME="`basename $ONEBASENAME 48`"
+ if [ "$xONEBASENAME" != "$ONEBASENAME" ];then #scale to 24 pixels...
+  pngtopnm -alpha $ONEPNG > /tmp/temp.pbm #separate transparency channel.
+  pnmscale -reduce 2 /tmp/temp.pbm > /tmp/temp2.pbm 2> /dev/null
+  pngtopnm $ONEPNG | pnmscale -reduce 2 2>/dev/null | pnmtopng -alpha=/tmp/temp2.pbm > rootfs/usr/local/lib/X11/pixmaps/${xONEBASENAME}24.png
+  touch -m rootfs/usr/local/lib/X11/pixmaps/${xONEBASENAME}24.png
+ fi
+done
+#if these not in the theme, create them (see also /usr/sbin/icon_switcher)...
+[ ! -f rootfs/usr/local/lib/X11/pixmaps/drives48.png ] && cp -f rootfs/usr/local/lib/X11/pixmaps/drive48.png rootfs/usr/local/lib/X11/pixmaps/drives48.png 2>/dev/null
+[ ! -f rootfs/usr/local/lib/X11/pixmaps/folders48.png ] && cp -f rootfs/usr/local/lib/X11/pixmaps/folder48.png rootfs/usr/local/lib/X11/pixmaps/folders48.png 2>/dev/null
+[ ! -f rootfs/usr/local/lib/X11/pixmaps/drives24.png ] && cp -f rootfs/usr/local/lib/X11/pixmaps/drive24.png rootfs/usr/local/lib/X11/pixmaps/drives24.png 2>/dev/null
+[ ! -f rootfs/usr/local/lib/X11/pixmaps/folders24.png ] && cp -f rootfs/usr/local/lib/X11/pixmaps/folder24.png rootfs/usr/local/lib/X11/pixmaps/folders24.png 2>/dev/null
+PNGOVERLAYEXE="/usr/bin/pngoverlay-cairo"
+if [ -e rootfs/usr/local/lib/X11/pixmaps/closebox_outline48.png ];then
+ rm -f rootfs/usr/local/lib/X11/pixmaps/*_mntd*.png
+ cd rootfs/usr/local/lib/X11/pixmaps
+ for ONEDRV in card drive floppy optical usbdrv
+ do
+  ${PNGOVERLAYEXE} ${ONEDRV}48.png closebox_outline48.png ${ONEDRV}_mntd48.png #background foreground output.
+  ${PNGOVERLAYEXE} ${ONEDRV}48.png locked_outline48.png ${ONEDRV}_mntd_boot48.png
+ done
+ cd ../../../../../../
+fi
+#modify jwm to use menu icon 'start-button.png' if present...
+#note, similar code also in /usr/sbin/icon_switcher (desktop icon switcher script).
+if [ -f rootfs/root/.jwmrc-tray ];then
+ if [ -f rootfs/usr/local/lib/X11/${NEWTHEME}/start-button.png ];then #default theme has menu icon.
+  if [ -f rootfs/usr/local/lib/X11/pixmaps/start-button.png ];then #precaution.
+   if [ "`grep 'start-button\.png' rootfs/root/.jwmrc-tray`" = "" ];then
+    #the default is to use 'mini-dog.xpm' with text "Menu"...
+    echo "rootfs/root/.jwmrc-tray modified to use start-button.png menu icon"
+    echo "(which is in rootfs/usr/local/lib/X11/pixmaps/)"
+    PTN1='s%label="Menu" icon="mini-dog\.xpm"%icon="start-button.png"%'
+    sed -i -e "$PTN1" rootfs/root/.jwmrc-tray
+   fi
+  fi
+ fi
+fi
+#set colors of xload in jwm tray. ref file 'default-theme'
+if [ "$DEFAULT_COLOR_JWM_XLOAD" ];then #ex: -bg "#ff9d63" -fg red -hl white
+ if [ -f rootfs/root/.jwmrc-tray ];then
+  sed -i -e "s%xload -nolabel .*%xload -nolabel ${DEFAULT_COLOR_JWM_XLOAD}%" rootfs/root/.jwmrc-tray
+ fi
+fi
+
+#set .jwmrc-tray defaults...
+if [ -f rootfs/etc/uimanager ];then
+. rootfs/etc/uimanager
+ if [ -f rootfs/root/.jwmrc-tray ];then
+  case "$UI_DESK_MANAGER" in
+   jwm)
+    sed -i -e '/root:3/s/label=/popup=/' rootfs/root/.jwmrc-tray
+    sed -i -e '/<TaskList /s/labeled="true"/labeled="false"/' rootfs/root/.jwmrc-tray
+    ###***TODO: set width***
+   ;;
+   *) #rox, icons on desktop.
+    sed -i -e '/root:3/s/popup=/label=/' rootfs/root/.jwmrc-tray
+    sed -i -e '/<TaskList /s/labeled="false"/labeled="true"/' rootfs/root/.jwmrc-tray
+   ;;
+  esac
+ fi
+fi
+
+#easier if create a symlink...
+ln -s rootfs rootfs-complete
+
+#rox text theme; refer file 'default-theme' ...
+if [ "$DEFAULT_THEME_ROX_TEXT_FOREGROUND" ];then # black=#000000000000 white=#ffffffffffff
+ grep -v 'pinboard_fg_colour' rootfs-complete/root/.config/rox.sourceforge.net/ROX-Filer/Options > /tmp/3builddistro_rox_options1
+ grep -v '^</Options>' /tmp/3builddistro_rox_options1 > rootfs-complete/root/.config/rox.sourceforge.net/ROX-Filer/Options
+ echo "  <Option name=\"pinboard_fg_colour\">${DEFAULT_THEME_ROX_TEXT_FOREGROUND}</Option>" >> rootfs-complete/root/.config/rox.sourceforge.net/ROX-Filer/Options
+ echo '</Options>' >> rootfs-complete/root/.config/rox.sourceforge.net/ROX-Filer/Options
+else
+ echo 'ROX: Using black text, as no DEFAULT_THEME_ROX_TEXT_FOREGROUND in default-theme'
+fi
+if [ "$DEFAULT_THEME_ROX_TEXT_SHADOW" ];then # none=0 thin=  thick=
+ grep -v 'pinboard_shadow_labels' rootfs-complete/root/.config/rox.sourceforge.net/ROX-Filer/Options > /tmp/3builddistro_rox_options1
+ grep -v '^</Options>' /tmp/3builddistro_rox_options1 > rootfs-complete/root/.config/rox.sourceforge.net/ROX-Filer/Options
+ echo "  <Option name=\"pinboard_shadow_labels\">${DEFAULT_THEME_ROX_TEXT_SHADOW}</Option>" >> rootfs-complete/root/.config/rox.sourceforge.net/ROX-Filer/Options
+ echo '</Options>' >> rootfs-complete/root/.config/rox.sourceforge.net/ROX-Filer/Options
+else
+ echo 'ROX: Using thin-shadow, as no DEFAULT_THEME_ROX_TEXT_SHADOW in default-theme'
+fi
+if [ "$DEFAULT_THEME_ROX_TEXT_FONT" ];then
+ grep -v 'label_font' rootfs-complete/root/.config/rox.sourceforge.net/ROX-Filer/Options > /tmp/3builddistro_rox_options1
+ grep -v '^</Options>' /tmp/3builddistro_rox_options1 > rootfs-complete/root/.config/rox.sourceforge.net/ROX-Filer/Options
+ echo "  <Option name=\"label_font\">${DEFAULT_THEME_ROX_TEXT_FONT}</Option>" >> rootfs-complete/root/.config/rox.sourceforge.net/ROX-Filer/Options
+ echo '</Options>' >> rootfs-complete/root/.config/rox.sourceforge.net/ROX-Filer/Options
+else
+ echo 'ROX: Using DejaVu Sans 10, as no DEFAULT_THEME_ROX_TEXT_FONT in default-theme'
+fi
+rm -f /tmp/3builddistro_rox_options1 2>/dev/null
+
+#locale setup...
+#create a table for dialog/Xdialog: /usr/share/i18n/dialog_table
+echo "Locale setup in rootfs-complete..."
+echo "  EXECUTING: chroot rootfs-complete /usr/sbin/chooselocale composeonly"
+chroot rootfs-complete /usr/sbin/chooselocale composeonly
+#instead of creating /usr/lib/locale/en_US at first boot, do it now...
+echo "  EXECUTING: chroot rootfs-complete /usr/bin/localedef  -f ISO-8859-1 -i en_US --no-archive en_US"
+chroot rootfs-complete /usr/bin/localedef  -f ISO-8859-1 -i en_US --no-archive en_US
+#and en_US.utf8 (read from LANG in rootfs-complete/etc/profile)...
+echo "  EXECUTING: chroot rootfs-complete /usr/sbin/chooselocale cli quiet"
+chroot rootfs-complete /usr/sbin/chooselocale cli quiet
+# ...also generates rootfs-complete/root/.jwmrc
+
+
+#fix cups for samba, got this code from /usr/sbin/cups_shell...
+#fixes from rcrsn51 for samba printing...
+if [ -f rootfs-complete/etc/cups/snmp.conf ];then
+ [ "`stat --format=%U%G rootfs-complete/etc/cups/snmp.conf | grep 'UNKNOWN'`" != "" ] && chown root:nobody rootfs-complete/etc/cups/snmp.conf
+fi
+if [ ! -e rootfs-complete/usr/lib/cups/backend/smb ];then
+ [ -f rootfs-complete/opt/samba/bin/smbspool ] && ln -s /opt/samba/bin/smbspool rootfs-complete/usr/lib/cups/backend/smb
+ [ -f rootfs-complete/usr/bin/smbspool ] && ln -s /usr/bin/smbspool rootfs-complete/usr/lib/cups/backend/smb
+fi
+[ -f rootfs-complete/etc/opt/samba/smb.conf ] && chmod 755 rootfs-complete/etc/opt/samba/smb.conf #need world-readable.
+[ -f rootfs-complete/etc/samba/smb.conf ] && chmod 755 rootfs-complete/etc/samba/smb.conf #need world-readable.
+
+#/tmp needs 777 permissions. i do have this in rootfs-skeleton, but lost in sandbox3/rootfs-complete
+# (http://murga-linux.com/puppy/viewtopic.php?t=72258&start=90)
+#01micko: make that 1777 ref: http://murga-linux.com/puppy/viewtopic.php?p=677630#677630
+chmod 1777 rootfs-complete/tmp
+chmod 777 rootfs-complete/var
+
+#check that all files stripped...
+find rootfs-complete/usr/bin -maxdepth 1 -type f |
+while read ONEFILE
+do
+ ONEBASE="`basename "$ONEFILE"`"
+ [ "$ONEBASE" = "e3" ] && continue #v431 cannot be stripped.
+ [ "$ONEBASE" = "QtWeb" ] && continue #130721 cannot be stripped.
+ if [ "`file "$ONEFILE" | grep 'ELF' | grep 'executable'`" != "" ];then
+  echo -n "$ONEBASE "
+  #strip --strip-unneeded "$ONEFILE"
+  strip "$ONEFILE"
+ fi
+done
+echo
+find rootfs-complete/usr/lib -type f -name \*.so* |
+while read ONEFILE
+do
+ ONEBASE="`basename "$ONEFILE"`"
+ if [ "`file "$ONEFILE" | grep 'ELF' | grep 'shared object'`" != "" ];then
+  echo -n "$ONEBASE "
+  #strip --strip-unneeded "$ONEFILE"
+  strip "$ONEFILE"
+ fi
+done
+echo
+
+#create font cache for fontconfig (in /var/cache/fontconfig)...
+echo
+echo "Creating Fontconfig cache files..."
+rm -rf rootfs-complete/var/cache/fontconfig
+mkdir -p rootfs-complete/var/cache/fontconfig
+chroot rootfs-complete /usr/bin/fc-cache -s -v
+
+#/root/var; see also rc.sysinit, rc.shutdown
+mkdir rootfs-complete/root/.var
+cp -a rootfs-complete/var/cache rootfs-complete/root/.var/
+cp -a rootfs-complete/var/lock rootfs-complete/root/.var/
+
+#110622 /etc/rc.d/rc.update executes:  gdk-pixbuf-query-loaders > /etc/gtk-2.0/gdk-pixbuf.loaders  131229 now done below.
+#however, mageia1 requires above file to be at /usr/lib/gdk-pixbuf-2.0/2.10.0/loaders.cache
+#create a symlink...
+VERDIR=''
+if [ -d rootfs-complete/usr/lib/gdk-pixbuf-2.0 ];then
+ [ ! -f rootfs-complete/etc/gtk-2.0/gdk-pixbuf.loaders ] && touch rootfs-complete/etc/gtk-2.0/gdk-pixbuf.loaders
+ PIXBUFLOADERSDIR="`find rootfs-complete/usr/lib/gdk-pixbuf-2.0 -maxdepth 2 -mindepth 2 -type d -name loaders | head -n 1`"
+ if [ "$PIXBUFLOADERSDIR" ];then
+  PIXBUFCACHEDIR="`dirname $PIXBUFLOADERSDIR`"
+  VERDIR="`basename $PIXBUFCACHEDIR`" #2.10.0
+  ln -snf ../../../../etc/gtk-2.0/gdk-pixbuf.loaders ${PIXBUFCACHEDIR}/loaders.cache #110903 change -s to -snf
+  #there may be some loaders in wrong place...
+  [ -d rootfs-complete/usr/lib/gtk-2.0/loaders ] && mv -f rootfs-complete/usr/lib/gtk-2.0/loaders/*.so ${PIXBUFLOADERSDIR}/ 2>/dev/null
+  if [ -d rootfs-complete/usr/lib/gtk-2.0/${VERDIR}/loaders ];then
+   #150726 with devx merged, have a .la file also in here...
+   mv -f rootfs-complete/usr/lib/gtk-2.0/${VERDIR}/loaders/* ${PIXBUFLOADERSDIR}/ 2>/dev/null #150726
+   rmdir rootfs-complete/usr/lib/gtk-2.0/${VERDIR}/loaders #111114
+  fi
+  ln -s ../../gdk-pixbuf-2.0/${VERDIR}/loaders rootfs-complete/usr/lib/gtk-2.0/${VERDIR}/loaders #111114
+ fi
+fi
+chroot rootfs-complete gdk-pixbuf-query-loaders > /tmp/gdk-pixbuf.loaders
+cp -a -f /tmp/gdk-pixbuf.loaders rootfs-complete/etc/gtk-2.0/gdk-pixbuf.loaders
+
+#delete some icons...
+for aI in 512x512 256x256 128x128 72x72 32x32 8x8
+do
+ if [ -d rootfs-complete/usr/share/icons/hicolor/${aI} ];then
+  find rootfs-complete/usr/share/icons/hicolor/${aI} -type f -delete
+ fi
+ if [ -d rootfs-complete/usr/share/icons/Adwaita/${aI} ];then
+  find rootfs-complete/usr/share/icons/Adwaita/${aI} -type f -delete
+ fi
+ if [ -d rootfs-complete/usr/share/icons/gnome/${aI} ];then
+  find rootfs-complete/usr/share/icons/gnome/${aI} -type f -delete
+ fi
+done
+
+#gtk icon cache...
+if [ ! -e rootfs-complete/usr/bin/gtk-update-icon-cache ];then
+ if [ -e rootfs-complete/usr/bin/gtk-update-icon-cache-2.0 ];then
+  ln -s gtk-update-icon-cache-2.0 rootfs-complete/usr/bin/gtk-update-icon-cache
+ elif [ -e rootfs-complete/usr/bin/gtk-update-icon-cache-3.0 ];then
+  ln -s gtk-update-icon-cache-3.0 rootfs-complete/usr/bin/gtk-update-icon-cache
+ elif [ -e rootfs-complete/usr/bin/gtk-update-icon-cache-4.0 ];then
+  ln -s gtk-update-icon-cache-4.0 rootfs-complete/usr/bin/gtk-update-icon-cache
+ fi
+fi
+chroot rootfs-complete /usr/bin/gtk-update-icon-cache -f /usr/share/icons/hicolor/
+chroot rootfs-complete /usr/bin/gtk-update-icon-cache -f /usr/share/icons/Adwaita/
+if [ -d rootfs-complete/usr/share/icons/gnome ];then
+ chroot rootfs-complete /usr/bin/gtk-update-icon-cache -f /usr/share/icons/gnome/
+fi
+
+#gtk immodules
+chroot rootfs-complete /usr/bin/gtk-query-immodules-2.0 > /tmp/gtk.immodulesTEMP
+cp -a -f /tmp/gtk.immodulesTEMP rootfs-complete/etc/gtk-2.0/gtk.immodules
+if [ "$VERDIR" ];then #161230
+ ln -snf ../../../../etc/gtk-2.0/gtk.immodules rootfs-complete/usr/lib/gtk-2.0/${VERDIR}/gtk.immodules
+fi
+
+#xorg 1st startup... not using these...
+rm -f rootfs-complete/etc/X11/xorg.conf-auto-pc-modesetting
+rm -f rootfs-complete/etc/X11/xorg.conf-auto-pc-vesa
+
+#110213 fix if .utf8 entries missing...
+if [ "`grep 'nb_NO\.utf8' rootfs-complete/usr/share/X11/locale/locale.alias`" = "" ];then
+ echo 'nb_NO.utf8:					nb_NO.UTF-8' >> rootfs-complete/usr/share/X11/locale/locale.alias
+fi
+if [ "`grep 'nn_NO\.utf8' rootfs-complete/usr/share/X11/locale/locale.alias`" = "" ];then
+ echo 'nn_NO.utf8:					nn_NO.UTF-8' >> rootfs-complete/usr/share/X11/locale/locale.alias
+fi
+if [ "`grep 'ru_UA\.utf8' rootfs-complete/usr/share/X11/locale/locale.alias`" = "" ];then
+ echo 'ru_UA.utf8:					ru_UA.UTF-8' >> rootfs-complete/usr/share/X11/locale/locale.alias
+fi
+if [ "`grep 'ru_RU\.utf8' rootfs-complete/usr/share/X11/locale/locale.alias`" = "" ];then
+ echo 'ru_RU.utf8:					ru_RU.UTF-8' >> rootfs-complete/usr/share/X11/locale/locale.alias
+fi
+
+#20240209 ***think more about this!*** 
+#110417 this may be helpful for more apps than Thunar...
+#this will make Thunar use ROX-Filer's icons for files...
+if [ -d rootfs-complete/usr/local/apps/ROX-Filer/ROX/MIME ];then
+ if [ ! -e rootfs-complete/usr/share/icons/hicolor/48x48/mimetypes ];then
+  ln -s ../../../../local/apps/ROX-Filer/ROX/MIME rootfs-complete/usr/share/icons/hicolor/48x48/mimetypes
+ fi
+fi
+
+#fix just in case...
+busybox chown -h -R spot:spot rootfs-complete/home/spot
+
+#110429 this is difficult. may need a fix, think want glibc scsi headers in usr/include/scsi...
+mkdir -p devx/usr/include
+if [ -d ../packages-${DISTRO_FILE_PREFIX}/linux_headers_DEV/usr/include/scsi ];then
+ cp -a ../packages-${DISTRO_FILE_PREFIX}/linux_headers_DEV/usr/include/scsi devx/usr/include/scsi-KERNEL
+fi
+if [ -d ../packages-${DISTRO_FILE_PREFIX}/linux-header_DEV/usr/include/scsi ];then
+ cp -a ../packages-${DISTRO_FILE_PREFIX}/linux-header_DEV/usr/include/scsi devx/usr/include/scsi-KERNEL
+fi
+if [ -d ../packages-${DISTRO_FILE_PREFIX}/glibc_DEV/usr/include/scsi ];then
+ cp -a ../packages-${DISTRO_FILE_PREFIX}/glibc_DEV/usr/include/scsi devx/usr/include/scsi-GLIBC
+fi
+#also see further down, when building devx.
+
+#110523 override files from rootfs-skeleton/root/Choices/MIME-types, if rox pkg has older files...
+cp -a -f rootfs-skeleton/root/Choices/MIME-types/* rootfs-complete/root/Choices/MIME-types/
+#110620 do same for mime icons...
+cp -a -f --remove-destination rootfs-skeleton/usr/local/apps/ROX-Filer/ROX/MIME/* rootfs-complete/usr/local/apps/ROX-Filer/ROX/MIME/
+#200711 override mime files from rootfs-skeleton...
+cp -a -u rootfs-skeleton/usr/share/mime/* rootfs-complete/usr/share/mime/
+
+#110806 if yad installed, no zenity, make sure zenity is symlink to yad...
+if [ -x rootfs-complete/usr/bin/yad ];then
+ if [ ! -e rootfs-complete/usr/bin/zenity ];then
+  echo '#!/bin/bash
+exec yad "${@/--file-selection/--file}"' > rootfs-complete/usr/bin/zenity
+  chmod 755 rootfs-complete/usr/bin/zenity
+ fi
+fi
+
+#for old scripts...
+ln -s gtkdialog rootfs-complete/usr/bin/gtkdialog3
+ln -s gtkdialog rootfs-complete/usr/bin/gtkdialog4
+
+#glib
+if [ -d rootfs-complete/usr/share/glib-2.0/schemas ];then
+ [ -e rootfs-complete/usr/lib/glib-2.0/glib-compile-schemas ] && ln -s ../lib/glib-2.0/glib-compile-schemas rootfs-complete/usr/bin/glib-compile-schemas #140127
+ [ -e rootfs-complete/usr/lib/glib-2.0/glib-compile-resources ] && ln -s ../lib/glib-2.0/glib-compile-resources rootfs-complete/usr/bin/glib-compile-resources #160927
+ [ -e rootfs-complete/usr/bin/glib-compile-schemas ] && chroot rootfs-complete /usr/bin/glib-compile-schemas /usr/share/glib-2.0/schemas
+fi
+
+#gio
+if [ -d rootfs-complete/usr/lib/gio/modules ];then
+ if [ ! -e rootfs-complete/usr/bin/gio-querymodules ];then
+  if [ -e rootfs-complete/usr/lib/glib-2.0/gio-querymodules ];then
+   ln -s ../lib/glib-2.0/gio-querymodules rootfs-complete/usr/bin/gio-querymodules #140127
+  elif [ rootfs-complete/usr/libexec/glib-2.0/gio-querymodules ];then #20220204 oe
+   ln -s ../libexec/glib-2.0/gio-querymodules rootfs-complete/usr/bin/gio-querymodules
+  fi
+ fi
+ [ -e rootfs-complete/usr/bin/gio-querymodules ] && chroot rootfs-complete /usr/bin/gio-querymodules /usr/lib/gio/modules
+fi
+
+#120618 raspi debian squeeze, links as main browser, helpsurfer html viewer, gtkmoz missing...
+#120620 problem, helpsurfer cannot display /usr/share/doc/index.html, so do not point gtkmoz at basichtmlviewer...
+if [ ! -e rootfs-complete/usr/local/bin/gtkmoz ];then
+ ln -s defaultbrowser rootfs-complete/usr/local/bin/gtkmoz
+fi
+
+#BOOTCONSTRAINED
+echo "BOOT_ATIME='noatime'" >> rootfs-complete/etc/rc.d/BOOTCONSTRAINED #rc.sysinit will remount / with 'relatime' (constrains updating access time). 120707 change to noatime.
+echo "BOOT_SCHEDULER_SSD='kyber'" >> rootfs-complete/etc/rc.d/BOOTCONSTRAINED #my kernel defaults to 'cfq', change to 'deadline'. refer: http://tombuntu.com/index.php/2008/09/04/four-tweaks-for-using-linux-with-solid-state-drives/
+echo "BOOT_BOARD='pc'" >> rootfs-complete/etc/rc.d/BOOTCONSTRAINED #120714 read by quicksetup.
+echo "BOOT_DISABLEXORGWIZARD='no'" >> rootfs-complete/etc/rc.d/BOOTCONSTRAINED #120723 read in xwin, also xorgwizard. also see below.
+echo "BOOT_DISABLEALSACONF='no'" >> rootfs-complete/etc/rc.d/BOOTCONSTRAINED #120724 'alsaconf' does not work on arm boards.
+
+#120709 debian squeeze has /usr/share/misc/pci.ids, usb.ids, which confuses some apps, create symlinks...
+if [ ! -e rootfs-complete/usr/share/pci.ids ];then
+ if [ -e rootfs-complete/usr/share/misc/pci.ids ];then
+  ln -s misc/pci.ids rootfs-complete/usr/share/pci.ids
+ fi
+fi
+if [ ! -e rootfs-complete/usr/share/usb.ids ];then
+ if [ -e rootfs-complete/usr/share/misc/usb.ids ];then
+  ln -s misc/usb.ids rootfs-complete/usr/share/usb.ids
+ fi
+fi
+
+#121203 bacon hug gui apps need some .so libs, for example libgtk-x11-2.0.so,
+#(refer /usr/sbin/welcome1stboot.bac), however these are only in the devx.
+#so need to create them... 161231 fix lib path...
+#note, i think this problem only in wary/racy, as gtk template creates these symlinks.
+if [ ! -e rootfs-complete/usr/lib/libgtk-x11-2.0.so ];then
+ FNDGTKLIB="$(find rootfs-complete/usr/lib/ -mindepth 1 -maxdepth 1 -name 'libgtk-x11-2.0.so.[0-9]' | head -n 1 | rev | cut -f 1 -d '/' | rev)"
+ [ "$FNDGTKLIB" ] && ln -s $FNDGTKLIB rootfs-complete/usr/lib/libgtk-x11-2.0.so #2> /dev/null
+fi
+#i'll do the same for libgdk-x11-2.0.so ...
+if [ ! -e rootfs-complete/usr/lib/libgdk-x11-2.0.so ];then
+ FNDGDKLIB="$(find rootfs-complete/usr/lib/ -mindepth 1 -maxdepth 1 -name 'libgdk-x11-2.0.so.[0-9]' | head -n 1 | rev | cut -f 1 -d '/' | rev)"
+ [ "$FNDGTKLIB" ] && ln -s $FNDGTKLIB rootfs-complete/usr/lib/libgdk-x11-2.0.so #2> /dev/null
+fi
+
+#130326 now permanently 96... 130327 reintroduce a choice...
+##130129 /root/.Xresources has dpi set to 78 in all prior pups. In future, might prefer 96...
+#141206 now have DEFAULT_THEME_XORG_TEXT_DPI (usually =96).
+if [ "$DEFAULT_THEME_XORG_TEXT_DPI" != "" ];then #141206
+ dpisizeflag="$DEFAULT_THEME_XORG_TEXT_DPI"
+fi
+if [ "$dpisizeflag" ];then #130512 scsijon: fix size...
+ fsPTN='s%^Xft\.dpi:.*%Xft.dpi: '"${dpisizeflag}%"
+ sed -i -e "$fsPTN" rootfs-complete/root/.Xresources
+ echo "...ok, dpi now ${dpisizeflag}"
+fi
+
+#20240118 change logo color... choices: blue, green, grey, orange
+if [ "$DEFAULT_THEME_BASE_COLOR" != "" ];then #in file default-theme
+ cp -a -f rootfs-complete/usr/share/doc/colors/${DEFAULT_THEME_BASE_COLOR}/easy48.png rootfs-complete/usr/share/doc/easy48.png
+ cp -a -f rootfs-complete/usr/share/doc/colors/${DEFAULT_THEME_BASE_COLOR}/easy96.png rootfs-complete/usr/share/doc/easy96.png
+fi
+rm -rf rootfs-complete/usr/share/doc/colors #20240121
+
+#130226 wary: /usr/bin/X was missing...
+if [ ! -e rootfs-complete/usr/bin/X ];then
+ if [ -e rootfs-complete/usr/bin/Xorg -o -h rootfs-complete/usr/bin/Xorg ];then
+  ln -s Xorg rootfs-complete/usr/bin/X
+ fi
+fi
+
+#run some apps non-root...
+for aP in seamonkey firefox chromium hexchat claws opera
+do
+ if [ -x rootfs-complete/usr/bin/${aP} ];then
+  ./rootfs-complete/usr/local/clients/setup-client "${aP}=true"
+ else
+  echo "${aP}=false" >> rootfs-complete/root/.clients-status #so that an unticked checkbox will display in loginmanager. 20211212 fix.
+ fi
+done
+
+MAINBROWSER="`grep '^exec' rootfs-complete/usr/local/bin/defaultbrowser | tr '\t' ' ' | tr -s ' ' | cut -f 2 -d ' '`"
+#20231217 set xdg default browser. this will exist, in rootfs-skeleton...
+if [ -s rootfs-complete/root/.config/mimeapps.list ];then
+ if [ "${MAINBROWSER}" != "chromium" ];then
+  sed -i -e "s%chromium%${MAINBROWSER}%" rootfs-complete/root/.config/mimeapps.list
+ fi
+fi
+if [ -d rootfs-complete/home/${MAINBROWSER} ];then
+ cp -a -f rootfs-complete/root/.config/mimeapps.list rootfs-complete/home/${MAINBROWSER}/.config/
+ UG="$(grep "^${MAINBROWSER}:" rootfs-complete/etc/passwd | cut -f 3,4 -d ':')"
+ if [ "$UG" ];then
+  chown ${UG} rootfs-complete/home/${MAINBROWSER}/.config/mimeapps.list
+ fi
+fi
+
+#140125 disable gtk3 dependency on a stupid gnome daemon...
+#ref: http://forums.gentoo.org/viewtopic-t-947210-start-0.html
+mkdir -p rootfs-complete/etc/profile.d
+echo 'export NO_AT_BRIDGE=1' > rootfs-complete/etc/profile.d/gtk3
+
+#rox fix...
+sed -i -e 's%label="files"%label="files" args="--dir=/files"%' rootfs-complete/root/Choices/ROX-Filer/PuppyPin
+
+echo "LSB_VERSION=n/a
+DISTRIB_ID=${DISTRO_NAME_NORMAL}
+DISTRIB_RELEASE=${DISTRO_VERSION}
+DISTRIB_CODENAME=${DISTRO_FILE_PREFIX}
+DISTRIB_DESCRIPTION=\"${DISTRO_NAME_LONG}\"" > rootfs-complete/etc/lsb-release
+
+#150726 want a desktop readme icon...
+if [ "$BUILD_CHOICE_README_DEV_DESK_ICON" == "yes" ];then
+ #see 7build-live-cd in woofQ, 'save' icon does not conflict with this one.
+ #see appinventor PET, 'ai2' icon does not conflict with this one. x=768 y=224
+ #see android-studio PET, 'AStudio' icon does not conflict. x=832 y=224
+ #qtcreator icon using x=768 y=320
+ #desktop icons vertical spacing is 96, horiz spacing is 64.
+ sed -i -e 's%^</pinboard>$%  <icon x="704" y="224" label="README">/usr/sbin/app-dev-setup-readme.sh</icon>\n</pinboard>%' rootfs-complete/root/Choices/ROX-Filer/PuppyPin
+ #also, put icon...
+ sed -i -e 's%^</special-files>$%  <rule match="/usr/sbin/app-dev-setup-readme.sh">\n    <icon>/usr/local/lib/X11/pixmaps/info48.xpm</icon>\n  </rule>\n</special-files>%' rootfs-complete/root/Choices/ROX-Filer/globicons
+fi
+
+if [ "$EOS_SUPPORT_CONTAINERS" != "0" ];then #20220525
+ #190911 "easy" label desktop icon renamed to "pyro" or "buster"...
+ sed -i -e "s%\"easy\"%\"${DISTRO_COMPAT_VERSION}\"%" rootfs-complete/root/Choices/ROX-Filer/PuppyPin
+ sed -i -e "s%ec\-chroot\-easy%ec-chroot-${DISTRO_COMPAT_VERSION}%" rootfs-complete/root/Choices/ROX-Filer/PuppyPin
+ sed -i -e "s%ec\-chroot\-easy%ec-chroot-${DISTRO_COMPAT_VERSION}%" rootfs-complete/root/Choices/ROX-Filer/globicons
+fi
+
+#150928
+if [ -d rootfs-complete/usr/share/X11/app-defaults ];then
+ if [ ! -h rootfs-complete/usr/share/X11/app-defaults ];then
+  mkdir -p rootfs-complete/etc/X11/app-defaults
+  touch rootfs-complete/etc/X11/app-defaults/* 2>/dev/null
+  cp -a -u rootfs-complete/usr/share/X11/app-defaults/* rootfs-complete/etc/X11/app-defaults/
+  rm -rf rootfs-complete/usr/share/X11/app-defaults
+  ln -s /etc/X11/app-defaults rootfs-complete/usr/share/X11/app-defaults
+ fi
+fi
+
+#20211102
+DEFAULTPAorPW='pa'
+if [ -e rootfs-complete/root/Startup/pipewire ];then
+ case "$DEFAULTPAorPW" in #20211103
+  pa)
+   PAflg=''
+  ;;
+  pw)
+   PAflg='pw'
+  ;;
+  *) #ask
+   echo 'Please choose whether default pipewire or pulseaudio.'
+   echo -n 'Press ENTER only for pulseaudio, any char for pipewire: '
+   read PAflg
+  ;;
+ esac
+ if [ "$PAflg" == "" ];then
+  chmod 644 rootfs-complete/root/Startup/pipewire
+  chmod 755 rootfs-complete/root/Startup/pulseaudio
+  #sed -i -e 's%= no%= yes%' rootfs-complete/etc/pulse/client.conf
+ else
+  chmod 644 rootfs-complete/root/Startup/pulseaudio
+  chmod 755 rootfs-complete/root/Startup/pipewire
+  sed -i -e 's%= yes%= no%' rootfs-complete/etc/pulse/client.conf
+ fi
+fi
+
+#170224 for security reasons, do not turn on these daemons by default.
+if [ "$BUILD_CHOICE_INITD_DAEMON_DEFAULT_OFF" ];then
+ for aDAEMON in ${BUILD_CHOICE_INITD_DAEMON_DEFAULT_OFF}
+ do
+  [ -x rootfs-complete/etc/init.d/${aDAEMON} ] && chmod 644 rootfs-complete/etc/init.d/${aDAEMON}
+ done
+fi
+
+#ca-certificates
+chroot rootfs-complete /usr/bin/update-ca-certificates
+
+#170515 oe, usr/lib/gconv/gconv-modules.cache is missing...
+if [ ! -f rootfs-complete/usr/lib/gconv/gconv-modules.cache ];then
+ chroot rootfs-complete iconvconfig #20220122 arch-linux has it at /usr/bin
+fi
+
+#171109 ref: http://murga-linux.com/puppy/viewtopic.php?p=972909#972909
+chroot rootfs-complete /usr/bin/update-desktop-database
+
+
+#170305 seamonkey container is pre-created, but remove if have not built with sm...
+#170521 if symlink is broken, the "-e" test fails, so add "-h"...
+SMflg='no'
+[ -e rootfs-complete/usr/bin/seamonkey ] && SMflg='yes'
+[ -h rootfs-complete/usr/bin/seamonkey ] && SMflg='yes'
+[ "$SMflg" == "no" ] && rm -f rootfs-complete/usr/share/applications/ec-seamonkey.desktop
+
+#icon fixes...
+if [ ! -f rootfs-complete/usr/local/lib/X11/pixmaps/easy48.png ];then
+ cp -f -L rootfs-complete/usr/share/doc/logo48.png rootfs-complete/usr/local/lib/X11/pixmaps/easy48.png #180720 181122
+fi
+cd rootfs-complete/usr/local/lib/X11/pixmaps
+for ONEICON in www console easy #desk #180630 180720 181122  #20220416 take out "pet"
+do
+ pngoverlay-cairo ${ONEICON}48.png ec-overlay48.png ec-${ONEICON}48.png #background foreground output.
+done
+cd ../../../../../../
+
+#delete empty folders...
+find rootfs-complete/usr/share/doc -mindepth 1 -type d -empty -delete
+#...this will cause some broken symlinks, delete symlinks...
+for ALINK in `find rootfs-complete/usr/share/doc -mindepth 1 -type l | tr '\n' ' '`
+do
+ [ ! -e ./$ALINK ] && continue
+ if ! readlink -e "$ALINK" >/dev/null ;then rm -f ./"$ALINK" ; fi
+done
+
+cd rootfs-complete
+echo "Building rox right-click menu in rootfs-complete/etc/xdg/rox.sourceforge.net"
+#20220623 put in path, so using latest version of script...
+./usr/sbin/build-rox-sendto
+echo " ...done"
+cd ..
+
+#190919 previously had manually-created files in /root/Choices/MIME-types
+#a rox-filer pet may have brought stuff with it...
+mkdir -p rootfs-complete/etc/xdg/rox.sourceforge.net/MIME-types
+rm -f rootfs-complete/etc/xdg/rox.sourceforge.net/MIME-types/* 2>/dev/null
+[ -d rootfs-complete/root/Choices/MIME-types ] && rm -f rootfs-complete/root/Choices/MIME-types/* 2>/dev/null
+#repopulate...
+cp -a rootfs-skeleton/etc/xdg/rox.sourceforge.net/MIME-types/* rootfs-complete/etc/xdg/rox.sourceforge.net/MIME-types/
+
+#190923 gnome-keyring is used by networkmanager and nm-applet to encrypt passwords.
+# gnome-keyring-daemon with "--login" option, may read this, we don't want it...
+[ -f rootfs-complete/etc/pam.d/login ] && rm -f rootfs-complete/etc/pam.d/login
+
+#180523 trying to reduce size by moving gobject-introspection to devx (see pkg-list)
+if [ ! -f rootfs-complete/usr/bin/g-ir-inspect  ];then #test if pkg moved.
+ if [ -d rootfs-complete/usr/share/gir-1.0 ];then
+  mkdir -p devx/usr/share/gir-1.0
+  cp -a -f rootfs-complete/usr/share/gir-1.0/* devx/usr/share/gir-1.0/
+  sync
+  rm -f rootfs-complete/usr/share/gir-1.0/*
+ fi
+fi
+
+#180628 busybox or coreutils may have installed 'df' applet as a symlink (symlink
+# or shebang in case of coreutils, depending on precompile configure). keep our script...
+if [ -f rootfs-skeleton/usr/bin/df ];then
+ cp -a -f --remove-destination rootfs-skeleton/usr/bin/df rootfs-complete/bin/
+fi
+#note, /bin/mount and ps are same situation, but these are preserved ok.
+
+#190926 jwm does not use these (easy uses /root/Startup), avoid the confusion...
+rm -f rootfs-complete/etc/xdg/autostart/*.desktop 2>/dev/null
+
+#200930 oe dunfell some pkgs have 'ptest' folder, delete...
+find rootfs-complete -type d -name ptest -execdir rm -rf ptest \; > /dev/null 2>&1
+
+#20201221b was run in packages-templates/shared-mime-info, do again...
+chroot rootfs-complete /usr/bin/update-mime-database /usr/share/mime
+
+#200209 remove...
+rm -rf rootfs-complete/etc/rc[0-6].d 2>/dev/null
+rm -rf rootfs-complete/etc/rcS.d 2>/dev/null
+
+#20220114 delete any compiled python .pyc files...
+for aDIR in $(find rootfs-complete/usr/lib/python* -mindepth 1 -type d -name '__pycache__' -o -name 'tests')
+do
+ [ ! "$aDIR" ] && continue
+ rm -rf ${aDIR}/*
+done
+sync
+
+#kmod sanity fix...
+ln -snf kmod rootfs-complete/usr/bin/depmod
+ln -snf kmod rootfs-complete/usr/bin/insmod
+ln -snf kmod rootfs-complete/usr/bin/lsmod
+ln -snf kmod rootfs-complete/usr/bin/modinfo
+ln -snf kmod rootfs-complete/usr/bin/modprobe
+ln -snf kmod rootfs-complete/usr/bin/rmmod
+
+#create a folder hierarchy under /mnt/build
+#...um, maybe not.
+
+#browser container fix...
+if [ -e rootfs-complete/usr/bin/firefox ];then
+ sed -i -e 's%SeaMonkey%Firefox%' rootfs-complete/usr/share/applications/ec-www.desktop
+elif [ -e rootfs-complete/usr/bin/chrome ];then
+ sed -i -e 's%SeaMonkey%Chrome%' rootfs-complete/usr/share/applications/ec-www.desktop
+elif [ -e rootfs-complete/usr/bin/chromium ];then
+ sed -i -e 's%SeaMonkey%Chromium%' rootfs-complete/usr/share/applications/ec-www.desktop
+else #seamonkey
+ true
+fi
+
+#20220527 this is "save" icon on desktop...
+if [ "$EOS_TOP_LEVEL_ZRAM" != "1" ];then
+ sed -i '/ask-save-zram1/d' rootfs-complete/root/Choices/ROX-Filer/PuppyPin #remove it.
+fi
+
+#20221106 downloaded latest...
+if [ -s ./pci.ids ];then
+ cp -a -f ./pci.ids rootfs-complete/usr/share/
+ ln -snf ../pci.ids rootfs-complete/usr/share/misc/pci.ids
+fi
+if [ -s ./usb.ids ];then
+ cp -a -f ./usb.ids rootfs-complete/usr/share/
+ ln -snf ../usb.ids rootfs-complete/usr/share/misc/usb.ids
+fi
+
+#20230212 momanager will read this, to find builtin files...
+find rootfs-skeleton -type f | grep -vE '/usr/share/locale\.in|/usr/share/applications\.in' | sed -e 's%rootfs-skeleton%%' > rootfs-complete/root/.packages/rootfs-skeleton.list
+
+#20230616 so other apps cannot see inside /root
+chmod 700 rootfs-complete/root
+
+#20230621 these were getting overwritten...
+cp -a -f rootfs-skeleton/etc/sudoers rootfs-complete/etc/
+cp -a -f rootfs-skeleton/etc/sudo.conf rootfs-complete/etc/
+
+#20230621 hack fix PuppyPin, have no idea why this has happened...
+sed -i -e 's%"console"%"term"%' rootfs-complete/root/Choices/ROX-Filer/PuppyPin
+
+#fix .desktop files...
+${L1}/pkg-fix/dot-desktop-fix
+
+#delete doc files
+[ -d rootfs-complete/usr/share/devhelp ] && rm -rf rootfs-complete/usr/share/devhelp
+[ -d rootfs-complete/usr/share/man ] && rm -rf rootfs-complete/usr/share/man
+[ -d rootfs-complete/usr/share/omf ] && rm -rf rootfs-complete/usr/share/omf
+
+#would like some static binaries from initrd...
+if [ -e ${E1}/initrd/initrd-tree/bin/fscryptctl ];then
+ cp -a -f ${E1}/initrd/initrd-tree/bin/fscryptctl rootfs-complete/usr/bin/
+fi
+if [ -e ${E1}/initrd/initrd-tree/bin/argon2 ];then #want to overwrite existing argon2...
+ cp -a -f ${E1}/initrd/initrd-tree/bin/argon2 rootfs-complete/usr/bin/
+fi
+
+echo -n 'aprilandvincent' > rootfs-complete/root/.SALT
+chown zeus:zeus rootfs-complete/root/.SALT
+chmod 600 rootfs-complete/root/.SALT
+#...so cannot be read by non-root app, nor crippled-root in containers.
+
+#some chroot operations may have left something behind in here...
+rm -rf rootfs-complete/tmp/* 2>/dev/null
+rm -rf rootfs-complete/tmp/.* 2>/dev/null
+
+#cutdown supported languages...
+echo "Cutdown supported languages..."
+if [ "$BUILD_SUPPORT_LANGS" ];then #see build-choices file.
+ tr ' ' '\n' <<<$BUILD_SUPPORT_LANGS > /tmp/3bed-lang-codes
+ sed -i -e 's%:.*%%' /tmp/3bed-lang-codes
+else
+ CODES='bg Bulgarian cs Czech da Danish de German el Greek en English es Spanish et Estonian fi Finnish fr French hr Croatian hu Hungarian is Icelandic it Italian lt Lithuanian lv Latvian mk Macedonian nl Dutch no Norwegian pl Polish pt Portuguese ro Romanian ru Russian sk Slovak sl Slovenian sq Albanian sr Serbian sv Swedish tr Turkish uk Ukrainian uz Uzbek'
+ CODES2='bg cs da de el en es et fi fr hr hu is it lt lv mk nl no pl pt ro ru sk sl sq sr sv tr uk uz'
+ tr ' ' '\n' <<<$CODES2 > /tmp/3bed-lang-codes
+fi
+# no (norway) may have nn and nb, so add those...
+# 20230423 um, norwegian is tricky... 20230424 leave out nn
+#if ! grep -q -x nn /tmp/3bed-lang-codes;then echo -e 'nn' >> /tmp/3bed-lang-codes; fi
+if ! grep -q -x nb /tmp/3bed-lang-codes;then echo -e 'nb' >> /tmp/3bed-lang-codes; fi
+if ! grep -q -x no /tmp/3bed-lang-codes;then echo -e 'no' >> /tmp/3bed-lang-codes; fi
+sed -i -e '/^$/d' /tmp/3bed-lang-codes
+sed -i -e 's%^%^%' /tmp/3bed-lang-codes
+echo '^common' >> /tmp/3bed-lang-codes
+#usr/lib/libreoffice/program/resource...
+if [ -d rootfs-complete/usr/lib/libreoffice/program/resource ];then
+ for aPATH in `find rootfs-complete/usr/lib/libreoffice/program/resource -mindepth 1 -maxdepth 1 -type d | tr '\n' ' '`
+ do
+  aDIR="${aPATH##*/}"
+  grep -q -f /tmp/3bed-lang-codes <<<$aDIR
+  if [ $? -ne 0 ];then
+   rm -rf ./$aPATH
+  fi
+ done
+fi
+#usr/lib/libreoffice/share/registry/res
+if [ -d rootfs-complete/usr/lib/libreoffice/share/registry/res ];then
+ for aPATH in `find rootfs-complete/usr/lib/libreoffice/share/registry/res -mindepth 1 -maxdepth 1 -type f -name '*.xcd' | tr '\n' ' '`
+ do
+  aL2="${aPATH##*_}"
+  aL2="${aL2##*_}"
+  aL2="${aL2:0:2}"
+  grep -q -x -f /tmp/3bed-lang-codes <<<$aL2
+  if [ $? -ne 0 ];then
+   rm -f ./$aPATH
+  fi
+ done
+fi
+#usr/lib/chromium/locales
+if [ -d rootfs-complete/usr/lib/chromium/locales ];then
+ for aPATH in `find rootfs-complete/usr/lib/chromium/locales -mindepth 1 -maxdepth 1 -type f -name '*.pak' | tr '\n' ' '`
+ do
+  aL2="${aPATH##*/}"
+  aL2="${aL2/.*/}"
+  aL2="${aL2:0:2}"
+  grep -q -x -f /tmp/3bed-lang-codes <<<$aL2
+  if [ $? -ne 0 ];then
+   rm -f ./$aPATH
+  fi
+ done
+fi
+#usr/share/locale
+for aPATH in `find rootfs-complete/usr/share/locale -mindepth 1 -maxdepth 1 -type d | tr '\n' ' '`
+do
+ aDIR="${aPATH##*/}"
+ grep -q -f /tmp/3bed-lang-codes <<<$aDIR
+ if [ $? -ne 0 ];then
+  rm -rf ./$aPATH
+ fi
+done
+#usr/share/hunspell
+for aPATH in `find rootfs-complete/usr/share/hunspell -mindepth 1 -maxdepth 1 -type f -o -type l -name '*.aff' -o -name '*.dic' | tr '\n' ' '`
+do
+ aL2="${aPATH##*/}"
+ aL2="${aL2:0:2}"
+ grep -q -f /tmp/3bed-lang-codes <<<$aL2
+ if [ $? -ne 0 ];then
+  rm -f ./$aPATH
+ fi
+done
+sync
+
+echo "Merge applications.in translations into applications ..."
+#20230222 mv, as applications.in has translations... 20230224 no, merge...
+#20230221 moved down...
+#20230215 remove duplicates in /usr/share/applicatins|applications.in
+# note, see also /usr/local/petget/installpkg.sh and 2createpackages
+mkdir -p /tmp/2createpackages_tmp
+for aDT in $(find rootfs-complete/usr/share/applications -mindepth 1 -maxdepth 1 -type f -name '*.desktop')
+do
+ [ "$aDT" == "" ] && continue
+ baDT="${aDT##*/}"
+ if [ -e rootfs-complete/usr/share/applications.in/${baDT} ];then
+  #20230224 no, don't mv, merge (just like in 2createpackages)... 20230225 fix
+  grep -F 'Name[' rootfs-complete/usr/share/applications.in/${baDT} > /tmp/2createpackages_tmp/desktop-nls-names
+  grep -F 'Name[' ${aDT} >> /tmp/2createpackages_tmp/desktop-nls-names
+  grep -Fv 'Name[' ${aDT} > /tmp/2createpackages_tmp/desktop-sans-nls-names
+  sort -t '=' -k 1,1 -u /tmp/2createpackages_tmp/desktop-nls-names > /tmp/2createpackages_tmp/desktop-nls-names2
+  while read -u 3 aName
+  do
+   [ "$aName" == "" ] && continue
+   INSERTALINE="`echo -n "$aName" | sed -e 's%\[%\\\\[%' -e 's%\]%\\\\]%'`"
+   sed -i -e "s%^Name=%${INSERTALINE}\\nName=%" /tmp/2createpackages_tmp/desktop-sans-nls-names
+  done 3<<_EOF4
+$(cat /tmp/2createpackages_tmp/desktop-nls-names2)
+_EOF4
+  cp -f /tmp/2createpackages_tmp/desktop-sans-nls-names ${aDT}
+  #same for Comment field...
+  grep -F 'Comment[' rootfs-complete/usr/share/applications.in/${baDT} > /tmp/2createpackages_tmp/desktop-nls-comments
+  grep -F 'Comment[' ${aDT} >> /tmp/2createpackages_tmp/desktop-nls-comments
+  grep -Fv 'Comment[' ${aDT} > /tmp/2createpackages_tmp/desktop-sans-nls-comments
+  sort -t '=' -k 1,1 -u /tmp/2createpackages_tmp/desktop-nls-comments > /tmp/2createpackages_tmp/desktop-nls-comments2
+  while read -u 3 aComment
+  do
+   [ "$aComment" == "" ] && continue
+   INSERTALINE="`echo -n "$aComment" | sed -e 's%\[%\\\\[%' -e 's%\]%\\\\]%'`"
+   sed -i -e "s%^Comment=%${INSERTALINE}\\nComment=%" /tmp/2createpackages_tmp/desktop-sans-nls-comments
+  done 3<<_EOF5
+$(cat /tmp/2createpackages_tmp/desktop-nls-comments2)
+_EOF5
+  cp -f /tmp/2createpackages_tmp/desktop-sans-nls-comments ${aDT}
+  #now remove...
+  rm -f rootfs-complete/usr/share/applications.in/${baDT}
+ fi
+done
+sync
+
+#20240113 easyvoid; have some usr/share/locale/*/*.po
+find rootfs-complete/usr/share/locale -type f -name '*.po' -delete
+
+#20240119 hack, do not know what created /var/lib/flatpak, but rc.sysinit creates symlink...
+if [ -d rootfs-complete/var/lib/flatpak ];then
+ if [ -h rootfs-complete/var/lib/flatpak ];then
+  rm -f rootfs-complete/var/lib/flatpak
+ else
+  rm -rf rootfs-complete/var/lib/flatpak
+ fi
+fi
+
+echo "Merge .xml.in to .xml ..."
+#20230215 there may be .xml.in files created via momanager, merge them...
+for aXML in $(find rootfs-skeleton/usr/local -type f -name '*.xml.in' | sed -e 's%rootfs-skeleton%%' | tr '\n' ' ')
+do
+ [ ! -f rootfs-skeleton${aXML} ] && continue
+ bXML="$(echo -n ${aXML} |rev|cut -d'.' -f2- | rev)" #remove .in
+ #we could do some fancy merging, or just overwrite...
+ cp -a -f rootfs-skeleton${aXML} rootfs-complete${bXML}
+ rm -f rootfs-complete${aXML} #remove the .xml.in file
+done
+
+#next, run 5create-easy-sfs
+###end###
