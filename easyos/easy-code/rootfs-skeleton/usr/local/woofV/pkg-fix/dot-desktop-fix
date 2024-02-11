@@ -2,5 +2,66 @@
 #call this after rootfs fully built.
 #fix all usr/share/applications/*.desktop to suit easyos menu hierarchy.
 
+E1='/mnt/wkg/data/woofV'
+L1='/usr/local/woofV'
+mkdir -p /tmp/woofV
 
+cd ${E1}/rootfs/usr/share/applications
+
+for aD in `ls -1 *.desktop | tr '\n' ' '`
+do
+ NAME="${aD/.desktop/}"
+ #fix category...
+ CAT0="$(grep -i "^PKGCAT_.* ${NAME} " /usr/local/petget/categories.dat | head -n 1 | cut -f 1 -d '=' | cut -f 2,3 -d '_' | sed -e 's%_Sub$%%' | tr '_' '-')"
+ if [ "$CAT0" ];then
+  sed -i -e "s%^Categories=.*%Categories=X-${CAT0}%" ${aD}
+ else
+  CAT1="$(grep -i "|${NAME}|" ${L1}/configure/Packages-void-current ${L1}/configure/Packages-void-current-nonfree ${L1}/configure/Packages-oe-kirkstone-official | head -n 1 | cut -f 5 -d '|' | tr ';' '-')"
+  if [ "$CAT1" ];then
+   sed -i -e "s%^Categories=.*%Categories=X-${CAT1}%" ${aD}
+  fi
+ fi
+ 
+ #fix exec...
+ for PARMATER in u U f F #refer:  http://standards.freedesktop.org/desktop-entry-spec/latest/ar01s06.html
+ do
+  sed -i "s/ %${PARMATER}//" ${aD}
+ done
+ 
+ 
+ #fix icon...
+ ICON="`grep '^Icon=' $aD | cut -f 2 -d '='`"
+ if [ "$ICON" ];then
+  [ -e "${ICON}" ] && continue #it may have a hardcoded path.
+  ICONBASE="${ICON##*/}"
+  #first search where jwm looks for icons... 111207...
+  FNDICON="`find /usr/local/lib/X11/mini-icons /usr/share/pixmaps -maxdepth 1 -name $ICONBASE -o -name $ICONBASE.png -o -name $ICONBASE.xpm -o -name $ICONBASE.jpg -o -name $ICONBASE.jpeg -o -name $ICONBASE.gif -o -name $ICONBASE.svg | grep -i -E 'png$|xpm$|jpg$|jpeg$|gif$|svg$' | head -n 1`"
+  if [ "$FNDICON" ];then
+   ICONNAMEONLY="${FNDICON##*/}"
+   iPTN="s%^Icon=.*%Icon=${ICONNAMEONLY}%"
+   sed -i -e "$iPTN" $aD
+   continue
+  else
+   #look elsewhere... 111207...
+   FNDICON="`find /usr/share/icons /usr/local/share/pixmaps -name $ICONBASE -o -name $ICONBASE.png -o -name $ICONBASE.xpm -o -name $ICONBASE.jpg -o -name $ICONBASE.jpeg -o -name $ICONBASE.gif -o -name $ICONBASE.svg | grep -i -E 'png$|xpm$|jpg$|jpeg$|gif$|svg$' | head -n 1`"
+   #111207 look further afield, ex parole pkg has /usr/share/parole/pixmaps/parole.png...
+   [ ! "$FNDICON" ] && [ -d /usr/share/$ICONBASE ] && FNDICON="`find /usr/share/${ICONBASE} -name $ICONBASE -o -name $ICONBASE.png -o -name $ICONBASE.xpm -o -name $ICONBASE.jpg -o -name $ICONBASE.jpeg -o -name $ICONBASE.gif -o -name $ICONBASE.svg | grep -i -E 'png$|xpm$|jpg$|jpeg$|gif$|svg$' | head -n 1`"
+   #111207 getting desperate...
+   [ ! "$FNDICON" ] && FNDICON="`find /usr/share -name $ICONBASE -o -name $ICONBASE.png -o -name $ICONBASE.xpm -o -name $ICONBASE.jpg -o -name $ICONBASE.jpeg -o -name $ICONBASE.gif -o -name $ICONBASE.svg | grep -i -E 'png$|xpm$|jpg$|jpeg$|gif$|svg$' | head -n 1`"
+   if [ "$FNDICON" ];then
+    ICONNAMEONLY="${FNDICON##*/}"
+    #150203 careful it doesn't link to itself: (see also 2createpackages)
+    if [[ "$FNDICON" != *usr/share/pixmaps/${ICONNAMEONLY} ]];then
+     ln -snf "$FNDICON" /usr/share/pixmaps/${ICONNAMEONLY}
+     iPTN="s%^Icon=.*%Icon=${ICONNAMEONLY}%"
+     sed -i -e "$iPTN" ${aD}
+     continue
+    fi
+   fi
+  fi
+  #substitute a default icon...
+  sed -i -e "$iPATTERN" ${ONEDOT} #note, ONEDOT is name of .desktop file.
+ fi
+
+done
 
