@@ -17,7 +17,7 @@
 #Generic format:
 #yes|genericpkgname|pkgname[s]|[splitup]|pet:repo]
 #yes|genericpkgname|pkgname[s]|splitup|[compat:repo]
-#note: "repo" is 3rd or 4th field in "Packages-*" file, ex: Packages-void-current-official
+#note: "repo" is 3rd or 4th field in "Packages-*" file, ex: Packages-void-current
 
 PKGS_SPECS_TABLE='
 yes|915resolution|915resolution|exe,doc>null|pet:void|
@@ -84,7 +84,9 @@ yes|bluepup_tray|bluepup-tray|exe,doc>null|compat:kirkstone|
 yes|bluez|bluez5|exe,dev,doc>null|compat:kirkstone|  #has bluetoothctl internationalized.
 yes|bluez-tools|bluez-tools|exe,dev,doc>null|compat:kirkstone|
 yes|bones|bones|exe|pet:noarch
-yes|boost|boost,boost-devel|dev,doc>null|compat:current|
+yes|boost|boost|dev,doc>null|compat:current| #20240215
+yes|boost-devel|boost-devel|dev,doc>null|compat:current| #20240215
+yes|boost-build|boost-build|dev,doc>null|compat:current| #20240215
 yes|brotli|brotli|exe,doc>null|compat:current|
 yes|brotli-devel|brotli-devel|dev,doc>null|compat:current| #20240130
 yes|bubblewrap|bubblewrap|exe,doc>null|compat:current| #20240115a flatpack
@@ -379,6 +381,7 @@ yes|hotplug2stdout|hotplug2stdout|exe,dev>null,doc>null|compat:kirkstone|
 yes|htop|htop|exe,dev|compat:current|
 yes|hunspell|hunspell,libhunspell1.7,hunspell-da_DK,hunspell-de_DE,hunspell-el_GR,hunspell-en*,hunspell-es_ES,hunspell-fr_FR,hunspell-hr_HR,hunspell-it_IT,hunspell-nl_NL,hunspell-pl_PL,hunspell-pt*,hunspell-ro_RO,hunspell-ru_RU,hunspell-sl_SI,hunspell-sr_SR,hunspell-sv_SE|exe,doc>null|compat:current|
 yes|hunspell-devel|hunspell-devel|dev|compat:current| #20240130
+no|hwclock-static|hwclock-static|exe|pet:void| #20240211 20240213
 yes|hyphen|hyphen|exe,doc>null|compat:current| #20240112 libreoffice
 yes|hyphen-devel|hyphen-devel|dev|compat:current| #20240118
 yes|iceauth|iceauth|exe,doc>null|compat:current| #20240129
@@ -927,7 +930,7 @@ yes|lpsolve|lpsolve|exe,doc>null|compat:current| #20240112 libreoffice
 yes|lpsolve-devel|lpsolve-devel|dev|compat:current| #20240118
 yes|lua52|lua52|exe,doc>null|compat:current| #20240114 mpv and celluloid
 yes|lua52-devel|lua52-devel|dev|compat:current| #20240130
-yes|lvm2|lvm2|exe,doc>null|compat:current|
+no|lvm2|lvm2|exe,doc>null|compat:current| #20240215
 yes|lxrandr|lxrandr|exe,doc>null|compat:current|
 yes|lxtask|lxtask|exe,doc>null|compat:current|
 yes|lxterminal|lxterminal|exe,doc>null|compat:current|
@@ -1091,8 +1094,9 @@ yes|protobuf-c-devel|protobuf-c-devel|dev|compat:current| #20240118
 yes|prun|prun|exe|pet:noarch
 yes|pschedule|pschedule|exe|pet:noarch
 yes|ptooltips|ptooltips|exe|pet:noarch
-yes|pulseaudio|pulseaudio,pulseaudio-utils,pulseaudio-qt,libpulseaudio|exe,doc>null|compat:current| #20240112
+yes|pulseaudio|pulseaudio,pulseaudio-utils,libpulseaudio|exe,doc>null|compat:current| #20240112
 yes|pulseaudio-devel|pulseaudio-devel|dev|compat:current| #20240130
+no|pulseaudio-qt|pulseaudio-qt|exe,doc>null|compat:current| #20240215
 no|pulseaudio-qt-devel|pulseaudio-qt-devel|dev|compat:current| #20240118
 yes|puppyinputdetect|puppyinputdetect|exe,dev>null,doc>null|compat:kirkstone|
 yes|puppy-podcast-grabber|puppy-podcast-grabber|exe|pet:noarch
