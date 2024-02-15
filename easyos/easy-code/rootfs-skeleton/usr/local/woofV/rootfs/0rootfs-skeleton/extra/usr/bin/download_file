@@ -1,0 +1,208 @@
+#!/bin/ash
+#20231204 completely rewritten.
+
+#exit number: 0 ok, 1 unable to download, 2 download fail, 3 invalid url.
+
+export TEXTDOMAINDIR=/usr/share/locale
+export TEXTDOMAIN=download_file
+xLANG="`cat /etc/profile|grep '^LANG='`"
+eval $xLANG
+URLSPEC="$@"
+FILENAME="${URLSPEC##*/}"
+URLDIR="${URLSPEC%/*}"
+export TEXTDOMAINDIR TEXTDOMAIN LANG URLSPEC FILENAME URLDIR
+
+mkdir -p /tmp/efd
+echo -n '0' > /tmp/efd/exit.err
+
+#121019 leaving this for now...
+#this is a quick hack. in future, modify download-file so that only a missing-file runs "exit 1", then
+#put up this info in downloadpkgs.sh. then no need for exported DL_F_CALLED_FROM.
+PPM_NO_URL_MSG=""
+if [ "$DL_F_CALLED_FROM" = "ppm" ];then #see /usr/local/petget/downloadpkgs.sh
+ PPM_NO_URL_MSG="
+
+$(gettext "NOTE:")
+$(gettext "It may be that the local package database needs to be updated. In some cases, the packages in the online package repository change, so you may be trying to download a package that no longer exists. One way to check this is to go to the URL with your web browser:")
+${URLDIR}
+$(gettext "If the URL is working and the repository has a later package, cancel the current operation. In the PKGget Package Manager main window, click the 'Configure' button, then the 'Update now' button -- this will update the local database.")"
+fi
+export PPM_NO_URL_MSG
+
+
+echo -n '' > /tmp/efd/efd-exec
+cat << 'EOF1' >> /tmp/efd/efd-exec
+#!/bin/bash
+CR='
+'
+
+# ref: https://unix.stackexchange.com/questions/701466/how-can-i-check-if-the-first-command-on-a-pipe-gets-an-error
+set -o pipefail
+
+while [ 1 ];do
+ echo -en '\033[1;35m' #magenta
+ echo "$(gettext 'Testing file exists:')"
+ echo -n "  ${URLSPEC}"
+ echo -e '\033[0;39m' #reset.
+ #test url... -t 2 means try 2 times, -T 20 means timeout in 20 seconds
+ LANG=C wget -4 -t 2 -T 20 --waitretry=20 --spider -S "${URLSPEC}"  2>&1 | tee /tmp/efd/wget.log1
+ if [ $? -ne 0 ];then
+  Xdialog --wmclass "splashwindow" --left --wrap --backtitle "$(gettext 'Easy File Downloader')" --screen-center --cr-wrap --ok-label "$(gettext 'TEST AGAIN')" --cancel-label "$(gettext 'GIVE UP')" --icon "/usr/local/lib/X11/pixmaps/error.xpm" --yesno "$(gettext 'Tested if remote file exists, but failed, see log top-left of screen.')${CR}$(gettext 'Do you want to test again, or give up?')${PPM_NO_URL_MSG}" 0 0
+  [ $? -eq 0 ] && continue
+  echo -n '1' > /tmp/efd/exit.err
+  exit 1
+ fi
+ break
+done
+
+#find out size of online file...
+SIZEB_ONLINE=`grep '^Length: ' /tmp/efd/wget.log1 | tr -s ' ' | cut -f 2 -d ' ' | sed -e 's%[^0-9]%%g'`
+#for ftp connection have to get size differently...
+[ "$SIZEB_ONLINE" = "" ] && SIZEB_ONLINE=`grep "${FILENAME}" /tmp/efd/wget.log1 | tr '\t' ' ' | tr -s ' ' | grep ' ftp ' | cut -f 5 -d ' ' | sed -e 's%[^0-9]%%g'`
+#ftp://ftp.lug.udel.edu/pub/puppylinux/pet_packages-3/gpm-1.20.1-1.pet ...
+[ "$SIZEB_ONLINE" = "" ] && SIZEB_ONLINE=`grep "${FILENAME}" /tmp/efd/wget.log1 | tr '\t' ' ' | tr -s ' ' | grep ' root ' | cut -f 5 -d ' ' | sed -e 's%[^0-9]%%g'`
+[ "$SIZEB_ONLINE" = "" ] && SIZEB_ONLINE=`grep "${FILENAME}" /tmp/efd/wget.log1 | tr '\t' ' ' | tr -s ' ' | grep ' 2[0-9][0-9][0-9] ' | cut -f 5 -d ' ' | sed -e 's%[^0-9]%%g'`
+#sanity check...
+URL_BROKEN='0'
+if [ "$SIZEB_ONLINE" = "" ];then
+ MSG_NO1="$(gettext 'Oh dear, unable to obtain size of remote file:')
+${URLSPEC}
+$(gettext 'although it does seem to exist.')"
+ URL_BROKEN='1'
+else
+ case "$SIZEB_ONLINE" in
+  unspecified)
+   MSG_NO1="$(gettext 'Oh dear, this URL seems to be wrong:')
+${URLSPEC}
+$(gettext 'It is supposed to be of the format http://foo.org/abiword-1.pet,
+or ftp://foo.org/abiword-1.pet (with name of the file to download
+on the end), but your URL seems wrong.')"
+   URL_BROKEN='1'
+  ;;
+  *[a-zA-Z]*)
+   MSG_NO1="$(gettext 'Oh dear, something seems to be wrong with the URL:')
+${URLSPEC}
+$(gettext 'A probe of the remote file could not retrieve correct information
+on it.') "
+   URL_BROKEN='1'
+  ;;
+ esac
+fi
+if [ "$URL_BROKEN" != "0" ];then
+ Xdialog --wmclass "splashwindow" --backtitle "$(gettext 'Easy File Downloader')" --screen-center --cr-wrap --icon "/usr/local/lib/X11/pixmaps/error.xpm" --msgbox "${MSG_NO1}${CR}${CR}$(gettext 'Click button to abort download...')" 0 0
+ echo -n '3' > /tmp/efd/exit.err
+ exit 3
+fi
+
+#check enough free space...
+PWD="`pwd`"
+FREEblocks=`stat -f --format=%a ${PWD}`
+BLOCKsize=`stat -f --format=%S ${PWD}`
+FREEbytes=$(($FREEblocks*$BLOCKsize))
+FREEK=$(($FREEbytes/1024))
+
+SIZEK_ONLINE=$(($SIZEB_ONLINE/1024))
+SIZEK_REQUEST=$(($SIZEK_ONLINE*3)) #maybe need extra space if install pkg.
+if [ $SIZEK_REQUEST -gt $FREEK ];then
+ Xdialog --wmclass "splashwindow" --backtitle "$(gettext 'Easy File Downloader')" --screen-center --cr-wrap --icon "/usr/local/lib/X11/pixmaps/error.xpm" --msgbox "$(gettext 'Sorry, but there is not enough free space to download to.')${CR}$(gettext 'Attempted download directory:')${CR}  ${PWD}${CR}$(gettext 'The online file size is:')  ${SIZEK_ONLINE}KB${CR}$(gettext 'However, your free space is:') ${FREEK}KB${CR}${CR}$(gettext 'Click button to abort download...')" 0 0
+ echo -n '1' > /tmp/efd/exit.err
+ exit 1
+fi
+
+DNflg=0
+while [ 1 ];do
+ CONTPARAM=''
+ if [ -f $FILENAME ];then
+  SIZEB_LOCAL=`stat --format=%s "${FILENAME}"`
+  if [ $SIZEB_LOCAL -lt $SIZEB_ONLINE ];then
+   if [ $DNflg -eq 0 ];then
+    DNmsg1="$(gettext 'It is already partly downloaded.')"
+   else
+    DNmsg1="$(gettext 'It is partly downloaded.')"
+   fi
+   Xdialog --wmclass "splashwindow" --backtitle "$(gettext 'Easy File Downloader')" --screen-center --cr-wrap --wrap --ok-label "$(gettext 'CONTINUE')" --cancel-label "$(gettext 'START AGAIN')"  --icon "/usr/local/lib/X11/pixmaps/question.xpm" --yesno "$(gettext 'Downloading file:') ${FILENAME}${CR}${DNmsg1}${CR}$(gettext 'Do you want to attempt to continue downloading it, or erase it and download entire file again?')" 0 65
+   if [ $? -eq 0 ];then
+    CONTPARAM='-c'
+   else
+    rm -f "$FILENAME"
+   fi
+  else
+   if [ $SIZEB_LOCAL -gt $SIZEB_ONLINE ];then
+    if [ $DNflg -eq 0 ];then
+     DNmsg2="$(gettext 'This file is already downloaded:')"
+    else
+     DNmsg2="$(gettext 'Downloaded file:')"
+    fi
+    Xdialog --wmclass "splashwindow" --backtitle "$(gettext 'Easy File Downloader')" --screen-center --cr-wrap --wrap --ok-label "$(gettext 'DOWNLOAD AGAIN')" --cancel-label "$(gettext 'NO')"  --icon "/usr/local/lib/X11/pixmaps/error.xpm" --yesno "${DNmsg2} ${FILENAME}${CR}$(gettext 'However, it is larger than the online file.')${CR}$(gettext 'Hmmm... this probably means that the online file is a more recent version, so it is recommended that you erase the local file and download it again.')${CR}$(gettext 'Do you want to erase it and download the entire file again?')" 0 65
+    if [ $? -eq 0 ];then
+     rm -f "$FILENAME"
+    else
+     echo -n '0' > /tmp/efd/exit.err
+     exit 0
+    fi
+   else
+    if [ $DNflg -eq 0 ];then
+     DNmsg3="$(gettext 'It is already fully downloaded.')"
+    else
+     DNmsg3="$(gettext 'It is fully downloaded.')"
+    fi
+    Xdialog --wmclass "splashwindow" --backtitle "$(gettext 'Easy File Downloader')" --screen-center --cr-wrap --wrap --ok-label "$(gettext 'DOWNLOAD AGAIN')" --cancel-label "$(gettext 'NO')"  --icon "/usr/local/lib/X11/pixmaps/question.xpm" --yesno "$(gettext 'Downloaded file:') ${FILENAME}${CR}${DNmsg3}${CR}$(gettext 'Do you want to erase it and download the entire file again?')" 0 65
+    if [ $? -eq 0 ];then
+     rm -f "$FILENAME"
+    else
+     echo -n '0' > /tmp/efd/exit.err
+     exit 0
+    fi
+   fi
+  fi
+ fi
+ 
+ ###download file###
+ echo
+ echo -en '\033[1;35m' #magenta
+ echo "$(gettext 'Downloading file:')"
+ echo -n "  ${URLSPEC}"
+ echo -e '\033[0;39m' #reset.
+ LANG=C wget -4 ${CONTPARAM} -t 5 -w 5 --progress=bar:force "${URLSPEC}" 2>&1 | tee /tmp/efd/wget.log2
+ DLRET=$?
+ if [ $DLRET -ne 0 ];then
+  Xdialog --wmclass "splashwindow" --backtitle "$(gettext 'Easy File Downloader')" --screen-center --cr-wrap --wrap --ok-label "$(gettext 'TRY AGAIN')" --cancel-label "$(gettext 'GIVE UP')" --icon "/usr/local/lib/X11/pixmaps/error.xpm" --yesno "$(gettext 'Download failed, see log top-left of screen.')${CR}$(gettext 'Do you want to try again, or give up?')" 0 65
+  REPLY1=$?
+  [ $REPLY1 -eq 0 ] && continue
+  rm -f "$FILENAME"
+  echo -n '2' > /tmp/efd/exit.err
+  exit 2
+ fi
+
+ #paranoid, check size of downloaded file...
+ SIZEB_LOCAL=`stat --format=%s "${FILENAME}"`
+ if [ $SIZEB_LOCAL -ne $SIZEB_ONLINE ];then
+  DNflg=1
+  continue
+ fi
+ break
+done
+EOF1
+
+chmod 755 /tmp/efd/efd-exec
+
+export EFD_DLG1="<window title=\"$(gettext 'Easy File Downloader')\" image-name=\"/usr/local/lib/X11/mini-icons/mini-lower.xpm\" decorated=\"false\" skip_taskbar_hint=\"true\">
+ <vbox>
+  <terminal argv0=\"/tmp/efd/efd-exec\" hscrollbar-policy=\"2\" vscrollbar-policy=\"2\" font-name=\"Monospace 12\" text-foreground-color=\"#FFE0C0\">
+   <height>13</height>
+   <width>80</width>
+   <action>exit:finished</action>
+  </terminal>
+  <hbox>
+   <text><label>$(gettext 'Abort download:')</label></text>
+   <button><input file>/usr/local/lib/X11/mini-icons/mini-record.xpm</input><action>killall wget</action></button>
+  </hbox>
+ </vbox>
+</window>"
+RETVARS1="$(gtkdialog --program=EFD_DLG1 --geometry='+0+0')"
+[ $? -ne 0 ] && exit 1
+#eval "$RETVARS1"
+#[ "$EXIT" != "finished" ] && exit
+exit `cat /tmp/efd/exit.err`
+
+###end###

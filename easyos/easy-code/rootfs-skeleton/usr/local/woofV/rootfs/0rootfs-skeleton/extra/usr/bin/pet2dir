@@ -1,0 +1,48 @@
+#!/bin/sh
+#GPL v3 (/usr/share/doc/legal)
+
+if [ "${@##*.}" != "pet" ];then #180519 precaution.
+ echo "Not a PET: ${@}"
+ echo "Aborting"
+ exit 1
+fi
+
+PATHONLY="$(dirname "$@")"
+
+#180519 may be called from rox right-click menu
+#if $1 contains a absolute path, cd to that...
+CH1="${PATHONLY:0:1}"
+if [ "$CH1" == "/" ];then
+ cd "$PATHONLY"
+ PWD="$PATHONLY"
+else
+ PWD="$(pwd)"
+fi
+echo "Expansion path: ${PWD}"
+
+pet2tgz "$@"
+if [ $? -ne 0 ];then
+ echo "Error converting ${NAMEONLY}.pet to .tar.gz"
+ exit 1
+fi
+
+NAMEONLY="$(basename "$@" .pet)"
+
+if [ -d ${PATHONLY}/${NAMEONLY} ];then
+ echo "Already exists: ${PATHONLY}/${NAMEONLY}" #180519
+ echo "...deleting"
+ rm -rf ${PATHONLY}/${NAMEONLY}
+fi
+
+tar -zxf ${PATHONLY}/${NAMEONLY}.tar.gz
+sync
+rm -f ${PATHONLY}/${NAMEONLY}.tar.gz
+
+if [ $? -eq 0 ];then
+ echo "Success, folder ${NAMEONLY} created"
+ exit 0
+else
+ echo "Error expanding ${NAMEONLY}.pet"
+ exit 1
+fi
+

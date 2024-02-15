@@ -1,0 +1,44 @@
+#!/bin/sh
+#(c) Copyright Barry Kauler, March 2015. License: GPL3 (/usr/share/doc/legal)
+#this script is to update an existing popup message created by 'popup'.
+#150415 remove any CR (carriage return), as msg has to be on one line.
+
+#this is how updates can be made to popup:
+#Ex: echo 'writemode=append|this text appends to previous' >> /tmp/popup_mymsg
+#Ex: echo 'terminate=now|' >> /tmp/popup_mymsg
+#however, popadd will do it like this:
+# popadd 'name=mymsg writemode=append|this text appends to previous'
+
+#no, don't need this...
+#ARGS=""
+#[ $1 ] && while [ "$1" ]; do ARGS="$ARGS \"$1\""; shift; done
+
+#command-args will be $1, as expected quotes around entire lot, however use $@ in case not...
+
+[ "${@}" == "" ] && exit 1
+
+if [ "$(echo -n "${@}" | grep '|')" != "" ];then
+ CONTROLS="$(echo -n "${@}" | cut -f 1 -d '|')"
+else
+ CONTROLS=""
+fi
+[ "$CONTROLS" == "" ] && exit 2
+
+MESSAGE="$(echo -n "${@}" | cut -f 2- -d '|' | tr '\n' ' ')" #150415
+
+xCONTROLS="$(echo -n "$CONTROLS" | tr '\t' ' ' | tr -s ' ' | tr ' ' '\n')"
+eval "$xCONTROLS"
+
+[ "$name" == "" ] && exit 3
+[ ! -f /tmp/popup_${name} ] && exit 4
+
+oCONTROLS="$(echo -n "$xCONTROLS" | grep -v '^name' | tr '\n' ' ' | sed -e 's% $%%')"
+
+sleep 0.1 #150415 coz might have popadds one after another in a script.
+if [ "$terminate" == "now" ];then #150326
+ echo "${oCONTROLS}|${MESSAGE}" > /tmp/popup_${name} #i reckon make sure nothing else in queue.
+else
+ echo "${oCONTROLS}|${MESSAGE}" >> /tmp/popup_${name}
+fi
+
+###END###

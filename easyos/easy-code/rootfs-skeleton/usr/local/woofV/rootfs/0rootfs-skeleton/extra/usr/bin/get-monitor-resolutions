@@ -1,0 +1,111 @@
+#!/bin/bash
+#(c) Copyright Barry Kauler 2020, licence GPL v3 (usr/share/doc/legal).
+#200119 to be called by xorgwizard and anything else that wants to know what
+# resolutions and frequencies are offered by the monitor. this is intended to
+# replace 'ddcprobe' and get-edid|parse-edid'
+#i think this will have the native resolution of monitor: /tmp/xorgwizard/get-mon-resolution-native
+#all supported resolutions here: /tmp/xorgwizard/get-mon-resolutions
+#200220 rock64 arm board, /sys has 'mode' and 'modes' with different syntax.
+#200717 test if old dc, busybox <= 1.28.4
+
+mkdir -p /tmp/xorgwizard #200120
+echo -n '' > /tmp/xorgwizard/get-mon-resolutions
+echo -n '' > /tmp/xorgwizard/get-mon-resolutions-monitor
+echo -n '' > /tmp/xorgwizard/get-mon-resolution-native
+echo -n '' > /tmp/xorgwizard/get-mon-resolutions-card
+echo -n '' > /tmp/xorgwizard/get-mon-resolution-current
+echo -n '' > /tmp/xorgwizard/get-mon-edid
+
+[ ! -d /sys/class/drm ] && exit 1
+
+MON_INFO=''
+for aCARD in /sys/class/drm/card*
+do
+ if grep '^connected' ${aCARD}/status >/dev/null 2>&1;then
+  CARDname="${aCARD##*/}" #ex: card0-HDMI-A-2
+  if [ -e ${aCARD}/edid ];then
+   MON_INFO="$(cat ${aCARD}/edid | parse-edid 2>/dev/null)"
+   break
+  fi
+ fi
+done
+[ ! "MON_INFO" ] && exit 2
+echo "$MON_INFO" > /tmp/xorgwizard/get-mon-edid
+
+dc -e '' >/dev/null 2>&1 #200717 test if old dc, busybox <= 1.28.4
+DCflg=$? #0=new bb.
+
+MODELINES="$(echo "$MON_INFO" | tr '\t' ' ' | tr -s ' ' | grep '^ Modeline ' | cut -f 3- -d '"' | grep -v 'interlace' | cut -f 2-10 -d ' ' | grep '^[0-9]')"
+
+echo -n '' > /tmp/xorgwizard/get-mon-res0
+if [ "$MODELINES" ];then
+ while read aML
+ do
+  [ ! "$aML" ] && continue
+  #ex: 148.500 1920 2448 2492 2640 1080 1084 1089 1125
+  read -r DCLK XRES HSYNCSTART HSYNCEND HTOTAL YRES VSYNCSTART VSYNCEND VTOTAL <<< "${aML}" #<<< needs bash
+  #echo "$DCLK $XRES $HSYNCSTART $HSYNCEND $HTOTAL $YRES $VSYNCSTART $VSYNCEND $VTOTAL" #TEST
+  if [ $DCflg -eq 0 ];then #200717
+   xVFREQ="$(dc -e "1 k ${DCLK} 1000000 * ${HTOTAL} / ${VTOTAL} / p")"
+  else
+   xVFREQ="$(dc ${DCLK} 1000000 mul ${HTOTAL} div ${VTOTAL} div p)"
+  fi
+  VFREQ="$(printf "%.0f\n" "$xVFREQ")" #round up or down to an integer.
+  echo "${XRES} ${YRES} ${VFREQ}" >> /tmp/xorgwizard/get-mon-res0
+ done <<_EOF1
+$(echo "$MODELINES")
+_EOF1
+fi
+
+MONITOR_RESS="$(sort -u -n /tmp/xorgwizard/get-mon-res0)"
+echo -n "$MONITOR_RESS" > /tmp/xorgwizard/get-mon-resolutions-monitor
+NATIVE_RES="$(echo "$MONITOR_RESS" | tail -n 1)"
+echo -n "$NATIVE_RES" > /tmp/xorgwizard/get-mon-resolution-native
+
+#my acer aspire1, purchased 2019, does not return any modeline info. fallback...
+if [ -e ${aCARD}/modes ];then
+ CARD_MODES="$(cat ${aCARD}/modes)"
+ if [ "$CARD_MODES" ];then
+  for aXY in ${CARD_MODES}
+  do
+   [ ! "$aXY" ] && continue
+   #200120 rock64 has entries like: 1920x1080p60 and 1920x1080i60
+   aFREQ='60'
+   case "$aXY" in
+    *p[0-9][0-9])
+     aFREQ="${aXY/*p/}"
+     aXY="${aXY/p*/}"
+    ;;
+    *[a-wyz]*) #catch i60 and anything else.
+     continue
+    ;;
+   esac
+   echo "${aXY/x/ } ${aFREQ}" >> /tmp/xorgwizard/get-mon-resolutions-card
+   if ! grep "^${aXY/x/ }" /tmp/xorgwizard/get-mon-res0 >/dev/null;then
+    echo "${aXY/x/ } ${aFREQ}" >> /tmp/xorgwizard/get-mon-res0
+   fi
+  done
+ fi
+fi
+if [ -s /tmp/xorgwizard/get-mon-resolutions-card ];then #200120
+ CARD_RESS="$(sort -u -n /tmp/xorgwizard/get-mon-resolutions-card)"
+ echo -n "$CARD_RESS" > /tmp/xorgwizard/get-mon-resolutions-card
+fi
+
+if [ -e ${aCARD}/mode ];then #200120
+ CURR_RES="$(cat ${aCARD}/mode | head -n 1)"
+ if [ "$CURR_RES" ];then
+  XYF="${CURR_RES/[a-z]/ }" #x to space
+  XYF="${XYF/[a-z]/ }" #p to space
+  #it may not have a freq, so lookup...
+  XYF_LOOK="$(grep "^{XYF}" /tmp/xorgwizard/get-mon-res0 | head -n 1)"
+  echo -n "$XYF_LOOK" > /tmp/xorgwizard/get-mon-resolution-current
+ fi
+fi
+
+[ ! -s /tmp/xorgwizard/get-mon-res0 ] && exit 3
+
+sort -u -n /tmp/xorgwizard/get-mon-res0 > /tmp/xorgwizard/get-mon-resolutions
+rm -f /tmp/xorgwizard/get-mon-res0
+exit 0
+###end###

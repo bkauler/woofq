@@ -1,0 +1,72 @@
+#!/bin/sh
+#Barry Kauler, May 2012, license GPL3 (ref: /usr/share/doc/legal)
+#this code is taken out of /etc/rc.d/rc.sysinit
+#called from /usr/bin/xwin, if file /tmp/simple_network_setup/network_default_reconnect_required_flag exists.
+#that 'flag' file is created in /usr/sbin/hostname-set, if the hostname was changed and the network connection brought down.
+#170718 this script now called from /etc/rc.d/rc.sysinit
+#180117 rerwin: clear resolv.conf at bootup.
+#180127 rerwin: add frisbee
+#181118 BK: NetworkManager
+#190207 BK: support UltraSNS.
+#190805 may have nm-connection-editor (in network-manager-applet pkg) instead of nmtui (in network-manager pkg).
+#190922 BK: 190805: now "nm-setup" in defaultconnect.
+#200609 Use pgprs 2.0 interface and frisbee 1.4 interface.
+#20230918 test exist /etc/init.d/rc.networkmanager
+#20230919 /usr/local/simple_network_setup/rc.network renamed to rc.snsnetwork
+#20230929 BK: fix net-setup.sh. simplification.
+
+#100227 choose default network tool...
+DEFAULTCONNECT="`cat /usr/local/bin/defaultconnect | tail -n 1 | tr -s " " | cut -f 2 -d " "`"
+[ "`grep 'gprs' /usr/local/bin/defaultconnect`" != "" ] && DEFAULTCONNECT='pgprs' #200609
+[ "$DEFAULTCONNECT" = "gkdial" ] && DEFAULTCONNECT="pupdial" #for older pups.
+[ "`grep 'nmtui' /usr/local/bin/defaultconnect`" != "" ] && DEFAULTCONNECT='nmtui' #181118 networkmanager
+[ "`grep 'nm\-connection\-editor' /usr/local/bin/defaultconnect`" != "" ] && DEFAULTCONNECT='nm-setup' #190805 networkmanager. 190922
+[ "`grep 'nm\-setup' /usr/local/bin/defaultconnect`" != "" ] && DEFAULTCONNECT='nm-setup' #190922
+
+NETCHOICE="$DEFAULTCONNECT"	#101007 shinobar
+
+if [ "$NETCHOICE" != "nmtui" -a "$NETCHOICE" != "nm-setup" ];then #181118 190805 190922
+ if [ -e /etc/init.d/rc.networkmanager ];then #20230918
+  if pidof NetworkManager >/dev/null ;then
+   /bin/sh /etc/init.d/rc.networkmanager stop
+  fi
+  chmod 644 /etc/init.d/rc.networkmanager
+ fi
+fi
+
+if [ ! -f /tmp/.initial_resolv.conf_cleared ];then #180117...
+ echo -n '' > /etc/resolv.conf
+ touch /tmp/.initial_resolv.conf_cleared
+fi
+
+[ -f /etc/init.d/Pwireless2 ] && chmod 644 /etc/init.d/Pwireless2 #prevent jemimah's script from running. 100304 100513
+case $NETCHOICE in
+ net-setup.sh) #20230929
+  /usr/local/network-wizard/rc.wiznetwork &
+ ;;
+ sns) #100306
+  /etc/rc.d/rc.network_basic #this only sets up interface 'lo'.
+  /usr/local/simple_network_setup/rc.snsnetwork & #20230919
+ ;;
+ usns) #190207
+  /etc/rc.d/rc.network_basic #this only sets up interface 'lo'.
+  /usr/local/UltraSNS/rc.network start &
+ ;;
+ connectwizard) #101007 shinobar
+  #161215 rewritten...
+  /etc/rc.d/rc.network_basic #this only sets up interface 'lo'.
+  /etc/rc.d/rc.network_eth &   #test for wired network.
+ ;;
+ nmtui|nm-setup) #181118 190805 190922
+  /etc/rc.d/rc.network_basic 
+  /etc/rc.d/rc.network_eth_nm &
+  chmod 755 /etc/init.d/rc.networkmanager
+  if ! pidof NetworkManager >/dev/null ;then
+   /etc/init.d/rc.networkmanager start
+  fi
+ ;;
+ *) #101007 shinobar
+  /etc/rc.d/rc.network_basic &
+ ;;
+esac
+###end###

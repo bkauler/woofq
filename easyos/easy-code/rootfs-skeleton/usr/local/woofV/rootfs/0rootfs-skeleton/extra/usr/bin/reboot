@@ -1,0 +1,28 @@
+#!/bin/sh
+#110505 support sudo for non-root user.
+#120408 support minit
+#200301 initramfs still there, monitoring change in /.shutdown-request-to-initrd
+#20221023 may be running as zeus super-user.
+#20230626 new sudo-sh replaces sudo.
+
+#20230626
+if [ "$(whoami)" != "root" ];then
+ if [ -x /usr/bin/sudo-sh ];then
+  exec sudo-sh ${PPID} ${0} ${@}
+ else
+  exec sudo -A ${0} ${@}
+ fi
+fi
+
+/etc/rc.d/rc.shutdown
+
+if [ -e /.shutdown-req ];then #200301
+ echo -n "reboot" > /.shutdown-req
+ sleep 7 #in case it doesn't work, do the below.
+fi
+
+REBOOTEXE='/bin/busybox reboot'
+#[ -f /sbin/minit ] && REBOOTEXE='/sbin/shutdown -r' #-r means reboot. note, shutdown is part of minit pkg.
+[ -f /sbin/minit ] && REBOOTEXE='hard-reboot RESTART' #note, hard-reboot is part of minit pkg.
+
+exec ${REBOOTEXE} #>/dev/null 2>&1

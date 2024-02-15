@@ -1,0 +1,28 @@
+#!/bin/sh
+#140215 BK
+#ubuntu/debian has 'lsb_release' pkg with python3 executable. no good.
+#see also /etc/lsb-release, created in 3builddistro.
+
+. /etc/DISTRO_SPECS
+
+# '-v', '--version' help="show LSB modules this system supports"
+# '-i', '--id' help="show distributor ID"
+# '-d', '--description' help="show description of this distribution"
+# '-r', '--release' help="show release number of this distribution"
+# '-c', '--codename' help="show code name of this distribution"
+# '-a', '--all' help="show all of the above information"
+
+case $1 in
+ -v|--version)     echo 'LSB Version:	n/a' ;; #
+ -i|--id)          echo 'Distributor ID:	Quirky' ;; #Ubuntu
+ -d|--description) echo "Description:	${DISTRO_NAME}" ;; #Ubuntu Trusty Tahr
+ -r|--release)     echo "Release:	${DISTRO_VERSION}" ;; #14.04
+ -c|--codename)    echo "Codename:	${DISTRO_FILE_PREFIX}" ;; #trusty
+ -a|--all)          
+  echo 'LSB Version:	n/a'
+  echo 'Distributor ID:	Quirky'
+  echo "Description:	${DISTRO_NAME}"
+  echo "Release:	${DISTRO_VERSION}"
+  echo "Codename:	${DISTRO_FILE_PREFIX}"
+ ;;
+esac

@@ -1,0 +1,17 @@
+#!/bin/sh
+#called from /usr/sbin/delayedrun
+
+for I in 1 2 3 4
+do
+ sleep 0.5
+ [ -e /proc/asound/card0 ] && break
+done
+[ ! -e /proc/asound/card0 ] && exit 0
+
+aplay /usr/share/audio/2barks.au &
+RETAPLAY=$?
+PIDAPLAY=$!
+
+sleep 2
+if pidof aplay; then kill $PIDAPLAY 2>/dev/null ; fi
+exit 0

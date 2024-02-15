@@ -1,0 +1,1084 @@
+#!/bin/bash
+#past contributors: kirk, npierce, rodin.s, 01micko, BarryK, rg66, geoffrey, etc
+#200108 adapted for easyos.
+#200108 add bluetooth support. ref: jamesbond's mscw2
+#200109 removed icon= in gui.
+#200111 test sound: odd, my bt earbuds, 1st time just got some noise, have to play it agin...
+#200113 introducing hardware-profile for sound. see also /etc/init.d/10alsa
+#200115 improve sound hw profile.
+#200116 /etc/init.d/10alsa requires /etc/asound.conf to always exist.
+#200117 workaround for troublesome bt. some gui logic issues.
+#200117 insert set_volume_levels() from woof-ce /etc/init.d/10alsa
+#200118 add help button.
+#200121 add usb hardware-profile
+#201011 support pulseaudio. 201012
+#20201021 detect if bt device connected. 20201024 change a msg.
+#20211102 get to work with pipewire. work-in-progress!
+#20211103 have now set pulseaudio daemon to not idle-exit, so will always be running.
+#20211113 /etc/alsa/asound.conf and /root/.asoundrc are legacy methods. wean off.
+#             for a start, getting rid of .asoundrc
+#20211118 change alsa default, pci or usb, need to tell pa.
+#20211228 pa does not see my hdmi, may need this hack.
+#20211228 /etc/pulse/default.pa now hardware-profiled. see also /etc/init.d/10alsa
+#20211228 show all buttons, even if only one item.
+#20211229 maximize volume levels, and unmute.
+#20211229 use external script /usr/sbin/set-max-snd-levels
+#20211231 only maximize levels if muted or volume very low.
+#20220702 fix hdmi audio.
+#20221023 may be running as zeus super-user.
+#20221031 /root/Startup/pulseaudio changed to /etc/init.d/pulseaudio
+#20221031 running as zeus, maybe still need to bump up to root.
+#20230523 improve msg on main window.
+#20230626 new sudo-sh
+
+if [ ! -e /etc/init.d/pulseaudio ];then #20211113 20221031
+ exec mscw-alsa #the old alsa-only script (does support bluez-alsa, and early pa attempts).
+fi
+
+#20230626
+if [ "$(whoami)" != "root" ];then
+ if [ -x /usr/bin/sudo-sh ];then
+  exec sudo-sh ${PPID} ${0} ${@}
+ else
+  exec sudo -A ${0} ${@}
+ fi
+fi
+
+[ ! -d /var/local/mscw ] && mkdir -p /var/local/mscw
+[ ! -f /etc/asound.conf ] && touch /etc/asound.conf #200116
+mkdir -p /tmp/mscw
+
+case $1 in
+ report|-report) REPORT=1 ;;
+ start|restart) START_PROC=1 ;; ## /usr/sbin/delayedrun
+ gui|-gui) CMD_GUI=1 ;;   ## force gui
+ cli|-cli) CMD_CLI=1 ;;   ## force cli
+ fix|-fix) FIX=1     ;;   ## run checks
+ check|-check) CHECK=1 ;; ## check_for_new_hardware
+esac
+
+#200108 easyos does not have /usr/local/bin/defaultterminal
+#alsamixer does not render well with sakura, use urxvt...
+export DEFAULTTERMINAL='urxvt'
+CR='
+'
+
+###############################################################
+#                          FUNCTIONS                          #
+###############################################################
+
+function ncards() { grep '^ [0-9]' /proc/asound/cards | grep -v 'pcsp' | wc -l ; }
+function ndevs() { grep -v 'pcspeaker' /proc/asound/pcm | wc -l ; }
+
+function is_valid_device() {
+ case $1 in [0-9]|[0-9][0-9]) return 0 ;;
+  *) return 1 ;;
+ esac
+}
+
+function write_retrovol_extra() { ## this is written only when there is no config file
+ echo 'seg_spacing=0
+background_color=#FFFFFF
+border_color=#3F4043
+unlit_color=#D5DFF4
+lit_color=#788FAF
+tray_slider_width=22
+tray_slider_offset=-4' >> $HOME/.retrovolrc 
+}
+
+function write_retrovol_card() { #card
+ if [ -f $HOME/.retrovolrc ] ; then
+  if grep -q '#card=hw' $HOME/.retrovolrc ; then
+   ## a proper config file exists (retrovol has run before)
+   sed -i -e "/^card=hw/d;/#card=hw:0/a card=hw:${1}" $HOME/.retrovolrc
+   return
+  fi
+ else
+  write_retrovol_extra
+ fi
+ touch $HOME/.retrovolrc
+ echo "card=hw:${1}" >> $HOME/.retrovolrc
+}
+
+function write_asound_card() { #card device cmixer
+ local card=$1 device=$2 cmixer=$3
+ (
+  echo "defaults.pcm.card $1"
+  echo "defaults.pcm.device $2"
+  echo "defaults.ctl.card $1"
+ ) > /etc/asound.conf
+ 
+ #200113 hardware-profile... 200115 improve...
+ SND_HW_PROFILE="${card}+"
+ AUDIO_IDS="$(lspci -d ::0403 -n | cut -f 1,3 -d ' ' | tr ' ' '|')" #ex: 00:1b.0|8086:1c20
+ CARD_PATH="$(readlink /sys/class/sound/card${card})"
+ #...ex: ../../devices/pci0000:00/0000:00:1b.0/sound/card0
+ echo "$CARD_PATH" > /tmp/mscw/10alsa-CARD_PATH
+ #200121 detect usb audio device...
+ USB_SUBPATH="$(grep -o '/usb[0-9]/[0-9.:-]*/[0-9.:-]*/' /tmp/mscw/10alsa-CARD_PATH)" #ex: /usb3/3-2/3-2:1.0/
+ #...ex: ../../devices/pci0000:00/0000:00:1c.1/0000:03:00.0/usb3/3-2/3-2:1.0/sound/card1
+ if [ -e /sys/bus/usb/devices${USB_SUBPATH}modalias ];then
+  aID="$(cut -c 6-14 /sys/bus/usb/devices${USB_SUBPATH}modalias)" #ex: 8086p0808
+  aID="${aID/p/:}"
+  SND_HW_PROFILE="${card}+usb+${aID}"
+ else
+  for aAID in $AUDIO_IDS
+  do
+   aPTH=":${aAID/|*/}/sound" #ex: :00:1b.0/sound
+   aID="${aAID/*|/}"         #ex: 8086:1c20
+   if grep -q "${aPTH}" /tmp/mscw/10alsa-CARD_PATH;then
+    SND_HW_PROFILE="${card}+pci+${aID}"
+    break
+   fi
+  done
+ fi
+ echo "#SND_HW_PROFILE='${SND_HW_PROFILE}'" >> /etc/asound.conf
+ cp -a -f /etc/asound.conf /etc/asound.conf.${SND_HW_PROFILE}
+
+ write_retrovol_card $card
+}
+
+function get_asound_card() { #returns: card device cardmixer
+ if [ -f /etc/asound.conf ] ; then
+  xfile="/etc/asound.conf"
+ else
+  return 1 #no file
+ fi
+ local field="" value="" MISSING=""
+ local fields='defaults.pcm.card defaults.pcm.device defaults.ctl.card'
+ for field in $fields ; do
+  value=$(grep "$field" $xfile)
+  if [ "$value" ] ; then
+   echo -n "${value#* } "
+  else
+   echo -n "0 "
+  fi
+ done
+}
+
+function check_asound_card() {
+ [ ! -f /etc/asound.conf ] && return
+ #asound.conf must have valid data, otherwise fatal errors will occur
+ local acard="" adevice="" acardmixer="" ERROR=""
+ read acard adevice acardmixer <<< "$(get_asound_card)"
+ is_valid_device $acard || { acard=0 ; ERROR=1 ; }
+ is_valid_device $adevice || { adevice=0 ; ERROR=1 ; }
+ is_valid_device $acardmixer || { ERROR=1 ; }
+ [ "$acard" != "$acardmixer" ] && ERROR=1
+ if [ "$ERROR" ] ; then
+  echo "ERROR(s) in /etc/asound.conf fixing.." ; echo
+  write_asound_card $acard $adevice $acard
+ fi
+}
+
+function print_asound_card() {
+ if [ -f /etc/asound.conf ] ; then
+  echo
+  echo "---------- /etc/asound.conf ---------"
+  grep -E '^defaults.pcm|^defaults.ctl' /etc/asound.conf
+  echo "-------------------------------------"
+ fi
+ if [ -f $HOME/.retrovolrc ] ; then
+  echo
+  echo "------------ .retrovolrc ------------"
+  grep 'card=' $HOME/.retrovolrc
+  echo "-------------------------------------"
+  echo
+ fi
+}
+export -f print_asound_card
+
+function cardinfo() {
+ print_asound_card
+ cat /proc/asound/version
+ echo
+ cat /proc/asound/modules
+ echo
+ echo "################################################### cards"
+ cat /proc/asound/cards
+ echo "###################################################"
+ echo
+ echo "################################################### aplay -l"
+ APLAY=$(LANG=C aplay -l | grep card)
+ echo "$APLAY"
+ echo "###################################################"
+ echo
+ echo "################################################### pcm"
+ cat /proc/asound/pcm
+ echo "###################################################"
+ echo
+ echo "################################################### devices"
+ cat /proc/asound/devices
+ echo "###################################################"
+}
+export -f cardinfo
+
+max_vol_levels() { #20211229 no, now using external script, set-max-snd-levels.
+ [ $1 ] || return
+ local card="$1" #ex: 0
+ amixer -c ${card} -D pulse -s -q <<EOF
+sset Master 100% unmute
+sset 'Master Mono' 100% unmute
+sset 'Master Front' 100% unmute
+sset Front,0 100% unmute
+sset PCM 100% unmute
+sset Synth 100% unmute
+sset CD 100% unmute
+sset Mic 0% mute
+sset PCM,1 100% unmute
+sset Wave 100% unmute
+sset Music 100% unmute
+sset AC97 100% unmute
+sset 'Master Digital' 100% unmute
+sset DAC 100% unmute
+sset DAC,0 100% unmute
+sset DAC,1 100% unmute
+sset Headphone 100% unmute
+sset Playback 100% unmute
+sset "SB Live Analog/Digital Output Jack" off
+sset "Audigy Analog/Digital Output Jack" off
+sset Speaker 100% unmute
+EOF
+ 
+}
+export -f max_vol_levels
+
+function check_for_new_hardware() {
+ #200117 replace this with set_volume_levels() from woof-ce 10alsa...
+ #. /etc/init.d/10alsa
+ set_volume_levels() { #card
+  [ $1 ] || return
+  local card="$1"
+  echo -e "\nFor card $1"
+  #try and set all levels workable...
+  #BK: had to add ,0 after Front...
+  #20211228 inserted "-D pulse"...
+  amixer -c $card -D pulse -d -s <<EOF
+set Master 75% unmute
+set Master -12dB
+set 'Master Mono' 75% unmute
+set 'Master Mono' -12dB
+set 'Master Front' 100% unmute
+set 'Master Front' -12dB
+set Front,0 75% unmute
+set Front,0 -12dB
+set PCM 90% unmute
+set PCM 0dB
+set Synth 90% unmute
+set Synth 0dB
+set CD 90% unmute
+set CD 0dB
+set Mic 0% mute
+set PCM,1 90% unmute
+set PCM,1 0dB
+set Wave 100% unmute
+set Music 100% unmute
+set AC97 100% unmute
+set 'Master Digital' 75% unmute
+set DAC 90% unmute
+set DAC -12dB
+set DAC,0 90% unmute
+set DAC,0 -12dB
+set DAC,1 90% unmute
+set DAC,1 -12dB
+set Headphone 75% unmute
+set Headphone -12dB
+set Playback 100% unmute
+set "SB Live Analog/Digital Output Jack" off
+set "Audigy Analog/Digital Output Jack" off
+set Speaker 75% unmute
+EOF
+  if [ $? -eq 0 ] ; then
+   echo "Successfully set volume levels"
+   echo "# alsactl -d -f /etc/asound.state store $card"
+   alsactl -d -f /etc/asound.state store $card #shinobar
+   echo "alsactl: exit code $?"
+  else
+   echo "Failed to set volume levels"
+  fi
+ }
+
+ x=0
+ while [ -e /sys/class/sound/card${x}/id ] ; do
+  id=$(< /sys/class/sound/card${x}/id)
+  if ! grep -q -m1 "$id" /etc/asound.state ; then
+   echo
+   echo "New hardware: $id"
+   echo -n "Setting initial volume levels "
+   set_volume_levels $x
+   echo
+  fi
+  let x++
+ done
+}
+
+function get_card_device() {
+ #card 0: V8235 [VIA 8235], device 0: VIA 8235
+ local devstr="$@" xpat='([0-9]|[0-9][0-9])'
+ local card=$(echo "$devstr" | grep -E -o "card $xpat")
+ local device=$(echo "$devstr" | grep -E -o "device $xpat")
+ echo ${card#card } ${device#device }
+}
+export -f get_card_device
+
+function retrovol_restart() {
+ if [ "$(busybox pidof retrovol)" ] ; then
+  echo ; echo "Retrovol is running" ; echo
+  killall -9 retrovol
+  retrovol $@ &
+  return 0
+ fi
+ return 1
+}
+
+#####
+LOG=1 #1 = use logfile
+#####
+
+function start_proc() {
+ [ ! -d /tmp/mscw/services ] && mkdir -p /tmp/mscw/services
+ if [ "$LOG" = "1" ] ; then
+  logfile=/tmp/mscw/services/mscw.start.log
+  if [ -f /tmp/mscw/services/mscw.start.log ] ; then
+   logfile=/tmp/mscw/services/mscw.restart.log
+  fi
+ else
+  logfile=/dev/null
+ fi
+ (
+  if [ ! -f /tmp/mscw/services/mscw.1st ] ; then
+   touch /tmp/mscw/services/mscw.1st
+   [ ! "$PUPMODE" ] && . /etc/rc.d/PUPSTATE
+   if [ $PUPMODE -eq 5 ] ; then
+    echo '*** First Boot ***'
+    rm -f /var/local/mscw/selected
+   fi
+   if [ -f /etc/asound.conf ] ; then
+    check_asound_card
+    #retrovol_restart -hide #201011
+   fi
+   check_for_new_hardware
+   #alsactl -f /etc/asound.state restore ##
+   cardinfo ; echo
+  else
+   check_for_new_hardware
+  fi
+ ) &> ${logfile}
+ exit
+}
+
+function MSCW_REPORT() {
+ (
+ dmidecode -t baseboard | grep -iE 'Manufacturer|Product' && echo
+ if [ -f /tmp/mscw/services/10alsa.start.log ] ; then
+  echo '=========================================='
+  echo '     /tmp/mscw/services/10alsa.start.log       '
+  echo '=========================================='
+  cat /tmp/mscw/services/10alsa.start.log
+  echo ; echo ; echo
+ fi
+ if [ -f /var/local/mscw/selected ] ; then
+  echo "/var/local/mscw/selected: $(cat /var/local/mscw/selected)"
+  echo '-----------------------' ; echo
+ fi
+ if [ -f /tmp/mscw/services/mscw.check.txt ] ; then
+  echo '=========================================='
+  echo '         /tmp/mscw/services/mscw.check.txt             '
+  echo '=========================================='
+  cat  /tmp/mscw/services/mscw.check.txt
+  echo ; echo
+ fi
+ if [ -f /tmp/mscw/services/mscw.start.log ] ; then
+  echo '=========================================='
+  echo '     /tmp/mscw/services/mscw.start.log         '
+  echo '=========================================='
+  cat /tmp/mscw/services/mscw.start.log
+  echo ; echo ; echo
+ fi
+ echo '=========================================='
+ echo '            Sound Card Wizard             '
+ echo '=========================================='
+ bash -c cardinfo
+ echo ; echo ; echo
+ echo '=========================================='
+ echo '          lspci | grep -i audio           '
+ echo '=========================================='
+ lspci | grep -i audio
+ echo ---
+ lspci | grep -i -E 'graphic|video|display|vga' #for hdmi
+ echo -n "xorg driver: " ; report-video driver
+ echo ---
+ echo
+ echo '=========================================='
+ echo '     /etc/modprobe.d/alsa-base.conf       '
+ echo '=========================================='
+ cat /etc/modprobe.d/alsa-base.conf
+ ) > /tmp/mscw/mscw.report.txt
+ if [ "$DISPLAY" ] ; then
+  defaulttextviewer /tmp/mscw/mscw.report.txt &
+ else
+  echo "Your report is in /tmp/mscw/mscw.report.txt"
+ fi
+}
+export -f MSCW_REPORT
+
+function FIX() {
+ check_asound_card
+ check_for_new_hardware
+ alsactl -f /etc/asound.state restore
+}
+
+###############################################################
+#                        COMMANDS
+###############################################################
+
+[ "$START_PROC" ] && { start_proc; exit; } ### start ###
+[ "$REPORT" ] && { MSCW_REPORT; exit; }
+[ "$CHECK" ] && { check_for_new_hardware; exit; }
+[ "$FIX" ] && { FIX; exit; }
+
+###############################################################
+#                         DIALOG
+###############################################################
+
+export TEXTDOMAIN=mscw
+export OUTPUT_CHARSET=UTF-8
+
+if [ "$DISPLAY" ] ; then
+ MSCW_GUI=1
+else
+ MSCW_CLI=1
+fi
+[ "$CMD_GUI" ] && MSCW_GUI=1  && MSCW_CLI=""
+[ "$CMD_CLI" ] && MSCW_GUI="" && MSCW_CLI=1
+
+ICON='/usr/share/pixmaps/puppy/card_pci.svg'
+
+###########################################################
+export L_MSCW=$(gettext 'Sound Card Wizard')
+L_NODEVICES=$(gettext 'No Sound Devices Detected')
+#20230523 improve msg...
+#L_CHOOSE=$(gettext 'Choose default sound card')
+L_CHOOSE="$(gettext 'Please choose the default sound device, then click <b>Test Sound</b>. If no sound, select device again then click <b>Configure</b>. If sound OK, select device again then set it as the default by clicking on <b>Set Default Device</b>')"
+L_CHOOSE_ANOTHER=$(gettext 'Choose another default sound card')
+L_QUIT=$(gettext 'Quit')
+L_OK=$(gettext 'OK')
+L_CANCEL=$(gettext 'Cancel')
+#20230523 improve button text...
+#L_SELECT=$(gettext 'Select card/device')
+L_SELECT="$(gettext 'Set Default Device')"
+L_REPORT=$(gettext 'Report')
+L_RETROVOL_SET=$(gettext 'Retrovol has been set to use this card:')
+#L_CONFIGURE_MIXER=$(gettext 'Configure your audio mixer as')
+L_CONFIGURE_MIXER=$(gettext 'Audio is set to use this card:') #20201024
+L_CARD=$(gettext 'Card')
+L_DEVICE=$(gettext 'device')
+L_TESTSOUND=$(gettext 'Test Sound')
+L_CONF="$(gettext 'Configure...')"
+export L_MUSTSELECT=$(gettext 'You must select an item from the list..')
+###########################################################
+
+MSGX=$L_CHOOSE
+#[ -f /var/local/mscw/selected ] && MSGX=$L_CHOOSE_ANOTHER #200108 removed.
+
+if [ "$(grep -v pcspeaker /proc/asound/pcm)" = "" ] ; then
+ [ -f /etc/asound.conf ] && check_asound_card
+ if [ "$MSCW_GUI" ] ; then
+  gtkdialog-splash -close never -timeout 4 -icon $ICON -text "${L_NODEVICES}" &
+ else
+  dialog --title "${L_MSCW}" --msgbox "${L_NODEVICES}" 0 0 &
+ fi
+ exit
+fi
+
+if [ ! -f /etc/asound.conf ] ; then
+ write_asound_card 0 0 0
+else
+ check_asound_card
+fi
+DEVICES="`LANG=C aplay -l | grep card | grep -v pcspeaker`"
+#...ex: card 0: PCH [HDA Intel PCH], device 0: ALC255 Analog [ALC255 Analog]
+
+#200108 201011
+AUDIOD=''
+if pidof bluealsa >/dev/null;then AUDIOD='bluealsa'; fi
+#20211103 pulseaudio daemon now set to never idle-exit...
+if pidof pulseaudio >/dev/null;then AUDIOD='pulseaudio'; fi
+#if [ -x /root/Startup/pulseaudio ];then
+# #20211102 pulseaudio daemon does not run continuously, so do it this way.
+# AUDIOD='pulseaudio'
+#fi
+if pidof pipewire-pulse >/dev/null;then AUDIOD='pipewire'; fi #20211102
+
+if [ "$AUDIOD" ];then
+ #BT_DEVICES0=$(ls -d /var/lib/bluetooth/*/* | sed 's|/var/lib/bluetooth/.*/||; /:/!d')
+ BT_DEVICES0="$(find /var/lib/bluetooth -mindepth 2 -maxdepth 2 -type d -name '[0-9A-F][0-9A-F]:*' | rev | cut -f 1 -d '/' | rev)" #20211102
+ #...ex: 20:15:10:15:1C:AF
+ if [ "$BT_DEVICES0" ];then
+  for aBTDEV in $BT_DEVICES0
+  do
+   [ "$aBTDEV" == "" ] && continue #20211102
+   BTDinfo="$(LANG=C bt-device -i ${aBTDEV})"
+   [ ! "$BTDinfo" ] && continue #200117
+   ASflg="$(echo "$BTDinfo" | grep 'UUIDs.*AudioSink')"
+   if [ "$ASflg" ];then
+    BTname="$(echo "$BTDinfo" | grep '^  Name: ' | tr -s ' ' | cut -f 3- -d ' ')"
+    BTaddress="$(echo "$BTDinfo" | grep '^  Address: ' | tr -s ' ' | cut -f 3- -d ' ')"
+    BTicon="$(echo "$BTDinfo" | grep '^  Icon: ' | tr -s ' ' | cut -f 3- -d ' ')"
+    #20201021 need to know if device is connected...
+    BTconnected="$(echo "$BTDinfo" | grep -o 'Connected: 1' | cut -f 2 -d ' ')" #0 or 1
+    if [ "$BTconnected" == "1" ];then
+     BTconnected='yes'
+    else
+     BTconnected='no'
+    fi
+    #200109 remove " icon='${BTicon}'"...
+    if [ "$DEVICES" ];then
+     DEVICES="${DEVICES}
+bluetooth: name='${BTname}' address='${BTaddress}' connected='${BTconnected}'"
+    else
+     DEVICES="bluetooth: name='${BTname}' address='${BTaddress}' connected='${BTconnected}'"
+     #...ex: bluetooth: name='BS512' address='20:15:10:15:1C:AF' connected='yes'
+    fi
+   fi
+  done
+ fi
+fi
+
+BTflg="$(echo "$DEVICES" | grep -o '^bluetooth')"
+if [ ! "$BTflg" ];then #20211113
+ #restore the legacy hard-coded alsa card settings...
+ sed -i -e 's%^#defaults%defaults%' /etc/asound.conf
+else
+ BTMACconnected="$(echo "$DEVICES" | grep -o '^bluetooth' | grep "connected='yes'" | tr ' ' '\n' | grep '^address' | cut -f 2 -d "'" | head -n 1)"
+ if [ "$BTMACconnected" ];then
+  #hide the legacy alsa card settings...
+  sed -i -e 's%^defaults%#defaults%' /etc/asound.conf
+ fi
+fi
+
+#200108 20211113
+ACTIVE_CARD=0; ACTIVE_DEVICE=0
+grep -q '^defaults' /etc/asound.conf
+if [ $? -eq 0 ];then
+ #using legacy asound.conf for internal cards...
+ read ACTIVE_CARD ACTIVE_DEVICE A_CMIXER <<< "$(get_asound_card)"
+ ACTIVEN=`echo "$DEVICES" | grep -n -w "card $ACTIVE_CARD" | grep -w "device $ACTIVE_DEVICE"`
+ ACTIVEN=${ACTIVEN%%:*} #ex: 1 (first entry in $DEVICES)
+else
+ #the /etc/asound.conf legacy file has been commented-out.
+ #this is for bluetooth audio...
+ case "$AUDIOD" in
+  pipewire) #20211102
+   #pacmd doesn't work with pipewire-pulse, pactl does...
+   BTdevice="$(pactl list sinks | grep -o 'api\.bluez5\.address = .*' | cut -f 2 -d '"' | head -n 1)"
+   if [ "$BTdevice" ];then
+    xACTIVEN=$(echo "$DEVICES" | grep -n "address='${BTdevice}'")
+    xACTIVEN=${xACTIVEN%%:*}
+    ACTIVEN=$xACTIVEN
+   fi
+  ;;
+  *) #pulseaudio
+   BTdevice="$(pacmd list-sinks | grep 'name:.*bluez_sink' | cut -f 2 -d '.' | tr '_' ':')"
+   if [ "$BTdevice" ];then
+    xACTIVEN=$(echo "$DEVICES" | grep -n "address='${BTdevice}'")
+    xACTIVEN=${xACTIVEN%%:*}
+    ACTIVEN=$xACTIVEN
+   fi
+  ;;
+ esac
+fi
+
+###############################################################
+
+function test_sound() {
+ if [ -z "$1" ] ; then
+  /usr/lib/gtkdialog/box_ok "$L_MSCW" error "$L_MUSTSELECT"
+  return 1
+ fi
+ 
+ CR='
+'
+ aSELECTED="$@"
+ if [ "${aSELECTED/bluetooth:*/}" == "" ];then #200108
+  #ex: aSELECTED=="bluetooth: name='BS512' address='20:15:10:15:1C:AF' connected='yes'"
+  #20201021 cannot play if not connected...
+  BTconnected="$(echo "$aSELECTED" | tr ' ' '\n' | grep '^connected' | cut -f 2 -d "'")"
+  if [ "$BTconnected" != "yes" ];then
+   PASerr3="$(gettext 'Sorry, the device is not connected, cannot play a test sound.')"
+   popup "terminate=ok level=top background=#ff8080 process=wait|<big>${PASerr3}</big>"
+   return 0
+  fi
+  BTaddress="$(echo "$aSELECTED" | tr ' ' '\n' | grep '^address' | cut -f 2 -d "'")"
+  #20211103 pulseaudio daemon now set to never idle-exit...
+  if pidof pulseaudio >/dev/null;then AUDIOD='pulseaudio'; fi #201011
+  #if [ -x /root/Startup/pulseaudio ];then
+  # #20211102 pulseaudio daemon does not run continuously, so do it this way.
+  # AUDIOD='pulseaudio'
+  #fi
+  if pidof pipewire-pulse >/dev/null;then AUDIOD='pipewire'; fi #20211102
+  case "$AUDIOD" in
+   pulseaudio)
+    BTaddr_mod="$(echo "$BTaddress" | tr ':' '_')"
+    echo "RUNNING: pacmd list-sinks | grep \"name:.*${BTaddr_mod}\" | cut -f 2 -d '<' | cut -f 1 -d '>'" >/tmp/mscw/mscw-pa-bt-test
+    PAsink="$(pacmd list-sinks | grep "name:.*${BTaddr_mod}" | cut -f 2 -d '<' | cut -f 1 -d '>')"
+    #...ex: name: <bluez_sink.29_F0_F0_54_C2_7B.a2dp_sink>
+    if [ "$PAsink" ];then
+     echo "RUNNING: paplay --device=${PAsink} /usr/share/audio/2barks.au" >>/tmp/mscw/mscw-pa-bt-test
+     paplay --device=${PAsink} /usr/share/audio/2barks.au
+     paplay --device=${PAsink} /usr/share/audio/2barks.au 2>>/tmp/mscw/mscw-pa-bt-test
+     if [ $? -ne 0 ];then
+      PASerr1="$(gettext 'Sorry, error trying to play sound')"
+      popup "terminate=ok level=top background=#ff8080 process=wait|<big>${PASerr1}</big>"
+     fi
+    else
+     PASerr2="$(gettext 'Sorry cannot find the bluetooth sink address.')${CR}$(gettext 'Please click the Bluetooth applet in the tray, and connect the device. If it is already connected, try disconnect then reconnect.')"
+     popup "terminate=ok level=top background=#ff8080 process=wait|<big>${PASerr2}</big>"
+    fi
+   ;;
+   pipewire) #20211102
+    BTaddr_mod="$(echo "$BTaddress" | tr ':' '_')"
+    echo "RUNNING: pactl list sinks | grep -o \"Name: .*${BTaddr_mod}.*\" | cut -f 2 -d ' '"
+    PAsink="$(pactl list sinks | grep -o "Name: .*${BTaddr_mod}.*" | cut -f 2 -d ' ')"
+    #...ex: bluez_output.29_F0_F0_54_C2_7B.a2dp-sink
+    if [ "$PAsink" ];then
+     echo "RUNNING: paplay --device=${PAsink} /usr/share/audio/2barks.au" >>/tmp/mscw/mscw-pa-bt-test
+     paplay --device=${PAsink} /usr/share/audio/2barks.au
+     paplay --device=${PAsink} /usr/share/audio/2barks.au 2>>/tmp/mscw/mscw-pa-bt-test
+     if [ $? -ne 0 ];then
+      PASerr1="$(gettext 'Sorry, error trying to play sound')"
+      popup "terminate=ok level=top background=#ff8080 process=wait|<big>${PASerr1}</big>"
+     fi
+    else
+     PASerr2="$(gettext 'Sorry cannot find the bluetooth sink address.')${CR}$(gettext 'Please click the Bluetooth applet in the tray, and connect the device. If it is already connected, try disconnect then reconnect.')"
+     popup "terminate=ok level=top background=#ff8080 process=wait|<big>${PASerr2}</big>"
+    fi
+   ;;
+   *)
+    LIBASOUND_THREAD_SAFE=0 aplay -D bluealsa:SRV=org.bluealsa,DEV=${BTaddress},PROFILE=a2dp /usr/share/audio/2barks.au
+    #200111 odd, my bt earbuds, 1st time just got some noise, have to play it agin...
+    LIBASOUND_THREAD_SAFE=0 aplay -D bluealsa:SRV=org.bluealsa,DEV=${BTaddress},PROFILE=a2dp /usr/share/audio/2barks.au
+   ;;
+  esac
+  return
+ fi
+ 
+ local cd=$(get_card_device "$@")
+ cd=${cd// /,} #ex: 0,1
+ local card=${cd/,*/} #20211229
+ #20211229 have separate script...
+ #max_vol_levels ${card}
+ #20211231 only maximize if muted or low level...
+ MUTEDflg=$(amixer -c ${card} -D pulse get Master | tail -n 1 | grep -c '\[on\]') #0 if muted
+ VOLpercent=$(amixer -c ${card} -D pulse get Master | tail -n 1 | grep -o '[0-9]*%' | tr -d '%')
+ if [ $MUTEDflg -eq 0 -o $VOLpercent -lt 50 ];then
+  set-max-snd-levels ${card}
+ fi
+ if which speaker-test >/dev/null 2>&1 ; then
+  #20211228 change pink noise to 440HZ sine wave...
+  xterm -e speaker-test -c 2 -r 48000 -l 1 -D hw:${cd} -t sine -f 440
+ fi
+ aplay -D plughw:${cd} /usr/share/audio/2barks.au
+}
+export -f test_sound
+
+function ALSA_MIXER() {
+ if [ -z "$1" ] ; then
+  /usr/lib/gtkdialog/box_ok "$L_MSCW" error "$L_MUSTSELECT"
+  return 1
+ fi
+ 
+ #200108 bluetooth...
+ aSELECTED="$@"
+ if [ "${aSELECTED/bluetooth:*/}" == "" ];then
+  #ex: aSELECTED=="bluetooth: name='BS512' address='20:15:10:15:1C:AF' icon='audio-card'"
+  BTaddress="$(echo "$aSELECTED" | tr ' ' '\n' | grep '^address' | cut -f 2 -d "'")"
+  CR='
+'
+  Pmsg1="$(gettext 'Multiple Sound Card Wizard')"
+  grep -q '^defaults' /etc/asound.conf #20211113
+  if [ $? -ne 0 ];then
+   #commented-out asound.conf for bluetooth.
+   pavucontrol &
+  else
+   Pmsg2="$(gettext 'Sorry, the sound mixers only work with a Bluetooth audio device if it is previously selected as the default.')"
+   popup "level=top background=#ff8080 terminate=ok process=wait|<big><b>${Pmsg1}</b>${CR}${Pmsg2}</big>"
+  fi
+  return
+ fi
+ 
+ #200108 fix...
+ #local cd=$(get_card_device "$@")
+ #cd=${cd%*-} #ex: 0
+ local cddv=$(get_card_device "$@")
+ local cd=${cddv/ */}
+ ${DEFAULTTERMINAL} -e alsamixer -c ${cd} -V all
+}
+export -f ALSA_MIXER
+
+#201011 20211113
+BTxml="$(gettext 'If a Bluetooth device is chosen as default output, the setting is written to the PulseAudio server, by means of the pacmd utility. The legacy internal card setting in /etc/asound.conf will be commented-out.')"
+
+#200118 help button
+HELPICON="gtk-index"
+M_close="`gettext 'Close'`"
+H_mscw="$(gettext "A tick is alongside the currently-selected audio output. You may change to another by clicking to highlight it, then click the <i>Set Default Device</i> button.")
+
+<b>$(gettext 'Bluetooth')</b>
+$(gettext "A Bluetooth sound device may be chosen, but it will have to be previously paired and set as <i>Audio sink</i> to be used for sound output. This is done by whatever Bluetooth manager is installed. In the case of EasyOS, it is <b>BluePup</b>, which is in the system tray.")
+
+<b>$(gettext 'Technical notes')</b>
+$(gettext 'The chosen internal sound card will be saved in file /etc/asound.conf, with a backup named /etc/asound.conf.<i>hardware-profile</i>. The backup enables booting of a USB-stick on different computers, in which case the appropriate backup will be copied to asound.conf at bootup.')
+${BTxml}"
+export DLG_HELP_MSCW="<window resizable=\"false\" title=\"$(gettext 'Help: MSCW')\" icon-name=\"${HELPICON}\" window_position=\"1\"><vbox><text use-markup=\"true\"><label>\"${H_mscw}\"</label><variable>DLG_HELP_MSCW</variable></text><hbox><button><label>${M_close}</label><action type=\"closewindow\">DLG_HELP_MSCW</action></button></hbox></vbox></window>"
+
+if [ "$MSCW_GUI" ] ; then
+
+ ITEMS="$(echo "$DEVICES" | sed 's|^|<item>|g' | sed 's|$|</item>|g')"
+ ITEMCOUNT=$(echo "$ITEMS" | wc -l)
+ HEIGHT=$((35*8))
+ [ $ITEMCOUNT -lt 8 ] && HEIGHT=$((35*ITEMCOUNT))
+ [ $ITEMCOUNT -eq 1 ] && HEIGHT=50 #20211228
+ XPAT='<item stock-id="gtk-apply">'
+ ITEMS=$(echo "$ITEMS" | sed -e "${ACTIVEN}s%<item>%$XPAT%" )
+ ##-- 200118...
+ #20211228 show all buttons, even if only one item...
+ #if [ $ITEMCOUNT -eq 1 ] ; then
+ # BUTTONS='<button>
+ #   '$(/usr/lib/gtkdialog/xml_button-icon quit.svg)'
+ #   <label>'${L_QUIT}'</label>
+ #   <action type="exit">Cancel</action>
+ #  </button>
+ #  <button><input file>/usr/local/lib/X11/mini-icons/mini-question.xpm</input><action type="launch">DLG_HELP_MSCW</action></button>'
+ #else
+  BUTTONS='
+   <button>
+    '$(/usr/lib/gtkdialog/xml_button-icon sound.svg)'
+    <label>'${L_TESTSOUND}'</label>
+    <action>test_sound $SELECTED</action>
+   </button>
+   <button>
+    '$(/usr/lib/gtkdialog/xml_button-icon sound_mixer.svg)'
+    <label>'${L_CONF}'</label>
+    <action>ALSA_MIXER $SELECTED</action>
+   </button>
+   <button>
+    '$(/usr/lib/gtkdialog/xml_button-icon apply.svg)'
+    <label>'${L_SELECT}'</label>
+    <action>exit:OK</action>
+   </button>
+   <button>
+    '$(/usr/lib/gtkdialog/xml_button-icon cancel.svg)'
+    <label>'${L_CANCEL}'</label>
+    <action>exit:Cancel</action>
+   </button>
+   <button>
+    '$(/usr/lib/gtkdialog/xml_button-icon clipboard.svg)'
+    <label>'${L_REPORT}'</label>
+    <action>MSCW_REPORT &</action>
+   </button>
+   <button><input file>/usr/local/lib/X11/mini-icons/mini-question.xpm</input><action type="launch">DLG_HELP_MSCW</action></button>'
+ #fi
+ 
+ # ------------------------
+ WINDOW_MSG="$(/usr/lib/gtkdialog/xml_info scale /usr/share/pixmaps/puppy/sound_config.svg 24 "${MSGX}")"
+ export MSCW_DIALOG='
+<window title="'${L_MSCW}'" image-name="/usr/share/pixmaps/puppy/card_pci.svg" resizable="false">
+ <vbox>
+  '${WINDOW_MSG}'
+  <tree rules_hint="true" headers_visible="false" hover-expand="true">
+   <height>'${HEIGHT}'</height>
+   <width>600</width>
+   '${ITEMS}'
+   <variable>SELECTED</variable>
+  </tree>
+  <hbox>
+   '${BUTTONS}'
+  </hbox>
+ </vbox>
+</window>'
+ ###
+ . /usr/lib/gtkdialog/xml_info gtk #build bg_pixmap for gtk-theme
+ echo "$MSCW_DIALOG" > /tmp/mscw/mscw.gui #debug TEST
+ res="$(gtkdialog --center --program MSCW_DIALOG)"
+ res="$(echo "$res" | grep '="')"
+ echo "$res" > /tmp/mscw/mscw.gui.res #TEST
+ eval "$res"
+
+else ##### CLI #####
+ ITEMCOUNT=$(echo "$DEVICES" | wc -l)
+ EXIT=Cancel
+ x=1
+ (
+ echo -n 'dialog --title "'${L_MSCW}'" --cancel-label "'${L_CANCEL}'" --ok-label "'${L_OK}'" --extra-button --extra-label "'${L_REPORT}'" --radiolist "'${MSGX}'" 0 0 0 '
+ echo "$DEVICES" | while read line ; do
+  if [ $x -eq $ACTIVEN ] ; then
+   echo -n "\"$x\" \"$line\" \"on\" "
+  else
+   echo -n "\"$x\" \"$line\" \"off\" "
+  fi
+  x=$((x+1))
+ done
+ echo '>/dev/tty 2>/tmp/mscw/mscw.cli.res'
+ echo 'exit $?'
+ ) > /tmp/mscw/mscw.cli
+ sh /tmp/mscw/mscw.cli
+ retval=$?
+ if [ $retval -eq 0 ] ; then
+  if [ $ITEMCOUNT -gt 1 ] ; then
+   choice=$(< /tmp/mscw/mscw.cli.res)
+   if [ "$choice" ] ; then
+    SELECTED=$(echo "$DEVICES" | sed -n "${choice}p" )
+    EXIT='OK'
+   fi
+  fi
+ elif [ $retval -eq 3 ] ; then
+  MSCW_REPORT
+  rm -f /tmp/mscw/mscw.cli /tmp/mscw/mscw.cli.res
+  exit
+ fi
+ rm -f /tmp/mscw/mscw.cli /tmp/mscw/mscw.cli.res
+fi
+
+###############################################################
+
+[ "$EXIT" == "" ] && exit #200118 syntax error in dlg will cause this.
+
+case $EXIT in Cancel|abort|EXIT)
+ if [ ! -f /var/local/mscw/selected ] ; then
+  if [ $ACTIVE_CARD -ne 0 -o $ACTIVE_DEVICE -ne 0 ] ; then
+   selected=$(echo "$DEVICES" | grep "card $ACTIVE_CARD" | grep "device $ACTIVE_DEVICE")
+   if [ "$selected" ] ; then
+    echo "$selected" > /var/local/mscw/selected
+   fi
+  fi
+ fi
+ exit
+esac
+
+#####bluetooth#####
+#200108 how to handle bluetooth? doesn't seem easy to fit into this code, so handle separately...
+if [ "$EXIT" = "OK" ]; then
+ if [ "$SELECTED" ];then #200117
+  if [ "${SELECTED/bluetooth:*/}" == "" ];then
+   
+   #201011 20211113
+   BTxml2="$(gettext 'If you choose yes, the PulseAudio server will be notified that the Bluetooth device is now the default for audio output. Choose no, output will revert to the default internal device specified in /etc/asound.conf.')"
+
+   #ex: SELECTED=="bluetooth: name='BS512' address='20:15:10:15:1C:AF' connected='yes'"
+   #20201021 warn if not connected...
+   CONflg="$(echo "$SELECTED" | tr ' ' '\n' | grep '^connected' | cut -f 2 -d "'")"
+   WARNxml=""
+   if [ "$CONflg" != "yes" ];then
+    WARNtxt="$(gettext 'Warning: The device is currently not connected. You will not be able to play sound to it.')"
+    WARNxml="
+<b><span color='red'>${WARNtxt}</span></b>
+"
+   fi
+   TXTname="$(gettext 'Name:')"
+   TXTaddress="$(gettext 'Address:')"
+   TXTconnected="$(gettext 'Connected:')"
+   TXTyes="$(gettext 'yes')"
+   TXTno="$(gettext 'no')"
+   BTinfo="$(echo "$SELECTED" | cut -f 2- -d ' ' | tr ' ' '\n' | sed -e "s%'yes'%'${TXTyes}'%" -e "s%'no'%'${TXTno}'%" | sed -e "s%^name=%${TXTname} %" -e "s%^address=%${TXTaddress} %" -e "s%^connected=%${TXTconnected} %" -e "s%'%%g")"
+   
+   export MSCW_BT_DLG="<window title=\"${L_MSCW}\" image-name=\"/usr/share/pixmaps/puppy/card_pci.svg\" resizable=\"false\">
+   <vbox>
+    <text use-markup=\"true\" justify=\"0\"><label>\"$(gettext 'Do you want audio output to this Bluetooth device?')
+
+<b>${BTinfo}</b>
+${WARNxml}
+<b>$(gettext 'Technical notes:')</b>
+${BTxml2}\"</label></text>
+    <hbox>
+     <button><label>$(gettext 'Yes')</label><action>exit:BT_YES</action></button>
+     <button><label>$(gettext 'No')</label><action>exit:BT_NO</action></button>
+     <button cancel></button>
+    </hbox>
+   </vbox>
+   </window>
+   "
+   echo "$MSCW_BT_DLG" > /tmp/mscw/mscw.bt.gui #TEST
+   res="$(gtkdialog --center --program MSCW_BT_DLG)"
+   res="$(echo "$res" | grep '="')"
+   eval "$res"
+   BTaddress="$(echo "$SELECTED" | tr ' ' '\n' | grep '^address' | cut -f 2 -d "'")"
+   case "$EXIT" in
+    BT_YES) #20211113
+     if [ "$AUDIOD" == "pipewire" ];then
+      #headache, pacmd doesn't work...
+      BTaddr_mod="$(echo "$BTaddress" | tr ':' '_')"
+      PAsink="$(pactl list sinks | grep -o "Name: .*${BTaddr_mod}.*" | cut -f 2 -d ' ')"
+      #...ex: bluez_output.29_F0_F0_54_C2_7B.a2dp-sink
+      pactl set-default-sink "${PAsink}"
+     else #pulseaudio
+      BTaddr_mod="$(echo "$BTaddress" | tr ':' '_')"
+      PAsink="$(pacmd list-sinks | grep "name:.*${BTaddr_mod}" | cut -f 2 -d '<' | cut -f 1 -d '>')"
+      pacmd set-default-sink "${PAsink}"
+     fi
+     #20211118 to make it permanent:
+     sed -i '/^set-default-sink/d' /etc/pulse/default.pa
+     echo "set-default-sink ${PAsink}" >> /etc/pulse/default.pa
+     #20211113 comment-out legacy hardcoded internal card settings in /etc/asound.conf...
+     sed -i -e 's%^defaults%#defaults%' /etc/asound.conf
+     cp -f /etc/asound.conf /etc/asound.conf.${BTaddress} ###20211113 NEED ATTENTION?###
+
+     #echo "$SELECTED" > /var/local/mscw/selected #won't use this for bluetooth.
+     TXT="$(gettext 'Sound output set to Bluetooth device')"
+     TEXT="$(gettext 'Address:')"
+     gtkdialog-splash -placement top -close never -timeout 6 -icon /usr/share/pixmaps/puppy/sound_config.svg -wrap false -text "${TXT}
+${TEXT} ${BTaddress}" &
+    ;;
+    BT_NO) #20211113
+     #20211118 remove...
+     #if [ "$AUDIOD" == "pipewire" ];then #20211102
+     # pactl set-default-sink "alsa_output.dmix"
+     #else
+     # pacmd set-default-sink "alsa_output.dmix"
+     #fi
+     #restore internal card settings...
+     sed -i -e 's%^#defaults%defaults%' /etc/asound.conf
+     #keep asound.conf.${BTaddress}
+     
+     #20211118 revert to internal pci card...
+     DEFname=''
+     DEFcard="$(grep '^defaults\.pcm\.card' /etc/asound.conf | cut -f 2 -d ' ')"
+     if [ "$DEFcard" ];then
+      DEFpci="$(readlink /sys/class/sound/card${DEFcard} | rev | cut -f 3 -d '/' | rev)" #ex: 0000:00:1f.3
+      if [ "$DEFpci" ];then
+       DEFpcimod="$(echo -n "$DEFpci" | tr ':' '_')"
+       DEFname="$(pactl list short sinks | tr '\t' ' ' | tr -s ' ' | grep "alsa_output\.pci-${DEFpcimod}\." | cut -f 2 -d ' ' | head -n 1)"
+      fi
+      if [ ! "$DEFname" ];then #precaution...
+       DEFname="$(pactl list short sinks | tr '\t' ' ' | tr -s ' ' | grep 'alsa_output\.pci' | cut -f 2 -d ' ' | head -n 1)"
+      fi
+     fi
+     if [ "$DEFname" ];then
+      pactl set-default-sink ${DEFname}
+      #to make it permanent:
+      sed -i '/^set-default-sink/d' /etc/pulse/default.pa
+      echo "set-default-sink ${DEFname}" >> /etc/pulse/default.pa
+     fi
+
+     TXT="$(gettext 'Reverted to internal audio output')"
+     gtkdialog-splash -placement top -close never -timeout 6 -icon /usr/share/pixmaps/puppy/sound_config.svg -wrap false -text "${TXT}" &
+    ;;
+   esac
+   exit
+  else #20211113
+   #internal audio is controlled by /etc/asound.conf
+   sed -i -e 's%^#defaults%defaults%' /etc/asound.conf
+   #keep asound.conf.${BTaddress}
+   
+   #20211118 need to change pa default...
+   #simple cases, 1+ pci and 1 usb card...
+   DEFname=''
+   DEFUSB="$(echo -n "$SELECTED" | grep -o 'USB')"
+   if [ "$DEFUSB" ];then
+    DEFname="$(pactl list short sinks | tr '\t' ' ' | tr -s ' ' | grep 'alsa_output\.usb' | cut -f 2 -d ' ' | head -n 1)"
+   else
+    DEFcard="$(grep '^defaults\.pcm\.card' /etc/asound.conf | cut -f 2 -d ' ')"
+    if [ "$DEFcard" ];then
+     DEFpci="$(readlink /sys/class/sound/card${DEFcard} | rev | cut -f 3 -d '/' | rev)" #ex: 0000:00:1f.3
+     if [ "$DEFpci" ];then
+      DEFpcimod="$(echo -n "$DEFpci" | tr ':' '_')"
+      DEFname="$(pactl list short sinks | tr '\t' ' ' | tr -s ' ' | grep "alsa_output\.pci-${DEFpcimod}\." | cut -f 2 -d ' ' | head -n 1)"
+     fi
+     if [ ! "$DEFname" ];then #precaution...
+      DEFname="$(pactl list short sinks | tr '\t' ' ' | tr -s ' ' | grep 'alsa_output\.pci' | cut -f 2 -d ' ' | head -n 1)"
+     fi
+    fi
+   fi
+   if [ "$DEFname" ];then
+    pactl set-default-sink ${DEFname}
+    #to make it permanent:
+    sed -i '/^set-default-sink/d' /etc/pulse/default.pa
+    echo "set-default-sink ${DEFname}" >> /etc/pulse/default.pa
+    
+    #20211228 does not see my hdmi, may need this hack...
+    # ex: SELECTED="card 0: PCH [HDA Intel PCH], device 0: ALC233 Analog [ALC233 Analog]"
+    # ...want that string in last square brackets
+    SELNAMESTR0="${SELECTED/*[/}"
+    SELNAMESTR1="${SELNAMESTR0/]*/}" #ex: ALC233 Analog
+    #find out if pa knows about it...
+    PAKNOWS="$(pactl list sinks | grep -o "\"${SELNAMESTR1}\"")"
+    if [ ! "$PAKNOWS" ];then
+     #forcibly tell pa...
+     sed -i '/^load-module module-alsa-sink/d' /etc/pulse/default.pa
+     read newCard newDevice <<< "$(get_card_device "$SELECTED")"
+     echo "load-module module-alsa-sink device=hw:${newCard},${newDevice}" >> /etc/pulse/default.pa
+     #/root/Startup/pulseaudio restart
+     if [ "$(whoami)" == "root" ];then #20221031
+      /etc/init.d/pulseaudio restart
+     else
+      sudo /etc/init.d/pulseaudio restart
+     fi
+    fi
+   
+   else
+    #20220702 testing on mele mini-pc with tv, hdmi audio, no sound. fix...
+    # "pactl list sinks" doesn't show the hdmi, pa bug for 3 years...
+    # ref: https://bugs.launchpad.net/ubuntu/+source/linux/+bug/1834771
+    read newCard newDevice <<< "$(get_card_device "$SELECTED")"
+    pactl load-module module-alsa-sink device=hw:${newCard},${newDevice} #so don't have to restart server.
+    sed -i '/^load-module module-alsa-sink/d' /etc/pulse/default.pa
+    echo "load-module module-alsa-sink device=hw:${newCard},${newDevice}" >> /etc/pulse/default.pa
+    pactl set-default-sink alsa_output.hw_${newCard}_${newDevice} #so don't have to restart server.
+    sed -i '/^set-default-sink/d' /etc/pulse/default.pa
+    echo "set-default-sink alsa_output.hw_${newCard}_${newDevice}" >> /etc/pulse/default.pa
+   fi
+   #note, to verify pa default, "*" prefixed:
+   ## pacmd list-sinks | grep -e 'name:' -e 'index:'
+   
+  fi
+ else #200117 clicked "Set Default Device" button without highlighting an entry.
+  /usr/lib/gtkdialog/box_ok "$L_MSCW" error "$L_MUSTSELECT"
+  exec mscw
+ fi
+fi
+##########
+
+if [ "$EXIT" = "OK" ]; then
+ read Card Device <<< "$(get_card_device "$SELECTED")"
+fi
+
+if ! is_valid_device $Card ; then
+ echo "\$Card has a wrong value: $Card" ; exit 1
+fi
+if ! is_valid_device $Device ; then
+ echo "\$Device has a wrong value: $Device" ; exit 1
+fi
+
+write_asound_card $Card $Device $Card #-- write --#
+
+cp -f /etc/pulse/default.pa /etc/pulse/default.pa.${SND_HW_PROFILE} #20211228
+
+check_for_new_hardware >/dev/null 2>&1
+
+#201011
+#if [ ${Card} -eq ${ACTIVE_CARD} -a ${Device} -eq ${ACTIVE_DEVICE} ] ; then
+# retrovol_restart -hide
+# exit
+#fi
+
+###############################################################
+
+echo "$SELECTED" > /var/local/mscw/selected
+
+TXT="$L_CARD $Card $L_DEVICE $Device"
+if retrovol_restart ; then
+ TEXT="$L_RETROVOL_SET hw:${Card}"
+else
+ TEXT="$L_CONFIGURE_MIXER hw:${Card},${Device}"
+fi
+
+if [ "$MSCW_GUI" ] ; then
+ echo "$TEXT"
+ gtkdialog-splash -placement top -close never -timeout 6 -icon /usr/share/pixmaps/puppy/sound_config.svg -wrap false -text "$TXT
+$TEXT" &
+else
+ echo -e "$TXT\n$TEXT"
+ echo
+fi
+
+### END ###

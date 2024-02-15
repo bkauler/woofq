@@ -1,0 +1,328 @@
+#!/bin/sh
+#(c) copyright 2007 Barry Kauler
+#2007 Lesser GPL licence v2 (http://www.fsf.org/licensing/licenses/lgpl.html)
+#launched from ~/.xinitrc, so X is running.
+#note, see also /usr/sbin/savepuppyd, launched from /etc/rc.d/rc.local0.
+#v3.91 BK oct,nov 2007, upated for Dingo.
+#v3.94 BK 15 dec 2007, updated.
+#v4.01 BK 19may2008: don't think loading usb-storage reqd here anymore.
+#v4.01 BK 19may2008: note the new pup_eventd also launched from .xinitrc.
+#w007 path fix for Xorg.
+#w481 warning if modules cannot be loaded.
+#100404 fix load applets for fbpanel. 100413 think needs some 'sleep 0.1'
+#100504 background color for retrovol.
+#100511 for ram-challenged pc, better to display welcome1stboot.png.
+#100513 jwm tray now uses freememapplet_tray and blinky_tray. NOTE: future, move these to /root/Startup.
+#100517 freememapplet_tray moved to /root/Startup.
+#100522 'surfer' is a simple viewer (uses libgtkhtml).
+#100608 if yaf-splash symlink to gtkdialog-splash, use '-fontsize large' parameter.
+#100821 01micko: fixes for background color in tray apps, also launch first-run.sh.
+#100917 have removed -font parameter from yaf-splash (see /usr/share/doc/yaf-splash-new.htm).
+#101004 jemimah has disabled tray applet in retrovol, now using obmixer_tray.
+#101007 sound alias modprobe info may have moved.
+#101009 problem as tray applets only got launched after welcome msg exited.
+#101017 Alsa modprobe file now /etc/modprobe.d/alsa.conf.
+#101019 welcome1stboot is now a gtkdialog app...
+#101112 alsa info in two different places.
+#101120, 101121 fix sound test, rewritten /sbin/pup_event_backend_modprobe.
+#101210 pup_event_alsa_cnt* are now in /tmp/pup_event_backend.
+#110113 test /dev/mixer for sound ready, see /etc/init.d/10alsa.
+#20110328 if mouse not working, popup dialog.
+#110412 welcome1stboot now written in BaCon, in /usr/sbin.
+#110516 only popup dlg for mouse not working, if DISTRO_XORG_AUTO='yes' (in /etc/DISTRO_SPECS)
+#110807 take out pngoverlay code, doing it in woof 3builddistro.
+#110925 fix, improvements, for flash player download.
+#111010 create /tmp/delayedrun_finished_flag to flag when this script exited.
+#111019 DISTRO_XORG_AUTO==yes and PUPMODE==5, run 'quickcountry'. mouse-checking moved to 'mousecheck'.
+#111026 decided not to run 'mousecheck' from here. instead, a button in 'quicksetup'.
+#111110 ping 64.233.169.103 address no longer responding. 01micko: use 8.8.8.8
+#111112 delay a bit more before flashplayer popup.
+#111113 fix for download url for flash player. 111117 fix.
+#120110 added sudo line. see also /etc/sudoers -- set delayedrun does not require password, probably a security hole, need to look at it again later.
+#120201 rodin.s: internationalized.
+#120227 call external /usr/sbin/check_internet
+#120329 shinobar: download tweaks.
+#120401 added warning flash player may not work.
+#120403 removed adobe flash download. no, have changed to older version.
+#120620 removed adobe flash download. want quicksetup/welcome1stboot for any PUPMODE at first startup.
+#120708 run 'quickarm' instead of 'quicksetup' on arm boards. see 3builddistro, /usr/sbin/quicksetup.
+#120714 revert 120708.
+#120718 modify initial sleep.
+#120823 rerwin: skip quicksetup if /etc/personal_settings_popup_disabled file created by remasterpup2 (modified by rerwin).
+#120823 rerwin: use distro-specific delayedrun if available.
+#120830 quicksetup restarts X, welcome1stboot did not run.
+#130709 precise pup now has two web browsers. 130711. 130719. 130723. 130725.
+#140207 check network connection. see also: check_internet, welcome1stboot.bac, network_tray.c, quicksetup.
+#140212 fix calling multiple sound card wizard.
+#140216 popup warning not to unplug removable drive.
+#150212 won't bother to create a ref. snapshot at all.
+#150214 popup msg when booted from live-cd or frugal.
+#150413 modify warning msg.
+#150422 language selector for quicksetup. refer: http://bkhome.org/news/?viewDetailed=00192
+#150423 revert 150422
+#150425 want to run welcome1stboot with locale chosen in quicksetup. 150429 fix.
+#150724 msg for special developer build of quirky.
+#150816 add LiveCode to welcome msg.
+#151106 hide error msg when PDEV1=zram0
+#151109 improve livecd/frugal warning msg.
+#160419 improve warning message, iso boot can now be optical or usb-flash media.
+#170225 easy linux modifications.
+#170528 moved "woof woof" bark to separate process, /usr/sbin/woofwoof
+#170801 /usr/share/doc/easy/welcome.htm replaces welcome1stboot.
+#170806 have translations /usr/share/doc/easy/${xNEWLANG}/welcome.htm
+#180410 remove old alsa code.
+#190215 removed /tmp/delayedrun-internet-working, /tmp/delayedrun-active-interfaces
+#190215 trigger call to /usr/local/pup_event/netchg  190217
+#190715 popup warning if running in zram (got this from quirky).
+#190721 improve test ro boot.
+#200521 include networkmanager to trigger netchg.
+#200605 run mscw, multiple sound card wizard, after quicksetup, 1st bootup.
+#200717 test if old dc, busybox <= 1.28.4
+#200823 msg when running in ram. 200829 fix popups.
+#200907 detach child apps from delayedrun. 200909 
+#20201125 run /usr/sbin/report-fw-fail at first bootup.
+#20210612 replaced all yaf-splash with gtkdialog-splash. note, still ok to kill yaf-splash, see gtkdialog-splash script.
+#20211111 /root/Startup moved up, mscw needs pulseaudio daemon loaded.
+#20211113 pa: first bootup, 10alsa no longer sets snd levels. done here. 20211114
+#20211229 set sound levels in mscw, not here.
+#20220323 baby laptop, sometimes osmo not swallowed in tray: increase sleep. didn't fix, put sleep into /root/Startup/osmo_tray
+#20220621 .lockdown.flg now in wkg-partition.
+#20220626 fix for mscw popping up twice. ref: https://forum.puppylinux.com/viewtopic.php?p=60565#p60565
+#20220715 run date-time-wizard if no /etc/clock.<hw profile> ref: rc.country, quicksetup
+#20221023 may be running as zeus super-user. 20221031 hmmm, maybe still need bump to root.
+#20230626 new sudo-sh replaces sudo.
+
+#20230626
+if [ "$(whoami)" != "root" ];then
+ if [ -x /usr/bin/sudo-sh ];then
+  exec sudo-sh ${PPID} ${0} ${@}
+ else
+  exec sudo -A ${0} ${@}
+ fi
+fi
+
+export TEXTDOMAIN=delayedrun
+export OUTPUT_CHARSET=UTF-8
+. gettext.sh
+
+. /etc/rc.d/PUPSTATE #variables created at bootup by 'init' in initramfs.
+. /etc/DISTRO_SPECS
+[ -x ${0}-${DISTRO_FILE_PREFIX} ] && exec ${0}-${DISTRO_FILE_PREFIX} #120823 rerwin: use distro-specific delayedrun if available.
+. /etc/rc.d/BOOTCONSTRAINED #120708
+. /tmp/pc-hardware-profile #20220715 ex: PC_HARDWARE_PROFILE="91da59bf-979c-4d2c-b0da-a758cb1ba74f"
+
+busybox dc -e '' >/dev/null 2>&1 #200717 test if old dc, busybox <= 1.28.4
+DCflg=$? #0=new bb.
+CR='
+'
+
+KERNVER="`uname -r`" #w481
+
+zfree_func() { #200823
+    ZRAMK=`df -k | grep '^/dev/zram0' | tr -s ' ' | cut -f 4 -d ' '`
+    if [ $ZRAMK -gt 1048576 ];then #1024*1024
+     if [ $DCflg -eq 0 ];then
+      ZFREE="$(LANG=C busybox dc -e "1 k ${ZRAMK} 1048576 / p")"
+     else
+      ZFREE="`LANG=C busybox dc $ZRAMK 1048576 \/ p`"
+     fi
+     ZFREE="`LANG=C busybox printf "%.1f" $ZFREE`G"
+    else
+     if [ $ZRAMK -gt 99 ];then
+      ZFREE="`expr $ZRAMK \/ 1024`M"
+     else
+      if [ $DCflg -eq 0 ];then
+       ZFREE="$(LANG=C busybox dc -e "1 k ${ZRAMK} 1024 / p")"
+      else
+       ZFREE="`LANG=C busybox dc $ZRAMK 1024 \/ p`"
+      fi
+      ZFREE="`LANG=C busybox printf "%.1f" $ZFREE`M"
+     fi
+    fi
+}
+
+sleep 2 #1 #let the dust settle first. 120718 reduce 2 to 1. 121105 try 2, see also /sbin/pup_event_frontend_d.
+#120718 slow cpus need more delay...
+DELAYFACTOR=0
+CPUMHZ=`grep -m 1 -i '^cpu MHz' /proc/cpuinfo | tr -d ' ' | cut -f 2 -d ':' | cut -f 1 -d '.'` #my laptop: 933.000
+if [ $CPUMHZ ];then
+ [ $CPUMHZ -gt 100 ] && DELAYFACTOR=`expr 950 \/ $CPUMHZ` #20220323 bump from 900
+else #120718 raspi: 697.95  my laptop: 4789.47
+ BOGOMIPS=`grep -m 1 -i '^bogomips' /proc/cpuinfo | tr -d ' ' | cut -f 2 -d ':' | cut -f 1 -d '.'`
+ [ $BOGOMIPS ] && [ $BOGOMIPS -gt 200 ] && DELAYFACTOR=`expr 800 \/ $BOGOMIPS`
+fi
+[ $DELAYFACTOR -gt 0 ] && sleep $DELAYFACTOR
+
+#20211111 moved up
+if [ -d /root/Startup ];then
+ for a in /root/Startup/*
+ do
+  if [ -x "$a" ];then
+   #200909 disown or setsid are not needed!
+   #setsid --fork ${a} #200907 ref: https://bkhome.org/news/202009/detach-child-process-from-parent.html
+   ${a} &
+  fi
+  sleep 0.2
+ done
+fi
+
+#first-time help/setup windows...
+#the test for /etc/videomode is for when Xvesa has finished choosing a resolution...
+preLANG="" #150429
+if [ "`readlink /usr/bin/X`" = "Xorg" -o -e /etc/videomode ];then #w007
+ if [ -f /.delayedrun_version_upgrade ];then #170225 refer init script in initramfs.
+  rm -f /.delayedrun_version_upgrade
+  quicksetup
+ else
+  if [ ! -f /var/local/delayedrun_firstboot_flag ];then
+   if [ ! -f /tmp/delayedrun_firstboot_flag ];then #120830 if quicksetup restarts X, reenter here jumps this...
+    touch /tmp/delayedrun_firstboot_flag
+    if [ "$DISTRO_XORG_AUTO" = "yes" ];then #see /etc/DISTRO_SPECS 111019
+     #quick setup window for country and language and X resolution...
+     quicksetup
+     
+     #150425 want to run welcome1stboot with locale chosen in quicksetup... 150429 fix.
+     NEWLANG="`grep '^LANG=' /etc/profile | tr -d "'" | tr -d '"' | cut -f 2 -d '='`"
+     xNEWLANG=${NEWLANG:0:2} #ex: de
+     xLANG=${LANG:0:2}
+     if [ "$xNEWLANG" != "$xLANG" -a "$xNEWLANG" != "en" ];then
+      [ -f /usr/share/locale/${xNEWLANG}/LC_MESSAGES/welcome1stboot.mo ] && preLANG="$xNEWLANG"
+     fi
+     
+     #20201125
+     report-fw-fail #scans dmesg looking for firmware failed to load.
+     
+     #200605 multiple sound card wizard
+     #20211111 pa system, mscw needs pulseaudio daemon, which was loaded by /root/Startup/pulseaudio
+     #20211113 for pa system, need to set levels here, not done in 10alsa...
+     #20211229 no, think will set levels in mscw...
+     #if [ -e /root/Startup/pulseaudio ];then
+     # set-max-snd-levels
+     # if [ $? -eq 0 ];then #20211114
+     #  alsactl -f /etc/asound.state store
+     # fi
+     #fi
+     #20240127 comment out: instead run mscw-not...
+     #if [ ! -s /var/local/mscw/selected ];then #20220626 see also pupautodetect-run
+     # mscw
+     #fi
+     mscw-not
+     
+    fi
+   fi
+   
+   #/usr/sbin/woofwoof & #170528 20211111 removed.
+   
+   #170812 have replaced welcome1stboot...
+   defaultlocalbrowser /usr/share/doc/easy/welcome.htm &
+   
+   #190715 popup warning if running in zram...
+   if [ "${WKG_DEV}" == "zram0" ];then
+    sleep 0.5
+    zfree_func #sets $ZFREE
+    #show free ram in warning message...
+    P0_IM="$(gettext 'Free space in RAM:')"
+    TITLE_IM="$(gettext 'Important notice')"
+    case "$BOOT_FS" in #190721
+     iso9660) #optical
+      P2_IM="$(gettext 'EasyOS has booted from an ISO, currently running totally in RAM')"
+      P1_IM="$(gettext 'EasyOS is intended to run as a <i>frugal</i> installation, either in an entire drive such as Flash memory, or a hard-drive partition.')
+$(gettext 'Running from an ISO is <i>not</i> an installation, However, there is persistence capability, so this mode can be used on an ongoing basis.')"
+      P2b_IM="$(gettext 'The main limitation to be aware of when running <b>totally in RAM</b>, is that you need to be <span color="red" weight="bold">very cautious</span> about downloading files or installing packages.')"
+      P3_IM="
+$(gettext 'If you want persistence, create a file named <b>easyos-persistent-iso</b> in a folder in any Linux partition. At next bootup, this will be used as the working-partition and path.')"
+     ;;
+     *)
+      P2_IM="$(gettext 'EasyOS is currently running totally in RAM')"
+      P1_IM="$(gettext 'EasyOS is intended to run as a <i>frugal</i> installation, either in an entire drive such as Flash memory, or a hard-drive partition, so there will be persistent storage.')"
+      P2b_IM="$(gettext 'The main limitation to be aware of when running <b>totally in RAM</b>, is that you need to be <span color="red" weight="bold">very cautious</span> about downloading files or installing packages.')"
+      P3_IM=""
+     ;;
+    esac
+    IMSG="<big><big><b>${TITLE_IM}</b></big></big>
+
+<b>${P2_IM}</b>
+
+${P1_IM}
+
+${P2b_IM}
+
+<span fgcolor='#000080'>${P0_IM} <b>${ZFREE}</b></span>
+$(gettext 'Note that free space in RAM is high due to zram compression. Note also, you can check free space at any time by mouse-over the memory-icon in the tray.')
+${P3_IM}"
+    popup "terminate=ok background=#E0D0FF level=top|${IMSG}"
+   fi
+   
+   sleep 3 #101009
+   touch /var/local/delayedrun_firstboot_flag
+  fi
+ fi
+fi
+
+#20220715
+if [ ! -f /etc/clock.${PC_HARDWARE_PROFILE} ];then
+ #/usr/sbin/date-time-wizard
+ /usr/sbin/set_hwclock_type
+ cp -a -f /etc/clock /etc/clock.${PC_HARDWARE_PROFILE}
+fi
+
+if [ "$BOOT_LOCK" ];then #200823 running in ram. ref: init in initrd.
+ LOCKDOWN="${BOOT_LOCK:0:1}" #BOOT_LOCK has N:M N=1,2 M=0,1
+ LOCKkeep="${BOOT_LOCK:2:1}" #M
+ if [ ! -f /var/local/delayedrun_firstlock_${LOCKDOWN}_${LOCKkeep}_flag ];then #200829
+  zfree_func
+  MSG8=''
+  case "${LOCKDOWN}" in
+   2) MSG1="$(gettext 'You are currently running totally in RAM, all drives disabled. However, you can save the session if have booted off a removable drive -- just physically replug it, and you will then be able to save, via the <b>save</b> icon at the top of the screen.')" ;;
+   *) MSG1="$(gettext 'You are currently running totally in RAM, all drives unmounted. The drives are still usable, and you can optionally save the session -- see <b>save</b> icon at top of screen.')" ;;
+  esac
+  case "$LOCKkeep" in
+   1)
+    MSG2="$(gettext 'The current lockdown mode is permanent, meaning future bootups will also be running totally in RAM. To return to a normal bootup, choose <b>Normal bootup (remove lockdown)</b> in the menu at bootup.')"
+    MSG3="<b>$(gettext 'Technical note')</b>"
+    MSG4="$(gettext 'Lockdown can also be removed by deleting file <b>.lockdown.flg</b> in the working-partition.')"
+    MSG8="${CR}${CR}${MSG3}${CR}${MSG4}"
+   ;;
+   *) MSG2="$(gettext 'The current lockdown mode (running totally in RAM) is one-off, meaning that next bootup will be normal.')" ;;
+  esac
+  MSG5="<b><span color='red' weight='bold'>$(gettext 'Warning, free RAM:') ${ZFREE}</span></b>"
+  MSG6="$(gettext 'RAM space is limited, so you need to be cautious about downloading files or installing packages.')"
+  MSG7="$(gettext 'Note that free space in RAM is high due to zram compression. Note also, you can check free space at any time by mouse-over the memory-icon in the tray.')"
+  MSG9="${MSG1}${CR}${CR}${MSG2}${CR}${CR}${MSG5}${CR}${MSG6}${CR}${MSG7}${MSG8}"
+  popup "terminate=ok background=#e0d0ff level=top process=wait|${MSG9}"
+  touch /var/local/delayedrun_firstlock_${LOCKDOWN}_${LOCKkeep}_flag #200829
+ fi
+else
+ #170225 200823 200829
+ WKG_DRV="${WKG_DEV%%[1-9]}" #remove number off end.
+ WKG_DRV="${WKG_DRV%%[1-9]}" #repeat, in case another number on end.
+ [ "$WKG_DRV" != "sdp" ] && WKG_DRV="${WKG_DRV%%p}" #ex: mmcblk0p becomes mmcblk0
+ if [ "`cat /sys/block/${WKG_DRV}/removable 2>/dev/null`" = "1" ];then
+  grep -q "^/dev/${WKG_DRV}" /proc/mounts
+  if [ $? -eq 0 ];then
+   gtkdialog-splash -close never -fontsize large -bg yellow -timeout 3 -text "$(gettext 'WARNING! Do not unplug drive') ${WKG_DRV}" &
+  fi
+ fi
+fi
+
+#20230921 currently not using this...
+##190215 /etc/rc.d/rc.network_eth brings up interfaces, /usr/local/pup_event/netchg 
+##is called from pup_event_frontend_d whenever network change, however at bootup
+##it might need to be triggered here... only doing this for ethernet... 190217...
+##200521 include networkmanager...
+#if grep -E 'connectwizard| sns| nm' /usr/local/bin/defaultconnect >/dev/null; then
+# sleep 3
+# FIP="$(getlocalip | grep '^[^l]')" #test if already a lease assigned.
+# if [ "$FIP" == "" ];then
+#  CARS="$(grep -H -x '1' /sys/class/net/eth[0-9]/carrier 2>/dev/null)"
+#  if [ "$CARS" ];then
+#   #take lo down then up, will trigger network event, end up calling netchg...
+#   echo "delayedrun: have ethernet carrier, but no ip lease, take lo down then up, to trigger run netchg"
+#   ip link set lo down
+#   ip link set lo up
+#  fi
+# fi
+#fi
+
+touch /tmp/delayedrun_finished_flag #111010
+###END###

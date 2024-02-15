@@ -1,0 +1,182 @@
+#!/bin/bash
+#(c) Copyright Barry Kauler, Feb 2012 bkhome.org
+#licence GPL3 (refer /usr/share/doc/legal)
+#this script has been created to translate English <-> Non-English certain files that are related to the desktop in some way.
+#the files to be translated, and the translations, are defined in /usr/share/sss/desk_strings/
+#note, the translations in /usr/share/sss are managed by MoManager (see Utility menu).
+#fixdesk has to be called whenever the locale is changed.
+#note, the SSS domain 'menu_strings' (/usr/share/sss/menu_strings) is read by /usr/sbin/fixmenus.
+#120209 first release.
+#120209 this script now called from /usr/sbin/quicksetup, whenever locale is changed.
+#120209 convert this script into generic handler of sss-domains, allow symlinks (ex: fixscripts now a symlink to fixdesk).
+#120211 major overhaul to ensure integrity of translation of target files back to en.
+#120212 bugfix.
+#120216 major rewrite, sss translation file now uses simple sed expressions.
+#121124 ensure that all [ ] are escaped. see also /usr/sbin/fixmenus, lang2initrd.
+#121125 revert 121124.
+#121126 restore 121124, plus escape '.' chars in regex.
+#150303 correct translate back to en, when files not static.
+#190103 new symlink /usr/sbin/fixinitrd. note, called from quicksetup -> lang2initrd  190104
+#190105 called from lang2initrd, $2 is full new LANG
+#190105 new /usr/share/sss/boot_strings, symlink /usr/sbin/fixboot to fixdesk
+#190107 $3 optional path to mounted boot-partition
+#190226 BOOT_SPECS in initrd no longer has INIT_LANG variable.
+#20220621 no longer have BOOT_* variables.  no longer recognize $3
+#20220622 lang2initrd no longer calls fixboot (which is symlink to fixdesk).
+#20220718 fix path to initrd when fixinitrd called from 3buildeasydistro
+#20230214 removed fixinitrd symlink to this script. no longer have initrd_strings, lang2initrd
+#20230224 ignore .en
+#20230225 oh crap, rox changes utf8 chars in PuppyPin, ex: Déchets becomes D&#xE9;chets
+#20230226 if run in chroot, /mnt/.easy_ro....PuppyPin won't exist.
+
+#Note to developers:
+#you can run "fixdesk en" or "fixdesk de" in a terminal to convert the target files to en or de
+#(or other language). this is convenient for testing your translations.
+
+if [ $3 ];then #20220718 when fixinitrd called from 3buildeasydistro
+ PATHdest="$3" #this is mountpoint of 2nd partition.
+else
+ PATHdest=""
+fi
+
+SSSDOMAIN="desk_strings"    #this was it prior to 120209.
+SSSSCRIPT=$(basename $0)    #but now can have symlinks to fixdesk. ex: fixscripts
+case $SSSSCRIPT in
+ fixdesk) SSSDOMAIN="desk_strings" ;;
+ fixscripts) SSSDOMAIN="script_strings" ;;
+ fixboot)    SSSDOMAIN="boot_strings" ;; #190105 syslinux/refind menus.
+ *)          SSSDOMAIN="$SSSSCRIPT" ;;  #for the future.
+esac
+SSSFILE="${SSSDOMAIN}"      #filenames are same as the domain ex: /usr/share/sss/script_strings/script_strings.de
+mkdir -p /tmp/momanager
+mkdir -p /var/local/sss
+. /etc/rc.d/PUPSTATE
+
+if [ "$LANG" = "C" ];then #in case caller script did this.
+ LANG="`grep '^LANG=' /etc/profile | cut -f 2 -d '=' | cut -f 1 -d ' '`"
+fi
+LANG1="`echo -n $LANG | cut -f 1 -d '_'`"  #ex: de
+[ ! -f /usr/share/sss/${SSSDOMAIN}/${SSSDOMAIN}.$LANG1 ] && LANG1='en' #sanity check. if translation sss-file not exist, change files back to english.
+#this script may be called from /usr/sbin/momanager, with passed param...
+[ $1 ] && LANG1="$1" #want to translate to this language.
+#190105 called from lang2initrd, $2 is full new LANG...
+[ $2 ] && LANG="$2"
+export LANG
+
+TRPREFIX=""
+
+#150303
+#i commented-out the above code, as it is only suitable if the file to be translated is truly static.
+#/root/Choices/ROX-Filer/PuppyPin certainly isn't! -- has background image, desktop icons in it.
+#instead, convert a translated file back to 'en' by reverse translation...
+#firstly, create the reverse-translation sss file...
+for ASSSFILE in `find /usr/share/sss/${SSSDOMAIN} -mindepth 1 -maxdepth 1 -type f -name "${SSSDOMAIN}.*" | tr '\n' ' '`
+do
+ TRLANG="$(echo -n "$ASSSFILE" | rev | cut -f 1 -d '.' | rev)"
+ [ -f /var/local/sss/usr/share/sss/${SSSDOMAIN}/${SSSDOMAIN}.${TRLANG}.reverse ] && continue
+ echo "Creating ${SSSDOMAIN} '${TRLANG}' to 'en' reverse translation file..."
+ echo -n '' > /tmp/sss-fixdesk-rev1
+ cat $ASSSFILE |
+ while read ALINE
+ do
+  CHAR2="$(echo -n "$ALINE" | cut -c 1,2)"
+  if [ "$CHAR2" == "s%" ];then
+   PARAM_EN="$(echo -n "$ALINE" | cut -f 2 -d '%')"
+   PARAM_TR="$(echo -n "$ALINE" | cut -f 3 -d '%')"
+   echo "s%${PARAM_TR}%${PARAM_EN}%" >> /tmp/sss-fixdesk-rev1
+  else
+   echo "$ALINE" >> /tmp/sss-fixdesk-rev1
+  fi
+ done
+ mkdir -p /var/local/sss/usr/share/sss/${SSSDOMAIN}
+ cp -a -f /tmp/sss-fixdesk-rev1 /var/local/sss/usr/share/sss/${SSSDOMAIN}/${SSSDOMAIN}.${TRLANG}.reverse
+done
+#now, restore the 'en' files...
+if [ -d /var/local/sss/usr/share/sss/${SSSDOMAIN} ];then
+ for ASECTIONID in `grep '^\[' /usr/share/sss/${SSSDOMAIN}/${SSSDOMAIN} | tr -d '[' | tr -d ']' | tr '\n' ' '` #ex: general _root_Choices_ROX-Filer_PuppyPin
+ do
+  [ "$ASECTIONID" = "general" ] && continue
+  #allow any character to be the 'marker' for / in the section-id...
+  MARKERCHAR="`echo -n "$ASECTIONID" | cut -c 1`"
+  TARGETFILE="`echo -n "$ASECTIONID" | tr "${MARKERCHAR}" '/'`" #ex: /root/Choices/ROX-Filer/PuppyPin
+  echo "Restoring ${TARGETFILE} to 'en'..."
+  #problem is, taking ex of /root/Choices/ROX-Filer/PuppyPin, if has been translated, need to know what lang, so can translate back to en...
+  for ATRREV in `find /var/local/sss/usr/share/sss/${SSSDOMAIN} -mindepth 1 -maxdepth 1 -type f -name "${SSSDOMAIN}.*.reverse" | tr '\n' ' '`
+  do
+   #brute force, apply them all (likely only to be one anyway)...
+   sPTN="/^\[${ASECTIONID}\]/,/^$/p" #this is a multi-line block find expression.
+   CODEBLOCK="`sed -n "$sPTN" ${ATRREV} | sed -e '/^#/d' -e '/%%/d' -e '/^$/d' -e '/^\[/d'`" #extracts just the relevant block of lines.
+   [ ! "$CODEBLOCK" ] && continue #precaution.
+   #allow any character to be the 'marker' for / in the section-id...
+   MARKERCHAR="`echo -n "$ASECTIONID" | cut -c 1`"
+   TARGETFILE="`echo -n "$ASECTIONID" | tr "${MARKERCHAR}" '/'`" #ex: /root/Choices/ROX-Filer/PuppyPin
+   [ ! -f "${TRPREFIX}${TARGETFILE}" ] && continue #precaution. 190103
+   ##hack, really should not process /root/Choices/ROX-Filer/PuppyPin in sss-domain, only suited to static files...
+   #[ "$TARGETFILE" = "/root/Choices/ROX-Filer/PuppyPin" ] && echo -n "ICONWIPE" >/var/local/pup_event_icon_change_flag #see clean_desk_icons
+   echo "$CODEBLOCK" > /tmp/fixdesk-translationblock
+   #20230226 if run in chroot, /mnt/.easy_ro....PuppyPin won't exist...
+   if [ "$TARGETFILE" == "/root/Choices/ROX-Filer/PuppyPin" -a -f /mnt/.easy_ro/easy_sfs/root/Choices/ROX-Filer/PuppyPin ];then #20230225
+    #extract en text from PuppyPin in easy.sfs ...
+    echo -n '' > /tmp/fixdesk-pp-out
+    while read -u 3 aLINE
+    do
+     grep -qF '>/usr/' <<<${aLINE}
+     if [ $? -ne 0 ];then
+      echo "$aLINE" >> /tmp/fixdesk-pp-out
+      continue
+     fi
+     grep -qF '<icon ' <<<${aLINE}
+     if [ $? -ne 0 ];then
+      echo "$aLINE" >> /tmp/fixdesk-pp-out
+      continue
+     fi
+     aCUT="$(echo -n "$aLINE" | grep -o '/usr/[^<]*')"
+     grep -q "${aCUT}<" /mnt/.easy_ro/easy_sfs/root/Choices/ROX-Filer/PuppyPin
+     if [ $? -ne 0 ];then
+      echo "$aLINE" >> /tmp/fixdesk-pp-out
+      continue
+     fi
+     #get en text out of orig PuppyPin, but keep current coords...
+     echo -n "$aLINE" | sed -e 's%label=.*%%' >> /tmp/fixdesk-pp-out
+     #grep "${aCUT}<" /mnt/.easy_ro/easy_sfs/root/Choices/ROX-Filer/PuppyPin | sed -e 's%.*label=%label=%' >> /tmp/fixdesk-pp-out
+     grep -o "label=.*${aCUT}</icon>" /mnt/.easy_ro/easy_sfs/root/Choices/ROX-Filer/PuppyPin >> /tmp/fixdesk-pp-out
+    done 3</root/Choices/ROX-Filer/PuppyPin
+    sync
+    cp -f /tmp/fixdesk-pp-out /root/Choices/ROX-Filer/PuppyPin
+   else
+    #121124 ensure that all [ ] are escaped... 121125 revert... 121126 restore, plus escape '.' chars...
+    sed -i -e 's%\[%\\[%g' -e 's$\]$\\]$g' -e 's%\\\\\[%\\[%g' -e 's%\\\\\]%\\]%g' /tmp/fixdesk-translationblock
+    sed -i -e 's%\.%\\.%g' -e 's%\\\\\.%\\.%g' /tmp/fixdesk-translationblock #note: 2nd ptn gets rid of prior escape char, so there remains just one.
+    sed -i -f /tmp/fixdesk-translationblock "${TRPREFIX}${TARGETFILE}" #190103
+   fi
+  done
+ done
+fi
+
+if [ ! -f /usr/share/sss/${SSSFILE}/${SSSFILE}.${LANG1} ];then #20230224 ignore .en
+ exit 0
+fi
+
+#now translate to $LANG1...
+for ASECTIONID in `grep '^\[' /usr/share/sss/${SSSFILE}/${SSSFILE}.${LANG1} | tr -d '[' | tr -d ']' | tr '\n' ' '` #ex: general _root_Choices_ROX-Filer_PuppyPin
+do
+ [ "$ASECTIONID" = "general" ] && continue #150303
+ sPTN="/^\[${ASECTIONID}\]/,/^$/p" #this is a multi-line block find expression.
+ CODEBLOCK="`sed -n "$sPTN" /usr/share/sss/${SSSFILE}/${SSSFILE}.${LANG1} | sed -e '/^#/d' -e '/%%/d' -e '/^$/d' -e '/^\[/d'`" #extracts just the relevant block of lines.
+ [ ! "$CODEBLOCK" ] && continue #precaution.
+ #allow any character to be the 'marker' for / in the section-id...
+ MARKERCHAR="`echo -n "$ASECTIONID" | cut -c 1`"
+ TARGETFILE="`echo -n "$ASECTIONID" | tr "${MARKERCHAR}" '/'`" #ex: /root/Choices/ROX-Filer/PuppyPin
+ [ ! -f "${TRPREFIX}${TARGETFILE}" ] && continue #precaution. 190103
+ echo "Translating ${TARGETFILE} to '${LANG1}'..." #150303
+ #hack, really should not process /root/Choices/ROX-Filer/PuppyPin in sss-domain, only suited to static files... 150303 now ok.
+ [ "$TARGETFILE" = "/root/Choices/ROX-Filer/PuppyPin" ] && echo -n "ICONWIPE" >/var/local/pup_event_icon_change_flag #see clean_desk_icons
+ echo "$CODEBLOCK" > /tmp/fixdesk-translationblock
+ #121124 ensure that all [ ] are escaped... 121125 revert... 121126 restore, plus escape '.' chars...
+ sed -i -e 's%\[%\\[%g' -e 's$\]$\\]$g' -e 's%\\\\\[%\\[%g' -e 's%\\\\\]%\\]%g' /tmp/fixdesk-translationblock
+ sed -i -e 's%\.%\\.%g' -e 's%\\\\\.%\\.%g' /tmp/fixdesk-translationblock #note: 2nd ptn gets rid of prior escape char, so there remains just one.
+ sed -i -f /tmp/fixdesk-translationblock "${TRPREFIX}${TARGETFILE}" #190103
+done
+
+exit 0
+###END###

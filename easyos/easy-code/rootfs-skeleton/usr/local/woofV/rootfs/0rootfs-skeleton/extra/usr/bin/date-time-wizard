@@ -1,0 +1,72 @@
+#!/bin/sh
+#(c) Copyright Barry Kauler 2022 bkhome.org
+#GPL licence v2 (/usr/share/doc/legal/gpl-2.0.txt)
+#20220409 first release.
+#20220612 display where mouse is. good for popup from time in tray.
+
+if [ "$(whoami)" != "root" ];then
+ if [ -x /usr/bin/sudo-sh ];then
+  exec sudo-sh ${PPID} ${0} ${@}
+ else
+  exec sudo -A ${0} ${@}
+ fi
+fi
+
+export TEXTDOMAIN=date-time-wizard
+export OUTPUT_CHARSET=UTF-8
+
+export DateTimeWizard="
+<window title=\"$(gettext 'Date & Time Setup')\" icon-name=\"gtk-preferences\" window_position=\"2\">
+ <vbox>
+
+  <hbox>
+   <text>
+    <label>$(gettext 'Set date and time:')</label>
+   </text>
+   <button>
+    <input file>/usr/local/lib/X11/mini-icons/mini-clock.xpm</input>
+    <action>/usr/sbin/set-time-for-puppy & </action>
+   </button>
+  </hbox>
+
+  <hbox>
+   <text>
+    <label>$(gettext 'Set hardware-clock type:')</label>
+   </text>
+   <button>
+    <input file>/usr/local/lib/X11/mini-icons/mini-clock.xpm</input>
+    <action>/usr/sbin/set_hwclock_type & </action>
+   </button>
+  </hbox>
+
+  <hbox>
+   <text>
+    <label>$(gettext 'Set timezone:')</label>
+   </text>
+   <button>
+    <input file>/usr/local/lib/X11/mini-icons/mini-clock.xpm</input>
+    <action>/usr/sbin/timezone-set & </action>
+   </button>
+  </hbox>
+  
+  <hbox>
+   <text>
+    <label>$(gettext 'Qsync set time from Internet:')</label>
+   </text>
+   <button>
+    <input file>/usr/local/lib/X11/mini-icons/mini-clock.xpm</input>
+    <action>/usr/sbin/qsync & </action>
+   </button>
+  </hbox>
+
+  <hbox>
+   <button><input file>/usr/local/lib/X11/mini-icons/mini.exit.xpm</input></button>
+  </hbox>
+ </vbox>
+</window>
+"
+
+#echo "$WizardWizard" | gtkdialog --stdin
+gtkdialog --program=DateTimeWizard #--center
+
+###end###

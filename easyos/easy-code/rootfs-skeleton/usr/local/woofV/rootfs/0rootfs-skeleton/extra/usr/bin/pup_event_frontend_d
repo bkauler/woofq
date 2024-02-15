@@ -1,0 +1,18 @@
+#!/bin/sh
+#have replaced pup_event_frontend_d script with compiled daemon.
+#this script is called from /root/.xinitrc
+#20221023 may be running as zeus super-user. 20221031 think still need to bump to root.
+#20230626 new sudo-sh replaces sudo.
+
+#20230626
+if [ "$(whoami)" != "root" ];then
+ if [ -x /usr/bin/sudo-sh ];then
+  exec sudo-sh ${PPID} ${0} ${@}
+ else
+  exec sudo -A ${0} ${@}
+ fi
+fi
+
+exec /usr/local/pup_event/pup_event_frontend_d
+
+###END###

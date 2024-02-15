@@ -1,0 +1,71 @@
+#!/bin/sh
+#this script created by Jemimah. see: http://murga-linux.com/puppy/viewtopic.php?t=63400&start=150
+#110115 xdg-open used to be a symlink to defaulthandler.
+#20220916 if running as a non-root client, restrict access to other apps. ref: /usr/local/clients/setup-client
+#20221023 may be running as zeus super-user.
+#20230511 allow non-root app to open folder with rox.
+#20230624 for simplicity, bump to root.
+#20230626 new sudo-sh replaces sudo.
+#20230627 get rid of --version, --help, --manual
+
+#20230627 get rid of --version, --help, --manual
+case "$1" in
+ --*)
+  exit
+ ;;
+esac
+
+#20230626
+if [ "$(whoami)" != "root" ];then
+ if [ -x /usr/bin/sudo-sh ];then
+  exec sudo-sh ${PPID} ${0} ${@}
+ else
+  exec sudo -A ${0} ${@}
+ fi
+fi
+
+#WHOIAM="$(whoami)"
+#if [ "$WHOIAM" != "root" -a "$WHOIAM" != "zeus" ];then #20220916 20221023
+# grep -q "^${WHOIAM}=true" /root/.clients-status
+# if [ $? -eq 0 ];then
+#  #whatever has called here is running as non-root client.
+#  case "$1" in
+#   file://*) #20230511
+#    exec rox -U "$1"
+#   ;;
+#   *://*)
+#    if [ -d /home/${WHOIAM}/.mozbare ];then
+#     #app is allowed to run this html viewer.
+#     #ref: variable TEMPLATE_ACCESS_MOZBARE, script setup-client
+#     exec mozbare "$1"
+#    fi
+#   ;;
+#   *@*.*) #20230511
+#    true
+#   ;;
+#   *) #20230511
+#    exec rox "$1"
+#   ;;
+#  esac
+#  exit
+# fi
+#fi
+
+case "$1" in 
+ '')
+  exit
+ ;;
+ file://*)
+  exec rox -U "$1"
+ ;;
+ *://*)
+  exec rox -U "$1"
+ ;;
+ *@*.*)
+  exec rox -U "mailto:${1}"
+ ;;
+ *)
+  exec rox "$1"
+ ;;
+esac
+

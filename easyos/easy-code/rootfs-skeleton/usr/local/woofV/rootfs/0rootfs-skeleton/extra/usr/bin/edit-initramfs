@@ -1,0 +1,163 @@
+#!/bin/sh
+#(c) Copyright Barry Kauler 2012, bkhome.org
+#License GPL3 (/usr/share/doc/legal)
+#shared-mime-info pkg has assigned initrd.gz mime-type application/initramfs-gz (by me).
+#Click on initrd.gz in ROX-Filer, this script will run (see /root/Choices/MIME-types/application_initramfs-gz).
+#note: script not internationalized, as this is a developer's tool.
+#150215 'initrd.q' cpio archive is not compressed. mime type application/initramfs[-gz]
+#161212 quirky: 'easyinit' is an uncompressed cpio archive, mime type application/x-cpio. note, this script has become very clumsy.
+#171016 easy os: check BOOT_SPECS if a version upgrade. need to internationalise.
+#180408 handle nvme drives.
+#181130 renamed 'initrd.q' to just 'initrd'. improved fixing BOOT_SPECS
+#181201 Q_DISTRO* renamed to INIT_DISTRO*
+#181218 fix auto-fix of BOOT_SPECS
+#190104 setup infrastructure for gettext in initrd.
+#190123 translate "Yes" and "No" in pupdialog. Prefix "LANG=C" before fdisk.
+#190226 BOOT_SPECS now has BOOT_UUID, WKG_UUID
+#190226 BOOT_SPECS in initrd no longer has INIT_LANG variable. 190304 fixes. 190309 fixes.
+#190310 no longer have BOOT_PARTNUM, WKG_PARTNUM in BOOT_SPECS
+#190310 make auto-fix work better. 190311 190313
+#190810 fix expand quirky initrd.q
+#20220621 no longer have BOOT_* variables.
+#20220624 no longer offer to fix BOOT_SPECS file, coz it isn't there.
+
+export TEXTDOMAIN=edit-initramfs
+export OUTPUT_CHARSET=UTF-8
+LANG1="${LANG%_*}" #190104 ex: de
+
+. /etc/DISTRO_SPECS
+. /etc/rc.d/PUPSTATE
+
+[ ! $1 ] && exit 1
+[ ! -f "$1" ] && exit 1
+PARAM1="$(realpath "$1")" #181129
+BASEFILE="$(basename "$PARAM1")"
+DIRPATH="$(dirname "$PARAM1")" #181129
+#161212 acceptable names...
+BADNAME=1
+case $BASEFILE in
+ initrd.gz|initrd.q|easyinit) BADNAME=0 ;;
+ initrd) BADNAME=0 ;;  #181129
+esac
+[ $BADNAME -eq 1 ] && exit 1
+
+COMPTYPE=''; dotEXT=''
+[ "${BASEFILE/*./}" == "q" ] && COMPTYPE='none' #190810 quirky initrd.q
+[ "$BASEFILE" == "easyinit" ] && COMPTYPE='none' #161212
+
+#190810 this is what get on a gz-compressed initrd.gz:
+# # rox -m initrd.gz
+# application/initramfs-gz
+# # file ./initrd.gz 
+# ./initrd.gz: gzip compressed data, was "initrd", last modified: Thu Jul 11 01:57:55 2019, from Unix
+#same gz-compressed, without the .gz extension:
+# # rox -m ./initrd
+# application/x-gzip
+# # file ./initrd
+# ./initrd: gzip compressed data, was "initrd", last modified: Thu Jul 11 01:57:55 2019, from Unix
+
+#190810 initrd.q from quirky, which is uncompressed:
+# # rox -m initrd.q
+# application/initramfs
+# # file initrd.q
+# initrd.q: ASCII cpio archive (SVR4 with no CRC)
+
+#190810 initrd from easy, which is uncompressed:
+# # rox -m initrd
+# application/x-cpio
+# # file initrd
+# initrd: ASCII cpio archive (SVR4 with no CRC)
+
+if which rox >/dev/null ;then #181129
+ MTYPE="$(rox -m ${PARAM1})"
+ [ "${MTYPE}" == "application/x-cpio" ] && COMPTYPE='none'
+else
+ MTYPE="$(file ${PARAM1} | grep -o 'ASCII cpio archive')"
+ [ "${MTYPE}" == "ASCII cpio archive" ] && COMPTYPE='none'
+fi
+
+compr_func() {
+ #find out compression type...  181129...
+ if [ "$COMPTYPE" == "none" ];then
+  UNCOMPREXE=''; COMPREXE=''; dotEXT='.q'
+  [ "$BASEFILE" == "easyinit" ] && dotEXT='' #161212
+  [ "$BASEFILE" == "initrd" ] && dotEXT=''
+  return 0
+ fi
+ UNCOMPREXE=gunzip; COMPREXE=gzip; dotEXT='.gz'
+ gunzip -t "$1"
+ if [ $? -ne 0 ];then
+  UNCOMPREXE=bunzip2; COMPREXE=bzip2; dotEXT='.bz2'
+  bunzip2 -t "$1"
+  if [ $? -ne 0 ];then
+   UNCOMPREXE=unxz; COMPREXE=xz; dotEXT='.xz'
+   unxz -t "$1"
+   if [ $? -ne 0 ];then
+    return 1
+   fi
+  fi
+ fi
+ return 0
+}
+
+#190123 yes/no buttons...
+M_yes="$(gettext 'Yes')"
+M_no="$(gettext 'No')"
+
+cd /root
+[ -f initrd ] && rm -f initrd
+[ -f initrd.q ] && rm -f initrd.q   #190810
+[ -f initrd.gz ] && rm -f initrd.gz #190810
+
+if [ -d initrd-expanded ];then
+ pupdialog --yeslabel "${M_yes}" --nolabel "${M_no}" --background "yellow" --backtitle "${BASEFILE}: $(gettext 'update?')" --yesno "$(gettext 'A CPIO-archive is already expanded at /root/initrd-expanded. Is this correct, do you want to use /root/initrd-expanded to update') ${1}?" 0 0
+ if [ $? -eq 0 ];then
+  compr_func "$PARAM1" #sets COMPREXE, dotEXT
+  if [ $? -ne 0 ];then
+   pupdialog --background '#FF8080' --backtitle "${BASEFILE}: $(gettext 'fail')" --msgbox "$(gettext 'Sorry, could not recognise compression type, unable to update') ${BASEFILE}." 0 0
+  else
+   cd initrd-expanded
+   find . | cpio -o -H newc > ../initrd
+   sync
+   cd ..
+   if [ "$COMPREXE" ];then #190810
+    ${COMPREXE} initrd
+   else
+    [ "$dotEXT" ] && mv -f initrd initrd${dotEXT}
+   fi
+   sync
+   mv -f initrd${dotEXT} "$PARAM1"
+   pupdialog --background '#80FF80' --backtitle "${BASEFILE}: $(gettext 'success')" --msgbox "${1} $(gettext 'has been updated with the contents of /root/initrd-expanded.')" 0 0
+  fi
+ fi
+ pupdialog --yeslabel "${M_yes}" --nolabel "${M_no}" --background "yellow" --backtitle "${BASEFILE}: $(gettext 'finished')" --yesno "$(gettext 'Do you want to delete /root/initrd-expanded? If in doubt, please choose Yes')" 0 0
+ if [ $? -eq 0 ];then
+  rox -D /root/initrd-expanded 2>/dev/null
+  rm -rf /root/initrd-expanded
+ fi
+else
+ pupdialog --yeslabel "${M_yes}" --nolabel "${M_no}" --background "yellow" --backtitle "${BASEFILE}: $(gettext 'expand?')"  --yesno "${BASEFILE}: $(gettext 'Do you want to open it up, and optionally edit it?')" 0 0
+ if [ $? -eq 0 ];then
+  compr_func "$PARAM1" #sets UNCOMPREXE, dotEXT
+  if [ $? -ne 0 ];then
+   pupdialog --background '#FF8080' --backtitle "${BASEFILE}: $(gettext 'fail')" --msgbox "${BASEFILE}: $(gettext 'Sorry, could not recognise compression type, unable to expand it.')" 0 0
+  else
+   cp -f "$PARAM1" /root/initrd${dotEXT}
+   if [ "$UNCOMPREXE" ];then #190810
+    ${UNCOMPREXE} initrd${dotEXT}
+   else
+    [ "$dotEXT" ] && mv -f initrd${dotEXT} initrd
+   fi
+   mkdir initrd-expanded
+   cd initrd-expanded
+   cat ../initrd | cpio -i -d -m
+   sync
+   rm -f ../initrd
+   cd ..
+   pupdialog --colors --background '#80FF80' --backtitle "${BASEFILE}: $(gettext 'expanded')" --msgbox "${BASEFILE} $(gettext 'has been expanded at \Zb/root/initrd-expanded\ZB. You may edit the contents if you wish. \Zb\Z1\n\nAfterward, if you click on it again\Zn\ZB, it will be updated with the contents of /root/initrd-expanded.')" 0 0
+   rox -d /root/initrd-expanded -x /root/initrd-expanded
+  fi
+ fi
+fi
+
+###end###

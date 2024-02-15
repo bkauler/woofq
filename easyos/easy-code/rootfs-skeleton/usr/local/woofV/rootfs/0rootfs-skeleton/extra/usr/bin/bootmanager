@@ -1,0 +1,429 @@
+#!/bin/sh
+#BK 2007, original idea from sunburnt
+#Lesser GPL licence v2 (/usr/share/doc/legal). 2007 www.puppylinux.com
+#written for Puppy 2.16.
+#/etc/rc.d/BOOTCONFIG has variable EXTRASFSLIST='kde.sfs devx_216.sfs'
+# ...space-delimited list of .sfs files to be loaded.
+# ...must be located at same place as the pup_save file (in /mnt/home)
+#    or at '/' for full hd installation.
+#v2.17
+#/etc/rc.d/MODULESCONFIG has variables PCI_OVERRIDES, SKIPLIST
+#that are read and managed by the BootManager.
+#v4.02 bugfix, modules now .ko.gz.
+#v4.02 /lib/modules/modules.dep.<kernver> no more.
+#v403 yeslist_func, parameters may be added to modules.
+#v409 bugfix, list of sfs files was picking up non-sfs files.
+#v411 bugfix, when choose to add more than one module.
+#v412 /etc/DISTRO_SPECS, renamed pup_xxx.sfs, pup_save.2fs etc.
+#w001 pup files renamed to woofr001.sfs, woofsave.2fs.
+#w007 renamed to woof-007.sfs
+#w015 allow 6 extra sfs files, up from 3. w020 zdrv fix.
+#w478 file prefix 'pup2' got screened out.
+#v423 need to check sfs 3.x or 4.x.
+#v424 do away with checkbox that overrides user choice and loads _nnn.sfs only.
+#v424 advise of sfs-version-converter.
+#100125 manage system services at bootup.
+#100221 slight change to a message. 100301 add msg for lameSMBxplorer.
+#100518 fixed showed wrong partition for /mnt/home.
+#100607 kernel 2.6.27.47 has squashfs4.
+#100710 if pupsave file is in a subdirectory, only look for extra sfs's in that subdirectory.
+#100711 modify to look in both top dir and subdirectory.
+#100809 some inappropriate sfs files were displaying as candidates in dual-pane window.
+#100831 fix KERNELSUBVER for olpc people, have 'uname -r' returning version with '_'.
+#100913 new simplified puppy filenames.
+#101221 yaf-splash fix.
+#110305 refine code for blacklist module.
+#110422 DISTRO_VERSION variable now has dotted format. note, also now using full dotted version# in puppy filenames.
+#110505 support sudo for non-root user.
+#111011 now using pupdialog instead of Xdialog for sfs chooser.
+#111015 support kernel 3.x.
+#111113 roll back to Xdialog for sfs chooser. pupdialog limited items, some people have 100s sfs's.
+#120201 rodin.s: internationalized.
+#120323 replace 'xmessage' with 'pupmessage'.
+#120527 shinobar's sfs-load on-the-fly pet has /etc/rc.d/BOOTCONFIG.save, sync it.
+#120626 only offer to load sfs files if have layered f.s., mention sfs_load.
+#121125 when install a Service Pack, DISTRO_VERSION gets bumped, however may still want to load devx*_<old-version>.sfs, remove filter.
+#140128 removed sfs frame from gui. Replace "Puppy" with "Quirky". Remove all PUPMODE code.
+#151105 change gtkdialog3 to gtkdialog.
+#161022 firewall_ng is in /etc/init.d/rc.firewall when installed.
+#161216 explanations of more types of daemons.
+#170523 easy linux, manage loading of sfs files at bootup.
+#170528 easy linux, /mnt/files replaced by /mnt/wkg/files
+#170719 ignore /etc/init.d/functions
+#170726 explanation for /etc/init.d/80-crond
+#170814 replaced "Quirky" with "Easy". 170819 remove leading dash.
+#170919 not using /etc/rc.d/BOOTCONFIG anymore (old puppy thing).
+#180119 added description of sshd, acpid, rpcbind, nscd, neard, z-cups-network-fix.
+#180320 remove the "preferred module" code.
+#190803 buster: ofono deb has /etc/init.d/ofono and dundee.
+#191218 /etc/init.d/ec-net updates /etc/resolv.conf in containers. ref: /etc/eventmanager
+#191219 improve listing of daemons.
+#200108 added 'bluealsa' service.
+#200210 messagebus renamed to 95-messagebus, it must start before bluetoothd.
+#20210612 replaced all yaf-splash with gtkdialog-splash. note, still ok to kill yaf-splash, see gtkdialog-splash script.
+#20220525 changed extra-sfss-repo path.
+#20221023 may be running as zeus super-user. 20221031 hmmm, maybe still need bump to root.
+#20230626 new sudo-sh replaces sudo.
+
+#20230626
+if [ "$(whoami)" != "root" ];then
+ if [ -x /usr/bin/sudo-sh ];then
+  exec sudo-sh ${PPID} ${0} ${@}
+ else
+  exec sudo -A ${0} ${@}
+ fi
+fi
+
+export TEXTDOMAIN=bootmanager
+export OUTPUT_CHARSET=UTF-8
+. gettext.sh
+
+#reentrant.
+#$1='' then run the main window.
+CLPARAM1="$1"
+CLPARAM2="$2"
+
+CURRDIR="`pwd`"
+. /etc/rc.d/PUPSTATE
+. /etc/DISTRO_SPECS
+#PUPPYVERSION="`cat /etc/puppyversion`"
+KERNVER="`uname -r`"
+
+#v424 remove...
+#EXTRASFSAUTO='off' #user choices.
+#if [ -f /etc/rc.d/BOOTCONFIG ];then
+# . /etc/rc.d/BOOTCONFIG
+# [ "`cat /etc/rc.d/BOOTCONFIG | grep 'EXTRASFSLIST'`" = "" ] && EXTRASFSAUTO='on'
+#else
+# EXTRASFSAUTO='on'
+#fi
+
+#[ ! -f /etc/rc.d/BOOTCONFIG ] && touch /etc/rc.d/BOOTCONFIG #v424
+#. /etc/rc.d/BOOTCONFIG #v424
+
+if vercmp $KERNVER ge 3.0;then #111015
+ SFSSTR='squashfs, version 4'
+else
+ KERNELSUBVER=`echo -n "$KERNVER" | cut -f 3 -d '.' | cut -f 1 -d '-' | cut -f 1 -d '_'` #v423 100831
+ SUB_SUB_KERNELVER=`echo -n "$KERNVER" | cut -f 1 -d '-' | cut -f 4 -d '.'` #100607
+ SFSSTR='squashfs, version 3' #v423
+ [ $KERNELSUBVER -gt 28 ] && SFSSTR='squashfs, version 4' #v423
+ [ $KERNELSUBVER -eq 27 ] && [ $SUB_SUB_KERNELVER -gt 46 ] && SFSSTR='squashfs, version 4' #100607
+fi
+
+#v3.02
+. /etc/rc.d/MODULESCONFIG
+DEFAULT_SERIAL="false"
+DEFAULT_FAST="false"
+[ "$BYPASSSERIALPROBING" = "yes" ] && DEFAULT_SERIAL="true"
+[ "$FASTBOOTMODULESLIST" != "" ] && DEFAULT_FAST="true"
+
+xEXTRASFSMNTPTx="" #100711
+EXTRASFSMNTPT='/'
+MSGx="`eval_gettext \"Note2: These files are at '/' (in \\\$PDEV1 partition)\"`"
+MSGz='/'
+
+
+blacklist_func() {
+ #blacklisting of modules at bootup.
+ . /etc/rc.d/MODULESCONFIG
+ MODLIST=""
+ xSKIPLIST="`echo -n "$SKIPLIST" | tr ' ' '\n' | sort -u | tr '\n' ' ' | tr -s ' '`" #110305
+ LOADEDMODULES="`lsmod | grep -v '^Module' | cut -f 1 -d ' ' | sort | tr '\n' ' '`" #110305
+ for ONEMOD in $LOADEDMODULES
+ do
+  MODLIST="$MODLIST $ONEMOD $ONEMOD off"
+ done
+ for ONEMOD in $xSKIPLIST
+ do
+  MODLIST="$MODLIST $ONEMOD $ONEMOD on"
+ done
+ EXECME="Xdialog --wmclass \"module16\" --title \"$(gettext 'BootManager: Module blacklist manager')\" --left --stdout --separator \" \" --buildlist \"$(gettext 'On the left pane are modules that are currently loaded.\n
+On the right pane is the complete list of blacklisted modules.\n
+If you want to prevent a module from loading, move it to the right\n
+side, click OK, then reboot.\n
+Note, if you want to find out further information about any module,\n
+run PupScan (look in the System menu)\n
+Note, you need to reboot for any change to take effect.')\" 0 0 8 $MODLIST >/tmp/skiprettags.txt"
+ eval $EXECME
+ RETVAL=$?
+ [ ! $RETVAL -eq 0 ] && return 1
+ SKIPLIST=" `cat /tmp/skiprettags.txt | tr '\n' ' '`"
+ #now update /etc/rc.d/MODULESCONFIG...
+ sed -i -e "s%^SKIPLIST=.*%SKIPLIST='${SKIPLIST}'%" /etc/rc.d/MODULESCONFIG #110305
+} #end blacklist_func
+
+yeslist_func() {
+ #choose extra modules to load at bootup.
+# yaf-splash -font "8x16" -outline 0 -margin 4 -bg orange -text "Please wait, processing..." &
+ gtkdialog-splash -close never -bg orange -text "$(gettext 'Please wait, processing...')" &
+ X1PID=$!
+ . /etc/rc.d/MODULESCONFIG
+ MODLIST=""
+ #note, lsmod will show all modules with '-' as '_'...
+ LOADEDMODULES=" `lsmod | grep -v '^Module' | cut -f 1 -d ' ' | tr '\n' ' '`"
+ #v403 handles both .ko and .ko.gz modules...
+ ALLMODULES="`cat /lib/modules/$KERNVER/modules.dep | cut -f 1 -d ':' | grep -o '[a-zA-Z0-9_-]*\.ko' | tr '\-' '_' | sort - | tr '\n' ' '`"
+ for ONEMOD in $ALLMODULES
+ do
+  NAMEONLY="`basename $ONEMOD .ko`"
+  MODPATTERN=" $NAMEONLY "
+  #leave off list if already loaded...
+  [ "`echo "$LOADEDMODULES" | grep "$MODPATTERN"`" != "" ] && continue
+  MODPATTERN=' '"$NAMEONLY"'[ :]'
+  #leave off left pane if already on right pane...
+  [ "`echo "$ADDLIST" | grep "$MODPATTERN"`" != "" ] && continue
+  MODLIST="$MODLIST $NAMEONLY $NAMEONLY off"  
+ done
+ for ONEMOD in $ADDLIST
+ do
+  NAMEONLY="$ONEMOD"
+  xONEMOD="$ONEMOD"
+  if [ `echo -n "$ONEMOD" | tr ':' ' ' | wc -w` -gt 1 ];then
+   MPARAMS="`echo -n "$ONEMOD" | cut -f 2-9 -d ':' | tr ':' ' '`"
+   NAMEONLY="`echo -n "$ONEMOD" | cut -f 1 -d ':'`"
+   xONEMOD="$NAMEONLY $MPARAMS"
+  fi
+  MODPATTERN=" $NAMEOLY "
+  #leave off list if already loaded...
+  [ "`echo "$LOADEDMODULES" | grep "$MODPATTERN"`" != "" ] && continue
+  MODLIST="$MODLIST $ONEMOD \"$xONEMOD\" on"
+ done
+ kill $X1PID
+ EXECME="Xdialog --wmclass \"module16\" --title \"$(gettext 'BootManager: Module add-list manager')\" --left --stdout --separator \" \" --buildlist \"$(gettext 'On the left pane is the complete list of modules available to be\nused by Easy (and not currently loaded).\nOn the right pane are modules that you have explicitly chosen to\nbe loaded at bootup (not auto-loaded by default).\nIf you want to force a module to load, move it to the right pane,\nclick OK button, then reboot Easy.\nNote, if you want to find out further information about any module,\nrun PupScan (look in the System menu)')\" 0 0 8 $MODLIST >/tmp/yesrettags.txt"
+ eval $EXECME
+ RETVAL=$?
+ [ ! $RETVAL -eq 0 ] && return 1
+ cat /tmp/yesrettags.txt | tr ' ' '\n' | tr ':' ' ' > /tmp/modules_addlist_edit #v411
+ Xdialog --backtitle "`gettext \"If you wish, add any required parameters to these modules\nExample: mmc_block major=179\nIf you do not know what this means, just click 'OK' button\"`"  --wmclass "module16" --title "$(gettext 'BootManager: Edit module addlist')" --left --stdout --no-cancel --editbox /tmp/modules_addlist_edit 0 0 > /tmp/modules_addlist_edit_out
+ [ $? -ne 0 ] && return 1
+ ADDLIST="`cat /tmp/modules_addlist_edit_out`"
+ ADDLIST=' '"`echo "$ADDLIST" | tr ' ' ':' | tr '\n' ' ' | tr -s ' '`"
+ #ADDLIST=" `cat /tmp/yesrettags.txt | tr '\n' ' '`"
+ #now update /etc/rc.d/MODULESCONFIG...
+ grep -v '^ADDLIST' /etc/rc.d/MODULESCONFIG > /tmp/MODULESCONFIG
+ mv -f /tmp/MODULESCONFIG /etc/rc.d/MODULESCONFIG
+ echo "ADDLIST='${ADDLIST}'" >> /etc/rc.d/MODULESCONFIG
+} #end yeslist_func
+
+sysdaemons_func() { #100125
+ osdcnt=0
+ echo -n "" > /tmp/bootmanager_osd
+ #191219 need juggling to get listing in alphabetical order...
+ SYSDAEMONS="$(find /etc/init.d -maxdepth 1 -type f | cut -f 4 -d '/' | grep -v -E 'txt|pcmcia|alsa')"
+ echo -n '' > /tmp/bootmanager_zsysdaemons0
+ for OSDNAME in $SYSDAEMONS
+ do
+  xOSDNAME="$(echo -n "$OSDNAME" | sed -e 's%^[0-9]%%' -e 's%^[0-9]%%' -e 's%^\-%%')" #remove any leading number.
+  echo "${xOSDNAME}|${OSDNAME}" >> /tmp/bootmanager_zsysdaemons0
+ done
+ echo 'udev|udev' >> /tmp/bootmanager_zsysdaemons0
+ zSYSDAEMONS="$(sort /tmp/bootmanager_zsysdaemons0)"
+ 
+ for zSYSDAEMON in $zSYSDAEMONS
+ do
+  osdcnt=`expr $osdcnt + 1`
+  OSDNAME="${zSYSDAEMON/*|/}"
+  xOSDNAME="${zSYSDAEMON/|*/}"
+  OSDDIR='/etc/init.d'
+  [ "$OSDNAME" == "functions" ] && continue #170719 ignore 'functions' file.
+  [ "$OSDNAME" == "cups-net-fix" ] && continue #191219 this is managed by EasyShare
+  [ "$OSDNAME" == "es-ident" ] && continue #191219 this is managed by EasyShare
+  [ "$OSDNAME" == "dnsmasq" ] && continue #191219 this is managed by EasyShare
+  OSDDEFAULT='false'
+  case "$OSDNAME" in #191219
+   udev)
+    [ "`grep '^BACKENDON' /etc/eventmanager | grep 'true'`" != "" ] && OSDDEFAULT='true'
+    OSDBOXES="${OSDBOXES} <checkbox><label>udev (`gettext \"Hardware hotplug detection -- see 'HELP'\"`)</label><default>${OSDDEFAULT}</default><variable>OSDCHK_${osdcnt}_</variable></checkbox>"
+    echo "OSDCHK_${osdcnt}_||udev" >> /tmp/bootmanager_osd
+    continue
+   ;;
+  esac
+  [ -x ${OSDDIR}/${OSDNAME} ] && OSDDEFAULT='true'
+  OSDDESCR=''
+  case $xOSDNAME in #161216 180119
+   *alsa) OSDDESCR='('$(gettext 'ALSA sound server, required to play audio')')' ;;
+   *crond) OSDDESCR='('$(gettext 'Automatic scheduling, see Pschedule. Recommend leave disabled.')')' ;;
+   cups) OSDDESCR='('$(gettext 'CUPS printing, required to print')')' ;;
+   *messagebus) OSDDESCR='('$(gettext 'DBUS interprocess messaging, required by some apps')')' ;; #200210 messagebus renamed to 95-messagebus
+   slmodem) OSDDESCR='('$(gettext 'Only needed for certain Internet dialup modems')')' ;;
+   *sys_logger) OSDDESCR='('$(gettext 'Logs kernel & app. info. & error messages, not essential')')' ;;
+   rc.smbqmsvc) OSDDESCR='('$(gettext 'only needed for quick mounting Samba shares in lameSMBxplorer')')' ;;
+   *dropbear) OSDDESCR='('$(gettext 'SSH server, for remote login to this computer, disable if not needed')')' ;;
+   rc.firewall) OSDDESCR='('$(gettext 'Needed to start firewall at bootup. Recommended')')' ;;
+   rc.samba) OSDDESCR='('$(gettext 'Only needed to share files with remote PC using Samba server. Disable otherwise')')' ;;
+   rc.yassm) OSDDESCR='('$(gettext 'Only needed to share files with remote PC using Samba server. Disable otherwise')')' ;;
+   rc.umntshares) OSDDESCR='('$(gettext 'Only needed to share files with remote PC using Samba server. Disable otherwise')')' ;;
+   rsync) OSDDESCR='('$(gettext 'Sync files with remote PC running rsync server. Disable if not needed')')' ;;
+   saned) OSDDESCR='('$(gettext 'Daemon to use a scanner. Disable if not needed')')' ;;
+   frisbee*) OSDDESCR='('$(gettext 'Frisbee wi-fi manager. Not needed if using another network manager')')' ;;
+   z-wifi-puppy) OSDDESCR='('$(gettext 'Not a daemon. Essential wi-fi setup at bootup')')' ;;
+   aumix) OSDDESCR='('$(gettext 'Not a daemon. Essential bootup settings for Aumix audio mixer')')' ;;
+   start_cpu_freq) OSDDESCR='('$(gettext 'Not a daemon. Needed for Wcpufreq CPU frequency scaling -- see System menu')')' ;;
+   usb-modeswitch) OSDDESCR='('$(gettext 'Not a daemon. Needed for 4G Internet dongles. Leave activated')')' ;;
+   *bluetooth) OSDDESCR='('$(gettext 'Daemon for Bluetooth devices. Will only run if BT HW detected')')' ;;
+   bluealsa) OSDDESCR='('$(gettext 'Daemon for Bluetooth audio support. Will only run if Bluetooth daemon running')')' ;;
+   sshd) OSDDESCR='('$(gettext 'SSH server, for remote login to this PC, disable if not needed')')' ;;
+   *acpi*) OSDDESCR='('$(gettext "Handler for ACPI events. Probably not needed -- see 'HELP'")')' ;;
+   rpcbind) OSDDESCR='('$(gettext 'maps RPC service to port number. Used by NFS, otherwise, probably not needed.')')' ;;
+   nscd) OSDDESCR='('$(gettext 'Name service cache daemon. Probably not needed.')')' ;;
+   neard) OSDDESCR='('$(gettext 'Near Field Communication daemon. Probably not needed.')')' ;;
+   z-cups-network-fix) OSDDESCR='('$(gettext 'Not a daemon. Needed for network printing.')')' ;;
+   rc.networkmanager) OSDDESCR='('$(gettext 'Daemon for NetworkManager. Default for Internet connection.')')' ;;
+   ofono) OSDDESCR='('$(gettext 'NetworkManager can optionally use this for modem voice, SIM IO, messaging, and GPRS.')')' ;;
+   dundee) OSDDESCR='('$(gettext 'Bluetooth DUN daemon, part of Ofono.')')' ;;
+   qsync) OSDDESCR='('$(gettext 'Sync time from Internet. Not a daemon, setup via Desktop/Qsync menu.')')' ;;
+   ec-net) OSDDESCR='('$(gettext 'Update /etc/resolv.conf in containers when network goes up/down. Keep this.')')' ;; #191218
+   sudo) OSDDESCR='('$(gettext 'Sets up /run/sudo. Not a daemon. Only useful for non-root login.')')' ;;
+   sysfsutils) OSDDESCR='('$(gettext 'Loads sysfs variables, reads /etc/sysfs.conf, /etc/sysfs.d. Not a daemon.')')' ;;
+  esac
+  OSDBOXES="${OSDBOXES} <checkbox><label>${xOSDNAME} ${OSDDESCR}</label><default>${OSDDEFAULT}</default><variable>OSDCHK_${osdcnt}_</variable></checkbox>"
+  echo "OSDCHK_${osdcnt}_|${OSDDIR}|${OSDNAME}" >> /tmp/bootmanager_osd
+ done
+ #161022 firewall_ng is in /etc/init.d/rc.firewall when installed...
+ #191219 simply code for old rc.firewall...
+ case "$SYSDAEMONS" in
+  *rc.firewall*) true ;;
+  *)
+   OLD_FIREWALL_INSTALLED='no'
+   [ "`grep '/etc/rc.d/rc.firewall' /etc/rc.d/rc.local`" != "" ] && OLD_FIREWALL_INSTALLED='yes' #old Linux Firewall.
+   if [ "$OLD_FIREWALL_INSTALLED" == "yes" ];then
+    osdcnt=`expr $osdcnt + 1`
+    OSDDEFAULT='false'
+    RCINITD='rc.d'
+    if [ -x /etc/rc.d/rc.firewall ];then
+     OSDDEFAULT='true'
+    fi
+    OSDBOXES="${OSDBOXES} <checkbox><label>rc.firewall ($(gettext 'Firewall important security on Internet'))</label><default>${OSDDEFAULT}</default><variable>OSDCHK_${osdcnt}_</variable></checkbox>"
+    echo "OSDCHK_${osdcnt}_|/etc/${RCINITD}|rc.firewall" >> /tmp/bootmanager_osd
+   fi
+  ;;
+ esac
+ 
+ export MAIN_DIALOG="
+<window title=\"$(gettext 'BootManager: Manage system services')\" icon-name=\"gtk-cdrom\">
+<vbox>
+ <text use-markup=\"true\"><label>\"<b>$(gettext 'Untick a checkbox to prevent service from running at startup')</b>\"</label></text>
+ ${OSDBOXES}
+ <hbox>
+  <button ok></button>
+  <button cancel></button>
+  <button><input file>/usr/local/lib/X11/mini-icons/mini-question.xpm</input><label>$(gettext 'HELP')</label><action>defaulttextviewer /etc/init.d/README.txt & </action></button>
+ </hbox>
+</vbox>
+</window>
+"
+ RETSTRING="`gtkdialog --program=MAIN_DIALOG --center`" 
+ [ "`echo "$RETSTRING" | grep 'EXIT' | grep 'OK'`" = "" ] && return
+ while [ $osdcnt -gt 0 ];do
+  OSDVAR="OSDCHK_${osdcnt}_"
+  OSDDIR="`grep "$OSDVAR" /tmp/bootmanager_osd | cut -f 2 -d '|'`"
+  OSDNAME="`grep "$OSDVAR" /tmp/bootmanager_osd | cut -f 3 -d '|'`"
+  if [ "$OSDNAME" = "udev" ];then
+   if [ "`echo "$RETSTRING" | grep "$OSDVAR" | grep 'true'`" != "" ];then
+    if [ "`grep '^BACKENDON' /etc/eventmanager | grep 'false'`" != "" ];then
+     pupmessage -center -bg orange "`gettext \"The EventManager will now be run, so that you can enable 'udev'.
+You will need to tick the 'hotplug module/firmware loading' checkbox...\"`"
+     eventmanager &
+    fi
+   else
+    if [ "`grep '^BACKENDON' /etc/eventmanager | grep 'true'`" != "" ];then
+     pupmessage -center -bg orange "`gettext \"The EventManager will now be run, so that you can disable 'udev'.
+You will need to untick the 'hotplug module/firmware loading' checkbox...\"`"
+     eventmanager &
+    fi
+   fi
+  fi
+  if [ "$OSDDIR" = "/etc/init.d" -o "$OSDDIR" = "/etc/rc.d" ];then
+   if [ "`echo "$RETSTRING" | grep "$OSDVAR" | grep 'true'`" != "" ];then
+    chmod 755 ${OSDDIR}/${OSDNAME}
+   else
+    chmod 644 ${OSDDIR}/${OSDNAME}
+   fi
+  fi
+  osdcnt=`expr $osdcnt - 1`
+ done
+ 
+} #end sysdaemons_func
+
+
+if [ "$CLPARAM1" = "blacklist" ];then
+ blacklist_func
+ exit
+fi
+
+if [ "$CLPARAM1" = "yeslist" ];then
+ yeslist_func
+ exit
+fi
+
+if [ "$CLPARAM1" = "sysdaemons" ];then #100125
+ sysdaemons_func
+ exit
+fi
+
+
+#######################################################
+
+export MAIN_DIALOG="
+<window title=\"$(gettext 'BootManager')\" icon-name=\"gtk-cdrom\">
+<vbox>
+ <text use-markup=\"true\">
+ <label>\"<b>$(gettext 'Easy Boot Configuration')</b>\"</label></text>
+ 
+ <frame $(gettext 'Load SFS files at bootup')>
+  <text><label>$(gettext "Choose extra SFS files to load in the layered filesystem. Note that 'easy.sfs' will always load.")</label></text>
+  <hbox>
+   <text><label>$(gettext 'Load extra SFS files:')</label></text>
+   <button><label>$(gettext 'SFS')</label><action>/usr/local/sfsget/extra-sfss-repo & </action></button>
+  </hbox>
+  <hbox>
+   <text><label>$(gettext 'Load extra SFS in containers:')</label></text>
+   <button><label>$(gettext 'SFS')</label><action>/usr/local/easy_containers/easy-containers & </action></button>
+  </hbox>
+ </frame>
+ 
+ <frame $(gettext 'Load kernel modules')>
+  <text><label>`gettext \"If a driver module did not get loaded, or the wrong one got loaded, or you want to 'blacklist' a module, this is the place. A common scenario is a driver got auto-loaded, for say your wireless network card, but you cannot or do not want to use it, and want some other module or want to use Ndiswrapper (to use the Windows driver).\"`</label></text>
+  <hbox>
+   <text><label>`gettext \"Click here to 'blacklist' a module:\"`</label></text>
+    <button>
+     <input file>/usr/local/lib/X11/pixmaps/module24.xpm</input>
+     <action>bootmanager blacklist</action>
+    </button>
+  </hbox>
+  <hbox>
+   <text><label>$(gettext 'Click here to add a new module:')</label></text>
+    <button>
+     <input file>/usr/local/lib/X11/pixmaps/module24.xpm</input>
+     <action>bootmanager yeslist</action>
+    </button>
+  </hbox>
+ </frame>
+
+ <frame $(gettext 'Manage system services')>
+   <text><label>$(gettext 'These are processes (applications) that are started at bootup and run continuously in the background. On slow PCs it may help to not run some of these.')</label></text>
+  <hbox>
+   <text><label>$(gettext 'Choose which system services to run at startup:')</label></text>
+    <button>
+     <input file>/usr/local/lib/X11/mini-icons/so.xpm</input>
+     <action>bootmanager sysdaemons</action>
+    </button>
+  </hbox>
+ </frame>
+ 
+ <hbox>
+  <button><input file stock=\"gtk-quit\"></input><label>$(gettext 'QUIT')</label></button>
+ </hbox>
+</vbox>
+</window>
+"
+
+RETSTRING="`gtkdialog --program=MAIN_DIALOG --center`"
+
+eval "$RETSTRING"
+
+[ "$EXIT" = "abort" ] && exit
+
+
+###END###

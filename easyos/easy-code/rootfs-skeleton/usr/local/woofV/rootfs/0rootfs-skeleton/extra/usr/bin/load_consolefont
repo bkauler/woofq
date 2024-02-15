@@ -1,0 +1,40 @@
+#!/bin/sh
+#(c) Copyright Barry Kauler 2012, license GPL3 (usr/share/doc/legal)
+#a console font gets loaded in the initrd, or failing that in rc.country.
+#i was also loading it in /usr/sbin/quicksetup is locale is changed.
+#however, we have problems with it getting "dropped", which seems to happen when run X.
+#so, i have created this script that will call whenever we exit from X, such as
+#in xwin and in xorgwizard. thanks to L18L for investigating this.
+#20230522 now using zap psfu fonts.
+
+##note, en locale will have empty /etc/fontmap...
+#[ ! -s /etc/fontmap ] && exit
+
+#FONTMAP="`cat /etc/fontmap`"
+#
+#case $FONTMAP in
+# LatArCyrHeb-16.psfu)
+#  setfont /lib/consolefonts/${FONTMAP}.gz -C /dev/tty1
+# ;;
+# *) #LatGrkCyr-8x16.psfu
+#  zcat /lib/consolefonts/${FONTMAP}.gz | loadfont
+# ;;
+#esac
+
+#20230522
+if [ ! -e /dev/fb0 ];then
+ exit
+fi
+if [ ! -s /sys/class/graphics/fb0/virtual_size ];then
+ exit
+fi
+fbRES="$(cat /sys/class/graphics/fb0/virtual_size)"
+fbX=${fbRES/,*/}
+if [ $fbX -gt 1024 ];then
+ #bigger font...
+ loadfont < /lib/consolefonts/zap-ext-light20.psfu
+else
+ loadfont < /lib/consolefonts/zap-ext-vga16.psfu
+fi
+
+###END###

@@ -1,0 +1,22 @@
+#!/bin/sh
+#20220117 got this code from /usr/sbin/cups_shell
+#if possible launch webpage in a bare window
+#ref: https://wiki.mozilla.org/Firefox/CommandLineOptions
+#20230323 add chromium
+
+USEBROWSER="defaulthtmlviewer" #130802
+
+if [ -d /root/.mozbare ];then #20220111
+ if [ -x /usr/bin/seamonkey.bin ];then #this will run sm as root.
+  #starts as separate instance, with bare window...
+  USEBROWSER="seamonkey.bin --no-remote --profile /root/.mozbare/seamonkey/profile1 -browser"
+ elif [ -x /usr/bin/firefox.bin ];then
+  USEBROWSER="firefox.bin --no-remote --profile /root/.mozbare/firefox/profile1 --new-window"
+ elif [ -x /usr/bin/chromium.bin ];then
+  #separate instance, not a bare window though...
+  USEBROWSER="chromium.bin --class=mozbare --user-data-dir=/tmp/chromiumbare --allow-profiles-outside-user-dir --no-sandbox --test-type=browser"
+ fi
+fi
+
+exec ${USEBROWSER} "$@"
+###end###

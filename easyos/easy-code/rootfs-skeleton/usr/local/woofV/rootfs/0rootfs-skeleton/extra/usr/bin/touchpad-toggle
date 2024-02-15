@@ -1,0 +1,87 @@
+#!/bin/ash
+#20230602 BK
+
+export TEXTDOMAIN=touchpad-toggle
+export OUTPUT_CHARSET=UTF-8
+
+TPdevice="$(LANG=C xinput | grep -iv 'USB' | sed -nre '/TouchPad|Touchpad|Mouse/s/.*id=([0-9]*).*/\1/p')"
+
+if [ "$TPdevice" == "" ];then
+ M0="$(gettext 'No touchpad detected')"
+ popup "level=top background=#ff8080 terminate=5 timecount=dn name=tpnone0|<big><b>${M0} </b></big>"
+ exit
+fi
+
+#touchpad may have two id's...
+xTPdevice="$(echo -n "$TPdevice" | tr '\n' ' ')"
+TPstate=$(LANG=C xinput list-props ${xTPdevice} | grep "Device Enabled" | grep -o "[01]$" | tr -d '\n')
+
+if [ ! $TPstate ];then
+ M0="$(gettext 'Unable to detect if touchpad enabled or disabled')"
+ popup "level=top background=#ff8080 terminate=5 timecount=dn name=tpnone1|<big><b>${M0} </b></big>"
+ exit
+fi
+
+if [ $TPstate -gt 0 ];then
+ ENABLEDflg=true
+ M1="$(gettext 'Touchpad enabled, untick to disable')"
+else
+ ENABLEDflg=false
+ M1="$(gettext 'Touchpad disabled, tick to enable')"
+fi
+
+export TT_DLG="<window title=\"$(gettext 'Touchpad Toggle')\" icon-name=\"gtk-preferences\">
+ <vbox>
+  <text><label>$(gettext 'This is a simple GUI to turn a laptop touchpad on or off')</label></text>
+  <text><label>\"  \"</label></text>
+  <checkbox>
+   <label>${M1}</label>
+   <default>${ENABLEDflg}</default>
+   <variable>TPvar</variable>
+  </checkbox>
+  <text><label>\"  \"</label></text>
+  <hbox>
+   <button>
+    <label>$(gettext 'Apply')</label>
+    <action>EXIT:apply</action>
+   </button>
+   <button>
+    <label>$(gettext 'Cancel')</label>
+    <action>EXIT:cancel</action>
+   </button>
+  </hbox>
+ </vbox>
+</window>"
+
+RETVALS="$(gtkdialog --center --program=TT_DLG)"
+xRETVALS="$(echo "$RETVALS" | grep -E '^EXIT|^TPvar')"
+eval "$xRETVALS"
+
+if [ "$EXIT" != "apply" ];then
+ rm -f /var/local/touchpad-off
+ M3="$(gettext 'Exited unchanged. Nothing remembered at next bootup')"
+else
+ if [ "$TPvar" == "false" ];then
+  #/root/.xinitrc can read this...
+  touch /var/local/touchpad-off
+  if [ "$ENABLEDflg" == "true" ];then
+   for aTPdevice in ${xTPdevice}
+   do
+    xinput disable $aTPdevice
+   done
+  fi
+  M3="$(gettext 'Touchpad disabled. This will be remembered at next bootup')"
+ else
+  rm -f /var/local/touchpad-off
+  if [ "$ENABLEDflg" == "false" ];then
+   for aTPdevice in ${xTPdevice}
+   do
+    xinput enable $aTPdevice
+   done
+  fi
+  M3="$(gettext 'Touchpad enabled')"
+ fi
+fi
+
+popup "level=top background=#80ff80 terminate=5 timecount=dn name=tpnone2|<big><b>${M3}</b></big>"
+###end###

@@ -1,0 +1,67 @@
+#!/bin/sh
+#(c) Copyright Barry Kauler Dec. 2010, License: GPL v3 /usr/share/doc/legal
+#called from pupdial.
+#got code out of rc.shutdown.
+#shutdown network interfaces, except for ppp
+#180127 rerwin: Add frisbee disconnect and deactivation. 
+#181118 BK: NetworkManager.
+#190215 BK: /tmp/sns_interface_success no longer used.
+#190219 BK: handle UltraSNS, minibase network utilities.
+#190922 BK: have precreated rx_bytes_month and tx_bytes_month in rootfs-skeleton, with "0". see also rc.shutdown
+#20230918 rerwin: remove deprecated ifconfig and iwconfig
+#20230919 BK: note: /etc/init.d/rc.network will run with "stop" when network i/f goes down.
+
+#100814 log the cumulative bytes transmitted on network...
+# (see also /etc/rc.d/rc.sysinit and network_tray)
+#20230918...
+ACTIVE_INTERFACE="$(ip link show | grep -B 1 'link/ether' | grep -w 'UP' | cut -f 2 -d ' ' | tr -d : | head -n 1)" #200206
+if [ "$ACTIVE_INTERFACE" ];then
+ if [ -d /sys/class/net/${ACTIVE_INTERFACE}/statistics ];then
+  RX_BYTES="`cat /sys/class/net/${ACTIVE_INTERFACE}/statistics/rx_bytes`"
+  TX_BYTES="`cat /sys/class/net/${ACTIVE_INTERFACE}/statistics/tx_bytes`"
+  echo -n "$RX_BYTES" > /var/local/sns/rx_bytes_session
+  echo -n "$TX_BYTES" > /var/local/sns/tx_bytes_session
+  RX_BYTES_MONTH=`cat /var/local/sns/rx_bytes_month`
+  RX_BYTES_MONTH=`expr $RX_BYTES_MONTH + $RX_BYTES`
+  echo -n "$RX_BYTES_MONTH" > /var/local/sns/rx_bytes_month
+  TX_BYTES_MONTH=`cat /var/local/sns/tx_bytes_month`
+  TX_BYTES_MONTH=`expr $TX_BYTES_MONTH + $TX_BYTES`
+  echo -n "$TX_BYTES_MONTH" > /var/local/sns/tx_bytes_month
+ fi
+fi
+
+if pidof ifmon >/dev/null ;then #190219
+ /usr/local/UltraSNS/rc.network stop
+fi
+
+if pidof NetworkManager >/dev/null ;then #181118 see also nm-wrapper
+ /etc/init.d/rc.networkmanager stop
+fi
+
+[ "`pidof wpa_supplicant`" != "" ] && wpa_cli terminate #100309 kills any running wpa_supplicant.
+
+if [ -x /usr/local/bin/frisbee ];then
+ if [ -x /usr/local/frisbee/frisbee-main ];then
+  if frisbee --test_active; then
+   frisbee --disconnect
+   frisbee --deactivate
+  fi
+ else
+  if grep -q 'frisbee_mode=1' /etc/frisbee/frisbee.conf; then
+   /usr/local/frisbee/disconnect
+   frisbee_mode_disable
+  fi
+ fi
+fi #180127 end
+
+#20230918 rerwin: remove deprecated ifconfig and iwconfig...
+sleep 0.1
+for ONENETIF in $(ip link show | grep -B 1 'link/ether' | grep -w 'UP' | cut -f 2 -d ' ' | tr -d : | tr '\n' ' '); do #200206
+    ip link set "$ONENETIF" down 2> /dev/null
+    iw dev "${ONENETIF}" info 2> /dev/null | grep -qw "ssid" \
+      && iw dev "$ONENETIF" connect off
+    dhcpcd --release "$ONENETIF" 2>/dev/null
+done
+
+
+###END###

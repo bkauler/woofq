@@ -1,0 +1,21 @@
+#!/bin/ash
+#191219 zygo reported Utility -> Gexec -> mtpaint, tick "run as root", error 'gksu' missing.
+#20221023 may be running as zeus super-user. 20221031 think still need to bump to root.
+#20230626 new sudo-sh replaces sudo.
+
+#this script is a bad hack...
+
+#remove options...
+CMDOPTS="$(echo "$@" | tr -s ' ' | tr ' ' '\n' | grep -v '^\-' | tr '\n' ' ')"
+
+#20230626
+if [ "$(whoami)" != "root" ];then
+ if [ -x /usr/bin/sudo-sh ];then
+  exec sudo-sh ${PPID} ${0} ${@}
+ else
+  exec sudo -A ${0} ${@}
+ fi
+fi
+
+exec ${CMDOPTS}
+###end###

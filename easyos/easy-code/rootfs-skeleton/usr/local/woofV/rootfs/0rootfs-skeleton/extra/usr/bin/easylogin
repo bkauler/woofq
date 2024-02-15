@@ -1,0 +1,40 @@
+#!/bin/ash
+#called from /etc/inittab
+#20221025 PUPSTATE has BOOT_PW_FLG
+#20221030 PUPSTATE has EOS_LOGIN_ZEUS (1=yes, 0 or anything else =no)
+#20230123 no longer using this script.
+
+. /etc/rc.d/PUPSTATE
+
+#variables exported in initrd are still here...
+unset TZ
+unset DATE
+unset EOS_SUPPORT_CONTAINERS
+unset KERNELNAME
+unset SESSIONSFSflag
+unset TRIMflg
+unset WKG_FS
+unset wkg_dir
+unset wkg_uuid
+
+if [ "$EOS_LOGIN_ZEUS" == "1" ];then
+ HOME="/home/zeus"
+ USER="zeus"
+else
+ HOME="/root"
+ USER="root"
+fi
+export USER HOME
+
+if [ "$USER" == "root" ];then
+ exec /bin/login -f root
+else
+ if [ "$BOOT_PW_FLG" == "" ];then
+  exec /sbin/capsh --keep=1 --user=zeus --inh=all --addamb=all -- -c "/sbin/zeusshell"
+ else
+  #need to decrypt encrypted folders for user zeus...
+  exec /sbin/capsh --keep=1 --user=zeus --inh=all --addamb=all -- -c "/usr/local/clients/run-client-indirect /sbin/zeusshell"
+ fi
+fi
+
+###end###

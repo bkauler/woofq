@@ -1,0 +1,15 @@
+#!/usr/bin/python3
+#pass name of icon on commandline, without path, without extension.
+
+#ref: https://stackoverflow.com/questions/6090241/how-can-i-get-the-full-file-path-of-an-icon-name
+#ref: https://python-gtk-3-tutorial.readthedocs.io/en/latest/introduction.html
+
+import sys
+import gi
+
+gi.require_version('Gtk', '3.0')
+from gi.repository import Gtk
+icon_theme = Gtk.IconTheme.get_default()
+icon_info = icon_theme.lookup_icon(sys.argv[1], 48, 0)
+print(icon_info.get_filename())
+

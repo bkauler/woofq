@@ -1,0 +1,68 @@
+#!/bin/sh
+#written by pizzasgood, 2009
+#GPL license /usr/share/doc/legal/gpl-2.0.txt
+#120202 rodin.s: internationalized.
+#20221018 fix height of window, display radiobuttons properly.
+#20221018 show hw and software actual times.
+#20221020 fix hwclock, need to use busybox applet.
+#20230308 no need for 'Done' msg at end.
+
+export TEXTDOMAIN=set_hwclock_type
+export OUTPUT_CHARSET=UTF-8
+
+[ -f /etc/clock ] && . /etc/clock
+
+if [ "$HWCLOCKTIME" = "utc" ]; then
+    utc_flag='on'
+    local_flag='off'
+else
+    utc_flag='off'
+    local_flag='on'
+fi
+
+#20221020 full "hwclock -r" returns incorrect value on my lenovo, use busybox applet...
+#HWnow="$(LANG=C hwclock -r | cut -f 1,2 -d ':')" #ex: 2022-10-20 19:21:09.650905+08:00
+HWnow="$(LANG=C busybox hwclock -r | cut -f 1-5 -d ' ')" #ex: Thu Oct 20 11:32:16 2022
+C1="$(gettext "Hardware clock:")"
+#SFnow="$(LANG=C date +%F\ %R)"
+SFnow="$(LANG=C busybox date)" #ex: Thu Oct 20 11:34:03 +08 2022
+C2="$(gettext "Software clock:")"
+
+M0="$(gettext "Set HW-Clock Type")"
+M1="$(gettext "What should the hardware clock be interpreted as?")"
+T1="$(gettext "current time where you are now")"
+T2="$(gettext "Coordinated Universal Time")"
+H1="$(gettext "The hardware clock, also known as the CMOS clock, is powered by a battery and continues running when the computer is off.\nThe software clock, also known as the 'system time', is only set when the computer is started up.\nYou can see the current system time in the right-side of the tray\n -- mouse-over it to see the full date.")"
+HWCLOCKTIME=$(Xdialog --title "${M0}" --help "${H1}" --radiolist "${C1} ${HWnow}\n\n${M1}" 0 0 3 localtime "${T1}" $local_flag utc "${T2}" $utc_flag 2>&1)
+if [ $? -ne 0 ]; then
+    exit
+fi
+
+if [ "$HWCLOCKTIME" = "utc" ] || [ "$HWCLOCKTIME" = "localtime" ]; then
+    if [ "$(grep "^HWCLOCKTIME=" /etc/clock)" = "" ]; then
+        echo "HWCLOCKTIME='$HWCLOCKTIME'" >> /etc/clock
+    else
+        hwPATTERN="s/^HWCLOCKTIME=[^#]*/HWCLOCKTIME='$HWCLOCKTIME'/"
+        sed -i "$hwPATTERN" /etc/clock
+    fi
+    
+    M3="$(gettext "Yes")"
+    M4="$(gettext "No")"
+    M5="$(gettext "Update the software clock or the hardware clock?")"
+    M6="$(gettext "...if no change required, just click the 'No' button")"
+    M7="$(gettext "to match hardware")"
+    M8="$(gettext "to match software")"
+    RET=$(Xdialog --title "${M0}" --ok-label "${M3}" --cancel-label "${M4}" --radiolist "${C1} ${HWnow}\n${C2} ${SFnow}\n\n${M5} \n${M6}" 0 0 3 software "${M7}" on hardware "${M8}" off 2>&1)
+    if [ $? -ne 0 ]; then
+        exit
+    fi
+
+    if [ "$RET" = "software" ]; then
+      hwclock --hctosys --$HWCLOCKTIME
+    elif [ "$RET" = "hardware" ]; then
+      hwclock --systohc --$HWCLOCKTIME
+    fi
+
+    #Xdialog --title "$(gettext 'Set HW-Clock Type')" --infobox "$(gettext 'Done')" 0 0 4000
+
+fi

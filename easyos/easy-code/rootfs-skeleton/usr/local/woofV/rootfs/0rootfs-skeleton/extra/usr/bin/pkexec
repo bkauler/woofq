@@ -1,0 +1,29 @@
+#!/bin/sh
+#20230627 this utility is in the polkit package, but easyos does not have polkit.
+#instead, this is a wrapper for /usr/bin/sudo-sh
+#pkexec has permissions 0755.
+
+USER='root'
+while [ "$1" != "" ];do
+ case "$1" in
+  --help|--version)
+   shift
+  ;;
+  --user)
+   shift
+   USER="$1"
+   shift
+  ;;
+  *)
+   break
+  ;;
+ esac
+done
+
+if [ "$USER" != "root" ];then
+ exit 1
+fi
+
+exec sudo-sh ${PPID} ${@}
+###end###
+
