@@ -8,37 +8,48 @@ mkdir -p /tmp/woofV
 E1='/mnt/wkg/data/woofV'
 mkdir -p ${E1}
 L1='/usr/local/woofV'
-. ${L1}/DISTRO_SPECS
-. ${L1}/DISTRO_PKGS_SPECS
+. ${L1}/configure/DISTRO_SPECS
+. ${L1}/configure/DISTRO_PKGS_SPECS
 
 echo -n '' > ${E1}/woof-installed-packages
 #will have matching line (fields 2,3,4,5) from PACKAGES_SPECS_TABLE appended...
 echo -n '' > ${E1}/woof-installed-packages-PST
 echo -n '' > ${E1}/devx-only-installed-packages
 echo -n '' > ${E1}/devx-only-installed-packages-PST
-echo -n '' > /tmp/woofV/woof-installed-packages
-echo -n '' > /tmp/woofV/woof-installed-packages-PST
-echo -n '' > /tmp/woofV/devx-only-installed-packages
-echo -n '' > /tmp/woofV/devx-only-installed-packages-PST
+
+cd /tmp/woofV
+echo -n '' > woof-installed-packages
+echo -n '' > woof-installed-packages-PST
+echo -n '' > devx-only-installed-packages
+echo -n '' > devx-only-installed-packages-PST
+
+echo "Creating woof-installed-packages"
 
 while read aL
 do
  Egeneric="$(cut -f 1 -d '|' <<<${aL})" #ex: acl
  Epkgs="$(cut -f 2 -d '|' <<<${aL} | tr ',' ' ')"    #ex: acl,acl-devel
  Esplit="$(cut -f 3 -d '|' <<<${aL})"   #ex: exe,dev,doc,nls
+ xEsplit=" ${Esplit//,/ } "
  Erepo="$(cut -f 4 -d '|' <<<${aL})"    #exs: compat:current compat:kirkstone pet:noarch pet:void
  
  case "$Erepo" in
   pet:*)
-   #these do not have a Epkgs field
-   aDB="$(grep "|${Egeneric}|" ${L1}/configure/Packages-pet-${Erepo#*:}-official)"
-   grep -q -F 'exe>dev' <<<${Esplit}
-   if [ $? -eq 0 ];then
-    cat <<<${aDB} >> /tmp/woofV/devx-only-installed-packages
-    cat <<<${aDB}${AL} >> /tmp/woofV/devx-only-installed-packages-PST
+   #will only have one pkg in Epkgs field. Egeneric is no longer necessarily the actual pkg name.
+   [ -z "$Epkgs" ] && continue #precaution.
+   aDB="$(grep -h -F "|${Epkgs}|" ${L1}/configure/Packages-pet-${Erepo#*:}-official)"
+   grep -q -E ' exe>dev | dev ' <<<${xEsplit}
+   RET1=$?
+   if [ $RET1 -eq 0 ];then
+    grep -v -q -F 'exe,dev' <<<${Esplit}
+    RET1=$?
+   fi
+   if [ $RET1 -eq 0 ];then
+    cat <<<${aDB} >> devx-only-installed-packages
+    cat <<<${aDB}${aL} >> devx-only-installed-packages-PST
    else
-    cat <<<${aDB} >> /tmp/woofV/woof-installed-packages
-    cat <<<${aDB}${aL} >> /tmp/woofV/woof-installed-packages-PST
+    cat <<<${aDB} >> woof-installed-packages
+    cat <<<${aDB}${aL} >> woof-installed-packages-PST
    fi
    continue
   ;;
@@ -49,23 +60,29 @@ do
    #$Epkgs contains the pkgs...
    for aPKG in ${Epkgs}
    do
-    aDB="$(grep "|${Egeneric}|" ${L1}/configure/Packages-*-${Erepo#*:}-official | tail -n 1)"
-    #...there should only be one hit
+    aDB="$(grep -h -F "|${aPKG}|" ${L1}/configure/Packages-*-${Erepo#*:}* | tail -n 1)"
+    #...there should only be one hit. exs: Packages-void-current, Packages-oe-kirkstone-official
     # ex: acl-2.3.1_1|acl|2.3.1|1|BuildingBlock|16K|current|acl-2.3.1_1.x86_64.xbps|+glibc|Access Control List filesystem support|void|current||
-    case "$Egeneric" in
+    case "$aPKG" in
      *-devel)
-      cat <<<${aDB} >> /tmp/woofV/devx-only-installed-packages
-      cat <<<${aDB}${AL} >> /tmp/woofV/devx-only-installed-packages-PST
+      cat <<<${aDB} >> devx-only-installed-packages
+      cat <<<${aDB}${aL} >> devx-only-installed-packages-PST
       continue
      ;;
     esac
-    grep -q -F 'exe>dev' <<<${Esplit}
-    if [ $? -eq 0 ];then
-     cat <<<${aDB} >> /tmp/woofV/devx-only-installed-packages
-     cat <<<${aDB}${AL} >> /tmp/woofV/devx-only-installed-packages-PST
+    #note, kirkstone pkgs are the only one that may be split between exe and dev...
+    grep -q -E ' exe>dev | dev ' <<<${xEsplit}
+    RET1=$?
+    if [ $RET1 -eq 0 ];then
+     grep -v -q -F 'exe,dev' <<<${Esplit}
+     RET1=$?
+    fi
+    if [ $RET1 -eq 0 ];then
+     cat <<<${aDB} >> devx-only-installed-packages
+     cat <<<${aDB}${aL} >> devx-only-installed-packages-PST
     else
-     cat <<<${aDB} >> /tmp/woofV/woof-installed-packages
-     cat <<<${aDB}${aL} >> /tmp/woofV/woof-installed-packages-PST
+     cat <<<${aDB} >> woof-installed-packages
+     cat <<<${aDB}${aL} >> woof-installed-packages-PST
     fi
    done
   ;;
@@ -75,13 +92,18 @@ done <<_EOF
 $(grep '^yes' <<<${PKGS_SPECS_TABLE} | cut -f 2,3,4,5 -d '|')
 _EOF
 
-sort --key=1 --field-separator="|" /tmp/woofV/woof-installed-packages > ${E1}/woof-installed-packages
-if [ -s /tmp/devx-only-installed-packages ];then
- sort --key=1 --field-separator="|" /tmp/woofV/devx-only-installed-packages > ${E1}/devx-only-installed-packages
+#a pkg may be more than once (ex: glibc), need -u ...
+sort --key=1,1 --field-separator="|" -u woof-installed-packages > ${E1}/woof-installed-packages
+if [ -s devx-only-installed-packages ];then
+ sort --key=1,1 --field-separator="|" -u devx-only-installed-packages > ${E1}/devx-only-installed-packages
+ sed -i '/^$/d' ${E1}/devx-only-installed-packages
 fi
-sort --key=1 --field-separator="|" /tmp/woofV/woof-installed-packages-PST > ${E1}/woof-installed-packages-PST
-if [ -s /tmp/devx-only-installed-packages-PST ];then
- sort --key=1 --field-separator="|" /tmp/woofV/devx-only-installed-packages-PST > ${E1}/devx-only-installed-packages-PST
+sort --key=1,1 --field-separator="|" -u woof-installed-packages-PST > ${E1}/woof-installed-packages-PST
+if [ -s devx-only-installed-packages-PST ];then
+ sort --key=1,1 --field-separator="|" -u devx-only-installed-packages-PST > ${E1}/devx-only-installed-packages-PST
+ sed -i '/^$/d' ${E1}/devx-only-installed-packages-PST
 fi
+sed -i '/^$/d' ${E1}/woof-installed-packages
+sed -i '/^$/d' ${E1}/woof-installed-packages-PST
 
 ###end###
