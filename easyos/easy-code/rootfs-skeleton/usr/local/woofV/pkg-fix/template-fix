@@ -1,27 +1,28 @@
 #!/bin/bash
-#called from 3populate-rootfs
+#called from 4populate-rootfs
 #enter with $1=generic-name, $2=compat-name, $3=path to expanded pkg
 #ex: acl, void, /mnt/wkg/data/woofV/sandbox/acl-1.2.3_1.x86_64
+#ex: sysvinit-utils-cut oe /mnt/wkg/data/woofV/sandbox/sysvinit-3.01-r6-nocona-64
 
 Egeneric="$1"
 export Ecompatname="$2" #exs: void oe
 Pdir="$3"
 
 E1='/mnt/wkg/data/woofV'
-E2="${E1}/pkg-fix/packages-templates"
 L1='/usr/local/woofV'
-[ ! -d ${E2}/${Egeneric} ] && exit 1 #precaution
+L2="${L1}/pkg-fix/packages-templates"
+[ ! -d ${L2}/${Egeneric} ] && exit 1 #precaution
 
 . ${L1}/configure/DISTRO_SPECS
 
 echo "Applying template fix to ${Pdir##*/}"
 cd ${Pdir}
-if [ -f ${E2}/${Egeneric}/FIXUPHACK ];then
-. ${E2}/${Egeneric}/FIXUPHACK
+if [ -f ${L2}/${Egeneric}/FIXUPHACK ];then
+. ${L2}/${Egeneric}/FIXUPHACK
 fi
 
-if [ -f ${E2}/${Egeneric}/pinstall.sh ];then
- cp -a -f ${E2}/${Egeneric}/pinstall.sh ${Pdir}
+if [ -f ${L2}/${Egeneric}/pinstall.sh ];then
+ cp -a -f ${L2}/${Egeneric}/pinstall.sh ${Pdir}/
 fi
 if [ "$DISABLE_POST_INSTALL_SCRIPT" == "yes" ];then #this may be in FIXUPHACK
  if [ -f ${Pdir}/INSTALL ];then
@@ -29,7 +30,7 @@ if [ "$DISABLE_POST_INSTALL_SCRIPT" == "yes" ];then #this may be in FIXUPHACK
  fi
 fi
 
-if [ -d ${E2}/${Egeneric}/REPLACEMENTS ];then
- cp -a -f --remove-destination ${E2}/${Egeneric}/REPLACEMENTS/* ./
+if [ -d ${L2}/${Egeneric}/REPLACEMENTS ];then
+ cp -a -f --remove-destination ${L2}/${Egeneric}/REPLACEMENTS/* ${Pdir}/
 fi
 
