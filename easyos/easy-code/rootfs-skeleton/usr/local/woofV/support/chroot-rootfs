@@ -1,24 +1,26 @@
-#!/bin/sh
+#!/bin/ash
+#current path must be at /mnt/wkg/data/woofv
 
-[ ! $1 ] && exit 1
-[ ! -d "$1" ] && exit 2
+[ ! -d rootfs ] && exit 1
+[ ! -d dl-xbps ] && exit 2
 
-CONTAINER="$1"
+busybox mount -o bind /proc rootfs/proc
+busybox mount -o bind /sys rootfs/sys
+busybox mount -o bind /dev rootfs/dev
+busybox mount -o bind /dev/pts rootfs/dev/pts
+busybox mount -o bind /dev/shm rootfs/dev/shm
 
- busybox mount -o bind /proc ${CONTAINER}/proc
- busybox mount -o bind /sys ${CONTAINER}/sys
- busybox mount -o bind /dev ${CONTAINER}/dev
- busybox mount -o bind /dev/pts ${CONTAINER}/dev/pts
- busybox mount -o bind /dev/shm ${CONTAINER}/dev/shm
+busybox mount -o bind dl-xbps rootfs/var/cache/xbps
 
 #for internet access...
-cp -f /etc/resolv.conf ${CONTAINER}/etc/resolv.conf
+cp -f /etc/resolv.conf rootfs/etc/resolv.conf
 
-chroot ${@}
+chroot rootfs ${@}
 
 sync
-busybox umount ${CONTAINER}/dev/shm
-busybox umount ${CONTAINER}/dev/pts
-busybox umount ${CONTAINER}/dev
-busybox umount ${CONTAINER}/sys
-busybox umount ${CONTAINER}/proc
+busybox umount rootfs/var/cache/xbps
+busybox umount rootfs/dev/shm
+busybox umount rootfs/dev/pts
+busybox umount rootfs/dev
+busybox umount rootfs/sys
+busybox umount rootfs/proc

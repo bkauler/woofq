@@ -1,5 +1,6 @@
 #!/bin/ash
 #pass in path to PET pkg to convert, file with required DB entry, and generic-name.
+#.xbps will be created in ${E1}/converted-pkgs
 
 export LANG=C
 . /etc/rc.d/PUPSTATE
@@ -26,6 +27,34 @@ tar -xf ${PETpath} 2>/dev/null
 rm -f ${PETname}
 F1="${PETname/.pet/}"
 DIR=${E1}/sandbox/${F1}
+
+#busybox hack required. do not want it to overwrite coreutils, util-linux, etc. utilities
+case "$F1" in
+ busybox-*)
+  BBexe="$(find ${F1} -type f -name busybox)"
+  cp -a -f ${BBexe} ./busyboxTMP
+  cp -a -f ${F1}/etc ./etcTMP 2>/dev/null
+  rm -rf ${F1}/*
+  mkdir -p ${F1}/usr/bin
+  mv -f ./busyboxTMP ${F1}/usr/bin/busybox
+  mv -f ./etcTMP ${F1}/etc 2>/dev/null
+  #we can have a pinstall.sh that recreates the symlinks...
+  #there is already a pinstall.sh that we can append to, however, better to replace...
+  cat <<'_EOF1' >${F1}/pinstall.sh
+#!/bin/ash
+if [ -f usr/bin/bash ];then
+ ln -snf bash usr/bin/sh #precaution
+fi
+for aA in $(usr/bin/busybox --list | tr '\n' ' ')
+do
+ if [ -e usr/bin/${aA} ];then
+  continue
+ fi
+ ln -s busybox usr/bin/${aA}
+done
+_EOF1
+ ;;
+esac
 
 if [ -f ${DIR}/pinstall.sh ];then
  cat >> ${DIR}/INSTALL <<'_EOF'
@@ -64,7 +93,13 @@ DEP=""
 DESC="$(cut -f 10 -d '|' ${DBentry})"
 Enameonly="$(cut -f 2 -d '|' ${DBentry})"
 
+#more hacks for busybox. needs deps so installs after these...
+if [ "$Enameonly" == "busybox" ];then
+ DEPS='coreutils>=0.0_0 util-linux>=0.0_0 findutils>=0.0_0 procps>=0.0_0 tar>=0.0_0 grep>=0.0_0 sed>=0.0_0 gawk>=0.0_0 kmod>=0.0_0 net-tools>=0.0_0 readline>=0.0_0 usbutils>=0.0_0 wget>=0.0_0 xz>=0.0_0 zip>=0.0_0 zstd>=0.0_0 unzip>=0.0_0'
+fi
+
 #pets may have weird versioning, remove any alpha chars... also append revision-number...
+#note, 4populate-rootfs has this same code...
 VER="$(cut -f 3 -d '|' ${DBentry} | sed -e 's%[^0-9.]%%g')_1"
 
 #may have to fix for usr-merge...
@@ -74,8 +109,8 @@ VER="$(cut -f 3 -d '|' ${DBentry} | sed -e 's%[^0-9.]%%g')_1"
 #rearranging folders to usrmerge may have broken symlinks...
 /usr/local/woofV/pkg-fix/symlinks-fix temp1
 DIR2=${E1}/sandbox/temp1
-cd ${E1}/dl-pets
-xbps-create -n "${PSTgeneric}-$VER" -s "$DESC" -A $xARCH -D "$DEP" "$DIR2"
+cd ${E1}/converted-pkgs
+xbps-create -n "${PSTgeneric}-${VER}" -s "$DESC" -A $xARCH -D "$DEP" "$DIR2"
 if [ $? -ne 0 ];then
  echo "ERROR: Enameonly='${Enameonly}' PSTgeneric='${PSTgeneric}' VER='${VER}'"
  echo "ERROR failed: xbps-create -n \"${PSTgeneric}-$VER\" -s \"$DESC\" -A $xARCH -D \"$DEP\" \"$DIR2\""
