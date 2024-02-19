@@ -1,6 +1,6 @@
 #!/bin/bash
 #sort woof-installed-packages into dep order.
-#called from 3populate-rootfs
+#called from 5populate-rootfs
 #must run after support/findwoofinstalledpkgs
 
 E1='/mnt/wkg/data/woofV'
@@ -8,6 +8,7 @@ L1='/usr/local/woofV'
 mkdir -p /tmp/woofV
 . ${L1}/configure/DISTRO_SPECS
 . ${L1}/configure/PKGS_MANAGEMENT #has PKG_NAME_ALIASES, PKG_NAME_IGNORE
+. ${L1}/configure/DISTRO_PKGS_SPECS #has PKGS_SPECS_TABLE
 
 echo "Sorting woof-installed-packages into dependency-order..."
 
@@ -16,6 +17,7 @@ cp -f ${E1}/woof-installed-packages ${E1}/woof-installed-packages-orig
 cp -f ${E1}/woof-installed-packages woof-installed-packages
 tr ' ' '\n' <<<${PKG_NAME_IGNORE} > PKG_NAME_IGNORElines
 echo -n '' > xdb2and9NEW
+echo -n '' > xdb2and9NEW-DEVX
 
 cut -f 2,9 -d '|' woof-installed-packages > db2and9
 #deps should all be void names...
@@ -30,8 +32,8 @@ do
   [ -z "$aDep" ] && continue
   #lookup support/name-oe2void find if name change required
   #note, have left out file 'maybe'... no, include 'maybe'...
-  #note, escape + coz this is a regex...
-  F1="$(grep -h "^${aDep//+/\\+}|" ${L1}/support/name-oe2void/case ${L1}/support/name-oe2void/hyphen ${L1}/support/name-oe2void/number ${L1}/support/name-oe2void/maybe | head -n 1)"
+  #note, basic-regex + and | are literal chars no need to escape...
+  F1="$(grep -h -G "^${aDep}|" ${L1}/support/name-oe2void/case ${L1}/support/name-oe2void/hyphen ${L1}/support/name-oe2void/number ${L1}/support/name-oe2void/maybe | head -n 1)"
   if [ ! -z "$F1" ];then
    aDep="${F1/*|/}"
   fi
@@ -54,9 +56,16 @@ for aDEP in $(cut -f 3 -d '|' xdb2and9 | sed -e 's%^[+]%%' -e 's%,[+]%\n%g' | so
 do
  grep -q -F "|${aDEP}|" xdb2and9
  if [ $? -ne 0 ];then
+  #problem with these new ones. some are supposed to go into the devx only
+  # (apart from those that are named *-devel)...
+  grep -q "^yes.*|${aDEP}|.*|dev[,|]" <<<${PKGS_SPECS_TABLE}
+  if [ $? -eq 0 ];then
+   grep -h -F "|${aDEP}|" xdb2and9VOID >> xdb2and9NEW-DEVX
+  fi
   grep -h -F "|${aDEP}|" xdb2and9VOID >> xdb2and9NEW
  fi
 done
+
 
 if [ -s xdb2and9NEW ];then
  sort --key=2,2 --field-separator="|" -u xdb2and9 xdb2and9NEW > xdb2and9ACCUM
@@ -72,7 +81,7 @@ echo -n '' > tlist
 while IFS='|' read Pre Name Deps
 do
  #name is actual name (kirkstone, pet pkgs), for tlist it needs to be void name...
- F1="$(grep -h "^${Name//+/\\+}|" ${L1}/support/name-oe2void/case ${L1}/support/name-oe2void/hyphen ${L1}/support/name-oe2void/number ${L1}/support/name-oe2void/maybe | head -n 1)"
+ F1="$(grep -h -G "^${Name}|" ${L1}/support/name-oe2void/case ${L1}/support/name-oe2void/hyphen ${L1}/support/name-oe2void/number ${L1}/support/name-oe2void/maybe | head -n 1)"
  if [ ! -z "$F1" ];then
   Name="${F1/*|/}"
  fi
@@ -103,6 +112,11 @@ do
    continue
   ;;
  esac
+ #these also to devx...
+ grep -F "|${aN}|" xdb2and9NEW-DEVX >> xdb-hasdeps-devel-sorted
+ if [ $? -eq 0 ];then
+  continue
+ fi
  grep -F "|${aN}|" xdb-hasdeps >> xdb-hasdeps-sorted
 done
 
@@ -114,8 +128,8 @@ do
  [ -z "$aP" ] && continue
  aP="${aP%|*}|" #remove the deps
  #$aP is void name. need to check if a kirkstone or pet match...
- F0="${aP%|*}" #drop trailing |, keep leading |. for regex escape any +...
- F1="$(grep -h "${F0//+/\\+}$" ${L1}/support/name-oe2void/case ${L1}/support/name-oe2void/hyphen ${L1}/support/name-oe2void/number ${L1}/support/name-oe2void/maybe | head -n 1)"
+ F0="${aP%|*}" #drop trailing |, keep leading |.
+ F1="$(grep -h -G "${F0}$" ${L1}/support/name-oe2void/case ${L1}/support/name-oe2void/hyphen ${L1}/support/name-oe2void/number ${L1}/support/name-oe2void/maybe | head -n 1)"
  if [ ! -z "$F1" ];then
   oeName="${F1/|*/}"
   grep -F "|${oeName}|" woof-installed-packages >> woof-installed-packages-dep-order

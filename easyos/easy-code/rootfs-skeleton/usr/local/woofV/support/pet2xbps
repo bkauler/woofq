@@ -4,6 +4,7 @@
 
 export LANG=C
 . /etc/rc.d/PUPSTATE
+. /usr/local/woofV/configure/DISTRO_SPECS
 
 case "$DISTRO_TARGETARCH" in
  amd64) xARCH='x86_64' ;;
@@ -22,11 +23,17 @@ E1='/mnt/wkg/data/woofV'
 L1='/usr/local/woofV'
 
 mkdir -p ${E1}/sandbox
+F1="${PETname/.pet/}"
 cd ${E1}/sandbox
+if [ -d ./${F1} ];then
+ rm -rf ./${F1}
+fi
 tar -xf ${PETpath} 2>/dev/null
 rm -f ${PETname}
-F1="${PETname/.pet/}"
 DIR=${E1}/sandbox/${F1}
+
+rm -rf ${E1}/sandbox/temp1
+mkdir ${E1}/sandbox/temp1
 
 #busybox hack required. do not want it to overwrite coreutils, util-linux, etc. utilities
 case "$F1" in
@@ -81,7 +88,7 @@ if [ -f ${DIR}/puninstall.sh ];then
  rm -f ${DIR}/puninstall.sh
 fi
 
-DEPS="$(cut -f 9 -d '|' ${DBentry} | tr -d '+' | tr ',' ' ')"
+DEPS="$(cut -f 9 -d '|' ${DBentry} | sed -e 's%^[+]%%' -e 's%,[+]% %g')"
 if [ "$DEPS" ]; then
  for i in $DEPS; do
   DEP=$(echo "$i>=0.0_0 $DEP")
@@ -91,11 +98,12 @@ fi
 DEP=""
 
 DESC="$(cut -f 10 -d '|' ${DBentry})"
+[ -z "$DESC" ] && DESC='no description'
 Enameonly="$(cut -f 2 -d '|' ${DBentry})"
 
 #more hacks for busybox. needs deps so installs after these...
 if [ "$Enameonly" == "busybox" ];then
- DEPS='coreutils>=0.0_0 util-linux>=0.0_0 findutils>=0.0_0 procps>=0.0_0 tar>=0.0_0 grep>=0.0_0 sed>=0.0_0 gawk>=0.0_0 kmod>=0.0_0 net-tools>=0.0_0 readline>=0.0_0 usbutils>=0.0_0 wget>=0.0_0 xz>=0.0_0 zip>=0.0_0 zstd>=0.0_0 unzip>=0.0_0'
+ DEP='coreutils>=0.0_0 util-linux>=0.0_0 findutils>=0.0_0 procps-ng>=0.0_0 tar>=0.0_0 grep>=0.0_0 sed>=0.0_0 gawk>=0.0_0 kmod>=0.0_0 net-tools>=0.0_0 readline>=0.0_0 usbutils>=0.0_0 wget>=0.0_0 xz>=0.0_0 zip>=0.0_0 zstd>=0.0_0 unzip>=0.0_0'
 fi
 
 #pets may have weird versioning, remove any alpha chars... also append revision-number...
@@ -110,7 +118,7 @@ VER="$(cut -f 3 -d '|' ${DBentry} | sed -e 's%[^0-9.]%%g')_1"
 /usr/local/woofV/pkg-fix/symlinks-fix temp1
 DIR2=${E1}/sandbox/temp1
 cd ${E1}/converted-pkgs
-xbps-create -n "${PSTgeneric}-${VER}" -s "$DESC" -A $xARCH -D "$DEP" "$DIR2"
+xbps-create -n "${PSTgeneric}-${VER}" -s "$DESC" -A ${xARCH} -D "$DEP" "$DIR2"
 if [ $? -ne 0 ];then
  echo "ERROR: Enameonly='${Enameonly}' PSTgeneric='${PSTgeneric}' VER='${VER}'"
  echo "ERROR failed: xbps-create -n \"${PSTgeneric}-$VER\" -s \"$DESC\" -A $xARCH -D \"$DEP\" \"$DIR2\""
