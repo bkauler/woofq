@@ -77,7 +77,9 @@ yes|bash-devel|bash-devel|dev,doc>null|compat:current| #20240130
 yes|bbc_provided|bbc-provided|exe,doc>null|compat:kirkstone|
 yes|bc|bc|exe,dev>null,doc>null|compat:current|
 yes|bdftopcf|bdftopcf|exe,dev,doc>null|compat:kirkstone|
-yes|binutils|binutils,binutils-devel|dev,doc>null|compat:current|
+yes|binutils|binutils|dev|compat:current| #20240218
+yes|binutils-libs|binutils-libs|dev|compat:current| #20240219
+yes|binutils-devel|binutils-devel|dev,doc>null|compat:current| #20240218
 yes|bison|bison|dev,doc>null|compat:current|
 yes|bitmap|bitmap|exe,doc>null|compat:current| #20240129
 yes|bluepup_tray|bluepup-tray|exe,doc>null|compat:kirkstone|
@@ -103,6 +105,7 @@ yes|c-ares|c-ares|exe,doc>null|compat:current| #20240130
 yes|c-ares-devel|c-ares-devel|dev,doc>null|compat:current|
 yes|cddetect|cddetect|exe,dev>null,doc>null|compat:kirkstone|
 yes|cddetect_quick|cddetect-quick|exe,dev>null,doc>null|compat:kirkstone|
+yes|cdparanoia|cdparanoia|exe|compat:current| #20240218
 yes|cdrtools|cdrtools|exe,doc>null|compat:current|
 yes|celluloid|celluloid|exe,doc>null|compat:current| #20240114 mpv and celluloid
 yes|CellWriter|CellWriter|exe,doc>null|compat:current|
@@ -188,7 +191,7 @@ yes|eudev|eudev,eudev-libudev|exe,doc>null|compat:current|
 yes|eudev-libudev-devel|eudev-libudev-devel|dev,doc>null|compat:current| #20240130
 yes|evince|evince,libevince|exe,doc>null|compat:current|
 yes|evince-devel|evince-devel|dev|compat:current| #20240118
-yes|exfatprogs|exfatprogs|exe,doc>null|compat:current|
+no|exfatprogs|exfatprogs|exe,doc>null|compat:current| #conflicts with exfat-utils
 yes|exfat-utils|exfat-utils|exe,doc>null|compat:current|
 yes|exiv2|exiv2|exe,doc>null|compat:current|
 yes|exiv2-devel|exiv2-devel|dev,doc>null|compat:current| #20240130
@@ -205,7 +208,39 @@ yes|fftag|fftag|exe|pet:noarch| #replaces pmetatagger.
 yes|file|file|exe,doc>null|compat:current|
 yes|file-devel|file-devel|dev,doc>null|compat:current| #20240130
 yes|findutils|findutils|exe,dev>null,doc>null|compat:current|
-yes|firefox|firefox,firefox-i18n-bg,firefox-i18n-cs,firefox-i18n-da,firefox-i18n-de,firefox-i18n-el,firefox-i18n-en*,firefox-i18n-es*,firefox-i18n-et,firefox-i18n-fi,firefox-i18n-fr,firefox-i18n-hr,firefox-i18n-hu,firefox-i18n-is,firefox-i18n-it,firefox-i18n-lt,firefox-i18n-lv,firefox-i18n-mk,firefox-i18n-nl,firefox-i18n-nb-NO,firefox-i18n-nn-NO,firefox-i18n-pl,firefox-i18n-pt*,firefox-i18n-ro,firefox-i18n-ru,firefox-i18n-sk,firefox-i18n-sl,firefox-i18n-sq,firefox-i18n-sr,firefox-i18n-sv-SE,firefox-i18n-tr,firefox-i18n-uk,firefox-i18n-uz|exe,doc>null|compat:current|
+yes|firefox|firefox|exe,doc>null|compat:current| #20240218
+yes|firefox-i18n-bg|firefox-i18n-bg|exe|compat:current| #20240218
+yes|firefox-i18n-cs|firefox-i18n-cs|exe|compat:current| #20240218
+yes|firefox-i18n-da|firefox-i18n-da|exe|compat:current| #20240218
+yes|firefox-i18n-de|firefox-i18n-de|exe|compat:current| #20240218
+yes|firefox-i18n-el|firefox-i18n-el|exe|compat:current| #20240218
+yes|firefox-i18n-en|firefox-i18n-en*|exe|compat:current| #20240218
+yes|firefox-i18n-es|firefox-i18n-es*|exe|compat:current| #20240218
+yes|firefox-i18n-et|firefox-i18n-et|exe|compat:current| #20240218
+yes|firefox-i18n-fi|firefox-i18n-fi|exe|compat:current| #20240218
+yes|firefox-i18n-fr|firefox-i18n-fr|exe|compat:current| #20240218
+yes|firefox-i18n-hr|firefox-i18n-hr|exe|compat:current| #20240218
+yes|firefox-i18n-hu|firefox-i18n-hu|exe|compat:current| #20240218
+yes|firefox-i18n-is|firefox-i18n-is|exe|compat:current| #20240218
+yes|firefox-i18n-it|firefox-i18n-it|exe|compat:current| #20240218
+yes|firefox-i18n-lt|firefox-i18n-lt|exe|compat:current| #20240218
+yes|firefox-i18n-lv|firefox-i18n-lv|exe|compat:current| #20240218
+yes|firefox-i18n-mk|firefox-i18n-mk|exe|compat:current| #20240218
+yes|firefox-i18n-nl|firefox-i18n-nl|exe|compat:current| #20240218
+yes|firefox-i18n-nb|firefox-i18n-nb-NO|exe|compat:current| #20240218
+yes|firefox-i18n-nn|firefox-i18n-nn-NO|exe|compat:current| #20240218
+yes|firefox-i18n-pl|firefox-i18n-pl|exe|compat:current| #20240218
+yes|firefox-i18n-pt|firefox-i18n-pt*|exe|compat:current| #20240218
+yes|firefox-i18n-ro|firefox-i18n-ro|exe|compat:current| #20240218
+yes|firefox-i18n-ru|firefox-i18n-ru|exe|compat:current| #20240218
+yes|firefox-i18n-sk|firefox-i18n-sk|exe|compat:current| #20240218
+yes|firefox-i18n-sl|firefox-i18n-sl|exe|compat:current| #20240218
+yes|firefox-i18n-sq|firefox-i18n-sq|exe|compat:current| #20240218
+yes|firefox-i18n-sr|firefox-i18n-sr|exe|compat:current| #20240218
+yes|firefox-i18n-sv|firefox-i18n-sv-SE|exe|compat:current| #20240218
+yes|firefox-i18n-tr|firefox-i18n-tr|exe|compat:current| #20240218
+yes|firefox-i18n-uk|firefox-i18n-uk|exe|compat:current| #20240218
+yes|firefox-i18n-uz|firefox-i18n-uz|exe|compat:current| #20240218
 yes|firmware_asus_e200ha|firmware_asus_e200ha|exe|pet:noarch| #needed for my asus e200ha notebook.
 yes|firmware_linux_acer_aspire1|firmware_linux_acer_aspire1|exe|pet:noarch| #for my acer aspire1 laptop. note has regulatory.db useful all wifi.
 yes|firmware_linux_all_k5p15p85|firmware_linux_all_k5p15p85|exe|pet:noarch|
@@ -246,8 +281,13 @@ yes|gamin-devel|gamin-devel|dev,doc>null|compat:current| #20240130
 yes|gawk|gawk|exe,doc>null|compat:current|
 yes|gc|gc|exe,doc>null|compat:current|
 yes|gc-devel|gc-devel|dev,doc>null|compat:current| #20240130
-yes|gcc_dev|gcc,libgcc,libgcc-devel,libstdc++,libstdc++-devel,gcc-go,gmp,elfutils,libmpc,libmpc-devel,isl|dev,doc>null|compat:current|
-yes|gcc_lib|libgcc,libstdc++|exe,dev>null,doc>null,nls>null|compat:current| #20240113
+yes|gcc|gcc|dev|compat:current| #20240218
+yes|gcc-go|gcc-go|dev|compat:current| #20240218
+yes|gmp|gmp|dev|compat:current| #20240218
+yes|elfutils|elfutils|dev|compat:current| #20240218
+yes|libmpc|libmpc|exe|compat:current| #20240218
+yes|libmpc-devel|libmpc-devel|dev|compat:current| #20240218
+yes|isl|isl|dev|compat:current| #20240218
 yes|gcolorsel|gcolorsel|exe,dev>null,doc>null|compat:kirkstone|
 yes|gcr|gcr|exe,doc>null|compat:current|
 yes|gcr-devel|gcr-devel|dev,doc>null|compat:current| #20240130
@@ -258,6 +298,8 @@ yes|gdbm|gdbm|exe,doc>null|compat:current|
 yes|gdbm-devel|gdbm-devel|dev,doc>null|compat:current| #20240130
 yes|gdk-pixbuf|gdk-pixbuf|exe,doc>null|compat:current|
 yes|gdk-pixbuf-devel|gdk-pixbuf-devel|dev,doc>null|compat:current| #20240130
+yes|gdk-pixbuf-xlib|gdk-pixbuf-xlib|exe|compat:current| #20240218
+yes|gdk-pixbuf-xlib-devel|gdk-pixbuf-xlib-devel|dev|compat:current| #20240218
 yes|gdmap|gdmap|exe,dev>null,doc>null|compat:kirkstone| #20240113
 yes|geany|geany|exe,doc>null|compat:current|
 yes|geany-devel|geany-devel|dev,doc>null|compat:current| #20240130
@@ -269,7 +311,7 @@ yes|gettext-devel|gettext-devel|dev,doc>null|compat:current| #20240130
 yes|gfnrename|gfnrename|exe,dev>null,doc>null|compat:kirkstone|
 yes|gfontsel|gfontsel|exe,dev>null,doc>null|compat:kirkstone|
 yes|gftp|gftp|exe,dev>null,doc>null|compat:current|
-yes|ghostscript|ghostscript,libgs,libpaper,libjbig2dec|exe,doc>null|compat:current|
+yes|ghostscript|ghostscript|exe,doc>null|compat:current| #20240218
 yes|ghostscript-devel|ghostscript-devel|dev|compat:current| #20240130
 yes|gif2lss|gif2lss|exe,dev>null,doc>null|compat:kirkstone|
 yes|giflib-devel|giflib-devel|dev,doc>null|compat:current|
@@ -281,9 +323,9 @@ yes|glade3|glade3,glade3-devel|dev,doc>null|compat:current| #20240112
 yes|glib|glib|exe,doc>null|compat:current|
 yes|glib-devel|glib-devel|dev|compat:current| #20240130
 yes|libglib-devel|libglib-devel|dev|compat:current| #20240130
-yes|glibc|glibc,glibc-locales,tzdata,rpcsvc-proto|exe,doc>null|compat:current|
+yes|glibc|glibc|exe,doc>null|compat:current| #20240218
 yes|glibc-devel|glibc-devel|dev|compat:current| #20240130
-yes|glibc_locales|glibc,glibc-locales,tzdata|exe,doc>null,nls>exe|compat:current|
+yes|glibc_locales|glibc-locales|exe,doc>null,nls>exe|compat:current| #20240218
 yes|glibmm|glibmm|exe,doc>null|compat:current|
 yes|glibmm-devel|glibmm-devel|dev,doc>null|compat:current|
 yes|glib-networking|glib-networking|exe,doc>null|compat:current|
@@ -432,7 +474,8 @@ yes|jwmthememaker|jwmthememaker|exe|pet:noarch| #coz no longer have jwmdesk.
 yes|kernel-libc-headers|kernel-libc-headers|dev,doc>null|compat:current|
 yes|keyutils|keyutils|exe,doc>null|compat:current|
 yes|keyutils-devel|keyutils-devel|dev|compat:current| #20240130
-yes|kmod|kmod,libkmod|exe,doc>null|compat:current|
+yes|kmod|kmod|exe,doc>null|compat:current|
+yes|libkmod|libkmod|exe|compat:current| #20240219
 yes|libkmod-devel|libkmod-devel|dev|compat:current| #20240130
 yes|ktsuss|ktsuss|exe,dev,doc>null|compat:kirkstone|
 yes|lame|lame|exe,doc>null|compat:current|
@@ -469,7 +512,8 @@ yes|libasyncns|libasyncns|exe,doc>null|compat:current|
 yes|libasyncns-devel|libasyncns-devel|dev|compat:current| #20240130
 yes|libatomic|libatomic|exe,doc>null|compat:current|
 yes|libatomic-devel|libatomic-devel|dev|compat:current| #20240130
-yes|libblkid|libblkid-devel|exe,doc>null|compat:current|
+yes|libblkid|libblkid|exe|compat:current| #20240218
+yes|libblkid-devel|libblkid-devel|dev|compat:current| #20240218
 yes|libbluray|libbluray|exe,doc>null|compat:current| #20240114 mpv and celluloid
 yes|libbluray-devel|libbluray-devel|dev|compat:current| #20240130
 yes|libmd|libmd|exe,doc>null|compat:current| #20240120 needed by dpkg
@@ -552,6 +596,8 @@ yes|libexttextcat-devel|libexttextcat-devel|dev|compat:current| #20240118
 no|libexttextcat-data||exe,doc>null|pet:void| #oe should have installed this, it is in libexttextcat pkg. 20210411 still have this problem.
 yes|libfbclient3|libfbclient3|exe,doc>null|compat:current| #20240112 libreoffice
 yes|libfbclient3-devel|libfbclient3-devel|dev|compat:current| #20240118
+yes|libfdisk|libfdisk|exe|compat:current| #20240218
+yes|libfdisk-devel|libfdisk-devel|dev|compat:current| #20240130
 yes|libffi|libffi|exe,doc>null|compat:current|
 yes|libffi-devel|libffi-devel|dev|compat:current| #20240130
 yes|libfftw|libfftw|exe,doc>null|compat:current| #20240114 mpv and celluloid
@@ -562,6 +608,8 @@ yes|libfreehand|libfreehand|exe,doc>null|compat:current| #20240112 libreoffice
 yes|libfreehand-devel|libfreehand-devel|dev|compat:current| #20240118
 yes|libgbm|libgbm|exe,doc>null|compat:current|
 yes|libgbm-devel|libgbm-devel|dev|compat:current| #20240130
+yes|libgcc|libgcc|exe|compat:current| #20240218
+yes|libgcc-devel|libgcc-devel|dev|compat:current| #20240218
 yes|libgcrypt|libgcrypt|exe,doc>null|compat:current|
 yes|libgcrypt-devel|libgcrypt-devel|dev|compat:current| #20240130
 no|libgexiv2|libgexiv2|exe,doc>null|compat:current| #20240115c gimp
@@ -587,6 +635,7 @@ yes|libgphoto2-devel|libgphoto2-devel|dev|compat:current| #20240118
 yes|libgphoto2-udev-rules|libgphoto2-udev-rules|exe,doc>null|compat:current| #20240112 libreoffice
 yes|libgraphicsmagick|libgraphicsmagick|exe,doc>null|compat:current| #20240115d inkscape
 yes|libgraphicsmagick-devel|libgraphicsmagick-devel|dev|compat:current| #20240130
+yes|libgs|libgs|exe|compat:current| #20240218 part of ghostscript
 yes|libgsf|libgsf|exe,doc>null|compat:current|
 yes|libgsf-devel|libgsf-devel|dev|compat:current| #20240130
 yes|libgsm|libgsm|exe,doc>null|compat:current| #20240112 libreoffice
@@ -613,12 +662,14 @@ yes|libidn2|libidn2|exe,doc>null|compat:current|
 yes|libidn2-devel|libidn2-devel|dev|compat:current| #20240130
 yes|libieee1284|libieee1284|exe,doc>null|compat:current|
 yes|libieee1284-devel|libieee1284-devel|dev|compat:current| #20240130
+yes|libijs|libijs|exe|compat:current| #20240218 part of ghostscript.
 yes|libimagequant|libimagequant|exe,doc>null|compat:current|
 yes|libimagequant-devel|libimagequant-devel|dev|compat:current| #20240130
 yes|libinput|libinput|exe,doc>null|compat:current| #20240129
 yes|libinput-devel|libinput-devel|dev,doc>null|compat:current| #20240129
 yes|libixion|libixion|exe,doc>null|compat:current| #20240112 libreoffice
 yes|libixion-devel|libixion-devel|dev|compat:current| #20240118
+yes|libjbig2dec|libjbig2dec|exe|compat:current| #20240218 needed by ghostscript.
 yes|libjpeg-turbo|libjpeg-turbo|exe,doc>null|compat:current|
 yes|libjpeg-turbo-devel|libjpeg-turbo-devel|dev|compat:current| #20240130
 yes|libjpeg-turbo62|libjpeg-turbo|exe,dev>null,doc>null,nls>null|compat:kirkstone| #needed by jwm. put before libjpeg-turbo
@@ -643,6 +694,8 @@ yes|libmad-devel|libmad-devel|dev|compat:current| #20240130
 yes|libmagic|libmagic|exe,doc>null|compat:current|
 yes|libmariadbclient|libmariadbclient|exe,doc>null|compat:current| #20240112 libreoffice
 yes|libmariadbclient-devel|libmariadbclient-devel|dev|compat:current| #20240118
+yes|libmikmod|libmikmod|exe|compat:current| #20240218
+yes|libmikmod-devel|libmikmod-devel|dev|compat:current| #20240218
 yes|libmm-glib|libmm-glib|exe,doc>null|compat:current| #20230915 dep of NetworkManager
 yes|libmng|libmng|exe,doc>null|compat:current|
 yes|libmng-devel|libmng-devel|dev|compat:current| #20240130
@@ -650,6 +703,8 @@ yes|libmnl|libmnl|exe,doc>null|compat:current|
 yes|libmnl-devel|libmnl-devel|dev|compat:current| #20240130
 yes|libmodplug|libmodplug|exe,doc>null|compat:current| #20230917
 yes|libmodplug-devel|libmodplug-devel|dev|compat:current| #20240130
+yes|libmount|libmount|exe|compat:current| #20240218
+yes|libmount-devel|libmount-devel|dev|compat:current| #20240130
 yes|libmspub|libmspub|exe,doc>null|compat:current| #20240112 libreoffice
 yes|libmspub-devel|libmspub-devel|dev|compat:current| #20240118
 yes|libmtp|libmtp|exe,doc>null|compat:current|
@@ -694,6 +749,7 @@ yes|liborcus|liborcus|exe,doc>null|compat:current| #20240112 libreoffice
 yes|liborcus-devel|liborcus-devel|dev|compat:current| #20240118
 yes|libpagemaker|libpagemaker|exe,doc>null|compat:current| #20240112 libreoffice
 yes|libpagemaker-devel|libpagemaker-devel|dev|compat:current| #20240118
+yes|libpaper|libpaper|exe|compat:current| #20240218 needed by ghostscript.
 yes|libpaper-devel|libpaper-devel|dev|compat:current| #20240118
 no|libpwquality|libpwquality|exe,doc>null|compat:current| #20240113
 no|libpwquality-devel|libpwquality-devel|dev|compat:current| #20240130
@@ -769,6 +825,8 @@ yes|libsigsegv|libsigsegv|exe,doc>null|compat:current|
 yes|libsigsegv-devel|libsigsegv-devel|dev|compat:current| #20240130
 yes|libSM|libSM|exe,doc>null|compat:current| #20240129
 yes|libSM-devel|libSM-devel|dev,doc>null|compat:current| #20240129
+yes|libsmartcols|libsmartcols|exe|compat:current| #20240218
+yes|libsmartcols-devel|libsmartcols-devel|dev|compat:current| #20240130
 yes|libsndfile|libsndfile,libmpg123|exe,doc>null|compat:current|
 yes|libsndfile-devel|libsndfile-devel|dev|compat:current| #20240130
 yes|libsndio|libsndio|exe,doc>null|compat:current| #20240112
@@ -788,8 +846,13 @@ yes|libssh|libssh|exe,doc>null|compat:current|
 yes|libssh-devel|libssh-devel|dev|compat:current| #20240130
 yes|libssh2|libssh2|exe,doc>null|compat:current|
 yes|libssh2-devel|libssh2-devel|dev|compat:current| #20240130
+yes|libssl1.1|libssl1.1|exe|compat:current| #20240219 will auto find libcrypto1.1
+yes|libstdc++|libstdc++|exe|compat:current| #20240218
+yes|libstdc++-devel|libstdc++-devel|dev|compat:current| #20240218
 yes|libsvt-av1|libsvt-av1|exe,doc>null|compat:current| #20230917
 yes|libsvt-av1-devel|libsvt-av1-devel|dev|compat:current| #20240130
+yes|libsysfs|libsysfs|exe|compat:current| #20240218
+yes|libsysfs-devel|libsysfs-devel|dev|compat:current| #20240130
 yes|libsystem|libsystem|exe,dev,doc>null|compat:kirkstone|
 yes|libtasn1|libtasn1|exe,doc>null|compat:current|
 yes|libtasn1-devel|libtasn1-devel|dev|compat:current| #20240130
@@ -818,6 +881,8 @@ yes|libusb-compat|libusb-compat|exe,doc>null|compat:current|
 yes|libusb-compat-devel|libusb-compat-devel|dev|compat:current| #20240130
 yes|libutf8proc|libutf8proc|dev,doc>null|compat:current|
 yes|libutf8proc-devel|libutf8proc-devel|dev|compat:current| #20240130
+yes|libuuid|libuuid|exe|compat:current| #20240218
+yes|libuuid-devel|libuuid-devel|dev|compat:current| #20240130
 yes|libuv-devel|libuv-devel|dev|compat:current| #20240118
 yes|libva|libva|exe,doc>null|compat:current| #20240112 libreoffice
 yes|libva-devel|libva-devel|dev|compat:current| #20240118
@@ -860,6 +925,7 @@ yes|libxcb-devel|libxcb-devel|dev|compat:current| #20240130
 yes|libXcomposite|libXcomposite|exe,doc>null|compat:current| #20240129
 yes|libXcomposite-devel|libXcomposite-devel|dev,doc>null|compat:current| #20240129
 yes|libxcrypt|libxcrypt|exe,dev>null,doc>null|compat:kirkstone|
+yes|libxcrypt-devel|libxcrypt-devel|dev|compat:kirkstone| #20240219
 yes|libXcursor|libXcursor|exe,doc>null|compat:current| #20240129
 yes|libXcursor-devel|libXcursor-devel|dev,doc>null|compat:current| #20240129
 yes|libxcvt|libxcvt|exe,doc>null|compat:current| #20240129
@@ -922,14 +988,14 @@ yes|libyaml-devel|libyaml-devel|dev|compat:current| #20240130
 yes|libzbar-devel|libzbar-devel|dev|compat:current| #20240118
 yes|limine|limine|exe,dev,doc>null|compat:kirkstone|
 yes|listres|listres|exe,doc>null|compat:current| #20240129
-yes|llvm-cut|libllvm15|exe,dev>null,doc>null|compat:current|
+no|llvm|libllvm15|exe,dev>null,doc>null|compat:current| #20240218 pkg name keeps changing. it will get picked up as a dep.
 yes|lmarbles|lmarbles|exe,doc>null|pet:void|
 yes|lmdb|lmdb|exe,doc>null|compat:current| #20240207
 yes|lmdb-devel|lmdb-devel|dev|compat:current| #20240207
 yes|lpsolve|lpsolve|exe,doc>null|compat:current| #20240112 libreoffice
 yes|lpsolve-devel|lpsolve-devel|dev|compat:current| #20240118
-yes|lua52|lua52|exe,doc>null|compat:current| #20240114 mpv and celluloid
-yes|lua52-devel|lua52-devel|dev|compat:current| #20240130
+no|lua52|lua52|exe,doc>null|compat:current| #20240114 mpv and celluloid 20240219 name changes leave for auto install.
+no|lua52-devel|lua52-devel|dev|compat:current| #20240130
 no|lvm2|lvm2|exe,doc>null|compat:current| #20240215
 yes|lxrandr|lxrandr|exe,doc>null|compat:current|
 yes|lxtask|lxtask|exe,doc>null|compat:current|
@@ -979,12 +1045,17 @@ yes|mythes-devel|mythes-devel|dev|compat:current| #20240118
 yes|nano|nano|exe,doc>null|compat:current|
 yes|nasm|nasm|dev,doc>null|compat:current|
 yes|nbtscan|nbtscan|exe,dev,doc>null|compat:kirkstone| #20240121
-yes|ncurses|ncurses,ncurses-libs,ncurses-base,ncurses-term,ncurses-libtinfo-libs|exe,doc>null|compat:current|
+yes|ncurses|ncurses|exe|compat:current|
+yes|ncurses-base|ncurses-base|exe|compat:current| #20240219
 yes|ncurses-devel|ncurses-devel|dev|compat:current| #20240130
+yes|ncurses-libs|ncurses-libs|exe|compat:current| #20240219
+yes|ncurses-libtinfo-libs|ncurses-libtinfo-libs|exe|compat:current| #20240219
 yes|ncurses-libtinfo-devel|ncurses-libtinfo-devel|dev|compat:current| #20240204
-yes|ncurses5|ncurses|exe,dev>null,doc>null,nls>null|compat:kirkstone| #needed by mp. put before ncurses.
+yes|ncurses-term|ncurses-term|exe|compat:current| #20240219
+no|ncurses5|ncurses|exe,dev>null,doc>null,nls>null|compat:kirkstone| #needed by mp. put before ncurses.
 yes|nenscript|nenscript|exe,dev,doc>null|compat:kirkstone|
-yes|netpbm|netpbm,libnetpbm|exe,doc>null|compat:current|
+yes|netpbm|netpbm|exe,doc>null|compat:current| #20240219
+yes|libnetpbm|libnetpbm|exe|compat:current| #20240219
 yes|libnetpbm-devel|libnetpbm-devel|dev|compat:current| #20240130
 yes|nettle|nettle|exe,dev>null,doc>null|compat:current|
 yes|nettle-devel|nettle-devel|dev|compat:current| #20240130
@@ -1015,7 +1086,7 @@ yes|libopenjpeg-devel|libopenjpeg-devel|dev|compat:current| #20240130
 yes|libopenjpeg2-devel|libopenjpeg2-devel|dev|compat:current| #20240130
 yes|openssh|openssh,libldns|exe,doc>null|compat:current| #20240121
 yes|libldns-devel|libldns-devel|dev|compat:current| #20240130
-yes|openssl|openssl,libssl1.1,libcrypto1.1,libssl3,libcrypto3|exe,doc>null|compat:current|
+yes|openssl|openssl|exe,doc>null|compat:current| #20240219 libcrypto, libssl deps name changes auto find.
 yes|openssl-devel|openssl-devel|dev|compat:current| #20240130
 yes|opkg-utils|opkg-utils|exe,dev,doc>null|compat:kirkstone| #needed by mingetty. 20230917  20240129 also by shadow from kirkstone
 yes|opus|opus,opus-devel|exe,doc>null|compat:current|
@@ -1155,6 +1226,8 @@ yes|restarter|restarter|exe,dev,doc>null|compat:kirkstone|
 yes|rgb|rgb|exe,doc>null|compat:current| #20240129
 yes|rhash-devel|rhash-devel|dev|compat:current| #20240118
 yes|rox-filer|rox-filer|exe,dev,doc>null|compat:kirkstone|
+yes|rpcsvc-proto|rpcsvc-proto|exe|compat:current| #20240218 part of glibc
+yes|rpm|rpm,librpm,librpmbuild,librpmio,librpmsign|exe|compat:current| #20240219
 yes|rp-pppoe|rp-pppoe|exe,dev,doc>null|compat:kirkstone| #20230917
 yes|rshift_tray|rshift_tray|exe|pet:noarch| #requires redshift.
 yes|rsync|rsync|exe,doc>null|compat:current| #20240119
@@ -1216,15 +1289,17 @@ yes|startup-notification-devel|startup-notification-devel|dev|compat:current| #2
 yes|strace|strace|dev,doc>null|compat:current|
 yes|sudo|sudo|exe,dev,doc>null|compat:kirkstone| #20240129 void one needs pam-libs
 yes|sudo-sh|sudo-sh|exe|pet:void| #compiled in oe does not work.
-yes|sysfsutils|sysfsutils,libsysfs|exe,doc>null|compat:current|
-yes|libsysfs-devel|libsysfs-devel|dev|compat:current| #20240130
+yes|sysfsutils|sysfsutils|exe,doc>null|compat:current|
 yes|syslinux|syslinux|exe,dev,doc>null|compat:kirkstone|
 yes|sysvinit-utils-cut|sysvinit|exe,dev>null,doc>null,nls>null|compat:kirkstone|
 yes|talloc|talloc|exe,doc>null|compat:current|
 yes|talloc-devel|talloc-devel|dev|compat:current| #20240118
 yes|tar|tar|exe,dev>null,doc>null|compat:current|
 yes|tas|tas|exe,doc>null|pet:noarch| #take-a-shot  20240124 xbps-create not like. 20240208
-yes|tcl|tcl,tk,tcl-devel,tk-devel|dev,doc>null|compat:current|
+yes|tcl|tcl|dev,doc>null|compat:current|
+yes|tcl-devel|tcl-devel|dev|compat:current| #20240218
+yes|tk|tk|dev|compat:current| #20240218
+yes|tk-devel|tk-devel|dev|compat:current| #20240218
 no|tcpdump|tcpdump|exe,doc>null|compat:current| #20240129
 yes|tdb|tdb,libtdb|exe,doc>null|compat:current|
 yes|tdb-devel|tdb-devel|dev|compat:current| #20240130
@@ -1233,10 +1308,11 @@ yes|tevent-devel|tevent-devel|dev|compat:current| #20240118
 yes|texinfo|texinfo|dev,doc>null|compat:current|
 yes|tiff|tiff|exe,doc>null|compat:current|
 yes|tiff-devel|tiff-devel|dev|compat:current| #20240130
-yes|tiff5|tiff|exe,dev>null,doc>null,nls>null|compat:kirkstone| #put before tiff.
+no|tiff5|tiff|exe,dev>null,doc>null,nls>null|compat:kirkstone| #put before tiff.
 yes|translate-shell|translate-shell|exe|pet:noarch| #note gxlat has an older version of trans
 yes|trousers|trousers|exe,doc>null|compat:current|
 yes|trousers-devel|trousers-devel|dev|compat:current| #20240130
+yes|tzdata|tzdata|exe|compat:current| #20240218
 yes|uchardet|uchardet|exe,doc>null|compat:current| #20240114 mpv and celluloid
 yes|uchardet-devel|uchardet-devel|dev|compat:current| #20240130
 yes|ufiformat|ufiformat|exe,dev,doc>null|compat:kirkstone|
@@ -1247,11 +1323,8 @@ yes|unifont|unifont|exe|pet:noarch| #needed by solvespace
 yes|unzip|unzip|exe,doc>null|compat:current| #20240122
 yes|UrxvtControl|UrxvtControl|exe,doc>null|pet:noarch|
 yes|usbutils|usbutils|exe,doc>null|compat:current|
-yes|util-linux|util-linux,util-linux-common,libblkid,libfdisk,libmount,libsmartcols,libuuid|exe,doc>null|compat:current|
-yes|libfdisk-devel|libfdisk-devel|dev|compat:current| #20240130
-yes|libmount-devel|libmount-devel|dev|compat:current| #20240130
-yes|libsmartcols-devel|libsmartcols-devel|dev|compat:current| #20240130
-yes|libuuid-devel|libuuid-devel|dev|compat:current| #20240130
+yes|util-linux|util-linux|exe,doc>null|compat:current| #20240218
+yes|util-linux-common|util-linux-common|exe|compat:current| #20240218
 yes|v4l-utils-devel|v4l-utils-devel|dev|compat:current| #20240118
 yes|vala|vala,libvala|exe,doc>null|compat:current|
 yes|vala-devel|vala-devel|dev|compat:current| #20240130
@@ -1285,6 +1358,7 @@ yes|xbacklight|xbacklight|exe,doc>null|compat:current| #20240129
 yes|xbiff|xbiff|exe,doc>null|compat:current| #20240129
 yes|xbitmaps|xbitmaps|exe,doc>null|compat:current| #20240129
 yes|xbps|xbps,libxbps,xbps-triggers,vpm|exe,doc>null|compat:current|
+yes|xcalc|xcalc|exe|compat:current| #20240219
 yes|libxbps-devel|libxbps-devel|dev|compat:current| #20240130
 yes|xcb-util|xcb-util|exe,doc>null|compat:current|
 yes|xcb-util-devel|xcb-util-devel|dev|compat:current| #20240130
