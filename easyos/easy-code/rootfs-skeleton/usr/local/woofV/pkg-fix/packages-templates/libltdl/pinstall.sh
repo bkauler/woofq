@@ -1,3 +1,5 @@
+#!/bin/sh
+
 LIBLTDL="`find usr/lib -maxdepth 1 -type f -name libltdl.so.* | head -n 1`"
 if [ "$LIBLTDL" ];then
  BASELTDL="`basename $LIBLTDL`"

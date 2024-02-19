@@ -1,3 +1,4 @@
+#!/bin/sh
 
 if [ ! -e usr/lib/libxvidcore.so.4 ];then
  FNDXVIDLIB="`find usr/lib -maxdepth 1 -type f -name 'libxvidcore.so.*' | tail -n 1`"

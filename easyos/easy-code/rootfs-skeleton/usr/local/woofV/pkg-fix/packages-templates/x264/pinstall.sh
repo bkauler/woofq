@@ -1,3 +1,4 @@
+#!/bin/sh
 
 #to support apps compiled for older x264...
 FNDLIB="`find usr/lib -maxdepth 1 -type f -name 'libx264.so.*' | tail -n 1`"

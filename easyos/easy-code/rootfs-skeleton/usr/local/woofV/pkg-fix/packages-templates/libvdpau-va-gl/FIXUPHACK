@@ -4,3 +4,7 @@ mkdir -p etc/profile.d
 echo '#this is suppposed to help libvdpau find libvdpau-va-gl.so ...
 export VDPAU_DRIVER=va_gl' > etc/profile.d/vdpau_gl
 
+
+#want to export variable to be used by xbps-create...
+echo "SHLIB_PROVIDES='libvdpau_va_gl.so.1'" > /tmp/woofV/pt-libvdpau-va-gl
+#...read by 5populate-rootfs

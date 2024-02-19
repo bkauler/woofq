@@ -1,3 +1,4 @@
+#!/bin/sh
 
 FNDKONICAEN="$(find usr/share/libgphoto2 -mindepth 2 -maxdepth 3 -type f -name 'english' | head -n 1)"
 if [ "$FNDKONICAEN" ];then

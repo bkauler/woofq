@@ -13,3 +13,7 @@ if [ -f usr/libexec/dbus-daemon-launch-helper ];then
  #sets the suid permission...
  chmod u+s usr/libexec/dbus-daemon-launch-helper
 fi
+
+#want to export variable to be used by xbps-create...
+echo "SHLIB_PROVIDES='libdbus-1.so.3'" > /tmp/woofV/pt-dbus
+#...read by 5populate-rootfs

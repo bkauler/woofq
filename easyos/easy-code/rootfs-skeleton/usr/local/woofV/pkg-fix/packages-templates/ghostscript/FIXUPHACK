@@ -1,9 +1,15 @@
 
-[ -f usr/bin/gsc ] && ln -snf gsc usr/bin/gs
+if [ -f usr/bin/gsc ];then #this uses libgs
+ if [ -e usr/bin/gs ];then
+  rm -f usr/bin/gs #this very big.
+ fi
+ ln -snf gsc usr/bin/gs
+fi
+
 [ ! -e usr/bin/ghostscript ] && ln -s gs usr/bin/ghostscript
 
 UPKGVERSION=""
-PATHVER="`find usr/share/ghostscript -maxdepth 1 -mindepth 1 -type d | head -n 1`"
+PATHVER="`find usr/share/ghostscript -mindepth 1 -maxdepth 1 -type d | head -n 1`"
 [ "$PATHVER" != "" ] && UPKGVERSION="`basename $PATHVER`"
 if [ "$UPKGVERSION" != "" ];then 
  [ "$UPKGVERSION" != "8.11" ] && ln -s $UPKGVERSION usr/share/ghostscript/8.11

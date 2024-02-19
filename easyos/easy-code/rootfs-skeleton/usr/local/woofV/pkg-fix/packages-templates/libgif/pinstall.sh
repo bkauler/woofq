@@ -1,6 +1,7 @@
+#!/bin/sh
 #150726
 
-FNDGIF="$(find . -type f -name 'libgif.so.*' | head -n 1)"
+FNDGIF="$(find usr/lib -maxdepth 1 -type f -name 'libgif.so.*' | head -n 1)"
 if [ "$FNDGIF" ];then
  BASEGIF="$(basename "$FNDGIF")"
  DIRGIF="$(dirname "$FNDGIF")"

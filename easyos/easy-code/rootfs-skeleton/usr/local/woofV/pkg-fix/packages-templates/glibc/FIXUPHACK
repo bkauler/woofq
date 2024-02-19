@@ -5,6 +5,15 @@ if [ -f usr/bin/ldconfig.real ];then #140204 ubuntu has this.
  mv -f usr/bbin/ldconfig.real usr/bin/ldconfig
 fi
 
+#20240219 void
+mkdir -p usr/bin
+#keep only these (requires bash)...
+GLOBIGNORE='locale:localedef:ldconfig'
+cd usr/bin
+rm *
+cd ../../
+unset GLOBIGNORE
+
 #slackware 13.1...
 rm -f ./etc/profile.d/*.csh* 2>/dev/null
 

@@ -1,3 +1,4 @@
+#!/bin/sh
 
 LIBEXIST="`find usr/lib -maxdepth 1 -name 'libical.so.*' 2>/dev/null | head -n 1`"
 if [ "$LIBEXIST" ];then

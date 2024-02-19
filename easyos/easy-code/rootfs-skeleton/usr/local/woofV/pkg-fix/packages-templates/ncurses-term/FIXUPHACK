@@ -1,0 +1,14 @@
+
+#these old ones work properly (see REPLACEMENTS)...
+mkdir -p usr/lib
+mkdir -p usr/share
+rm -rf usr/share/terminfo 2>/dev/null
+if [ -d usr/lib/terminfo ];then
+ if [ -h usr/lib/terminfo ];then
+  rm -f usr/lib/terminfo
+ else
+  rm -rf usr/lib/terminfo
+ fi
+fi
+ln -snf ../share/terminfo usr/lib/terminfo
+
