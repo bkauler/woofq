@@ -14,17 +14,21 @@ if [ -d /mnt/wkg/data/woofV/dl-start ];then
 fi
 mkdir -p /mnt/wkg/data/woofV/dl-start
 cd /mnt/wkg/data/woofV/dl-start
-download_file https://repo-default.voidlinux.org/static/sha256sums.txt
+
 F1="xbps-static-latest.${xARCH}-musl.tar.xz"
-SHAa="$(grep -F "$F1" sha256sums.txt | cut -f 1 -d ' ')"
-rm -f sha256sums.txt
-download_file https://repo-default.voidlinux.org/static/${F1}
-SHAb="$(sha256sum ${F1} | cut -f 1 -d ' ')"
-if [ "$SHAa" != "$SHAb" ];then
- echo "sha256sum wrong"
- exit 1
+if [ ! -f ${F1} ];then
+ download_file https://repo-default.voidlinux.org/static/sha256sums.txt
+ SHAa="$(grep -F "$F1" sha256sums.txt | cut -f 1 -d ' ')"
+ rm -f sha256sums.txt
+ download_file https://repo-default.voidlinux.org/static/${F1}
+ SHAb="$(sha256sum ${F1} | cut -f 1 -d ' ')"
+ if [ "$SHAa" != "$SHAb" ];then
+  echo "sha256sum wrong"
+  rm -f ./${F1} 2>/dev/null
+  exit 1
+ fi
+ echo "pkg ${F1} has been downloaded"
 fi
-echo "pkg ${F1} has been downloaded"
 
 #d/l busybox static pet
 download_file https://distro.ibiblio.org/easyos/${DISTRO_TARGETARCH}/packages/pet/Packages-pet-void-official

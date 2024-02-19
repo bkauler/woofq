@@ -39,15 +39,10 @@ if [ $? -ne 0 ];then
  busybox mount -o bind /proc /mnt/${WKG_DEV}/${WKG_DIR}data/woofV/rootfs/proc
 fi
 
-#generate woof-installed-packages and devx-only-installed-packages...
-${L1}/support/findwoofinstalledpkgs
-${L1}/support/sort-dep-order
-#...has created ${E1}/woof-installed-packages-dep-order
-
 #non-xbps pkgs get converted to .xbps then installed.
 #keep a record of these conversions...
-rm -rf ${E1}/converted-pkgs 2>/dev/null
-mkdir ${E1}/converted-pkgs
+#rm -rf ${E1}/converted-pkgs 2>/dev/null
+mkdir -p ${E1}/converted-pkgs
 
 #read each entry in ${E1}/woof-installed-packages-dep-order...
 CNT=0
@@ -60,7 +55,6 @@ do
  WIPpkg="$(cut -f 8 -d '|' <<<${aL})"         #ex: 9menu-1.10_1.x86_64.xbps
  WIPcompatname="$(cut -f 11 -d '|' <<<${aL})" #ex: void
  WIPcompatver="$(cut -f 12 -d '|' <<<${aL})"  #ex: current
- [ -z "$WIPcompatver" ] && continue #insist must exist. ex: void:current
  
  #read generic-name and pkgs-split...
  PST="$(grep "^yes.*[,|]${WIPnameonly}[,|]" <<<${PKGS_SPECS_TABLE} | head -n 1)"
@@ -121,6 +115,7 @@ do
     fi
     #convert it to an .xbps pkg...
     ${L1}/support/pet2xbps ${E1}/dl-pets/${PETname} /tmp/woofV/aDBentry ${PSTgeneric}
+    [ $? -ne 0 ] && continue
     #....xbps will be in ${E1}/converted-pkgs/
    fi
    Pxbps="$(ls ${E1}/converted-pkgs/${PSTgeneric}-${VER}*.xbps)"
@@ -128,7 +123,7 @@ do
    #check if already installed...
    #INST="$(chroot ${E1}/rootfs /usr/bin/xbps-query --show ${PSTgeneric}-${VER} --property state)"
    INST="$(chroot ${E1}/rootfs /usr/bin/xbps-query --show ${PSTgeneric} --property state)"
-   if [ "$INST" != "installed" ];then
+   if [ "$INST" == "installed" ];then
     #this means xbps has already installed from the void repo. not what we want.
     #need to replace it with the pet...
     chroot ${E1}/rootfs /usr/bin/xbps-remove -f -O -y ${PSTgeneric}
@@ -139,7 +134,7 @@ do
    chroot ${E1}/rootfs /usr/bin/xbps-rindex --add /repo/${Pxbps}
    #install...
    echo -n "${Pxbps} "
-   chroot ${E1}/rootfs /usr/bin/xbps-install --yes --ignore-file-conflicts --ignore-conf-repos --repository=/repo ${PSTgeneric}-${VER}
+   chroot ${E1}/rootfs /usr/bin/xbps-install --yes --ignore-file-conflicts --repository=/repo ${PSTgeneric}-${VER}
    sync
    #in case there is a pkg in void repo with same name, prevent the pet from being replaced...
    chroot ${E1}/rootfs /usr/bin/xbps-pkgdb -m hold ${PSTgeneric}-${VER}
@@ -151,6 +146,7 @@ do
   ;;
  esac
   
+ [ -z "$WIPcompatver" ] && continue #insist must exist. ex: void:current
  case "${WIPcompatname}:${WIPcompatver}" in
   void:current)
    case "$WIPnameonly" in
@@ -158,8 +154,23 @@ do
      continue #ignore for now ***TO DO***
     ;;
    esac
+   DONOTOPEN=0
+   if [ -d /usr/local/woofV/pkg-fix/packages-templates/${PSTgeneric} ];then
+    #if only has pinstall.sh no need to open up the pkg...
+    if [ "$(find ${L1}/pkg-fix/packages-templates/${PSTgeneric} -mindepth 1 -maxdepth 1 -exec basename {} \;)" == "pinstall.sh" ];then
+     cat ${L1}/pkg-fix/packages-templates/${PSTgeneric}/pinstall.sh >> ${E1}/sandbox/pinstall.sh
+     DONOTOPEN=1
+    fi
+   fi
    #check if already installed...
    INST="$(chroot ${E1}/rootfs /usr/bin/xbps-query --show ${WIPnameonly} --property state)"
+   if [ "$INST" == "installed" ];then
+    if [ -d /usr/local/woofV/pkg-fix/packages-templates/${PSTgeneric} -a $DONOTOPEN -eq 0 ];then
+     #will be applying package-templates, so need to uninstall...
+     chroot ${E1}/rootfs /usr/bin/xbps-remove -f -O -y ${WIPnameonly}
+     INST="$(chroot ${E1}/rootfs /usr/bin/xbps-query --show ${WIPnameonly} --property state)"
+    fi
+   fi
    if [ "$INST" != "installed" ];then
     #is it already downloaded?...
     #this will d/l to rootfs/var/cache/xbps, including deps...
@@ -168,6 +179,7 @@ do
     PkgVer="$(chroot ${E1}/rootfs /usr/bin/xbps-query --show ${WIPnameonly} --repository --property pkgver)"
     Pwant="$(find ${E1}/dl-xbps -mindepth 1 -maxdepth 1 -type f -name "${PkgVer}.*.xbps" | tail -n 1)"
     Pxbps="${Pwant##*/}"
+    [ -z "${Pxbps}" ] && continue #precaution
     VER="$(sed -e "s%^${WIPnameonly//+/\\+}-%%" <<<${PkgVer})" #escape + as regex.
     
     #install xbps pkg...
@@ -176,9 +188,10 @@ do
       
     #apply fixes, then put together again...
     GENflg=0
-    if [ -d /usr/local/woofV/pkg-fix/packages-templates/${PSTgeneric} ];then
+    if [ -d /usr/local/woofV/pkg-fix/packages-templates/${PSTgeneric} -a $DONOTOPEN -eq 0 ];then
      GENflg=1
      #based on 2createpackages in woofQ, but simplified...
+     mkdir -p ${E1}/sandbox #quick hack, sandbox got deleted.
      cd ${E1}/sandbox
      Pdir="${Pxbps/.xbps/}"  #ex: Pxbps=libgcc-12.2.0_4.x86_64.xbps
      mkdir $Pdir
@@ -203,14 +216,17 @@ do
       rm -f ${E1}/sandbox/${Pdir}/${aR} 2>/dev/null
      done
      DESC="$(cut -f 10 -d '|' <<<${aL})"
+     [ -z "$DESC" ] && DESC='no description'
      #deps is a problem, as the pkgget db does not include versions. so get from xbps db...
      DEPS="$(chroot ${E1}/rootfs /usr/bin/xbps-query --show ${WIPnameonly}-${VER} --repository --property run_depends | tr '\n' ' ')"
      yARCH="$(chroot ${E1}/rootfs /usr/bin/xbps-query --show ${WIPnameonly}-${VER} --repository --property architecture | tr '\n' ' ')"
      SHLREQ="$(chroot ${E1}/rootfs /usr/bin/xbps-query --show ${WIPnameonly}-${VER} --repository --property shlib-requires | tr '\n' ' ')"
+     SHLPROV="$(chroot ${E1}/rootfs /usr/bin/xbps-query --show ${WIPnameonly}-${VER} --repository --property shlib-provides | tr '\n' ' ')"
      LICENSE="$(chroot ${E1}/rootfs /usr/bin/xbps-query --show ${WIPnameonly}-${VER} --repository --property license | tr '\n' ' ')"
      REPLACES="$(chroot ${E1}/rootfs /usr/bin/xbps-query --show ${WIPnameonly}-${VER} --repository --property replaces | tr '\n' ' ')"
      PROVIDES="$(chroot ${E1}/rootfs /usr/bin/xbps-query --show ${WIPnameonly}-${VER} --repository --property provides | tr '\n' ' ')"
-     xbps-create -n "${WIPnameonly}-${VER}" -s "${DESC}" -A ${yARCH} -D "${DEPS}" --shlib-requires "${SHLREQ}" --license "${LICENSE}" --replaces "${REPLACES}" "${E1}/sandbox/${Pdir}"
+     xbps-create -n "${WIPnameonly}-${VER}" -s "${DESC}" -A ${yARCH} -D "${DEPS}" --shlib-requires "${SHLREQ}" --shlib-provides "${SHLPROV}" --license "${LICENSE}" --replaces "${REPLACES}" "${E1}/sandbox/${Pdir}"
+     [ $? -ne 0 ] && continue #precaution
      Pxbps="$(ls ${WIPnameonly}-${VER}*.xbps)" #ex: acl-2.3.1_1.x86_64.xbps
      Pxbps="${Pxbps##*/}"
      Pwant="${E1}/sandbox/${Pxbps}"
@@ -225,13 +241,13 @@ do
      #register pkg in local repo inside rootfs...
      chroot ${E1}/rootfs /usr/bin/xbps-rindex -a /repo/${Pxbps}
      #install it...
-     chroot ${E1}/rootfs /usr/bin/xbps-install --yes --repository=/repo ${WIPnameonly}-${VER}
+     chroot ${E1}/rootfs /usr/bin/xbps-install --yes --ignore-file-conflicts --repository=/repo ${WIPnameonly}-${VER}
     else
      #install it...
-     chroot ${E1}/rootfs /usr/bin/xbps-install --yes ${WIPnameonly}-${VER}
+     chroot ${E1}/rootfs /usr/bin/xbps-install --yes --ignore-file-conflicts ${WIPnameonly}-${VER}
     fi
     sync
-    if [ $GENflg -eq 1 ];then
+    if [ $GENflg -eq 1 -o $DONOTOPEN -eq 1 ];then
      #prevent xbps from updating this pkg...
      chroot ${E1}/rootfs /usr/bin/xbps-pkgdb -m hold ${WIPnameonly}-${VER}
      rm -rf ${E1}/rootfs/repo/* #stop from growing.
@@ -241,15 +257,15 @@ do
   
   oe:kirkstone)
    #lookup support/name-oe2void find if name change required
-   #note, have left out file 'maybe'...
-   F1="$(grep -m 1 "^{WIPnameonly}|" ${L1}/support/name-oe2void/exact ${L1}/support/name-oe2void/case ${L1}/support/name-oe2void/hyphen ${L1}/support/name-oe2void/number)"
+   #note, have left out file 'maybe'... note, basic-regex, + and | are literal characters...
+   F1="$(grep -m 1 -h -G "^${WIPnameonly}|" ${L1}/support/name-oe2void/exact ${L1}/support/name-oe2void/case ${L1}/support/name-oe2void/hyphen ${L1}/support/name-oe2void/number)"
    if [ ! -z "$F1" ];then
     Newnameonly="${F1/*|/}"
    else
     Newnameonly="${WIPnameonly}"
    fi
    #version needs to be simplified to keep xbps happy...
-   Newver="$(sed -e 's%[^0-9.]%%g' <<<${WIPversion} )"
+   Newver="$(sed -e 's%[^0-9.]%%g' <<<${WIPversion})"
    
    #check if already installed...
    INST="$(chroot ${E1}/rootfs /usr/bin/xbps-query --show ${Newnameonly} --property state)"
@@ -268,9 +284,11 @@ do
     if [ ! -f ${E1}/dl-txz/${WIPpkg} ];then
      cd ${E1}/dl-txz
      download_file https://distro.ibiblio.org/easyos/${DISTRO_TARGETARCH}/packages/compat/oe/kirkstone/${WIPpkg}
+     [ $? -ne 0 ] && continue
     fi
     
     #always expand.
+    mkdir -p ${E1}/sandbox #quick hack, sandbox got deleted.
     cd ${E1}/sandbox
     Pdir="${WIPpkg/.tar.xz/}"  #ex: WIPpkg=acl-2.3.1-r6-nocona-64.tar.xz
     mkdir $Pdir
@@ -282,9 +300,10 @@ do
     #note, kirkstone pkgs are usr-merge, but not /usr/sbin
     if [ -d ${Pdir}/usr/sbin ];then
      if [ ! -h ${Pdir}/usr/sbin ];then
+      mkdir -p ${Pdir}/usr/bin
       cp -a -f --remove-destination ${Pdir}/usr/sbin/* ${Pdir}/usr/bin/
       rm -rf ${Pdir}/usr/sbin
-      ln -s bin ${Pdir}/usr/sbin
+      #ln -s bin ${Pdir}/usr/sbin
       ${L1}/pkg-fix/symlinks-fix ${E1}/sandbox/${Pdir}
      fi
     fi
@@ -308,14 +327,15 @@ do
     
     #convert pkg-folder to .xbps
     DESC="$(cut -f 10 -d '|' <<<${aL})"
+    [ -z "$DESC" ] && DESC='no description'
     #deps need to be converted to xbps repo names if possible...
-    DEPS="$(cut -f 9 -d '|' <<<${aL} | tr '+' '\n' | tr -d ',' | tr '\n' ' ')"
+    DEPS="$(cut -f 9 -d '|' <<<${aL} | sed -e 's%^[+]%%' -e 's%,[+]% %g')"
     DEPS2=''
     #xbps-install will refuse to install if a dep is not a valid xbps pkg...
     #also requires version... could cheat and just have ">=0.0_0"
     for aDEP in ${DEPS}
     do
-     F1="$(grep -m 1 "^{aDEP}|" ${L1}/support/name-oe2void/exact ${L1}/support/name-oe2void/case ${L1}/support/name-oe2void/hyphen ${L1}/support/name-oe2void/number)"
+     F1="$(grep -m 1 -h -G "^${aDEP}|" ${L1}/support/name-oe2void/exact ${L1}/support/name-oe2void/case ${L1}/support/name-oe2void/hyphen ${L1}/support/name-oe2void/number | head -n 1)"
      if [ ! -z "$F1" ];then
       F2="${F1/*|/}" #escape any + for regex...
       V2="$(chroot ${E1}/rootfs /usr/bin/xbps-query --show ${F2} --repository --property pkgver | head -n 1 | sed -e "s%^${F2//+/\\+}-%%")"
@@ -324,7 +344,17 @@ do
      fi
     done
     DEPS2="$(sed -e 's% $%%' <<<${DEPS2})"
-    xbps-create -n "${Newnameonly}-${Newver}_${WIPrevision/r/}" -s "${DESC}" -A ${xARCH} -D "${DEPS2}" "${E1}/sandbox/${Pdir}"
+    
+    #packages-templates/<generic>/FIXUPHACK may have created this file...
+    SHLIB_PROVIDES=''; SLP=''
+    if [ -f /tmp/woofV/pt-${Newnameonly} ];then
+     . /tmp/woofV/pt-${Newnameonly} #may have $SHLIB_PROVIDES
+    fi
+    if [ ! -z "$SHLIB_PROVIDES" ];then
+     SLP="--shlib-provides \"${SHLIB_PROVIDES}\""
+    fi
+    xbps-create -n "${Newnameonly}-${Newver}_${WIPrevision/r/}" -s "${DESC}" -A ${xARCH} -D "${DEPS2}" ${SLP} "${E1}/sandbox/${Pdir}"
+    [ $? -ne 0 ] && continue #precaution
     Pxbps="$(ls ${Newnameonly}-${Newver}_${WIPrevision/r/}*.xbps)" #ex: acl-2.3.1_6.x86_64.xbps
     Pxbps="${Pxbps##*/}"
     
@@ -335,7 +365,6 @@ do
     
     #install .xbps
     Pwant="${E1}/sandbox/${Pxbps}"
-    #WIPpkg="${Pxbps}"
     rm -rf "${E1}/sandbox/${Pdir}" #this is the expanded fixed folder.
    fi
     
@@ -343,7 +372,7 @@ do
    #register pkg in local repo inside rootfs...
    chroot ${E1}/rootfs /usr/bin/xbps-rindex -a /repo/${Pxbps}
    #install it...
-   chroot ${E1}/rootfs /usr/bin/xbps-install --yes --repository=/repo ${Newnameonly}-${Newver}_${WIPrevision/r/}
+   chroot ${E1}/rootfs /usr/bin/xbps-install --yes --ignore-file-conflicts --repository=/repo ${Newnameonly}-${Newver}_${WIPrevision/r/}
    sync
    #the kirkstone pkg is likely to be an older version than in the void repo, so prevent update...
    chroot ${E1}/rootfs /usr/bin/xbps-pkgdb -m hold ${Newnameonly}-${Newver}_${WIPrevision/r/}
@@ -387,5 +416,5 @@ sync
 busybox umount /mnt/${WKG_DEV}/${WKG_DIR}data/woofV/rootfs/var/cache/xbps
 busybox umount /mnt/${WKG_DEV}/${WKG_DIR}data/woofV/rootfs/proc
 
-#post-processing continues in 4post-process-rootfs
+#post-processing continues in 6post-process-rootfs
 ###end###

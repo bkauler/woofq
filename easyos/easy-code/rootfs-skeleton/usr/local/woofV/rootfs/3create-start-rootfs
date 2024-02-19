@@ -92,6 +92,20 @@ if [ ! -d /mnt/wkg/data/woofV/dl-start ];then
 fi
 cd /mnt/wkg/data/woofV
 
+#may be still mounted if 5populate-rootfs aborted...
+grep -q 'rootfs/var/cache/xbps' /proc/mounts
+if [ $? -eq 0 ];then
+ sync
+ busybox umount /mnt/${WKG_DEV}/${WKG_DIR}data/woofV/rootfs/var/cache/xbps
+ sleep 1
+fi
+grep -q 'rootfs/proc' /proc/mounts
+if [ $? -eq 0 ];then
+ sync
+ busybox umount /mnt/${WKG_DEV}/${WKG_DIR}data/woofV/rootfs/proc
+ sleep 1
+fi
+
 rm -rf rootfs 2>/dev/null
 rm -rf sandbox 2>/dev/null
 sync
@@ -99,6 +113,12 @@ mkdir sandbox
 
 #cp -a -f /usr/local/woofV/support/chroot-rootfs ./ 2>/dev/null
 #cp -a -f /usr/local/woofV/support/pet2dir ./ 2>/dev/null
+
+if [ -d rootfs ];then
+ echo "ERROR something is preventing /mnt/wkg/data/woofV/rootfs folder from being"
+ echo "deleted. Manually delete then run this script again."
+ exit 1
+fi
 
 #pre-populate rootfs...
 cp -a ${E1}/rootfs-skeleton ./rootfs
@@ -108,14 +128,10 @@ sync
 mkdir -p ${E1}/dl-xbps
 mkdir -p ${E1}/rootfs/proc
 mkdir -p ${E1}/rootfs/var/cache/xbps
-grep -q 'rootfs/var/cache/xbps' /proc/mounts
-if [ $? -ne 0 ];then
- busybox mount -o bind /mnt/${WKG_DEV}/${WKG_DIR}data/woofV/dl-xbps /mnt/${WKG_DEV}/${WKG_DIR}data/woofV/rootfs/var/cache/xbps
-fi
-grep -q 'rootfs/proc' /proc/mounts
-if [ $? -ne 0 ];then
- busybox mount -o bind /proc /mnt/${WKG_DEV}/${WKG_DIR}data/woofV/rootfs/proc
-fi
+
+busybox mount -o bind /mnt/${WKG_DEV}/${WKG_DIR}data/woofV/dl-xbps /mnt/${WKG_DEV}/${WKG_DIR}data/woofV/rootfs/var/cache/xbps
+busybox mount -o bind /proc /mnt/${WKG_DEV}/${WKG_DIR}data/woofV/rootfs/proc
+
 #for internet access...
 cp -f /etc/resolv.conf rootfs/etc/resolv.conf
 
