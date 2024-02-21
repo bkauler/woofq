@@ -1,0 +1,23 @@
+#!/bin/sh
+#3buildeasydistro will use the downloaded file.
+#20230222 official site "latest" tag is dec 2021
+#20230223 fix d/l latest, from alternative site
+
+#curl -L https://youtube-dl.org/downloads/latest/youtube-dl -o ./youtube-dlNEW
+#curl -L https://yt-dl.org/downloads/latest/youtube-dl -o ./youtube-dlNEW
+#20230223 this site creates nightly downloads from latest commit at official site...
+#curl -L https://github.com/ytdl-patched/youtube-dl/releases/latest/download/youtube-dl -o ./youtube-dlNEW
+
+curl -L https://github.com/ytdl-patched/youtube-dl/releases/latest/download/youtube-dl -o ./youtube-dlNEW
+if [ $? -ne 0 ];then
+ rm -f youtube-dlNEW 2>/dev/null
+fi
+if [ ! -s youtube-dlNEW ];then
+ rm -f youtube-dlNEW 2>/dev/null
+fi
+if [ -e youtube-dlNEW ];then
+ mv -f youtube-dlNEW youtube-dl
+ chmod 755 youtube-dl
+fi
+
+###end###

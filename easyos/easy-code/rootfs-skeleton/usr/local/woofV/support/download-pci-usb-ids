@@ -1,0 +1,22 @@
+#!/bin/ash
+#called from 6post-process-rootfs
+
+rm -f usb.ids.gz 2>/dev/null
+rm -f usb.ids 2>/dev/null
+rm -f pci.ids.gz 2>/dev/null
+rm -f pci.ids 2>/dev/null
+
+download_file http://www.linux-usb.org/usb.ids.gz
+if [ $? -eq 0 ];then
+ gunzip usb.ids.gz
+else
+ rm -f usb.ids.gz 2>/dev/null
+fi
+download_file https://pci-ids.ucw.cz/v2.2/pci.ids.gz
+if [ $? -eq 0 ];then
+ gunzip pci.ids.gz
+else
+ rm -f pci.ids.gz 2>/dev/null
+fi
+
+###end###
