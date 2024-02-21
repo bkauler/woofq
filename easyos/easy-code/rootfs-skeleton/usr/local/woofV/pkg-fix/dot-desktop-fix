@@ -1,12 +1,10 @@
 #!/bin/bash
-#call this after rootfs fully built.
+#call this from 6post-process-rootfs, via chroot into rootfs
 #fix all usr/share/applications/*.desktop to suit easyos menu hierarchy.
 
-E1='/mnt/wkg/data/woofV'
-L1='/usr/local/woofV'
-mkdir -p /tmp/woofV
-
-cd ${E1}/rootfs/usr/share/applications
+cd /usr/share/applications
+DEFICON='Executable.xpm'
+iPATTERN="s%^Icon=.*%Icon=${DEFICON}%"
 
 for aD in `ls -1 *.desktop | tr '\n' ' '`
 do
@@ -16,7 +14,7 @@ do
  if [ "$CAT0" ];then
   sed -i -e "s%^Categories=.*%Categories=X-${CAT0}%" ${aD}
  else
-  CAT1="$(grep -i "|${NAME}|" ${L1}/configure/Packages-void-current ${L1}/configure/Packages-void-current-nonfree ${L1}/configure/Packages-oe-kirkstone-official | head -n 1 | cut -f 5 -d '|' | tr ';' '-')"
+  CAT1="$(grep -h -i "|${NAME}|" /root/.packages/Packages-void-current /root/.packages/Packages-void-current-nonfree /root/.packages/Packages-oe-kirkstone-official | head -n 1 | cut -f 5 -d '|' | tr ';' '-')"
   if [ "$CAT1" ];then
    sed -i -e "s%^Categories=.*%Categories=X-${CAT1}%" ${aD}
   fi
@@ -36,7 +34,7 @@ do
   ICONBASE="${ICON##*/}"
   #first search where jwm looks for icons... 111207...
   FNDICON="`find /usr/local/lib/X11/mini-icons /usr/share/pixmaps -maxdepth 1 -name $ICONBASE -o -name $ICONBASE.png -o -name $ICONBASE.xpm -o -name $ICONBASE.jpg -o -name $ICONBASE.jpeg -o -name $ICONBASE.gif -o -name $ICONBASE.svg | grep -i -E 'png$|xpm$|jpg$|jpeg$|gif$|svg$' | head -n 1`"
-  if [ "$FNDICON" ];then
+  if [ ! -z "$FNDICON" ];then
    ICONNAMEONLY="${FNDICON##*/}"
    iPTN="s%^Icon=.*%Icon=${ICONNAMEONLY}%"
    sed -i -e "$iPTN" $aD
@@ -60,7 +58,7 @@ do
    fi
   fi
   #substitute a default icon...
-  sed -i -e "$iPATTERN" ${ONEDOT} #note, ONEDOT is name of .desktop file.
+  sed -i -e "$iPATTERN" ${aD}
  fi
 
 done
