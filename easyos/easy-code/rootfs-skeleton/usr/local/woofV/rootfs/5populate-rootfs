@@ -403,6 +403,15 @@ done < ${E1}/woof-installed-packages-dep-order
 
 ###post-processing###
 
+#20240221 xbps has installed some -devel pkgs, get rid of them...
+echo "Removing some -devel pkgs from rootfs"
+for aD in $(chroot ${E1}/rootfs /usr/bin/xbps-query -l | cut -f 2 -d ' ' | grep '\-devel-' | tr '\n' ' ')
+do
+ echo -n "${aD} "
+ chroot ${E1}/rootfs /usr/bin/xbps-remove -F -y ${aD}
+done
+echo
+
 #delete any circular symlinks...
 echo "Looking for circular symlinks"
 FNDall="$(busybox find rootfs -mindepth 1 -maxdepth 4 -type d 2>/dev/null | busybox xargs -I ZZZ busybox find ZZZ -mindepth 1 -maxdepth 1 -follow 2>&1)"
