@@ -37,7 +37,7 @@ if [ "$FFext" ];then
  BUILD_SUPPORT_LANGS='de:German en:English fr:French'
  #um, no, build-choice copied into rootfs-complete later in 3buildeasydistro...
  #. ./root/.packages/build-choices
-. ../../build-choices
+. /usr/local/woofV/configure/build-choices #20240220
  for aFFlang in $(echo "$BUILD_SUPPORT_LANGS" | tr ' ' '\n' | cut -f 1 -d ':' | tr '\n' ' ')
  do
   if [ "$aFFlang" == "no" ];then #20230423 20230424 remove nn
@@ -56,7 +56,7 @@ sed -i -e 's%^empty .*%empty -f ec-chroot www firefox%' usr/bin/ec-chroot-www
 #also fix rootfs-skeleton/usr/share/applications/ec-www.desktop ...
 sed -i -e 's%Chromium%Firefox%' usr/share/applications/ec-www.desktop
 
-#20231109 update mstone entry in prefs.js...
-FFver="$(grep -F '|firefox|' root/.packages/woof-installed-packages | cut -f 3 -d '|' | sed -e 's%-r[0-9]$%%')"
+#20231109 update mstone entry in prefs.js... 20240220 fix...
+FFver="$(grep -F '|firefox|' /mnt/wkg/data/woofV/woof-installed-packages | cut -f 3 -d '|' | sed -e 's%-r[0-9]$%%')"
 sed -i '/mstone/d' root/.mozilla/firefox/9nma1n9v.default-release/prefs.js
 echo "user_pref(\"browser.startup.homepage_override.mstone\", \"${FFver}\");" >> root/.mozilla/firefox/9nma1n9v.default-release/prefs.js
