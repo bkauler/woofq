@@ -1,3 +1,5 @@
+echo 'FIXUPHACK: shared-mime-info' 1>&2 #for error log.
+
 #161001 wrong name.
 #170726 .md conflict. want text/markdown
 #171124 always run host update-mime-database
@@ -9,10 +11,10 @@
 # BK 20141223
 # add puppy mime types, then update the database...
 
-#200711 get them from rootfs-skeleton...
+#200711 get them from rootfs-skeleton... 20240220 fix
 #cp -a -f defaults/usr/share/mime/packages/* usr/share/mime/packages/
 mkdir -p usr/share/mime
-cp -a -u /usr/local/woofV/rootfs/rootfs-skeleton/usr/share/mime/* usr/share/mime/
+cp -a -u /usr/local/woofV/rootfs/0rootfs-skeleton/extra/usr/share/mime/* usr/share/mime/
 
 #161001 ubuntu xerus...
 [ ! -e usr/bin/update-mime-database ] && [ -e usr/bin/update-mime-database.real ] && mv -f usr/bin/update-mime-database.real usr/bin/update-mime-database

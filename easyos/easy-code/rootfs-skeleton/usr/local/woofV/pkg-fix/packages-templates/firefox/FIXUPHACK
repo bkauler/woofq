@@ -1,3 +1,4 @@
+echo 'FIXUPHACK: firefox' 1>&2 #for error log.
 
 #t2 compiled, some things missing...
 
@@ -295,7 +296,9 @@ fi
 
 #20231105
 #ref: https://github.com/OldManYellsAtCloud/meta-browser/issues/50
-sed -i '/autoDisableScopes/d' usr/lib/firefox/defaults/pref/vendor.js
+if [ -f usr/lib/firefox/defaults/pref/vendor.js ];then
+ sed -i '/autoDisableScopes/d' usr/lib/firefox/defaults/pref/vendor.js
+fi
 
 #20231219 updating within ff is broken, bring this back, so user cannot override:
 mkdir -p usr/lib/firefox/distribution

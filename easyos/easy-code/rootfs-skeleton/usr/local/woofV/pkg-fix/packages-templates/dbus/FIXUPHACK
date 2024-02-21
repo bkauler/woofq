@@ -14,6 +14,11 @@ if [ -f usr/libexec/dbus-daemon-launch-helper ];then
  chmod u+s usr/libexec/dbus-daemon-launch-helper
 fi
 
-#want to export variable to be used by xbps-create...
-echo "SHLIB_PROVIDES='libdbus-1.so.3'" > /tmp/woofV/pt-dbus
-#...read by 5populate-rootfs
+##want to export variable to be used by xbps-create...
+#echo "XBPS_CREATE_SHLIB_PROVIDES='libdbus-1.so.3'
+#XBPS_CREATE_PROVIDES='dbus-libs>=0.0_0 dbus-x11>=0.0_0'" > /tmp/woofV/pt-dbus
+##...read by 5populate-rootfs
+
+#20240220 hack, void 'dbus-libs' provides 'libdbus-1.so.3' so for kirkstone
+# 'dbus' pkg add to deps...
+echo "XBPS_CREATE_EXTRA_DEPS='dbus-libs>=0.0_0 dbus-x11>=0.0_0'" > /tmp/woofV/pt-dbus

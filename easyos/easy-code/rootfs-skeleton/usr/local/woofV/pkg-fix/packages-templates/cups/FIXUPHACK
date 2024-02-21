@@ -1,3 +1,4 @@
+echo 'FIXUPHACK: cups' 1>&2 #for error log.
 
 ###IMPORTANT###
 #important: the target pkg-list must have exe,dev,doc>exe,nls
@@ -99,4 +100,7 @@ if [ -f usr/share/cups/templates/printer-added.tmpl ];then
 fi
 
 #20230215 oe kirkstone, have .po files in /usr/share/locale
-find usr/share/locale -type f -name '*.po' -delete
+if [ -d usr/share/locale ];then
+ find usr/share/locale -type f -name '*.po' -delete
+fi
+

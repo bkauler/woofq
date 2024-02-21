@@ -1,0 +1,61 @@
+echo 'FIXUPHACK: libreoffice' 1>&2 #for error log.
+
+if [ -d usr/share/icons/hicolor ];then
+ [ -d usr/share/icons/hicolor/16x16 ] && rm -rf usr/share/icons/hicolor/16x16
+ [ -d usr/share/icons/hicolor/32x32 ] && rm -rf usr/share/icons/hicolor/32x32
+ [ -d usr/share/icons/hicolor/128x128 ] && rm -rf usr/share/icons/hicolor/128x128
+ [ -d usr/share/icons/hicolor/256x256 ] && rm -rf usr/share/icons/hicolor/256x256
+ [ -d usr/share/icons/hicolor/512x512 ] && rm -rf usr/share/icons/hicolor/512x512
+ [ -d usr/share/icons/hicolor/16x16 ] && rm -rf usr/share/icons/hicolor/16x16
+ [ -d usr/share/icons/hicolor/scalable ] && rm -rf usr/share/icons/hicolor/scalable
+fi
+
+
+#gadzillion fonts...
+mkdir -p usr/share/fonts/TTF
+cp -a -f usr/lib/libreoffice/share/fonts/truetype/opens___.ttf usr/share/fonts/TTF/
+cp -a -f usr/lib/libreoffice/share/fonts/truetype/fc_local.conf usr/share/fonts/TTF/ 2>/dev/null
+rm -rf usr/lib/libreoffice/share/fonts/truetype
+ln -s ../../../../share/fonts/TTF usr/lib/libreoffice/share/fonts/truetype
+
+# 170510 hack for broken theme in OE build...
+[ -f usr/lib/libreoffice/share/config/images_export.zip ] && rm -f usr/lib/libreoffice/share/config/images_export.zip
+[ -f "usr/lib/libreoffice/share/config/images_WITH_WEBDAV=neon.zip" ] && rm -f usr/lib/libreoffice/share/config/images_WITH_WEBDAV=neon.zip
+
+#170511 have our own .desktop files...
+rm -f usr/share/applications/libreoffice-*.desktop 2>/dev/null
+
+#20240113 easyvoid
+#get rid of these extra images*.zip files, almost 50MB...
+if [ -f usr/lib/libreoffice/share/config/images_colibre.zip ];then
+ mv -f usr/lib/libreoffice/share/config/images_colibre.zip /tmp/images_colibre.zip
+ rm -f usr/lib/libreoffice/share/config/images_*.zip
+ mv -f /tmp/images_colibre.zip usr/lib/libreoffice/share/config/images_colibre.zip
+fi
+
+
+#20240114 more radical, delete non-en...
+if [ -d usr/lib/libreoffice/share/extensions/dict-en ];then
+ mv -f usr/lib/libreoffice/share/extensions/dict-en /tmp/dict-en-tmp
+ rm -rf usr/lib/libreoffice/share/extensions
+ mkdir usr/lib/libreoffice/share/extensions
+ mv -f /tmp/dict-en-tmp usr/lib/libreoffice/share/extensions/dict-en
+fi
+
+#Note: REPLACEMENTS get copied after this, but ok...
+mkdir -p usr/bin
+#keep only these (requires bash)...
+GLOBIGNORE='sbase:scalc:sdraw:simpress:swriter'
+cd usr/bin
+rm *
+cd ../../
+unset GLOBIGNORE
+
+mkdir -p usr/share/applications
+#keep only these (requires bash)...
+GLOBIGNORE='sbase.desktop:scalc.desktop:sdraw.desktop:simpress.desktop:swriter.desktop'
+cd usr/share/applications
+rm *
+cd ../../../
+unset GLOBIGNORE
+
