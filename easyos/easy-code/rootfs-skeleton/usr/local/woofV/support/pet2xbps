@@ -63,21 +63,24 @@ _EOF1
  ;;
 esac
 
+#20240220 no, append to sandbox/pinstall.sh and 5populate-rootfs will run it...
 if [ -f ${DIR}/pinstall.sh ];then
- cat >> ${DIR}/INSTALL <<'_EOF'
-#!/bin/sh
-export PATH="/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin"
-ACTION="$1"
-case "${ACTION}" in
-pre)
-	;;
-post)
-_EOF
- cat ${DIR}/pinstall.sh >> ${DIR}/INSTALL
- echo '	;;
-esac
-exit 0' >> ${DIR}/INSTALL
- chmod 755 ${DIR}/INSTALL
+# cat >> ${DIR}/INSTALL <<'_EOF'
+##!/bin/sh
+#export PATH="/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin"
+#ACTION="$1"
+#case "${ACTION}" in
+#pre)
+#	true
+#	;;
+#post)
+#_EOF
+# cat ${DIR}/pinstall.sh >> ${DIR}/INSTALL
+# echo '	;;
+#esac
+#exit 0' >> ${DIR}/INSTALL
+# chmod 755 ${DIR}/INSTALL
+ cat ${DIR}/pinstall.sh >> ${E1}/sandbox/pinstall.sh
  rm -f ${DIR}/pinstall.sh
 fi
 
