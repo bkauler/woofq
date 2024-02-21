@@ -107,8 +107,8 @@ do
      cd ${E1}/dl-pets
      download_file ${URL}/${PETname}
      if [ $? -ne 0 ];then
-      echo "ERROR: failed to download ${PETname} from"
-      echo "${URL}"
+      echo "ERROR failed to download: ${PETname}"
+      echo "From: ${URL}"
       rm -f ./${PETname} 2>/dev/null
       continue
      fi
@@ -143,6 +143,7 @@ do
    echo "CONV_PKG_REPO='${PSTrepo}'" > ${E1}/converted-pkgs/${PSTgeneric} #ex: pet:noarch
    echo "CONV_PKG_DB='${aL}'" >> ${E1}/converted-pkgs/${PSTgeneric}
    echo "CONV_XBPS_PKG='${Pxbps}'" >> ${E1}/converted-pkgs/${PSTgeneric} #ex: tas-1.15_1.x86_64.xbps
+   continue
   ;;
  esac
   
@@ -225,6 +226,7 @@ do
      LICENSE="$(chroot ${E1}/rootfs /usr/bin/xbps-query --show ${WIPnameonly}-${VER} --repository --property license | tr '\n' ' ')"
      REPLACES="$(chroot ${E1}/rootfs /usr/bin/xbps-query --show ${WIPnameonly}-${VER} --repository --property replaces | tr '\n' ' ')"
      PROVIDES="$(chroot ${E1}/rootfs /usr/bin/xbps-query --show ${WIPnameonly}-${VER} --repository --property provides | tr '\n' ' ')"
+     echo "xbps-create -n \"${WIPnameonly}-${VER}\" -s \"${DESC}\" -A ${yARCH} -D \"${DEPS}\" --shlib-requires \"${SHLREQ}\" --shlib-provides \"${SHLPROV}\" --license \"${LICENSE}\" --replaces \"${REPLACES}\" \"${E1}/sandbox/${Pdir}\"" 1>&2 #error log
      xbps-create -n "${WIPnameonly}-${VER}" -s "${DESC}" -A ${yARCH} -D "${DEPS}" --shlib-requires "${SHLREQ}" --shlib-provides "${SHLPROV}" --license "${LICENSE}" --replaces "${REPLACES}" "${E1}/sandbox/${Pdir}"
      [ $? -ne 0 ] && continue #precaution
      Pxbps="$(ls ${WIPnameonly}-${VER}*.xbps)" #ex: acl-2.3.1_1.x86_64.xbps
@@ -284,7 +286,12 @@ do
     if [ ! -f ${E1}/dl-txz/${WIPpkg} ];then
      cd ${E1}/dl-txz
      download_file https://distro.ibiblio.org/easyos/${DISTRO_TARGETARCH}/packages/compat/oe/kirkstone/${WIPpkg}
-     [ $? -ne 0 ] && continue
+     if [ $? -ne 0 ];then
+      echo "ERROR failed to download: ${WIPpkg}"
+      echo "From: ${URL}"
+      rm -f ./${WIPpkg} 2>/dev/null
+      continue
+     fi
     fi
     
     #always expand.
@@ -325,6 +332,13 @@ do
      fi
     fi
     
+    #packages-templates/<generic>/FIXUPHACK may have created this file...
+    XBPS_CREATE_SHLIB_PROVIDES=''; SLP=''
+    XBPS_CREATE_EXTRA_DEPS=''
+    if [ -f /tmp/woofV/pt-${Newnameonly} ];then
+     . /tmp/woofV/pt-${Newnameonly} #may have $SHLIB_PROVIDES
+    fi
+    
     #convert pkg-folder to .xbps
     DESC="$(cut -f 10 -d '|' <<<${aL})"
     [ -z "$DESC" ] && DESC='no description'
@@ -343,16 +357,15 @@ do
       DEPS2="${DEPS2}${F2}>=${V2} "
      fi
     done
+    if [ ! -z "$XBPS_CREATE_EXTRA_DEPS" ];then #ex: packages-templates/dbus
+     DEPS2="${DEPS2}${XBPS_CREATE_EXTRA_DEPS}"
+    fi
     DEPS2="$(sed -e 's% $%%' <<<${DEPS2})"
     
-    #packages-templates/<generic>/FIXUPHACK may have created this file...
-    SHLIB_PROVIDES=''; SLP=''
-    if [ -f /tmp/woofV/pt-${Newnameonly} ];then
-     . /tmp/woofV/pt-${Newnameonly} #may have $SHLIB_PROVIDES
+    if [ ! -z "$XBPS_CREATE_SHLIB_PROVIDES" ];then
+     SLP="--shlib-provides \"${XBPS_CREATE_SHLIB_PROVIDES}\""
     fi
-    if [ ! -z "$SHLIB_PROVIDES" ];then
-     SLP="--shlib-provides \"${SHLIB_PROVIDES}\""
-    fi
+    echo "xbps-create -n \"${Newnameonly}-${Newver}_${WIPrevision/r/}\" -s \"${DESC}\" -A ${xARCH} -D \"${DEPS2}\" ${SLP} \"${E1}/sandbox/${Pdir}\"" 1>&2
     xbps-create -n "${Newnameonly}-${Newver}_${WIPrevision/r/}" -s "${DESC}" -A ${xARCH} -D "${DEPS2}" ${SLP} "${E1}/sandbox/${Pdir}"
     [ $? -ne 0 ] && continue #precaution
     Pxbps="$(ls ${Newnameonly}-${Newver}_${WIPrevision/r/}*.xbps)" #ex: acl-2.3.1_6.x86_64.xbps
