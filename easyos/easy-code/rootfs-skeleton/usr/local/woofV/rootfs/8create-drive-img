@@ -1,10 +1,14 @@
 #!/bin/bash
 
-
 export TEXTDOMAIN=woofV
 export OUTPUT_CHARSET=UTF-8
 LANGorig="$LANG"
 export LANG=C
+
+if ! which openssl >/dev/null ;then
+ echo 'ERROR utility openssl missing. aborting.'
+ exit 1
+fi
 
 . /etc/rc.d/PUPSTATE
 
@@ -12,46 +16,62 @@ E1='/mnt/wkg/data/woofV'
 L1='/usr/local/woofV'
 mkdir -p /tmp/woofV
 
-. ${L1}/configure/DISTRO_SPECS
+. ${E1}/rootfs/etc/DISTRO_SPECS
 
 cd ${E1}
 #the files we want are export/easy_*.sfs,
-# initrd/initrd, sandbox/vmlinuz,
-# easy-skeleton-7-880-889mb.img.gz
+# initrd/initrd, sandbox/vmlinuz
 
-if [ ! -f "${DISTRO_SKELETON_IMAGE}" ];then
- echo "ERROR not exist: ${DISTRO_SKELETON_IMAGE}"
+echo "$(gettext 'Creating skeleton drive image file')"
+P1M=7
+SM=$(busybox du -s -m export/${DISTRO_NAME_SHORT,,}_${DISTRO_VERSION}_${DISTRO_TARGETARCH}.sfs | cut -f 1)
+P2M=$((${SM}+57)) #wkg partition needs to be about 32-40 MB bigger.
+xP2=$((${P2M}/8)) #round down then up
+P2M=$((${xP2}*8))
+T1=$((1+${P1M}+${P2M}+1)) #total size of file.
+SKEL="easy-skeleton-7-${P2M}-${T1}mb.img"
+
+if [ ! -f ${SKEL}.gz ];then
+ ${L1}/support/create-skel-drv-img ${P1M} ${P2M}
+fi
+if [ ! -f ${SKEL}.gz ];then
+ echo "ERROR skeleton drive image file missing."
  exit 1
+fi
+
+echo "Creating initrd"
+${L1}/initrd/create-initrd "$P2M"
+#...$P2M is passed-in to set allowed default size of wkg-partition in init script.
+if [ $? -ne 0 -o ! -s ${E1}/initrd/initrd ];then
+ echo "ERROR initrd has not been created"
+ exit 2
 fi
 
 #181205 random number for disk-id
-if ! which openssl >/dev/null ;then
- echo 'utility openssl missing. aborting.'
- exit 1
-fi
 RANDHEX8="$(openssl rand -hex 4)" #want this for disk identifier.
 [ "$RANDHEX8" == "12345678" ] && RANDHEX8="$(openssl rand -hex 4)" #181205 reserved, try again.
 echo "Random hex number: ${RANDHEX8}"
 
-cp -a -f ${DISTRO_SKELETON_IMAGE} export/
+cp -a -f ${SKEL}.gz export/
 cp -a -f initrd/initrd export/
 cp -a -f sandbox/vmlinuz export/
+rm -f export/${SKEL} 2>/dev/null
 
 cd export
-gunzip ${DISTRO_SKELETON_IMAGE}
-SKELETON_NAME="${DISTRO_SKELETON_IMAGE%.img}"
+gunzip ${SKEL}.gz
+SKELETON_NAME="${SKEL%.img}"
 if [ "${DISTRO_NAME_SHORT,,}" != "easy" ];then
  oldSKEL="$SKELETON_NAME"
  SKELETON_NAME="$(echo -n "$oldSKEL" | sed -e "s%^easy%${DISTRO_NAME_SHORT,,}%")"
  mv -f ${oldSKEL}.img ${SKELETON_NAME}.img
 fi
 
-#20220511 detect sizes of partitions in img...  20220622 20230305
-PARTINFO="$(fdisk -l ${SKELETON_NAME}.img | grep "^${DISTRO_NAME_SHORT,,}-skeleton" | grep -o ' [0-9].*')" #ex: 1572864 1581055    8192    4M 83 Linux
-P1M="$(echo "$PARTINFO" | grep -o '[0-9]*M' | head -n 1)"
-P1M="${P1M/M/}" #ex: 7
-P2M="$(echo "$PARTINFO" | grep -o '[0-9]*M' | tail -n 1)"
-P2M="${P2M/M/}" #ex: 816
+##20220511 detect sizes of partitions in img...  20220622 20230305
+#PARTINFO="$(fdisk -l ${SKELETON_NAME}.img | grep "^${DISTRO_NAME_SHORT,,}-skeleton" | grep -o ' [0-9].*')" #ex: 1572864 1581055    8192    4M 83 Linux
+#P1M="$(echo "$PARTINFO" | grep -o '[0-9]*M' | head -n 1)"
+#P1M="${P1M/M/}" #ex: 7
+#P2M="$(echo "$PARTINFO" | grep -o '[0-9]*M' | tail -n 1)"
+#P2M="${P2M/M/}" #ex: 816
 
 #190226 change UUID of the filesystems...
 echo
@@ -94,6 +114,7 @@ fi
 BOOTDIR=''
 
 #20230218  20230304
+echo "Installing Limine to first partition"
 BRANDINGFIELD="${DISTRO_NAME_NORMAL} Limine Boot Manager"
 COMMENTFIELD="${DISTRO_NAME_NORMAL} ${DISTRO_COMPAT_VERSION^} bootup" #ex: Kirkstone
 OPTIONSFIELD="Options..."
@@ -110,43 +131,47 @@ INTERFACE_RESOLUTION=800x600
     COMMENT=${COMMENTFIELD}
     RESOLUTION=800x600
     PROTOCOL=linux
-    KERNEL_PATH=boot://2/easyos/vmlinuz
-    MODULE_PATH=boot://2/easyos/initrd
-    KERNEL_CMDLINE=rw wkg_uuid=${UUID2} wkg_dir=easyos/
+    KERNEL_PATH=boot://2/easyvoid/vmlinuz
+    MODULE_PATH=boot://2/easyvoid/initrd
+    KERNEL_CMDLINE=rw wkg_uuid=${UUID2} wkg_dir=easyvoid/
 
 :  ${OPTIONSFIELD}
 ::${FBVFIELD}
     COMMENT=${FBVCOMMENTFIELD}
     RESOLUTION=800x600
     PROTOCOL=linux
-    KERNEL_PATH=boot://2/easyos/vmlinuz
-    MODULE_PATH=boot://2/easyos/initrd
-    KERNEL_CMDLINE=rw qfix=vid nomodeset wkg_uuid=${UUID2} wkg_dir=easyos/
+    KERNEL_PATH=boot://2/easyvoid/vmlinuz
+    MODULE_PATH=boot://2/easyvoid/initrd
+    KERNEL_CMDLINE=rw qfix=vid nomodeset wkg_uuid=${UUID2} wkg_dir=easyvoid/
 " > img_mntpt/limine.cfg
 
 mkdir -p img_mntpt/EFI/BOOT
-cp -a -f ../rootfs-complete/usr/share/limine/BOOTX64.EFI img_mntpt/EFI/BOOT/
-cp -a -f ../rootfs-complete/usr/share/limine/BOOTIA32.EFI img_mntpt/EFI/BOOT/
-cp -a -f ../rootfs-complete/usr/share/limine/limine.sys img_mntpt/
+cp -a -f ../rootfs/usr/share/limine/BOOTX64.EFI img_mntpt/EFI/BOOT/
+cp -a -f ../rootfs/usr/share/limine/BOOTIA32.EFI img_mntpt/EFI/BOOT/
+cp -a -f ../rootfs/usr/share/limine/limine.sys img_mntpt/
 sync
+sleep 2
+fsync img_mntpt/limine.sys
 busybox umount img_mntpt
 
 #working-partition...
+echo "Populating working-partition"
 mkdir -p img_mntpt2
 busybox mount -t ext4 -o offset=${OFF2},loop ${SKELETON_NAME}.img img_mntpt2
-mkdir -p img_mntpt2/easyos
+mkdir -p img_mntpt2/easyvoid
 rmdir img_mntpt2/lost+found #tune2fs created this.
 
 echo "copying vmlinuz into img file..."
-cp -f ./vmlinuz img_mntpt2/easyos/
+cp -f ./vmlinuz img_mntpt2/easyvoid/
 sync
 echo "copying initrd into img file..."
-cp -f ./initrd img_mntpt2/easyos/
+cp -f ./initrd img_mntpt2/easyvoid/
 sync
 
 echo 'Copying easy.sfs into img file...'
-cp -a ${DISTRO_NAME_SHORT,,}_${DISTRO_VERSION}_${DISTRO_TARGETARCH}.sfs img_mntpt2/easyos/${DISTRO_NAME_SHORT,,}.sfs
+cp -a ${DISTRO_NAME_SHORT,,}_${DISTRO_VERSION}_${DISTRO_TARGETARCH}.sfs img_mntpt2/easyvoid/${DISTRO_NAME_SHORT,,}.sfs
 sync
+sleep 2
 busybox umount img_mntpt2
 
 echo
@@ -158,8 +183,8 @@ sync
 LOOP3="$(losetup -f)"
 losetup ${LOOP3} ${SKELETON_NAME}.img
 sleep 0.5
-echo "EXECUTING: rootfs-complete/usr/bin/limine-deploy ${LOOP3} --force-mbr"
-rootfs-complete/usr/bin/limine-deploy ${LOOP3} --force-mbr
+echo "EXECUTING: rootfs/usr/bin/limine-deploy ${LOOP3} --force-mbr"
+../rootfs/usr/bin/limine-deploy ${LOOP3} --force-mbr
 sleep 0.1
 sync
 losetup -d ${LOOP3}

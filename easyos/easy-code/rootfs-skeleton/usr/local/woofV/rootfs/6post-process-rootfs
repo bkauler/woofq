@@ -1,5 +1,5 @@
 #!/bin/bash
-#rootfs has been populated by 3populate-rootfs
+#rootfs has been populated by 5populate-rootfs
 #now perform post-processing, prior to building easy.sfs
 
 export TEXTDOMAIN=woofV
@@ -32,7 +32,7 @@ if [ $? -ne 0 ];then
 fi
 
 cp -a -f ${L1}/configure/DISTRO_SPECS rootfs/etc/
-DATE="$(date +%Y%m%d)" #ex: 20240221
+DATE="$(date +%y%m%d)" #ex: 240221
 sed -i -e "s%^DISTRO_VERSION=.*%DISTRO_VERSION=${DATE}%" rootfs/etc/DISTRO_SPECS
 
 #pet repo
