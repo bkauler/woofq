@@ -176,6 +176,7 @@
 #20231128 fix 20231124
 #20231203 usr-merge: may also have to fix kirkstone container.
 #20240113 support skeleton with 920MiB wkg-partition. 20240116 880MiB wkg-part.
+#20240222 P2M has allowed wkg-part default size, set via 8create-drive-img
 
 #20230429
 . /build-choices #3buildeasydistro copies it here.
@@ -304,7 +305,7 @@ ask_kb() { #181010
  25 il    26 it        27 jp106     28 la-latin1 29 lt            30 mk        
  31 nl    32 no        33 pl        34 pt-latin1 35 ro            36 ru        
  37 se    38 sg        39 sk-qwerty 40 sk-qwertz 41 slovene       42 srp       
- 43 sv-latin1  44 tr   45 us        46 wangbe                                               \e[0;;m'
+ 43 sv-latin1  44 tr   45 us        46 wangbe                                  \e[0;;m'
  
  #20210424 want word-wrapped text block in background colour rectangle...
  #S015='Please enter the number corresponding to your keyboard layout.'
@@ -1047,7 +1048,8 @@ Wsize="$(fdisk -u -l /dev/${WKG_DRV} | grep "^/dev/${WKG_DEV} " | tr -s ' ' | re
 #20220621 new skeleton 7MiB 1st, 816MiB 2nd, Wstart=16384
 #20220911 for easy bookworm, bumped wkg-part to 848MiB. 20221226 kirkstone 672MiB
 #20240113 easyvoid, skeleton wkg-part now 920MiB. 20240116 now 880MiB
-if [ "$Wsize" == "816M" -o "$Wsize" == "848M" -o "$Wsize" == "672M" -o "$Wsize" == "880M" ];then #current skeleton.
+P2M='672' #20240222
+if [ "$Wsize" == "816M" -o "$Wsize" == "848M" -o "$Wsize" == "${P2M}M" -o "$Wsize" == "880M" ];then #current skeleton.
  #starting sector of wkg partition...
  Wstart="$(fdisk -u -l /dev/${WKG_DRV} | grep "^/dev/${WKG_DEV} " | tr -s ' ' | rev | cut -f 6 -d ' ' | rev)"
  #need to be paranoid here, to get this right, restrict to my skeletons...
@@ -1058,7 +1060,7 @@ if [ "$Wsize" == "816M" -o "$Wsize" == "848M" -o "$Wsize" == "672M" -o "$Wsize" 
   #fdisk should have informed kernel to rescan partition table, however precaution...
   partprobe /dev/${WKG_DRV}
   Wnewsize="$(fdisk -u -l /dev/${WKG_DRV} | grep "^/dev/${WKG_DEV} " | tr -s ' ' | rev | cut -f 3 -d ' ' | rev)"
-  if [ "$Wnewsize" == "816M" -o "$Wnewsize" == "848M" -o "$Wnewsize" == "672M" -o "$Wnewsize" == "880M" ];then
+  if [ "$Wnewsize" == "816M" -o "$Wnewsize" == "848M" -o "$Wnewsize" == "${P2M}M" -o "$Wnewsize" == "880M" ];then
    echo -e "\\033[1;31m ${S121}\\033[0;39m" #red.
    Wbad=1 #20220511
   else
