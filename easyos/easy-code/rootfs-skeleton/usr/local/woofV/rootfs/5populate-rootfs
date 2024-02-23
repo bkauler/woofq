@@ -26,6 +26,7 @@ mkdir -p ${E1}/dl-txz
 mkdir -p ${E1}/rootfs/repo
 mkdir -p /tmp/woofV
 mkdir -p ${E1}/sandbox
+echo -n '' > /tmp/woofV/5errors.log
 
 echo "$(LANG=${LANGorig} gettext 'Installing pkgs to:') ${E1}/rootfs"
 
@@ -110,6 +111,7 @@ do
       echo "ERROR failed to download: ${PETname}"
       echo "From: ${URL}"
       rm -f ./${PETname} 2>/dev/null
+      echo "FAIL D/L ${PETname} from ${URL}" >> /tmp/woofV/5errors.log
       continue
      fi
     fi
@@ -290,6 +292,7 @@ do
       echo "ERROR failed to download: ${WIPpkg}"
       echo "From: ${URL}"
       rm -f ./${WIPpkg} 2>/dev/null
+      echo "FAIL D/L Kirkstone ${WIPpkg}" >> /tmp/woofV/5errors.log
       continue
      fi
     fi
