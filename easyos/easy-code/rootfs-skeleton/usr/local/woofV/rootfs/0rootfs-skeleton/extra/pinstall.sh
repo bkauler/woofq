@@ -1,7 +1,7 @@
 #!/bin/sh
 #post-install script.
 #Puppy Linux
-#assume current directory is rootfs-complete, which has the final filesystem.
+#assume current directory is in rootfs, which has the final filesystem.
 #this script is similar to the post-install scripts of the window managers.
 #Keywords are located in the Help page and the lines uncommented.
 #DISTRO_VERSION, DISTRO_NAME are global variables visible here.

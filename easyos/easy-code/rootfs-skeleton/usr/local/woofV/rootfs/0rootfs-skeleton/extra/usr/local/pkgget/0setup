@@ -1,0 +1,1062 @@
+#!/bin/ash
+#(c) Copyright 2009 Barry Kauler.
+#100617 support slackware .txz pkgs.
+#100626 '-' chars were getting removed from dependencies.
+#110523 Iguleder: support Scientific Linux rpm pkgs.
+#110612 support Mageia Linux.
+#111121 noryb009: improve arch linux support, patched: 0setup, 1download, 2createpackages, 3builddistro, DISTRO_COMPAT_REPOS-arch, support/arch/runDotInstalls
+#111129 prevent 'mv' fail error message.
+#111203 noryb009: arch linux -2 patch.
+#120126 mavrothal: offer option to skip specific repos. refer http://bkhome.org/blog/?viewDetailed=02650
+#120315 pkg list entries may have optional forced repo field. Ref: http://bkhome.org/blog/?viewDetailed=02414
+#120515 build from "gentoo" binary tarballs (refer support/gentoo). --no need to modify anything in 0setup.
+#120719 support raspbian. fix debian db format change.
+#120804 fix when only have pkgname_DEV, no pkgname.
+#120812 db category now allows optional subcategory (for which an icons exists in /usr/local/lib/X11/mini-icons).
+#120815 for debian, ubuntu, use the generic name provided in the $DB_path, instead of $Package, for find_cat.
+#120825 debian/ubuntu/raspbian: merge -updates dbs.
+#120909 moved exit-point when running in puppy.
+#121102 file DISTRO_SPECS has new variable DISTRO_DB_SUBNAME. ex: for 14.0-based slacko, DISTRO_DB_SUBNAME=slacko14
+#121111 debdb2pupdb, new fast deb to pup db converter.
+#121112 note, debdb2pupdb no longer calls find_cat.
+#121113 improve file PKGS_HOMEPAGES sort after run debdb2pupdb.
+#121113 read Ubuntu-db 'Section' parameter to help assign category.
+#121113 ubuntu-db: introduce STARTMARKER field between db records.
+#121113 reverse question, enter only for ubuntu db -updates.
+#121116 0setup also runs in running puppy called from ppm. some o/p needs to be translated, done in /usr/share/sss/script_strings/script_strings. see below all LANGORG insertions.
+#121130 bug found, when not building a upup.
+#130126 find_cat rewritten. works as before, also can post-process an entire db-entry or db-entries-file. arch code rewritten by noryb009
+#130305 debdb2pupdb.bac now also check that deps exist, create list of pkgs.
+#130306 fix arch linux build.
+#130316 debdb2pupdb does not use /tmp/0setupcompletelistpkgs in a running puppy.
+#130319 remove 'raspbian' from updates code section.
+#140215 ubuntu trusty tahr, at 140215 have added lots of xorg pkgs with "-lts-" in name. don't see the point of them.
+#141011 attempt auto fix if DISTRO_PKGS_SPECS-* has wrong/older pkg name, than what is in deb db.
+#141116 updated for buildroot.
+#150419 added devuan support. refer: dimkr: https://github.com/puppylinux-woof-CE/woof-CE/pull/528/files
+#150708 exclude ppa repo from updates.
+#151103 compat:april to get pkg from t2 april repo, for non-t2 builds.
+#160411 ubuntu db Description field 'firefox-locale-nb' has utf-8 chars, causes crash.
+#160822 support Packages.gz
+#161227 improve slackware db conversion: fixes and faster. 161230
+#170325 filter pkg selection based on board type.
+#170521 fix path to DISTRO_SPECS in running pup.
+#170708 utf8 chars in the ubuntu db files are causing trouble.
+#170717 in running pup, auto choose to d/l pkg updates.
+#170805 -hwe- maybe should use these in preference too without, but for now just remove them.
+#190613 slackware: if DEPENDENCIES file exists, use to determine DB_dependencies
+#190813 update msgs. updates fixes.
+#190813 hack, deb-multimedia.org/dists/buster/main does not have updates. 190830 fix.
+#20220119 fixes for arch linux.
+#20220120 compat:dunfell to get pkg from oe dunfell repo, for non-oe builds.
+#20220120 arch linux: remove fraction from size. fix db arch|20211231
+#20220829 debdb2pupdb rewritten in nim. now in /usr/local/debget
+#20230309 support compat:kirkstone. missing pkg, limit number of alternatives.
+#20230901 support void linux. 20230902
+#20230914 remove all reference to usr/local/debget
+#20230914 void: run everytime in pkgget, so have "q" on cmdline.
+#20230915 copy void pkg db back to woofq easy-distro
+#20240112 fix PROJECTPATH. 20240113 get void nonfree. 20240116 fix 20230915
+#20240225 fix for woofv. 20240226
+
+LANGORG="$(locale | grep '^LANG=' | cut -d '=' -f 2)" #121116
+export LANG=C #faster.
+
+mkdir -p /tmp/woofV #20240226 cvt.sh writes pkgs-homepages to here.
+echo -n '' > /tmp/woofV/pkgs-homepages #cvt.sh called from void0setup
+
+#20230914
+QUIET=no
+if [ "$1" == "q" ];then
+ QUIET=yes
+fi
+
+if [ -f ./DISTRO_SPECS ];then
+ SPEC_DS="./DISTRO_SPECS" #170521
+. ./DISTRO_SPECS
+ [ ! "$DISTRO_DB_SUBNAME" ] && DISTRO_DB_SUBNAME="$DISTRO_COMPAT_VERSION" #121102 fallback if DISTRO_DB_SUBNAME not defined in file DISTRO_SPECS.
+ if [ -f ./DISTRO_COMPAT_REPOS-${DISTRO_BINARY_COMPAT}-${DISTRO_COMPAT_VERSION} ];then #v431
+. ./DISTRO_COMPAT_REPOS-${DISTRO_BINARY_COMPAT}-${DISTRO_COMPAT_VERSION}
+ else
+. ./DISTRO_COMPAT_REPOS-${DISTRO_BINARY_COMPAT} #130306
+ fi
+ if [ -f ./DISTRO_PKGS_SPECS-${DISTRO_BINARY_COMPAT}-${DISTRO_COMPAT_VERSION} ];then #w478
+. ./DISTRO_PKGS_SPECS-${DISTRO_BINARY_COMPAT}-${DISTRO_COMPAT_VERSION}
+  DPSFILE="DISTRO_PKGS_SPECS-${DISTRO_BINARY_COMPAT}-${DISTRO_COMPAT_VERSION}"
+ else
+. ./DISTRO_PKGS_SPECS-${DISTRO_BINARY_COMPAT}
+  DPSFILE="DISTRO_PKGS_SPECS-${DISTRO_BINARY_COMPAT}"
+ fi
+. ./PKGS_MANAGEMENT
+. ./DISTRO_PET_REPOS
+. ./PROJECTPATH #20240112
+ RUNNINGPUP='no'
+else
+ SPEC_DS="/etc/DISTRO_SPECS"
+ #want to run this script in running puppy, to update db's...
+. /etc/DISTRO_SPECS
+. /root/.packages/DISTRO_COMPAT_REPOS #v431
+. /root/.packages/DISTRO_PKGS_SPECS
+. /root/.packages/PKGS_MANAGEMENT
+. /root/.packages/DISTRO_PET_REPOS
+ cd /root/.packages
+ RUNNINGPUP='yes'
+ DPSFILE="/root/.packages/DISTRO_PKGS_SPECS" #170325
+fi
+
+#170325 copy code from 1download...
+BUILD_CHOICE_BOARD='' #161003 values: raspi, odroidx, anything else for pc.
+if [ -f build-choices ];then
+. ./build-choices
+fi
+case "$BUILD_CHOICE_BOARD" in #in file build-choices.
+ raspi)   BOOT_BOARD='raspi' ;;
+ odroidx) BOOT_BOARD='odroidx' ;;
+ *)       BOOT_BOARD='pc' ;; #building for a pc.
+esac
+[ "$RUNNINGPUP" == "no" ] && echo "WARNING: building for board: ${BOOT_BOARD}" #190813
+#filter pkg selection based on board type...
+xBOOT_BOARD="#$(echo -n "$BOOT_BOARD" | tr '[a-z]' '[A-Z]')" #ex: #ODROIDX
+xBOARDS='#RASPI #ODROIDX #MELE #PC'
+cp -f ${DPSFILE} /tmp/DISTRO_PKGS_SPECS-${DISTRO_BINARY_COMPAT}-${DISTRO_COMPAT_VERSION}COPY
+#also filter DISTRO_SPECS...
+cp -f ${SPEC_DS} /tmp/DISTRO_SPECSCOPY #170521
+for eachBOARD in $xBOARDS
+do
+ [ "$eachBOARD" == "$xBOOT_BOARD" ] && continue
+ sed -i "/${eachBOARD}/d" /tmp/DISTRO_PKGS_SPECS-${DISTRO_BINARY_COMPAT}-${DISTRO_COMPAT_VERSION}COPY
+ sed -i "/${eachBOARD}/d" /tmp/DISTRO_SPECSCOPY
+done
+[ "$RUNNINGPUP" == "no" ] && echo "PKGS_SPECS_TABLE has been filtered for board '${xBOOT_BOARD}'"
+. /tmp/DISTRO_PKGS_SPECS-${DISTRO_BINARY_COMPAT}-${DISTRO_COMPAT_VERSION}COPY
+[ "$RUNNINGPUP" == "no" ] && echo "File DISTRO_SPECS has been filtered for board '${xBOOT_BOARD}'"
+. /tmp/DISTRO_SPECSCOPY
+
+#remove comments from PKGS_SPECS_TABLE
+PKGS_SPECS_TABLE="`echo "$PKGS_SPECS_TABLE" | grep -v '^#'`"
+
+#w480 check puppy pkg db files...
+if [ "$RUNNINGPUP" = "no" ];then
+ ./support/fix-puppy-dbs
+ [ $? -eq 1 ] && exit
+fi
+
+[ -f ./support/debdb2pupdb ] && cp -f ./support/debdb2pupdb /usr/local/petget/ #121111 0setup needs it here, when run from PPM. 20220829 20230914
+#note, 3builddistro copies it into rootfs-complete/usr/local/petget when building a pup.
+#121112 note, debdb2pupdb no longer calls find_cat.
+
+#w015 to speed things up, this func replaced by compiled app support/find_cat ...
+[ -f ./support/find_cat ] && cp -f ./support/find_cat /usr/local/petget/ #130126
+FIND_CAT="/usr/local/petget/find_cat"
+
+#130126 make sure have latest in host system...
+[ -f rootfs-skeleton/usr/local/petget/categories.dat ] && cp -f rootfs-skeleton/usr/local/petget/categories.dat /usr/local/petget/
+
+if [ -f ./support/rpm2ppm ];then #110612
+ RPM2PPM='./support/rpm2ppm'
+else
+ RPM2PPM='/usr/local/petget/rpm2ppm' #see 3builddistro.
+fi
+if [ -f ./support/mageia2ppm ];then #110612
+ MAGEIA2PPM='./support/mageia2ppm'
+else
+ MAGEIA2PPM='/usr/local/petget/mageia2ppm' #see 3builddistro
+fi
+
+#190613 somewhere for temp files...
+mkdir -p /tmp/0setup_tmp
+#w091018 now logging errors for future recall...
+mkdir -p /var/woof
+RUNDATE="`date`"
+echo -n "" > /var/woof/0setup_fail_report_$RUNNINGPUP #RUNNINGPUP=yes or no. latter if woof.
+LANG=${LANGORG} echo "This is a report on the last time the '0setup' script was run.
+Date and time '0setup' last run: ${RUNDATE}
+Compatible-distro and release-name: ${DISTRO_BINARY_COMPAT}, ${DISTRO_COMPAT_VERSION}
+Mostly only errors get logged, so the less seen below, the better.
+Log of last run of '0setup':
+" >> /var/woof/0setup_fail_report_$RUNNINGPUP
+
+#download docs on compatible-distro pkgs...
+for PKGLISTSPEC in $PKG_DOCS_DISTRO_COMPAT  #see file DISTRO_COMPAT_REPOS-ubuntu* 190613
+do
+ PKGLISTFILE="`echo -n "$PKGLISTSPEC" | cut -f 3 -d '|'`"
+ PKGLISTURI="`echo -n "$PKGLISTSPEC" | cut -f 2 -d '|'`"
+ [ "$PKGLISTURI" = "" ] && continue #w478 no url, pkg db file only kept in woof.
+ skipdl=""
+ if [ "$RUNNINGPUP" = "no" -a -f $PKGLISTFILE ];then
+  echo
+  echo "Local db file '${PKGLISTFILE}' already exists."
+  echo "Press ENTER key only to upgrade it,"
+  echo -n "or any other printable char to skip: "
+  read skipdl
+ fi
+ if [ "$skipdl" = "" ];then
+  echo
+  if [ "$QUIET" == "yes" ];then #20230914
+   downloadit=''
+  else
+   LANG=${LANGORG} echo "A package information database file needs to be downloaded."
+   LANG=${LANGORG} echo "This will be downloaded from:"
+   echo "$PKGLISTURI"
+   LANG=${LANGORG} echo "and will be processed and named: ${PKGLISTFILE}"
+   LANG=${LANGORG} echo -n "Press ENTER key to download, any other to skip it: " #120126
+   read downloadit
+  fi
+  if [ "$downloadit" = "" ] ; then #120126
+   DLFILE="`basename $PKGLISTURI`"
+   [ -f $DLFILE ] && mv -f $DLFILE /tmp/${DLFILE}-backup1 #v431 otherwise wget creates a new file ${DLFILE}.1
+   rxvt -name pet -bg orange -geometry 80x10 -e wget $PKGLISTURI
+   sync
+   xDLFILE="$DLFILE"
+   if [ -f $DLFILE ];then
+    case ${DISTRO_BINARY_COMPAT} in
+     ubuntu|debian|raspbian|devuan) #150419
+      case "$DLFILE" in
+      *.bz2)
+       xDLFILE="`basename $DLFILE .bz2`"
+       bunzip2 $DLFILE
+       RETSTAT=$?
+      ;;
+      *.gz) #160822
+       xDLFILE="`basename $DLFILE .gz`"
+       gunzip $DLFILE
+       RETSTAT=$?
+      ;;
+      *.xz) #150419
+       xDLFILE="`basename $DLFILE .xz`"
+       unxz $DLFILE
+       RETSTAT=$?
+      ;;
+      esac
+      #[ $RETSTAT -eq 0 ] && mv -f $xDLFILE ${PKGLISTFILE}pre
+      #160411 filter out utf-8 chars...
+      if [ $RETSTAT -eq 0 ];then
+       iconv -c -f utf-8 -t ascii $xDLFILE > ${PKGLISTFILE}pre
+       rm -f $xDLFILE
+      fi
+     ;;
+     slackware)
+      RETSTAT=0
+      mv -f $xDLFILE ${PKGLISTFILE}pre
+      cp -f ${PKGLISTFILE}pre /tmp/0setup_tmp/${PKGLISTFILE}pre #190613
+     ;;
+     arch)
+      #130126 arch code rewritten by noryb009: call find_cat afterward...
+      #130306 BK: sub() funtion to fix version relation operators...
+      #130306 BK: filtered out bad chars from description (note tortuous way to escape ' char)...
+      LANG=${LANGORG} echo "Processing ${DLFILE} please wait..."
+      xDLFILE="`basename $DLFILE .gz`" #actually it's a tarball: core.db.tar.gz, extra.db.tar.gz, community.db.tar.gz
+      rm -rf sandbox0 2>/dev/null
+      mkdir sandbox0
+      cd sandbox0
+      tar xzf "../$DLFILE"
+      RETSTAT=$?
+      cd ..
+      if [ $RETSTAT -eq 0 ];then
+       rm -f "$DLFILE"
+       xxDLFILE="`basename $DLFILE .files.tar.gz`" #this will be core, extra, community  130306 20220119
+       #20220119 hex x22=double-quote ", x27=single-quote '
+       #20220119 deps may contain a library name, ex: acl has "libattr.so" --remove
+       #20220120 remove fraction from size. append arch|20211231
+       #20220120 have taken out the path (ref: DISTRO_COMPAT_REPOS-arch-20211231):
+       # printf("%s-%s|%s|%s|%s||%sK|%s/os/x86_64|%s|%s|%s|%s|%s||\n", pkgname, pkgverarr[1], pkgname, pkgverarr[1], pkgverarr[2], pkgsize, pkgpath, filename, pkgdeps, pkgdesc, distname, distver)
+       #  pkgname=""; pkgverarr[1]=""; pkgverarr[2]=""; pkgsize=""; filename=""; pkgdeps=""; inDeps=0; pkgdesc="";
+       for i in sandbox0/*; do
+        cat "$i/desc" "$i/depends" 2>/dev/null
+       done | awk -v pkgpath="$xxDLFILE" -v distname="$DISTRO_BINARY_COMPAT" -v distver="$DISTRO_COMPAT_VERSION" '
+        function output() {
+         if(filename == "") return;
+         
+         printf("%s-%s|%s|%s|%s||%sK||%s|%s|%s|%s|%s||\n", pkgname, pkgverarr[1], pkgname, pkgverarr[1], pkgverarr[2], pkgsize, filename, pkgdeps, pkgdesc, distname, distver)
+         pkgname=""; pkgverarr[1]=""; pkgverarr[2]=""; pkgsize=""; filename=""; pkgdeps=""; inDeps=0; pkgdesc="";
+        }
+        BEGIN{
+         inDeps=0
+        }
+        {
+         if($1 == ""){
+          #do nothing
+         }else if($1 == "%FILENAME%"){
+          inDeps=0
+          output()
+          getline filename
+         }else if($1 == "%NAME%"){
+          inDeps=0
+          getline pkgname
+         }else if($1 == "%VERSION%"){
+          inDeps=0
+          getline pkgver; split(pkgver, pkgverarr, "-")
+         }else if($1 == "%DESC%"){
+          inDeps=0
+          getline pkgdesc
+          gsub(/</, " ", pkgdesc)
+          gsub(/>/, " ", pkgdesc)
+          gsub(/\|/, " ", pkgdesc)
+          gsub(/'\x27'/, " ", pkgdesc)
+          gsub(/\x22/, " ", pkgdesc)
+          gsub(/\(/, " ", pkgdesc)
+          gsub(/\)/, " ", pkgdesc)
+         }else if($1 == "%ISIZE%"){
+          inDeps=0
+          getline pkgsize; pkgsize = pkgsize / 1024; pkgsize=int(pkgsize)
+         }else if($1 == "%DEPENDS%"){
+          inDeps=1
+         }else if($1 ~ /^%/){
+          inDeps=0
+         }else if(inDeps == 1){ # dependency
+          sub(/>=/, "\\&ge", $0)
+          sub(/<=/, "\\&le", $0)
+          sub(/>/, "\\&gt", $0)
+          sub(/</, "\\&lt", $0)
+          sub(/=/, "\\&eq", $0)
+          if ($0 !~ /\.so/) {
+           if(pkgdeps != "") {
+			pkgdeps=pkgdeps","
+            pkgdeps=pkgdeps"+"
+	       }
+           if(pkgdeps == "") pkgdeps="+"
+           pkgdeps=pkgdeps$0
+	      }
+         }
+        }
+        END{
+         output();
+        }
+       '  > /tmp/${PKGLISTFILE}temp #130306
+       ${FIND_CAT} /tmp/${PKGLISTFILE}temp > $PKGLISTFILE #130126 130306
+      fi
+      rm -rf sandbox0 2>/dev/null
+     ;;
+     t2) #w017
+      RETSTAT=0
+     ;;
+     puppy)
+      RETSTAT=0
+     ;;
+     scientific) #110523 Iguleder
+      xDLFILE="`basename $DLFILE .gz`"
+      gunzip $DLFILE
+      RETSTAT=$?
+      [ $RETSTAT -eq 0 ] && mv -f $xDLFILE ${PKGLISTFILE}pre
+     ;;
+     mageia) #110612
+      xDLFILE="`basename $DLFILE .cz`" #DLFILE=synthesis.hdlist.cz
+      mv -f $DLFILE ${xDLFILE}.gz #.cz is actually a gzipped file.
+      gunzip ${xDLFILE}.gz
+      RETSTAT=$?
+      [ $RETSTAT -eq 0 ] && mv -f $xDLFILE ${PKGLISTFILE}pre #ex: Packages-mageia-1-corepre
+     ;;
+     void) #20230902
+      #renames x86_64-repodata (which is zstd compressed tarball) to Packages-void-currentpre
+      mv -f ${DLFILE} ${PKGLISTFILE}pre
+      RETSTAT=0
+     ;;
+     *) #141116 buildroot, pkg db file needs no processing (as for 'puppy' above)
+      RETSTAT=0
+     ;;
+    esac
+    if [ $RETSTAT -eq 0 ];then
+     LANG=${LANGORG} echo "...success."
+    else
+     LANG=${LANGORG} echo "Downloaded file is corrupted. Deleting file and aborting."
+     rm -f $xDLFILE 2>/dev/null
+     rm -f $DLFILE 2>/dev/null
+     exit
+    fi
+   else
+    LANG=${LANGORG} echo "Failed to download, aborting."
+    LANG=${LANGORG} echo "
+Failed to download db file: 
+ ${PKGLISTURI}
+...exited from 0setup script." >> /var/woof/0setup_fail_report_$RUNNINGPUP
+    exit
+   fi
+  else #120126
+   LANG=${LANGORG} echo "...skipped"
+  fi
+ fi
+done
+
+#120825 -update dbs...
+DBUPDATEFLAG='invalid' #121130
+PKGLISTS_COMPAT_UPDATES=""
+case $DISTRO_BINARY_COMPAT in
+ ubuntu|debian|devuan) #130319 removed |raspbian. 150419
+  if [ "$RUNNINGPUP" == "yes" ];then #170717
+   DBUPDATEFLAG='' #yes, update.
+  else
+   echo
+   LANG=${LANGORG} echo "Do you want to download the ${DISTRO_BINARY_COMPAT}-updates package databases?"
+   LANG=${LANGORG} echo "Accept, they will be downloaded and merged,"
+   LANG=${LANGORG} echo "such that only the updated pkg db entries are kept."
+   LANG=${LANGORG} echo "Example: as at August 31, 2012, Ubuntu Precise Pangolin 12.04 has the first
+'Service Pack' which is version 12.04.1 -- accepting here will obtain the
+package lists for 12.04.1 -- it is generally recommended to accept."
+   LANG=${LANGORG} echo -n "ENTER key only to accept, any other printable char then ENTER to decline: "
+   read DBUPDATEFLAG
+  fi
+  if [ "$DBUPDATEFLAG" = "" ];then #121113
+   #basically same code as above, slight mods...
+   for PKGLISTSPEC in $PKG_DOCS_DISTRO_COMPAT
+   do
+    [ "`echo -n "$PKGLISTSPEC" | grep 'ppa'`" ] && continue #150708 exclude ppa repo.
+    updPTN1="s%${DISTRO_COMPAT_VERSION}%${DISTRO_COMPAT_VERSION}_updates%" #ex: 'precise' becomes 'precise_updates' (underscore because - is delimiter)
+    updPTN2="s%${DISTRO_COMPAT_VERSION}%${DISTRO_COMPAT_VERSION}-updates%" #ex: 'precise' becomes 'precise-updates'
+    PKGLISTFILE="`echo -n "$PKGLISTSPEC" | cut -f 3 -d '|' | sed "$updPTN1"`"
+    PKGLISTURI="`echo -n "$PKGLISTSPEC" | cut -f 2 -d '|' | sed "$updPTN2"`"
+    [ "$PKGLISTURI" = "" ] && continue #w478 no url, pkg db file only kept in woof.
+    #190813 hack, deb-multimedia.org/dists/buster/main does not have updates...
+    case $DISTRO_BINARY_COMPAT in
+     debian) [ "${PKGLISTURI/*debian*/}" != "" ] && continue ;;
+    esac
+    PKGLISTS_COMPAT_UPDATES="${PKGLISTS_COMPAT_UPDATES} ${PKGLISTFILE}" #see further down.
+    skipdl=""
+    if [ "$RUNNINGPUP" = "no" -a -f $PKGLISTFILE ];then
+     echo
+     echo "Local db file '${PKGLISTFILE}' already exists."
+     echo "Press ENTER key only to upgrade it,"
+     echo -n "or any other printable char to skip: "
+     read skipdl
+    fi
+    if [ "$skipdl" = "" ];then
+     echo
+     LANG=${LANGORG} echo "A package information database file needs to be downloaded."
+     LANG=${LANGORG} echo "This will be downloaded from:"
+     echo "$PKGLISTURI"
+     LANG=${LANGORG} echo "and will be processed and named: ${PKGLISTFILE}"
+     LANG=${LANGORG} echo -n "Press ENTER key to download, any other to skip it: " #120126
+     read downloadit
+     if [ "$downloadit" = "" ] ; then #120126
+      DLFILE="`basename $PKGLISTURI`"
+      [ -f $DLFILE ] && mv -f $DLFILE /tmp/${DLFILE}-backup1 #v431 otherwise wget creates a new file ${DLFILE}.1
+      rxvt -name pet -bg orange -geometry 80x10 -e wget $PKGLISTURI
+      sync
+      xDLFILE="$DLFILE"
+      if [ -f $DLFILE ];then
+       case ${DISTRO_BINARY_COMPAT} in
+        ubuntu|debian|devuan) #130319 removed |raspbian. 150419
+         case "$DLFILE" in
+         *.bz2)
+          xDLFILE="`basename $DLFILE .bz2`"
+          bunzip2 $DLFILE
+          RETSTAT=$?
+         ;;
+         *.gz) #160822
+          xDLFILE="`basename $DLFILE .gz`"
+          gunzip $DLFILE
+          RETSTAT=$?
+         ;;
+         *.xz) #150419
+          xDLFILE="`basename $DLFILE .xz`"
+          unxz $DLFILE
+          RETSTAT=$?
+         ;;
+         esac
+         #170708 remove utf8 chars, cause failure further down.
+         if [ $RETSTAT -eq 0 ];then
+          iconv -c -f utf-8 -t ascii $xDLFILE > ${PKGLISTFILE}pre #ex: Packages-ubuntu-xenial_updates-mainpre
+          rm -f $xDLFILE
+          #note, this also works:
+          #perl -i.bk -pe 's/[^[:ascii:]]//g;' ${xDLFILE}
+          #...orig backed up as ${xDLFILE}.bk
+         fi
+        ;;
+       esac
+       if [ $RETSTAT -eq 0 ];then
+        LANG=${LANGORG} echo "...success."
+       else
+        LANG=${LANGORG} echo "Downloaded file is corrupted. Deleting file and aborting."
+        rm -f $xDLFILE 2>/dev/null
+        rm -f $DLFILE 2>/dev/null
+        exit
+       fi
+       if [ ! -s ${PKGLISTFILE}pre ];then #190813 debian buster has empty Packages.gz files.
+        rm -f ${PKGLISTFILE}pre
+        echo "   note: file is empty, there are no updates, ignoring."
+        continue
+       fi
+      else
+       LANG=${LANGORG} echo "Failed to download, aborting."
+       LANG=${LANGORG} echo "
+Failed to download db file: 
+ $PKGLISTURI
+...exited from 0setup script." >> /var/woof/0setup_fail_report_$RUNNINGPUP
+       exit
+      fi
+     else #120126
+      LANG=${LANGORG} echo "...skipped"
+     fi
+    fi
+   done
+  fi
+ ;;
+esac
+
+
+###download pet pkg databases...
+for PKGLISTSPEC in $PKG_DOCS_PET_REPOS  #see file DISTRO_PET_REPOS
+do
+ PKGLISTFILE="`echo -n "$PKGLISTSPEC" | cut -f 3 -d '|'`"
+ PKGLISTURI="`echo -n "$PKGLISTSPEC" | cut -f 2 -d '|'`"
+ if [ "$RUNNINGPUP" = "yes" -o ! -f $PKGLISTFILE ];then
+  echo
+  if [ "$QUIET" == "yes" ];then #20230914
+   downloadit=''
+  else
+   LANG=${LANGORG} echo "A package information database file needs to be downloaded."
+   LANG=${LANGORG} echo "This will be downloaded from:"
+   echo "$PKGLISTURI"
+   LANG=${LANGORG} echo "and will be named: ${PKGLISTFILE}"
+   LANG=${LANGORG} echo -n "Press ENTER key to download, any other to skip it: " #120126
+   read downloadit
+  fi
+  if [ "$downloadit" = "" ] ; then #120126
+   DLFILE="`basename $PKGLISTURI`"
+   [ -f $DLFILE ] && mv -f $DLFILE /tmp/${DLFILE}-backup1 #v431 otherwise wget creates a new file ${DLFILE}.1 111129 prevent error msg.
+   rxvt -name pet -bg orange -geometry 80x10 -e wget $PKGLISTURI
+   sync
+   [ -f $DLFILE ] && LANG=${LANGORG} echo "...success"
+  else #120126
+   LANG=${LANGORG} echo "...skipped"
+  fi
+ fi
+done
+
+v1PATTERN="s%\\-[0-9.]*${DISTRO_BINARY_COMPAT}[0-9.]*$%%"
+v2PATTERN="s%\\+[0-9.]*${DISTRO_BINARY_COMPAT}[0-9.]*$%%"
+
+#20220829 debdb2pupdb no longer needs this...
+##130305 debdb2pupdb.bac now also check that deps exist, need this list of pkgs...
+#if [ "$RUNNINGPUP" = "no" ];then #130316 debdb2pupdb does not read this file in a running pup.
+# case ${DISTRO_BINARY_COMPAT} in
+#  ubuntu|debian|raspbian|devuan) #150419
+#   echo -n " " > /tmp/0setupcompletelistpkgs
+#   COMPLETELISTPKGS="$(grep '^Package: ' Packages*pre 2>/dev/null | cut -f 2 -d ' ' | tr '\n' ' ')"
+#   echo "$COMPLETELISTPKGS" >> /tmp/0setupcompletelistpkgs
+#   [ -f /tmp/0setupnewinvaliddeps ] && rm -f /tmp/0setupnewinvaliddeps #see debdb2pupdb.
+#  ;;
+# esac
+#else
+# [ -f /tmp/0setupcompletelistpkgs ] && rm -f /tmp/0setupcompletelistpkgs
+#fi
+
+#w008 convert pkg database ${PKGLISTFILE}pre to a standard format...
+#120812 subcategory... 190613...
+#each line: pkgname|nameonly|version|pkgrelease|category[;subcategory]|size|path|fullfilename|dependencies|description|compileddistro|compiledrelease|repo|
+#ex: abiword-1.2.4|abiword|1.2.4|5|Document|999K|slackware/ab|abiword-1.2.4-5-i486.tgz|+aiksausus,+gtk2|a nice wordprocessor|slackware|14.2|official|
+PKGLISTS_COMPAT="`echo "$PKG_DOCS_DISTRO_COMPAT" | tr ' ' '\n' | cut -f 3 -d '|' | tr '\n' ' '`" #see file DISTRO_PKGS_SPECS-ubuntu
+#...format ex: 'Packages-ubuntu-intrepid-main Packages-ubuntu-intrepid-universe'
+for ONE_PKGLISTS_COMPAT in $PKGLISTS_COMPAT $PKGLISTS_COMPAT_UPDATES #120825
+do
+ [ ! -f ${ONE_PKGLISTS_COMPAT}pre ] && continue
+ echo
+ LANG=${LANGORG} echo "Processing ${ONE_PKGLISTS_COMPAT} into a standard format..."
+ echo -n "" > $ONE_PKGLISTS_COMPAT
+ echo -n "" > /tmp/${ONE_PKGLISTS_COMPAT}temp #130126
+ case ${DISTRO_BINARY_COMPAT} in
+  ubuntu|debian|raspbian|devuan) #150419
+  
+   if [ -f /usr/local/petget/debdb2pupdb ];then #121111 20230914
+    #new fast compiled app...
+    #create an intermediate-converted file...
+    LANG=${LANGORG} echo " please wait..."
+    #121113 added "Section"...
+    #121113 insert STARTMARKER...
+    MANIPULATED1="$(grep -E '^Package:|^Installed\-Size:|^Architecture:|^Version:|^Depends:|^Filename:|^Description:|^Homepage:|^Section:' ${ONE_PKGLISTS_COMPAT}pre | tr '[\t"|`]' ' ' | tr -s ' ' | sed -e 's%^Installed\-Size%InstalledSize%' -e 's%^Package:%STARTMARKER|PKG\nPackage:%' -e 's%: %|%' -e 's% $%%')" #`geany
+    echo "$MANIPULATED1" > /tmp/woof-debdb.in
+    #call new app. note, this in turn calls /usr/local/petget/find_pkgs...
+    /usr/local/petget/debdb2pupdb ${DISTRO_BINARY_COMPAT} ${DISTRO_COMPAT_VERSION} > /tmp/${ONE_PKGLISTS_COMPAT}temp #130126 $ONE_PKGLISTS_COMPAT
+    ${FIND_CAT} /tmp/${ONE_PKGLISTS_COMPAT}temp > $ONE_PKGLISTS_COMPAT #130126
+    #homepages also get logged...
+    if [ -f /tmp/woof-homepages.acc ];then
+     if [ -f ./PKGS_HOMEPAGES ];then #running in woof.
+      cat  ./PKGS_HOMEPAGES >> /tmp/woof-homepages.acc
+      sort --key=1,1 --field-separator=" " --unique /tmp/woof-homepages.acc > ./PKGS_HOMEPAGES #121113
+     fi
+    fi
+    #130316 /tmp/0setupnewinvaliddeps is created by debdb2pupdb, when run in woof.
+    # 3builddistro will have to copy this file 'invaliddepslist' into rootfs-complete/usr/local/petget/ ...
+    # it is read by debdb2pupdb in a running puppy.
+    if [ "$RUNNINGPUP" = "no" ];then
+     echo -n ' ' > invaliddepslist
+     NIDL1="$(sort -u /tmp/0setupnewinvaliddeps | tr '\n' ' ')"
+     echo -n "$NIDL1" >> invaliddepslist
+    fi
+   else
+    DB_category="" #130126
+    #120719 debian squeeze and earlier has Description field last, wheezy has Filename field last... 160411...
+    Description=''; Filename=''; Package=''; InstalledSize=''; Architecture=''; Version=''; Depends=''
+    endflag=''
+    while read DB_ONELINE
+    do
+     eval $DB_ONELINE
+     case $DB_ONELINE in
+      Description*)
+      [ "$Filename" ] && endflag='yes'
+      ;;
+      Filename*)
+       [ "$Description" ] && endflag='yes' #wheezy and later.
+      ;;
+     esac
+     if [ "$endflag" = "yes" ];then
+      DB_fullfilename="`echo -n "$Filename" | rev | cut -f 1 -d '/' | rev`"
+      DB_path="`echo -n "$Filename" | rev | cut -f 2-9 -d '/' | rev`"
+      DB_version="`echo -n "$Version" | sed -e 's%^[0-9]:%%' -e "$v1PATTERN" -e "$v2PATTERN"`"
+      DB_pkgrelease="`echo -n "$Version" | sed -e 's%^[0-9]:%%' -e "s%${DB_version}%%" -e 's%^\\-%%' -e 's%^\\+%%'`"
+      DB_pkgname="${Package}_${DB_version}"
+      #120815 for debian, ubuntu, use the generic name provided in the $DB_path, instead of $Package, for find_cat... 130126...
+      #xPackage="$Package"
+      #[ "$DB_path" ] && xPackage="$(basename "$DB_path")"
+      #DB_category="`${FIND_CAT} $xPackage "$Description"`" #120812 find_cat now returns category[;subcategory], ex: Document;edit
+      DB_dependencies="`echo -n "$Depends" | sed -e 's%, %\n%g' | cut -f 1 -d ' ' | tr '\n' ' ' | sed -e 's% $%%' -e 's% %,+%g' -e 's%,$%%'`"
+      [ "$DB_dependencies" != "" ] && DB_dependencies='+'"$DB_dependencies"
+      echo "$DB_pkgname|$Package|$DB_version|$DB_pkgrelease|$DB_category|${InstalledSize}K|$DB_path|$DB_fullfilename|$DB_dependencies|$Description|$DISTRO_BINARY_COMPAT|$DISTRO_COMPAT_VERSION|" >> /tmp/${ONE_PKGLISTS_COMPAT}temp #130126 $ONE_PKGLISTS_COMPAT
+      echo -n "$Package "
+      Description=''; Filename=''; Package=''; InstalledSize=''; Architecture=''; Version=''; Depends='' #160411
+      endflag=''
+     fi
+    done<<_END1
+$(grep -E '^Package:|^Installed\-Size:|^Architecture:|^Version:|^Depends:|^Filename:|^Description:' ${ONE_PKGLISTS_COMPAT}pre | tr '[\t"|`]' ' ' | tr -s ' ' | grep -v '\\-dbg$' | sed -e 's%^Installed\-Size%InstalledSize%' -e 's%: %="%' -e 's% $%%' -e 's%$%"%')
+_END1
+    ${FIND_CAT} /tmp/${ONE_PKGLISTS_COMPAT}temp > $ONE_PKGLISTS_COMPAT #130126
+   fi
+   #140215 ubuntu trusty tahr, at 140215 have added lots of xorg pkgs with "-lts-" in name. don't see the point of them...
+   sed -i -e '/\-lts\-/d' $ONE_PKGLISTS_COMPAT
+   #170805 -hwe- maybe should use these in preference too without, but for now just remove them
+   #ref: https://wiki.ubuntu.com/Kernel/LTSEnablementStack
+   sed -i -e '/\-hwe\-/d' $ONE_PKGLISTS_COMPAT
+  ;;
+  slackware)
+   #some pipe (|) chars screw up dep info so replace with commas in the pre process #01micko 20110505
+   sed -i 's%|%,%g' ${ONE_PKGLISTS_COMPAT}pre
+
+   #161227 rewritten...
+   DESCFLG=0
+   DB_pkgname=''; DB_nameonly=''; DB_version=''; DB_pkgrelease=''; DB_category=''; DB_size=''; DB_path=''; DB_fullfilename=''; DB_dependencies=''; DB_description=''
+   while read -r FIELD DESCR
+   do
+    if [ "$FIELD" == "" -o "$FIELD" == " " ];then
+     if [ $DESCFLG -eq 1 ];then
+      echo
+      echo "DB ERROR: ${ONE_PKGLISTS_COMPAT} ${DB_fullfilename}"
+     fi
+     DESCFLG=0
+     DB_pkgname=''; DB_nameonly=''; DB_version=''; DB_pkgrelease=''; DB_category=''; DB_size=''; DB_path=''; DB_fullfilename=''; DB_dependencies=''; DB_description=''
+     continue
+    fi
+    if [ $DESCFLG -eq 2 ];then
+     DB_nameonly="${FIELD%:*}" #knock ":" off the end, ex "abiword:"
+     DB_description="$(echo -n "$DESCR" | sed -e 's/[^ 0-9a-zA-Z.+_=,-]//g')" #161230 filter out any undesirables.
+     DB_pkgname="`echo -n "$DB_fullfilename" | sed -e 's%-x86.*%%' -e 's%-i[3456]86.*%%' -e 's%-noarch.*%%'`"
+     DB_version="$(echo -n "$DB_pkgname" | sed -e "s%${DB_nameonly}-%%")"
+     DB_pkgrelease="$(echo -n "$DB_fullfilename" | sed -e 's%\.txz%%' -e 's%\.tgz%%' -e "s%${DB_pkgname}-%%")"
+     echo "$DB_pkgname|$DB_nameonly|$DB_version|$DB_pkgrelease|$DB_category|${DB_size}|$DB_path|$DB_fullfilename|$DB_dependencies|$DB_description|$DISTRO_BINARY_COMPAT|$DISTRO_COMPAT_VERSION||" >> /tmp/${ONE_PKGLISTS_COMPAT}temp
+     echo -n "${DB_nameonly} "
+     DESCFLG=0
+     DB_pkgname=''; DB_nameonly=''; DB_version=''; DB_pkgrelease=''; DB_category=''; DB_size=''; DB_path=''; DB_fullfilename=''; DB_dependencies=''; DB_description=''
+     continue
+    fi
+    case "$FIELD" in
+     NAME:)
+      DB_fullfilename="$DESCR"
+      DESCFLG=1
+     ;;
+     SIZE:) DB_size="${DESCR// /}" ;; #amazing, converts "123 K" to "123K"
+     REQUIRED:) 
+      DB_dependencies="`echo -n "$DESCR" | sed -e 's% [^,]*%%g' -e 's%,%,+%g' -e 's/[^0-9a-zA-Z.+_=,-]//g' | head -n 1`" #190613 precaution in case get multiple lines.
+      [ "$DB_dependencies" != "" ]&& DB_dependencies='+'"$DB_dependencies"
+      [ "$DB_dependencies" = "+PACKAGE" ]&&  DB_dependencies="" #01micko 20110504 bug with "+PACKAGES" sneaking through
+      [ "$DB_dependencies" = "+REQUIRED" ]&&  DB_dependencies=""
+      #...processed to ex: +acl,+gcc,+glibc-solibs,+libXt,+libart_lgpl
+     ;;
+     LOCATION:) DB_path="${DESCR#*/}" ;; #removes leading "./"
+     DESCRIPTION:) DESCFLG=2 ;;
+    esac
+   done<<_EOF1
+$(cat ${ONE_PKGLISTS_COMPAT}pre | tr '\t' ' ' | tr -s ' ' | sed -e 's%^PACKAGE %%' -e 's% (uncompressed):%:%' -e 's% $%%')
+_EOF1
+
+   ${FIND_CAT} /tmp/${ONE_PKGLISTS_COMPAT}temp > $ONE_PKGLISTS_COMPAT #130126
+  ;;
+  arch)
+   LANG=${LANGORG} echo "...it's already in the Puppy standard format."
+  ;;
+  t2) #w017
+   LANG=${LANGORG} echo "...it's already in the Puppy standard format."
+  ;;
+  void) #20230901 from woof-ce testing
+   echo "executing void0setup..."
+   export ONE_PKGLISTS_COMPAT #20240113
+   if [ "$RUNNINGPUP" = "no" ];then
+    support/void/void0setup
+   else
+    /usr/local/woofV/support/void0setup #20240225
+   fi
+   #void0setup sets category field to "uncategorized", so fix...
+   #mv -f Packages-${DISTRO_BINARY_COMPAT}-${DISTRO_COMPAT_VERSION} Packages-${DISTRO_BINARY_COMPAT}-${DISTRO_COMPAT_VERSION}temp
+   #${FIND_CAT} Packages-${DISTRO_BINARY_COMPAT}-${DISTRO_COMPAT_VERSION}temp > Packages-${DISTRO_BINARY_COMPAT}-${DISTRO_COMPAT_VERSION}
+   mv -f ${ONE_PKGLISTS_COMPAT} ${ONE_PKGLISTS_COMPAT}temp
+   ${FIND_CAT} ${ONE_PKGLISTS_COMPAT}temp > ${ONE_PKGLISTS_COMPAT}
+   rm -f ${ONE_PKGLISTS_COMPAT}temp
+  ;;
+  puppy)
+   echo "...it's already in the Puppy standard format."
+  ;;
+  scientific) #110523 Iguleder
+   [ -f $ONE_PKGLISTS_COMPAT ] && rm -f $ONE_PKGLISTS_COMPAT
+   ${RPM2PPM} ${ONE_PKGLISTS_COMPAT}pre $ONE_PKGLISTS_COMPAT $DISTRO_BINARY_COMPAT $DISTRO_COMPAT_VERSION #110612 fix
+   temp_file=`mktemp -u`
+   cat $ONE_PKGLISTS_COMPAT | sort | uniq > $temp_file
+   mv $temp_file $ONE_PKGLISTS_COMPAT
+  ;;
+  mageia) #110612
+   [ -f $ONE_PKGLISTS_COMPAT ] && mv -f $ONE_PKGLISTS_COMPAT /tmp/${ONE_PKGLISTS_COMPAT}-OLD
+   ${MAGEIA2PPM} ${ONE_PKGLISTS_COMPAT}pre $DISTRO_COMPAT_VERSION
+   mv -f /tmp/mageia2ppm-ppm-temp4 ${ONE_PKGLISTS_COMPAT}
+  ;;
+  *) #141116 handle buildroot
+   echo "...it's already in the Puppy standard format."
+  ;;
+ esac
+ echo
+ #rm -f ${ONE_PKGLISTS_COMPAT}pre 2>/dev/null
+ mv -f ${ONE_PKGLISTS_COMPAT}pre /tmp/ 2>/dev/null
+ sort --field-separator='|' --key=1 ${ONE_PKGLISTS_COMPAT} > /tmp/$PKGLISTFILE
+ mv -f /tmp/$PKGLISTFILE ${ONE_PKGLISTS_COMPAT}
+
+ if [ "$DISTRO_BINARY_COMPAT" == "void" ];then #20230915  20240116 moved up, as to copy both db's.
+  if [ "$RUNNINGPUP" == "no" ];then
+   cp -a -f ${ONE_PKGLISTS_COMPAT} ${PROJECTPATH}/easy-distro/${DISTRO_TARGETARCH}/void/current/
+  fi
+ fi
+
+done
+echo
+
+####################################
+#120825 merge updates into original debian db files...
+if [ "$DBUPDATEFLAG" = "" ];then #121113 empty now means yes.
+ for ONE_PKGLISTS_COMPAT in $PKGLISTS_COMPAT
+ do
+  REPOFIELD="`echo -n "$ONE_PKGLISTS_COMPAT" | rev | cut -f 1 -d '-' | rev`" #ex: main
+  PKGUPDATES="`echo -n "$PKGLISTS_COMPAT_UPDATES" | tr ' ' '\n' | grep "\-${REPOFIELD}$" | head -n 1`" #ex: Packages-ubuntu-precise_updates-main
+  [ "$PKGUPDATES" == "" ] && continue #190830
+  [ ! -f $PKGUPDATES ] && continue #190813
+  [ ! -s $PKGUPDATES ] && continue #190813
+  cat $PKGUPDATES > /tmp/0setup_xxx1
+  cat $ONE_PKGLISTS_COMPAT >> /tmp/0setup_xxx1
+  sync
+  #want to discard the older package...
+  sort --unique --field-separator='|' --key=2,2 /tmp/0setup_xxx1 > $ONE_PKGLISTS_COMPAT
+  #...assumes pkg names remain the same, ex "firefox" (2nd field in db).
+  mv -f $PKGUPDATES /tmp/$PKGUPDATES #dump -updates db file.
+ done
+fi
+sync
+
+#
+
+#190613
+###find deps for slackware pkgs###
+if [ "$DISTRO_BINARY_COMPAT" == "slackware" ];then
+ #file DEPENDENCIES has pkg deps, "real" names used in ubuntu...
+ if [ -f ./DEPENDENCIES -o -f ./DEPENDENCIES-slackware ];then
+ #XXXif [ -f ./DEPENDENCIES ];then #always recreate DEPENDENCIES-slackware
+  echo "Now inserting dependencies into Slackware pkg database..."
+  #save time, also for when in running pup, do not recreate DEPENDENCIES-slackware...
+  if [ ! -f DEPENDENCIES-slackware ];then
+   #for ONE_PKGLISTS_COMPAT in $PKGLISTS_COMPAT
+   #do
+   # cp -f $ONE_PKGLISTS_COMPAT /tmp/0setup_tmp/${ONE_PKGLISTS_COMPAT}BAK1 #backup.
+   #done
+   echo "  creating file DEPENDENCIES-slackware"
+   #convert pkg names in DEPENDENCIES into slackware names...
+   #mostly they will be the same
+   #process name aliases into patterns (see file PKGS_MANAGEMENT) ...
+   xPKG_NAME_ALIASES="$(echo "$PKG_NAME_ALIASES" | tr ' ' '\n' | grep -v '^$' | sed -e 's%,%|%g' -e 's%\*%.*%g' | sed -e 's%\+%\\+%g')"
+   echo "$xPKG_NAME_ALIASES" > /tmp/0setup_tmp/pkg_name_aliases_patterns_1
+   #...ex line: alsalib|alsa-lib|alsa-lib2.*
+   cut -f 1 -d ':' DEPENDENCIES > /tmp/0setup_tmp/ubuntu-real-names
+   cut -f 2 -d '|' $PKGLISTS_COMPAT > /tmp/0setup_tmp/slackware-real-names
+   cut -f 2,3 -d '|' $PKGLISTS_COMPAT > /tmp/0setup_tmp/slackware-real-names-plus-ver
+   echo -n '' > DEPENDENCIES-slackware
+   cat DEPENDENCIES |
+   while read depLINE
+   do
+    echo -n '.'
+    wordcnt=0
+    for aWORD in $depLINE
+    do
+     xaWORD="${aWORD/:/}"
+     zxaWORD="$(echo -n "$xaWORD" | sed -e 's%\+%\\+%g')" #some pkgs have "+" char, need to escape it.
+     wordcnt=$(($wordcnt+1))
+     echo -n "${xaWORD}" > /tmp/0setup_tmp/pkg_dnameonly #dump trailing : in first word.
+     dMATCH=''
+     grep -i -E -x -f /tmp/0setup_tmp/pkg_name_aliases_patterns_1 /tmp/0setup_tmp/pkg_dnameonly >/dev/null
+     if [ $? -eq 0 ];then
+      for dPTN in $(cat /tmp/0setup_tmp/pkg_name_aliases_patterns_1)
+      do
+       grep -i -E -x "$dPTN" /tmp/0setup_tmp/pkg_dnameonly >/dev/null
+       if [ $? -eq 0 ];then
+        dMATCH="$dPTN"
+        break
+       fi
+      done
+     fi
+     
+     slackRN=""
+     if [ "$dMATCH" ];then
+      slackRN="$(grep -i -E -x "$dMATCH" /tmp/0setup_tmp/slackware-real-names | head -n 1)"
+     fi
+     
+     if [ "$slackRN" == "" ];then
+      #ignore pkg if it does not exist in the slackware db...
+      slackRN="$(grep -i -x "$zxaWORD" /tmp/0setup_tmp/slackware-real-names | head -n 1)"
+      if [ "$slackRN" == "" ];then #spread the net a bit wider...
+       slackRN="$(grep -i -x "${zxaWORD}[0-9.-]*" /tmp/0setup_tmp/slackware-real-names | head -n 1)"
+      fi
+      if [ "$slackRN" == "" ];then #some pkgs reverse the naming...
+       #ex: ubuntu: libfile-basedir-perl slackware: perl-File-BaseDir
+       endWORD="${zxaWORD/*-/}"
+       case "$endWORD" in
+        perl)
+         firstWORDS="${zxaWORD%-perl}"
+         slackRN="$(grep -i "perl-${firstWORDS}" /tmp/0setup_tmp/slackware-real-names | head -n 1)"
+         if [ "$slackRN" == "" ];then
+          cutWORDS="${firstWORDS:3:99}" #chop off leading "lib"
+          slackRN="$(grep -i "perl-${cutWORDS}" /tmp/0setup_tmp/slackware-real-names | head -n 1)"
+         fi
+        ;;
+       esac
+      fi
+      if [ "$slackRN" == "" ];then
+       first3="${xaWORD:0:3}"
+       case "$first3" in
+        lib) #many ubuntu pkgs have appended leading "lib"
+         cutWORDS="${zxaWORD:3:99}" #chop off leading "lib"
+         slackRN="$(grep -i -x "$cutWORDS" /tmp/0setup_tmp/slackware-real-names | head -n 1)"
+         [ "$slackRN" == "" ] && slackRN="$(grep -i -x "${cutWORDS}[0-9.-]*" /tmp/0setup_tmp/slackware-real-names | head -n 1)"
+        ;;
+       esac
+      fi
+     fi
+     
+     if [ "$slackRN" ];then
+      #if [ $wordcnt -eq 1 ];then
+       echo -n "${slackRN} " >> DEPENDENCIES-slackware
+      #else
+      # #comment-out this if-else if do not want versioned deps.
+      # slackVER="$(grep "^{slackRN}|" /tmp/0setup_tmp/slackware-real-names-plus-ver | head -n 1 | cut -f 2 -d '|')"
+      # echo -n "${slackRN}&eq${slackVER} " >> DEPENDENCIES-slackware
+      #fi
+     else
+      [ $wordcnt -eq 1 ] && continue 2 #ignore this line.
+     fi
+    done
+    echo "" >> DEPENDENCIES-slackware #carriage-return.
+   done
+   echo ""
+   #just in case...
+   sort -t ' ' -k 1,1 -u DEPENDENCIES-slackware > /tmp/0setup_tmp/DEPENDENCIES-slackware
+   cp -f /tmp/0setup_tmp/DEPENDENCIES-slackware DEPENDENCIES-slackware
+  fi
+  #DEPENDENCIES-slackware now has name of pkg followed by space-delimited deps on each line.
+  #now, insert deps into DB_dependencies fields...
+  for pkgDB in $PKGLISTS_COMPAT
+  do
+   echo " inserting dependencies into ${pkgDB}"
+   echo -n '' > /tmp/0setup_tmp/${pkgDB}
+   cat $pkgDB |
+   while read pkgLINE
+   do
+    echo -n '.'
+    echo -n "$pkgLINE" > /tmp/0setup_tmp/pkgLINE
+    chars1to8="$(cut -f 1-8 -d '|' /tmp/0setup_tmp/pkgLINE)"
+    echo -n "${chars1to8}|" >> /tmp/0setup_tmp/${pkgDB}
+    DB_dependencies="$(cut -f 9 -d '|' /tmp/0setup_tmp/pkgLINE)"
+    #some slackware db such as salix, do have deps, but put our own in anyway...
+    #if [ "$DB_dependencies" == "" ];then
+     pkgNAME="$(cut -f 2 -d '|' /tmp/0setup_tmp/pkgLINE)"
+     zpkgNAME="$(echo -n "$pkgNAME" | sed -e 's%\+%\\+%g')" #escape any "+" chars.
+     pkgDEPS="$(grep "^${zpkgNAME} " DEPENDENCIES-slackware | cut -f 2- -d ' ' | head -n 1)"
+     [ "$pkgDEPS" ] && DB_dependencies="$(echo -n "$pkgDEPS" | sed -e 's%^%+%' -e 's% $%%' | sed -e 's% %,+%g')"
+    #fi
+    echo -n "${DB_dependencies}|" >> /tmp/0setup_tmp/${pkgDB}
+    chars10plus="$(cut -f 10- -d '|' /tmp/0setup_tmp/pkgLINE)"
+    echo "${chars10plus}" >> /tmp/0setup_tmp/${pkgDB}
+   done
+   echo ""
+   cp -f ${pkgDB} /tmp/0setup_tmp/${pkgDB}prev
+   cp -f /tmp/0setup_tmp/${pkgDB} ${pkgDB}
+  done
+ fi
+fi
+
+#120909 moved down...
+if [ "$RUNNINGPUP" = "yes" ];then
+ if [ "$QUIET" == "yes" ];then #20230914
+  exit
+ fi
+ echo
+ LANG=${LANGORG} echo "FINISHED"
+ LANG=${LANGORG} echo "After restarting the Package Manager (PETget),"
+ LANG=${LANGORG} echo "it will be reading the updated database files."
+ LANG=${LANGORG} echo -n "Press ENTER key to exit: "
+ read enditnow
+ exit
+fi
+
+
+####################################
+#extract all the package names of compat-distro, without version info...
+PKGNAMES="`cat $PKGLISTS_COMPAT | cut -f 1,2,3 -d '|'`"
+#...on separate lines, ex: gdb-6.8 gdbm-1.8.3 genpower-1.0.5
+#151103 er, no, each line will be, ex: gdb-6.8|gdb|6.8
+
+#check the entries in PKGS_SPECS_TABLE against those in Packages-${DISTRO_BINARY_COMPAT}-${DISTRO_COMPAT_VERSION}.
+#that is, need to verify that pkgs specified in table do actually exist.
+echo
+echo "Checking that compat-distro pkgs specified in PKGS_SPECS_TABLE actually exist..."
+echo "
+Checking that compat-distro pkgs specified in PKGS_SPECS_TABLE actually exist..." >> /var/woof/0setup_fail_report_$RUNNINGPUP
+FAILCHK="no"
+#BINARYPARTNAMES="`echo "$PKGS_SPECS_TABLE" | grep '^yes' | cut -f 3 -d '|' | tr ',' '\n' | grep -v '^-' | tr '\n' ' '`"
+#120315 extra field on end to force repo...
+FIELDS2345="`echo "$PKGS_SPECS_TABLE" | grep '^yes' | cut -f 2,3,4,5 -d '|' | cut -f 1 -d ' ' | grep -v '|pet:' | tr '\n' ' '`"
+for AFIELD2345 in $FIELDS2345
+do
+ #151103 pickup if have specified a t2 binary pkg, to be used in a non-t2 build...
+ xPKGNAMES="$PKGNAMES"
+ if [ "$DISTRO_BINARY_COMPAT" != "t2" ];then
+  REPOSPEC2="$(echo -n "$AFIELD2345" | cut -f 4 -d '|' | cut -f 2 -d ':')" #compat:april, extract 'april'.
+  if [ "$REPOSPEC2" == "april" ];then
+   xPKGNAMES="$(cat Packages-t2-april-official | cut -f 1,2,3 -d '|')"
+  fi
+ fi
+ if [ "$DISTRO_BINARY_COMPAT" != "oe" ];then #20220120
+  REPOSPEC2="$(echo -n "$AFIELD2345" | cut -f 4 -d '|' | cut -f 2 -d ':')" #compat:dunfell, extract 'dunfell'.
+  if [ "$REPOSPEC2" == "dunfell" ];then
+   xPKGNAMES="$(cat Packages-oe-dunfell-official | cut -f 1,2,3 -d '|')"
+  fi
+  if [ "$REPOSPEC2" == "kirkstone" ];then #20230309
+   xPKGNAMES="$(cat Packages-oe-kirkstone-official | cut -f 1,2,3 -d '|')"
+  fi
+ fi
+ ASSIGNFIELD="`echo -n "$AFIELD2345" | cut -f 3 -d '|'`" #120804 ex: exe>dev,dev,doc,nls
+ AFIELD235="`echo -n "$AFIELD2345" | cut -f 1,2,4 -d '|'`" #120804
+ if [ "`echo -n "$AFIELD235" | grep '||[a-zA-Z0-9]*:'`" = "" ];then #ex: abiword||wary5:
+  BINARYPARTNAMES="`echo -n "$AFIELD235" | cut -f 2 -d '|' | tr ',' '\n' | grep -v '^-' | tr '\n' ' '`" #ex: "abiword|abiword0,libabiword|" becomes "abiword0 libabiword"
+ else
+  BINARYPARTNAMES="`echo -n "$AFIELD235" | cut -f 1 -d '|'`" #use the generic name.
+ fi
+ for ONEBINARYPARTNAME in $BINARYPARTNAMES
+ do
+  #ONEBINARYPARTNAME may match multiple pkgs...
+  #i think that dashes need to be backslashed...
+  multiPATTERN="`echo -n "$ONEBINARYPARTNAME" | sed -e 's%\\-%\\\\-%g'`"
+  #may have blob * wildcard, change to reg.expr....
+  multiPATTERN="`echo -n "$multiPATTERN" | sed -e 's%\\*%.*%g'`"
+  xPATTERN='|'"$multiPATTERN"'|'
+  [ "`echo "$xPKGNAMES" | grep "$xPATTERN"`" != "" ] && continue #success. 151103
+  if [ "$ASSIGNFIELD" ];then #120804
+   #this will find entry in PKGS_SPECS_TABLE like 'yes|apr|apr|exe>dev,dev,doc,nls', where pkg apr-123 does not exist, only apr_DEV-123...
+   EXEASSIGNED=''
+   [ "`echo -n "$ASSIGNFIELD" | grep 'exe>dev'`" != "" ] && EXEASSIGNED='dev'
+   [ "`echo -n "$ASSIGNFIELD" | grep 'exe>null'`" != "" ] && EXEASSIGNED='null'
+   if [ "$EXEASSIGNED" ];then
+    xxPATTERN='^'"${ONEBINARYPARTNAME}_DEV"
+    [ "`echo "$xPKGNAMES" | grep "$xxPATTERN"`" != "" ] && continue #success. 151103
+   fi
+   #this entry 'yes|perl-digest-sha1|perl-digest-sha1|exe,dev>null,doc>null,nls>null' also only has a _DEV pkg...
+   DEVASSIGNED=''
+   [ "`echo -n "$ASSIGNFIELD" | grep 'dev>exe'`" != "" ] && DEVASSIGNED='exe'
+   if [ "$DEVASSIGNED" = "exe" ];then
+    xxPATTERN='^'"${ONEBINARYPARTNAME}_DEV"
+    [ "`echo "$xPKGNAMES" | grep "$xxPATTERN"`" != "" ] && continue #success. 151103
+   fi
+  fi
+  #if [ "`echo -n "$ONEBINARYPARTNAME" | grep '[a-z]\\-[0-9]'`" != "" ];then
+  if [ "`echo -n "$ONEBINARYPARTNAME" | grep '\\*'`" != "" ];then
+   zPATTERN='^'"$multiPATTERN"
+   [ "`echo "$xPKGNAMES" | grep "$zPATTERN"`" != "" ] && continue #success. 151103
+  fi
+  #failure...
+  echo "FAIL: $ONEBINARYPARTNAME"
+  
+  #141011 try to locate existing pkg...
+  zN="$(echo -n "$ONEBINARYPARTNAME" | rev | cut -f 2- -d '-' | rev)" #take -* off end
+  zzN="$(echo -n "$zN" | sed -e 's%[0-9]*$%%')" #takes numeric digits off end
+  zPTN="`echo -n "$zzN" | sed -e 's%\\-%\\\\-%g'`" #backslash the -
+  zzPTN="`echo -n "$zPTN" | sed -e 's%\\*%.*%g'`" #may have blob * wildcard, change to reg.expr.
+  zzzPTN="|${zzPTN}"
+  zACTUAL="$(echo -n "$xPKGNAMES" | grep "$zzzPTN" | cut -f 2 -d '|')" #extract name only, no version. 151103
+  if [ "$zACTUAL" ];then
+   echo
+   echo '...pkg does not exist, however these do:'
+   CNT=1
+   for zONE in $zACTUAL
+   do
+    echo "$CNT  $zONE"
+    CNT=$(($CNT + 1))
+    [ $CNT -gt 60 ] && break #20230309
+   done
+   echo -n 'Type number of choice, else ENTER only to fail: '
+   read zNUM
+   if [ "$zNUM" ];then
+    zCHOICE="$(echo -n "$zACTUAL" | head -n $zNUM | tail -n 1)"
+    if [ "$zCHOICE" ];then
+     zREPL="s%${ONEBINARYPARTNAME}%${zCHOICE}%"
+     sed -e "$zREPL" $DPSFILE > /tmp/${DPSFILE}temp
+     diff -s $DPSFILE /tmp/${DPSFILE}temp > /tmp/${DPSFILE}diff
+     if [ $? ];then
+      echo "propose to update ${ONEBINARYPARTNAME} with ${zCHOICE}:"
+      echo "This is proposed updated line(s) in file ${DPSFILE}:"
+      echo
+      cat /tmp/${DPSFILE}diff
+      echo
+      echo -n "Type ENTER to agree, else any other char: "
+      read agree1
+      if [ "$agree1" == "" ];then
+       sed -i -e "$zREPL" $DPSFILE
+       echo "...ok, $ONEBINARYPARTNAME updated to $zCHOICE"
+       echo
+       continue
+      fi
+     fi
+    fi
+   fi
+  fi
+  
+  echo "FAIL: $ONEBINARYPARTNAME" >> /var/woof/0setup_fail_report_$RUNNINGPUP
+  FAILCHK="yes"
+ done
+done
+if [ "$FAILCHK" = "yes" ];then
+ echo
+ echo "Finished, but some failures. You need to fix the above entries in"
+ echo "PKGS_SPECS_TABLE in file ${DPSFILE}."
+ echo "Search for suitable packages in these files:"
+ echo "`echo "$PKG_DOCS_DISTRO_COMPAT" | tr ' ' '\n' | cut -f 3 -d '|'`"
+ echo "Or, search online. In the case of Debian or Ubuntu, you can search"
+ echo "at packages.debian.org or packages.ubuntu.com."
+ echo "After you have fixed PKGS_SPECS_TABLE, run this script again."
+ echo "
+Finished, but some failures. You need to fix the above entries in variable
+PKGS_SPECS_TABLE in file ${DPSFILE}.
+Search for suitable packages in these files:
+`echo "$PKG_DOCS_DISTRO_COMPAT" | tr ' ' '\n' | cut -f 3 -d '|'`
+Or, search online. In the case of Debian or Ubuntu, you can search
+at packages.debian.org or packages.ubuntu.com.
+After you have fixed PKGS_SPECS_TABLE, run this script again."  >> /var/woof/0setup_fail_report_$RUNNINGPUP
+else
+ echo
+ echo "Finished, successful."
+ echo "...finished, successful."  >> /var/woof/0setup_fail_report_$RUNNINGPUP
+fi
+
+echo
+echo "The log of '0setup', as reported above, is saved for future reference."
+echo "(In file /var/woof/0setup_fail_report_${RUNNINGPUP})"
+echo -n "Press ENTER key to finish '0setup' script: "
+read yepgetout
+###END###

@@ -6,12 +6,13 @@
 #called from 3builddistro (woof), or /usr/local/petget/hacks-postinstall.sh.
 #130326 first release.
 #130329 changed stat --format=%Y to stat -c %Y, so busybox applet will work.
+#20240224 woofv compat. called from 6post-process-rootfs
 
 GTKRCS=""
 JWMTHEMES=""
 ROXPREFIX=""
 RUNNINGIN="standalone"
-[ -d ../rootfs-skeleton ] && [ -d rootfs-complete ] && RUNNINGIN="woof"
+[ -d ./rootfs-skeleton ] && [ -d ./rootfs ] && RUNNINGIN="woof" #20240224 woofv
 [ $1 ] && RUNNINGIN="single" #maybe from ppm when install a package.
 case $RUNNINGIN in
  standalone) #execute in a running puppy, no passed param.
@@ -21,11 +22,11 @@ case $RUNNINGIN in
   ROXPREFIX="/"
  ;;
  woof)
-  #can be run in Woof, called from 3builddistro...
-  GTKRCS="`ls rootfs-complete/usr/share/themes/*/gtk-2.0/gtkrc | grep -v ' ' | tr '\n' ' '`"
-  XRESFILE="rootfs-complete/root/.Xresources"
-  JWMTHEMES="`ls rootfs-complete/root/.jwm/themes/*-jwmrc | tr '\n' ' '` rootfs-complete/root/.jwm/jwmrc-theme"
-  ROXPREFIX="rootfs-complete/"
+  #can be run in Woof...
+  GTKRCS="`ls rootfs/usr/share/themes/*/gtk-2.0/gtkrc | grep -v ' ' | tr '\n' ' '`"
+  XRESFILE="rootfs/root/.Xresources"
+  JWMTHEMES="`ls rootfs/root/.jwm/themes/*-jwmrc | tr '\n' ' '` rootfs/root/.jwm/jwmrc-theme"
+  ROXPREFIX="rootfs/"
  ;;
  single) #called from ppm.
   eval "$@" #ex: GTKRCS=/usr/share/themes/Citrus/gtk-2.0/gtkrc

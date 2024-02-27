@@ -20,11 +20,12 @@
 #20231205 add application_x-7z-compressed to xarchive
 #20231206 screen out firefox & vivaldi if not installed.
 #20240114 fix 20230902, add .xbps
+#20240224 woofV compat.
 
-#may call this in woofQ, when current dir is sandbox3/rootfs-complete, so test...
+#may call this in woofQ, when current dir is in rootfs-complete, so test...
 CWD="`pwd`"
 case "$CWD" in
- *rootfs-complete) true ;;
+ *rootfs|*rootfs-complete) true ;; #20240224 woofV compatible
  *) cd / ;;
 esac
 
