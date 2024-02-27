@@ -472,7 +472,10 @@ if [ "$EC_GLOBAL_CHROOT" == "pflask" ];then #180928
  NS="${MNTns}${UTSns}${IPCns}${NETns}${PIDns}"
  #capabilities
  #20201215 5.10 kernel has cap_sys_mount patch, have also patched capsh...
- #20201217 ditto 5.4.84 kernel. has different patached capsh and pflask.
+ #20201217 ditto 5.4.84 kernel. has different patched capsh and pflask.
+ #20240226 see notes in init intrd. problem in easyvoid, pflask links to
+ # libcap-ng that is not patched for sys_mount. this capsh is the void one.
+ # 6post-process-rootfs has copied the patched one from initrd to /usr/bin/capsh-oe
  CSMopt=''
  capsh --supports=cap_sys_mount 2>/dev/null #note: this will also work with unpatched capsh, use "41"
  if [ $? -eq 0 ];then

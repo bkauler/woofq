@@ -67,6 +67,7 @@
 #20231215 chrome fix.
 #20231217 ff: remove hardware accel has been disabled popup msg.
 #20240118 now have global /etc/gtk-3.0/settings.ini
+#20240224 woofv compat.
 
 APPname="${1/=*/}"  #ex: seamonkey
 APPflag="${1/*=/}" #ex: true
@@ -78,6 +79,9 @@ PREFIXDIR1=''     #note: loginmanager will not pass a $2
 PREFIXDIR2="${2}" #dir2sfs will pass this, when creating an sfs.
 if [ -d ./rootfs-complete ];then
  PREFIXDIR1='rootfs-complete' #running in woofQ.
+fi
+if [ -d ./rootfs ];then
+ PREFIXDIR1='rootfs' #running in woofV
 fi
 if [ "$PREFIXDIR2" ];then
  PREFIXDIR1="${PREFIXDIR2}"
