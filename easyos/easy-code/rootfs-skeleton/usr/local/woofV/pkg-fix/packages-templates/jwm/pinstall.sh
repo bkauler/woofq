@@ -1,6 +1,6 @@
 #!/bin/sh
 #post-install script.
-#Woof: current directory is sandbox3/rootfs-complete.
+#Woof: current directory is rootfs
 #180706 do not test for other tray apps.
 
 if [ "`pwd`" != "/" ];then

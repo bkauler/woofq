@@ -1,7 +1,7 @@
 #!/bin/sh
 #post-install script.
 
-#unleashed: current directory is rootfs-complete, which has the final filesystem.
+#unleashed: current directory is in rootfs, which has the final filesystem.
 #petget: current directory is /.
 
 #RUNNINGPS="`ps`"

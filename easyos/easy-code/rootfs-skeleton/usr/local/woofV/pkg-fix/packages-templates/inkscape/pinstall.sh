@@ -1,7 +1,7 @@
 #!/bin/sh
 #post-install script.
 
-#woof: current directory is rootfs-complete, which has the final filesystem.
+#woof: current directory is in rootfs, which has the final filesystem.
 #ppm: current directory is /.
 
 if [ "`pwd`" != "/" ];then

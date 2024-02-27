@@ -1,6 +1,6 @@
 #!/bin/sh
 #post-install script for rox.
-#Woof: current directory is rootfs-complete, which has the final filesystem.
+#Woof: current directory is in rootfs, which has the final filesystem.
 
 echo "Configuring ROX Filer..."
 

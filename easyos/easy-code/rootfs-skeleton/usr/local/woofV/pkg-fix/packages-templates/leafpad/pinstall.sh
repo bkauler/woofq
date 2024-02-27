@@ -1,7 +1,7 @@
 #!/bin/sh
 #post-install script.
 
-#creatuppy: current directory is rootfs-complete, which has the final filesystem.
+#creatuppy: current directory is in rootfs, which has the final filesystem.
 #pupget: current directory is /.
 
  if [ ! -f ./usr/bin/geany ];then

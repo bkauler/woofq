@@ -1,0 +1,22 @@
+
+#20240224 only want minimal utlities, that are not in busybox
+#using kirkstone shadow, which does not require pam.
+
+echo 'FIXUPHACK: shadow' 1>&2 #for error log.
+
+mkdir -p usr/bin
+
+#kirkstone pkg...
+if [ -d usr/sbin ];then
+ if [ ! -h usr/sbin ];then
+  cp -a -f --remove-destination usr/sbin/* usr/bin/
+  rm -rf usr/sbin
+ fi
+fi
+
+#keep only these (requires bash)...
+GLOBIGNORE='groupadd:groupdel:groupmod:nologin:useradd:userdel:usermod'
+cd usr/bin
+rm *
+cd ../../
+unset GLOBIGNORE
