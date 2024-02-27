@@ -21,6 +21,7 @@ FIND_CAT="/usr/local/petget/find_cat"
 
 #somewhere for temp files...
 mkdir -p /tmp/woofV
+echo -n '' > /tmp/woofV/pkgs-homepages #20240226 cvt.sh called from void0setup
 cd /tmp/woofV
 touch THISISINTMPWOOFV #void0setup will test this exists.
 
@@ -102,4 +103,8 @@ done
 sync
 echo "$(LANG=${LANGorig} gettext 'The updated package databases are in /usr/local/woofV/configure')"
 
+#20240226 void0setup calls cvt.sh which writes to /tmp/woofV/pkgs-homepages
+if [ -s /tmp/woofV/pkgs-homepages ];then
+ cp -f /tmp/woofV/pkgs-homepages ${L1}/configure/PKGS_HOMEPAGES
+fi
 ###end###

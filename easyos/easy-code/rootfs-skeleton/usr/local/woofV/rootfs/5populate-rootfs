@@ -158,17 +158,21 @@ do
     ;;
    esac
    DONOTOPEN=0
-   if [ -d /usr/local/woofV/pkg-fix/packages-templates/${PSTgeneric} ];then
-    #if only has pinstall.sh no need to open up the pkg...
-    if [ "$(find ${L1}/pkg-fix/packages-templates/${PSTgeneric} -mindepth 1 -maxdepth 1 -exec basename {} \;)" == "pinstall.sh" ];then
+   if [ -d ${L1}/pkg-fix/packages-templates/${PSTgeneric} ];then
+    if [ -f ${L1}/pkg-fix/packages-templates/${PSTgeneric}/pinstall.sh ];then
+     #if only has pinstall.sh no need to open up the pkg...
+     if [ "$(find ${L1}/pkg-fix/packages-templates/${PSTgeneric} -mindepth 1 -maxdepth 1 -exec basename {} \;)" == "pinstall.sh" ];then
+      DONOTOPEN=1
+     fi
+     #20240223 do this here, instead of in template-fix...
+     echo "echo 'TEST pinstall.sh: ${PSTgeneric}' 1>&2" >> ${E1}/sandbox/pinstall.sh #for debugging
      cat ${L1}/pkg-fix/packages-templates/${PSTgeneric}/pinstall.sh >> ${E1}/sandbox/pinstall.sh
-     DONOTOPEN=1
     fi
    fi
    #check if already installed...
    INST="$(chroot ${E1}/rootfs /usr/bin/xbps-query --show ${WIPnameonly} --property state)"
    if [ "$INST" == "installed" ];then
-    if [ -d /usr/local/woofV/pkg-fix/packages-templates/${PSTgeneric} -a $DONOTOPEN -eq 0 ];then
+    if [ -d ${L1}/pkg-fix/packages-templates/${PSTgeneric} -a $DONOTOPEN -eq 0 ];then
      #will be applying package-templates, so need to uninstall...
      chroot ${E1}/rootfs /usr/bin/xbps-remove -f -O -y ${WIPnameonly}
      INST="$(chroot ${E1}/rootfs /usr/bin/xbps-query --show ${WIPnameonly} --property state)"
@@ -205,12 +209,6 @@ do
      #apply fixes...
      /usr/local/woofV/pkg-fix/template-fix ${PSTgeneric} ${WIPcompatname} ${E1}/sandbox/${Pdir}
      
-     #if there is a pinstall.sh, remove it. accumulate to execute later...
-     if [ -e ${E1}/sandbox/${Pdir}/pinstall.sh ];then
-      cat ${E1}/sandbox/${Pdir}/pinstall.sh >> ${E1}/sandbox/pinstall.sh
-      rm -f ${E1}/sandbox/${Pdir}/pinstall.sh
-     fi
-       
      #repackage as .xbps...
      #***WARNING*** .plist file will be different from online repo!!!
      #don't remove "INSTALL" here, template-fix may remove it...
@@ -278,6 +276,14 @@ do
     #need to replace it with this one from kirkstone...
     chroot ${E1}/rootfs /usr/bin/xbps-remove -f -O -y ${Newnameonly}
    fi
+
+   if [ -d ${L1}/pkg-fix/packages-templates/${PSTgeneric} ];then
+    if [ -f ${L1}/pkg-fix/packages-templates/${PSTgeneric}/pinstall.sh ];then
+     #20240223 do this here, instead of in template-fix...
+     echo "echo 'TEST pinstall.sh: ${PSTgeneric}' 1>&2" >> ${E1}/sandbox/pinstall.sh #for debugging
+     cat ${L1}/pkg-fix/packages-templates/${PSTgeneric}/pinstall.sh >> ${E1}/sandbox/pinstall.sh
+    fi
+   fi
    
    #if already converted to .xbps, can skip some code below...
    if [ -f ${E1}/converted-pkgs/${Newnameonly}-${Newver}_${WIPrevision/r/}.${xARCH}.xbps ];then
@@ -328,11 +334,6 @@ do
     #if pkg-fix/packages-templates/$PSTgeneric, than call template-fix
     if [ -d /usr/local/woofV/pkg-fix/packages-templates/${PSTgeneric} ];then
      /usr/local/woofV/pkg-fix/template-fix ${PSTgeneric} ${WIPcompatname} ${E1}/sandbox/${Pdir}
-     #if there is a pinstall.sh, remove it. accumulate to execute later...
-     if [ -e ${E1}/sandbox/${Pdir}/pinstall.sh ];then
-      cat ${E1}/sandbox/${Pdir}/pinstall.sh >> ${E1}/sandbox/pinstall.sh
-      rm -f ${E1}/sandbox/${Pdir}/pinstall.sh
-     fi
     fi
     
     #packages-templates/<generic>/FIXUPHACK may have created this file...
@@ -427,17 +428,23 @@ do
  rm -f ./${aLNK}
 done
 
-#packages-templates and pet pkgs may have these. accumulated...
-if [ -s ${E1}/sandbox/pinstall.sh ];then
- echo "Executing ${E1}/sandbox/pinstall.sh"
- cd ${E1}/rootfs
- /bin/sh ../sandbox/pinstall.sh
-fi
-
 cd ${E1}
 #copy the skeleton, yes, again, as a pkg may have overwritten a skeleton file...
+echo "Recopying rootfs-skeleton to rootfs"
 cp -a -f --remove-destination rootfs-skeleton/* rootfs/
 sync
+
+#packages-templates and pet pkgs may have these. accumulated...
+if [ -s ${E1}/sandbox/pinstall.sh ];then
+ echo "TEST Executing ${E1}/sandbox/pinstall.sh" 1>&2
+ echo 'echo
+pwd 1>&2
+echo "TEST sandbox/pinstall.sh completed" 1>&2' >> ${E1}/sandbox/pinstall.sh
+ cd ${E1}/rootfs
+ /bin/bash ../sandbox/pinstall.sh
+fi
+sync
+
 busybox umount /mnt/${WKG_DEV}/${WKG_DIR}data/woofV/rootfs/var/cache/xbps
 busybox umount /mnt/${WKG_DEV}/${WKG_DIR}data/woofV/rootfs/proc
 
