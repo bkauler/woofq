@@ -103,7 +103,11 @@ do
  #ignore some pkgs...
  grep -q -x -F -f /tmp/woofV/PKG_NAME_IGNORElines <<<${aN}
  if [ $? -eq 0 ];then
-  continue
+  #20240224 but may want to install kirkstone alternative. ex: shadow
+  grep -q -G "|${aN}|.*|kirkstone|" ${E1}/woof-installed-packages-orig
+  if [ $? -ne 0 ];then
+   continue
+  fi
  fi
  #-devel pkgs should all be in the devx...
  case "$aN" in

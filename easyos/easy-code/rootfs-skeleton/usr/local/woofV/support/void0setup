@@ -4,16 +4,15 @@
 #20230914 fix when in running easyos (curr. dir /root/.packages)
 #20240113 ONE_PKGLISTS_COMPAT exported from 0setup
 #20240212 called from /usr/local/woofV/rootfs/1update-pkg-dbs
+#20240225 support new easyvoid.
 
 if [ -f ./THISISINTMPWOOFV ];then #20240212
+ #running in woofv
 . /usr/local/woofV/configure/DISTRO_SPECS
  SUPPORT='/usr/local/woofV/support'
-elif [ -f ./DISTRO_SPECS ];then #20230914
-. ./DISTRO_SPECS #running woofq
- SUPPORT='./support/void'
 else
 . /etc/DISTRO_SPECS
- SUPPORT='/usr/local/petget/support/void'
+ SUPPORT='/usr/local/woofV/support' #20240225
 fi
 
 case "${DISTRO_TARGETARCH}" in

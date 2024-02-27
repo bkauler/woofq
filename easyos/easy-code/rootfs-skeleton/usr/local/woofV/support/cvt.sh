@@ -42,6 +42,7 @@ BEGIN {
 	#previously these shared libs were getting included in deps list...
 	shlibreq_key="shlib-requires"
 	desc_key="short_desc"
+	homepage_key="homepage"
 	
 	int_key="/plist/dict/dict/integer"
 	string_key="/plist/dict/dict/string"
@@ -76,6 +77,9 @@ $2 ~ shlibreq_key {
 $2 ~ desc_key {
 	nextfield="desc"
 }
+$2 ~ homepage_key {
+	nextfield="homepage"
+}
 $2 ~ sourcerev_key {
 	endpkg=1
 }
@@ -108,6 +112,9 @@ $1 ~ string_key {
 	} else if (nextfield == "desc") {
 		pkgdesc=$2
 		nextfield=""
+	} else if (nextfield == "homepage") {
+		url=$2
+		nextfield=""
 	}
 }
 $1 ~ arraystr_key {
@@ -137,6 +144,7 @@ $1 ~ arraystr_key {
 		if (pkgdep) gsub(/^,/,"",pkgdep)
 		pkgfn = pkgver "." arch ".xbps"
 		print pkgver "|" pkgname "|" pkgveronly "|" pkgrelease "|Uncategorized|" pkgsize "|current|" pkgfn "|" pkgdep "|" pkgdesc "|void|current||" 
+		print pkgname " " url >>"/tmp/woofV/pkgs-homepages"
 		endpkg=0
 	}
 }
