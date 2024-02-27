@@ -177,6 +177,7 @@
 #20231203 usr-merge: may also have to fix kirkstone container.
 #20240113 support skeleton with 920MiB wkg-partition. 20240116 880MiB wkg-part.
 #20240222 P2M has allowed wkg-part default size, set via 8create-drive-img
+#20240226 capsh fix.
 
 #20230429
 . /build-choices #3buildeasydistro copies it here.
@@ -1408,27 +1409,6 @@ do
  done
 done
 
-#20230912 update from 5.4.10 i had this symlink, get rid of it....
-if [ -e /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/lib/ld-linux-x86-64.so.2 ];then
- rm -f /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/lib/ld-linux-x86-64.so.2
-fi
-if [ -e /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/lib/ld-linux-aarch64.so.2 ];then
- rm -f /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/lib/ld-linux-aarch64.so.2
-fi
-
-#20210919 hack for versions prior to easyos 3.0
-if [ -h /mnt/${WKG_DEV}/${WKG_DIR}.session/home ];then #was symlink to /mnt/wkg/home
- rm -f /mnt/${WKG_DEV}/${WKG_DIR}.session/home
-fi
-if [ -d /mnt/${WKG_DEV}/${WKG_DIR}home ];then
- mv -f /mnt/${WKG_DEV}/${WKG_DIR}home /mnt/${WKG_DEV}/${WKG_DIR}files #20211006 fix.
- #chgrp -R 118 /mnt/${WKG_DEV}/${WKG_DIR}files #20211205 group is fscryptgrp
- chgrp -R 122 /mnt/${WKG_DEV}/${WKG_DIR}files #20211205 group is filesgrp
-fi
-#if [ -d /mnt/${WKG_DEV}/${WKG_DIR}.session/clients ];then
-# mv -f /mnt/${WKG_DEV}/${WKG_DIR}.session/clients /mnt/${WKG_DEV}/${WKG_DIR}.session/home
-#fi
-
 ###preset country settings for after switch_root###
 #20231125 note, this already done above. um, but not on 1st bootup. keep as precaution...
 #20231126 fix...
@@ -1592,7 +1572,7 @@ if [ ! -d /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${INIT_DISTRO_VERSION} ];then
  if [ -f /mnt/${WKG_DEV}/${WKG_DIR}easy.sfs ];then #20220615
   mv -f /mnt/${WKG_DEV}/${WKG_DIR}easy.sfs /mnt/${WKG_DEV}/${WKG_DIR}sfs/easyos/${INIT_DISTRO_BINARY_COMPAT}/${INIT_DISTRO_COMPAT_VERSION}/easy_${INIT_DISTRO_VERSION}_${INIT_DISTRO_TARGETARCH}.sfs
  else
-  err_exit "${S174}"
+  err_exit "${S174}" #'Cannot find easy.sfs'
  fi
  ln -s ../../sfs/easyos/${INIT_DISTRO_BINARY_COMPAT}/${INIT_DISTRO_COMPAT_VERSION}/easy_${INIT_DISTRO_VERSION}_${INIT_DISTRO_TARGETARCH}.sfs /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${INIT_DISTRO_VERSION}/easy.sfs
  
@@ -2430,10 +2410,13 @@ CHROOT='' #'1'
 [ "$WKG_DEV" == "zram0" ] && CHROOT=''
 
 #190811 redesign so can drop linux-capabilities (also changed /etc/rc.d/rc.sysinit)...
-#sync
-#umount /sys
-#umount /proc
-cp -a -f /bin/capsh /easy_new/sbin/ #200828 -a
+#20240226 do not copy capsh to wkg-part. in easyvoid, pflask is linked with libcap-ng,
+# --pflask is from oe patched for cap_sys_mount, but libcap-ng is void pkg
+# so pflask won't actually work with cap_sys_mount. this statically linked capsh
+# also linked for sys_mount, which will give false ok in easy-containers/ec-chroot
+# so don't copy here. note, 6post-process-rootfs does copy it, as capsh-oe
+#cp -a -f /bin/capsh /easy_new/sbin/ #200828 -a
+
 if [ "$CHROOT" ];then
  mount -o move /sys /easy_new/sys
  mount -o hidepid=1 -t proc none /easy_new/proc #20210407
