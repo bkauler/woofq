@@ -8,6 +8,7 @@
 #120811 category field now supports sub-category |category;subcategory|, use as icon in ppm main window.
 #120813 fix subcategory icon.
 #120817 modify 'category' field: Document;edit becomes mini-Document-edit (will use icon mini-Document-edit.xpm)
+#20240227 consider void
 
 #ui_Ziggy and ui_Classic pass in two params, ex: EXE true
 [ $2 ] && echo -n "$2" > /var/local/petget/postfilter_${1}
@@ -27,6 +28,7 @@ cp -f /tmp/petget/filterpkgs.results /tmp/petget/filterpkgs.results.post
 #PETs: _DEV _DOC _NLS  
 #Ubuntu,Debian DEBs: -dev_ -doc_ -docs_ -langpack -lang-
 #Mageia RPMs: -devel- -doc-
+#20240227 Void: -devel-
 sed -i -e '/-dbg_/d' /tmp/petget/filterpkgs.results.post #120525 always take out the debug pkgs.
 [ "$DEF_CHK_DEV" = "false" ] && sed -i -e '/_DEV/d' -e '/-dev_/d' -e '/-devel-/d' /tmp/petget/filterpkgs.results.post
 [ "$DEF_CHK_DOC" = "false" ] && sed -i -e '/_DOC/d' -e '/-doc_/d' -e '/-docs_/d' -e '/-doc-/d' /tmp/petget/filterpkgs.results.post

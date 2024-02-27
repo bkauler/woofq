@@ -13,6 +13,7 @@
 #190219 add oe.
 #20210612 replaced all yaf-splash with gtkdialog-splash. note, still ok to kill yaf-splash, see gtkdialog-splash script.
 #20220122 fixed arch-linux url.
+#20240226 fix for void
 
 export TEXTDOMAIN=petget___fetchinfo.sh
 export OUTPUT_CHARSET=UTF-8
@@ -113,6 +114,13 @@ $(gettext "-- see the 'Configure package manager' button")" > /tmp/petget_slackw
   sync
   ###TODO: NEED TO EXTRACT INFO ON ONE PKG ONLY###
   nohup defaulttextviewer /root/.packages/primary.xml &
+ ;;
+ *) #20240226 void
+  HOMESITE="$(grep -i -G "^${DB_nameonly} " /root/.packages/PKGS_HOMEPAGES | cut -f 2 -d ' ' | head -n 1)"
+  if [ -z "$HOMESITE" ];then
+   HOMESITE="http://en.wikipedia.org/wiki/${DB_nameonly}"
+  fi
+  nohup defaulthtmlviewer ${HOMESITE} &
  ;;
 esac
 

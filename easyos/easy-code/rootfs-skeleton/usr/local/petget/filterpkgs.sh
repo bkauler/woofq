@@ -31,6 +31,7 @@
 #180429 woofQ changed "Package-*" 2nd field from "puppy" to "pet" ages ago.
 #20210612 replaced all yaf-splash with gtkdialog-splash. note, still ok to kill yaf-splash, see gtkdialog-splash script.
 #20230914 stupid grep now objects to '\-' use busybox grep. no, grep -P works. no, in case only have busybox grep, it doesn't understand -P
+#20240227 add gtk4, qt6
 
 export TEXTDOMAIN=petget___filterpkgs.sh
 export OUTPUT_CHARSET=UTF-8
@@ -41,24 +42,29 @@ export OUTPUT_CHARSET=UTF-8
 . /root/.packages/DISTRO_PKGS_SPECS
 . /root/.packages/PKGS_MANAGEMENT #has PKG_ALIASES_INSTALLED, PKG_NAME_ALIASES
 
-#130330 GUI filtering...
+#130330 GUI filtering... 20240227...
 DEFGUIFILTER="$(cat /var/local/petget/gui_filter)"
 #$GUIONLYSTR $ANYTYPESTR are exported from pkg_chooser.sh ... 130331 need backslashes...
 guigtk2PTN='\+libgtk2|\+libgtk\+2|\+libgtkmm-2|\+gtk\+2|\+gtk\+,|\+gtkdialog|\+xdialog|\+python-gtk2'
 guigtk3PTN='\+libgtk-3|\+libgtk\+3|\+libgtkmm-3|\+gtk\+3'
+guigtk4PTN='\+gtk4'
 guiqt4PTN='\+libqtgui4|\+qt,'
 guiqt5PTN='\+libqt5gui|\+libqtgui5'
+guiqt6PTN='\+qt6|\+libqt6'
 exclguiPTN=''
 EXCPARAM=''
 case $DEFGUIFILTER in
  $GUIONLYSTR) guiPTN='\+libx11|\+fox'"|$guigtk2PTN|$guigtk3PTN|$guiqt4PTN|$guiqt5PTN" ;; #140107 add fox.
  GTK+2*)      guiPTN="$guigtk2PTN" ;;
  GTK+3*)      guiPTN="$guigtk3PTN" ;;
+ GTK4*)      guiPTN="$guigtk4PTN" ;;
  Qt4*KDE)     guiPTN="$guiqt4PTN" ; exclguiPTN='kde' ;; #130331
  Qt4*)        guiPTN="$guiqt4PTN" ;;
  Qt5*KDE)     guiPTN="$guiqt5PTN" ; exclguiPTN='kde' ;; #130331
  Qt5*)        guiPTN="$guiqt5PTN" ;;
- $NONGUISTR)  guiPTN='\+libx11|\+fox'"|$guigtk2PTN|$guigtk3PTN|$guiqt4PTN|$guiqt5PTN" ; EXCPARAM='-v' ;; #130331 140107
+ Qt6*)        guiPTN="$guiqt6PTN" ;;
+ Qt6*KDE)     guiPTN="$guiqt6PTN" ; exclguiPTN='kde' ;;
+ $NONGUISTR)  guiPTN='\+libx11|\+fox'"|$guigtk2PTN|$guigtk3PTN|$guigtk4PTN|$guiqt4PTN|$guiqt5PTN|$guiqt6PTN" ; EXCPARAM='-v' ;; #130331 140107
  *)           guiPTN="|" ;; #$ANYTYPESTR, let everything through.
 esac
 #130507 remove...
