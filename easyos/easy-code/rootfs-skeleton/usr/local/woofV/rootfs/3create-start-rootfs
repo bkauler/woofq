@@ -117,7 +117,7 @@ mkdir sandbox
 if [ -d rootfs ];then
  echo "ERROR something is preventing /mnt/wkg/data/woofV/rootfs folder from being"
  echo "deleted. Manually delete then run this script again."
- exit 1
+ exit 2
 fi
 
 #pre-populate rootfs...
@@ -175,6 +175,14 @@ export XBPS_ARCH="$xARCH"
 echo "repository=https://repo-fi.voidlinux.org/current" > rootfs/etc/xbps.d/00-repository-main.conf
 echo "repository=https://repo-fi.voidlinux.org/current/nonfree" > rootfs/etc/xbps.d/10-repository-nonfree.conf
 
+#test internet access from within rootfs...
+chroot rootfs busybox ping -4 -c 1 google.com 2>/ping.err
+if [ -s rootfs/ping.err ];then
+ echo "ERROR no Internet access within chroot"
+ exit 3
+fi
+rm -f rootfs/ping.err
+
 ###startup rootfs###
 #ref: https://man.voidlinux.org/xbps-install.1
 #SSL_NO_VERIFY_PEER=1 ./chroot-rootfs rootfs xbps-install -Suy xbps-triggers base-files xbps
@@ -182,6 +190,10 @@ echo "repository=https://repo-fi.voidlinux.org/current/nonfree" > rootfs/etc/xbp
 #20240129 'shadow' requires 'pam', which causes trouble... i will later install 'shadow' from kirkstone
 #SSL_NO_VERIFY_PEER=1 ./chroot-rootfs rootfs xbps-install -Suy xbps-triggers shadow xbps
 SSL_NO_VERIFY_PEER=1 chroot rootfs xbps-install -Suy xbps-triggers xbps
+if [ ! -s rootfs/var/db/xbps/https___repo-fi_voidlinux_org_current/${xARCH}-repodata ];then
+ echo "ERROR failed to access Void repository"
+ exit 4
+fi
 rm -f rootfs/usr/bin/*.static
 sync
 
