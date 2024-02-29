@@ -30,26 +30,14 @@ if [ -d /mnt/build/bk/git/woofq/easyos/easy-code/rootfs-skeleton ];then
  ROOTFS_SKEL='/mnt/build/bk/git/woofq/easyos/easy-code/rootfs-skeleton'
 fi
 if [ -z "$ROOTFS_SKEL" ];then
- #need to refine this, determine current path when run this script...
- #inside woofV/rootfs/0rootfs-skeleton...
- if [ -f ../../../../../../3buildeasydistro ];then
-  if [ -d ../../../../../../rootfs-skeleton ];then
-   #running the woofv script inside woofq
-   ROOTFS_SKEL='../../../../../../rootfs-skeleton'
-  fi
- fi
- #inside woofV/rootfs...
- if [ -f ../../../../../3buildeasydistro ];then
-  if [ -d ../../../../../rootfs-skeleton ];then
-   #running the woofv script inside woofq
-   ROOTFS_SKEL='../../../../../rootfs-skeleton'
-  fi
- fi
- #inside woofV...
- if [ -f ../../../../3buildeasydistro ];then
-  if [ -d ../../../../rootfs-skeleton ];then
-   #running the woofv script inside woofq
-   ROOTFS_SKEL='../../../../rootfs-skeleton'
+ #test if running this woofV script inside woofQ...
+ RP="$(busybox realpath ${0})"
+ grep -q 'easyos/easy-code/rootfs-skeleton/usr/local/woofV/rootfs/0rootfs-skeleton' <<<${RP}
+ if [ $? -eq 0 ];then
+  if [ -f ${RP/rootfs-skeleton*/}3buildeasydistro ];then
+   if [ -d ${RP/rootfs-skeleton*/}rootfs-skeleton ];then
+    ROOTFS_SKEL="${RP/rootfs-skeleton*/}rootfs-skeleton"
+   fi
   fi
  fi
 fi
@@ -57,6 +45,16 @@ fi
 if [ ! -z "$ROOTFS_SKEL" ];then
  echo "$(gettext 'Copying:') ${ROOTFS_SKEL}"
  cp -a ${ROOTFS_SKEL} ${E1}/
+ sync
+ find ${E1}/rootfs-skeleton -type f -name EMPTYDIRMARKER -delete
+ #woofq rootfs-skeleton has some files that need to be removed for woofv...
+. ${L1}/rootfs/0rootfs-skeleton/skel-remove
+ #also make sure that the host system has latest woofV...
+ #er, it will overwrite this script... see bottom this script
+ if [ -d /usr/local/woofVNEW ];then
+  rm -rf /usr/local/woofVNEW
+ fi
+ cp -a ${ROOTFS_SKEL}/usr/local/woofV /usr/local/woofVNEW
  sync
 else
  #running in easyVoid, without woofQ, need to extract rootfs-skeleton from easy.sfs
@@ -121,4 +119,19 @@ sync
 
 echo
 echo "$(gettext 'Created:') ${E1}/rootfs-skeleton"
+
+if [ -f /usr/local/woofVNEW ];then
+ echo "#!/bin/ash
+echo 'Updating /usr/local/woofV from woofQ'
+if [ -d /usr/local/woofVBAK ];then
+ rm -rf /usr/local/woofVBAK
+fi
+sleep 1
+mv -f /usr/local/woofV /usr/local/woofVBAK
+sync
+mv -f /usr/local/woofVNEW /usr/local/woofV
+sync" > /tmp/woofV/new-woofv
+ chmod 755 /tmp/woofV/new-woofv
+ /tmp/woofV/new-woofv &
+fi
 ###end###
