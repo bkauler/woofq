@@ -1,12 +1,20 @@
 #!/bin/bash
 #call this from 6post-process-rootfs, via chroot into rootfs
 #fix all usr/share/applications/*.desktop to suit easyos menu hierarchy.
+#20240229 called from /usr/local/petget/installpreview.sh, one .desktop passed in.
 
 cd /usr/share/applications
+
+if [ ! -z "${1}" ];then #20240229
+ DT="${1}" #ex: abiword.desktop
+else
+ DT="$(ls -1 *.desktop | tr '\n' ' ')"
+fi
+
 DEFICON='Executable.xpm'
 iPATTERN="s%^Icon=.*%Icon=${DEFICON}%"
 
-for aD in `ls -1 *.desktop | tr '\n' ' '`
+for aD in ${DT}
 do
  NAME="${aD/.desktop/}"
  #fix category...
@@ -25,7 +33,6 @@ do
  do
   sed -i "s/ %${PARMATER}//" ${aD}
  done
- 
  
  #fix icon...
  ICON="`grep '^Icon=' $aD | cut -f 2 -d '='`"
@@ -62,4 +69,4 @@ do
  fi
 
 done
-
+###end###
