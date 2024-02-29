@@ -1,4 +1,4 @@
-#!/bin/ash
+#!/bin/bash
 #(c) Copyright Barry Kauler 2009, puppylinux.com
 #2009 Lesser GPL licence v2 (http://www.fsf.org/licensing/licenses/lgpl.html).
 #called from pkg_chooser.sh and petget.
@@ -35,6 +35,7 @@
 #190902 fix 131221, 131222, only allow uninstall if nothing dependent on it.
 #20230309 have removed /usr/local/debget
 #20230629 .desktop gets removed before remove rox mime links.
+#20240228 work in easyvoid
 
 export TEXTDOMAIN=petget___removepreview.sh
 export OUTPUT_CHARSET=UTF-8
@@ -42,6 +43,18 @@ export OUTPUT_CHARSET=UTF-8
 . /etc/rc.d/PUPSTATE  #111228 this has PUPMODE and SAVE_LAYER.
 . /etc/DISTRO_SPECS #has DISTRO_BINARY_COMPAT, DISTRO_COMPAT_VERSION
 . /root/.packages/DISTRO_PKGS_SPECS
+
+case "$DISTRO_TARGETARCH" in #20240228
+ amd64) xARCH='x86_64' ;;
+ *)     xARCH="$DISTRO_TARGETARCH" ;;
+esac
+export XBPS_ARCH="$xARCH"
+mkdir -p /tmp/woofV
+
+EVflg=0
+if [ -d /var/db/xbps/keys ];then #20240228
+ EVflg=1
+fi
 
 DB_pkgname="$TREE2"
 ORIGLANG="$LANG" #131230
@@ -58,7 +71,7 @@ done
 #v424 info box, nothing yet installed...
 #if [ "$DB_pkgname" = "" ];then
 if [ "$DB_pkgname" = "" -a "`cat /root/.packages/user-installed-packages`" = "" ];then #fix for ziggi
- export REM_DIALOG="<window title=\"$(gettext 'PKGget Package Manager')\" icon-name=\"gtk-about\">
+ export REM_DIALOG="<window title=\"$(gettext 'PKGget Package Manager')\" image-name=\"/usr/local/lib/X11/pixmaps/pkg24.png\">
   <vbox>
    <pixmap><input file>/usr/local/lib/X11/pixmaps/error.xpm</input></pixmap>
    <text><label>$(gettext 'There are no user-installed packages yet, so nothing to uninstall!')</label></text>
@@ -72,10 +85,10 @@ if [ "$DB_pkgname" = "" -a "`cat /root/.packages/user-installed-packages`" = "" 
  exit 0
 fi
 if [ "$DB_pkgname" = "" ];then #fix for ziggi moved here problem is  #2011-12-27 KRG
-exit 0                         #clicking an empty line in the gui would have
+ exit 0                        #clicking an empty line in the gui would have
 fi                             #thrown the above REM_DIALOG even if pkgs are installed
 
-export REM_DIALOG="<window title=\"$(gettext 'PKGget Package Manager')\" icon-name=\"gtk-about\">
+export REM_DIALOG="<window title=\"$(gettext 'PKGget Package Manager')\" image-name=\"/usr/local/lib/X11/pixmaps/pkg24.png\">
   <vbox>
    <pixmap><input file>/usr/local/lib/X11/pixmaps/question.xpm</input></pixmap>
    <text><label>$(gettext "Click 'OK' button to confirm that you wish to uninstall package") '$DB_pkgname'</label></text>
@@ -87,14 +100,14 @@ export REM_DIALOG="<window title=\"$(gettext 'PKGget Package Manager')\" icon-na
  </window>
 " 
 if [ "$DISPLAY" != "" ];then
- RETPARAMS="`gtkdialog --program=REM_DIALOG`"
- eval "$RETPARAMS"
- [ "$EXIT" != "OK" ] && exit 0
+ RET1="`gtkdialog --program=REM_DIALOG`"
+ grep -q '^EXIT.*OK' <<<${RET1}
+ [ $? -ne 0 ] && exit
 fi
 
 if [ ! -f /root/.packages/${DB_pkgname}.files ];then
- firstchar=`echo ${DB_pkgname} | cut -c 1`
- possiblePKGS=`find /root/.packages -type f -iname "$firstchar*.files"`
+ firstchar="${DB_pkgname:0:1}"
+ possiblePKGS=`find /root/.packages -type f -iname "${firstchar}*.files"`
  possible5=`echo "$possiblePKGS" | head -n5`
  count=`echo "$possiblePKGS" | wc -l`
  [ ! "$count" ] && count=0
@@ -126,23 +139,12 @@ $(gettext 'and start again.')
  ###+++2011-12-27 KRG
 fi
 
-
 #what about any user-installed deps...
 remPATTERN='^'"$DB_pkgname"'|'
-#DEP_PKGS="`grep -v "$remPATTERN" /root/.packages/user-installed-packages | cut -f 9 -d '|' | tr ',' '\n' | grep -v '^\\-' | sed -e 's%^+%%'`"
-#110211 shinobar: was the dependency logic inverted...
 DEP_PKGS="`grep "$remPATTERN" /root/.packages/user-installed-packages | cut -f 9 -d '|' | tr ',' '\n' | grep -v '^\\-' | sed -e 's%^+%%' | cut -f 1 -d '&'`" #names-only, one each line. 190902 cut off &*
 
 #131222 do not uninstall if other-installed depend on it... 190902 fix
 echo -n '' > /tmp/petget/other-installed-deps
-#for ADEP in $DEP_PKGS
-#do
-# PTN2="|${ADEP}|"
-# DEPPKG="$(grep "$PTN2" /root/.packages/user-installed-packages | cut -f 1 -d '|')"
-# [ "$DEPPKG" == "$DB_pkgname" ] && continue #190902
-# [ "$DEPPKG" ] && echo "$DEPPKG" >> /tmp/petget/other-installed-deps
-#done
-##also need this check...
 DB_nameonly="$(grep "${remPATTERN}" /root/.packages/user-installed-packages | cut -f 2 -d '|' | tail -n 1)"
 THISWANTS="$(grep "\+${DB_nameonly}[,|&]" /root/.packages/user-installed-packages | cut -f 1 -d '|')"
 [ "$THISWANTS" ] && echo "${THISWANTS}" >> /tmp/petget/other-installed-deps
@@ -211,15 +213,27 @@ do
 done
 
 #delete files...
-busybox cat /root/.packages/${DB_pkgname}.files | busybox grep -v '/$' | busybox xargs busybox rm -f #/ on end, it is a directory entry.
-#do it again, looking for empty directories...
-busybox cat /root/.packages/${DB_pkgname}.files |
-while read ONESPEC
-do
- if [ -d "$ONESPEC" ];then
-  [ "`busybox ls -1 "$ONESPEC"`" = "" ] && busybox rmdir "$ONESPEC" 2>/dev/null #120107
+if [ $EVflg -eq 1 ];then #20240228
+ #remove using xbps...
+ #sakura -t "PKGget: remove" -x "xbps-remove ${DB_pkgname}"
+ xterm -hold -e xbps-remove ${DB_pkgname}
+ vSTATE="$(LANG=C xbps-query --show ${DB_pkgname} --property state)"
+ if [ "$vSTATE" == "installed" ];then
+  Mi="$(gettext 'Failed to uninstall package:') ${DB_pkgname}"
+  popup "background=#ffa0a0 terminate=5 timecount=dn name=remfail level=top|<big>${Mi}</big>"
+  exit 2
  fi
-done
+else
+ busybox cat /root/.packages/${DB_pkgname}.files | busybox grep -v '/$' | busybox xargs busybox rm -f #/ on end, it is a directory entry.
+ #do it again, looking for empty directories...
+ busybox cat /root/.packages/${DB_pkgname}.files |
+ while read ONESPEC
+ do
+  if [ -d "$ONESPEC" ];then
+   [ "`busybox ls -1 "$ONESPEC"`" = "" ] && busybox rmdir "$ONESPEC" 2>/dev/null #120107
+  fi
+ done
+fi
 
 #131222 restore files that were deposed when this pkg installed...
 if [ -f /audit/deposed/${DB_pkgname}DEPOSED.sfs ];then #140206

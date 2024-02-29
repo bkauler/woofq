@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #(c) Copyright Barry Kauler 2009, puppylinux.com
 #2009 Lesser GPL licence v2 (http://www.fsf.org/licensing/licenses/lgpl.html).
 #called from pkg_chooser.sh
@@ -32,6 +32,7 @@
 #20220126 PETget now named PKGget
 #20230326 remove all reference to file EASYPAK, not used anymore.
 #20230914 stupid grep: "grep: warning: stray \ before -" use busybox grep.
+#20240227 work in easyvoid. 20240229
 
 export TEXTDOMAIN=petget___installpreview.sh
 export OUTPUT_CHARSET=UTF-8
@@ -39,18 +40,206 @@ export OUTPUT_CHARSET=UTF-8
 
 [ "$TREE1" = "" ] && exit #120504 nothing to install.
 
+EVflg=0
+if [ -d /var/db/xbps/keys ];then #20240227
+ EVflg=1
+fi
+L1='/usr/local/woofV' #20240229
+
 . /etc/DISTRO_SPECS #has DISTRO_BINARY_COMPAT, DISTRO_COMPAT_VERSION
 . /root/.packages/DISTRO_PKGS_SPECS
 . /etc/rc.d/PUPSTATE #180627 has BOOT_DEV, BOOT_FS, BOOT_DIR, WKG_DEV, WKG_FS, WKG_DIR, QSFS_PATH
 
-#/usr/X11R7/bin/yaf-splash -font "8x16" -outline 0 -margin 4 -bg orange -text "Please wait, processing package database files..." &
-gtkdialog-splash -close never -bg orange -text "$(gettext 'Please wait, processing package database files...')" &
-X1PID=$!
+case "$DISTRO_TARGETARCH" in #20240227
+ amd64) xARCH='x86_64' ;;
+ *)     xARCH="$DISTRO_TARGETARCH" ;;
+esac
+export XBPS_ARCH="$xARCH"
+mkdir -p /tmp/woofV
+
+size_func() {
+ local SK
+ SK=$1
+ #$1 is size in KiB, change to more human-readable
+ if [ $SK -gt 1048576 ];then #1024*1024
+  SM="$(LANG=C dc -e "2 k ${SK} 1048576 / p")"
+  SM="$(LANG=C printf "%.2f" $SM)GB"
+ else
+  if [ $SK -lt 100 ];then
+   SM="${SK}KB"
+  else
+   SM="$(LANG=C dc -e "1 k ${SK} 1024 / p")"
+   SM="$(LANG=C printf "%.1f" $SM)MB"
+  fi
+ fi
+}
+
+#20240228 xbps: replaces code in installpkg.sh
+#this func only valid if running in zram...
+create_deposed_sfs() {
+ local PKG
+ PKG="$1" #ex: libwv-1.2.9_5
+ #list of installed pkgs: /root/.packages/${PKG}.files
+ while read aF
+ do
+  [ -z "$aF" ] && continue
+  #[ "${aF: -1}" == "/" ] && continue #ends with / it is a folder. why get syntax error?
+  aREV="$(echo -n "$aF" | rev)"
+  [ "${aREV:0:1}" == "/" ] && continue #ends with / it is a folder.
+  if [ -e /mnt/wkg/.session${aF} ];then
+   aD="${aF%/*}"
+   mkdir -p /audit/deposed/${PKG}DEPOSED${aD}
+   cp -a /mnt/wkg/.session${aF} /audit/deposed/${PKG}DEPOSED${aD}/
+  fi
+ done </root/.packages/${PKG}.files
+ if [ -d /audit/deposed/${PKG}DEPOSED ];then
+  mksquashfs /audit/deposed/${PKG}DEPOSED /audit/deposed/${PKG}DEPOSED.sfs
+  sync
+  rm -rf /audit/deposed/${PKG}DEPOSED
+ fi
+}
 
 #ex: TREE1=abiword-1.2.4 (first field in database entry).
 DB_FILE=Packages-`cat /tmp/petget/current-repo-triad` #ex: Packages-slackware-12.2-official
 tPATTERN='^'"$TREE1"'|'
 #xtPATTERN='|'"$TREE1"'|'
+
+
+if [ $EVflg -eq 1 ];then #20240227
+ grep -q -F 'Packages-void-current' <<<${DB_FILE}
+ if [ $? -eq 0 ];then
+  #this is a void repo pkg, use xbps to find deps... ex: TREE1=abiword-3.0.5_1
+  N_S="$(xbps-install --sync --dry-run ${TREE1} | cut -f 1,5 -d ' ')"
+  #line ex: libwv-1.2.9_5 339664
+  # ...2nd param is the installed size
+  vPKGS="$(cut -f 1 -d ' ' <<<${N_S})"
+  #just want the names only...
+  echo -n '' > /tmp/woofV/pkgnames-only
+  for aPKG in ${vPKGS}
+  do
+   if [ "$aPKG" == "$TREE1" ];then
+    PKGnameonly="$(xbps-query --show ${aPKG} --repository --property=pkgname)"
+   else
+    xbps-query --show ${aPKG} --repository --property=pkgname >> /tmp/woofV/pkgnames-only
+   fi
+  done
+  vMISSING="$(cat /tmp/woofV/pkgnames-only | tr '\n' ' ' | sed -e 's% $%%')"
+  
+  vSIZES="$(cut -f 2 -d ' ' <<<${N_S})"
+  vS0="$(tr '\n' '+' <<<${vSIZES} | sed -e 's%\+$%%')"
+  vS1=$((${vS0})) #total installed size, including deps, in bytes
+  vSIZEK=$((${vS1}/1024))
+  size_func $vSIZEK
+  SIZEH="$SM"
+  
+  #i reckon bypass all the stuff below, just put up a simple gui here then exit...
+  DB_ENTRY="$(grep "$tPATTERN" /root/.packages/$DB_FILE | head -n 1)"
+  DB_description="$(cut -f 10 -d '|' <<<${DB_ENTRY})"
+  FREEK=$(busybox df -k | grep ' /$' | tr -s ' ' | cut -f 4 -d ' ')
+  size_func $FREEK
+  FREEH="$SM"
+  if [ -z "$vMISSING" ];then
+   xMISSING="-$(gettext 'nothing')-"
+  else
+   xMISSING="$vMISSING"
+  fi
+  
+  export PREVIEW_DIALOG="<window title=\"$(gettext 'PKGget Package Manager: preinstall')\" image-name=\"/usr/local/lib/X11/pixmaps/pkg24.png\">
+<vbox>
+ <text use-markup=\"true\"><label>\"$(gettext 'You have chosen to install package') <b>${PKGnameonly}</b>. $(gettext 'A short description of this package is:')\"</label></text>
+ <text use-markup=\"true\"><label>\"<b>${DB_description}</b>\"</label></text>
+ <text><label>\"  \"</label></text>
+ <text><label>$(gettext 'These dependencies will also need to be installed:')</label></text>
+ <text use-markup=\"true\"><label>\"<b>${xMISSING}</b>\"</label></text>
+ <text><label>$(gettext 'The total installed size will be:') ${SIZEH}</label></text>
+ <text><label>$(gettext 'Free space in the working-partition:') ${FREEH}</label></text>
+ <text><label>\"  \"</label></text>
+ <text><label>$(gettext 'Click the Install button to install. There will be a final confirmation dialog before the actual install.')</label></text>
+ <frame>
+  <hbox>
+   <text><label>$(gettext 'Online information about this package:')</label></text>
+   <vbox>
+    <button><label>$(gettext 'More info')</label><action>/usr/local/petget/fetchinfo.sh ${TREE1} & </action></button>
+   </vbox>
+  </hbox>
+ </frame>
+ <hbox>
+  <button>
+   <label>$(gettext 'Install') ${PKGnameonly}</label>
+   <action>echo \"${TREE1}\" > /tmp/petget_installpreview_pkgname</action>
+   <action type=\"exit\">BUTTON_INSTALL</action>
+  </button>
+  <button cancel></button>
+ </hbox>
+</vbox>
+</window>"
+  RET1="`gtkdialog --center --program=PREVIEW_DIALOG`"
+  grep -q '^EXIT.*BUTTON_INSTALL' <<<${RET1}
+  if [ $? -eq 0 ];then
+   sakura -t "PKGget: install" -x "xbps-install --ignore-file-conflicts --cachedir /audit/packages ${TREE1}"
+  fi
+  vSTATE="$(LANG=C xbps-query --show ${TREE1} --property state)"
+  if [ "$vSTATE" == "installed" ];then
+   vM1="$(gettext 'This package and its dependencies have been installed:') ${TREE1} "
+   popup "terminate=5 timecount=dn name=vinstallmsg background=#a0ffa0|<big>${vM1}</big>"
+   #append to /root/.packages/user-installed-packages...
+   for aNEW in ${vMISSING} ${PKGnameonly}
+   do
+    grep -F "|${aNEW}|" /root/.packages/${DB_FILE} >> /root/.packages/user-installed-packages
+   done
+   #for backwards compatibility with ppm, list files...
+   Fi=0; Fm=0
+   for aPKG in ${vPKGS}
+   do
+    xbps-query --files ${aPKG} > /root/.packages/${aPKG}.files
+    #create /audit/deposed/${aPKG}DEPOSED.sfs (normal pkgget does this in installpkg.sh)
+    if [ "$EOS_TOP_LEVEL_ZRAM" == "1" ];then
+     create_deposed_sfs ${aPKG}
+    fi
+    #housekeeping...
+    grep -q 'usr/share/icons' /root/.packages/${aPKG}.files
+    if [ $? -eq 0 ];then
+     Fi=1
+    fi
+    grep -q 'usr/share/applications' /root/.packages/${aPKG}.files
+    if [ $? -eq 0 ];then
+     for aDT grep '/usr/share/applications/.*desktop$' /root/.packages/${aPKG}.files
+     do
+      [ -z "$aDT" ] && continue
+      build-rox-sendto $aDT
+     done
+     Fm=1
+    fi
+   done
+   if [ $Fi -eq 1 ];then
+    gtk-update-icon-cache -f /usr/share/icons/hicolor/
+    gtk-update-icon-cache -f /usr/share/icons/Adwaita/
+   fi
+   if [ $Fm -eq 1 ];then
+    fixmenus
+    jwm -reload
+   fi
+  else
+   #if the pkgs got downloaded but not installed, delete...
+   for aPKG in ${vPKGS}
+   do
+    FND1="$(find /audit/packages -maxdepth 1 -type f -name "${aPKG}.*xbps")" #glob *
+    if [ ! -z "$FND1" ];then
+     aSTATE="$(LANG=C xbps-query --show ${aPKG} --property state)"
+     if [ "$aSTATE" != "installed" ];then
+      rm -f /audit/packages/${FND1##*/}
+     fi
+    fi
+   done
+   vM1="$(gettext 'You declined to install this package:') ${TREE1} "
+   popup "terminate=5 timecount=dn name=vinstallmsg background=#ffa0a0|<big>${vM1}</big>"
+  fi
+  exit
+ fi
+fi
+
+gtkdialog-splash -close never -bg orange -text "$(gettext 'Please wait, processing package database files...')" &
+X1PID=$!
 
 #120827 'examine dependencies' button does not work if pkg already installed...
 EXAMDEPSFLAG='yes'

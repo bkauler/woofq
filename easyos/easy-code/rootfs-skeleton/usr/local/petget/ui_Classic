@@ -14,6 +14,7 @@
 #160923 rename Quirky Package Manager back to Puppy Package Manager. 170815 now PKGget. 180208 now PETget
 #20220126 PETget now named PKGget
 #20220921  column-resizeable=\"0\" to fix hang
+#20240226 mods for woofv
 
 export TEXTDOMAIN=petget___ui_Classic
 export OUTPUT_CHARSET=UTF-8
@@ -66,7 +67,7 @@ export PPM_MAIN_GUI="<window title=\"$(gettext 'PKGget Package Manager')\" image
     <height>280</height><width>668</width>
     <variable>TREE1</variable>
     <input${APPICONXMLINSERT}>cat /tmp/petget/filterpkgs.results.post</input>
-    <action signal=\"button-release-event\">/usr/local/petget/installpreview.sh</action>
+    <action signal=\"button-release-event\">/usr/local/pkgget/installpreview.sh</action>
     <action signal=\"button-release-event\">/usr/local/petget/finduserinstalledpkgs.sh</action>
     <action signal=\"button-release-event\">refresh:TREE2</action>
   </tree>
@@ -79,8 +80,6 @@ export PPM_MAIN_GUI="<window title=\"$(gettext 'PKGget Package Manager')\" image
    <text><label>$(gettext 'Show:')</label></text>
    <checkbox><default>${DEF_CHK_EXE}</default><label>EXE</label><variable>CHK_EXE</variable><action>/usr/local/petget/postfilterpkgs.sh EXE \$CHK_EXE</action><action>refresh:TREE1</action></checkbox>
    <checkbox><default>${DEF_CHK_DEV}</default><label>DEV</label><variable>CHK_DEV</variable><action>/usr/local/petget/postfilterpkgs.sh DEV \$CHK_DEV</action><action>refresh:TREE1</action></checkbox>
-   <checkbox><default>${DEF_CHK_DOC}</default><label>DOC</label><variable>CHK_DOC</variable><action>/usr/local/petget/postfilterpkgs.sh DOC \$CHK_DOC</action><action>refresh:TREE1</action></checkbox>
-   <checkbox><default>${DEF_CHK_NLS}</default><label>NLS</label><variable>CHK_NLS</variable><action>/usr/local/petget/postfilterpkgs.sh NLS \$CHK_NLS</action><action>refresh:TREE1</action></checkbox>
   </hbox>
   
   <hbox>
@@ -91,10 +90,13 @@ export PPM_MAIN_GUI="<window title=\"$(gettext 'PKGget Package Manager')\" image
     <item>$GUIONLYSTR</item>
     <item>GTK+2 $GUIONLYSTR</item>
     <item>GTK+3 $GUIONLYSTR</item>
+    <item>GTK4 $GUIONLYSTR</item>
     <item>Qt4 $GUIONLYSTR</item>
     <item>Qt4 $GUIEXCSTR KDE</item>
     <item>Qt5 $GUIONLYSTR</item>
     <item>Qt5 $GUIEXCSTR KDE</item>
+    <item>Qt6 $GUIONLYSTR</item>
+    <item>Qt6 $GUIEXCSTR KDE</item>
     <item>$NONGUISTR</item>
     <action>echo -n \"\$FILTERCOMBOBOX\" > /var/local/petget/gui_filter</action>
     <action>/usr/local/petget/filterpkgs.sh</action>
