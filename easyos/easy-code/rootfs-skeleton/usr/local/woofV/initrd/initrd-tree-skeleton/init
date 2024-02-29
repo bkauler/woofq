@@ -178,6 +178,7 @@
 #20240113 support skeleton with 920MiB wkg-partition. 20240116 880MiB wkg-part.
 #20240222 P2M has allowed wkg-part default size, set via 8create-drive-img
 #20240226 capsh fix.
+#20240229 copy /skeleton/data
 
 #20230429
 . /build-choices #3buildeasydistro copies it here.
@@ -1272,6 +1273,7 @@ ${S133}\\033[0;39m" #red.
  cp -a -f /skeleton/releases /mnt/${WKG_DEV}/${WKG_DIR}
  cp -a -f /skeleton/files /mnt/${WKG_DEV}/${WKG_DIR}
  cp -a -f /skeleton/sfs /mnt/${WKG_DEV}/${WKG_DIR}
+ cp -a -f /skeleton/data /mnt/${WKG_DEV}/${WKG_DIR} #20240229 has data/woofV/dl-xbps
  echo "KEYMAP='${KEYMAP}'" > /mnt/${WKG_DEV}/${WKG_DIR}sfs/settings/initrd/CONFIG
  echo "ALLOW_ASK_PW='${ALLOW_ASK_PW}'" >> /mnt/${WKG_DEV}/${WKG_DIR}sfs/settings/initrd/CONFIG
  echo "KB_HW_PROFILE='${NEW_KB_HW_PROFILE}'" >> /mnt/${WKG_DEV}/${WKG_DIR}sfs/settings/initrd/CONFIG #20231125
