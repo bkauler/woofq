@@ -321,6 +321,7 @@
 #20240120 fix usrmerge in devx.
 #20240121 run void post-install scripts in devx.
 #20240127 if not easyVoid build, delete rootfs-complete/usr/local/woofV
+#20240229 do not copy 0setup from woofQ.
 
 export LANG=C #faster.
 
@@ -1369,8 +1370,9 @@ if [ "${DISTRO_BINARY_COMPAT}" = "void" ]; then
  cp -a ../support/void/accum-install.sh rootfs-complete/
  chroot rootfs-complete /accum-install.sh
  rm rootfs-complete/accum-install.sh
- #also copy these, as 0setup has to run in running easyos...
- cp -a ../support/void rootfs-complete/usr/local/petget/support/
+ #20240229 no, already have rootfs-skeleton/usr/local/petget/0setup...
+ ##also copy these, as 0setup has to run in running easyos...
+ #cp -a ../support/void rootfs-complete/usr/local/petget/support/
 fi
 
 #20230304 support distro name other than "EasyOS" and "Easy"
@@ -2220,7 +2222,8 @@ else #130306
  cp -f ../DISTRO_COMPAT_REPOS-${DISTRO_BINARY_COMPAT} rootfs-complete/root/.packages/DISTRO_COMPAT_REPOS
 fi
 #this needed to update pkg db's in a running puppy...
-cp -f ../0setup rootfs-complete/usr/local/petget/
+#20240229 no, already have rootfs-skeleton/usr/local/petget/0setup...
+#cp -f ../0setup rootfs-complete/usr/local/petget/
 #160923 no, host and target archs may differ. already have it in dest (pup-tools pet)...
 ##w015 0setup calls this for faster operation...
 #cp -f ../support/find_cat rootfs-complete/usr/local/petget/
