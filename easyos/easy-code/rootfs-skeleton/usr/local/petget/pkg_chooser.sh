@@ -47,7 +47,7 @@
 #20230711 when called from /usr/bin/*.install script, has passed param "gen-tmp-files-only"
 #20230914 void: update pkg db every time run pkgget.
 #20230914 stupid grep: "grep: warning: stray \ before -" use busybox grep. no, grep -P works. no, in case only have busybox grep, it doesn't understand -P
-#20240228 when easyvoid has pkgget frontend for xbps, no need to update pkg db at startup.
+#20240228 when easyvoid has pkgget frontend for xbps, no need to update pkg db at startup. 20240229 revert.
 
 #/usr/local/petget/service_pack.sh & #121125 offer download Service Pack.
 
@@ -87,23 +87,21 @@ do
  rm -f $aPRE
 done
 
-if [ "$DISTRO_BINARY_COMPAT" == "void" ];then #20230914
- #easyvoid built from woofQ does not use xbps; in that case must update db...
- if [ ! -e /usr/bin/xbps-install ];then #20240228
-  if [ ! -e /tmp/petget/void-db-updated-flg ];then
-   ping -4 -c 1 -w 5 -q google.com
-   if [ $? -ne 0 ];then
-    E1="$(gettext 'PKGget requires Internet access')"
-    popup "background=#ffa0a0 terminate=ok process=wait level=top|<big>${E1}</big>"
-    exit
-   fi
-   W1="$(gettext 'As Void Linux is a rolling release, need to update the package database every time run PKGget. Please wait...')"
-   popup "background=#ffd8e6 level=top|<big>${W1}</big>"
-   /usr/local/petget/0setup q
-   sync
-   killall popup
-   touch /tmp/petget/void-db-updated-flg
+if [ "$DISTRO_BINARY_COMPAT" == "void" ];then #20230914 20240229
+ #easyvoid; must update db...
+ if [ ! -e /tmp/petget/void-db-updated-flg ];then
+  ping -4 -c 1 -w 5 -q google.com
+  if [ $? -ne 0 ];then
+   E1="$(gettext 'PKGget requires Internet access')"
+   popup "background=#ffa0a0 terminate=ok process=wait level=top|<big>${E1}</big>"
+   exit
   fi
+  W1="$(gettext 'As Void Linux is a rolling release, need to update the package database every time run PKGget. Please wait...')"
+  popup "background=#ffd8e6 level=top|<big>${W1}</big>"
+  /usr/local/petget/0setup q
+  sync
+  killall popup
+  touch /tmp/petget/void-db-updated-flg
  fi
 fi
 

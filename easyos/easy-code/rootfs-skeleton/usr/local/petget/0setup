@@ -58,6 +58,7 @@
 #20230915 copy void pkg db back to woofq easy-distro
 #20240112 fix PROJECTPATH. 20240113 get void nonfree. 20240116 fix 20230915
 #20240225 fix for woofv. 20240226
+#20240229 sync void db using xbps-install
 
 LANGORG="$(locale | grep '^LANG=' | cut -d '=' -f 2)" #121116
 export LANG=C #faster.
@@ -205,7 +206,27 @@ do
   if [ "$downloadit" = "" ] ; then #120126
    DLFILE="`basename $PKGLISTURI`"
    [ -f $DLFILE ] && mv -f $DLFILE /tmp/${DLFILE}-backup1 #v431 otherwise wget creates a new file ${DLFILE}.1
-   rxvt -name pet -bg orange -geometry 80x10 -e wget $PKGLISTURI
+   DLflg=0
+   case "${DLFILE}" in #20240229
+    *-repodata)
+     if [ -x /usr/bin/xbps-install ];then
+      #use xbps to sync latest db... 
+      URL="${PKGLISTURI%/*}" #ex: https://repo-fi.voidlinux.org/current
+      urxvt -name PKGget -bg orange -geometry 80x10 -e xbps-install --yes --sync --ignore-conf-repos --repository ${URL}
+      #...the result will be here...
+      #/var/db/xbps/https___repo-fi_voidlinux_org_current/x86_64-repodata
+      SUB1="$(sed -e 's%[^a-z-]%_%g' <<<${URL})"
+      cp -f /var/db/xbps/${SUB1}/${DLFILE} ./
+      if [ -s ./${DLFILE} ];then
+       DLflg=1
+      fi
+     fi
+    ;;
+   esac
+   if [ $DLflg -eq 0 ];then
+    #original d/l code...
+    urxvt -name pet -bg orange -geometry 80x10 -e wget $PKGLISTURI
+   fi
    sync
    xDLFILE="$DLFILE"
    if [ -f $DLFILE ];then

@@ -132,7 +132,7 @@ if [ $EVflg -eq 1 ];then #20240227
   size_func $vSIZEK
   SIZEH="$SM"
   
-  #i reckon bypass all the stuff below, just put up a simple gui here then exit...
+  #i reckon bypass all the old code below, just put up a simple gui here then exit...
   DB_ENTRY="$(grep "$tPATTERN" /root/.packages/$DB_FILE | head -n 1)"
   DB_description="$(cut -f 10 -d '|' <<<${DB_ENTRY})"
   FREEK=$(busybox df -k | grep ' /$' | tr -s ' ' | cut -f 4 -d ' ')
@@ -203,10 +203,11 @@ if [ $EVflg -eq 1 ];then #20240227
     fi
     grep -q 'usr/share/applications' /root/.packages/${aPKG}.files
     if [ $? -eq 0 ];then
-     for aDT grep '/usr/share/applications/.*desktop$' /root/.packages/${aPKG}.files
+     for aDT in $(grep '/usr/share/applications/.*desktop$' /root/.packages/${aPKG}.files)
      do
       [ -z "$aDT" ] && continue
-      build-rox-sendto $aDT
+      ${L1}/pkg-fix/dot-desktop-fix ${aDT##*/} #20240229
+      build-rox-sendto ${aDT}
      done
      Fm=1
     fi

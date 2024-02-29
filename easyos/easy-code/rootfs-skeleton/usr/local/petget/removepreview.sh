@@ -55,6 +55,8 @@ EVflg=0
 if [ -d /var/db/xbps/keys ];then #20240228
  EVflg=1
 fi
+E1='/mnt/wkg/data/woofV'
+L1='/usr/local/woofV'
 
 DB_pkgname="$TREE2"
 ORIGLANG="$LANG" #131230
