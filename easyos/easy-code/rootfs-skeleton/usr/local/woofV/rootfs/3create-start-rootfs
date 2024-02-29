@@ -111,9 +111,6 @@ rm -rf sandbox 2>/dev/null
 sync
 mkdir sandbox
 
-#cp -a -f /usr/local/woofV/support/chroot-rootfs ./ 2>/dev/null
-#cp -a -f /usr/local/woofV/support/pet2dir ./ 2>/dev/null
-
 if [ -d rootfs ];then
  echo "ERROR something is preventing /mnt/wkg/data/woofV/rootfs folder from being"
  echo "deleted. Manually delete then run this script again."
@@ -140,6 +137,10 @@ mv -f rootfs/pinstall.sh sandbox/
 #xbps manager to ignore some pkgs...
 mkdir -p rootfs/etc/xbps.d
 sed -e 's%^%ignorepkg=%' -e 's% %\nignorepkg=%g' <<<${PKG_NAME_IGNORE} > rootfs/etc/xbps.d/20-ignore.conf
+
+#20240229 this has been moved to end of 5populate-rootfs...
+##20240229 default is /var/cache/xbps, where pkgs will be downloaded to.
+#echo 'cachedir=/mnt/wkg/data/woofV/dl-xbps' > rootfs/etc/xbps.d/30-dl-cache.conf
 
 ###local non-xbps pkgs###
 cd sandbox

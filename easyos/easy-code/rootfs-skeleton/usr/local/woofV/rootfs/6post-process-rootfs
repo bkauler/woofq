@@ -48,18 +48,18 @@ PETURL="$(tr ' ' '\n' <<<${PET_REPOS} | grep "Packages-pet-${DISTRO_DB_SUBNAME}"
 #install kernel modules...
 echo "Installing kernel modules"
 cd ${E1}/sandbox
-if [ -f ../dl-pets/${DISTRO_KERNEL_PET} ];then
- cp -f ../dl-pets/${DISTRO_KERNEL_PET} ./
+if [ -f ../dl-pet/${DISTRO_KERNEL_PET} ];then
+ cp -f ../dl-pet/${DISTRO_KERNEL_PET} ./
 else
  download_file ${PETURL}/pet_packages-void/${DISTRO_KERNEL_PET}
  [ $? -ne 0 ] && exit 1
 fi
 tar -xf ${DISTRO_KERNEL_PET} 2>/dev/null
 sync
-if [ -f ../dl-pets/${DISTRO_KERNEL_PET} ];then
+if [ -f ../dl-pet/${DISTRO_KERNEL_PET} ];then
  rm -f ./${DISTRO_KERNEL_PET}
 else
- mv -f ${DISTRO_KERNEL_PET} ../dl-pets/${DISTRO_KERNEL_PET}
+ mv -f ${DISTRO_KERNEL_PET} ../dl-pet/${DISTRO_KERNEL_PET}
 fi
 mkdir -p ${E1}/rootfs/etc/modules
 cp -a -f ${DISTRO_KERNEL_PET/.pet/}/etc/modules/* ${E1}/rootfs/etc/modules/

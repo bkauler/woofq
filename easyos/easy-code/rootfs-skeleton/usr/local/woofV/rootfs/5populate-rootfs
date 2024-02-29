@@ -20,7 +20,7 @@ export XBPS_ARCH="$xARCH"
 
 E1='/mnt/wkg/data/woofV'
 L1='/usr/local/woofV'
-mkdir -p ${E1}/dl-pets
+mkdir -p ${E1}/dl-pet
 mkdir -p ${E1}/dl-xbps
 mkdir -p ${E1}/dl-txz
 mkdir -p ${E1}/rootfs/repo
@@ -42,7 +42,6 @@ fi
 
 #non-xbps pkgs get converted to .xbps then installed.
 #keep a record of these conversions...
-#rm -rf ${E1}/converted-pkgs 2>/dev/null
 mkdir -p ${E1}/converted-pkgs
 
 #read each entry in ${E1}/woof-installed-packages-dep-order...
@@ -104,8 +103,8 @@ do
    ls ${E1}/converted-pkgs/${PSTgeneric}-${VER}*.xbps >/dev/null 2>&1
    if [ $? -ne 0 ];then
     PETname="${WIPpkg}" #ex: align-1.7.5.pet
-    if [ ! -f ${E1}/dl-pets/${PETname} ];then
-     cd ${E1}/dl-pets
+    if [ ! -f ${E1}/dl-pet/${PETname} ];then
+     cd ${E1}/dl-pet
      download_file ${URL}/${PETname}
      if [ $? -ne 0 ];then
       echo "ERROR failed to download: ${PETname}"
@@ -116,7 +115,7 @@ do
      fi
     fi
     #convert it to an .xbps pkg...
-    ${L1}/support/pet2xbps ${E1}/dl-pets/${PETname} /tmp/woofV/aDBentry ${PSTgeneric}
+    ${L1}/support/pet2xbps ${E1}/dl-pet/${PETname} /tmp/woofV/aDBentry ${PSTgeneric}
     [ $? -ne 0 ] && continue
     #....xbps will be in ${E1}/converted-pkgs/
    fi
@@ -447,6 +446,10 @@ sync
 
 busybox umount /mnt/${WKG_DEV}/${WKG_DIR}data/woofV/rootfs/var/cache/xbps
 busybox umount /mnt/${WKG_DEV}/${WKG_DIR}data/woofV/rootfs/proc
+
+#20240229 default is /var/cache/xbps, where pkgs will be downloaded to.
+#important; this has to be at end after having populated rootfs
+echo 'cachedir=/mnt/wkg/data/woofV/dl-xbps' > ${E1}/rootfs/etc/xbps.d/30-dl-cache.conf
 
 #post-processing continues in 6post-process-rootfs
 ###end###
