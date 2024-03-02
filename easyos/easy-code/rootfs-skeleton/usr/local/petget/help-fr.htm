@@ -1,198 +1,224 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
-<html><head>
-    <meta http-equiv="content-type" content="text/html; charset=windows-1252">
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html;
+      charset=windows-1252">
     <title>PPM Help</title>
   </head>
   <body>
     <br>
     <table style="text-align: left; width: 700px; margin-left: auto;
-      margin-right: auto;" border="0" cellspacing="2" cellpadding="2">
+      margin-right: auto;" cellspacing="2" cellpadding="2" border="0">
       <tbody>
         <tr>
           <td style="vertical-align: top;">
-            <h1>Gestionnaire des paquets (PPM) </h1>
-            "Paquet" est le terme Linux pour désigner une
-            application. Ces paquets sont gardés en ligne, dans
-            des dépôts, et vous pouvez
-            télécharger et installer n'importe quel
-            paquet.<br>
-            <h2>Comment les installer</h2>
-            Cliquez sur un bouton radio tout en haut pour choisir le
-            dépôt désiré.
-            Généralement le plus à gauche est le
-            plus approprié à votre version de
-            Puppy/Toutou.<br>
+            <h1>PKGget Package Manager (PPM)</h1>
+            <p>Un « package » est la terminologie Linux désignant une
+              application. Ceux-ci sont conservés dans des référentiels
+              en ligne et vous pouvez télécharger et installer n'importe
+              quel package.<br>
+              <br>
+              PKGget est un descendant de Puppy Package Manager,
+              également connu sous l'acronyme « PPM ». La différence est
+              que PKGget est une génération ultérieure, avec plus de
+              fonctionnalités.<br>
+            </p>
+            <h3>Sélection du référentiel et des catégories</h3>
+            <p>Vous cliquez sur un bouton radio en haut pour choisir le
+              référentiel souhaité - généralement celui le plus à gauche
+              est celui le plus adapté à votre version actuelle
+              d'EasyOS.<br>
+              <br>
+              Les boutons radio alignés verticalement sur la gauche vous
+              permettent de restreindre l'affichage à une catégorie
+              spécifique (ces notes concernent l'interface utilisateur
+              'Classic', l'interface utilisateur 'Ziggy' a une
+              présentation légèrement différente).<br>
+              <br>
+              Notez les cases à cocher « EXE » et « DEV » (et sur
+              certaines versions de PKGget également « DOC » et « NLS
+              »). De nombreux packages sont divisés en packages plus
+              petits, comme suit&nbsp;:<br>
+              EXE C'est l'application réelle, vous la voulez absolument.<br>
+              DEV Il contient des fichiers de développement, qui
+              n'intéressent que ceux qui compilent le code source.<br>
+              <br>
+              La plupart des packages contiennent de la documentation et
+              des fichiers de traduction intégrés, et non des packages
+              séparés. Cela dépend du référentiel de packages&nbsp;; Les
+              packages Void Linux, par exemple, sont divisés en deux, le
+              package principal et un package "-devel".<br>
+              <br>
+              Un exemple est « libwv-1.2.3.x86_64.xbps » et «
+              libwv-devel-1.2.3.x86_64.xbps ». Si la case "EXE" est
+              cochée, alors seul le premier package s'affichera dans
+              PKGget. Idem pour "DEV". Ou cochez les deux cases pour
+              afficher les deux packages.<br>
+            </p>
+            <h3>Comment installer et désinstaller un package</h3>
+            <p>Lorsque vous cliquez sur l'un des packages affichés dans
+              la grande fenêtre, une autre fenêtre apparaît vous
+              demandant si vous souhaitez vraiment installer le package,
+              et propose également des informations supplémentaires sur
+              le package - afin que vous puissiez en savoir plus avant
+              de décider de l'installer. il.<br>
+              <br>
+              Lorsqu'un package est installé, il apparaît dans la
+              fenêtre en bas à droite.<br>
+              <br>
+              Pour désinstaller un package, cliquez simplement dessus.
+              Il y aura une autre fenêtre vous demandant de confirmer la
+              suppression.<br>
+            </p>
+            <h3>Dépôts de packages</h3>
+            <p>Comme mentionné ci-dessus, les boutons radio en haut
+              permettent la sélection d'un référentiel.<br>
+              <br>
+              Habituellement, il s'agira de la "distribution compatible"
+              utilisée pour créer EasyOS, ainsi que d'un ou plusieurs
+              référentiels PET.<br>
+              <br>
+              Par exemple, la série Kirkstone d'EasyOS&nbsp;; les
+              packages ont été compilés dans OpenEmbedded et les
+              packages binaires résultants ont été utilisés pour créer
+              EasyOS. Tous les packages compilés dans OpenEmbedded sont
+              téléchargés sur Internet et fournis sous forme de
+              référentiel de packages. Vous verrez un bouton radio
+              intitulé "oe-kirkstone".<br>
+              <br>
+              Un autre exemple est EasyOS construit avec les packages
+              Void Linux. Dans ce cas, vous verrez les boutons radio
+              "void-current" et "void-current-nonfree".<br>
+              <br>
+              Il existe différents référentiels PET. Les PET sont le
+              format Puppy pour les emballages, un acronyme qui, selon
+              nous, signifie avec humour Puppy Extra Treats. Ceux
+              proposés dépendront de la série EasyOS que vous utilisez,
+              mais il y aura généralement "pet-noarch" et un autre tel
+              que "pet-kirkstone" ou "pet-void".<br>
+              <br>
+              "pet-noarch" ne sont pas des packages binaires. Autrement
+              dit, ils ne contiennent pas d'exécutables binaires
+              nécessitant une architecture CPU spécifique telle que
+              x86_64 ou aarch64. Ces packages fonctionneront sur
+              n’importe quel processeur.<br>
+              <br>
+              "pet-kirkstone" et "pet-void" sont des packages binaires.<br>
+              <br>
+              PKGget est un caméléon, capable d'installer des packages
+              depuis presque n'importe quel référentiel. Cependant, pour
+              des raisons de compatibilité, vous n'installerez
+              normalement qu'à partir de ceux affichés dans les boutons
+              radio du référentiel.<br>
+              <br>
+              Pour information, les packages des différentes
+              distributions Linux peuvent être identifiés par
+              l'extension de nom de fichier&nbsp;:<br>
+              Debian, Ubuntu ".deb"<br>
+              Slackware ".tgz" ou ".txz"<br>
+              Mageia, Fedora ".rpm"<br>
+              Arch ".pkg.tar.xz" ou ".pkg.tar.zst"<br>
+              Annuler ".xbps"<br>
+              ANIMAUX DE COMPAGNIE ".pet"<br>
+              <br>
+              PKGget est capable d'installer n'importe lequel d'entre
+              eux. Vous pouvez réellement installer n’importe quel
+              package étranger ; par exemple, téléchargez un package
+              ".deb", cliquez dessus et choisissez d'installer. Mais
+              bien sûr, vous devez faire attention à cela, car un
+              package étranger peut ne pas être compatible.<br>
+            </p>
+            <h3>Recherche</h3>
+            <p>La case «&nbsp;Rechercher&nbsp;:&nbsp;» vous permet de
+              rechercher n'importe quel package.<br>
+              <br>
+              Vous pouvez saisir un nom partiel, mais une correspondance
+              n'est trouvée qu'à partir de la gauche. Par exemple, si
+              vous effectuez une recherche sur «&nbsp;pan&nbsp;», vous
+              pourriez trouver ceci&nbsp;:<br>
+              <br>
+              pango-1.28.1-w5 Bibliothèque pour la mise en page et le
+              rendu du texte internationalisé<br>
+              pangomm-2.26.2-w5 oo wrapper pour la bibliothèque pango<br>
+              panoramixproto-1.1-w5 En-têtes d'extension Panoramix<br>
+              <br>
+              Mais faire une recherche sur "mm" ne donne rien, car il
+              n'y a aucun nom de package commençant par "mm".<br>
+              <br>
+              Cependant, la zone Rechercher acceptera les caractères
+              génériques «&nbsp;*&nbsp;»&nbsp;; ce que l'on appelle des
+              "caractères génériques globaux". Alors, tapez "*mm" pour
+              trouver tous les packages avec "mm" dans leur nom.<br>
+              <br>
+              Vous pouvez même avoir plusieurs caractères génériques,
+              par exemple "p*mix*to", qui trouveront le package
+              'panoramixproto'.<br>
+              <br>
+              La recherche n'est pas sensible à la casse, donc une
+              recherche sur "PAN" donnera les mêmes résultats que ceux
+              indiqués ci-dessus.<br>
+              <br>
+              PKGget prend également en charge la recherche de plusieurs
+              mots-clés. En outre, le champ Description est recherché
+              ainsi que le nom du package. Par exemple, si vous tapez
+              dans le champ de recherche "plugins abiword", il trouvera
+              des packages contenant ces deux mots, soit dans le nom du
+              package, soit dans la description.<br>
+              <br>
+              Une chose à noter à propos de la recherche est qu'elle
+              recherche dans l'ensemble du référentiel (ou des
+              référentiels) et ignore les boutons radio verticaux
+              Catégorie sur le côté gauche.<br>
+            </p>
+            <h3>Installation sans l'interface graphique de PKGget</h3>
+            <p>Déjà mentionné ci-dessus&nbsp;; l'exemple donné de
+              téléchargement d'un package .deb.<br>
+              <br>
+              Vous pouvez réellement télécharger n’importe quel package,
+              de n’importe où, et l’installer. Tout ce que vous avez à
+              faire est de cliquer sur le package dans la fenêtre du
+              gestionnaire de fichiers, et le composant d'installation
+              du package de PKGget exécutera et installera le package.
+              Cela fonctionne pour tous les types de packages, y compris
+              les packages PET, Ubuntu/Debian DEB, Slackware, Arch et
+              Void.<br>
+              <br>
+              Notez cependant que si vous installez un package
+              individuel de cette manière, sans passer par l'interface
+              graphique de PKGget, aucune dépendance n'est installée et
+              vous devrez vous en occuper vous-même.<br>
+              <br>
+              Une bonne chose, un package installé de cette manière
+              apparaîtra dans la fenêtre "Packages installés" de
+              l'interface graphique PKGget et il pourra ainsi être
+              désinstallé.<br>
+            </p>
+            <h3>Comment mettre à jour EasyOS vers la version suivante</h3>
+            <p>Il y a quelque temps, quelqu'un a critiqué PPM, affirmant
+              qu'il ne permettait pas une mise à niveau complète de
+              Puppy (ou EasyOS) vers la version suivante. Les
+              gestionnaires de packages de certaines distributions vous
+              permettent d'installer tous les packages requis pour une
+              mise à jour complète vers la dernière version de la
+              distribution.<br>
+              <br>
+              PPM ne propose pas cela, car Puppy (et EasyOS) ne
+              fonctionnent pas de cette façon. Cela sort du cadre, ou
+              pourrions-nous dire du «&nbsp;contrat&nbsp;» de ce que PPM
+              est tenu de faire.<br>
+              <br>
+              Dans EasyOS, la manière habituelle d'effectuer une mise à
+              jour de version est de cliquer sur l'icône «&nbsp;mettre à
+              jour&nbsp;» sur le bureau. En savoir plus ici&nbsp;: <a
+                moz-do-not-send="true"
+                href="https://easyos.org/user/how-to-update-easyos.html">https://easyos.org/user/how-to-update-easyos.html</a>&nbsp;
+              <br>
+            </p>
             <br>
-            Les boutons radio alignés verticalement sur la gauche
-            vous permettent de restreindre l'affichage à une
-            catégorie spécifique.<br>
-            <br>
-            Remarque sur les case à cocher EXE, DEV, DOC et NLS.
-            Beaucoup de paquets PET sont divisés en petits
-            paquets :<br>
-            <br>
-            EXE: C'est l'application en elle-même, vous en avez
-            absolument besoin (ne pas confondre avec les fichiers .exe
-            de Windows).<br>
-            DEV: Contient des fichiers de développement. N'a
-            d'intérêt que pour la compilation du code
-            source .<br>
-            DOC: Contient les fichiers de documentation de l'ensemble.<br>
-            NLS: Contient les fichiers de langue du paquet.<br>
-            <br>
-            Notez que tous les paquets (si vous installez uniquement le
-            paquet "EXE")
-            sont en anglais. Le paquet NLS ajoutera la prise en charge
-            d'autres langues,
-            mais cela varie considérablement d'un paquet à
-            l'autre. Certains paquets ne
-            prennent pas en charge d'autre langue que l'anglais.<br>
-            <br>
-            Les paquets PET suivent la convention d'appellation suivante
-            :<br>
-            <br>
-            <div style="margin-left: 40px;">
-              abiword-1.2.3.pet ("EXE" package)<br>
-              abiword_DEV-1.2.3.pet<br>
-              abiword_DOC-1.2.3.pet<br>
-              abiword_NLS-1.2.3.pet<br>
-            </div>
-            <br>
-            Malheureusement tous les auteurs de paquets PET ne suivent
-            pas la pratique de fractionnement des paquets PET. Dans
-            certains cas ce peut être, par exemple,
-            "abiword-1.2.3.pet" avec tous les éléments
-            ("EXE", DEV, DOC, NLS). La raison de
-            la division est de réduire la taille des paquets EXE.<br>
-            <br>
-            Lorsque vous cliquez sur un des paquets affichés dans
-            la grande fenêtre,
-            une autre fenêtre s'ouvre pour vous demander de
-            confirmer que vous voulez vraiment installer le paquet, et
-            propose également de plus amples informations sur ce
-            paquet. Ainsi vous pouvez en apprendre davantage avant de
-            décider de l'installer.<br>
-            <h2>Comment désinstaller</h2>
-            Quand un paquet est installé, il apparaît dans
-            la fenêtre du bas.<br>
-            Pour désinstaller un paquet, il vous suffit de
-            cliquer dessus. Une fenêtre apparaitra pour vous
-            demander de confirmer la suppression.<br>
-            <h2>Dépots PET</h2>
-            Il existe différents dépots de paquets PET.
-            Ceux proposés dépendront de la version
-            de Puppy/Toutou que vous utilisez, mais en
-            général il y aura au moins un de
-            ceux-là:<br>
-            <br>
-            <div style="margin-left: 40px;">
-              puppy-2: La très vielle série de Puppy 2.x<br>
-              puppy-3: La série de Puppy 3.x<br>
-              puppy-4: La série de Puppy 4.x<br>
-              puppy-5: La série de Puppy 5.x<br>
-            </div>
-            <br>
-            Pour votre Puppy/Toutou, vous pouvez également en
-            avoir d'autres, comme 'puppy-quirky', 'puppy-wary5', ou
-            'puppy-lucid'.<br>
-            <br>
-            En règle générale, utilisez ceux qui
-            semblent les plus appropriées à votre version
-            de Puppy/Toutou. Les plus anciens ont des paquets qui
-            peuvent ou pas fonctionner
-            pour votre version. Plus le dépot sera ancien plus ce
-            sera le cas. <br>
-            <br>
-            Nous gardons les anciens dépôts disponibles,
-            parce qu'il arrive parfois que vous souhaitez utiliser
-            certains vieux paquets. Mais en règle
-            générale, cherchez dans les
-            dépôts les plus récents en premier.<br>
-            <br>
-            Votre version de Puppy/Toutou peut être construite
-            à partir des paquets de l'une des autres grandes
-            distributions Linux, comme Debian, Ubuntu ou Slackware. Dans
-            ce cas,
-            PPM offrira ces dépots. Ils seront les plus
-            compatibles et ceux que vous devrez rechercher en premier.<br>
-            <br>
-            Bien sûr, les paquets des autres distributions ne sont
-            pas des paquets PET. Les paquets PET possèdent le
-            suffixe .pet (extension du fichier).<br>
-            Debian et Ubuntu ont des paquets DEB, avec le suffixe
-            ".deb".<br>
-            Les paquets Slackware ont comme suffixe ".tgz" ou ".txz".<br>
-            Les paquets Arch Linux ont comme suffixe ".pkg.tar.gz" ou ".pkg.tar.xz" ou ".pkg.tar.zst".<br>
-
-            Quel que soit le type de paquet, PPM est capable de
-            l'installer.<br>
-            <br>
-            <h2>
-              Recherche</h2>
-            La boite "Rech." vous permet de rechercher n'importe quel
-            fichier, mais notez qu'il ne recherche que dans le
-            dépot sélectionné.<br>
-            <br>
-            Vous pouvez taper un nom partiel, mais la correpondance
-            n'est trouvée que de la gauche. Par exemple, si vous
-            effectuez une recherche pour "pan" vous allez trouver ceci :<br>
-            <br>
-            <div style="margin-left: 40px;">pango-1.28.1-w5 Library for
-              layout and rendering of internationalized text<br>
-              pango_DOC-1.28.1-w5 Library for layout and rendering of
-              internationalized text<br>
-              pangomm-2.26.2-w5 oo wrapper for pango library<br>
-              pangomm_DOC-2.26.2-w5 oo wrapper for pango library<br>
-              panoramixproto-1.1-w5 Panoramix extension headers<br>
-            </div>
-            <br>
-            Mais faire une recherche sur "mm" ne donnera rien, parce
-            qu'il n'y a pas de nom de paquet commençant par "mm".<br>
-            <br>
-            Cependant, la boîte de recherche acceptera les jokers
-            '*', que nous appelons les "Jokers globaux". Donc, taper "*
-            mm» permettra de trouver tous les paquets avec "mm"
-            dans le nom.<br>
-            <br>
-            Vous pouvez même avoir des jokers multiples, par
-            exemple "p*mix*to", trouvera le paquet 'panoramixproto'.<br>
-            <br>
-            La recherche est insensible à la casse, ainsi une
-            recherche pour "PAN" donnera les mêmes
-            résultats que plus haut.<br>
-            <br>
-            Autre chose à noter, la recherche est
-            effectuée dans la totalité du dépot, et
-            ignore les boutons radio des catégories sur le
-            coté gauche.<br>
-            <br>
-            <h2>Installation sans l'interface graphique PPM</h2>
-            Vous pouvez actuellement télécharger n'importe
-            quel paquet de n'importe où et l'installer. Tout ce
-            que vous avez à faire est de cliquer sur le paquet
-            dans la fenêtre du gestionnaire de fichiers, et la
-            composante de l'installateur de paquet de PPM
-            s'exécutera et installera le paquet. Cela fonctionne
-            pour de nombreux types de paquets, y compris les PET,
-            Ubuntu/Debian DEB et les paquets Slackware et Arch.<br>
-            <br>
-            Notez toutefois, si vous installez un paquet individuel de
-            cette façon, sans passer par l'interface graphique
-            PPM, toutes les dépendances ne seront pas&nbsp;
-            forcément installées, et vous devrez vous en
-            assurer vous-même.<br>
-            <br>
-            Une bonne chose, un paquet installé de cette
-            manière sera affiché dans la fenêtre des
-            paquets installés de l'interface graphique PPM et il
-            pourra donc être désinstallé.<br>
-            <br>
-            Cordialement,<br>
-            Barry Kauler, Dec. 2010</td>
+          </td>
         </tr>
       </tbody>
     </table>
     <br>
-  
-
-</body></html>
+  </body>
+</html>
