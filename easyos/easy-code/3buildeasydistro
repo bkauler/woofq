@@ -4127,8 +4127,9 @@ sync
 #140202 set default dirs into /file... 170221 "home" is now /mnt/wkg/home, where wkg is a symlink.
 ###WORK IN PROGRESS###
 #hmmm, rox cannot change "home directory", but, can do this... 170215 /file to /mnt/files 170221 now /mnt/wkg/files 190829 now /files
-#190829 /mnt/wkg/files now /files 190904 "file" changed to "home"...
-sed -i -e 's%label="files"%label="files" args="--dir=/files"%' rootfs-complete/root/Choices/ROX-Filer/PuppyPin
+#190829 /mnt/wkg/files now /files 190904 "file" changed to "home"... 
+#20240302 fix... actually, this is no longer required...
+sed -i -e 's%label="files">%label="files" args="--dir=/files">%' rootfs-complete/root/Choices/ROX-Filer/PuppyPin
 if [ -d rootfs-complete/root/.mozilla/seamonkey ];then
  SMPREFS="$(find rootfs-complete/root/.mozilla/seamonkey -type f -name 'prefs.js' | head -n 1)"
  #[ "$SMPREFS" ] && sed -i -e 's%/root/my-documents%/files/downloads%' -e 's%/root/Downloads%/files/downloads%' ${SMPREFS} #190829 190904
