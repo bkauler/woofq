@@ -143,7 +143,8 @@ do
    #log pet name vs xbps pkg name...
    echo "CONV_PKG_REPO='${PSTrepo}'" > ${E1}/converted-pkgs/${PSTgeneric} #ex: pet:noarch
    echo "CONV_PKG_DB='${aL}'" >> ${E1}/converted-pkgs/${PSTgeneric}
-   echo "CONV_XBPS_PKG='${Pxbps}'" >> ${E1}/converted-pkgs/${PSTgeneric} #ex: tas-1.15_1.x86_64.xbps
+   echo "CONV_XBPS_PKGFULL='${Pxbps}'" >> ${E1}/converted-pkgs/${PSTgeneric} #ex: tas-1.15_1.x86_64.xbps
+   echo "CONV_XBPS_PKGVER='${PSTgeneric}-${VER}'" >> ${E1}/converted-pkgs/${PSTgeneric}
    continue
   ;;
  esac
