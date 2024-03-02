@@ -217,14 +217,21 @@ done
 #delete files...
 if [ $EVflg -eq 1 ];then #20240228
  #remove using xbps...
- #sakura -t "PKGget: remove" -x "xbps-remove ${DB_pkgname}"
- xterm -hold -e xbps-remove ${DB_pkgname}
+ #20240301 the .xbps may be different from .pet name...
+ DB_nameonly="$(grep "^${DB_pkgname}|" /root/.packages/user-installed-packages | cut -f 2 -d '|')"
+ if [ -f ${E1}/converted-pkgs/${DB_nameonly} ];then
+. ${E1}/converted-pkgs/${DB_nameonly}
+  xterm -hold -title PKGget -e xbps-remove ${CONV_XBPS_PKGVER}
+ else
+  xterm -hold -title PKGget -e xbps-remove ${DB_pkgname}
+ fi
  vSTATE="$(LANG=C xbps-query --show ${DB_pkgname} --property state)"
  if [ "$vSTATE" == "installed" ];then
   Mi="$(gettext 'Failed to uninstall package:') ${DB_pkgname}"
   popup "background=#ffa0a0 terminate=5 timecount=dn name=remfail level=top|<big>${Mi}</big>"
   exit 2
  fi
+ rm -f /audit/packages/${DB_pkgname}* 2>/dev/null #this is a symlink.
 else
  busybox cat /root/.packages/${DB_pkgname}.files | busybox grep -v '/$' | busybox xargs busybox rm -f #/ on end, it is a directory entry.
  #do it again, looking for empty directories...

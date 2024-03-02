@@ -37,6 +37,7 @@
 #20210612 replaced all yaf-splash with gtkdialog-splash. note, still ok to kill yaf-splash, see gtkdialog-splash script.
 #20220126 now PKGget
 #20220629 replace "Puppy" with "EasyOS".
+#20240301 support easyvoid
 
 export TEXTDOMAIN=petget___downloadpkgs.sh
 export OUTPUT_CHARSET=UTF-8
@@ -50,6 +51,21 @@ FLAGPET="" #101016
 . /root/.packages/DISTRO_PKGS_SPECS #
 . /root/.packages/DISTRO_PET_REPOS #has PET_REPOS, PACKAGELISTS_PET_ORDER
 . /root/.packages/DISTRO_COMPAT_REPOS #v431 has REPOS_DISTRO_COMPAT
+
+#20240301
+EVflg=0
+if [ -d /var/db/xbps/keys ];then
+ EVflg=1
+fi
+L1='/usr/local/woofV'
+E1='/mnt/wkg/data/woofV'
+case "$DISTRO_TARGETARCH" in #20240227
+ amd64) xARCH='x86_64' ;;
+ *)     xARCH="$DISTRO_TARGETARCH" ;;
+esac
+export XBPS_ARCH="$xARCH"
+mkdir -p /tmp/woofV
+mkdir -p ${E1}/dl-pet
 
 echo -n "" > /tmp/petget-installed-pkgs-log
 
@@ -203,54 +219,6 @@ do
  #now download and install them...
  cd /root
  
- #180624 removed...
- ##121123 first test that they all exist online...
- #yaf-splash -bg '#FFD600' -close never -fontsize large -text "$(gettext 'Please wait, testing that packages exist in repository...')" &
- #testPID=$!
- #DL_BAD_LIST=''
- #for ONEFILE in `cat $ONELIST | cut -f 7,8,13 -d '|'` #path|fullfilename|repo-id
- #do
- # ONEREPOID="`echo -n "$ONEFILE" | cut -f 3 -d '|'`" #ex: official (...|puppy|wary5|official|)
- # ONEPATH="`echo -n "$ONEFILE" | cut -f 1 -d '|'`"
- # ONEPKGNAME="`echo -n "$ONEFILE" | cut -f 2 -d '|'`"
- # ONEFILE="`echo -n "$ONEFILE" | cut -f 1,2 -d '|' | tr '|' '/'`" #path/fullfilename
- # [ "`echo -n "$ONEFILE" | rev | cut -c 1-3 | rev`" = "pet" ] && FLAGPET='yes'
- # if [ "`echo "$RETPARAMS" | grep 'RADIO_URL_LOCAL' | grep 'true'`" != "" ];then
- #  if [ ! -f ${LOCALDIR}/${ONEPKGNAME} ];then #121130 fix.
- #   [ ! -f ./${ONEPKGNAME} ] && DL_BAD_LIST="${DL_BAD_LIST} ${ONEPKGNAME}"
- #  fi
- # else
- #  if [ "$ONEPATH" == "" ];then
- #   if [ "$FLAGPET" != "yes" ];then
- #    ONEFILE="compat_packages-${REPO_DEFAULT_SUBSUBDIR}${ONEFILE}"
- #   else
- #    ONEFILE="pet_packages-${REPO_DEFAULT_SUBSUBDIR}${ONEFILE}"
- #   fi
- #  fi
- #  LANG=C wget -4 -t 2 -T 20 --waitretry=20 --spider -S "${DOWNLOADFROM}/${ONEFILE}" > /tmp/download_file_spider.log0 2>&1 #
- #  if [ $? -ne 0 ];then
- #   DL_BAD_LIST="${DL_BAD_LIST} ${ONEPKGNAME}"
- #  fi
- # fi 
- #done
- #pupkill $testPID
- #if [ "$DL_BAD_LIST" ];then
- # BADTITLE="$(gettext 'ERROR: Packages not available')"
- # BADMSG1="$(gettext 'Unfortunately, these packages are not available:')"
- # BADMSG2="$(gettext "It may be that the local package database needs to be updated. In some cases, the packages in the online package repository change, so you may be trying to download a package that no longer exists.")"
- # BADMSG3="$(gettext "SOLUTION: From the main PPM window, click the 'Configure' BUTTON and click the 'Update' button to update the local package database.")"
- # BADMSG4="$(gettext 'The installation has been aborted!')"
- # 
- # pupmessage -bg '#FF8080' -title "${BADTITLE}" "${BADMSG1}
-#${DL_BAD_LIST}
-#
-#${BADMSG4}
-#
-#${BADMSG2}
-#${BADMSG3}"
- # exit 1
- #fi
- 
  for ONEFILE in `cat $ONELIST | cut -f 7,8,13 -d '|'` #100527 path|fullfilename|repo-id
  do
   PKGCNT=`expr $PKGCNT + 1` #101118
@@ -259,6 +227,12 @@ do
   ONEPATH="`echo -n "$ONEFILE" | cut -f 1 -d '|'`" #100527
   ONEFILE="`echo -n "$ONEFILE" | cut -f 1,2 -d '|' | tr '|' '/'`" #100527 path/fullfilename
   [ "`echo -n "$ONEFILE" | rev | cut -c 1-3 | rev`" = "pet" ] && FLAGPET='yes' #101016
+  if [ "$FLAGPET" == "yes" ];then #20240301
+   cd ${E1}/dl-pet
+   DLpath="${E1}/dl-pet"
+  else
+   DLpath='/root'
+  fi
   #if [ "$RADIO_URL_LOCAL" = "true" ];then
   if [ "`echo "$RETPARAMS" | grep 'RADIO_URL_LOCAL' | grep 'true'`" != "" ];then
    [ ! -f ${LOCALDIR}/${ONEFILE} ] && ONEFILE="`basename $ONEFILE`"
@@ -287,9 +261,9 @@ do
   DLPKG="`basename $ONEFILE`"
   if [ -f $DLPKG -a "$DLPKG" != "" ];then
    if [ "$PASSEDPARAM" = "DOWNLOADONLY" ];then
-    /usr/local/petget/verifypkg.sh /root/$DLPKG
+    /usr/local/petget/verifypkg.sh ${DLpath}/${DLPKG} #20240301
    else
-    /usr/local/petget/installpkg.sh /root/$DLPKG
+    /usr/local/petget/installpkg.sh ${DLpath}/${DLPKG} #20240301
     #...appends pkgname and category to /tmp/petget-installed-pkgs-log if successful.
    fi
    if [ $? -ne 0 ];then

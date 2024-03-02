@@ -32,7 +32,7 @@
 #20220126 PETget now named PKGget
 #20230326 remove all reference to file EASYPAK, not used anymore.
 #20230914 stupid grep: "grep: warning: stray \ before -" use busybox grep.
-#20240227 work in easyvoid. 20240229
+#20240227 work in easyvoid. 20240229 20240301
 
 export TEXTDOMAIN=petget___installpreview.sh
 export OUTPUT_CHARSET=UTF-8
@@ -45,6 +45,7 @@ if [ -d /var/db/xbps/keys ];then #20240227
  EVflg=1
 fi
 L1='/usr/local/woofV' #20240229
+E1='/mnt/wkg/data/woofV' #20240301
 
 . /etc/DISTRO_SPECS #has DISTRO_BINARY_COMPAT, DISTRO_COMPAT_VERSION
 . /root/.packages/DISTRO_PKGS_SPECS
@@ -80,7 +81,7 @@ create_deposed_sfs() {
  local PKG
  PKG="$1" #ex: libwv-1.2.9_5
  #list of installed pkgs: /root/.packages/${PKG}.files
- while read aF
+ while read aF <&3
  do
   [ -z "$aF" ] && continue
   #[ "${aF: -1}" == "/" ] && continue #ends with / it is a folder. why get syntax error?
@@ -91,7 +92,7 @@ create_deposed_sfs() {
    mkdir -p /audit/deposed/${PKG}DEPOSED${aD}
    cp -a /mnt/wkg/.session${aF} /audit/deposed/${PKG}DEPOSED${aD}/
   fi
- done </root/.packages/${PKG}.files
+ done 3</root/.packages/${PKG}.files
  if [ -d /audit/deposed/${PKG}DEPOSED ];then
   mksquashfs /audit/deposed/${PKG}DEPOSED /audit/deposed/${PKG}DEPOSED.sfs
   sync
@@ -176,7 +177,7 @@ if [ $EVflg -eq 1 ];then #20240227
   RET1="`gtkdialog --center --program=PREVIEW_DIALOG`"
   grep -q '^EXIT.*BUTTON_INSTALL' <<<${RET1}
   if [ $? -eq 0 ];then
-   sakura -t "PKGget: install" -x "xbps-install --ignore-file-conflicts --cachedir /audit/packages ${TREE1}"
+   sakura -t "PKGget: install" -x "xbps-install --ignore-file-conflicts ${TREE1}"
   fi
   vSTATE="$(LANG=C xbps-query --show ${TREE1} --property state)"
   if [ "$vSTATE" == "installed" ];then
@@ -186,12 +187,27 @@ if [ $EVflg -eq 1 ];then #20240227
    for aNEW in ${vMISSING} ${PKGnameonly}
    do
     grep -F "|${aNEW}|" /root/.packages/${DB_FILE} >> /root/.packages/user-installed-packages
+    if [ $? -eq 0 ];then #20240301
+     if [ -f ${L1}/pkg-fix/packages-templates/${aNEW}/pinstall.sh ];then
+      cd /
+      echo "Executing post-install pinstall.sh for: ${aNEW}"
+      /bin/bash ${L1}/pkg-fix/packages-templates/${aNEW}/pinstall.sh
+     fi
+    fi
    done
    #for backwards compatibility with ppm, list files...
    Fi=0; Fm=0
    for aPKG in ${vPKGS}
    do
+    FND1="$(find ${E1}/dl-xbps -maxdepth 1 -type f -name "${aPKG}.*xbps")" #glob *
+    if [ ! -z "$FND1" ];then #should always be found!
+     ln -snf ${E1}/dl-xbps/${FND1##*/} /audit/packages/${FND1##*/}
+    fi
     xbps-query --files ${aPKG} > /root/.packages/${aPKG}.files
+    #20240301 one difference from .files format is symlinks shown
+    # ex: /usr/lib/liblua5.4.so.5.4 -> /usr/lib/liblua5.4.so.5.4.6
+    #for consistency with normal .files...
+    sed -i -e 's% -> .*%%' /root/.packages/${aPKG}.files
     #create /audit/deposed/${aPKG}DEPOSED.sfs (normal pkgget does this in installpkg.sh)
     if [ "$EOS_TOP_LEVEL_ZRAM" == "1" ];then
      create_deposed_sfs ${aPKG}
@@ -224,11 +240,12 @@ if [ $EVflg -eq 1 ];then #20240227
    #if the pkgs got downloaded but not installed, delete...
    for aPKG in ${vPKGS}
    do
-    FND1="$(find /audit/packages -maxdepth 1 -type f -name "${aPKG}.*xbps")" #glob *
+    FND1="$(find ${E1}/dl-xbps -maxdepth 1 -type f -name "${aPKG}.*xbps")" #glob *
     if [ ! -z "$FND1" ];then
      aSTATE="$(LANG=C xbps-query --show ${aPKG} --property state)"
      if [ "$aSTATE" != "installed" ];then
-      rm -f /audit/packages/${FND1##*/}
+      rm -f ${E1}/dl-xbps/${FND1##*/}
+      rm -f /audit/packages/${FND1##*/} 2>/dev/null #this will be a symlink
      fi
     fi
    done

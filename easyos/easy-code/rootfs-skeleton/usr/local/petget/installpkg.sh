@@ -91,7 +91,7 @@
 #20230904 set xARCHDIR
 #20230918 got rid of remnants of EasyPak, DEBSHERE, eppm
 #20240114 fix 20230708
-#20240229 easyvoid
+#20240229 easyvoid. 20240302
 
 #information from 'labrador', to expand a .pet directly to '/':
 #NAME="a52dec-0.7.4"
@@ -679,9 +679,11 @@ _END1
    #log pet name vs xbps pkg name...
    echo "CONV_PKG_REPO='${PSTrepo}'" > ${E1}/converted-pkgs/${WIPnameonly} #ex: pet:noarch
    echo "CONV_PKG_DB='${aDB}'" >> ${E1}/converted-pkgs/${WIPnameonly}
-   echo "CONV_XBPS_PKG='${Pxbps}'" >> ${E1}/converted-pkgs/${WIPnameonly} #ex: tas-1.15_1.x86_64.xbps
+   echo "CONV_XBPS_PKGFULL='${Pxbps}'" >> ${E1}/converted-pkgs/${WIPnameonly} #ex: tas-1.15_1.x86_64.xbps
+   echo "CONV_XBPS_PKGVER='${WIPnameonly}-${VER}'" >> ${E1}/converted-pkgs/${WIPnameonly} #20240302
    #probably good to link here...
    ln -s ${E1}/converted-pkgs/${Pxbps} /audit/packages/${Pxbps}
+   ln -s ${DLPKG} /audit/packages/${DLPKG##*/} #20240301
    Iflg=1 #flag installed.
   fi
  fi
@@ -750,7 +752,9 @@ _END1
 fi #end 131230
 
 #140215 saving all installed packages in /audit/packages...
-mv -f $DLPKG_BASE /audit/packages/
+if [ $EVflg -eq 0 ];then #20240301 =1 symlink already created above.
+ mv -f $DLPKG_BASE /audit/packages/
+fi
 #rm -f $DLPKG_BASE 2>/dev/null
 rm -f $DLPKG_MAIN.tar.gz 2>/dev/null
 
