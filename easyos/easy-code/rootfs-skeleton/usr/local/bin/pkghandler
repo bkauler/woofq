@@ -4,6 +4,7 @@
 #in former case, offer to install. latter, open in Xarchive.
 #200711 update. add zstd, bzip2, gz. 
 #20240113 add .xbps, some code rewritten.
+#20240303 now have xbpsget script.
 
 PKGSPEC="$@"
 [ ! -f "$PKGSPEC" ] && exit 1
@@ -12,21 +13,25 @@ PKGSPEC="$@"
 case "$PKGSPEC" in
  *.tar.xz|*.txz|*.tar.zstd|*.tar.zst|*.tar.bz2|*.tbz2|*.tar.gz|*.tgz|*.xbps)
   #-t = --list, -J = --xz
-  #PFILES="$(tar -t -J -f "$PKGSPEC")"
   if [ "${PKGSPEC##*.}" == "xbps" ];then
-   PFILES="$(tar --zstd -t -f "$PKGSPEC")"
+   FLG1=0; FLG2=0
   else
    PFILES="$(tar -t -f "$PKGSPEC")"
+   grep -q -E '^usr/|^opt/|^dev/|^lib/|^bin/|^sbin/|^boot/|^include/|^root/|^var/' <<<${PFILES}
+   FLG1=$?
+   grep -q -E '^\./usr/|^\./opt/|^\./dev/|^\./lib/|^\./bin/|^\./sbin/|^\./boot/|^\./include/|^\./root/|^\./var/' <<<${PFILES}
+   FLG2=$?
   fi
-  grep -q -E '^usr/|^opt/|^dev/|^lib/|^bin/|^sbin/|^boot/|^include/|^root/|^var/' <<<${PFILES}
-  FLG1=$?
-  grep -q -E '^\./usr/|^\./opt/|^\./dev/|^\./lib/|^\./bin/|^\./sbin/|^\./boot/|^\./include/|^\./root/|^\./var/' <<<${PFILES}
-  FLG2=$?
+  
   if [ $FLG1 -eq 0 -o $FLG2 -eq 0 ];then
    NAMEONLY="$(basename "$PKGSPEC")"
    pupdialog --backtitle "${NAMEONLY}" --background "#FFC080" --yes-label "Install" --no-label "Xarchive" --yesno "Choose whether to install, or open in Xarchive" 0 0
    if [ $? -eq 0 ];then
-    exec petget "$PKGSPEC"
+    if [ "${PKGSPEC##*.}" == "xbps" ];then
+     exec /usr/local/petget/xbpsget "$PKGSPEC"
+    else
+     exec petget "$PKGSPEC"
+    fi
    else
     #exec pupzip "$PKGSPEC"
     exec xarchive "$PKGSPEC"
