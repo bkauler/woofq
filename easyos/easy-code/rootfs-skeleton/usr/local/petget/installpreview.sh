@@ -33,6 +33,7 @@
 #20230326 remove all reference to file EASYPAK, not used anymore.
 #20230914 stupid grep: "grep: warning: stray \ before -" use busybox grep.
 #20240227 work in easyvoid. 20240229 20240301
+#20240302 easyvoid: app to run non-root.
 
 export TEXTDOMAIN=petget___installpreview.sh
 export OUTPUT_CHARSET=UTF-8
@@ -133,10 +134,18 @@ if [ $EVflg -eq 1 ];then #20240227
   size_func $vSIZEK
   SIZEH="$SM"
   
-  #i reckon bypass all the old code below, just put up a simple gui here then exit...
+  #i reckon bypass all the old code below, just put up a simple gui and process here...
   DB_ENTRY="$(grep "$tPATTERN" /root/.packages/$DB_FILE | head -n 1)"
   DB_description="$(cut -f 10 -d '|' <<<${DB_ENTRY})"
-  FREEK=$(busybox df -k | grep ' /$' | tr -s ' ' | cut -f 4 -d ' ')
+  ZRAMFREEK=$(busybox df -k | grep ' /$' | tr -s ' ' | cut -f 4 -d ' ')
+  #20240302 if running in zram, will also need to get free space in wkg-part...
+  WKGFREEK=$(busybox df -k | grep "mnt/${WKG_DEV}$" | tr -s ' ' | cut -f 4 -d ' ')
+  #choose the lowest value...
+  if [ $ZRAMFREEK -gt $WKGFREEK ];then
+   FREEK=$WKGFREEK
+  else
+   FREEK=$ZRAMFREEK
+  fi
   size_func $FREEK
   FREEH="$SM"
   if [ -z "$vMISSING" ];then
@@ -197,6 +206,7 @@ if [ $EVflg -eq 1 ];then #20240227
    done
    #for backwards compatibility with ppm, list files...
    Fi=0; Fm=0
+   DTcnt=0 #20240302
    for aPKG in ${vPKGS}
    do
     FND1="$(find ${E1}/dl-xbps -maxdepth 1 -type f -name "${aPKG}.*xbps")" #glob *
@@ -208,6 +218,12 @@ if [ $EVflg -eq 1 ];then #20240227
     # ex: /usr/lib/liblua5.4.so.5.4 -> /usr/lib/liblua5.4.so.5.4.6
     #for consistency with normal .files...
     sed -i -e 's% -> .*%%' /root/.packages/${aPKG}.files
+    sed -i '/^\/bin$/d' /root/.packages/${aPKG}.files
+    sed -i '/^\/lib$/d' /root/.packages/${aPKG}.files
+    sed -i '/^\/lib64$/d' /root/.packages/${aPKG}.files
+    sed -i '/^\/sbin$/d' /root/.packages/${aPKG}.files
+    sed -i '/^\/usr\/lib64$/d' /root/.packages/${aPKG}.files
+    sed -i '/^\/usr/\/sbin$/d' /root/.packages/${aPKG}.files
     #create /audit/deposed/${aPKG}DEPOSED.sfs (normal pkgget does this in installpkg.sh)
     if [ "$EOS_TOP_LEVEL_ZRAM" == "1" ];then
      create_deposed_sfs ${aPKG}
@@ -224,6 +240,7 @@ if [ $EVflg -eq 1 ];then #20240227
       [ -z "$aDT" ] && continue
       ${L1}/pkg-fix/dot-desktop-fix ${aDT##*/} #20240229
       build-rox-sendto ${aDT}
+      DTcnt=$((${DTcnt}+1)) #20240302
      done
      Fm=1
     fi
@@ -232,9 +249,63 @@ if [ $EVflg -eq 1 ];then #20240227
     gtk-update-icon-cache -f /usr/share/icons/hicolor/
     gtk-update-icon-cache -f /usr/share/icons/Adwaita/
    fi
+
+   NRflg=0
+   grep -q 'usr/share/applications' /root/.packages/${TREE1}.files
+   if [ $? -eq 0 ];then
+    for aDT in $(grep '/usr/share/applications/.*desktop$' /root/.packages/${TREE1}.files)
+    do
+     [ -z "$aDT" ] && continue
+     grep -q '^NoDisplay=true' ${aDT}
+     if [ $? -ne 0 ];then
+      EXEC="$(grep '^Exec=' | cut -f 2 -d '=' | cut -f 1 -d ' ')"
+      grep -q '/' <<<${EXEC}
+      if [ $? -ne 0 ];then
+       if [ -x /usr/bin/${EXEC} ];then
+        #if [ ! -d /home/${EXEC} ];then
+         /usr/local/clients/setup-client "${EXEC}=true"
+         NRflg=1
+         break
+        #fi
+       fi
+      fi
+     fi
+    done
+   fi
+
    if [ $Fm -eq 1 ];then
     fixmenus
     jwm -reload
+   fi
+   if [ $NRflg -eq 1 ];then
+    export IPV_DLG="<window title=\"PKGget: $(gettext 'package installed')\" image-name=\"/usr/local/lib/X11/pixmaps/pkg24.png\">
+     <vbox>
+      <text use-markup=\"true\"><label>\"$(gettext 'This package has been installed:') <b>${TREE1}</b>
+      <text use-markup=\"true\"><label>\"$(gettext 'This application has been installed:') <b>${EXEC}</b>
+$(gettext 'The application will run non-root, as this user:') ${EXEC}
+$(gettext 'With home directory:') /home/${EXEC}
+$(gettext 'The app also has private write access to:') /files/apps/${EXEC}\"</label></text>
+     <frame>
+      <text use-markup=\"true\"><label>\"<b>$(gettext 'Desktop icon')</b>\"</label></text>
+      <text use-markup=\"true\"><label>\"$(gettext 'An entry has been created in the menu; however, you can also create a desktop icon.')
+$(gettext 'All that you need to do is drag the icon from ROX-Filer, onto the desktop, that is it.')
+$(gettext 'You can do it any time in the future, and also can delete the desktop icon by right-click and choose Remove.')\"</label></text>
+      <hbox>
+       <text><label>$(gettext 'Click for ROX-Filer window:')</label></text>
+       <button>
+        <label>ROX-Filer</label>
+        <action>rox -d /home/${EXEC} & </action>
+       </button>
+      </hbox>
+     </frame>
+     <hbox>
+      <button ok></button>
+     </hbox>
+     </vbox></window>"
+    gtkdialog --center --program=IPV_DLG
+   else
+    vM1="$(gettext 'You have installed this package:') ${TREE1} "
+    popup "terminate=5 timecount=dn name=vinstallmsg background=#a0ffa0|<big>${vM1}</big>"
    fi
   else
    #if the pkgs got downloaded but not installed, delete...
