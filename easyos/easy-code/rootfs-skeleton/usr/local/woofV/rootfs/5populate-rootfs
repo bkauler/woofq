@@ -238,7 +238,8 @@ do
      #log orig db vs new xbps pkg name... actually, the .xbps pkg name is unchanged
      echo "CONV_PKG_REPO='${PSTrepo}'" > ${E1}/converted-pkgs/${PSTgeneric} #ex: compat:void
      echo "CONV_PKG_DB='${aL}'" >> ${E1}/converted-pkgs/${PSTgeneric}
-     echo "CONV_XBPS_PKG='${Pxbps}'" >> ${E1}/converted-pkgs/${PSTgeneric} #ex: acl-2.3.1_1.x86_64.xbps
+     echo "CONV_XBPS_PKGFULL='${Pxbps}'" >> ${E1}/converted-pkgs/${PSTgeneric} #ex: acl-2.3.1_1.x86_64.xbps
+     echo "CONV_XBPS_PKGVER='${WIPnameonly}-${VER}'" >> ${E1}/converted-pkgs/${PSTgeneric}
      
      #register pkg in local repo inside rootfs...
      chroot ${E1}/rootfs /usr/bin/xbps-rindex -a /repo/${Pxbps}
@@ -378,7 +379,8 @@ do
     #log orig db vs new xbps pkg name...
     echo "CONV_PKG_REPO='${PSTrepo}'" > ${E1}/converted-pkgs/${PSTgeneric} #ex: compat:kirkstone
     echo "CONV_PKG_DB='${aL}'" >> ${E1}/converted-pkgs/${PSTgeneric}
-    echo "CONV_XBPS_PKG='${Pxbps}'" >> ${E1}/converted-pkgs/${PSTgeneric} #ex: acl-2.3.1_1.x86_64.xbps
+    echo "CONV_XBPS_PKGFULL='${Pxbps}'" >> ${E1}/converted-pkgs/${PSTgeneric} #ex: acl-2.3.1_1.x86_64.xbps
+    echo "CONV_XBPS_PKGVER='${Newnameonly}-${Newver}_${WIPrevision/r/}'" >> ${E1}/converted-pkgs/${PSTgeneric}
     
     #install .xbps
     Pwant="${E1}/sandbox/${Pxbps}"
