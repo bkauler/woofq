@@ -11,7 +11,8 @@ else
  DT="$(ls -1 *.desktop | tr '\n' ' ')"
 fi
 
-DEFICON='Executable.xpm'
+#DEFICON='Executable.xpm'
+DEFICON='executable.png' #20240302 in /usr/share/pixmaps
 iPATTERN="s%^Icon=.*%Icon=${DEFICON}%"
 
 for aD in ${DT}
@@ -37,7 +38,10 @@ do
  #fix icon...
  ICON="`grep '^Icon=' $aD | cut -f 2 -d '='`"
  if [ "$ICON" ];then
-  [ -e "${ICON}" ] && continue #it may have a hardcoded path.
+  if [ -e "${ICON}" ];then #it may have a hardcoded path.
+   ln -s "${ICON}" /usr/share/pixmaps/${ICON##*/} #20240302
+   continue
+  fi
   ICONBASE="${ICON##*/}"
   #first search where jwm looks for icons... 111207...
   FNDICON="`find /usr/local/lib/X11/mini-icons /usr/share/pixmaps -maxdepth 1 -name $ICONBASE -o -name $ICONBASE.png -o -name $ICONBASE.xpm -o -name $ICONBASE.jpg -o -name $ICONBASE.jpeg -o -name $ICONBASE.gif -o -name $ICONBASE.svg | grep -i -E 'png$|xpm$|jpg$|jpeg$|gif$|svg$' | head -n 1`"
