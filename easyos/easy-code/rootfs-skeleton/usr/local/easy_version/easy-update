@@ -33,6 +33,7 @@
 #20230328 ask if current .img is elsewhere.
 #20230503 cannot update fscrypt v1 to v2.  20230504
 #20231108 offer to update nvidia sfs. (see also initrd init). 20231109 check nv major version.
+#20240302 support easyvoid. 20240304
 
 export TEXTDOMAIN=easy-update
 export OUTPUT_CHARSET=UTF-8
@@ -47,11 +48,25 @@ PARENT="${$}"
 KERNVER="$(uname -r)" #20231108
 . /etc/rc.d/PUPSTATE #has PUP_HOME
 . /etc/DISTRO_SPECS #has DISTRO_BINARY_COMPAT, DISTRO_COMPAT_VERSION DISTRO_TARGETARCH
-. /root/.packages/DISTRO_PET_REPOS #has PET_REPOS, PACKAGELISTS_PET_ORDER, SFS_REPOS
+. /root/.packages/DISTRO_PET_REPOS #has PET_REPOS, PACKAGELISTS_PET_ORDER, SFS_REPOS, EASYOS_RELEASES_URL
 
 if [ ! "$DISTRO_NAME_SHORT" ];then #20230305 test if not defined in DISTRO_SPECS
  DISTRO_NAME_SHORT='Easy'
 fi
+
+#20240302
+case "$DISTRO_TARGETARCH" in
+ amd64) xARCH='x86_64' ;;
+ *)     xARCH="$DISTRO_TARGETARCH" ;;
+esac
+export XBPS_ARCH="$xARCH"
+mkdir -p /tmp/woofV
+EVflg=0
+if [ -d /var/db/xbps/keys ];then
+ EVflg=1
+fi
+E1='/mnt/wkg/data/woofV'
+L1='/usr/local/woofV'
 
 if [ -d /boot/device-tree ];then #20220621 rpi
  #this is a hack...
@@ -89,24 +104,42 @@ echo -n "$(gettext 'Probing ibiblio.org to see if there is a later release...')"
 echo -e '\033[0;39m' #reset.
 [ -f /tmp/easy_version/${DISTRO_COMPAT_VERSION} ] && rm -f /tmp/easy_version/${DISTRO_COMPAT_VERSION} #20201109
 
-#20210701 hmmm, pi4 files are one-deeper...
-if [ "$DISTRO_TARGETARCH" == "aarch64" ];then
- DEEPER='/rpi4'
- wget -4 -t 2 -T 20 --waitretry=20 --directory-prefix=/tmp/easy_version --level=1 http://distro.ibiblio.org/easyos/${DISTRO_TARGETARCH}/releases/${DISTRO_COMPAT_VERSION}${DEEPER}/${YEAR} #20220512
- #...this creates a html file /tmp/easy_version/rpi4
- mv -f /tmp/easy_version/${YEAR} /tmp/easy_version/rpi4 #20220519 fix filename.
- fsync /tmp/easy_version/rpi4
- mv -f /tmp/easy_version/rpi4 /tmp/easy_version/${DISTRO_COMPAT_VERSION}
+if [ ! -z "$SFS_REPOS" ];then #20240302
+ SFS_REPO_URL="$(cut -f 2 -d '|' <<<${SFS_REPOS})"
 else
- DEEPER=''
- wget -4 -t 2 -T 20 --waitretry=20 --directory-prefix=/tmp/easy_version --level=1 http://distro.ibiblio.org/easyos/${DISTRO_TARGETARCH}/releases/${DISTRO_COMPAT_VERSION}/${YEAR} #20220512
- #...this creates a html file /tmp/easy_version/${DISTRO_COMPAT_VERSION}, ex: 'buster'
- mv -f /tmp/easy_version/${YEAR} /tmp/easy_version/${DISTRO_COMPAT_VERSION} #20220519 fix filename.
- fsync /tmp/easy_version/${DISTRO_COMPAT_VERSION} #20201226 try fix weird error below if test fails.
+ SFS_REPO_URL="https://distro.ibiblio.org/easyos/${DISTRO_TARGETARCH}/packages/sfs"
+fi
+
+origEASYOS_RELEASES_URL=''
+if [ ! -z "$EASYOS_RELEASES_URL" ];then #20240302
+  origEASYOS_RELEASES_URL="$EASYOS_RELEASES_URL"
+  DEEPER=''
+  wget -4 -t 2 -T 20 --waitretry=20 --directory-prefix=/tmp/easy_version --level=1 ${EASYOS_RELEASES_URL} #20220512
+  #...this creates a html file /tmp/easy_version/${EASYOS_RELEASES_URL##*/}, ex: 'void'
+  mv -f /tmp/easy_version/${EASYOS_RELEASES_URL##*/} /tmp/easy_version/${DISTRO_COMPAT_VERSION} #20220519 fix filename.
+  fsync /tmp/easy_version/${DISTRO_COMPAT_VERSION} #20201226 try fix weird error below if test fails.
+else
+ #20210701 hmmm, pi4 files are one-deeper...
+ if [ "$DISTRO_TARGETARCH" == "aarch64" ];then
+  DEEPER='/rpi4'
+  EASYOS_RELEASES_URL="https://distro.ibiblio.org/easyos/${DISTRO_TARGETARCH}/releases/${DISTRO_COMPAT_VERSION}${DEEPER}/${YEAR}"
+  wget -4 -t 2 -T 20 --waitretry=20 --directory-prefix=/tmp/easy_version --level=1 ${EASYOS_RELEASES_URL} #20220512
+  #...this creates a html file /tmp/easy_version/rpi4
+  mv -f /tmp/easy_version/${EASYOS_RELEASES_URL##*/} /tmp/easy_version/rpi4 #20220519 fix filename.
+  fsync /tmp/easy_version/rpi4
+  mv -f /tmp/easy_version/rpi4 /tmp/easy_version/${DISTRO_COMPAT_VERSION}
+ else
+  DEEPER=''
+  EASYOS_RELEASES_URL="http://distro.ibiblio.org/easyos/${DISTRO_TARGETARCH}/releases/${DISTRO_COMPAT_VERSION}/${YEAR}"
+  wget -4 -t 2 -T 20 --waitretry=20 --directory-prefix=/tmp/easy_version --level=1 ${EASYOS_RELEASES_URL} #20220512
+  #...this creates a html file /tmp/easy_version/${EASYOS_RELEASES_URL##*/}, ex: 'buster'
+  mv -f /tmp/easy_version/${EASYOS_RELEASES_URL##*/} /tmp/easy_version/${DISTRO_COMPAT_VERSION} #20220519 fix filename.
+  fsync /tmp/easy_version/${DISTRO_COMPAT_VERSION} #20201226 try fix weird error below if test fails.
+ fi
 fi
 if [ ! -s /tmp/easy_version/${DISTRO_COMPAT_VERSION} ];then #20201109
  echo -en '\033[1;31m' #bright red.
- echo "$(gettext 'Sorry, there was an error probing ibiblio.org, aborting script.')"
+ echo "$(gettext 'Sorry, there was an error probing the online repository, aborting script.')"
  echo -e '\033[0;39m' #reset.
  echo -e "\033[1;31m${MSGexit}\033[0;39m"
  exit 1
@@ -118,7 +151,7 @@ sortedVERS="$(echo "$VERS" | sort -t. -k 1,1n -k 2,2n -k 3,3n -k 4,4n)" #lowest 
 latestVER="$(echo "$sortedVERS" | tail -n 1)"
 if [ "$latestVER" == "" ];then
  echo -en '\033[1;31m' #bright red.
- echo "$(gettext 'Sorry, there was an error probing ibiblio.org, aborting script.')"
+ echo "$(gettext 'Sorry, there was an error probing the online repository, aborting script.')"
  echo -e '\033[0;39m' #reset.
  echo -e "\033[1;31m${MSGexit}\033[0;39m"
  exit 2
@@ -305,7 +338,7 @@ else #20220623
   mv -f XXX${LASTIMG} ${LASTIMG}
   echo "$(gettext 'You have this local file:') ${LASTIMG}"
   echo "$(gettext 'Looking online to see if a delta file exists...')"
-  wget -4 -S --spider https://distro.ibiblio.org/easyos/${DISTRO_TARGETARCH}/releases/${DISTRO_COMPAT_VERSION}${DEEPER}/${YEAR}/${latestVER}/deltas/${LASTIMG}___${DISTRO_NAME_SHORT,,}-${latestVER}-${DISTRO_TARGETARCH}.img.delta > /tmp/easy-update-delta-probe 2>&1 
+  wget -4 -S --spider ${EASYOS_RELEASES_URL}/${latestVER}/deltas/${LASTIMG}___${DISTRO_NAME_SHORT,,}-${latestVER}-${DISTRO_TARGETARCH}.img.delta > /tmp/easy-update-delta-probe 2>&1 
   grep -q 'HTTP/1\.1 200 OK' /tmp/easy-update-delta-probe
   if [ $? -ne 0 ];then
    echo " $(gettext '...no it does not. will have to download full-size latest version.')"
@@ -317,13 +350,15 @@ else #20220623
    
    #20220628 check md5sum of local file...
    if [ ! -f md5sum.txt ];then
-    download_file https://distro.ibiblio.org/easyos/${DISTRO_TARGETARCH}/releases/${DISTRO_COMPAT_VERSION}${DEEPER}/${YEAR}/${DISTRO_VERSION}/md5sum.txt >/dev/null 2>&1
+    download_file ${EASYOS_RELEASES_URL}/${DISTRO_VERSION}/md5sum.txt >/dev/null 2>&1
     RETVAL=$?
     if [ $RETVAL -ne 0 ];then
-     YEAR0=$(($YEAR-1))
-     rm -f md5sum.txt 2>/dev/null
-     download_file https://distro.ibiblio.org/easyos/${DISTRO_TARGETARCH}/releases/${DISTRO_COMPAT_VERSION}${DEEPER}/${YEAR0}/${DISTRO_VERSION}/md5sum.txt >/dev/null 2>&1
-     RETVAL=$?
+     if [ -z "$origEASYOS_RELEASES_URL" ];then #20240302
+      YEAR0=$(($YEAR-1))
+      rm -f md5sum.txt 2>/dev/null
+      download_file https://distro.ibiblio.org/easyos/${DISTRO_TARGETARCH}/releases/${DISTRO_COMPAT_VERSION}${DEEPER}/${YEAR0}/${DISTRO_VERSION}/md5sum.txt >/dev/null 2>&1
+      RETVAL=$?
+     fi
     fi
    else
     RETVAL=0
@@ -358,7 +393,7 @@ if [ "$HAVEDELTA" == "yes" ];then
  
  #20220624 get md5sum...
  rm -f md5sums.txt 2>/dev/null
- download_file https://distro.ibiblio.org/easyos/${DISTRO_TARGETARCH}/releases/${DISTRO_COMPAT_VERSION}${DEEPER}/${YEAR}/${latestVER}/deltas/md5sums.txt
+ download_file ${EASYOS_RELEASES_URL}/${latestVER}/deltas/md5sums.txt
  if [ $? -ne 0 ];then
   echo -en '\033[1;31m' #bright red.
   echo "$(gettext 'Something went wrong with the download. Aborting')"
@@ -370,7 +405,7 @@ if [ "$HAVEDELTA" == "yes" ];then
  fi
  
  rm -f ${LASTIMG}___${DISTRO_NAME_SHORT,,}-${latestVER}-${DISTRO_TARGETARCH}.img.delta 2>/dev/null
- download_file https://distro.ibiblio.org/easyos/${DISTRO_TARGETARCH}/releases/${DISTRO_COMPAT_VERSION}${DEEPER}/${YEAR}/${latestVER}/deltas/${LASTIMG}___${DISTRO_NAME_SHORT,,}-${latestVER}-${DISTRO_TARGETARCH}.img.delta
+ download_file ${EASYOS_RELEASES_URL}/${latestVER}/deltas/${LASTIMG}___${DISTRO_NAME_SHORT,,}-${latestVER}-${DISTRO_TARGETARCH}.img.delta
  RET=$?
  if [ $RET -eq 0 ];then
   MD5SUM="$(md5sum ${LASTIMG}___${DISTRO_NAME_SHORT,,}-${latestVER}-${DISTRO_TARGETARCH}.img.delta | cut -f 1 -d ' ')"
@@ -421,7 +456,7 @@ if [ "$askdl" != "" ];then
   
  #20220625 get md5sum... 20230221
  rm -f md5sum.txt 2>/dev/null
- download_file https://distro.ibiblio.org/easyos/${DISTRO_TARGETARCH}/releases/${DISTRO_COMPAT_VERSION}${DEEPER}/${YEAR}/${latestVER}/md5sum.txt
+ download_file ${EASYOS_RELEASES_URL}/${latestVER}/md5sum.txt
  if [ $? -ne 0 ];then
   echo -en '\033[1;31m' #bright red.
   echo "$(gettext 'Something went wrong with the download. Aborting')"
@@ -431,7 +466,7 @@ if [ "$askdl" != "" ];then
   echo -e "\033[1;31m${MSGexit}\033[0;39m"
   exit 9
  fi
- download_file https://distro.ibiblio.org/easyos/${DISTRO_TARGETARCH}/releases/${DISTRO_COMPAT_VERSION}${DEEPER}/${YEAR}/${latestVER}/${DISTRO_NAME_SHORT,,}-${latestVER}-${DISTRO_TARGETARCH}.img
+ download_file ${EASYOS_RELEASES_URL}/${latestVER}/${DISTRO_NAME_SHORT,,}-${latestVER}-${DISTRO_TARGETARCH}.img
  RETVAL=$?
  
  if [ $RETVAL -eq 0 ];then #20220625
@@ -463,18 +498,20 @@ echo -en '\033[1;35m' #bright magenta
 echo "$(gettext 'This file has been downloaded:')"
 echo "/mnt/${WKG_DEV}/${WKG_DIR}${DISTRO_NAME_SHORT,,}-${latestVER}-${DISTRO_TARGETARCH}.img"
 
-if [ "$KERNAME" == "kernel8.img" ];then #20210125 rpi  20210701
- echo "$(gettext 'You may do a manual update, by clicking on the image file to open it up, drag kernel8.img, initrd and the device-tree files to the boot-partition, and easy.sfs to the working-partition, then click on initrd to fix the BOOT_SPECS file. These steps are documented online.')" | fold -s -w ${COLUMNS}
-else
- echo "$(gettext 'You may do a manual update, by clicking on the image file to open it up, drag vmlinuz, initrd and easy.sfs to the working-partition, then click on the file again to unmount, then reboot. Easy-peasy.')" | fold -s -w ${COLUMNS}
+if [ $EVflg -eq 0 ];then #20240302
+ if [ "$KERNAME" == "kernel8.img" ];then #20210125 rpi  20210701
+  echo "$(gettext 'You may do a manual update, by clicking on the image file to open it up, drag kernel8.img, initrd and the device-tree files to the boot-partition, and easy.sfs to the working-partition, then click on initrd to fix the BOOT_SPECS file. These steps are documented online.')" | fold -s -w ${COLUMNS}
+ else
+  echo "$(gettext 'You may do a manual update, by clicking on the image file to open it up, drag vmlinuz, initrd and easy.sfs to the working-partition, then click on the file again to unmount, then reboot. Easy-peasy.')" | fold -s -w ${COLUMNS}
+ fi
+ echo "$(gettext 'However, this script can do it automatically. Make your choice...')"
+ echo -en '\033[0;39m' #reset.
+ echo -e '\033[1;34m' #bright blue
+ echo -n "$(gettext 'Press ENTER for automatic update (any other key to quit):') "
+ echo -en '\033[0;39m' #reset.
+ read autoupdate
+ [ "$autoupdate" != "" ] && echo -e "\033[1;31m${MSGexit}\033[0;39m" && exit 10
 fi
-echo "$(gettext 'However, this script can do it automatically. Make your choice...')"
-echo -en '\033[0;39m' #reset.
-echo -e '\033[1;34m' #bright blue
-echo -n "$(gettext 'Press ENTER for automatic update (any other key to quit):') "
-echo -en '\033[0;39m' #reset.
-read autoupdate
-[ "$autoupdate" != "" ] && echo -e "\033[1;31m${MSGexit}\033[0;39m" && exit 10
 
 echo
 echo -en '\033[1;35m' #bright magenta
@@ -542,7 +579,7 @@ if [ -e /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${DISTRO_VERSION}/nvidia.sfs ];t
   #we need to know the kernel version of the new easyos version...
   newKERNVER="$(LANG=C file ${MNTPT2}/easyos/${KERNAME} | grep -o 'version [^ ]*' | cut -f 2 -d ' ')"
   if [ "$newKERNVER" != "$KERNVER" ];then
-   download_file https://distro.ibiblio.org/easyos/${DISTRO_TARGETARCH}/packages/sfs/sfs-repo-file-list
+   download_file ${SFS_REPO_URL}/sfs-repo-file-list
    if [ $? -eq 0 ];then
     NVmajorver="$(echo -n "$realNVSFS" | rev | cut -f 1 -d '-' | rev | cut -f 1 -d '.')" #ex: 525
     newNVSFSurl="$(grep -F "easyos/${DISTRO_BINARY_COMPAT}/${DISTRO_COMPAT_VERSION}/nvidia_${newKERNVER}-${NVmajorver}." sfs-repo-file-list | grep 'sfs$' | sed -e 's%\.sfs$%%')"
@@ -555,11 +592,11 @@ if [ -e /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${DISTRO_VERSION}/nvidia.sfs ];t
      echo -n "$(gettext 'Press ENTER key to update NVIDIA SFS, any other key to decline:') "
      read dlnvidia
      if [ "$dlnvidia" == "" ];then
-      download_file https://distro.ibiblio.org/easyos/${DISTRO_TARGETARCH}/packages/sfs/${newNVSFSurl}.sfs
+      download_file ${SFS_REPO_URL}/${newNVSFSurl}.sfs
       if [ $? -eq 0 ];then
        mv ${newNVSFSurl##*/}.sfs /mnt/${WKG_DEV}/${WKG_DIR}sfs/easyos/${DISTRO_BINARY_COMPAT}/${DISTRO_COMPAT_VERSION}/
        sync
-       download_file https://distro.ibiblio.org/easyos/${DISTRO_TARGETARCH}/packages/sfs/${newNVSFSurl}.specs
+       download_file ${SFS_REPO_URL}/${newNVSFSurl}.specs
        if [ $? -eq 0 ];then
         mv ${newNVSFSurl##*/}.specs /mnt/${WKG_DEV}/${WKG_DIR}sfs/easyos/${DISTRO_BINARY_COMPAT}/${DISTRO_COMPAT_VERSION}/
         sync
@@ -665,6 +702,22 @@ rm -f ${DISTRO_NAME_SHORT,,}*.delta 2>/dev/null
 
 #maybe unmount boot-partition... for rpi4
 [ $BOOTflg -eq 1 ] && umount /mnt/${BOOT_DEV}
+
+#20240302 20240304
+if [ $EVflg -eq 1 ];then
+ echo "$(gettext 'Saving XBPS user-installed package database entries')"
+ #at next bootup, will have /var/db/xbps/pkgdb-0.38.plist in easy.sfs that only has
+ #has the builtin packages. it will be necessary to merge the user-installed pkgs.
+ #now, extract the user-installed pkgs from pkgdb-0.38.plist...
+ PL="$(find /var/db/xbps -maxdepth 1 -type f -name 'pkgdb-0.*.plist' | tail -n 1)"
+ ${L1}/support/pkgdb-extract-users ${PL}
+ #...extracted entries will be in folder /mnt/wkg/data/update/extracted-user-installed
+ #   hidden .<name>-files.plist will be in /mnt/wkg/data/update/extracted-user-files
+ 
+ #init script in initrd will have to delete /mnt/wkg/.session/var/db/xbps
+ #also delete /mnt/wkg/.session/audit/deposed -- too difficult to manage.
+ #rc.update will have to run pkgdb-merge-users and copy back the hidden .<name>-files.plist
+fi
 
 echo
 echo -en '\033[1;32m\033[44m' #bright green. 20211221 blue background for legibility.

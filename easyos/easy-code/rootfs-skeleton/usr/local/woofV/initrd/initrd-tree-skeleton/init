@@ -179,6 +179,7 @@
 #20240222 P2M has allowed wkg-part default size, set via 8create-drive-img
 #20240226 capsh fix.
 #20240229 copy /skeleton/data
+#20240304 delete /mnt/wkg/.session/var/db/xbps at version update (see easy-update script)
 
 #20230429
 . /build-choices #3buildeasydistro copies it here.
@@ -1518,6 +1519,17 @@ if [ ! -d /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${INIT_DISTRO_VERSION} ];then
  do
   rm -f ${aLNK}
  done
+ 
+ #20240304 easy.sfs has latest files in this folder.
+ # see rc.update, which merges user-installed entries into pkgdb-0.38.plist
+ if [ -d /mnt/${WKG_DEV}/${WKG_DIR}.session/var/db/xbps ];then
+  rm -rf /mnt/${WKG_DEV}/${WKG_DIR}.session/var/db/xbps
+  touch /mnt/${WKG_DEV}/${WKG_DIR}.session/var/db/FIXME #read in rc.update
+ fi
+ #also get rid of these *DEPOSED.sfs files... don't know what to do with them
+ if [ -d /mnt/${WKG_DEV}/${WKG_DIR}.session/audit/deposed ];then
+  rm -rf /mnt/${WKG_DEV}/${WKG_DIR}.session/audit/deposed
+ fi
  
  #170816 there is a limit on history...
  if [ -s /mnt/${WKG_DEV}/${WKG_DIR}.session/var/local/version-history-depth ];then

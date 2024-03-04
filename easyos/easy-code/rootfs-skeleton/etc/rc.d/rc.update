@@ -45,6 +45,25 @@ if [ -f /etc/networkmodules ];then #avoid 1st boot.
  fi
 fi
 
+#20240304 version update. ref: initrd, easy-update
+#need to merge user-installed entries into pkgdb-0.38.plist...
+if [ $CHGflg -eq 1 ];then
+ if [ -f /var/db/FIXME ];then #created in init, initrd
+  echo "rc.update: merging user-installed entries into pkgdb-0.38.plist"
+  rm -f /var/db/FIXME
+  PDB="$(find /var/db/xbps -maxdepth 1 -type f -name 'pkgdb-0.*.plist' | tail -n 1)"
+  if [ ! -z "$PDB" ];then
+   Pfile="${PDB##*/}"
+   /usr/local/woofV/support/pkgdb-merge-users "$PDB"
+   if [ $? -eq 0 -a -s /mnt/wkg/data/update/${Pfile}NEW ];then
+    cp -a -f /mnt/wkg/data/update/${Pfile}NEW /var/db/xbps/${Pfile}
+    #also copy the hidden files...
+    cp -a -f /mnt/wkg/data/update/extracted-user-files/.* /var/db/xbps/
+   fi
+  fi
+ fi
+fi
+
 #131217 only do this on very first boot... 170920...
 if [ $CHGflg -eq 1 -o ! -f /etc/networkmodules ];then
  echo -n " network-drivers-list " >/dev/console
