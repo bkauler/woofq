@@ -1,0 +1,114 @@
+#!/bin/bash
+#called from /etc/rc.d/rc.update
+#passed in name and name-version. ex: libwv libwv-1.2.9_5
+#this package was already user-installed. after easyvoid version update
+#rc.update has updated the pkg to new version, then called here.
+#20240306 also called from /usr/bin/xbps-install.sh
+
+export LANG=C
+
+L1='/usr/local/woofV'
+E1='/mnt/wkg/data/woofV'
+mkdir -p /tmp/woofV
+
+. /etc/DISTRO_SPECS
+
+case "$DISTRO_TARGETARCH" in
+ amd64) xARCH='x86_64' ;;
+ *)     xARCH="$DISTRO_TARGETARCH" ;;
+esac
+export XBPS_ARCH="$xARCH"
+
+N="${1}"
+NVR="${2}"
+
+#find the db entry
+DBfnd="$(grep -H -F "^${NVR}|" /root/.packages/Packages-void-current /root/.packages/Packages-void-current-nonfree | head -n 1)"
+[ -z "$DBfnd" ] && exit
+
+oldNVR="$(grep "|${N}|" /root/.packages/user-installed-packages | cut -f 1 -d '|')"
+
+#need to replace the entry in /root/.packages/user-installed-packages
+VR="${NVR/${N}-/}" #ex: 1.2.3_1
+V="${VR/_*/}"
+R="${VR/*_/}"
+F5to13="$(cut -f 5-13 -d '|' <<<${DBfnd})"
+DBnew="${NVR}|${N}|${V}|${R}|${F5to13}|"
+#sed has a mechanism to replace an entire line...
+sed -i "/[|]${N}[|]/c\\${DBnew}" /root/.packages/user-installed-packages
+
+#some code out of xbpsget...
+
+if [ -f ${L1}/pkg-fix/packages-templates/${N}/pinstall.sh ];then
+ cd /
+ echo "Executing post-install pinstall.sh for: ${aNEW}"
+ /bin/bash ${L1}/pkg-fix/packages-templates/${N}/pinstall.sh
+fi
+
+FND1="$(find ${E1}/dl-xbps -maxdepth 1 -type f -name "${NVR}.*xbps")" #glob *
+if [ ! -z "$FND1" ];then
+ rm -f /audit/packages/${oldNVR}*.xbps
+ ln -snf ${FND1} /audit/packages/${FND1##*/}
+fi
+
+xbps-query --files ${NVR} > /root/.packages/${NVR}.files
+#20240301 one difference from .files format is symlinks shown
+# ex: /usr/lib/liblua5.4.so.5.4 -> /usr/lib/liblua5.4.so.5.4.6
+#for consistency with normal .files...
+sed -i -e 's% -> .*%%' /root/.packages/${NVR}.files
+sed -i '/^\/bin$/d' /root/.packages/${NVR}.files
+sed -i '/^\/lib$/d' /root/.packages/${NVR}.files
+sed -i '/^\/lib64$/d' /root/.packages/${NVR}.files
+sed -i '/^\/sbin$/d' /root/.packages/${NVR}.files
+sed -i '/^\/usr\/lib64$/d' /root/.packages/${NVR}.files
+sed -i '/^\/usr\/sbin$/d' /root/.packages/${NVR}.files
+
+#housekeeping...
+grep -q 'usr/share/icons' /root/.packages/${NVR}.files
+if [ $? -eq 0 ];then
+ gtk-update-icon-cache -f /usr/share/icons/hicolor/
+ gtk-update-icon-cache -f /usr/share/icons/Adwaita/
+fi
+grep -q 'usr/share/applications' /root/.packages/${NVR}.files
+if [ $? -eq 0 ];then
+ for aDT in $(grep '/usr/share/applications/.*desktop$' /root/.packages/${NVR}.files)
+ do
+  [ -z "$aDT" ] && continue
+  ${L1}/pkg-fix/dot-desktop-fix ${aDT##*/} #20240229
+  build-rox-sendto ${aDT}
+  grep -q '^NoDisplay=true' ${aDT}
+  if [ $? -ne 0 ];then
+   EXEC="$(grep '^Exec=' ${aDT} | cut -f 2 -d '=' | cut -f 1 -d ' ' | head -n 1)"
+   grep -q '/' <<<${EXEC}
+   if [ $? -ne 0 ];then
+    if [ -x /usr/bin/${EXEC} ];then
+     #if [ ! -d /home/${EXEC} ];then
+     if [ -x /usr/bin/${EXEC}.bin0 ];then
+      #this means previous version was already setup to run non-root
+      #the update has installed a new /usr/bin/${EXEC}, so revert to run
+      #as root, then back to non-root...
+      rm -f /usr/bin/${EXEC}.bin0
+      rm -f /usr/bin/${EXEC}.bin
+      #hide, so setup-client can bring back in future...
+      if [ -d /home/.${EXEC} ];then #precaution.
+       rm -rf /home/.${EXEC}
+      fi
+      mv -f /home/${EXEC} /home/.${EXEC} 2>/dev/null
+      sed -i -e "s%^${EXEC}=.*%${EXEC}=false%" /root/.clients-status
+     fi
+     /usr/local/clients/setup-client "${EXEC}=true"
+     NRflg=1
+     break
+     #fi
+    fi
+   fi
+  fi
+ done
+ fixmenus
+ pidof jwm >/dev/null
+ if [ $? -eq 0 ];then
+  jwm -reload
+ fi
+fi
+
+###end###
