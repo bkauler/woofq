@@ -36,6 +36,7 @@
 #20230309 have removed /usr/local/debget
 #20230629 .desktop gets removed before remove rox mime links.
 #20240228 work in easyvoid
+#20240306 /usr/bin/xbps-remove path req'd. see /etc/profile.d/xbps-aliases
 
 export TEXTDOMAIN=petget___removepreview.sh
 export OUTPUT_CHARSET=UTF-8
@@ -221,9 +222,9 @@ if [ $EVflg -eq 1 ];then #20240228
  DB_nameonly="$(grep "^${DB_pkgname}|" /root/.packages/user-installed-packages | cut -f 2 -d '|')"
  if [ -f ${E1}/converted-pkgs/${DB_nameonly} ];then
 . ${E1}/converted-pkgs/${DB_nameonly}
-  xterm -hold -title PKGget -e xbps-remove ${CONV_XBPS_PKGVER}
+  xterm -hold -title PKGget -e /usr/bin/xbps-remove ${CONV_XBPS_PKGVER}
  else
-  xterm -hold -title PKGget -e xbps-remove ${DB_pkgname}
+  xterm -hold -title PKGget -e /usr/bin/xbps-remove ${DB_pkgname}
  fi
  vSTATE="$(LANG=C xbps-query --show ${DB_pkgname} --property state)"
  if [ "$vSTATE" == "installed" ];then

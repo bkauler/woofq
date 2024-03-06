@@ -91,7 +91,7 @@
 #20230904 set xARCHDIR
 #20230918 got rid of remnants of EasyPak, DEBSHERE, eppm
 #20240114 fix 20230708
-#20240229 easyvoid. 20240302
+#20240229 easyvoid. 20240302 20240306
 
 #information from 'labrador', to expand a .pet directly to '/':
 #NAME="a52dec-0.7.4"
@@ -673,7 +673,8 @@ _END1
    Pxbps="${WIPnameonly}-${VER}.${xARCH}.xbps"
    #register new .xbps pkg in local repo...
    xbps-rindex --add ${E1}/converted-pkgs/${Pxbps}
-   xbps-install --yes --ignore-file-conflicts --repository=${E1}/converted-pkgs ${WIPnameonly}-${VER}
+   #20240306 always have path...
+   /usr/bin/xbps-install --yes --ignore-file-conflicts --repository=${E1}/converted-pkgs ${WIPnameonly}-${VER}
    #prevent a void pkg from overwriting...
    xbps-pkgdb -m hold ${WIPnameonly}-${VER}
    #log pet name vs xbps pkg name...

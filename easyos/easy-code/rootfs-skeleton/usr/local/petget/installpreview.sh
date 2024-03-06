@@ -33,7 +33,7 @@
 #20230326 remove all reference to file EASYPAK, not used anymore.
 #20230914 stupid grep: "grep: warning: stray \ before -" use busybox grep.
 #20240227 work in easyvoid. 20240229 20240301
-#20240302 easyvoid: app to run non-root.
+#20240302 easyvoid: app to run non-root. 20240306 full path /usr/bin/xbps-install
 
 export TEXTDOMAIN=petget___installpreview.sh
 export OUTPUT_CHARSET=UTF-8
@@ -111,7 +111,7 @@ if [ $EVflg -eq 1 ];then #20240227
  grep -q -F 'Packages-void-current' <<<${DB_FILE}
  if [ $? -eq 0 ];then
   #this is a void repo pkg, use xbps to find deps... ex: TREE1=abiword-3.0.5_1
-  N_S="$(xbps-install --sync --dry-run ${TREE1} | cut -f 1,5 -d ' ')"
+  N_S="$(/usr/bin/xbps-install --sync --dry-run ${TREE1} | cut -f 1,5 -d ' ')"
   #line ex: libwv-1.2.9_5 339664
   # ...2nd param is the installed size
   vPKGS="$(cut -f 1 -d ' ' <<<${N_S})"
@@ -186,7 +186,7 @@ if [ $EVflg -eq 1 ];then #20240227
   RET1="`gtkdialog --center --program=PREVIEW_DIALOG`"
   grep -q '^EXIT.*BUTTON_INSTALL' <<<${RET1}
   if [ $? -eq 0 ];then
-   sakura -t "PKGget: install" -x "xbps-install --ignore-file-conflicts ${TREE1}"
+   sakura -t "PKGget: install" -x "/usr/bin/xbps-install --ignore-file-conflicts ${TREE1}"
   fi
   vSTATE="$(LANG=C xbps-query --show ${TREE1} --property state)"
   if [ "$vSTATE" == "installed" ];then
@@ -223,7 +223,7 @@ if [ $EVflg -eq 1 ];then #20240227
     sed -i '/^\/lib64$/d' /root/.packages/${aPKG}.files
     sed -i '/^\/sbin$/d' /root/.packages/${aPKG}.files
     sed -i '/^\/usr\/lib64$/d' /root/.packages/${aPKG}.files
-    sed -i '/^\/usr/\/sbin$/d' /root/.packages/${aPKG}.files
+    sed -i '/^\/usr\/sbin$/d' /root/.packages/${aPKG}.files
     #create /audit/deposed/${aPKG}DEPOSED.sfs (normal pkgget does this in installpkg.sh)
     if [ "$EOS_TOP_LEVEL_ZRAM" == "1" ];then
      create_deposed_sfs ${aPKG}
@@ -258,15 +258,26 @@ if [ $EVflg -eq 1 ];then #20240227
      [ -z "$aDT" ] && continue
      grep -q '^NoDisplay=true' ${aDT}
      if [ $? -ne 0 ];then
-      EXEC="$(grep '^Exec=' | cut -f 2 -d '=' | cut -f 1 -d ' ')"
+      EXEC="$(grep '^Exec=' ${aDT} | cut -f 2 -d '=' | cut -f 1 -d ' ' | head -n 1)"
       grep -q '/' <<<${EXEC}
       if [ $? -ne 0 ];then
        if [ -x /usr/bin/${EXEC} ];then
-        #if [ ! -d /home/${EXEC} ];then
-         /usr/local/clients/setup-client "${EXEC}=true"
-         NRflg=1
-         break
-        #fi
+        if [ -x /usr/bin/${EXEC}.bin0 ];then
+         #this means previous version was already setup to run non-root
+         #the update has installed a new /usr/bin/${EXEC}, so revert to run
+         #as root, then back to non-root...
+         rm -f /usr/bin/${EXEC}.bin0
+         rm -f /usr/bin/${EXEC}.bin
+         #hide, so setup-client can bring back in future...
+         if [ -d /home/.${EXEC} ];then #precaution.
+          rm -rf /home/.${EXEC}
+         fi
+         mv -f /home/${EXEC} /home/.${EXEC} 2>/dev/null
+         sed -i -e "s%^${EXEC}=.*%${EXEC}=false%" /root/.clients-status
+        fi
+        /usr/local/clients/setup-client "${EXEC}=true"
+        NRflg=1
+        break
        fi
       fi
      fi
@@ -281,7 +292,7 @@ if [ $EVflg -eq 1 ];then #20240227
     export IPV_DLG="<window title=\"PKGget: $(gettext 'package installed')\" image-name=\"/usr/local/lib/X11/pixmaps/pkg24.png\">
      <vbox>
       <text use-markup=\"true\"><label>\"$(gettext 'This package has been installed:') <b>${TREE1}</b>
-      <text use-markup=\"true\"><label>\"$(gettext 'This application has been installed:') <b>${EXEC}</b>
+$(gettext 'This application has been installed:') <b>${EXEC}</b>
 $(gettext 'The application will run non-root, as this user:') ${EXEC}
 $(gettext 'With home directory:') /home/${EXEC}
 $(gettext 'The app also has private write access to:') /files/apps/${EXEC}\"</label></text>

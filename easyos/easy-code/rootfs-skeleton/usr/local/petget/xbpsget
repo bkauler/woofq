@@ -6,6 +6,7 @@
 # (if not in current directory, then it will need the path)
 #optional "+" or "-" to install or remove pkg.
 #optional 2nd param "quiet" to not have the GUIs.
+#20240306 full path /usr/bin/xbps-install and xbps-remove
 
 export TEXTDOMAIN=xbpsget
 export OUTPUT_CHARSET=UTF-8
@@ -110,7 +111,7 @@ else
 fi
 
 if [ "$OPflg" == "rem" ];then
- xbps-remove --yes --recursive ${PKGVER}
+ /usr/bin/xbps-remove --yes --recursive ${PKGVER}
  if [ -z "$QUIET" ];then
   M1="$(gettext 'This package has been removed:') ${PKGVER}"
   popup "background=a0ffa0 terminate=5 timecount=dn name=xbpsget|<big>${M1}</big>"
@@ -119,9 +120,9 @@ if [ "$OPflg" == "rem" ];then
 fi
 
 if [ -z "$REPO" ];then
- N_S="$(xbps-install --sync --dry-run ${PKGVER} | cut -f 1,5 -d ' ')"
+ N_S="$(/usr/bin/xbps-install --sync --dry-run ${PKGVER} | cut -f 1,5 -d ' ')"
 else
- N_S="$(xbps-install --sync --dry-run --repository=${REPO} ${PKGVER} | cut -f 1,5 -d ' ')"
+ N_S="$(/usr/bin/xbps-install --sync --dry-run --repository=${REPO} ${PKGVER} | cut -f 1,5 -d ' ')"
 fi
 #line ex: libwv-1.2.9_5 339664
 # ...2nd param is the installed size
@@ -210,9 +211,9 @@ fi
 
 if [ $FLG1 -eq 0 ];then
  if [ -z "$REPO" ];then
-  sakura -t "PKGget: install" -x "xbps-install --ignore-file-conflicts ${PKGVER}"
+  sakura -t "PKGget: install" -x "/usr/bin/xbps-install --ignore-file-conflicts ${PKGVER}"
  else
-  sakura -t "PKGget: install" -x "xbps-install --ignore-file-conflicts --repository=${REPO} ${PKGVER}"
+  sakura -t "PKGget: install" -x "/usr/bin/xbps-install --ignore-file-conflicts --repository=${REPO} ${PKGVER}"
  fi
 fi
 vSTATE="$(LANG=C xbps-query --show ${PKGVER} --property state)"
@@ -256,7 +257,7 @@ if [ "$vSTATE" == "installed" ];then
   sed -i '/^\/lib64$/d' /root/.packages/${aPKG}.files
   sed -i '/^\/sbin$/d' /root/.packages/${aPKG}.files
   sed -i '/^\/usr\/lib64$/d' /root/.packages/${aPKG}.files
-  sed -i '/^\/usr/\/sbin$/d' /root/.packages/${aPKG}.files
+  sed -i '/^\/usr\/sbin$/d' /root/.packages/${aPKG}.files
   #create /audit/deposed/${aPKG}DEPOSED.sfs (normal pkgget does this in installpkg.sh)
   if [ "$EOS_TOP_LEVEL_ZRAM" == "1" ];then
    create_deposed_sfs ${aPKG}
@@ -291,15 +292,26 @@ if [ "$vSTATE" == "installed" ];then
    [ -z "$aDT" ] && continue
    grep -q '^NoDisplay=true' ${aDT}
    if [ $? -ne 0 ];then
-    EXEC="$(grep '^Exec=' | cut -f 2 -d '=' | cut -f 1 -d ' ')"
+    EXEC="$(grep '^Exec=' ${aDT} | cut -f 2 -d '=' | cut -f 1 -d ' ' | head -n 1)"
     grep -q '/' <<<${EXEC}
     if [ $? -ne 0 ];then
      if [ -x /usr/bin/${EXEC} ];then
-      #if [ ! -d /home/${EXEC} ];then
-       /usr/local/clients/setup-client "${EXEC}=true"
-       NRflg=1
-       break
-      #fi
+      if [ -x /usr/bin/${EXEC}.bin0 ];then
+       #this means previous version was already setup to run non-root
+       #the update has installed a new /usr/bin/${EXEC}, so revert to run
+       #as root, then back to non-root...
+       rm -f /usr/bin/${EXEC}.bin0
+       rm -f /usr/bin/${EXEC}.bin
+       #hide, so setup-client can bring back in future...
+       if [ -d /home/.${EXEC} ];then #precaution.
+        rm -rf /home/.${EXEC}
+       fi
+       mv -f /home/${EXEC} /home/.${EXEC} 2>/dev/null
+       sed -i -e "s%^${EXEC}=.*%${EXEC}=false%" /root/.clients-status
+      fi
+      /usr/local/clients/setup-client "${EXEC}=true"
+      NRflg=1
+      break
      fi
     fi
    fi
