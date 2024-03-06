@@ -12,6 +12,7 @@
 #20231010 don't know why, 20230718 not always rebuild sendto when needed.
 #20231103 change how test exist /.sfschg.flg: as passed flag.
 #20231115 client scripts must all run as root.
+#20240304 easyvoid version update. 20240306
 
 #20231103
 if [ "$1" ];then
@@ -59,6 +60,21 @@ if [ $CHGflg -eq 1 ];then
     cp -a -f /mnt/wkg/data/update/${Pfile}NEW /var/db/xbps/${Pfile}
     #also copy the hidden files...
     cp -a -f /mnt/wkg/data/update/extracted-user-files/.* /var/db/xbps/
+    #also update pkgs to latest... 20240306 always have path...
+    /usr/bin/xbps-install --yes --sync
+    #update /root/.packages/Packages-void-current & -nonfree...
+    /usr/local/petget/xbps-to-pupdb
+    for aNVR in $(grep '|void|' /root/.packages/user-installed-packages | cut -f 2,3,4 -d '|' | tr '\n' ' ')
+    do
+     aN="$(echo -n "$aNVR" | cut -f 1 -d '|')"
+     aVR="$(echo -n "$aNVR" | cut -f 2,3 -d '|' | tr '|' '_')"
+     /usr/bin/xbps-install --yes --ignore-file-conflicts ${aN}
+     xNVR="$(xbps-query --show ${aN} --property pkgver)"
+     if [ "${aN}-${aVR}" != "${xNVR}" -a ! -z "${xNVR}" ];then
+      #seems there has been a pkg version update.
+      /usr/local/petget/xbps-user-postupdate "${aN}" "${xNVR}"
+     fi
+    done
    fi
   fi
  fi
