@@ -68,6 +68,7 @@
 #20231217 ff: remove hardware accel has been disabled popup msg.
 #20240118 now have global /etc/gtk-3.0/settings.ini
 #20240224 woofv compat.
+#20240308 icon naming may be different, ex: org.gnome.GHex.svg
 
 APPname="${1/=*/}"  #ex: seamonkey
 APPflag="${1/*=/}" #ex: true
@@ -160,7 +161,17 @@ CHGflg=0 #20210916  20210918 revert 20210917...
    #icon for rox-filer...
    IMG="${PREFIXDIR1}/usr/share/pixmaps/${APPname}.png"
    if [ ! -e ${IMG} ];then
-    IMG="$(find ${PREFIXDIR1}/usr/share/icons/hicolor/48x48/apps/${APPname}.* -maxdepth 1 2>/dev/null | head -n 1)"
+    IMG="$(find ${PREFIXDIR1}/usr/share/icons/hicolor/48x48/apps -maxdepth 1 -iname "${APPname}.*" 2>/dev/null | head -n 1)"
+    #20240308 icon naming may be different, ex: org.gnome.GHex.svg
+    if [ -z "$IMG" ];then
+     IMG="$(find ${PREFIXDIR1}/usr/share/icons/hicolor/48x48/apps -maxdepth 1 -iname "*.${APPname}.*" 2>/dev/null | head -n 1)"
+    fi
+    if [ -z "$IMG" ];then
+     IMG="$(find ${PREFIXDIR1}/usr/share/icons/hicolor/scalable/apps -maxdepth 1 -iname "${APPname}.*" 2>/dev/null | head -n 1)"
+    fi
+    if [ -z "$IMG" ];then
+     IMG="$(find ${PREFIXDIR1}/usr/share/icons/hicolor/scalable/apps -maxdepth 1 -iname "*.${APPname}.*" 2>/dev/null | head -n 1)"
+    fi
     if [ ! "$IMG" ];then
      if [ -f ${PREFIXDIR1}/usr/share/applications/${APPname}.desktop ];then
       xIMG="$(grep '^Icon=' ${PREFIXDIR1}/usr/share/applications/${APPname}.desktop | cut -f 2 -d '=' | cut -f 1 -d ' ')"
