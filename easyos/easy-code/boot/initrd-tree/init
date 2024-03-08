@@ -177,6 +177,7 @@
 #20231203 usr-merge: may also have to fix kirkstone container.
 #20240113 support skeleton with 920MiB wkg-partition. 20240116 880MiB wkg-part.
 #20240128 keyboard layout: try fix background color.
+#20240308 make sure .session/root has 700 perms.
 
 #20230429
 . /build-choices #3buildeasydistro copies it here.
@@ -1287,6 +1288,10 @@ ${S133}\\033[0;39m" #red.
   fi
   rm -rf /mnt/${WKG_DEV}/${WKG_DIR}v1tov2
  fi
+ 
+ #20240308 make sure this has 700 perms...
+ mkdir -p /mnt/${WKG_DEV}/${WKG_DIR}.session/root
+ chmod 700 /mnt/${WKG_DEV}/${WKG_DIR}.session/root
 else
  #20211006 crap, if updating to 3.0+, have 'home' folder, not 'files'. here test 'releases' instead...
  if [ "$EOS_FSCRYPT_VER" == "1" ];then #20230429

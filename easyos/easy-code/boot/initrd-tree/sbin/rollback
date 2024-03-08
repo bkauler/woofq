@@ -34,6 +34,7 @@
 #20230112 separate strings to file /nls/rollback.str.en
 #20230210 always load .str.en, in case non-english is incomplete.
 #20230211 .str files folder hierarchy reorganized.
+#20240308 make sure .session/root has 700 perms.
 
 WKG_DRV=$1 #ex: sda
 WKG_DEV=$2 #ex: sda2
@@ -119,6 +120,9 @@ if [ "$backDATE" ];then
     sync
     rm -rf /mnt/${WKG_DEV}/${WKG_DIR}sfs/settings/erase-exceptions
    fi
+   #20240308 make sure this has 700 perms...
+   mkdir -p /mnt/${WKG_DEV}/${WKG_DIR}.session/root
+   chmod 700 /mnt/${WKG_DEV}/${WKG_DIR}.session/root
    sync
   ;;
   *)

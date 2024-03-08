@@ -180,6 +180,7 @@
 #20240226 capsh fix.
 #20240229 copy /skeleton/data
 #20240304 delete /mnt/wkg/.session/var/db/xbps at version update (see easy-update script)
+#20240308 make sure .session/root has 700 perms.
 
 #20230429
 . /build-choices #3buildeasydistro copies it here.
@@ -1292,6 +1293,10 @@ ${S133}\\033[0;39m" #red.
   fi
   rm -rf /mnt/${WKG_DEV}/${WKG_DIR}v1tov2
  fi
+ 
+ #20240308 make sure this has 700 perms...
+ mkdir -p /mnt/${WKG_DEV}/${WKG_DIR}.session/root
+ chmod 700 /mnt/${WKG_DEV}/${WKG_DIR}.session/root
 else
  #20211006 crap, if updating to 3.0+, have 'home' folder, not 'files'. here test 'releases' instead...
  if [ "$EOS_FSCRYPT_VER" == "1" ];then #20230429
