@@ -21,16 +21,34 @@ SUMii2="$(md5sum - <<<"${PKGSii2}")"
 if [ "$SUMii1" != "$SUMii2" ];then
  echo "Updating /root/.packages/user-installed-packages"
  cat - <<<${PKGSii2} >/tmp/woofV/PKGSii2
- for aNV in ${PKGSii1}
+ for aNVR in ${PKGSii1}
  do
-  [ -z "$aNV" ] && continue
-  grep -q -x -F -f /tmp/woofV/PKGSii2 <<<${aNV}
+  [ -z "$aNVR" ] && continue
+  grep -q -x -F -f /tmp/woofV/PKGSii2 <<<${aNVR}
   if [ $? -ne 0 ];then
-   grep -v -G "^${aNV}|" /root/.packages/user-installed-packages > /tmp/woofV/new-uip
+   grep -v -G "^${aNVR}|" /root/.packages/user-installed-packages > /tmp/woofV/new-uip
    mv -f /tmp/woofV/new-uip /root/.packages/user-installed-packages
-   rm -f /root/.packages/${aNV}.files
-   rm -f /audit/packages/${aNV}* 2>/dev/null
-   rm -f /audit/deposed/${aNV}*  2>/dev/null
+   
+   #if an app has been installed to run non-root, delete the .bin and .bin0...
+   grep -q 'usr/share/applications' /root/.packages/${aNVR}.files
+   if [ $? -eq 0 ];then
+    for aDT in $(grep '/usr/share/applications/' /root/.packages/${aNVR}.files)
+    do
+     [ -z "$aDT" ] && continue
+     EXEC="$(grep '^Exec=' ${aDT} | cut -f 2 -d '=' | cut -f 1 -d ' ')"
+     if [ "$EXEC" ];then
+      [ -f /usr/bin/${EXEC} ] && rm -f /usr/bin/${EXEC}
+      [ -f /usr/bin/${EXEC}.bin ] && rm -f /usr/bin/${EXEC}.bin
+      [ -f /usr/bin/${EXEC}.bin0 ] && rm -f /usr/bin/${EXEC}.bin0
+      sed -i "/^${EXEC}=/d" /root/.clients-status
+     fi
+     build-rox-sendto "-${aDT}"
+    done
+   fi
+   
+   rm -f /root/.packages/${aNVR}.files
+   rm -f /audit/packages/${aNVR}* 2>/dev/null
+   rm -f /audit/deposed/${aNVR}*  2>/dev/null
   fi
  done
 fi
