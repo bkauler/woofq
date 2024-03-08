@@ -105,8 +105,8 @@ CONV_XBPS_PKGVER='${PKGVER}'" > ${E1}/converted-pkgs/${PKGNAME}
  fi
 else
  REPO=""
- DB_FILE="$(cut -f 1 -d '|' <<<${DBfnd})"
- DB_ENTRY="$(cut -f 2- -d '|' <<<${DBfnd})"
+ DB_FILE="$(cut -f 1 -d ':' <<<${DBfnd})"
+ DB_ENTRY="$(cut -f 2- -d ':' <<<${DBfnd})"
  PKGVER="$(cut -f 1 -d '|' <<<${DB_ENTRY})" #ex: abiword-1.2.4_1
 fi
 

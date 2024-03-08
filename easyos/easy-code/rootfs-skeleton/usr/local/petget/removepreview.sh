@@ -37,6 +37,7 @@
 #20230629 .desktop gets removed before remove rox mime links.
 #20240228 work in easyvoid
 #20240306 /usr/bin/xbps-remove path req'd. see /etc/profile.d/xbps-aliases
+#20240307 if an app has been installed to run non-root, delete the .bin and .bin0
 
 export TEXTDOMAIN=petget___removepreview.sh
 export OUTPUT_CHARSET=UTF-8
@@ -376,13 +377,29 @@ if [ "$xARCHDIR" ];then
  done
 fi
 #140214 ubuntu has extra ld.so.conf files (similar code in installpkg.sh)...
-for LDSOFILE in `grep '/lib/.*ld.so.conf$' /root/.packages/${DLPKG_NAME}.files | tr '\n' ' '`
+for LDSOFILE in `grep '/lib/.*ld.so.conf$' /root/.packages/${DB_pkgname}.files | tr '\n' ' '`
 do
  iLIB="$(dirname "$LDSOFILE")"
  [ "$(grep -x "$iLIB" /etc/ld.so.conf)" != "" ] && [ ! -d "$iLIB" ] && sed -i -e "/^${iLIB}$/d" /etc/ld.so.conf
  LDFLG=1
 done
 [ $LDFLG -eq 1 ] && ldconfig
+
+#20240307 if an app has been installed to run non-root, delete the .bin and .bin0...
+grep -q 'usr/share/applications' /root/.packages/${DB_pkgname}.files
+if [ $? -eq 0 ];then
+ for aDT in $(grep '/usr/share/applications/' /root/.packages/${DB_pkgname}.files)
+ do
+  [ -z "$aDT" ] && continue
+  EXEC="$(grep '^Exec=' ${aDT} | cut -f 2 -d '=' | cut -f 1 -d ' ')"
+  if [ "$EXEC" ];then
+   [ -f /usr/bin/${EXEC} ] && rm -f /usr/bin/${EXEC}
+   [ -f /usr/bin/${EXEC}.bin ] && rm -f /usr/bin/${EXEC}.bin
+   [ -f /usr/bin/${EXEC}.bin0 ] && rm -f /usr/bin/${EXEC}.bin0
+   sed -i "/^${EXEC}=/d" /root/.clients-status
+  fi
+ done
+fi
 
 #remove records of pkg...
 rm -f /root/.packages/${DB_pkgname}.files

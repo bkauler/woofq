@@ -23,19 +23,24 @@ N="${1}"
 NVR="${2}"
 
 #find the db entry
-DBfnd="$(grep -H -F "^${NVR}|" /root/.packages/Packages-void-current /root/.packages/Packages-void-current-nonfree | head -n 1)"
+DBfnd="$(grep -H -G "^${NVR}|" /root/.packages/Packages-void-current /root/.packages/Packages-void-current-nonfree | head -n 1)"
 [ -z "$DBfnd" ] && exit
 
 oldNVR="$(grep "|${N}|" /root/.packages/user-installed-packages | cut -f 1 -d '|')"
 
-#need to replace the entry in /root/.packages/user-installed-packages
+#need to append or replace the entry in /root/.packages/user-installed-packages
 VR="${NVR/${N}-/}" #ex: 1.2.3_1
 V="${VR/_*/}"
 R="${VR/*_/}"
 F5to13="$(cut -f 5-13 -d '|' <<<${DBfnd})"
 DBnew="${NVR}|${N}|${V}|${R}|${F5to13}|"
-#sed has a mechanism to replace an entire line...
-sed -i "/[|]${N}[|]/c\\${DBnew}" /root/.packages/user-installed-packages
+grep -q -G "|${N}|" /root/.packages/user-installed-packages
+if [ $? -eq 0 ];then
+ #sed has a mechanism to replace an entire line...
+ sed -i "/[|]${N}[|]/c\\${DBnew}" /root/.packages/user-installed-packages
+else
+ echo "$DBnew" >> /root/.packages/user-installed-packages
+fi
 
 #some code out of xbpsget...
 

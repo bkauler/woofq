@@ -34,6 +34,8 @@
 #20230914 stupid grep: "grep: warning: stray \ before -" use busybox grep.
 #20240227 work in easyvoid. 20240229 20240301
 #20240302 easyvoid: app to run non-root. 20240306 full path /usr/bin/xbps-install
+#20240307 cannot run non-root in container.
+#20240308 WKGFREEK is empty in a container.
 
 export TEXTDOMAIN=petget___installpreview.sh
 export OUTPUT_CHARSET=UTF-8
@@ -140,8 +142,11 @@ if [ $EVflg -eq 1 ];then #20240227
   ZRAMFREEK=$(busybox df -k | grep ' /$' | tr -s ' ' | cut -f 4 -d ' ')
   #20240302 if running in zram, will also need to get free space in wkg-part...
   WKGFREEK=$(busybox df -k | grep "mnt/${WKG_DEV}$" | tr -s ' ' | cut -f 4 -d ' ')
-  #choose the lowest value...
-  if [ $ZRAMFREEK -gt $WKGFREEK ];then
+  #20240308 WKGFREEK is empty in a container...
+  if [ -z "$WKGFREEK" ];then
+   FREEK=$ZRAMFREEK
+   #choose the lowest value...
+  elif [ $ZRAMFREEK -gt $WKGFREEK ];then
    FREEK=$WKGFREEK
   else
    FREEK=$ZRAMFREEK
@@ -251,44 +256,66 @@ if [ $EVflg -eq 1 ];then #20240227
    fi
 
    NRflg=0
-   grep -q 'usr/share/applications' /root/.packages/${TREE1}.files
-   if [ $? -eq 0 ];then
-    for aDT in $(grep '/usr/share/applications/.*desktop$' /root/.packages/${TREE1}.files)
-    do
-     [ -z "$aDT" ] && continue
-     grep -q '^NoDisplay=true' ${aDT}
-     if [ $? -ne 0 ];then
-      EXEC="$(grep '^Exec=' ${aDT} | cut -f 2 -d '=' | cut -f 1 -d ' ' | head -n 1)"
-      grep -q '/' <<<${EXEC}
+   #20240307 cannot run non-root in container...
+   ls -1 /INSIDE_* >/dev/null 2>&1
+   if [ $? -ne 0 ];then
+    grep -q 'usr/share/applications' /root/.packages/${TREE1}.files
+    if [ $? -eq 0 ];then
+     for aDT in $(grep '/usr/share/applications/.*desktop$' /root/.packages/${TREE1}.files)
+     do
+      [ -z "$aDT" ] && continue
+      grep -q '^NoDisplay=true' ${aDT}
       if [ $? -ne 0 ];then
-       if [ -x /usr/bin/${EXEC} ];then
-        if [ -x /usr/bin/${EXEC}.bin0 ];then
-         #this means previous version was already setup to run non-root
-         #the update has installed a new /usr/bin/${EXEC}, so revert to run
-         #as root, then back to non-root...
-         rm -f /usr/bin/${EXEC}.bin0
-         rm -f /usr/bin/${EXEC}.bin
-         #hide, so setup-client can bring back in future...
-         if [ -d /home/.${EXEC} ];then #precaution.
-          rm -rf /home/.${EXEC}
+       EXEC="$(grep '^Exec=' ${aDT} | cut -f 2 -d '=' | cut -f 1 -d ' ' | head -n 1)"
+       grep -q '/' <<<${EXEC}
+       if [ $? -ne 0 ];then
+        if [ -x /usr/bin/${EXEC} ];then
+         if [ -x /usr/bin/${EXEC}.bin0 ];then
+          #this means previous version was already setup to run non-root
+          #the update has installed a new /usr/bin/${EXEC}, so revert to run
+          #as root, then back to non-root...
+          rm -f /usr/bin/${EXEC}.bin0
+          rm -f /usr/bin/${EXEC}.bin
+          #hide, so setup-client can bring back in future...
+          if [ -d /home/.${EXEC} ];then #precaution.
+           rm -rf /home/.${EXEC}
+          fi
+          mv -f /home/${EXEC} /home/.${EXEC} 2>/dev/null
+          sed -i -e "s%^${EXEC}=.*%${EXEC}=false%" /root/.clients-status
          fi
-         mv -f /home/${EXEC} /home/.${EXEC} 2>/dev/null
-         sed -i -e "s%^${EXEC}=.*%${EXEC}=false%" /root/.clients-status
+         /usr/local/clients/setup-client "${EXEC}=true"
+         NRflg=1
+         break
         fi
-        /usr/local/clients/setup-client "${EXEC}=true"
-        NRflg=1
-        break
        fi
       fi
-     fi
-    done
+     done
+    fi
    fi
-
+   
    if [ $Fm -eq 1 ];then
     fixmenus
     jwm -reload
    fi
    if [ $NRflg -eq 1 ];then
+    PPM_VOID_MSG="$(gettext 'There are a couple of different ways to flip an application to run as the root user:')
+    
+<b>1: .bin0</b>
+$(gettext 'Take the example of the word processor Abiword. You will find /usr/bin/abiword, but also there is /usr/bin/abiword.bin0. All that you have to do is execute the latter and Abiword will run as the root user. You can edit /usr/share/applications/abiword.desktop and a desktop icon if one exists, to run abiword.bin0. Or just run abiword.bin0 in a terminal.')
+
+<b>2: LoginManager</b>
+$(gettext 'There is a formal tool for flipping an app to run as non-root or root. The LoginManager is found in the System category of the menu. Alternatively, click on the <b>setup</b> desktop icon, choose the <b>EasyOS</b> tab and click the <b>Login Manager</b> button.')
+    "
+    export DLG_PPM_VOID="<window resizable=\"false\" title=\"PKGget: Help administrator\" image-name=\"/usr/local/lib/X11/pixmaps/pkg24.png\" window_position=\"1\">
+     <vbox>
+      <text use-markup=\"true\">
+       <label>\"${PPM_VOID_MSG}\"</label><variable>VAR_PPM_VOID</variable>
+      </text>
+      <hbox>
+       <button><label>Close</label><action type=\"closewindow\">VAR_PPM_VOID</action></button>
+      </hbox></vbox></window>"
+
+    
     export IPV_DLG="<window title=\"PKGget: $(gettext 'package installed')\" image-name=\"/usr/local/lib/X11/pixmaps/pkg24.png\">
      <vbox>
       <text use-markup=\"true\"><label>\"$(gettext 'This package has been installed:') <b>${TREE1}</b>
@@ -296,6 +323,20 @@ $(gettext 'This application has been installed:') <b>${EXEC}</b>
 $(gettext 'The application will run non-root, as this user:') ${EXEC}
 $(gettext 'With home directory:') /home/${EXEC}
 $(gettext 'The app also has private write access to:') /files/apps/${EXEC}\"</label></text>
+     
+     <frame>
+      <text use-markup=\"true\"><label>\"<b>$(gettext 'Administrator')</b>\"</label></text>
+      <hbox>
+       <text><label>$(gettext 'You may want some applications to have system-wide write permission, such as a file manager. It is very easy to flip to run as administrator (root user). Click button for explanation:')</label></text>
+       <vbox>
+        <button>
+         <input file>/usr/local/lib/X11/mini-icons/mini-question.xpm</input>
+         <action type=\"launch\">DLG_PPM_VOID</action>
+        </button>
+       </vbox>
+      </hbox>
+     </frame>
+     
      <frame>
       <text use-markup=\"true\"><label>\"<b>$(gettext 'Desktop icon')</b>\"</label></text>
       <text use-markup=\"true\"><label>\"$(gettext 'An entry has been created in the menu; however, you can also create a desktop icon.')

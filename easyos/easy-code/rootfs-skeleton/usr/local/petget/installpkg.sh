@@ -660,7 +660,8 @@ _END1
  if [ $EVflg -eq 1 ];then #20240229
   DB1="$(grep -H -F "${dbPATTERN}" /tmp/petget_missing_dbentries-Packages-pet-* | head -n 1)"
   if [ ! -z "$DB1" ];then
-   DB_FILE="${DB1/:*/}" #ex: Packages-pet-noarch-official
+   Filex="${DB1/:*/}"
+   DB_FILE="${Filex/*-P/P}" #ex: Packages-pet-noarch-official
    PSTrepo="pet:$(cut -f 3 -d '-' <<<${DB_FILE})" #ex: pet:noarch
    aDB="$(cut -f 2- -d ':' <<<${DB1})"
    #ex: aDB='pmusic1-1.8.3-1|pmusic1|1.8.3-1||Multimedia|424K||pmusic1-1.8.3-1.pet|+gtkdialog3,+ffmpeg|Pmusic audio player, old version, works with gtkdialog3 in some less-recent puppies||||'
