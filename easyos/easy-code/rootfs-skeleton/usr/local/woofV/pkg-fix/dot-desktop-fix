@@ -39,7 +39,7 @@ do
  ICON="`grep '^Icon=' $aD | cut -f 2 -d '='`"
  if [ "$ICON" ];then
   if [ -e "${ICON}" ];then #it may have a hardcoded path.
-   ln -s "${ICON}" /usr/share/pixmaps/${ICON##*/} #20240302
+   ln -s "${ICON}" /usr/share/pixmaps/${ICON##*/} 2>/dev/null #20240302
    continue
   fi
   ICONBASE="${ICON##*/}"
