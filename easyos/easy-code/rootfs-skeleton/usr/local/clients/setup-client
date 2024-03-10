@@ -563,7 +563,7 @@ generic_func() {
    #[ ! -e ${PREFIXDIR1}${APPpath}/${APPname}.bin ] && cp -a -f ${PREFIXDIR1}${APPpath}/${APPname} ${PREFIXDIR1}${APPpath}/${APPname}.bin
    gen_bin_func #${PREFIXDIR1}${APPpath}/${APPname} #20230511 20230511
    rm -f ${PREFIXDIR1}${APPpath}/${APPname} #in case it is a symlink.
- echo '#!/bin/bash
+   echo '#!/bin/bash
 if [ "$(whoami)" != "root" ];then exec sudo-sh ${PPID} ${0} ${@}; fi' > ${PREFIXDIR1}${APPpath}/${APPname}
    echo "APPbin='${APPpath}/${APPname}.bin'
 APPname='${APPname}'" >> ${PREFIXDIR1}${APPpath}/${APPname}
@@ -956,7 +956,8 @@ chromium_false() {
 }
 
 ###
-APPspec="$(find ${PREFIXDIR1}/bin ${PREFIXDIR1}/sbin ${PREFIXDIR1}/usr/bin ${PREFIXDIR1}/usr/sbin ${PREFIXDIR1}/usr/local/bin -mindepth 1 -maxdepth 1 -name ${APPname} 2>/dev/null | head -n 1)"
+#APPspec="$(find ${PREFIXDIR1}/bin ${PREFIXDIR1}/sbin ${PREFIXDIR1}/usr/bin ${PREFIXDIR1}/usr/sbin ${PREFIXDIR1}/usr/local/bin -mindepth 1 -maxdepth 1 -name ${APPname} 2>/dev/null | head -n 1)"
+APPspec="$(find ${PREFIXDIR1}/usr/bin ${PREFIXDIR1}/usr/local/bin -mindepth 1 -maxdepth 1 -name ${APPname} 2>/dev/null | head -n 1)" #20240310 usrmerge
 if [ ! "$APPspec" ];then
  if [ ! "$PREFIXDIR2" ];then #20210915
   #executable does not exist, so remove from list, if there...
