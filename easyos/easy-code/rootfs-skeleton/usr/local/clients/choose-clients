@@ -1,6 +1,6 @@
 #!/bin/bash
 #20230805 called from /usr/sbin/loginmanager
-#20231003 more exclude.
+#20231003 more exclude. 20240309 fix exclude logic for scripts.
 
 export TEXTDOMAIN=clients
 export OUTPUT_CHARSET=UTF-8
@@ -42,7 +42,16 @@ do
  Fsh="$(LANG=C file "$Fspec" | grep -o 'shell script')"
  if [ "$Fsh" == "shell script" ];then
   grep -q 'exec sudo-sh' "$Fspec"
-  if [ $? -eq 0 ];then continue; fi
+  if [ $? -eq 0 ];then
+   #20240309 this may be a script that is already for the app to run non-root.
+   #could check /root/.clients-status, or see if .bin0 exists..
+   #a bit tricky here. appimages and flatpaks have .bin and not .bin0 and it is not
+   #intended that they be allowed to switch to run as root, as the startup script
+   #must stay as it is. so...
+   if [ ! -e /usr/bin/${aAPP}.bin0 ];then
+    continue
+   fi
+  fi
  fi
  #shell script may just exec to another shell script...
  if [ ! -h "$xFspec" ];then
