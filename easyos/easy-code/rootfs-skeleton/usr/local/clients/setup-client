@@ -69,6 +69,7 @@
 #20240118 now have global /etc/gtk-3.0/settings.ini
 #20240224 woofv compat.
 #20240308 icon naming may be different, ex: org.gnome.GHex.svg
+#20240311 changes testing exist .bin, .bin0
 
 APPname="${1/=*/}"  #ex: seamonkey
 APPflag="${1/*=/}" #ex: true
@@ -99,27 +100,27 @@ if [ "$APPflag" == "true" ];then #20210915
    mv -f ${PREFIXDIR1}/home/.${APPname} ${PREFIXDIR1}/home/${APPname}
   fi
  fi
+ 
+ #20240311 if this already exist, get out...
+ if [ -e ${PREFIXDIR1}/usr/bin/${APPname}.bin ];then
+  exit 1
+ fi
 fi
 
-#20230511 20230512
+#20230511 20230512 20240311
 #create .bin and .bin0 ...
 gen_bin_func() {
  local APPin
  APPin="${PREFIXDIR1}${APPpath}/${APPname}"
- [ ! "$APPin" ] && return 1
- [ ! -x "$APPin" ] && return 2
- if [ -e ${APPin}.bin ];then
-  return
- fi
  #20230512 only want .bin0 if not appimage or flatpak...
  grep -q DBUS_SESSION_BUS_PID ${APPin}
  if [ $? -eq 0 ];then
-  cp -a -f ${APPin} ${APPin}.bin
+  mv -f ${APPin} ${APPin}.bin
   return
  fi
- if [ ! -e ${APPin}.bin0 ];then
+ #if [ ! -e ${APPin}.bin0 ];then
   mv -f ${APPin} ${APPin}.bin0
- fi
+ #fi
  #hmmm, 3buildeasydistro creates chromium.bin with APPin=rootfs-complete/usr/bin/chromium
  #20231213 prevent 2nd instance dbus-daemon...
  echo "#!/bin/sh
@@ -463,9 +464,7 @@ fi
 
 seamonkey_true() {
  #function to run seamonkey as a client.
- #[ ! -e ${PREFIXDIR1}${APPpath}/${APPname}.bin ] && cp -a -f ${PREFIXDIR1}${APPpath}/${APPname} ${PREFIXDIR1}${APPpath}/${APPname}.bin
- gen_bin_func #${PREFIXDIR1}${APPpath}/${APPname} #20230511 20230512
- rm -f ${PREFIXDIR1}${APPpath}/${APPname} #in case it is a symlink.
+ gen_bin_func
  echo '#!/bin/bash
 if [ "$(whoami)" != "root" ];then exec sudo-sh ${PPID} ${0} ${@}; fi' > ${PREFIXDIR1}${APPpath}/${APPname}
  echo "APPbin='${APPpath}/${APPname}.bin'
@@ -560,9 +559,7 @@ generic_func() {
  #setup the app to run as spot or root...
  case $APPflag in
   true)
-   #[ ! -e ${PREFIXDIR1}${APPpath}/${APPname}.bin ] && cp -a -f ${PREFIXDIR1}${APPpath}/${APPname} ${PREFIXDIR1}${APPpath}/${APPname}.bin
-   gen_bin_func #${PREFIXDIR1}${APPpath}/${APPname} #20230511 20230511
-   rm -f ${PREFIXDIR1}${APPpath}/${APPname} #in case it is a symlink.
+   gen_bin_func
    echo '#!/bin/bash
 if [ "$(whoami)" != "root" ];then exec sudo-sh ${PPID} ${0} ${@}; fi' > ${PREFIXDIR1}${APPpath}/${APPname}
    echo "APPbin='${APPpath}/${APPname}.bin'
@@ -596,9 +593,7 @@ vivaldi_func() { #20230302
  #setup the app to run as spot or root...
  case $APPflag in
   true)
-   #[ ! -e ${PREFIXDIR1}${APPpath}/${APPname}.bin ] && cp -a -f ${PREFIXDIR1}${APPpath}/${APPname} ${PREFIXDIR1}${APPpath}/${APPname}.bin
-   gen_bin_func #${PREFIXDIR1}${APPpath}/${APPname} #20230511 20230512
-   rm -f ${PREFIXDIR1}${APPpath}/${APPname} #in case it is a symlink.
+   gen_bin_func
  echo '#!/bin/bash
 if [ "$(whoami)" != "root" ];then exec sudo-sh ${PPID} ${0} ${@}; fi' > ${PREFIXDIR1}${APPpath}/${APPname}
    echo "APPbin='${APPpath}/${APPname}.bin'
@@ -636,7 +631,6 @@ scribus_func() {
  case $APPflag in
   true)
    gen_bin_func
-   rm -f ${PREFIXDIR1}${APPpath}/${APPname} #in case it is a symlink.
  echo '#!/bin/bash
 if [ "$(whoami)" != "root" ];then exec sudo-sh ${PPID} ${0} ${@}; fi' > ${PREFIXDIR1}${APPpath}/${APPname}
    echo "APPbin='${APPpath}/${APPname}.bin'
@@ -678,9 +672,7 @@ blender_func() {
  #setup the app to run as spot or root...
  case $APPflag in
   true)
-   #[ ! -e ${PREFIXDIR1}${APPpath}/${APPname}.bin ] && cp -a -f ${PREFIXDIR1}${APPpath}/${APPname} ${PREFIXDIR1}${APPpath}/${APPname}.bin
-   gen_bin_func #${PREFIXDIR1}${APPpath}/${APPname} #20230511 20230512
-   rm -f ${PREFIXDIR1}${APPpath}/${APPname} #in case it is a symlink.
+   gen_bin_func
  echo '#!/bin/bash
 if [ "$(whoami)" != "root" ];then exec sudo-sh ${PPID} ${0} ${@}; fi' > ${PREFIXDIR1}${APPpath}/${APPname}
    echo "APPbin='${APPpath}/${APPname}.bin'
@@ -720,9 +712,7 @@ fi
 
 #20211107
 firefox_true() {
- #[ ! -e ${PREFIXDIR1}${APPpath}/${APPname}.bin ] && cp -a -f ${PREFIXDIR1}${APPpath}/${APPname} ${PREFIXDIR1}${APPpath}/${APPname}.bin
- gen_bin_func #${PREFIXDIR1}${APPpath}/${APPname} #20230511 20230512
- rm -f ${PREFIXDIR1}${APPpath}/${APPname} #in case it is a symlink.
+ gen_bin_func
  echo '#!/bin/bash
 if [ "$(whoami)" != "root" ];then exec sudo-sh ${PPID} ${0} ${@}; fi' > ${PREFIXDIR1}${APPpath}/${APPname}
  echo "APPbin='${APPpath}/${APPname}.bin'
@@ -811,10 +801,8 @@ firefox_false() {
 
 #130723 opera...
 opera_true() {
- #function to run Opera as spot.
- #[ ! -e ${PREFIXDIR1}${APPpath}/${APPname}.bin ] && cp -a -f ${PREFIXDIR1}${APPpath}/${APPname} ${PREFIXDIR1}${APPpath}/${APPname}.bin
- gen_bin_func #${PREFIXDIR1}${APPpath}/${APPname} #20230511 20230512
- rm -f ${PREFIXDIR1}${APPpath}/${APPname} #in case it is a symlink.
+ #function to run Opera as non-root.
+ gen_bin_func
  echo '#!/bin/bash
 if [ "$(whoami)" != "root" ];then exec sudo-sh ${PPID} ${0} ${@}; fi' > ${PREFIXDIR1}${APPpath}/${APPname}
  echo "APPbin='${APPpath}/${APPname}.bin'
@@ -871,9 +859,7 @@ opera_false() {
 chromium_true() {
  
  #20211022 fix if path has "/root/" and remove quotes around $@...
- if [ ! -e ${PREFIXDIR1}${APPpath}/${APPname}.bin ];then
-  #cp -a -f ${PREFIXDIR1}${APPpath}/${APPname} ${PREFIXDIR1}${APPpath}/${APPname}.bin
-  gen_bin_func #${PREFIXDIR1}${APPpath}/${APPname} #20230511 20230512
+  gen_bin_func
   if [ ! -h ${PREFIXDIR1}${APPpath}/${APPname}.bin0 ];then #20230511
    sed -i -e 's%/root/%/$(whoami)/%' ${PREFIXDIR1}${APPpath}/${APPname}.bin0
    sed -i -e 's%"$@"%$@%' ${PREFIXDIR1}${APPpath}/${APPname}.bin0
@@ -886,7 +872,6 @@ chromium_true() {
     cp -a -f --remove-destination ${PREFIXDIR1}${APPpath}/google-${APPname} ${PREFIXDIR1}${APPpath}/${APPname}.bin
    fi
   fi
- fi
  
  #20230411 ALWAYSOPTS removed "--use-gl=desktop" doesn't work.
  #20231126 avoid "CBCM is not enabled" msg: --enable-chrome-browser-cloud-management=no
@@ -957,11 +942,15 @@ chromium_false() {
 
 ###
 #APPspec="$(find ${PREFIXDIR1}/bin ${PREFIXDIR1}/sbin ${PREFIXDIR1}/usr/bin ${PREFIXDIR1}/usr/sbin ${PREFIXDIR1}/usr/local/bin -mindepth 1 -maxdepth 1 -name ${APPname} 2>/dev/null | head -n 1)"
-APPspec="$(find ${PREFIXDIR1}/usr/bin ${PREFIXDIR1}/usr/local/bin -mindepth 1 -maxdepth 1 -name ${APPname} 2>/dev/null | head -n 1)" #20240310 usrmerge
-if [ ! "$APPspec" ];then
- if [ ! "$PREFIXDIR2" ];then #20210915
+#20240311 drop support for other paths...
+APPspec="$(find ${PREFIXDIR1}/usr/bin -mindepth 1 -maxdepth 1 -name ${APPname} 2>/dev/null | head -n 1)" #20240310 usrmerge
+if [ -z "$APPspec" ];then
+ if [ -z "$PREFIXDIR2" ];then #20210915
   #executable does not exist, so remove from list, if there...
   sed -i -e "/^${APPname}=/d" ${PREFIXDIR1}/root/.clients-status
+  #20240311 precaution...
+  rm -f ${PREFIXDIR1}/usr/bin/${APPname}.bin 2>/dev/null
+  rm -f ${PREFIXDIR1}/usr/bin/${APPname}.bin0 2>/dev/null
  fi
  exit 1
 fi
