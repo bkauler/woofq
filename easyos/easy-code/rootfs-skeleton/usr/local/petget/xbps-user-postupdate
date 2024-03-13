@@ -46,8 +46,14 @@ fi
 
 if [ -f ${L1}/pkg-fix/packages-templates/${N}/pinstall.sh ];then
  cd /
- echo "Executing post-install pinstall.sh for: ${aNEW}"
+ echo "Executing post-install pinstall.sh for: ${NVR}"
  /bin/bash ${L1}/pkg-fix/packages-templates/${N}/pinstall.sh
+fi
+
+#20240313
+if [ -d ${L1}/pkg-fix/packages-templates/${N}/REPLACEMENTS ];then
+ echo "Copying replacement files for: ${NVR}"
+ cp -a -f --remove-destination ${L1}/pkg-fix/packages-templates/${N}/REPLACEMENTS/* /
 fi
 
 FND1="$(find ${E1}/dl-xbps -maxdepth 1 -type f -name "${NVR}.*xbps")" #glob *

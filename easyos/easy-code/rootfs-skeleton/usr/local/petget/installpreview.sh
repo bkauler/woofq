@@ -207,7 +207,12 @@ if [ $EVflg -eq 1 ];then #20240227
       echo "Executing post-install pinstall.sh for: ${aNEW}"
       /bin/bash ${L1}/pkg-fix/packages-templates/${aNEW}/pinstall.sh
      fi
-    fi
+     #20240313
+     if [ -d ${L1}/pkg-fix/packages-templates/${aNEW}/REPLACEMENTS ];then
+      echo "Copying replacement files for: ${aNEW}"
+      cp -a -f --remove-destination ${L1}/pkg-fix/packages-templates/${aNEW}/REPLACEMENTS/* /
+     fi
+   fi
    done
    #for backwards compatibility with ppm, list files...
    Fi=0; Fm=0

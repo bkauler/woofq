@@ -159,14 +159,9 @@ do
    esac
    DONOTOPEN=0
    if [ -d ${L1}/pkg-fix/packages-templates/${PSTgeneric} ];then
-    if [ -f ${L1}/pkg-fix/packages-templates/${PSTgeneric}/pinstall.sh ];then
-     #if only has pinstall.sh no need to open up the pkg...
-     if [ "$(find ${L1}/pkg-fix/packages-templates/${PSTgeneric} -mindepth 1 -maxdepth 1 -exec basename {} \;)" == "pinstall.sh" ];then
-      DONOTOPEN=1
-     fi
-     #20240223 do this here, instead of in template-fix...
-     echo "echo 'TEST pinstall.sh: ${PSTgeneric}' 1>&2" >> ${E1}/sandbox/pinstall.sh #for debugging
-     cat ${L1}/pkg-fix/packages-templates/${PSTgeneric}/pinstall.sh >> ${E1}/sandbox/pinstall.sh
+    #20240313 change: only open up pkg if have FIXUPHACK file...
+    if [ ! -f ${L1}/pkg-fix/packages-templates/${PSTgeneric}/FIXUPHACK ];then
+     DONOTOPEN=1
     fi
    fi
    #check if already installed...
@@ -256,6 +251,13 @@ do
      rm -rf ${E1}/rootfs/repo/* #stop from growing.
     fi
    fi
+   if [ -f ${L1}/pkg-fix/packages-templates/${PSTgeneric}/pinstall.sh ];then #20240313
+    echo "echo 'TEST pinstall.sh: ${PSTgeneric}' 1>&2" >> ${E1}/sandbox/pinstall.sh #for debugging
+    cat ${L1}/pkg-fix/packages-templates/${PSTgeneric}/pinstall.sh >> ${E1}/sandbox/pinstall.sh
+   fi
+   if [ -d ${L1}/pkg-fix/packages-templates/${PSTgeneric}/REPLACEMENTS ];then #20240313
+    cp -a -f --remove-destination ${L1}/pkg-fix/packages-templates/${PSTgeneric}/REPLACEMENTS/* ${E1}/rootfs/
+   fi
   ;;
   
   oe:kirkstone)
@@ -335,6 +337,10 @@ do
     #if pkg-fix/packages-templates/$PSTgeneric, than call template-fix
     if [ -d /usr/local/woofV/pkg-fix/packages-templates/${PSTgeneric} ];then
      /usr/local/woofV/pkg-fix/template-fix ${PSTgeneric} ${WIPcompatname} ${E1}/sandbox/${Pdir}
+    fi
+    #20240313 moved out of template-fix...
+    if [ -d ${L1}/pkg-fix/packages-templates/${PSTgeneric}/REPLACEMENTS ];then
+     cp -a -f --remove-destination ${L1}/pkg-fix/packages-templates/${PSTgeneric}/REPLACEMENTS/* ${E1}/sandbox/${Pdir}/
     fi
     
     #packages-templates/<generic>/FIXUPHACK may have created this file...
