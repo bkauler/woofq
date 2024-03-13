@@ -28,6 +28,9 @@ mkdir -p /tmp/woofV
 mkdir -p ${E1}/sandbox
 echo -n '' > /tmp/woofV/5errors.log
 
+#20240313 flag that running in woofV
+touch /tmp/FLAGrunningwoofv
+
 echo "$(LANG=${LANGorig} gettext 'Installing pkgs to:') ${E1}/rootfs"
 
 mkdir -p ${E1}/rootfs/var/cache/xbps
@@ -460,5 +463,6 @@ busybox umount /mnt/${WKG_DEV}/${WKG_DIR}data/woofV/rootfs/proc
 #important; this has to be at end after having populated rootfs
 echo 'cachedir=/mnt/wkg/data/woofV/dl-xbps' > ${E1}/rootfs/etc/xbps.d/30-dl-cache.conf
 
+rm -f /tmp/FLAGrunningwoofv
 #post-processing continues in 6post-process-rootfs
 ###end###
