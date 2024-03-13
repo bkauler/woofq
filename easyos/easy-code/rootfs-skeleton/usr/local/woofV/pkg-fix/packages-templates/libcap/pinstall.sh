@@ -1,9 +1,11 @@
 #!/bin/sh
 
-LIBCAPFND="$(find usr/lib -maxdepth 1 -type f -name 'libcap.so.*' 2>/dev/null | head -n 1)"
-if [ "$LIBCAPFND" ];then
- LIBCAPDIR="$(dirname $LIBCAPFND)"
- LIBCAPNAME="$(basename $LIBCAPFND)"
- [ ! -e ${LIBCAPDIR}/libcap.so.1 ] && ln -s ${LIBCAPNAME} ${LIBCAPDIR}/libcap.so.1
+#we are using the kirkstone libcap, in kirkstone-libs pet pkg...
+if [ -f usr/lib/libcap.so.2.66 ];then
+ ln -snf libcap.so.2.66 usr/lib/libcap.so.2
+ ln -snf libcap.so.2.66 usr/lib/libcap.so.1
 fi
-
+if [ -f usr/lib/libpsx.so.2.66 ];then
+ ln -snf libpsx.so.2.66 usr/lib/libpsx.so.2
+ ln -snf libpsx.so.2.66 usr/lib/libpsx.so.1
+fi
