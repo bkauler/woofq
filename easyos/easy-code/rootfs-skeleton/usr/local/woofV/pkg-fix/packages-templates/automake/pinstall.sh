@@ -1,4 +1,6 @@
+#!/bin/sh
 
+#20240313 moved from FIXUPHACK...
 if [ ! -e usr/bin/aclocal ];then
  REALFILE="`ls -1 usr/bin/aclocal* | head -n 1 | rev | cut -f 1 -d '/' | rev`"
  [ "$REALFILE" ] && ln -s $REALFILE usr/bin/aclocal
