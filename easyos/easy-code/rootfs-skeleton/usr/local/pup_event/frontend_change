@@ -21,6 +21,7 @@
 #20220218 generate-drives-menu writes to /root/.jwmrc-drives internally.
 #20220218 no longer using ROXDESKflg.
 #20221209 fix parse full blkid.
+#20240315 support btrfs
 
 #130614 the uevents can be complicated. this is what comes in here when I plugin my optus 3g usb stick:
 #add:sdb add:sr1 cha:sdb cha:sr1
@@ -160,7 +161,7 @@ do
    fi
   fi
  done
- PROBEPART="`echo -n "$xPROBEPART" | tr ' ' '\n' | grep -E 'exfat|ext2|ext3|ext4|f2fs|ntfs|msdos|vfat|reiser|iso9660|udf|audiocd|xfs'`" #130610 screen out unwanted filesystems. 170310 exfat.
+ PROBEPART="`echo -n "$xPROBEPART" | tr ' ' '\n' | grep -E 'btrfs|exfat|ext2|ext3|ext4|f2fs|ntfs|msdos|vfat|reiser|iso9660|udf|audiocd|xfs'`" #130610 screen out unwanted filesystems. 170310 exfat. 20240315 btrfs
  
  #also find PROBEDISK, extract code from /sbin/probedisk...
  PROBEDISK=''

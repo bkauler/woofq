@@ -49,6 +49,7 @@
 #20210612 replaced all yaf-splash with gtkdialog-splash. note, still ok to kill yaf-splash, see gtkdialog-splash script.
 #20221023 may be running as zeus super-user. 20221031 hmmm, maybe still need bump to root.
 #20230626 new sudo-sh replaces sudo.
+#20240315 support btrfs
 
 #20230626
 if [ "$(whoami)" != "root" ];then
@@ -155,8 +156,8 @@ done
 TABLIST="`echo -n "$DISKINFO" | cut -f 2 -d '|' | uniq | tr '\n' '|' | sed -e 's/|$//'`"
 CURRENTTAB=''
 
-#v408 v410 moved up...  130216 added f2fs... 170310 added exfat...
-VALIDPARTS="`echo "$PARTSINFO" | grep -E 'exfat|f2fs|vfat|msdos|ntfs|minix|ext2|ext3|ext4|reiser|xfs|iso9660|udf'`" #130128
+#v408 v410 moved up...  130216 added f2fs... 170310 added exfat... 20240315 btrfs
+VALIDPARTS="`echo "$PARTSINFO" | grep -E 'btrfs|exfat|f2fs|vfat|msdos|ntfs|minix|ext2|ext3|ext4|reiser|xfs|iso9660|udf'`" #130128
 
 #get actual top tab...
 TOPACTUAL="`echo "$TABLIST" | cut -f 1 -d '|'`"

@@ -11,6 +11,7 @@
 #20220208 /root/.xinitrc now waits until frontend_startup has finished.
 #20220211 ROXDESKflg is read in frontend_funcs
 #20220218 eliminate 3sec delay for icon-free desktop. no longer using ROXDESKflg.
+#20240315 support btrfs
 
 #export TEXTDOMAIN=pup_event_frontend_d
 #export OUTPUT_CHARSET=UTF-8
@@ -94,8 +95,8 @@ if [ "$ICONDESK" = "false" ];then
  DRV_DESCRIPTION="all drives"
  create_icon_func #needs DRV_NAME, DRV_CATEGORY, DRV_DESCRIPTION.
 else
- #show all drives on desktop... w476 add ext4... 130216 add f2fs... 170310 exfat...
- PROBEPART="`probepart -k | grep -E '\|exfat\||\|f2fs\||\|ext4\||\|ntfs\||\|msdos\||\|vfat\||\|ext2\||\|ext3\||\|iso9660\||\|udf\||\|audiocd\||\|xfs\||\|reiser'`"
+ #show all drives on desktop... w476 add ext4... 130216 add f2fs... 170310 exfat... 20240315 btrfs
+ PROBEPART="`probepart -k | grep -E '\|btrfs\||\|exfat\||\|f2fs\||\|ext4\||\|ntfs\||\|msdos\||\|vfat\||\|ext2\||\|ext3\||\|iso9660\||\|udf\||\|audiocd\||\|xfs\||\|reiser'`"
  if [ "$FD0ICON" = "true" ];then #see /etc/eventmanager
   if [ -e /sys/block/fd0 ];then
    PROBEDISK="/dev/fd0|floppy|Legacy floppy drive
