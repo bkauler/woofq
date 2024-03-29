@@ -1449,13 +1449,16 @@ fi
 #could read .session/etc/clock and run hwclock, but for now this probably good enough (refer: rc.shutdown)...
 #200218 fixed /dev/rtc0 and symlink /dev/rtc for modern kernels, replacing old /dev/rtc
 #       also have rtc drivers builtin to kernel >=5.4.20. can now use hwclock...
+#20240320 settimeofday() error, see: https://bkhome.org/news/202402/hwclock-fail-in-easyvoid-603.html
+# getting this error in initrd. now have static hwclock with old musl
+# ...it does not accept -l requires --localtime
 CLKflg=1
 if [ -e /sys/class/rtc/rtc0 ];then
  if [ -s /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/clock ];then
 . /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/clock #has HWCLOCKTIME=localtime or utc
   #20230414 not sure if busybox hwclock accepts "--localtime" use "-l"...
   case "$HWCLOCKTIME" in
-   localtime) hwclock -s -l -f /dev/rtc0; CLKflg=$? ;;
+   localtime) hwclock -s --localtime -f /dev/rtc0; CLKflg=$? ;;
    utc)       hwclock -s -u -f /dev/rtc0; CLKflg=$? ;;
   esac
  else #first bootup, assume hw clock is localtime...
@@ -2252,7 +2255,7 @@ echo "EOS_TOP_LEVEL_ZRAM='${EOS_TOP_LEVEL_ZRAM}'" >> /easy_new/etc/rc.d/PUPSTATE
 echo "EOS_SUPPORT_CONTAINERS='${EOS_SUPPORT_CONTAINERS}'" >> /easy_new/etc/rc.d/PUPSTATE #20220525
 #echo "EOS_LOGIN_ZEUS='${EOS_LOGIN_ZEUS}'" >> /easy_new/etc/rc.d/PUPSTATE #20221030 20221102 remove
 #echo "BOOT_PW_FLG='${PW//[a-zA-Z0-9]/X}'" >> /easy_new/etc/rc.d/PUPSTATE #180811 a flag so main f.s. will know if a pw was entered.
-echo "BOOT_PW_FLG='${PW/*/X}'" >> /easy_new/etc/rc.d/PUPSTATE #180811 set to "X" if $PW has something in it. note, used in /usr/local/EasyShare
+echo "BOOT_PW_FLG='${PW/*[a-zA-Z0-9]*/X}'" >> /easy_new/etc/rc.d/PUPSTATE #180811 set to "X" if $PW has something in it. note, used in /usr/local/EasyShare
 echo "BOOT_CAPS_DROPPED='${CAPS_DROP}'" >> /easy_new/etc/rc.d/PUPSTATE #190812 comma-delimited
 #200820 also want BOOT_UUID. 200823 want BOOT_LOCK ...
 [ "$LOCKDOWN" ] && echo "BOOT_LOCK='${LOCKDOWN}:${LOCKkeep}'" >> /easy_new/etc/rc.d/PUPSTATE
