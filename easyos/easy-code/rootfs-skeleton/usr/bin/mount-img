@@ -8,6 +8,7 @@
 #20220613 first version. 20220615
 #20220624 fallback popup to xmessage, so will work on other distros.
 #20220625 default mount ro, pass-in "rw"
+#20240404 support btrfs
 
 if [ "$(whoami)" != "root" ];then
  if [ -x /usr/bin/sudo-sh ];then
@@ -106,7 +107,7 @@ do
  aOFFb=$(($aOFFs*512)) #assumption, 512 bytes per sector.
  LOOPn="$(losetup -f)"
  losetup ${LOPT} -o ${aOFFb} ${LOOPn} ${ESPEC}
- aFS="$(blkid ${LOOPn} | tr ' ' '\n' | grep '^TYPE' | cut -f 2 -d '"' | grep -E 'vfat|ext|f2fs')"
+ aFS="$(blkid ${LOOPn} | tr ' ' '\n' | grep '^TYPE' | cut -f 2 -d '"' | grep -E 'vfat|ext|f2fs|btrfs')"
  [ "$aFS" == "" ] && continue
  CNT=$(($CNT+1))
  mkdir -p /tmp/mount-img-${CNT}-${aFS}-${LOOPn##*/}

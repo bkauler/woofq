@@ -50,7 +50,7 @@ done
 if [ -f /root/Choices/ROX-Filer/PuppyPinBACKUP ];then
  touch /root/Choices/ROX-Filer/PuppyPin
  #if [ "$(grep 'defaultbrowser' /root/Choices/ROX-Filer/PuppyPin)" == "" ];then
- grep -q 'www' /root/Choices/ROX-Filer/PuppyPin #20230423 change test.
+ grep -q 'defaultbrowser' /root/Choices/ROX-Filer/PuppyPin #20230423 change test. 20240409 fix.
  if [ $? -ne 0 ];then
   cp -a -f /root/Choices/ROX-Filer/PuppyPinBACKUP /root/Choices/ROX-Filer/PuppyPin
  fi
