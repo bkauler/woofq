@@ -1,0 +1,26 @@
+#!/bin/ash
+
+C=''
+while [ -n "$1" ];do
+ case "$1" in
+  -*)
+   case "$1" in
+    -g|-p|-U|-u|-C|-r|-t)
+     shift
+    ;;
+   esac
+  ;;
+  *)
+   C="$@"
+   break
+  ;;
+ esac
+ shift
+done
+
+if [ -n "$C" ];then
+ #exec sudo-sh ${PPID} ${0} ${C}
+ exec sudo-sh ${PPID} ${C}
+fi
+###end###
+
