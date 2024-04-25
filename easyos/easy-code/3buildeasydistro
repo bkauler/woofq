@@ -4619,10 +4619,12 @@ if [ -e rootfs-complete/root/Startup/pipewire ];then
  esac
  if [ "$PAflg" == "" ];then
   chmod 644 rootfs-complete/root/Startup/pipewire
-  chmod 755 rootfs-complete/root/Startup/pulseaudio
+  #chmod 755 rootfs-complete/root/Startup/pulseaudio
+  chmod 755 etc/init.d/pulseaudio #20240424
   #sed -i -e 's%= no%= yes%' rootfs-complete/etc/pulse/client.conf
  else
-  chmod 644 rootfs-complete/root/Startup/pulseaudio
+  #chmod 644 rootfs-complete/root/Startup/pulseaudio
+  chmod 644 etc/init.d/pulseaudio #20240424
   chmod 755 rootfs-complete/root/Startup/pipewire
   sed -i -e 's%= yes%= no%' rootfs-complete/etc/pulse/client.conf
  fi
