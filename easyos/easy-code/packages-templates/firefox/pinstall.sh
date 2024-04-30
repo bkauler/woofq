@@ -64,3 +64,6 @@ sed -i -e 's%Chromium%Firefox%' usr/share/applications/ec-www.desktop
 FFver="$(grep -F '|firefox|' root/.packages/woof-installed-packages | cut -f 3 -d '|' | sed -e 's%-r[0-9]$%%')"
 sed -i '/mstone/d' root/.mozilla/firefox/9nma1n9v.default-release/prefs.js
 echo "user_pref(\"browser.startup.homepage_override.mstone\", \"${FFver}\");" >> root/.mozilla/firefox/9nma1n9v.default-release/prefs.js
+
+#20240429 for updating (see /usr/bin/ff-dl-latest)...
+echo -n "FF_CURR_VER='${FFver}'" > etc/firefox-current-version

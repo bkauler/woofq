@@ -260,3 +260,10 @@ mkdir -p usr/share/pixmaps
 if [ ! -e usr/share/pixmaps/vym.png ];then
  ln -s ../../vym/icons/vym.png usr/share/pixmaps/vym.png
 fi
+
+#20240429 oe
+if [ -d usr/vym/doc ];then
+ if [ ! -e usr/share/doc/vym ];then
+  ln -s ../../vym/doc usr/share/doc/vym
+ fi
+fi
