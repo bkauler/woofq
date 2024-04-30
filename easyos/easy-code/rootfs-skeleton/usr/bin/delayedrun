@@ -91,6 +91,7 @@
 #20220715 run date-time-wizard if no /etc/clock.<hw profile> ref: rc.country, quicksetup
 #20221023 may be running as zeus super-user. 20221031 hmmm, maybe still need bump to root.
 #20230626 new sudo-sh replaces sudo.
+#20240430 unmute audio.
 
 #20230626
 if [ "$(whoami)" != "root" ];then
@@ -206,6 +207,11 @@ if [ "`readlink /usr/bin/X`" = "Xorg" -o -e /etc/videomode ];then #w007
      #if [ ! -s /var/local/mscw/selected ];then #20220626 see also pupautodetect-run
      # mscw
      #fi
+
+     #20240430 try again unmute and set levels...
+     #set-max-snd-levels
+     pactl set-sink-mute @DEFAULT_SINK@ false
+     pactl set-sink-volume @DEFAULT_SINK@ "80%"
      mscw-not
      
     fi
