@@ -1,0 +1,219 @@
+#!/bin/bash
+#20220107 20220108
+#20230206 caramel: fixes
+#20240429 now builtin to rootfs-skeleton
+
+export TEXTDOMAIN=ff-dl-latest
+export OUTPUT_CHARSET=UTF-8
+
+#20230206 note, this is adirect d/l url:
+# https://archive.mozilla.org/pub/firefox/releases/
+
+cd /usr/lib
+
+MSG0="$(gettext 'Online probe, please wait...')"
+popup "background=#ffd020 level=top|<big>${MSG0}</big> "
+
+if [ ! -e /etc/firefox-current-version ];then #20240429
+ echo -n "FF_CURR_VER='nothing'" > /etc/firefox-current-version
+fi
+
+wget -4 --spider 'https://download.mozilla.org/?product=firefox-latest-ssl&os=linux64&lang=en-US' >/tmp/dl-ff-latest-spider.log 2>&1
+FFVER="$(grep -o 'pub/firefox/releases/[^/]*' /tmp/dl-ff-latest-spider.log | head -n 1 | cut -f 4 -d '/')"
+echo -n "FF_DL_VER='${FFVER}'" > /etc/firefox-latest-version
+RETVAL=$?
+
+sync
+killall popup
+
+FF_DL_VER=''
+. /etc/firefox-latest-version
+. /etc/firefox-current-version
+
+if [ "$FF_DL_VER" == "" -o $RETVAL -ne 0 ];then
+ MSG1="$(gettext 'Failed to obtain Firefox latest version information from Internet')"
+ popup "background=#ffa0a0 level=top terminate=ok process=wait|<big>${MSG1}</big>"
+ rm -f /etc/firefox-latest-version
+ exit
+fi
+
+export FF_DL_DLG="<window title=\"$(gettext 'Download latest Firefox')\" icon-name=\"gtk-save\">
+<vbox>
+ <text><label>\"$(gettext 'Current installed version:') ${FF_CURR_VER}
+$(gettext 'Latest available online:')  ${FF_DL_VER}
+
+$(gettext 'Click DOWNLOAD button to download latest version of Firefox')
+ \"</label></text>
+ <hbox>
+   <button>
+    <input file>/usr/local/lib/X11/mini-icons/mini-lower.xpm</input>
+    <label>$(gettext 'DOWNLOAD')</label>
+    <action>EXIT:downloadff</action>
+   </button>
+   <button>
+    <input file>/usr/local/lib/X11/mini-icons/mini-exit.xpm</input>
+    <label>$(gettext 'CANCEL')</label>
+    <action>EXIT:cancel</action>
+   </button>
+ </hbox>
+</vbox>
+</window>
+"
+
+RETSTRING="$(gtkdialog --program=FF_DL_DLG --center)"
+
+grep -q 'downloadff' <<< ${RETSTRING}
+if [ $? -ne 0 ];then
+ exit
+fi
+
+MSG2="$(gettext 'Downloading, please wait...')"
+popup "background=#ffd020|<big>${MSG2}</big> "
+killall firefox 2>/dev/null
+
+#20230206 list of supported langs from https://archive.mozilla.org/pub/firefox/releases/
+FFLANGS='af an ar az be bg bn br bs ca cs cy da de el en-CA en-GB en-US eo es-AR es-CL es-ES es-MX et eu fa ff fi fr fy-NL ga-IE gd gl gn gu-IN he hi-IN hr hsb hu hy-AM ia id is it ja ka kk km kn ko lt lv mk mr ms my nb-NO ne-NP nl nn-NO oc pa-IN pl pt-BR pt-PT rm ro ru si sk sl son sq sr sv-SE ta te th tl tr uk ur uz vi xh xpi zh-CN zh-TW'
+
+#20230206 rewrite...
+LANG12="${LANG/.*/}" #ex: en_US
+LANG12="${LANG12/_/-}"
+if [ -s /usr/lib/firefox/locale.ini ];then
+ LANGFF="$(grep '^locale=' /usr/lib/firefox/locale.ini | cut -c 8-)"
+else
+ tr ' ' '\n' <<<$FFLANGS > /tmp/ff-avail-langs
+ grep -q -x -f /tmp/ff-avail-langs <<<$LANG12
+ if [ $? -eq 0 ];then
+  LANGFF="${LANG12}"
+ else
+  LANG1="${LANG12/-*/}" #ex: es
+  grep -q -x -f /tmp/ff-avail-langs <<<$LANG1
+  if [ $? -eq 0 ];then
+   LANGFF="${LANG1}"
+  else
+   LANG1="${LANG1}-${LANG1^^}" #ex: es-ES
+   grep -q -x -f /tmp/ff-avail-langs <<<$LANG1
+   if [ $? -eq 0 ];then
+    LANGFF="${LANG1}"
+   else
+    LANG1="${LANG1/-*/-}" #ex: es-
+    FND1="$(grep -f /tmp/ff-avail-langs <<<$LANG1 | head -n 1)"
+    if [ "$FND1" ];then
+     LANGFF="$FND1"
+    else
+     LANGFF="en-US"
+    fi
+   fi
+  fi
+ fi
+fi
+
+#20230206 d/l...
+wget "https://download.mozilla.org/?product=firefox-latest-ssl&os=linux64&lang=${LANGFF}" -O firefox.tar.bz2
+RETVAL=$?
+
+sync
+if [ $RETVAL -ne 0 -o ! -s firefox.tar.bz2 ];then
+ MSG3="$(gettext 'Failed to download')"
+ popup "background=#ffa0a0 level=top terminate=ok process=wait|<big>${MSG3}</big> "
+ rm -f firefox.tar.bz2 2>/dev/null
+ killall popup
+ exit
+fi
+
+if [ -d firefoxPREV -a -d firefox ];then #paranoid precaution.
+ rm -rf firefoxPREV
+fi
+if [ -d firefox ];then #paranoid precaution
+ mv -f firefox firefoxPREV
+fi
+tar -xf firefox.tar.bz2
+if [ $? -ne 0 -o ! -e firefox/firefox-bin ];then
+ MSG4="$(gettext 'Failed to install')"
+ popup "background=#ffa0a0 level=top terminate=ok process=wait|<big>${MSG4}</big> "
+ rm -f firefox.tar.bz2 2>/dev/null
+ rm -rf firefox 2>/dev/null
+ mv -f firefoxPREV firefox
+ killall popup
+ exit
+fi
+
+cp -a -f firefoxPREV/distribution firefox/
+mkdir -p firefox/dictionaries
+cp -a -f /etc/firefox-latest-version /etc/firefox-current-version
+sed -i 's/DL/CURR/' /etc/firefox-current-version #20230206
+rm -rf firefoxPREV
+rm -f firefox.tar.bz2
+sync
+killall popup
+
+#make sure symlinks to hunspell...
+if [ -d /usr/share/hunspell ];then
+ rm -f /usr/lib/firefox/dictionaries/*
+ for ONEHUN in $(find /usr/share/hunspell -mindepth 1 -maxdepth 1 -type f -name '*.dic' -o -name '*.aff' | tr '\n' ' ')
+ do
+  HUNBASE="`basename $ONEHUN`"
+  ln -s ${ONEHUN} /usr/lib/firefox/dictionaries/${HUNBASE}
+ done
+fi
+
+if [ -d /home/firefox -a -f /usr/bin/firefox.bin ];then
+ MSG5="$(gettext 'Firefox update completed')"
+ popup "background=#a0ffa0 level=top terminate=ok process=wait|<big>${MSG5}</big> "
+ exit
+fi
+
+#setup to run firefox as a client...
+#if [ ! -x /usr/bin/firefox.bin ];then
+ rm -f /usr/bin/firefox.bin 2>/dev/null
+ rm -rf /home/firefox 2>/dev/null
+ ln -snf /usr/lib/firefox/firefox /usr/bin/firefox
+ #this will create /home/firefox and /usr/bin/firefox script...
+ /usr/local/clients/setup-client 'firefox=true'
+#fi
+
+sed -i '/^NoDisplay/d' /usr/share/applications/firefox.desktop
+fixmenus
+jwm -reload
+
+#popup "background=#a0ffa0 level=top terminate=ok process=wait|<big>Firefox update completed. There is an entry in the Internet menu.</big>"
+#TODO: ask to make ff default.
+
+FFDEFxml=''
+MSGdef="$(gettext 'OK, Firefox set as default')"
+grep -q 'firefox' /usr/local/bin/defaultbrowser
+if [ $? -ne 0 ];then
+ FFDEFxml=" <frame $(gettext 'Default')>
+  <text><label>\"$(gettext 'Do you want to set Firefox as the default browser? -- this will cause the www icon on the desktop to launch Firefox.')
+$(gettext 'Note: this can be changed later, via the menu Setup -> Default applications chooser')\"</label></text>
+  <hbox>
+   <text><label>$(gettext 'Click button to set Firefox as default:')</label></text>
+   <button>
+    <label>$(gettext 'DEFAULT')</label>
+    <action>sed -i -e 's%^exec [^ ]*%exec firefox %' /usr/local/bin/defaultbrowser</action>
+    <action>popup 'background=#a0ffa0 terminate=2 timecnt=dn name=ffdone|${MSGdef}'</action>
+   </button>
+  </hbox>
+ </frame>
+"
+fi
+
+export FF_DL_SUCCESS_DLG="<window title=\"$(gettext 'Download latest Firefox: success')\" icon-name=\"gtk-save\">
+<vbox>
+ <text use-markup=\"true\"><label>\"<b>$(gettext 'Firefox version downloaded:') ${FF_DL_VER}
+$(gettext 'The download has been successful!')</b>
+
+$(gettext 'There is now an entry in the menu for Firefox, under the Internet category.')
+$(gettext 'You may also create an icon on the desktop, by dragging /home/firefox/firefox onto the desktop.')
+
+$(gettext 'For enhanced security, Firefox will run as user <b>firefox</b>. This does impose a limitation that can only save files under /home/firefox and /files')
+\"</label></text>
+ 
+ ${FFDEFxml}
+ <hbox><button ok></button></hbox>
+</vbox>
+</window>
+"
+
+RETSTRING="`gtkdialog --program=FF_DL_SUCCESS_DLG --center`" 
+
+###end###
