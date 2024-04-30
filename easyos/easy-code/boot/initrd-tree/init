@@ -178,6 +178,8 @@
 #20240113 support skeleton with 920MiB wkg-partition. 20240116 880MiB wkg-part.
 #20240128 keyboard layout: try fix background color.
 #20240308 make sure .session/root has 700 perms.
+#20240428 copy some static utilities.
+#20240430 improve timezone.
 
 #20230429
 . /build-choices #3buildeasydistro copies it here.
@@ -1454,15 +1456,23 @@ fi
 # ...it does not accept -l requires --localtime
 CLKflg=1
 if [ -e /sys/class/rtc/rtc0 ];then
+ #20240430 get timezone...
+ if [ -e /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/localtime ];then
+  NEWTZ="$(readlink /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/localtime)" #ex: /usr/share/zoneinfo/Etc/GMT-8
+  mkdir -p ${NEWTZ%/*}
+  cp -a ${NEWTZ} ${NEWTZ%/*}/
+  cp -a /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/localtime /etc/
+  unset TZ #otherwise it will override /etc/localtime
+  export TZ
+ fi
  if [ -s /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/clock ];then
 . /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/clock #has HWCLOCKTIME=localtime or utc
-  #20230414 not sure if busybox hwclock accepts "--localtime" use "-l"...
   case "$HWCLOCKTIME" in
    localtime) hwclock -s --localtime -f /dev/rtc0; CLKflg=$? ;;
    utc)       hwclock -s -u -f /dev/rtc0; CLKflg=$? ;;
   esac
  else #first bootup, assume hw clock is localtime...
-  hwclock -s -l -f /dev/rtc0
+  hwclock -s --localtime -f /dev/rtc0
  fi
 fi
 if [ $CLKflg -ne 0 ];then
@@ -2435,6 +2445,17 @@ fi
 #200301 ***CURRENTLY NOT USING***
 CHROOT='' #'1'
 [ "$WKG_DEV" == "zram0" ] && CHROOT=''
+
+#20240428 copy this hwclock
+if [ -e /bin/hwclock ];then
+ #--remove-destination in case target is a busybox symlink...
+ cp -a -f --remove-destination /bin/hwclock /easy_new/usr/bin/
+fi
+#20240413 problems with button labels different versions, copy this for consistency...
+if [ -e /bin/dialog ];then
+ cp -a -f --remove-destination /bin/dialog /easy_new/usr/bin/
+fi
+
 
 #190811 redesign so can drop linux-capabilities (also changed /etc/rc.d/rc.sysinit)...
 #sync
