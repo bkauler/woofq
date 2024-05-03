@@ -37,7 +37,7 @@
 #20210612 replaced all yaf-splash with gtkdialog-splash. note, still ok to kill yaf-splash, see gtkdialog-splash script.
 #20220126 now PKGget
 #20220629 replace "Puppy" with "EasyOS".
-#20240301 support easyvoid
+#20240301 support easyvoid.  20240503 remove.
 
 export TEXTDOMAIN=petget___downloadpkgs.sh
 export OUTPUT_CHARSET=UTF-8
@@ -52,20 +52,10 @@ FLAGPET="" #101016
 . /root/.packages/DISTRO_PET_REPOS #has PET_REPOS, PACKAGELISTS_PET_ORDER
 . /root/.packages/DISTRO_COMPAT_REPOS #v431 has REPOS_DISTRO_COMPAT
 
-#20240301
-EVflg=0
-if [ -d /var/db/xbps/keys ];then
- EVflg=1
-fi
-L1='/usr/local/woofV'
-E1='/mnt/wkg/data/woofV'
 case "$DISTRO_TARGETARCH" in #20240227
  amd64) xARCH='x86_64' ;;
  *)     xARCH="$DISTRO_TARGETARCH" ;;
 esac
-export XBPS_ARCH="$xARCH"
-mkdir -p /tmp/woofV
-mkdir -p ${E1}/dl-pet
 
 echo -n "" > /tmp/petget-installed-pkgs-log
 
