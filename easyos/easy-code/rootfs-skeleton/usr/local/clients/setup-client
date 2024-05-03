@@ -70,6 +70,7 @@
 #20240224 woofv compat.
 #20240308 icon naming may be different, ex: org.gnome.GHex.svg
 #20240311 changes testing exist .bin, .bin0
+#20240503 remove woofV.
 
 APPname="${1/=*/}"  #ex: seamonkey
 APPflag="${1/*=/}" #ex: true
@@ -81,9 +82,6 @@ PREFIXDIR1=''     #note: loginmanager will not pass a $2
 PREFIXDIR2="${2}" #dir2sfs will pass this, when creating an sfs.
 if [ -d ./rootfs-complete ];then
  PREFIXDIR1='rootfs-complete' #running in woofQ.
-fi
-if [ -d ./rootfs ];then
- PREFIXDIR1='rootfs' #running in woofV
 fi
 if [ "$PREFIXDIR2" ];then
  PREFIXDIR1="${PREFIXDIR2}"
