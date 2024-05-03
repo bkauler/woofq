@@ -114,6 +114,11 @@ export LANG=C
 
 . /etc/xdg/menus/hierarchy #w478 has PUPHIERARCHY variable.
 
+case "$DISTRO_TARGETARCH" in #20240227
+ amd64) xARCH='x86_64' ;;
+ *)     xARCH="$DISTRO_TARGETARCH" ;;
+esac
+
 #140125 DISTRO_ARCHDIR_SYMLINKS and DISTRO_ARCHDIR are defined in file DISTRO_SPECS...
 xARCHDIR="$DISTRO_xARCHDIR" #20230904
 if [ "${xARCHDIR:0:1}" == "/" ];then
