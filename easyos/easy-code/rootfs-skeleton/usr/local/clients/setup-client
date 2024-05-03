@@ -183,6 +183,9 @@ CHGflg=0 #20210916  20210918 revert 20210917...
      IMG="${PREFIXDIR1}/usr/share/pixmaps/puppy/execute.svg"
     fi
    fi
+   if [ ! -f ${PREFIXDIR1}/usr/share/pixmaps/${IMG##*/} ];then #20240503
+    cp -a ${IMG} ${PREFIXDIR1}/usr/share/pixmaps/
+   fi
    ln -s -r ${IMG} ${PREFIXDIR1}/home/${APPname}/.DirIcon
    ln -s -r ${IMG} ${PREFIXDIR1}/home/${APPname}/${APPname}/.DirIcon
    #click on this folder will run the app...
@@ -192,6 +195,22 @@ CHGflg=0 #20210916  20210918 revert 20210917...
    #20230528 if admin creates files/folders, setgid so they will be group $APPname...
    chmod 2700 ${PREFIXDIR1}/home/${APPname}
   fi
+
+  #20240503 changed from chromium builtin to download, this missing...
+  if [ ! -e ${PREFIXDIR1}/home/${APPname}/${APPname}/AppRun ];then
+   CHGflg=1
+   for aSUB in .cache .config .history .local/share ${APPname}
+   do
+    mkdir -p ${PREFIXDIR1}/home/${APPname}/${aSUB}
+   done
+   IMG="${PREFIXDIR1}/usr/share/pixmaps/${APPname}.png"
+   ln -s -r ${IMG} ${PREFIXDIR1}/home/${APPname}/.DirIcon 2>/dev/null
+   ln -s -r ${IMG} ${PREFIXDIR1}/home/${APPname}/${APPname}/.DirIcon 2>/dev/null
+   #click on this folder will run the app...
+   echo -e "#!/bin/sh\nexec ${APPname}" > ${PREFIXDIR1}/home/${APPname}/${APPname}/AppRun
+   chmod 755 ${PREFIXDIR1}/home/${APPname}/${APPname}/AppRun
+  fi
+  
   #20240118 no longer need this, as have global /etc/gtk-3.0/settings.ini ...
   #if [ ! -d ${PREFIXDIR1}/home/${APPname}/.config/gtk-3.0 ];then #20210927
   # CHGflg=1 #20211103
