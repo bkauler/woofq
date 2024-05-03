@@ -33,7 +33,7 @@
 #20230328 ask if current .img is elsewhere.
 #20230503 cannot update fscrypt v1 to v2.  20230504
 #20231108 offer to update nvidia sfs. (see also initrd init). 20231109 check nv major version.
-#20240302 support easyvoid. 20240304
+#20240302 support easyvoid. 20240304  20240403 remove.
 
 export TEXTDOMAIN=easy-update
 export OUTPUT_CHARSET=UTF-8
@@ -59,14 +59,6 @@ case "$DISTRO_TARGETARCH" in
  amd64) xARCH='x86_64' ;;
  *)     xARCH="$DISTRO_TARGETARCH" ;;
 esac
-export XBPS_ARCH="$xARCH"
-mkdir -p /tmp/woofV
-EVflg=0
-if [ -d /var/db/xbps/keys ];then
- EVflg=1
-fi
-E1='/mnt/wkg/data/woofV'
-L1='/usr/local/woofV'
 
 if [ -d /boot/device-tree ];then #20220621 rpi
  #this is a hack...
@@ -498,20 +490,18 @@ echo -en '\033[1;35m' #bright magenta
 echo "$(gettext 'This file has been downloaded:')"
 echo "/mnt/${WKG_DEV}/${WKG_DIR}${DISTRO_NAME_SHORT,,}-${latestVER}-${DISTRO_TARGETARCH}.img"
 
-if [ $EVflg -eq 0 ];then #20240302
- if [ "$KERNAME" == "kernel8.img" ];then #20210125 rpi  20210701
-  echo "$(gettext 'You may do a manual update, by clicking on the image file to open it up, drag kernel8.img, initrd and the device-tree files to the boot-partition, and easy.sfs to the working-partition, then click on initrd to fix the BOOT_SPECS file. These steps are documented online.')" | fold -s -w ${COLUMNS}
- else
-  echo "$(gettext 'You may do a manual update, by clicking on the image file to open it up, drag vmlinuz, initrd and easy.sfs to the working-partition, then click on the file again to unmount, then reboot. Easy-peasy.')" | fold -s -w ${COLUMNS}
- fi
- echo "$(gettext 'However, this script can do it automatically. Make your choice...')"
- echo -en '\033[0;39m' #reset.
- echo -e '\033[1;34m' #bright blue
- echo -n "$(gettext 'Press ENTER for automatic update (any other key to quit):') "
- echo -en '\033[0;39m' #reset.
- read autoupdate
- [ "$autoupdate" != "" ] && echo -e "\033[1;31m${MSGexit}\033[0;39m" && exit 10
+if [ "$KERNAME" == "kernel8.img" ];then #20210125 rpi  20210701
+ echo "$(gettext 'You may do a manual update, by clicking on the image file to open it up, drag kernel8.img, initrd and the device-tree files to the boot-partition, and easy.sfs to the working-partition, then click on initrd to fix the BOOT_SPECS file. These steps are documented online.')" | fold -s -w ${COLUMNS}
+else
+ echo "$(gettext 'You may do a manual update, by clicking on the image file to open it up, drag vmlinuz, initrd and easy.sfs to the working-partition, then click on the file again to unmount, then reboot. Easy-peasy.')" | fold -s -w ${COLUMNS}
 fi
+echo "$(gettext 'However, this script can do it automatically. Make your choice...')"
+echo -en '\033[0;39m' #reset.
+echo -e '\033[1;34m' #bright blue
+echo -n "$(gettext 'Press ENTER for automatic update (any other key to quit):') "
+echo -en '\033[0;39m' #reset.
+read autoupdate
+[ "$autoupdate" != "" ] && echo -e "\033[1;31m${MSGexit}\033[0;39m" && exit 10
 
 echo
 echo -en '\033[1;35m' #bright magenta
@@ -702,22 +692,6 @@ rm -f ${DISTRO_NAME_SHORT,,}*.delta 2>/dev/null
 
 #maybe unmount boot-partition... for rpi4
 [ $BOOTflg -eq 1 ] && umount /mnt/${BOOT_DEV}
-
-#20240302 20240304
-if [ $EVflg -eq 1 ];then
- echo "$(gettext 'Saving XBPS user-installed package database entries')"
- #at next bootup, will have /var/db/xbps/pkgdb-0.38.plist in easy.sfs that only has
- #has the builtin packages. it will be necessary to merge the user-installed pkgs.
- #now, extract the user-installed pkgs from pkgdb-0.38.plist...
- PL="$(find /var/db/xbps -maxdepth 1 -type f -name 'pkgdb-0.*.plist' | tail -n 1)"
- ${L1}/support/pkgdb-extract-users ${PL}
- #...extracted entries will be in folder /mnt/wkg/data/update/extracted-user-installed
- #   hidden .<name>-files.plist will be in /mnt/wkg/data/update/extracted-user-files
- 
- #init script in initrd will have to delete /mnt/wkg/.session/var/db/xbps
- #also delete /mnt/wkg/.session/audit/deposed -- too difficult to manage.
- #rc.update will have to run pkgdb-merge-users and copy back the hidden .<name>-files.plist
-fi
 
 echo
 echo -en '\033[1;32m\033[44m' #bright green. 20211221 blue background for legibility.
