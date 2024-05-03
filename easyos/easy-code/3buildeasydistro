@@ -322,6 +322,7 @@
 #20240121 run void post-install scripts in devx.
 #20240127 if not easyVoid build, delete rootfs-complete/usr/local/woofV
 #20240229 do not copy 0setup from woofQ.
+#20240503 remove woofV.
 
 export LANG=C #faster.
 
@@ -557,15 +558,6 @@ fi
 echo
 ./findwoofinstalledpkgs #creates woof-installed-packages, which later gets copied into sandbox3/rootfs-complete/root/.packages/
 #121028 ...now also creates devx-only-installed-packages.
-
-#20230901 support xbps pkg manager... 20230903 errors, this out for now...
-#if [ "$DISTRO_BINARY_COMPAT" = "void" ]; then
-#  echo "Generating /var/db/xbps/pkgdb-0.38.plist - takes a while - please wait"
-#  ./support/void/makepkgdb.sh status/findpkgs_FINAL_PKGS-${DISTRO_BINARY_COMPAT}-${DISTRO_COMPAT_VERSION} \
-#                             packages-${DISTRO_FILE_PREFIX} \
-#                             sandbox3/rootfs-complete/var/db/xbps/pkgdb-0.38.plist
-#  echo "Generation finished - thanks for waiting"
-#fi
 
 #140119 traditional names only...
 PREFIX1CHAR="`echo -n "$DISTRO_FILE_PREFIX" | cut -c 1`"
@@ -837,12 +829,6 @@ mkdir sandbox3/rootfs-complete
 cp -a -f --remove-destination rootfs-skeleton/* sandbox3/rootfs-complete/
 sync
 
-#20240127 note, this repeated further down...
-if [ "${DISTRO_BINARY_COMPAT}" != "void" ]; then
- rm -rf sandbox3/rootfs-complete/usr/local/woofV
- sync
-fi
-
 #150731 moved this up, as some pkgs were overwriting skeleton scripts...
 #20230909 only want busybox...
 if [ -f status/findpkgs_GENERIC_NAMES-${DISTRO_BINARY_COMPAT}-${DISTRO_COMPAT_VERSION} ];then #150714
@@ -888,12 +874,6 @@ rm -rf sandbox3/rootfs-complete/INSTALL* 2> /dev/null #void
 #20230909 copy the skeleton, yes, again, as a pkg may have overwritten a skeleton file...
 cp -a -f --remove-destination rootfs-skeleton/* sandbox3/rootfs-complete/ #150731
 sync
-
-#20240127
-if [ "${DISTRO_BINARY_COMPAT}" != "void" ]; then
- rm -rf sandbox3/rootfs-complete/usr/local/woofV
- sync
-fi
 
 mkdir -p sandbox3/rootfs-complete/etc
 #cp DISTRO_SPECS sandbox3/rootfs-complete/etc/
