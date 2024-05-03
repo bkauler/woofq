@@ -59,11 +59,11 @@
 #20240112 fix PROJECTPATH. 20240113 get void nonfree. 20240116 fix 20230915
 #20240225 fix for woofv. 20240226
 #20240229 sync void db using xbps-install. 20240306 full path /usr/bin/xbps-install
+#20240503 remove woofV.
 
 LANGORG="$(locale | grep '^LANG=' | cut -d '=' -f 2)" #121116
 export LANG=C #faster.
 
-mkdir -p /tmp/woofV #20240226 cvt.sh writes pkgs-homepages to here.
 echo -n '' > /tmp/woofV/pkgs-homepages #cvt.sh called from void0setup
 
 #20230914
@@ -206,27 +206,7 @@ do
   if [ "$downloadit" = "" ] ; then #120126
    DLFILE="`basename $PKGLISTURI`"
    [ -f $DLFILE ] && mv -f $DLFILE /tmp/${DLFILE}-backup1 #v431 otherwise wget creates a new file ${DLFILE}.1
-   DLflg=0
-   case "${DLFILE}" in #20240229
-    *-repodata)
-     if [ -x /usr/bin/xbps-install ];then
-      #use xbps to sync latest db... 
-      URL="${PKGLISTURI%/*}" #ex: https://repo-fi.voidlinux.org/current
-      urxvt -name PKGget -bg orange -geometry 80x10 -e /usr/bin/xbps-install --yes --sync --ignore-conf-repos --repository ${URL}
-      #...the result will be here...
-      #/var/db/xbps/https___repo-fi_voidlinux_org_current/x86_64-repodata
-      SUB1="$(sed -e 's%[^a-z-]%_%g' <<<${URL})"
-      cp -f /var/db/xbps/${SUB1}/${DLFILE} ./
-      if [ -s ./${DLFILE} ];then
-       DLflg=1
-      fi
-     fi
-    ;;
-   esac
-   if [ $DLflg -eq 0 ];then
-    #original d/l code...
-    urxvt -name PKGget -bg orange -geometry 80x10 -e wget $PKGLISTURI
-   fi
+   urxvt -name PKGget -bg orange -geometry 80x10 -e wget $PKGLISTURI
    sync
    xDLFILE="$DLFILE"
    if [ -f $DLFILE ];then
@@ -704,21 +684,6 @@ _EOF1
   ;;
   t2) #w017
    LANG=${LANGORG} echo "...it's already in the Puppy standard format."
-  ;;
-  void) #20230901 from woof-ce testing
-   echo "executing void0setup..."
-   export ONE_PKGLISTS_COMPAT #20240113
-   if [ "$RUNNINGPUP" = "no" ];then
-    support/void/void0setup
-   else
-    /usr/local/woofV/support/void0setup #20240225
-   fi
-   #void0setup sets category field to "uncategorized", so fix...
-   #mv -f Packages-${DISTRO_BINARY_COMPAT}-${DISTRO_COMPAT_VERSION} Packages-${DISTRO_BINARY_COMPAT}-${DISTRO_COMPAT_VERSION}temp
-   #${FIND_CAT} Packages-${DISTRO_BINARY_COMPAT}-${DISTRO_COMPAT_VERSION}temp > Packages-${DISTRO_BINARY_COMPAT}-${DISTRO_COMPAT_VERSION}
-   mv -f ${ONE_PKGLISTS_COMPAT} ${ONE_PKGLISTS_COMPAT}temp
-   ${FIND_CAT} ${ONE_PKGLISTS_COMPAT}temp > ${ONE_PKGLISTS_COMPAT}
-   rm -f ${ONE_PKGLISTS_COMPAT}temp
   ;;
   puppy)
    echo "...it's already in the Puppy standard format."
