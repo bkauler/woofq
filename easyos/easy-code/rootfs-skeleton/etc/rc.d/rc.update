@@ -12,7 +12,7 @@
 #20231010 don't know why, 20230718 not always rebuild sendto when needed.
 #20231103 change how test exist /.sfschg.flg: as passed flag.
 #20231115 client scripts must all run as root.
-#20240304 easyvoid version update. 20240306
+#20240304 easyvoid version update. 20240306  20240503 remove.
 
 #20231103
 if [ "$1" ];then
@@ -43,40 +43,6 @@ if [ -f /etc/networkmodules ];then #avoid 1st boot.
     fi
    fi
   done
- fi
-fi
-
-#20240304 version update. ref: initrd, easy-update
-#need to merge user-installed entries into pkgdb-0.38.plist...
-if [ $CHGflg -eq 1 ];then
- if [ -f /var/db/FIXME ];then #created in init, initrd
-  echo "rc.update: merging user-installed entries into pkgdb-0.38.plist"
-  rm -f /var/db/FIXME
-  PDB="$(find /var/db/xbps -maxdepth 1 -type f -name 'pkgdb-0.*.plist' | tail -n 1)"
-  if [ ! -z "$PDB" ];then
-   Pfile="${PDB##*/}"
-   /usr/local/woofV/support/pkgdb-merge-users "$PDB"
-   if [ $? -eq 0 -a -s /mnt/wkg/data/update/${Pfile}NEW ];then
-    cp -a -f /mnt/wkg/data/update/${Pfile}NEW /var/db/xbps/${Pfile}
-    #also copy the hidden files...
-    cp -a -f /mnt/wkg/data/update/extracted-user-files/.* /var/db/xbps/
-    #also update pkgs to latest... 20240306 always have path...
-    /usr/bin/xbps-install --yes --sync
-    #update /root/.packages/Packages-void-current & -nonfree...
-    /usr/local/petget/xbps-to-pupdb
-    for aNVR in $(grep '|void|' /root/.packages/user-installed-packages | cut -f 2,3,4 -d '|' | tr '\n' ' ')
-    do
-     aN="$(echo -n "$aNVR" | cut -f 1 -d '|')"
-     aVR="$(echo -n "$aNVR" | cut -f 2,3 -d '|' | tr '|' '_')"
-     /usr/bin/xbps-install --yes --ignore-file-conflicts ${aN}
-     xNVR="$(xbps-query --show ${aN} --property pkgver)"
-     if [ "${aN}-${aVR}" != "${xNVR}" -a ! -z "${xNVR}" ];then
-      #seems there has been a pkg version update.
-      /usr/local/petget/xbps-user-postupdate "${aN}" "${xNVR}"
-     fi
-    done
-   fi
-  fi
  fi
 fi
 
