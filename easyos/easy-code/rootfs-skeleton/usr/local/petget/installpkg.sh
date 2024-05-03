@@ -91,7 +91,7 @@
 #20230904 set xARCHDIR
 #20230918 got rid of remnants of EasyPak, DEBSHERE, eppm
 #20240114 fix 20230708
-#20240229 easyvoid. 20240302 20240306
+#20240229 easyvoid. 20240302 20240306  20240503
 
 #information from 'labrador', to expand a .pet directly to '/':
 #NAME="a52dec-0.7.4"
@@ -113,22 +113,6 @@ export LANG=C
 . /etc/DISTRO_SPECS #has DISTRO_BINARY_COMPAT, DISTRO_COMPAT_VERSION
 
 . /etc/xdg/menus/hierarchy #w478 has PUPHIERARCHY variable.
-
-#20240229
-EVflg=0
-if [ -d /var/db/xbps/keys ];then
- EVflg=1
-fi
-E1='/mnt/wkg/data/woofV'
-L1='/usr/local/woofV'
-case "$DISTRO_TARGETARCH" in
- amd64) xARCH='x86_64' ;;
- *)     xARCH="$DISTRO_TARGETARCH" ;;
-esac
-export XBPS_ARCH="$xARCH"
-mkdir -p /tmp/woofV
-mkdir -p ${E1}/converted-pkgs
-mkdir -p ${E1}/sandbox
 
 #140125 DISTRO_ARCHDIR_SYMLINKS and DISTRO_ARCHDIR are defined in file DISTRO_SPECS...
 xARCHDIR="$DISTRO_xARCHDIR" #20230904
@@ -655,40 +639,7 @@ _END1
  fi
  cd $DLPKG_PATH
  
- #20240229 want to convert pet pkgs to xbps and install with xbps
  Iflg=0
- if [ $EVflg -eq 1 ];then #20240229
-  DB1="$(grep -H -F "${dbPATTERN}" /tmp/petget_missing_dbentries-Packages-pet-* | head -n 1)"
-  if [ ! -z "$DB1" ];then
-   Filex="${DB1/:*/}"
-   DB_FILE="${Filex/*-P/P}" #ex: Packages-pet-noarch-official
-   PSTrepo="pet:$(cut -f 3 -d '-' <<<${DB_FILE})" #ex: pet:noarch
-   aDB="$(cut -f 2- -d ':' <<<${DB1})"
-   #ex: aDB='pmusic1-1.8.3-1|pmusic1|1.8.3-1||Multimedia|424K||pmusic1-1.8.3-1.pet|+gtkdialog3,+ffmpeg|Pmusic audio player, old version, works with gtkdialog3 in some less-recent puppies||||'
-   echo "$aDB" > /tmp/petget/aDBentry
-   WIPnameonly="$(cut -f 2 -d '|' <<<${aDB})"
-   ${L1}/support/pet2xbps "${DLPKG}" /tmp/petget/aDBentry "${WIPnameonly}"
-   # ...created in ${E1}/converted-pkgs
-   VER="$(cut -f 3 -d '|' /tmp/petget/aDBentry | sed -e 's%[^0-9.]%%g')_1"
-   # ...name is ${WIPnameonly}-${VER}.${xARCH}.xbps
-   Pxbps="${WIPnameonly}-${VER}.${xARCH}.xbps"
-   #register new .xbps pkg in local repo...
-   xbps-rindex --add ${E1}/converted-pkgs/${Pxbps}
-   #20240306 always have path...
-   /usr/bin/xbps-install --yes --ignore-file-conflicts --repository=${E1}/converted-pkgs ${WIPnameonly}-${VER}
-   #prevent a void pkg from overwriting...
-   xbps-pkgdb -m hold ${WIPnameonly}-${VER}
-   #log pet name vs xbps pkg name...
-   echo "CONV_PKG_REPO='${PSTrepo}'" > ${E1}/converted-pkgs/${WIPnameonly} #ex: pet:noarch
-   echo "CONV_PKG_DB='${aDB}'" >> ${E1}/converted-pkgs/${WIPnameonly}
-   echo "CONV_XBPS_PKGFULL='${Pxbps}'" >> ${E1}/converted-pkgs/${WIPnameonly} #ex: tas-1.15_1.x86_64.xbps
-   echo "CONV_XBPS_PKGVER='${WIPnameonly}-${VER}'" >> ${E1}/converted-pkgs/${WIPnameonly} #20240302
-   #probably good to link here...
-   ln -s ${E1}/converted-pkgs/${Pxbps} /audit/packages/${Pxbps}
-   ln -s ${DLPKG} /audit/packages/${DLPKG##*/} #20240301
-   Iflg=1 #flag installed.
-  fi
- fi
 
  #131220...
  #have installed to temp $DIRECTSAVEPATH, now determine what is going to be overwritten...
@@ -754,9 +705,7 @@ _END1
 fi #end 131230
 
 #140215 saving all installed packages in /audit/packages...
-if [ $EVflg -eq 0 ];then #20240301 =1 symlink already created above.
- mv -f $DLPKG_BASE /audit/packages/
-fi
+mv -f $DLPKG_BASE /audit/packages/
 #rm -f $DLPKG_BASE 2>/dev/null
 rm -f $DLPKG_MAIN.tar.gz 2>/dev/null
 
