@@ -1,0 +1,37 @@
+#!/bin/ash
+
+download_file https://commondatastorage.googleapis.com/chromium-browser-snapshots/Linux_x64/LAST_CHANGE
+if [ $? -eq 0 -a -s LAST_CHANGE ];then
+ REVISION="$(cat LAST_CHANGE)"
+fi
+
+echo "REVISION: ${REVISION}"
+echo -n 'ENTER to continue: '
+read goon
+
+echo -n "${REVISION}" > chromium-version
+
+if [ -e chrome-linux.zip ];then
+ rm -f chrome-linux.zip
+fi
+download_file https://commondatastorage.googleapis.com/chromium-browser-snapshots/Linux_x64/${REVISION}/chrome-linux.zip
+RETVAL=$?
+sync
+
+if [ -d chrome-linux ];then
+ rm -rf chrome-linux
+fi
+if [ -d chromium-linux ];then
+ rm -rf chromium-linux
+fi
+unzip chrome-linux.zip
+if [ $? -ne 0 ];then
+ echo 'download fail'
+ rm -f chrome-linux.zip 2>/dev/null
+ rm -rf chrome-linux 2>/dev/null
+ exit
+fi
+
+mv -f chrome-linux chromium-linux
+sync
+###end###
