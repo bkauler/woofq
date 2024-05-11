@@ -323,6 +323,8 @@
 #20240127 if not easyVoid build, delete rootfs-complete/usr/local/woofV
 #20240229 do not copy 0setup from woofQ.
 #20240503 remove woofV.
+#20240504 hack fix oe cmake (packages-templates was supposed to)
+#20240511 if building with chromium-skeleton, copy latest version.
 
 export LANG=C #faster.
 
@@ -1318,6 +1320,21 @@ if [ $? -eq 0 ];then
   echo 'AAAARGH!!! 1download-latest-firefox has not been run. Build will be broken.'
  fi
 fi
+
+#20240511 if building with chromium-skeleton, copy latest version...
+grep -q '^chromium-skeleton' ../woof-installed-packages
+if [ $? -eq 0 ];then
+ #hope this has been downloaded!
+ if [ -d ../chromium-linux ];then
+  cp -a ../chromium-linux rootfs-complete/usr/lib/chromium
+  CM_VER="$(cat ../chromium-version)"
+  echo -n "CM_CURR_VER=${CM_VER}" > rootfs-complete/etc/chromium-current-version
+ else
+  echo 'AAAARGH!!! 1download-latest-chromium has not been run. Build will be broken. Aborting.'
+  exit
+ fi
+fi
+
 
 #20220806 if building with seamonkey-skeleton, copy latest version...
 grep -q '^seamonkey-skeleton' ../woof-installed-packages
@@ -6441,6 +6458,11 @@ if [ "$DISTRO_BINARY_COMPAT" == "XXXoe" ];then #20220201  20220201 NO, do not do
   sed -i -e "${PTN1}" ${aOES}
   sed -i -e "${PTN2}" ${aOES}
  done
+fi
+
+#20240504 oe cmake hack (was supposed to be fixed in packages-templates/qttools etc)
+if [ -d sandbox3/devx/usr/lib/cmake ];then
+ find sandbox3/devx/usr/lib/cmake -type f -name "*.cmake" -exec sed -i'' -e 's%\${OE_QMAKE_PATH_EXTERNAL_HOST_BINS}%/usr/bin%g' {} +
 fi
 
 sync
