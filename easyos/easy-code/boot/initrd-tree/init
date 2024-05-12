@@ -181,6 +181,7 @@
 #20240428 copy some static utilities.
 #20240430 improve timezone.
 #20240512 :-english for vars
+#20240512 spacebar disable menu timeout.
 
 #20230429
 . /build-choices #3buildeasydistro copies it here.
@@ -373,16 +374,28 @@ menu_func() {
  echo -e -n "\\e[1;38;43m" #38=black text, 43=yellow background. ...um, getting bright-white text, black bg.
  if [ "$1" == "nopw" ];then #20220626 20220627
   echo "${S026:-Press ENTER key or wait 15 seconds for normal bootup}"
+  echo "${S409:-(Hit the SPACEBAR to disable 15 second timeout)}" #20240512
  fi
  #this pads the lines with spaces to column 41...
  cut -f 2- -d ' ' /menulist | xargs -I STR printf "%-41s\n" STR
  echo -e -n "\\e[0;;m"
  if [ "$1" == "nopw" ];then #20220627 20220629
   echo -n "${S027:-Type a number from the left column:} "
-  read -t 15 menuchoice
+  #20240512 disable timeout...
+  IFS= read -t 15 -n 1 menuchoice
+  if [ "$menuchoice" == " " ];then
+   clear
+   echo
+   echo "Timeout disabled. Press ENTER key for normal bootup"
+   echo -e -n "\\e[1;38;43m" #bright-white text, black bg.
+   cut -f 2- -d ' ' /menulist | xargs -I STR printf "%-41s\n" STR
+   echo -e -n "\\e[0;;m"
+   echo -n "${S027:-Type a number from the left column:} "
+   read -n 1 menuchoice
+  fi
  else
   echo -n "${S027:-Type a number from the left column:} "
-  read menuchoice
+  read -n 1 menuchoice
  fi
  if [ "$menuchoice" ];then #20220626
   MENUVAR="$(grep " ${menuchoice} " /menulist | cut -f 1 -d ' ')"
