@@ -48,6 +48,7 @@
 #20230922 need to check the two globicons files separately.
 #20231107 tweak 20230723: retention of /usr/local/bin/default*
 #20231203 usr-merge: fix PuppyPin and globicons in kirkstone container.
+#20240512 :-english for vars
 
 WKG_DRV=$1 #ex: sda
 WKG_DEV=$2 #ex: sda2
@@ -74,7 +75,7 @@ EXTRASFSDIRS=''
 # $EXTRASFSDIRS
 # /easy_ro/easy_sfs (easy.sfs)
 
-echo -e "\\033[1;35m${S001}\\033[0;39m" #purple
+echo -e "\\033[1;35m${S001:-Fixing changed SFS layers}\\033[0;39m" #purple
 
 ##puppy linux init script in initrd, does a lot of checking for files/folders deleted
 ##at rw layer, but exist at a lower layer. say that a ro layer has /opt, gets deleted
@@ -99,7 +100,7 @@ done
 
 #want almost everything in easy.sfs to be visible on top...
 #the extra-sfs layers could stuff things up, but defer checking for that.
-echo "  ${S002} /mnt/${WKG_DEV}/${WKG_DIR}.session" #S002='Line'
+echo "  ${S002:-Scanning:} /mnt/${WKG_DEV}/${WKG_DIR}.session"
 cd /mnt/${WKG_DEV}/${WKG_DIR}.session
 mkdir -p usr
 while read onespec
