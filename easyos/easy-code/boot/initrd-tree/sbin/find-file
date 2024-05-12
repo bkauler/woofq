@@ -5,6 +5,7 @@
 #20230112 separate strings to file /nls/find-file.str.en
 #20230210 always load .str.en, in case non-english is incomplete.
 #20230211 .str files folder hierarchy reorganized.
+#20240512 :-english for vars
 
 FNDFILE="$1"
 TIMEOUT=$2
@@ -17,7 +18,7 @@ if [ "$QLANG" ];then
  fi
 fi
 
-echo -e "\\033[1;31m  ${S001} ${FNDFILE}\\033[0;39m" #red.
+echo -e "\\033[1;31m  ${S001:-Searching for external file:} ${FNDFILE}\\033[0;39m" #red.
 
 mkdir -p /mntpt
 CNT=0
