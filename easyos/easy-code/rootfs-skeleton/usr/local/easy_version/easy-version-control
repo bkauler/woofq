@@ -45,6 +45,7 @@
 #20230104 /.rollback.flg moved to /mnt/wkg/.rollback.flg
 #20230123 removed SESSIONSFSflag. it is an old idea from 2017, not used.
 #20231110 Caramel: fix depth limit problem.
+#20240512 fix rollback to earlier version.
 
 if [ "$(whoami)" != "root" ];then
  if [ -x /usr/bin/sudo-sh ];then
@@ -81,10 +82,13 @@ test_cont_mntd_func() {
 
 #170525 have coreutils 'sort', but this is cool...
 #busybox sort does not have that option (sort in coreutils has '-V'), so improvise...
-VERS="$(ls -l /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-* | rev | cut -f 1 -d '-' | rev)"
+#20240512 broken, do it with find...
+#VERS="$(ls -l /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-* | rev | cut -f 1 -d '-' | rev)"
+VERS="$(find /mnt/${WKG_DEV}/${WKG_DIR}releases -mindepth 1 -maxdepth 1 -type d -name 'easy-*' | rev | cut -f 1 -d '-' | rev)"
 #refer: http://stackoverflow.com/questions/4493205/unix-sort-of-version-numbers
-#sortedVERS="$(echo "$VERS" | sort -t. -k 1,1n -k 2,2n -k 3,3n -k 4,4n)" #lowest to highest.
+sortedVERS="$(echo "$VERS" | sort -t. -k 1,1n -k 2,2n -k 3,3n -k 4,4n)" #lowest to highest.
 revsortedVERS="$(echo "$VERS" | busybox sort -t. -k 1,1nr -k 2,2nr -k 3,3nr -k 4,4nr)" #highest to lowest.
+echo "${sortedVERS}" > /tmp/easy_version_control/sortedVERS #20240512
 
 #170525
 if grep -qw aufs /proc/filesystems; then
@@ -361,7 +365,7 @@ export EVC_DIALOG="<window title=\"$(gettext 'Easy Version Control')\" icon-name
  </vbox>
  </window>"
 
-echo "$EVC_DIALOG" > evc.log
+echo "$EVC_DIALOG" > /tmp/easy_version_control/evc.log
 RETVARS="$(gtkdialog --program=EVC_DIALOG)"
 eval "$RETVARS"
 
@@ -457,8 +461,21 @@ if [ "$EXIT" == "rollback" ];then
    #20220613 yes, must copy initrd, it now has /etc/DISTRO_SPECS...
    cp -a -f /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${backEASYver}/initrd /mnt/${WKG_DEV}/${WKG_DIR} #200729 do not change this file.
    cp -a -f /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${backEASYver}/configuration-${backEASYver} /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${backEASYver}/configuration #170225 200829
-   sync
-   echo -n "${backEASYver},${backEASYver}" > /mnt/wkg/.rollback.flg #init in initramfs will read this. 170526 20230104
+   
+   #20240512 we actually want the snapshot at start of next version...
+   #this finds the next line in sortedVERS file...
+   nextEASYver="$(grep -A 1 -F -x "${backEASYver}" /tmp/easy_version_control/sortedVERS | grep -v -F -x "${backEASYver}")"
+   if [ ! -e /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${nextEASYver}/rw-${nextEASYver}.sfs ];then
+    backDATEver="${backEASYver}"
+   else
+    #problem is, initrd will look for the rw-*.sfs in easy-${backEASYver}
+    backDATEver="$(date -r /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${nextEASYver}/rw-${nextEASYver}.sfs +%Y%m%d%H%M)" #ex: 202404261949
+    if [ ! -e /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${backEASYver}/rw-${backDATEver}.sfs ];then
+     cp -a -f /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${nextEASYver}/rw-${nextEASYver}.sfs /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${backEASYver}/rw-${backDATEver}.sfs
+    fi
+   fi
+   
+   echo -n "${backEASYver},${backDATEver}" > /mnt/wkg/.rollback.flg #init in initramfs will read this. 170526 20230104
    sync
 
    if [ -d /boot/device-tree ];then #20210125 rpi. see also easy-update.
