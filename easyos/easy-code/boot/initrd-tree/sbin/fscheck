@@ -23,6 +23,7 @@
 #20230211 .str files folder hierarchy reorganized.
 #20230425 maybe compressed 'e2fsck'
 #20230925 v2 fscrypt, when remount working part have to decrypt.
+#20240512 :-english for vars
 
 WKG_DRV=$1 #ex: sda
 WKG_DEV=$2 #ex: sda2
@@ -49,7 +50,7 @@ fi
 
 #190314 non-fatal error exit...
 err_exit() {
- echo -e "\\033[1;31m${S001} ${1}\\033[0;39m" #red
+ echo -e "\\033[1;31m${S001:-ERROR:} ${1}\\033[0;39m" #red
  rm -f /mnt/${WKG_DEV}/${WKG_DIR}.fsckme.flg #20220801
  exit 0
 }
@@ -70,21 +71,21 @@ fi
 #the f.s. is mounted. could do a f.s. check, but prefer to unmount it...
 sync
 umount /dev/$WKG_DEV
-[ $? -ne 0 ] && err_exit "${S002}"
+[ $? -ne 0 ] && err_exit "${S002:-Could not check the filesystem of working partition, unable to unmount}"
 
 echo -e "\\033[1;35m" #purple. 34=blue, 33=yellow, 32=green, 31=red, 35=purple, 36=aquablue, 38=black.
-echo "${S003}"
-echo "${S004} ${WKG_DEV}"
+echo "${S003:-Filesystem operations are to be performed upon the working partition.}"
+echo "${S004:-Working partition:} ${WKG_DEV}"
 echo -en "\\033[0;39m"
 
 case "$CHECK" in
- MAXIMAL) echo "  ${S005}" ;;
- REQUEST) echo "  ${S006}" ;;
- *) echo "  ${S007}" ;;
+ MAXIMAL) echo "  ${S005:-Performing filesystem check, maximal mount count...}" ;;
+ REQUEST) echo "  ${S006:-Performing filesystem check, on request...}" ;;
+ *) echo "  ${S007:-Performing filesystem check, after improper shutdown...}" ;;
 esac
 
 #200303
-echo -n "  ${S008} "
+echo -n "  ${S008:-Current date:} "
 echo "$DATE"
 
 if [ "$WKG_FS" == "ext4" -o "$WKG_FS" == "ext3" ];then #20210524
@@ -95,7 +96,7 @@ if [ "$WKG_FS" == "ext4" -o "$WKG_FS" == "ext3" ];then #20210524
  if [ -f /fsck-err.log ];then
   if grep -q 'UNEXPECTED INCONSISTENCY' /fsck-err.log;then
    #can force it like this...
-   echo -e "\\033[1;31m  ${S009}\\033[0;39m" #red
+   echo -e "\\033[1;31m  ${S009:-Unexpected inconsistency fixing filesystem. Trying again...}\\033[0;39m" #red
    e2fsck -y -f /dev/${WKG_DEV} >/dev/null 2>&1
    busybox sync
   fi
@@ -110,7 +111,7 @@ if [ "$WKG_LOOP" ];then #20210524
  if [ -f /fsck-err.log ];then
   if grep -q 'UNEXPECTED INCONSISTENCY' /fsck-err.log;then
    #can force it like this...
-   echo -e "\\033[1;31m  ${S009}\\033[0;39m" #red
+   echo -e "\\033[1;31m  ${S009:-Unexpected inconsistency fixing filesystem. Trying again...}\\033[0;39m" #red
    e2fsck -y -f /mnt/${WKG_DEV}/${WKG_DIR}easysave.ext4 >/dev/null 2>&1
    busybox sync
   fi
@@ -118,7 +119,7 @@ if [ "$WKG_LOOP" ];then #20210524
  fi
 fi
 
-echo "  ${S010}"
+echo "  ${S010:-Filesystem check completed!}"
 
 sync
 #190314 WKG_FS is exported from init, return error-code...
