@@ -182,6 +182,7 @@
 #20240430 improve timezone.
 #20240512 :-english for vars
 #20240512 spacebar disable menu timeout.
+#20240512 add rollback to last version in menu.
 
 #20230429
 . /build-choices #3buildeasydistro copies it here.
@@ -365,6 +366,8 @@ menu_func() {
  CNTm=$(($CNTm+1))
  echo "RBPRISTINE ${CNTm} ${S024:-Rollback to pristine first-boot}" >> /menulist
  CNTm=$(($CNTm+1))
+ echo "RBPREVVER ${CNTm} ${S451:-Rollback to previous version}" >> /menulist
+ CNTm=$(($CNTm+1))
  echo "FSCHECK ${CNTm} ${S025:-Filesystem check of working-partition}" >> /menulist
  CNTm=$(($CNTm+1))
 #20221102 remove...
@@ -421,6 +424,9 @@ menu_func() {
   RBPRISTINE)
    echo "${S032:-...will rollback to pristine first-boot}"
   ;;
+  RBPREVVER) #20240512
+   echo "${S450:-...will rollback to last snapshot of previous version}"
+  ;;
   FSCHECK)
    echo "${S033:-...will perform filesystem check}"
   ;;
@@ -443,6 +449,29 @@ menu_delay_func() {
   ;;
   RBPRISTINE)
    echo -n ",erase" > /mnt/${WKG_DEV}/${WKG_DIR}.rollback.flg #20230104
+  ;;
+  RBPREVVER) #20240512 see also easy-version-control
+   VERS="$(find /mnt/${WKG_DEV}/${WKG_DIR}releases -mindepth 1 -maxdepth 1 -type d -name 'easy-*' | rev | cut -f 1 -d '-' | rev)"
+   revsortedVERS="$(echo "$VERS" | busybox sort -t. -k 1,1nr -k 2,2nr -k 3,3nr -k 4,4nr)" #highest to lowest.
+   echo "${revsortedVERS}" > /revsortedVERS
+   #this will return the next line after current version...
+   backEASYver="$(grep -A 1 -F -x "${INIT_DISTRO_VERSION}" /sortedVERS | grep -v -F -x "${INIT_DISTRO_VERSION}")"
+   if [ -d /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${backEASYver} ];then
+    #a catch, need the last snapshot, which is actually first in current version...
+    backDATEver="$(date -r /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${INIT_DISTRO_VERSION}/rw-${INIT_DISTRO_VERSION}.sfs +%Y%m%d%H%M)" #ex: 202404261949
+    if [ ! -e /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${backEASYver}/rw-${backDATEver}.sfs ];then
+     cp -a -f /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${INIT_DISTRO_VERSION}/rw-${INIT_DISTRO_VERSION}.sfs /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${backEASYver}/rw-${backDATEver}.sfs
+    fi
+    KERNELNAME=vmlinuz
+    [ -n "$INIT_DISTRO_KERNEL_NAME" ] && KERNELNAME="$INIT_DISTRO_KERNEL_NAME" #ex: rpi4: kernel8.img
+    cp -a -f /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${backEASYver}/${KERNELNAME} /mnt/${WKG_DEV}/${WKG_DIR}
+    cp -a -f /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${backEASYver}/initrd /mnt/${WKG_DEV}/${WKG_DIR} #200729 do not change this file.
+    cp -a -f /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${backEASYver}/configuration-${backEASYver} /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${backEASYver}/configuration 2>/dev/null
+    sync
+    echo -n "${backEASYver},${backDATEver}" > /mnt/${WKG_DEV}/${WKG_DIR}.rollback.flg
+   else #precaution.
+    echo "${S452:-ERROR there is no earlier version, cannot rollback.}"
+   fi
   ;;
   FSCHECK)
    echo -n "${WKG_DEV},${WKG_FS},REQUEST" > /mnt/${WKG_DEV}/${WKG_DIR}.fsckme.flg #20220801
