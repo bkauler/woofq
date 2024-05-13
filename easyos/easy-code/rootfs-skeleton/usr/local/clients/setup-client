@@ -72,7 +72,7 @@
 #20240311 changes testing exist .bin, .bin0
 #20240503 remove woofV.
 #20240511 fix for official chromium d/l.
-#20240511 the official chromium pkg puts up msg that google api keys missing. disable.
+#20240511 the official chromium pkg puts up msg that google api keys missing. disable. 20240513 revert.
 
 APPname="${1/=*/}"  #ex: seamonkey
 APPflag="${1/*=/}" #ex: true
@@ -909,10 +909,10 @@ NONROOTMAINOPTS='--disable-features=AudioServiceSandbox' #20211007
  echo 'export CHROME_WRAPPER=$(readlink -f "$0")' >> ${PREFIXDIR1}${APPpath}/${APPname}
  echo "export CHROME_DESKTOP=${APPname}.desktop" >> ${PREFIXDIR1}${APPpath}/${APPname} #20211022
  
- #20240511 the official pkg puts up msg that google api keys missing. disable...
- echo "export GOOGLE_API_KEY=no" >> ${PREFIXDIR1}${APPpath}/${APPname}
- echo "export GOOGLE_DEFAULT_CLIENT_ID=no" >> ${PREFIXDIR1}${APPpath}/${APPname}
- echo "export GOOGLE_DEFAULT_CLIENT_SECRET=no" >> ${PREFIXDIR1}${APPpath}/${APPname}
+ #20240511 the official pkg puts up msg that google api keys missing. disable... 20240513 done in chromium.bin0
+ #echo "export GOOGLE_API_KEY=no" >> ${PREFIXDIR1}${APPpath}/${APPname}
+ #echo "export GOOGLE_DEFAULT_CLIENT_ID=no" >> ${PREFIXDIR1}${APPpath}/${APPname}
+ #echo "export GOOGLE_DEFAULT_CLIENT_SECRET=no" >> ${PREFIXDIR1}${APPpath}/${APPname}
  
  echo "$RUNASCLIENT" >> ${PREFIXDIR1}${APPpath}/${APPname}
  chmod 755 ${PREFIXDIR1}${APPpath}/${APPname}

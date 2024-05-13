@@ -1336,7 +1336,10 @@ if [ $? -eq 0 ];then
  #20240513 fix, i left this out of the pet...
  if [ ! -e rootfs-complete/usr/bin/chromium ];then
   echo '#!/bin/ash
-exec /usr/lib/chromium/chrome-wrapper --user-data-dir=${HOME}/.config/chromium --disk-cache-size=10000000 --media-cache-size=10000000 $@' > rootfs-complete/usr/bin/chromium
+export GOOGLE_API_KEY=no
+export GOOGLE_DEFAULT_CLIENT_ID=no
+export GOOGLE_DEFAULT_CLIENT_SECRET=no
+exec /usr/lib/chromium/chrome-wrapper --simulate-outdated-no-au="Tue, 31 Dec 2099 23:59:59 GMT" --user-data-dir=${HOME}/.config/chromium --disk-cache-size=10000000 --media-cache-size=10000000 $@' > rootfs-complete/usr/bin/chromium
   chmod 755 rootfs-complete/usr/bin/chromium
  fi
 fi
