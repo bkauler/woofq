@@ -324,7 +324,7 @@
 #20240229 do not copy 0setup from woofQ.
 #20240503 remove woofV.
 #20240504 hack fix oe cmake (packages-templates was supposed to)
-#20240511 if building with chromium-skeleton, copy latest version.
+#20240511 if building with chromium-skeleton, copy latest version. 20240513 fix chromium-skeleton
 
 export LANG=C #faster.
 
@@ -1332,6 +1332,12 @@ if [ $? -eq 0 ];then
  else
   echo 'AAAARGH!!! 1download-latest-chromium has not been run. Build will be broken. Aborting.'
   exit
+ fi
+ #20240513 fix, i left this out of the pet...
+ if [ ! -e rootfs-complete/usr/bin/chromium ];then
+  echo '#!/bin/ash
+exec /usr/lib/chromium/chrome-wrapper --user-data-dir=${HOME}/.config/chromium --disk-cache-size=10000000 --media-cache-size=10000000 $@' > rootfs-complete/usr/bin/chromium
+  chmod 755 rootfs-complete/usr/bin/chromium
  fi
 fi
 
