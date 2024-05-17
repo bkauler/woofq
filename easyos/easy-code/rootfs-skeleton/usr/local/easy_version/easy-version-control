@@ -45,7 +45,8 @@
 #20230104 /.rollback.flg moved to /mnt/wkg/.rollback.flg
 #20230123 removed SESSIONSFSflag. it is an old idea from 2017, not used.
 #20231110 Caramel: fix depth limit problem.
-#20240512 fix rollback to earlier version.
+#20240512 fix rollback to earlier version. 
+#20240515 fix finding .cache folders. 20240516
 
 if [ "$(whoami)" != "root" ];then
  if [ -x /usr/bin/sudo-sh ];then
@@ -405,11 +406,13 @@ if [ "$EXIT" == "snapshot" ];then
   echo 'root/.ccache' >> /tmp/easy_version_control/snapshot-exclusions1
  fi
  #20221015 get rid of .cache folders...
- DOTC="$(find /mnt/${WKG_DEV}/${WKG_DIR}.session -maxdepth 3 -type d -name '.cache' | cut -f 6- -d '/' | tr '/n' ' ')" #ex: home/firefox/.cache
+ #20240515 handle if $WKG_DIR is empty or deeper ... 20240516 fix typo...
+ DOTC="$(find /mnt/${WKG_DEV}/${WKG_DIR}.session -maxdepth 3 -type d -name '.cache' | sed -e 's%.*\.session/%%' | tr '\n' ' ')" #ex: home/firefox/.cache
  for aDOTC in $DOTC
  do
-  echo "$aDOTC" >> /tmp/easy_version_control/snapshot-exclusions1
+  echo "${aDOTC}" >> /tmp/easy_version_control/snapshot-exclusions1
  done
+ 
  urxvt -geometry 80x10 -bg '#09A0FF' -e mksquashfs /mnt/${WKG_DEV}/${WKG_DIR}.session /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${DISTRO_VERSION}/rw-${DATE}.sfs -ef /tmp/easy_version_control/snapshot-exclusions1 -no-exports
  
  if [ "$EOS_TOP_LEVEL_ZRAM" == "1" ];then #20220626 defined in PUPSTATE file.
