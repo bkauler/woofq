@@ -36,6 +36,7 @@
 #20230211 .str files folder hierarchy reorganized.
 #20240308 make sure .session/root has 700 perms.
 #20240512 :-english for vars
+#20240514 write /backVER if rollback/forward to different version.
 
 WKG_DRV=$1 #ex: sda
 WKG_DEV=$2 #ex: sda2
@@ -155,9 +156,9 @@ fi
 #note, 'version-control' script has already copied vmlinuz, checking here as precaution...
 echo -n "  ${S014:-Rolling back:}"
 echo -n " ${KERNELNAME}"
-if [ ! -f /mnt/${WKG_DEV}/${WKG_DIR}/${KERNELNAME} ];then #precaution.
+#if [ ! -f /mnt/${WKG_DEV}/${WKG_DIR}/${KERNELNAME} ];then #precaution.  20240514 always copy.
  cp -a -f /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${backVER}/${KERNELNAME} /mnt/${WKG_DEV}/${WKG_DIR}
-fi
+#fi
 echo -n " initrd"
 cp -a -f /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${backVER}/initrd /mnt/${WKG_DEV}/${WKG_DIR}
 echo " easy.sfs"
@@ -178,6 +179,7 @@ if [ "$backDATE" == "" ];then #200828 coz may have already been done above.
   umount snapmnt
  fi
 fi
+echo -n "${backVER}" > /backVER #20240514
 sync
 echo "  ${S013:-...done}"
 
