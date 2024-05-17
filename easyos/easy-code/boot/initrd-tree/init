@@ -183,6 +183,7 @@
 #20240512 :-english for vars
 #20240512 spacebar disable menu timeout.
 #20240512 add rollback to last version in menu.
+#20240517 snapshot exclusion handle if $WKG_DIR is empty or deeper, fix typo.
 
 #20230429
 . /build-choices #3buildeasydistro copies it here.
@@ -455,7 +456,7 @@ menu_delay_func() {
    revsortedVERS="$(echo "$VERS" | busybox sort -t. -k 1,1nr -k 2,2nr -k 3,3nr -k 4,4nr)" #highest to lowest.
    echo "${revsortedVERS}" > /revsortedVERS
    #this will return the next line after current version...
-   backEASYver="$(grep -A 1 -F -x "${INIT_DISTRO_VERSION}" /sortedVERS | grep -v -F -x "${INIT_DISTRO_VERSION}")"
+   backEASYver="$(grep -A 1 -F -x "${INIT_DISTRO_VERSION}" /revsortedVERS | grep -v -F -x "${INIT_DISTRO_VERSION}")"
    if [ -d /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${backEASYver} ];then
     #a catch, need the last snapshot, which is actually first in current version...
     backDATEver="$(date -r /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${INIT_DISTRO_VERSION}/rw-${INIT_DISTRO_VERSION}.sfs +%Y%m%d%H%M)" #ex: 202404261949
@@ -470,7 +471,7 @@ menu_delay_func() {
     sync
     echo -n "${backEASYver},${backDATEver}" > /mnt/${WKG_DEV}/${WKG_DIR}.rollback.flg
    else #precaution.
-    echo "${S452:-ERROR there is no earlier version, cannot rollback.}"
+    echo "\\033[1;31m ${S452:-ERROR there is no earlier version, cannot rollback.} \\033[0;39m" #red
    fi
   ;;
   FSCHECK)
@@ -1561,7 +1562,12 @@ if [ "$QFIX" ];then #190817 see similar code above.
 fi
 
 #191224 if easy.sfs mounted on /tro (via loop0), rollback fails (easy.sfs seems to delete, but isn't), hence moved rollback below unmount /tnew
-[ -s /mnt/${WKG_DEV}/${WKG_DIR}.rollback.flg ] && rollback "${WKG_DRV}" "${WKG_DEV}" "${WKG_DIR}" #20230104
+if [ -s /mnt/${WKG_DEV}/${WKG_DIR}.rollback.flg ];then
+ rollback "${WKG_DRV}" "${WKG_DEV}" "${WKG_DIR}" #20230104
+ if [ -s /backVER ];then #20240514
+  INIT_DISTRO_VERSION=$(cat /backVER) #have rolled back/forward to a different version.
+ fi
+fi
 
 #200726 if boot- and wkg-partition the same, cannot unmount wkg-partition and fscheck
 #fails, coz of temporary easy.sfs mounted on tro. moved down...
@@ -1800,7 +1806,8 @@ XDG_VIDEOS_DIR="/files/media"' > ${bDL}/.config/user-dirs.dirs
  if [ -d /mnt/${WKG_DEV}/${WKG_DIR}.session/root/.ccache ];then #does oe create this? huge, 6.8GB
   echo 'root/.ccache' >> exclusions1
  fi
- DOTC="$(find /mnt/${WKG_DEV}/${WKG_DIR}.session -maxdepth 3 -type d -name '.cache' | cut -f 6- -d '/' | tr '/n' ' ')" #ex: home/firefox/.cache
+ #20240517 handle if $WKG_DIR is empty or deeper, fix typo...
+ DOTC="$(find /mnt/${WKG_DEV}/${WKG_DIR}.session -maxdepth 3 -type d -name '.cache' | sed -e 's%.*\.session/%%' | tr '\n' ' ')" #ex: home/firefox/.cache
  for aDOTC in $DOTC
  do
   echo "$aDOTC" >> exclusions1
