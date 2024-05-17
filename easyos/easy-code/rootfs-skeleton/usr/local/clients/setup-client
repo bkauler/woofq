@@ -73,6 +73,7 @@
 #20240503 remove woofV.
 #20240511 fix for official chromium d/l.
 #20240511 the official chromium pkg puts up msg that google api keys missing. disable. 20240513 revert.
+#20240515 handle ungoogled chromium.
 
 APPname="${1/=*/}"  #ex: seamonkey
 APPflag="${1/*=/}" #ex: true
@@ -927,6 +928,10 @@ NONROOTMAINOPTS='--disable-features=AudioServiceSandbox' #20211007
  if [ "$APPname" == "chromium" -a -e ${PREFIXDIR1}/root/.config/chromium ];then
   APPname1='chromium'
  fi
+ #20240515...
+ if [ "$APPname" == "ungoogled" -a -e ${PREFIXDIR1}/root/.config/ungoogled ];then
+  APPname1='ungoogled'
+ fi
  mkdir -p ${PREFIXDIR1}/root/.config/${APPname1}/Default
  mkdir -p ${PREFIXDIR1}/home/${APPname}/.config/${APPname1}/Default
  if [ -f ${PREFIXDIR1}/root/.config/${APPname1}/Default/Preferences ];then
@@ -989,6 +994,7 @@ case $APPname in
  opera)     ${APPname}_${APPflag} ;; #130723
  chromium)  ${APPname}_${APPflag} ;; #140215
  chrome)    chromium_${APPflag}   ;; #20211022
+ ungoogled) chromium_${APPflag}   ;; #20240515
  firefox)   firefox_${APPflag}    ;; #20211107
  blender)   blender_func  ;; #20220916
  vivaldi)   vivaldi_func ;; #20230302
