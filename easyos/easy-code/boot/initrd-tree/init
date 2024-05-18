@@ -184,6 +184,7 @@
 #20240512 spacebar disable menu timeout.
 #20240512 add rollback to last version in menu.
 #20240517 snapshot exclusion handle if $WKG_DIR is empty or deeper, fix typo.
+#20240518 initrd menu prev version have to change kernel at bootup.
 
 #20230429
 . /build-choices #3buildeasydistro copies it here.
@@ -1566,6 +1567,20 @@ if [ -s /mnt/${WKG_DEV}/${WKG_DIR}.rollback.flg ];then
  rollback "${WKG_DRV}" "${WKG_DEV}" "${WKG_DIR}" #20230104
  if [ -s /backVER ];then #20240514
   INIT_DISTRO_VERSION=$(cat /backVER) #have rolled back/forward to a different version.
+  #20240518...
+  if [ "$MENUVAR" == "RBPREVVER" ];then
+   #chose to rollback to previous version from initrd menu.
+   #let's be pre-emptive and fix DISTRO_SPECS. have not yet loaded easy.sfs, so do a hack...
+   sed -i -e "s%^DISTRO_VERSION=.*%DISTRO_VERSION=${INIT_DISTRO_VERSION}%" /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/DISTRO_SPECS
+   sync
+   umount /mnt/${WKG_DEV}
+   #currently booting with the wrong kernel. have to change kernels!
+   echo -e "\\033[1;35m" #purple
+   echo "${S460:-You have chosen to rollback to the previous version via the initrd menu. However, the current Linux kernel is loaded. It is required to change to the kernel of the previous version. To achieve this, hold down the power button to power-off the computer. Then start it up again, this time just accept the normal bootup. Do not choose any options from the initrd menu. Then you should be in the previous version after bootup.}" | fold -s -w 69
+   echo -n -e "\\033[0;39m"
+   echo -n "${S461:-Waiting for you to power-off the computer...}"
+   sleep infinity
+  fi
  fi
 fi
 
