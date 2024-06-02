@@ -11,3 +11,9 @@ if [ -d usr/share/cups/model/gutenprint ];then
  rm -rf usr/share/cups/model/gutenprint
  mkdir -p usr/share/cups/model/gutenprint
 fi
+
+#20240527
+#oe scarthgap do_package failed coz /etc/cups was root:lp
+#i fixed do_package by changing it to root:root
+#to match cups, change it back...
+chown root:lp etc/cups
