@@ -325,6 +325,7 @@
 #20240503 remove woofV.
 #20240504 hack fix oe cmake (packages-templates was supposed to)
 #20240511 if building with chromium-skeleton, copy latest version. 20240513 fix chromium-skeleton
+#20240606 scarthgap, have libreoffice pet, with all translations.
 
 export LANG=C #faster.
 
@@ -5318,6 +5319,43 @@ if [ -d nls/usr/lib/libreoffice/share/registry/res ];then
   fi
  done
 fi
+
+#20240606 scarthgap, have libreoffice pet, with all translations...
+if [ ! -d nls/usr/lib/libreoffice/program/resource ];then
+ if [ -d rootfs-complete/usr/lib/libreoffice/program/resource ];then
+  for aPATH in `find rootfs-complete/usr/lib/libreoffice/program/resource -mindepth 1 -maxdepth 1 -type d | tr '\n' ' '`
+  do
+   aDIR="${aPATH##*/}"
+   grep -q -f /tmp/3bed-lang-codes <<<$aDIR
+   if [ $? -ne 0 ];then
+    rm -rf ./$aPATH
+   fi
+  done
+ fi
+ if [ -d rootfs-complete/usr/lib/libreoffice/share/registry/res ];then
+  for aPATH in `find rootfs-complete/usr/lib/libreoffice/share/registry/res -mindepth 1 -maxdepth 1 -type f -name '*.xcd' | tr '\n' ' '`
+  do
+   aL2="${aPATH##*_}"
+   aL2="${aL2##*_}"
+   aL2="${aL2:0:2}"
+   grep -q -x -f /tmp/3bed-lang-codes <<<$aL2
+   if [ $? -ne 0 ];then
+    rm -f ./$aPATH
+   fi
+  done
+ fi
+ if [ -d rootfs-complete/usr/lib/libreoffice/share/autotext ];then
+  for aPATH in `find rootfs-complete/usr/lib/libreoffice/share/autotext -mindepth 1 -maxdepth 1 -type d | tr '\n' ' '`
+  do
+   aDIR="${aPATH##*/}"
+   grep -q -f /tmp/3bed-lang-codes <<<$aDIR
+   if [ $? -ne 0 ];then
+    rm -rf ./$aPATH
+   fi
+  done
+ fi
+fi
+
 #usr/lib/chromium/locales
 if [ -d nls/usr/lib/chromium/locales ];then
  for aPATH in `find nls/usr/lib/chromium/locales -mindepth 1 -maxdepth 1 -type f -name '*.pak' | tr '\n' ' '`
