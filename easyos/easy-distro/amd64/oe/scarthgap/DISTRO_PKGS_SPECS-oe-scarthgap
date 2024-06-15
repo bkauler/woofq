@@ -32,6 +32,7 @@ yes|alsa-lib|alsa-lib|exe,dev,doc,nls|compat:scarthgap
 yes|alsa-utils|alsa-utils|exe,dev,doc,nls|compat:scarthgap
 yes|alsa-plugins|alsa-plugins|exe,dev,doc,nls|compat:scarthgap|
 yes|android-tools|android-tools|exe,dev,doc,nls|compat:scarthgap| #has adb and fastboot.
+yes|appstream|appstream|exe,dev,doc,nls|compat:scarthgap| #20240615 needed by flatpak.
 yes|appstream-glib|appstream-glib|exe,dev,doc,nls|compat:scarthgap| #needed by celluloid.
 yes|apr|apr|exe,dev,doc,nls|compat:scarthgap
 yes|apr-util|apr-util|exe,dev,doc,nls|compat:scarthgap
@@ -73,6 +74,7 @@ yes|boost-runtime|boost|exe,dev>null,doc>null,nls>null|compat:scarthgap
 no|botan|botan|exe,dev,doc,nls|compat:scarthgap| #20230621 20230703 keepassxc266
 yes|bridge-utils|bridge-utils|exe,dev,doc,nls|compat:scarthgap| #maybe used by qemu.
 yes|brlaser|brlaser|exe,dev,doc,nls|compat:scarthgap|
+yes|brotli|brotli|exe,dev,doc,nls|compat:scarthgap| #20240611
 no|btrfs-progs||exe|pet:scarthgap| #20240315
 yes|btrfs-progs-fscrypt||exe|pet:scarthgap| #20240319
 yes|busybox||exe,dev>null,doc,nls|pet:scarthgap| #has guess_fstype applet. compiled statically. KEEPPKG
@@ -95,6 +97,7 @@ yes|chrpath|chrpath|exe,dev,doc,nls|compat:scarthgap|
 yes|cifs-utils||exe,dev,doc,nls|pet:scarthgap| #recompiled in oe but still does not work. use pet.
 yes|clang|clang|exe>dev,dev,doc,nls|compat:scarthgap| #20221223
 yes|cmake|cmake|exe>dev,dev,doc,nls|compat:scarthgap|
+yes|cmocka|cmocka|exe,dev,doc,nls|compat:scarthgap| #20240611
 yes|compiler-rt|compiler-rt|exe>dev,dev,doc,nls|compat:scarthgap| #20221224
 yes|coreutils|coreutils|exe,dev,doc,nls|compat:scarthgap|
 yes|cpio|cpio|exe,dev>null,doc,nls|compat:scarthgap
@@ -102,8 +105,7 @@ yes|cppunit|cppunit|exe,dev,doc,nls|compat:scarthgap|
 yes|cryptodev-linux|cryptodev-linux|exe,dev,doc,nls|compat:scarthgap
 yes|ctorrent|ctorrent|exe,dev,doc,nls|compat:scarthgap|
 yes|cups|cups|exe,dev,doc>exe,nls|compat:scarthgap| #important doc goes into exe
-no|cups-filters|cups-filters|exe,dev,doc,nls|compat:scarthgap| #20221227 print pdf worked, print self-test page failed. hmmm...
-yes|cups-filters||exe,dev,doc,nls|pet:scarthgap| #20221227 printing was broken, now works.
+yes|cups-filters|cups-filters|exe,dev,doc,nls|compat:scarthgap| #20221227 print pdf worked, print self-test page failed. hmmm...
 yes|cups_pdf||exe|pet:noarch| #why do we still have this as can print to file anyway.
 yes|curl|curl|exe,dev,doc,nls|compat:scarthgap
 yes|curlftpfs|curlftpfs|exe,dev,doc,nls|compat:scarthgap|
@@ -114,9 +116,13 @@ yes|dconf|dconf|exe,dev,doc,nls|compat:scarthgap| #20230406 needed by flatpak
 yes|defaults-chooser||exe|pet:noarch
 no|desk_background_kirkstone-orange||exe|pet:noarch| #20230124
 no|desk_background_light-orange-brown||exe|pet:noarch| #20230208 has easyOS text
-yes|desk_background_pale-orange-brown-red||exe|pet:noarch| #20230209 has easyOS text
+no|desk_background_pale-orange-brown-red||exe|pet:noarch| #20230209 has easyOS text
 no|desk_background_pale-orange-brown-red-wary||exe|pet:noarch| #20230307 has new logo
-yes|desk_icon_theme_multicolor_marble2||exe|pet:noarch|
+yes|desk_background_rocky_beach_wa||exe|pet:noarch| #20240615
+no|desk_background_surreal_dark_brown_landscape||exe|pet:noarch| #20240613
+no|desk_icon_theme_dull_brown_marble2||exe|pet:noarch| #20240613
+yes|desk_icon_theme_easyblue2||exe|pet:noarch| #20240615
+no|desk_icon_theme_multicolor_marble2||exe|pet:noarch|
 yes|desk_icon_theme_very-light-orange||exe|pet:noarch| #20230208
 yes|desktop-file-utils|desktop-file-utils|exe,dev,doc,nls|compat:scarthgap|
 yes|dhcpcd|dhcpcd|exe,dev,doc,nls|compat:scarthgap|
@@ -175,7 +181,7 @@ no|firefox-skeleton||exe|pet:noarch| #trying chromium. 20221222  20230312 yes, w
 no|firefox-skel-ask||exe|pet:noarch| #20221222  20230312 no. 20230316 yes. 20231103 now firefox built in oe. 20231111 20231214 20231223 20240429 now partly builtin to rootfs-skeleton
 yes|firmware_asus_e200ha||exe|pet:noarch| #needed for my asus e200ha notebook.
 yes|firmware_linux_acer_aspire1||exe|pet:noarch| #for my acer aspire1 laptop. note has regulatory.db useful all wifi.
-yes|firmware_linux_all_k5p15p85||exe|pet:noarch| #20230201
+yes|firmware_linux_all_k6p6||exe|pet:noarch| #20240610
 no|firmware_linux_b43_extra||exe|pet:noarch|
 yes|firmware_linux_base||exe|pet:noarch|
 yes|firmware_linux_mele_pcg35||exe|pet:noarch|
@@ -196,12 +202,13 @@ yes|foomatic-db-compressed-ppds||exe|pet:noarch|
 yes|formfactor|formfactor|exe,dev,doc,nls|compat:scarthgap
 no|fpm2|fpm2|exe,dev,doc,nls|compat:scarthgap| #20230807 seg fault with -t 20230909 crash at startup.
 yes|fpm2||exe,dev,doc,nls|pet:scarthgap| #20230909
+yes|freeglut|freeglut|exe,dev,doc,nls|compat:scarthgap| #20240611
 yes|freememapplet_tray|freememapplet-tray|exe,dev,doc,nls|compat:scarthgap|
 yes|freetype|freetype|exe,dev,doc,nls|compat:scarthgap
 yes|frei0r|frei0r|exe,dev,doc,nls|compat:scarthgap| #20230801 needed by mlt flowblade
 yes|fribidi|fribidi|exe,dev,doc,nls|compat:scarthgap
 yes|fuse|fuse|exe,dev,doc,nls|compat:scarthgap
-yes|fuse3|fuse3|exe,dev,doc,nls|compat:scarthgap| #maybe a compile option for qemu.
+yes|fuse3|fuse3|exe,dev,doc,nls|compat:scarthgap| #maybe a compile option for qemu. 20240615 needed by flatpak.
 yes|galculator|galculator|exe,dev,doc,nls|compat:scarthgap|
 yes|gawk|gawk|exe,dev,doc,nls|compat:scarthgap
 yes|gcab|gcab|exe,dev,doc,nls|compat:scarthgap| #needed by appstream-glib which is needed by celluloid.
@@ -272,6 +279,7 @@ yes|gpptp-noarch||exe|pet:noarch| #created by jafadmin.
 yes|gptfdisk|gptfdisk|exe,dev,doc,nls|compat:scarthgap
 yes|graphite2|graphite2|exe,dev,doc,nls|compat:scarthgap|
 yes|grep|grep|exe,dev,doc,nls|compat:scarthgap
+yes|grisbi|grisbi|exe,dev,doc,nls|compat:scarthgap| #20240615 changed from homebank.
 yes|groff|groff|exe>dev,dev,doc,nls|compat:scarthgap
 yes|gsettings-desktop-schemas|gsettings-desktop-schemas|exe,dev,doc,nls|compat:scarthgap|
 yes|gsl|gsl|exe,dev,doc,nls|compat:scarthgap| #needed by inkscape. and claws-mail. and pitivi.
@@ -287,7 +295,9 @@ yes|gtkhash|gtkhash|exe,dev,doc,nls|compat:scarthgap|
 yes|gtklp|gtklp|exe,dev,doc,nls|compat:scarthgap|
 yes|gtkmm3|gtkmm3|exe,dev,doc,nls|compat:scarthgap|
 yes|gtksourceview2|gtksourceview2|exe,dev,doc,nls|compat:scarthgap
+yes|gtksourceview4|gtksourceview4|exe,dev,doc,nls|compat:scarthgap| #20240611 needed by inkscape
 yes|gtk_2_3_theme_easyblue||exe|pet:noarch|
+yes|gtk_2_3_theme_flat_brown3||exe|pet:noarch| #20240613
 yes|gtk_2_3_theme_flat-light-orange-brown||exe|pet:noarch| #20230208
 yes|gtk_theme_citrus_cut||exe|pet:noarch
 yes|gtk_theme_peachy_red||exe|pet:noarch| #20230124
@@ -307,7 +317,7 @@ yes|helpsurfer|helpsurfer|exe,dev,doc,nls|compat:scarthgap| #needs gnet, libsyst
 yes|hexchat|hexchat|exe,dev,doc,nls|compat:scarthgap| #20230512
 yes|hiawatha|hiawatha|exe,dev,doc,nls|compat:scarthgap|
 yes|hicolor-icon-theme|hicolor-icon-theme|exe,dev,doc,nls|compat:scarthgap
-yes|homebank|homebank|exe,dev,doc,nls|compat:scarthgap| #needs libofx
+no|homebank|homebank|exe,dev,doc,nls|compat:scarthgap| #needs libofx. 20240615 changed to grisbi.
 yes|hostname|hostname|exe,dev,doc,nls|compat:scarthgap|
 yes|hotplug2stdout|hotplug2stdout|exe,dev,doc,nls|compat:scarthgap|
 yes|hplip|hplip|exe,dev,doc,nls|compat:scarthgap|
@@ -324,6 +334,7 @@ yes|icu|icu|exe,dev,doc,nls|compat:scarthgap
 yes|ifplugd|ifplugd|exe,dev,doc,nls|compat:scarthgap
 yes|ifplugd_old|ifplugd-old|exe,dev,doc,nls|compat:scarthgap|
 yes|ijs|ijs|exe,dev,doc,nls|compat:scarthgap|
+yes|imagemagick|imagemagick|exe,dev,doc,nls|compat:scarthgap| #20240611
 yes|imake|imake|exe>dev,dev,doc,nls|compat:scarthgap|
 yes|inkscape|inkscape|exe,dev,doc,nls|compat:scarthgap|
 yes|inotify-tools|inotify-tools|exe,dev,doc,nls|compat:scarthgap
@@ -349,6 +360,7 @@ yes|jwm3_theme_easyblue||exe|pet:noarch|
 yes|jwm3_theme_light-orange-brown||exe|pet:noarch| #20230208
 yes|jwm3_theme_peachy-darkbrown||exe|pet:noarch|
 yes|jwm3_theme_peachy-red||exe|pet:noarch|
+yes|jwm3_theme_verydarkbrown2||exe|pet:noarch| #20240613
 no|jwm_theme_wary7stark||exe|pet:noarch| #20230124
 no|JWMDesk||exe|pet:noarch| #20230422 now have easyjwm builtin.
 yes|jwmthememaker||exe|pet:noarch| #20230423 coz no longer have jwmdesk.
@@ -383,7 +395,8 @@ yes|libcdio|libcdio|exe,dev,doc,nls|compat:scarthgap
 yes|libcdio-paranoia|libcdio-paranoia|exe,dev,doc,nls|compat:scarthgap|
 yes|libcdr|libcdr|exe,dev,doc,nls|compat:scarthgap| #reqd by libreoffice.
 yes|libcmis|libcmis|exe,dev,doc,nls|compat:scarthgap| #reqd by libreoffice.
-no|libcroco|libcroco|exe,dev,doc,nls|compat:scarthgap #20240601
+no|libcroco|libcroco|exe,dev,doc,nls|compat:scarthgap| #20240601
+yes|libcupsfilters|libcupsfilters|exe,dev,doc,nls|compat:scarthgap| #20240610 needed by cups-filters
 yes|libcxx|libcxx|exe,dev,doc,nls|compat:scarthgap| #20221224 needed by chromium. 20231103 not ff. change to devx. 20231107 want main fs.
 yes|libdaemon|libdaemon|exe,dev,doc,nls|compat:scarthgap
 yes|libdc1394|libdc1394|exe,dev,doc,nls|compat:scarthgap
@@ -426,6 +439,8 @@ yes|libid3tag|libid3tag|exe,dev,doc,nls|compat:scarthgap
 no|libidl|libidl|exe,dev,doc,nls|compat:scarthgap| #needed by old versions of seamonkey. 20221223 oe compile fail.
 yes|libidn|libidn|exe,dev,doc,nls|compat:scarthgap
 yes|libidn2|libidn2|exe,dev,doc,nls|compat:scarthgap|
+yes|libimobiledevice-glue|libimobiledevice-glue|exe,dev,doc,nls|compat:scarthgap| #20240611
+yes|libinih|libinih|exe,dev,doc,nls|compat:scarthgap| #20240611
 yes|libinput|libinput|exe,dev,doc,nls|compat:scarthgap| #20221224 needed by xf86-input-libinput
 yes|libjpeg-turbo|libjpeg-turbo|exe,dev,doc,nls|compat:scarthgap
 yes|libksba|libksba|exe,dev,doc,nls|compat:scarthgap| #dep of gnupg
@@ -465,6 +480,7 @@ yes|libplist|libplist|exe,dev,doc,nls|compat:scarthgap| #needed by droidcam.
 yes|libpng|libpng|exe,dev,doc,nls|compat:scarthgap
 yes|libpng12|libpng12|exe,dev,doc,nls|compat:scarthgap| #does not conflict with later libpng.
 no|libportal|libportal|exe,dev,doc,nls|compat:scarthgap| #20230619.  20230620 compiled xdg-desktop-portal without libportal dep.
+yes|libppd|libppd|exe,dev,doc,nls|compat:scarthgap| #20240610 needed by cups-filters
 yes|libproxy|libproxy|exe,dev,doc,nls|compat:scarthgap
 yes|libpsl|libpsl|exe,dev,doc,nls|compat:scarthgap| #needed by networkmanager.
 yes|libpthread-stubs|libpthread-stubs|exe,dev,doc,nls|compat:scarthgap
@@ -484,13 +500,16 @@ yes|libsdl-mixer|libsdl-mixer|exe,dev,doc,nls|compat:scarthgap|
 yes|libsdl-ttf|libsdl-ttf|exe,dev,doc,nls|compat:scarthgap|
 yes|libsdl2|libsdl2|exe,dev,doc,nls|compat:scarthgap|
 yes|libsdl2-image|libsdl2-image|exe,dev,doc,nls|compat:scarthgap| #a config option for qemu.
+yes|libsdl2-mixer|libsdl2-mixer|exe,dev,doc,nls|compat:scarthgap| #20240611
 yes|libsdl2-ttf|libsdl2-ttf|exe,dev,doc,nls|compat:scarthgap|
+yes|libseccomp|libseccomp|exe,dev,doc,nls|compat:scarthgap| #20240615 needed by flatpak.
 yes|libsecret|libsecret|exe,dev,doc,nls|compat:scarthgap| #network-manager-applet needs this. 20230918 20231013
 yes|libsigc++-2.0|libsigc++-2.0|exe,dev,doc,nls|compat:scarthgap
 yes|libsndfile1|libsndfile1|exe,dev,doc,nls|compat:scarthgap
 no|libsodium|libsodium|exe,dev,doc,nls|compat:scarthgap| #20230703 needed by keepassxc266
 yes|libsombok3|libsombok3|exe>dev,dev,doc,nls|compat:scarthgap| #dep of po4a
-yes|libsoup|libsoup-2.4|exe,dev,doc,nls|compat:scarthgap| #needed by networkmanager.
+yes|libsoup2|libsoup-2.4|exe,dev,doc,nls|compat:scarthgap| #needed by networkmanager.
+yes|libsoup|libsoup|exe,dev,doc,nls|compat:scarthgap| #20240611
 yes|libssh|libssh|exe,dev,doc,nls|compat:scarthgap| #seems config option for qemu.
 yes|libssh2|libssh2|exe,dev,doc,nls|compat:scarthgap| #changed from libssh. needed by vlc, gstreamer, geany-plugins
 yes|libstemmer|libstemmer|exe,dev,doc,nls|compat:scarthgap| #20221224 needed by appstream-glib 
@@ -535,7 +554,9 @@ yes|libxklavier|libxklavier|exe,dev,doc,nls|compat:scarthgap| #needed by libgnom
 yes|libxml++-5.0|libxml++-5.0|exe,dev,doc,nls|compat:scarthgap| #needed by libofx which is needed by homebank.
 yes|libxml2|libxml2|exe,dev,doc,nls|compat:scarthgap
 yes|libxml-parser-perl|libxml-parser-perl|exe,dev,doc,nls|compat:scarthgap
+yes|libxmlb|libxmlb|exe,dev,doc,nls|compat:scarthgap| #20240615 needed by appstream
 yes|libxpm|libxpm|exe,dev,doc,nls|compat:scarthgap
+yes|libxpresent|libxpresent|exe,dev,doc,nls|compat:scarthgap| #20240611
 yes|libxscrnsaver|libxscrnsaver|exe,dev,doc,nls|compat:scarthgap|
 yes|libxshmfence|libxshmfence|exe,dev,doc,nls|compat:scarthgap| #needed by xorg.
 yes|libxslt|libxslt|exe,dev,doc,nls|compat:scarthgap
@@ -607,6 +628,7 @@ yes|nettle|nettle|exe,dev,doc,nls|compat:scarthgap
 yes|networkmanager|networkmanager|exe,dev,doc,nls|compat:scarthgap| #20230918 20231011
 yes|network-manager-applet|network-manager-applet|exe,dev,doc,nls|compat:scarthgap| #20230918 20231011
 yes|network_tray|network-tray|exe,dev,doc,nls|compat:scarthgap|
+yes|nghttp2|nghttp2|exe,dev,doc,nls|compat:scarthgap| #20240615 needed by homebank libsoup
 yes|nim|nim|exe>dev,dev,doc,nls|compat:scarthgap|
 yes|ninja|ninja|exe>dev,dev,doc,nls|compat:scarthgap| #build system used with meson.
 yes|nmap|nmap|exe,dev,doc,nls|compat:scarthgap|
@@ -719,10 +741,12 @@ yes|pw-tray|pw-tray|exe,dev,doc,nls|compat:scarthgap| #20230809 tray wrapper for
 yes|python3-tiny|python3|exe,dev>null,doc,nls|compat:scarthgap|
 yes|python3|python3|exe>dev,dev,doc,nls|compat:scarthgap
 yes|python3-asn1crypto|python3-asn1crypto|exe>dev,dev,doc,nls|compat:scarthgap|
+yes|python3-cachecontrol|python3-cachecontrol|exe,dev,doc,nls|compat:scarthgap| #20240611
 yes|python3-certifi|python3-certifi|exe,dev,doc,nls|compat:scarthgap| #20230621 symphytum wants.
 yes|python3-cffi|python3-cffi|exe,dev,doc,nls|compat:scarthgap| #hexchat needs this.
 yes|python3-chardet|python3-chardet|exe,dev,doc,nls|compat:scarthgap| #20230621 symphytum wants.
 yes|python3-cryptography|python3-cryptography|exe>dev,dev,doc,nls|compat:scarthgap|
+yes|python3-cssselect||exe|pet:scarthgap| #20240612 needed by inkscape to import eps
 yes|python3-cython|python3-cython|exe>dev,dev,doc,nls|compat:scarthgap|
 yes|python3-dbus|python3-dbus|exe,dev,doc,nls|compat:scarthgap| #needed by blueman.
 yes|python3-distutils-extra|python3-distutils-extra|exe,dev,doc,nls|compat:scarthgap| #20230801 maybe needed by flowblade.
@@ -741,6 +765,7 @@ yes|python3-pycairo|python3-pycairo|exe,dev,doc,nls|compat:scarthgap| #needed by
 yes|python3-pycparser|python3-pycparser|exe,dev,doc,nls|compat:scarthgap| #hexchat needs this.
 yes|python3-pygobject|python3-pygobject|exe,dev,doc,nls|compat:scarthgap| #needed by blueman.
 yes|python3-pyparsing|python3-pyparsing|exe,dev,doc,nls|compat:scarthgap| #pitivi needs this.
+yes|python3-pyserial|python3-pyserial|exe,dev,doc,nls|compat:scarthgap| #20240611
 yes|python3-requests|python3-requests|exe,dev,doc,nls|compat:scarthgap| #20230621 symphytum wants.
 yes|python3-scons|python3-scons|exe>dev,dev,doc,nls|compat:scarthgap|
 yes|python3-setuptools|python3-setuptools|exe,dev,doc,nls|compat:scarthgap| #20230621 remove exe>dev, symphytum wants.
@@ -845,6 +870,7 @@ yes|usb-modeswitch|usb-modeswitch|exe,dev,doc,nls|compat:scarthgap| #requires tc
 yes|usb-modeswitch-data|usb-modeswitch-data|exe|compat:scarthgap|
 yes|usbutils|usbutils|exe,dev,doc,nls|compat:scarthgap|
 yes|usbview|usbview|exe,dev,doc,nls|compat:scarthgap|
+yes|utfcpp|utfcpp|exe,dev,doc,nls|compat:scarthgap| #20240611
 yes|util-linux|util-linux|exe,dev,doc,nls|compat:scarthgap
 yes|util-linux-libuuid|util-linux-libuuid|exe,dev,doc,nls|compat:scarthgap| #20221224
 yes|util-macros|util-macros|exe,dev,doc,nls|compat:scarthgap
@@ -914,6 +940,7 @@ yes|xmodmap|xmodmap|exe,dev,doc,nls|compat:scarthgap
 yes|xorg_base|rgb,libfontenc,libice,libsm,libx11,libxau,libxcb,libxcomposite,libxcursor,libxdamage,libxdmcp,libxext,libxfixes,libxfont2,libxft,libxi,libxinerama,libxkbfile,libxmu,libxrandr,libxrender,libxt,libxtst,libxvmc,libxxf86vm|exe,dev,doc,nls|compat:scarthgap| #removed ,libxxf86dga,libxxf86misc not in oe. took out libdrm.
 yes|xorgproto|xorgproto|exe>dev,dev,doc,nls|compat:scarthgap|
 yes|xorriso|xorriso|exe,dev,doc,nls|compat:scarthgap
+yes|xpext|xpext|exe>dev,dev,doc,nls|compat:scarthgap| #20240612
 yes|xprop|xprop|exe,dev,doc,nls|compat:scarthgap
 yes|xrandr|xrandr|exe,dev,doc,nls|compat:scarthgap
 yes|xresprobe|xresprobe|exe,dev,doc,nls|compat:scarthgap| #has ddcprobe utility.
@@ -927,7 +954,8 @@ yes|xset|xset|exe,dev,doc,nls|compat:scarthgap
 yes|xsetmode|xsetmode|exe,dev,doc,nls|compat:scarthgap
 yes|xsetroot|xsetroot|exe,dev,doc,nls|compat:scarthgap|
 yes|xsoldier|xsoldier|exe,dev,doc,nls|compat:scarthgap|
-yes|xtrans|xtrans|exe>dev,dev,doc,nls|compat:scarthgap
+yes|xsp|xsp|exe,dev,doc,nls|compat:scarthgap| #20240611
+yes|xtrans|xtrans|exe,dev,doc,nls|compat:scarthgap| #20240611 move from devx
 yes|xvidcore|xvidcore|exe,dev,doc,nls|compat:scarthgap|
 yes|xvidtune|xvidtune|exe,dev,doc,nls|compat:scarthgap|
 yes|xvinfo|xvinfo|exe,dev,doc,nls|compat:scarthgap|
