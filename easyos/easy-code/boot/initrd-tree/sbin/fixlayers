@@ -49,6 +49,8 @@
 #20231107 tweak 20230723: retention of /usr/local/bin/default*
 #20231203 usr-merge: fix PuppyPin and globicons in kirkstone container.
 #20240512 :-english for vars
+#20240610 if chromium builtin, remove any user-installed chromium.
+#20240615 check previous chromium with different uid and gid.
 
 WKG_DRV=$1 #ex: sda
 WKG_DEV=$2 #ex: sda2
@@ -623,6 +625,37 @@ if [ -d /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/lib/firefox -a ! -e /mnt/${WKG_DE
     rm -rf /mnt/${WKG_DEV}/${WKG_DIR}.session/home/firefox
    fi
   fi
+ fi
+fi
+
+#20240610 if chromium builtin, remove any user-installed chromium...
+if [ -d /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/lib/chromium ];then
+ if [ -d /easy_ro/easy_sfs/usr/lib/chromium ];then
+  rm -rf /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/lib/chromium
+  rm -f /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/bin/chromium 2>/dev/null
+  rm -f /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/bin/chromium.bin 2>/dev/null
+  rm -f /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/bin/chromium.bin0 2>/dev/null
+  sed -i '/\|chromium\|/d' /mnt/${WKG_DEV}/${WKG_DIR}.session/root/.packages/user-installed-packages 2>/dev/null
+  rm -f /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/share/applications/chromium.desktop 2>/dev/null
+ 
+  #20240615 check previous chromium with different uid and gid...
+  #i think might have this situation with previous easyos that had firefox builtin.
+  if [ -f /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/passwd ];then
+   UIDGIDa="$(grep '^chromium:' /easy_ro/easy_sfs/etc/passwd | cut -f 3,4 -d ':')"
+   UIDGIDb="$(grep '^chromium:' /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/passwd | cut -f 3,4 -d ':')"
+   if [ "$UIDGIDa" != "$UIDGIDb" ];then
+    sed -i '/^chromium:/d' /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/passwd
+    grep '^chromium:' /easy_ro/easy_sfs/etc/passwd >> /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/passwd
+    if [ -f /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/group ];then
+     sed -i '/^chromium:/d' /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/group
+     grep '^chromium:' /easy_ro/easy_sfs/etc/group >> /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/group
+    fi
+    if [ -d /mnt/${WKG_DEV}/${WKG_DIR}.session/home/chromium ];then
+     chown -R ${UIDGIDa} /mnt/${WKG_DEV}/${WKG_DIR}.session/home/chromium
+    fi
+   fi
+  fi
+  
  fi
 fi
 
