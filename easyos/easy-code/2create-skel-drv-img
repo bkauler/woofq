@@ -1,0 +1,140 @@
+#!/bin/ash
+#20240122 called from 7create-drive-img
+#optional: pass in: size-1st, size-2nd
+#20240612 modified for easyos.
+
+RP="$(realpath ${0})"
+if [ "${RP/*buildquantumvis*/yes}" == "yes" ];then
+ #running in woofQV
+ L1="${RP/buildquantumvis*/buildquantumvis}"
+ RUNNINGWOOF=yes
+else
+ #running in quirky
+ L1='/usr/local/petget'
+ #...note, woofQV has copied pkg-fix and support folders into /usr/local/petget
+ RUNNINGWOOF=no
+fi
+
+xARCH="$(arch)"
+#. /var/local/woofQV/VARS #has E1
+E1=temp
+
+. /etc/rc.d/PUPSTATE
+
+losetup 2>&1 | grep -q BusyBox
+if [ $? -eq 0 ];then
+ echo "You have Busybox losetup. Need the full version in util-linux pkg."
+ exit 1
+fi
+
+#woofV will use ${E1} to build easyVoid.
+mkdir -p ${E1}
+
+S1=15 #MiB
+S2=928 #MiB
+[ $1 ] && S1=$1
+[ $2 ] && S2=$2
+
+T1=$((1+${S1}+${S2}+1)) #total size of file.
+
+#create an empty file...
+echo "Creating empty skeleton image file, size ${T1}MiB..."
+SKEL="easy-skeleton-${S1}-${S2}-${T1}mb.img"
+if [ -e ${E1}/${SKEL} ];then
+ rm -f ${E1}/${SKEL}
+fi
+if [ -e ${E1}/${SKEL}.gz ];then
+ rm -f ${E1}/${SKEL}.gz
+fi
+dd if=/dev/zero of=${E1}/${SKEL} bs=1M count=${T1}
+sync
+
+#1st part
+LOOPn="$(losetup -f)"
+losetup ${LOOPn} ${E1}/${SKEL}
+
+echo 'Creating a new dos partition table, using fdisk...'
+busybox echo -e 'o\nw\n' | fdisk ${LOOPn}
+sync
+sleep 1
+partprobe ${LOOPn}
+#echo change > /sys/block/${LOOPn##*/}/uevent
+sleep 1
+
+echo "Creating ${S1}MiB esp partition..."
+#2048 512-byte sectors is 1MiB...
+busybox echo -e "n\np\n1\n2048\n+${S1}M\nw\n" | fdisk ${LOOPn}
+sync
+#set partition-id to efi...
+busybox echo -e 't\nef\nw' | fdisk ${LOOPn}
+sync
+#set the boot flag...
+busybox echo -e 'a\nw' | fdisk ${LOOPn}
+sync
+sleep 5
+partprobe ${LOOPn}
+#echo change > /sys/block/${LOOPn##*/}/uevent
+sleep 1
+
+echo "Creating ${S2}MiB second partition..."
+echo -e "n\np\n2\n\n+${S2}M\nw" | fdisk ${LOOPn}
+sync
+sleep 8
+partprobe ${LOOPn}
+#echo change > /sys/block/${LOOPn##*/}/uevent
+sleep 2
+sync
+losetup -d ${LOOPn}
+sleep 1
+
+echo "Creating fat12 filesystem..."
+LOOPn="$(losetup -f)"
+OFF1b=$((1024*1024)) #1MiB
+losetup -o ${OFF1b} --sizelimit ${S1}MiB --sector-size 512 ${LOOPn} ${E1}/${SKEL}
+#too small for fat16
+mkdosfs -F 12 -n EASYVOID1 -S 512 ${LOOPn}
+sync
+
+mkdir -p ${E1}/mntpt1
+busybox mount -t vfat ${LOOPn} ${E1}/mntpt1
+mkdir -p ${E1}/mntpt1/EFI/BOOT
+sync
+busybox umount ${E1}/mntpt1
+losetup -d ${LOOPn}
+sleep 1
+
+#echo "Creating btrfs f.s. in 2nd partition..."
+LOOPn="$(losetup -f)"
+OFF2m=$((1+${S1}))
+OFF2b=$((${OFF2m}*1024*1024)) #bytes
+losetup -o ${OFF2b} --sizelimit ${S2}MiB --sector-size 512 ${LOOPn} ${E1}/${SKEL}
+
+##ext4 f.s. without journal, encrypt...
+#mke2fs -q -t ext4 -O encrypt,^has_journal,^64bit -L easyvoid2 -m 0 -b 4096 ${LOOPn}
+UUID2="$(uuidgen -r)" #ex: bf250e04-a570-488c-bc45-b6a1ded8f8a0
+#mkfs.btrfs -O quota -d single -m single -L QV2 --uuid ${UUID2} ${LOOPn}
+#no, i don't understand the -d and -m options so leave out...
+#note, these are defaults: extref skinny-metadata no-holes free-space-tree
+#mkfs.btrfs -O quota -L QV2 --uuid ${UUID2} ${LOOPn}
+
+echo "Creating ext4 f.s. without journal, encrypt, in ${LOOPn}"
+mke2fs -q -t ext4 -O encrypt,^has_journal,^64bit -L easy2 -m 0 -b 4096 ${LOOPn}
+
+sync
+sleep 1
+
+#mkdir -p ${E1}/mntpt2
+#busybox mount -t ext4 ${LOOPn} ${E1}/mntpt2
+#mkdir -p ${E1}/mntpt2/easyvoid
+#sync
+#busybox umount ${E1}/mntpt2
+losetup -d ${LOOPn}
+sleep 1
+
+gzip -k ${E1}/${SKEL}
+sync
+rm -rf ${E1}/mntpt1
+#rm -rf ${E1}/mntpt2
+rm -f ${E1}/${SKEL}
+echo "${E1}/${SKEL}.gz has been created"
+###end###
