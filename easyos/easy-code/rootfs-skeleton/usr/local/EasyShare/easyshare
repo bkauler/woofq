@@ -30,6 +30,7 @@
 #20221122 note: alternative to "arp-scan --localnet": nmap -PR -sn 192.168.1.1/24
 #20221212 fix detect more than one network.
 #20240201 easyVoid does not have iptables only iptables-legacy
+#20240616 export IPTABLES to be visible inside func called via gtkdialog.
 
 if [ "$(whoami)" != "root" ];then
  if [ -x /usr/bin/sudo-sh ];then
@@ -79,6 +80,7 @@ if [ $? -eq 0 ];then
 else
  IPTABLES='iptables'
 fi
+export IPTABLES #20240616 need this to be visible inside func called via gtkdialog.
 
 M_t1="$(gettext 'Scanned for remote shares, no change')"
 echo "popup 'level=top background=#a0a0ff terminate=ok|<b><big>${M_t1}</big></b>'" > /tmp/easyshare/msg-no-change
