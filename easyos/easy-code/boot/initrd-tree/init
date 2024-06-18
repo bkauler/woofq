@@ -187,6 +187,7 @@
 #20240518 initrd menu prev version have to change kernel at bootup.
 #20240610 handle change chromium to builtin -- handle in /sbin/fixlayers
 #20240612 support skeleton 896MiB wkg-part.
+#20240618 pass prevCOMPAT to fixlayers
 
 #20230429
 . /build-choices #3buildeasydistro copies it here.
@@ -1598,6 +1599,7 @@ fi
 
 ###version control###
 prevVER="" #170919
+prevCOMPAT='' #20240618
 if [ ! -d /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${INIT_DISTRO_VERSION} ];then
  
  echo -e "\\033[1;35m${S170:-One-time only operation, creating a snapshot of EasyOS}\\033[0;39m"
@@ -1649,9 +1651,11 @@ if [ ! -d /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${INIT_DISTRO_VERSION} ];then
 
  if [ -f /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/DISTRO_SPECS ];then
   prevVER="$(grep '^DISTRO_VERSION=' /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/DISTRO_SPECS | cut -f 2 -d '=' | cut -f 1 -d ' ')"
+  prevCOMPAT="$(grep '^DISTRO_COMPAT_VERSION=' /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/DISTRO_SPECS | cut -f 2 -d "'")" #20240618
   touch /mnt/${WKG_DEV}/${WKG_DIR}.session/.delayedrun_version_upgrade #see /usr/sbin/delayedrun
  else
   prevVER=""
+  prevCOMPAT="" #20240618
  fi
  if [ "$WKG_DEV" != "zram0" ];then #181203 200824
   if [ -f /mnt/${WKG_DEV}/${WKG_DIR}initrd ];then #190130
@@ -2156,7 +2160,7 @@ fi
 
 ###fix layers change###
 OLDEXTRASFSLIST="$(grep '^EXTRASFSLIST=' /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/rc.d/PUPSTATE 2>/dev/null | cut -f 2 -d "'")"
-[ -s /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/rc.d/PUPSTATE ] && [ "$NEWEXTRASFSLIST" != "$OLDEXTRASFSLIST" -o "$prevVER" != "" ] && /sbin/fixlayers "${WKG_DRV}" "${WKG_DEV}" "${NEWEXTRASFSLIST}" "${prevVER}" "${WKG_DIR}"
+[ -s /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/rc.d/PUPSTATE ] && [ "$NEWEXTRASFSLIST" != "$OLDEXTRASFSLIST" -o "$prevVER" != "" ] && /sbin/fixlayers "${WKG_DRV}" "${WKG_DEV}" "${NEWEXTRASFSLIST}" "${prevVER}" "${WKG_DIR}" "${prevCOMPAT}" #20240618
 
 ###hardware profiling###
 #20211015 want hardware-profiling for /etc/modprobe.d ...

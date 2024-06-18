@@ -51,11 +51,14 @@
 #20240512 :-english for vars
 #20240610 if chromium builtin, remove any user-installed chromium.
 #20240615 check previous chromium with different uid and gid.
+#20240616 fix updating kirkstone to scarthgap issues. 20240617 fix.
+#20240618 new $6 passed prevCOMPAT
 
 WKG_DRV=$1 #ex: sda
 WKG_DEV=$2 #ex: sda2
 prevVER=$4
 WKG_DIR=$5 #20220622
+prevCOMPAT=$6 #20240618
 #180601 users may forget to put a trailing slash... a leading slash is not allowed...
 [ "$WKG_DIR" ] && [ "${WKG_DIR##*/}" ] && WKG_DIR="${WKG_DIR}/"
 [ "$WKG_DIR" ] && [ "${WKG_DIR:0:1}" == "/" ] && WKG_DIR="${WKG_DIR:1:99}"
@@ -656,6 +659,76 @@ if [ -d /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/lib/chromium ];then
    fi
   fi
   
+ fi
+fi
+
+#20240616 fix updating issues... 20240618
+if [ -n "$prevVER" ];then
+ #...ex: kirkstone
+ #problem occurs when change default.png to/from default.jpg...
+ if [ -f /mnt/${WKG_DEV}/${WKG_DIR}.session/root/Choices/ROX-Filer/PuppyPin ];then
+  BACKDROP="$(grep '<backdrop ' /mnt/${WKG_DEV}/${WKG_DIR}.session/root/Choices/ROX-Filer/PuppyPin | cut -f 2 -d '>' | cut -f 1 -d '<')"
+  #...ex: /usr/share/backgrounds/177/default.png
+  if [ -n "${BACKDROP}" -a ! -f /mnt/${WKG_DEV}/${WKG_DIR}.session${BACKDROP} ];then
+   #change to an existing image... /root/.xinitrc will truncate the image and update PuppyPin
+   DEFbg="$(find /easy_ro/easy_sfs/usr/share/backgrounds -mindepth 1 -maxdepth 1 -type f -name 'default.*' | head -n 1)"
+   iPTN="s%>.*</backdrop>%>/usr/share/backgrounds/${DEFbg##*/}</backdrop>%"
+   sed -i -e "$iPTN" /mnt/${WKG_DEV}/${WKG_DIR}.session/root/Choices/ROX-Filer/PuppyPin
+  fi
+ fi
+ #problems when update from kirkstone to scarthgap... (or rollback)
+ #20240617 seems this folder already got created, so test if configuration file exists...
+ if [ ! -f /mnt/${WKG_DEV}/${WKG_DIR}containers/${INIT_DISTRO_COMPAT_VERSION}/configuration ];then
+  mkdir -p /mnt/${WKG_DEV}/${WKG_DIR}containers/${INIT_DISTRO_COMPAT_VERSION}
+  #maybe trouble, just go for fresh start...
+  #if [ -n "${prevCOMPAT}" -a -d /mnt/${WKG_DEV}/${WKG_DIR}containers/${prevCOMPAT} ];then
+  # mv -f /mnt/${WKG_DEV}/${WKG_DIR}containers/${prevCOMPAT} /mnt/${WKG_DEV}/${WKG_DIR}containers/${INIT_DISTRO_COMPAT_VERSION}
+  #else
+   #20240617 3buildeasydistro renames /skeleton/containers/easy, so...
+   cp -a -f /skeleton/containers/${INIT_DISTRO_COMPAT_VERSION}/* /mnt/${WKG_DEV}/${WKG_DIR}containers/${INIT_DISTRO_COMPAT_VERSION}/
+   cp -a -f /skeleton/containers/${INIT_DISTRO_COMPAT_VERSION}/.sessionSKEL/* /mnt/${WKG_DEV}/${WKG_DIR}containers/${INIT_DISTRO_COMPAT_VERSION}/.session/
+   #...that would be a fresh start. 
+   #20240617 fix desktop file...
+   echo "#these variables read by ec-fix-desktop via /root/.xinitc when X starts.
+#the icon is created in woofq, 3buildeasydistro.
+#as this is a pre-created container, ec-chroot-easy is in woofq, rootfs-skeleton/usr/sbin
+EC_LABEL=${INIT_DISTRO_COMPAT_VERSION}
+EC_PATH=/usr/bin/ec-chroot-${INIT_DISTRO_COMPAT_VERSION}
+EC_ICON=/usr/local/lib/X11/pixmaps/ec-easy48.png" > /mnt/${WKG_DEV}/${WKG_DIR}containers/${INIT_DISTRO_COMPAT_VERSION}/desktop
+  #fi
+ fi
+ #really want theme to reset...
+ if [ "${prevCOMPAT}" -a "${prevCOMPAT}" != "${INIT_DISTRO_COMPAT_VERSION}" ];then
+  rm -f /mnt/${WKG_DEV}/${WKG_DIR}.session/root/.jwm/jwm* 2>/dev/null
+  rm -f /mnt/${WKG_DEV}/${WKG_DIR}.session/root/.gtkrc-2.0 2>/dev/null
+  rm -rf /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/gtk-2.0 2>/dev/null
+  rm -rf /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/gtk-3.0 2>/dev/null
+  rm -f /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/desktop_icon_theme 2>/dev/null
+  rm -rf /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/lib/X11/pixmaps 2>/dev/null
+  #despite backdrop fix above, if change kirkstone to/from scarthgap, go back to default wallpaper...
+  DEFbg="$(find /easy_ro/easy_sfs/usr/share/backgrounds -mindepth 1 -maxdepth 1 -type f -name 'default.*' | head -n 1)"
+  iPTN="s%>.*</backdrop>%>/usr/share/backgrounds/${DEFbg##*/}</backdrop>%"
+  sed -i -e "$iPTN" /mnt/${WKG_DEV}/${WKG_DIR}.session/root/Choices/ROX-Filer/PuppyPin
+  rm -rf /mnt/${WKG_DEV}/${WKG_DIR}.session/root/.config/wallpaper
+  rm -f /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/Puppybackgroundpicture 2>/dev/null
+  #20240617 change text "kirkstone" to "scarthgap" in PuppyPin and globicons...
+  sed -i -e "s%${PREV_COMPAT_VER}%${INIT_DISTRO_COMPAT_VERSION}%g" /mnt/${WKG_DEV}/${WKG_DIR}.session/root/Choices/ROX-Filer/PuppyPin
+  if [ -f /mnt/${WKG_DEV}/${WKG_DIR}.session/root/Choices/ROX-Filer/PuppyPinBACKUP ];then
+   sed -i -e "s%${prevCOMPAT}%${INIT_DISTRO_COMPAT_VERSION}%g" /mnt/${WKG_DEV}/${WKG_DIR}.session/root/Choices/ROX-Filer/PuppyPinBACKUP
+  fi
+  if [ -f /mnt/${WKG_DEV}/${WKG_DIR}.session/root/Choices/ROX-Filer/globicons ];then
+   sed -i -e "s%${prevCOMPAT}%${INIT_DISTRO_COMPAT_VERSION}%" /mnt/${WKG_DEV}/${WKG_DIR}.session/root/Choices/ROX-Filer/globicons
+  fi
+  if [ -f /mnt/${WKG_DEV}/${WKG_DIR}.session/root/.config/rox.sourceforge.net/ROX-Filer/globicons ];then
+   sed -i -e "s%${prevCOMPAT}%${INIT_DISTRO_COMPAT_VERSION}%" /mnt/${WKG_DEV}/${WKG_DIR}.session/root/.config/rox.sourceforge.net/ROX-Filer/globicons
+  fi
+  #20240617 the old "kirkstone" icon gets recreated, try to prevent that...
+  if [ -f /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/bin/ec-chroot-${prevCOMPAT} ];then
+   rm -f /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/bin/ec-chroot-${prevCOMPAT}
+  fi
+  if [ -d /mnt/${WKG_DEV}/${WKG_DIR}containers/${prevCOMPAT} ];then
+   rm -rf /mnt/${WKG_DEV}/${WKG_DIR}containers/${prevCOMPAT}
+  fi
  fi
 fi
 
