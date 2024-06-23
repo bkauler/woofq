@@ -19,6 +19,7 @@
 #20220412 handle ICON_PLACE_EDGE_GAP=auto[+/-offset]  ref: /etc/eventmanager
 #20220621 no longer have BOOT_* variables.
 #20240315 support btrfs
+#20240623 AppInfo.xml syntax error. ref: https://forum.puppylinux.com/viewtopic.php?p=123883#p123883
 
 #130807 L18L
 export TEXTDOMAIN=pup_event_frontend_d
@@ -358,8 +359,8 @@ create_icon_func() {
    SIZE=$(($SIZE/2)) #get KB.
    format_size_func #formats SIZE for display.
    INFO="$(gettext 'Description'): ${DRV_DESCRIPTION} $(gettext 'Size'): ${SIZE}"
-   #v424 add item to unmount all mounted partitions...
-   MOREITEMS="</Item><Item option=\"unmountall\" icon=\"gtk-harddisk\"><Label>$(gettext 'Unmount ALL mounted partitions')</Label></Item>"
+   #v424 add item to unmount all mounted partitions... 20240623 fix...
+   MOREITEMS="<Item option=\"unmountall\" icon=\"gtk-harddisk\"><Label>$(gettext 'Unmount ALL mounted partitions')</Label></Item>"
    ONEDRVNAME="$DRV_NAME"
    create_appinfo_func #needs INFO, DRV_CATEGORY, MOREITEMS, ONEDRVNAME
   fi
