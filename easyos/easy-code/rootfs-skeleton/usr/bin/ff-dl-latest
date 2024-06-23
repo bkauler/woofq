@@ -2,6 +2,7 @@
 #20220107 20220108
 #20230206 caramel: fixes
 #20240429 now builtin to rootfs-skeleton
+#20240622 set policies on first install.
 
 export TEXTDOMAIN=ff-dl-latest
 export OUTPUT_CHARSET=UTF-8
@@ -137,7 +138,21 @@ if [ $? -ne 0 -o ! -e firefox/firefox-bin ];then
  exit
 fi
 
-cp -a -f firefoxPREV/distribution firefox/
+if [ -d firefoxPREV/distribution ];then #20240622
+ cp -a -f firefoxPREV/distribution firefox/
+else
+ mkdir -p firefox/distribution
+ echo '{
+	"policies":
+	{
+		"DisableAppUpdate":true,
+		"DontCheckDefaultBrowser":true,
+		"ExtensionUpdate":false,
+		"HardwareAcceleration":false
+	}
+}' > firefox/distribution/policies.json
+fi
+
 mkdir -p firefox/dictionaries
 cp -a -f /etc/firefox-latest-version /etc/firefox-current-version
 sed -i 's/DL/CURR/' /etc/firefox-current-version #20230206
