@@ -9,6 +9,7 @@
 #170716 exit if /root/.pup_event not exist (first bootup).
 #180408 support nvme drives.
 #200712 nvme drives do not have /sys/block/*/device/vendor
+#20240623 Caramel: fix de hang: https://forum.puppylinux.com/viewtopic.php?p=123611#p123611
 
 [ ! -d /root/.pup_event ] && exit 0 #170718
 
@@ -17,7 +18,9 @@ TEXTDOMAIN=clean_desk_icons
 export TEXTDOMAIN
 . /usr/bin/gettext.sh
 
-export LANG=C
+#20240623 removed...
+#export LANG=C
+
 . /etc/eventmanager #has RAMSAVEINTERVAL, ICONDESK, ICONPARTITIONS, HOTPLUGNOISY, HOTPLUGON, FLOPPYICON.
 
 ePUPPYPIN="`grep -v '/root/.pup_event/drive_' /root/Choices/ROX-Filer/PuppyPin | grep -v '</pinboard>'`"
