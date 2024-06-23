@@ -27,6 +27,8 @@
 #         see /usr/sbin/build-rox-sendto, /usr/share/applications/mount-img.desktop
 #20220624 easy*.img, call mount-img
 #20230305 easy-*.img may have a different name.
+#20240623 change losetup-FULL to losetup. 
+#  note: losetup no longer supports -E and -e options, will need to revise this code sometime.
 
 if [ "$(whoami)" != "root" ];then
  if [ -x /usr/bin/sudo-sh ];then
@@ -106,7 +108,7 @@ if [ "$MNTEDLOOP" = "" ];then #130223 BK
    MNTDIMG_MNT_PT="`mount | grep "^$ONELOOP" | cut -f 3 -d ' '`"   #120220...
    MNTDIMG=""
    [ "`echo $MNTDIMG_MNT_PT | cut -f 2 -d /`" = "initrd" ] && MNTDIMG="/initrd"
-   MNTDIMG="${MNTDIMG}`losetup-FULL $ONELOOP | cut -f 2 -d '(' | cut -f 1 -d ')'`"
+   MNTDIMG="${MNTDIMG}`losetup $ONELOOP | cut -f 2 -d '(' | cut -f 1 -d ')'`"
    MNTDIMG_DEV_INODE="`stat -L -c "%d_%i" "$MNTDIMG"`"             #120220
    #not perfect, but paths may be symlinks...
    if [ "$MNTDIMG_DEV_INODE" = "$imgFileDEV_INODE" ];then          #120220...
@@ -172,15 +174,15 @@ All Linux kernels 2.6.28 or earlier require version 3.x squashfs files
   
   #111110 handle encrypted save-files...
   CRYPTO=""; Err=0
-  DEVLOOP="`losetup-FULL -f`" #next free loop device.
+  DEVLOOP="`losetup -f`" #next free loop device.
   case $Type in
    ext2|ext3|ext4)
     case $imgFileBASE in
      *_cryptx*) #light encryption.
       CRYPTO='light'
       modprobe cryptoloop
-      rxvt -geometry 25x3 -title "$(gettext 'Enter password')" -bg orange -e losetup-FULL -E 1 $DEVLOOP $imgFile
-      #losetup-FULL -E 1 $DEVLOOP $imgFile
+      rxvt -geometry 25x3 -title "$(gettext 'Enter password')" -bg orange -e losetup -E 1 $DEVLOOP $imgFile
+      #losetup -E 1 $DEVLOOP $imgFile
       Err=$?
      ;;
      *_crypt*) #heavy encryption.
@@ -194,7 +196,7 @@ All Linux kernels 2.6.28 or earlier require version 3.x squashfs files
       MYPASS="`pupdialog --title "$(gettext 'Password required')" --stdout --inputbox "$(gettext 'Password required to open') ${imgFileBASE}:" 0 0`"
       Err=$?
       if [ $Err -eq 0 ];then
-       echo "$MYPASS" | losetup-FULL -p 0 -e aes $DEVLOOP $imgFile
+       echo "$MYPASS" | losetup -p 0 -e aes $DEVLOOP $imgFile
        Err=$?
       fi
      ;;
