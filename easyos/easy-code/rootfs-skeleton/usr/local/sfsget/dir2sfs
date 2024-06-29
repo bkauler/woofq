@@ -50,6 +50,8 @@
 #20230607 easy 5.3+ want to get rid of "setup" icon and change "pkg" to only run PKGget (see also 3buildeasydistro)
 #20230721 remove gparted.desktop in container.
 #20230913 fix usr-merge
+#2024626 careful rev broken if LANG=C and utf8 chars.
+#20240626 Caramel: _<arch>.sfs not optional, otherwise breaks filerpkgs.sh
 
 . /etc/rc.d/PUPSTATE
 . /etc/DISTRO_SPECS
@@ -77,7 +79,8 @@ DIR="$(basename "$PARAM1" /)" #also drops any tailing "/'
 
 if [ "$(echo -n "$DIR" | grep '[a-zA-Z]_[0-9]')" == "" ];then
  #echo "Error: folder must be of the format <name>_<version>[-revision][_<arch>]"
- err_exit_func 4 "Error: folder must be of the format <name>_<version>[-revision][_<arch>]. Aborting."
+ #20240626 _<arch> not optional...
+ err_exit_func 4 "Error: folder must be of the format <name>_<version>[-revision]_<arch>. Aborting."
 fi
 
 NAME="${DIR/_*/}"
@@ -139,8 +142,8 @@ case "$SFS_DB_install" in
   if [ -f ${PATH1}/${DIR}/usr/share/applications/${NAME}.desktopBACKUP ];then
    mv -f ${PATH1}/${DIR}/usr/share/applications/${NAME}.desktopBACKUP ${PATH1}/${DIR}/usr/share/applications/${NAME}.desktop
   fi
-  #use the name of the .desktop files...
-  APPS="$(find ${PATH1}/${DIR}/usr/share/applications -maxdepth 1 -type f -name '*.desktop' | rev | cut -f 1 -d '/' | cut -f 2- -d '.' | rev | sort)"
+  #use the name of the .desktop files... 20240626
+  APPS="$(find ${PATH1}/${DIR}/usr/share/applications -maxdepth 1 -type f -name '*.desktop' | LANG=${LANGORIG} rev | cut -f 1 -d '/' | cut -f 2- -d '.' | LANG=${LANGORIG} rev | sort)"
   SFS_DB_apps="$(echo -n "$APPS" | tr '\n' ',')"
   if [ -f ${PATH1}/${DIR}/usr/share/pixmaps/${NAME}48.png ];then #181117
    ICON="${NAME}48.png"
@@ -257,7 +260,7 @@ do
   fi
  fi
  [ ! "$fndICON" ] && fndICON="/usr/share/pixmaps/puppy/execute.svg" #final fallback.
- IMGTYPE="$(echo -n "$fndICON" | rev | cut -f 1 -d '.' | rev)" #ex: xpm
+ IMGTYPE="$(echo -n "$fndICON" | LANG=${LANGORIG} rev | cut -f 1 -d '.' | LANG=${LANGORIG} rev)" #ex: xpm 20240626
  IMGBASE="$(basename "${fndICON}" .${IMGTYPE})"
  #picscale -i "$fndICON" -o /tmp/sfsget/${aDT}.png 48 48 9 #vovchik
  #20220809 ffmpeg cannot handle svg...
