@@ -92,6 +92,7 @@
 #20230918 got rid of remnants of EasyPak, DEBSHERE, eppm
 #20240114 fix 20230708
 #20240229 easyvoid. 20240302 20240306  20240503
+#2024626 careful rev broken if LANG=C and utf8 chars.
 
 #information from 'labrador', to expand a .pet directly to '/':
 #NAME="a52dec-0.7.4"
@@ -403,10 +404,10 @@ case $DLPKG_BASE in
  ;;
  *.xbps) #20230831
   DLPKG_NAME="$(basename $DLPKG_BASE .xbps)"
-  PKGNAME="$(echo -n "$DLPKG_NAME" | rev | cut -f 2- -d '.' | rev)" #ex: 9menu-1.10_1
-  DB_nameonly="$(echo -n "$PKGNAME" | cut -f 1 -d '_' | rev | cut -f 2- -d '-' | rev)"
+  PKGNAME="$(echo -n "$DLPKG_NAME" | LANG=${LANG_USER} rev | cut -f 2- -d '.' | LANG=${LANG_USER} rev)" #ex: 9menu-1.10_1 20240626
+  DB_nameonly="$(echo -n "$PKGNAME" | cut -f 1 -d '_' | LANG=${LANG_USER} rev | cut -f 2- -d '-' | LANG=${LANG_USER} rev)" #20240626
   DB_pkgrelease="$(echo -n "$PKGNAME" | cut -f 2 -d '_')"
-  DB_version="$(echo -n "$PKGNAME" | cut -f 1 -d '_' | rev | cut -f 1 -d '-' | rev)"
+  DB_version="$(echo -n "$PKGNAME" | cut -f 1 -d '_' | LANG=${LANG_USER} rev | cut -f 1 -d '-' | LANG=${LANG_USER} rev)" #20240626
   zstd --test $DLPKG_BASE > /dev/null 2>&1
   [ $? -ne 0 ] && exit_func 1 #exit 1
   PFILES="$(tar --list -f $DLPKG_BASE)"
@@ -1087,7 +1088,7 @@ do
   if [ ! "$xEXEPATH" ];then
    if [ "$EXENAME" == "AppRun" ];then #20210915 disaster. ref: http://forum.puppylinux.com/viewtopic.php?p=36693#p36693
     #change $EXENAME to something sane... ex: extract "abiword" out of /usr/share/applications/abiword.desktop
-    EXENAME="$(echo -n "${ONEDESKTOP}" | rev | cut -f 1 -d '/' | cut -f 2- -d '.' | rev)"
+    EXENAME="$(echo -n "${ONEDESKTOP}" | LANG=${LANG_USER} rev | cut -f 1 -d '/' | cut -f 2- -d '.' | LANG=${LANG_USER} rev)" #20240626
     which "$EXENAME" >/dev/null
     if [ $? -eq 0 ];then #precaution
      EXENAME="${EXENAME}xxx"
