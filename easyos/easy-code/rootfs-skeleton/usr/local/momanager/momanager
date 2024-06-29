@@ -69,6 +69,7 @@
 #20230607 if newtranslations tarball already exists, make backup.
 #20230626 new sudo-sh
 #20230710 ignore .desktop with "NoDisplay=true"
+#2024626 careful rev broken if LANG=C and utf8 chars.
 
 #***MOMANAGER IS ENGLISH ONLY (NOT GETTEXT'ED)***
 #it is for use by developers/translators with knowledge of english.
@@ -209,7 +210,7 @@ where_file_from_func() {
  fi
  #find out if builtin...
  zPTN="^${lFILE}$"
- PKGNAMEs="$(grep -F -x " ${lFILE##*/}" /root/.packages/builtin_files/* | cut -f 1 -d ':' | rev | cut -f 1 -d '/' | rev | sort -u | tr '\n' ' ')"
+ PKGNAMEs="$(grep -F -x " ${lFILE##*/}" /root/.packages/builtin_files/* | cut -f 1 -d ':' | LANG=${ORIGLANG} rev | cut -f 1 -d '/' | LANG=${ORIGLANG} rev | sort -u | tr '\n' ' ')" #20240626
  if [ "$PKGNAMEs" ];then #confirm full path.
   for AAA in $PKGNAMEs
   do
@@ -230,9 +231,9 @@ where_file_from_func() {
  if [ "$aPKGNAME" == "" ];then
   if [ "${lFILE:0:1}" != "/" ];then
    #no path, so just look for filename...
-   aPKGNAME="$(grep -F "/${lFILE}" /root/.packages/*.files 2>/dev/null | head -n 1 | cut -f 1 -d ':' | rev | cut -f 1 -d '/' | rev | sed -e 's%\.files$%%')"
+   aPKGNAME="$(grep -F "/${lFILE}" /root/.packages/*.files 2>/dev/null | head -n 1 | cut -f 1 -d ':' | LANG=${ORIGLANG} rev | cut -f 1 -d '/' | LANG=${ORIGLANG} rev | sed -e 's%\.files$%%')" #20240626
   else
-   aPKGNAME="$(grep -x -F "$lFILE" /root/.packages/*.files 2>/dev/null | head -n 1 | cut -f 1 -d ':' | rev | cut -f 1 -d '/' | rev | sed -e 's%\.files$%%')"
+   aPKGNAME="$(grep -x -F "$lFILE" /root/.packages/*.files 2>/dev/null | head -n 1 | cut -f 1 -d ':' | LANG=${ORIGLANG} rev | cut -f 1 -d '/' | LANG=${ORIGLANG} rev | sed -e 's%\.files$%%')" #20240626
   fi
  fi
  #find out if in rootfs-skeleton (in woofQ)...
@@ -648,7 +649,7 @@ do
      TRANSLANG=$ORIGLANG1
     fi
     if [ "$FNDMO" ];then
-     PREFIXLOCALEDIR="`echo -n "$FNDMO" | sed -e 's%/LC_MESSAGES.*%%' | rev | cut -f 2-9 -d '/' | rev`" #ex: /usr/local/apps/ROX-Filer/Messages/de/LC_MESSAGES/ROX-Filer.mo, extract /usr/local/apps/ROX-Filer/Messages
+     PREFIXLOCALEDIR="`echo -n "$FNDMO" | sed -e 's%/LC_MESSAGES.*%%' | LANG=${ORIGLANG} rev | cut -f 2-9 -d '/' | LANG=${ORIGLANG} rev`" #ex: /usr/local/apps/ROX-Filer/Messages/de/LC_MESSAGES/ROX-Filer.mo, extract /usr/local/apps/ROX-Filer/Messages  20240626
      YESCNT=$(($YESCNT + 1))
      YESBIN_XML="${YESBIN_XML}
 <item>${BINEXEC} (${TRANSLANG} ${TEXTDOMAINVALUE}.mo ${aPKGNAME})</item>"
@@ -847,7 +848,7 @@ case $EXIT in
  ########
  edit_mo)
   #ex: YESMO_COMBO='/usr/sbin/mousecheck (de mousecheck.mo)'
-  ASCRIPT="`echo -n "$YESMO_COMBO" | cut -f 1 -d '(' | rev | cut -f 2-9 -d ' ' | rev`"
+  ASCRIPT="`echo -n "$YESMO_COMBO" | cut -f 1 -d '(' | LANG=${ORIGLANG} rev | cut -f 2-9 -d ' ' | LANG=${ORIGLANG} rev`" #20240626
   ANAME="`basename "$ASCRIPT"`"
   aTRANSLANG="`echo -n "$YESMO_COMBO" | cut -f 2 -d '(' | cut -f 1 -d ' '`" #ex: de
   AMO="`echo -n "$YESMO_COMBO" | cut -f 2 -d '(' | cut -f 1 -d ')' | cut -f 2 -d ' '`" #ex: mousecheck.mo
@@ -971,7 +972,7 @@ Click 'Abort' to give up..." 0 0
  
  create_mo)
   #ex: NOMO_COMBO='/usr/sbin/mousecheck (mousecheck)'
-  ASCRIPT="`echo -n "$NOMO_COMBO" | cut -f 1 -d '(' | rev | cut -f 2 -d ' ' | rev`"
+  ASCRIPT="`echo -n "$NOMO_COMBO" | cut -f 1 -d '(' | LANG=${ORIGLANG} rev | cut -f 2 -d ' ' | LANG=${ORIGLANG} rev`" #20240626
   ATEXTDOMAIN="`echo -n "$NOMO_COMBO" | cut -f 2 -d '(' | cut -f 1 -d ' '`"
   APKGNAME="`echo -n "$NOMO_COMBO" | cut -f 2 -d '(' | cut -f 1 -d ')' | cut -f 2 -d ' '`" #ex: bluefish  ex: WOOFBUILTIN
   FIELD2ND="`echo -n "$ORIGLANG12" | cut -f 2 -d '_'`"
@@ -1285,7 +1286,7 @@ Click 'Abort' to give up..." 0 0
     SSS_TRANSLATION_FILE="`echo -n "$SSS_TRANSLATION_RULE" | sed -e "s%SSSLANG1MARKER%${ORIGLANG1}%"`"
     if [ "$TARGETFILE" = "$SSS_TRANSLATION_FILE" ];then
      #the translation is completely replacing the english file, so make a backup of the en file...
-     FILETYPE="`echo -n "$TARGETFILE" | rev | cut -f 1 -d '.' | rev`" #ex: htm
+     FILETYPE="`echo -n "$TARGETFILE" | LANG=${ORIGLANG} rev | cut -f 1 -d '.' | LANG=${ORIGLANG} rev`" #ex: htm  20240626
      ftPTN="s%\.${FILETYPE}$%-en.${FILETYPE}%"
      ENFILE="`echo -n "$TARGETFILE" | sed -e "$ftPTN"`"
      if [ ! -f "$ENFILE" ];then
@@ -1584,7 +1585,7 @@ Click 'Abort' to give up..." 0 0
  
  #########
  edit_bin) #binary executables. 20230107 have split out create_bin
-  ABIN="`echo -n "$YESBIN_COMBO" | cut -f 1 -d '(' | rev | cut -f 2-9 -d ' ' | rev`"
+  ABIN="`echo -n "$YESBIN_COMBO" | cut -f 1 -d '(' | LANG=${ORIGLANG} rev | cut -f 2-9 -d ' ' | LANG=${ORIGLANG} rev`" #20240626
   ANAME="`basename "$ABIN"`"
   aTRANSLANG="`echo -n "$YESBIN_COMBO" | cut -f 2 -d '(' | cut -f 1 -d ' '`" #ex: de
   AMO="`echo -n "$YESBIN_COMBO" | cut -f 2 -d '(' | cut -f 1 -d ')' | cut -f 2 -d ' '`" #ex: mousecheck.mo
@@ -1665,7 +1666,7 @@ WARNING: If there is an existing mo file, MoManager uncompiles it and merges wit
  
  ###########
  create_bin) #binary executables. 20230107 have split out edit_bin
-  ABIN="`echo -n "$NOBIN_COMBO" | cut -f 1 -d '(' | rev | cut -f 2 -d ' ' | rev`"
+  ABIN="`echo -n "$NOBIN_COMBO" | cut -f 1 -d '(' | LANG=${ORIGLANG} rev | cut -f 2 -d ' ' | LANG=${ORIGLANG} rev`" #20240626
   ATEXTDOMAIN="`echo -n "$NOBIN_COMBO" | cut -f 2 -d '(' | cut -f 1 -d ' '`"
   APKGNAME="`echo -n "$NOBIN_COMBO" | cut -f 2 -d '(' | cut -f 1 -d ')' | cut -f 2 -d ' '`" #ex: bluefish  ex: WOOF
   FIELD2ND="`echo -n "$ORIGLANG12" | cut -f 2 -d '_'`"
