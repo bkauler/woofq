@@ -188,6 +188,8 @@
 #20240610 handle change chromium to builtin -- handle in /sbin/fixlayers
 #20240612 support skeleton 896MiB wkg-part.
 #20240618 pass prevCOMPAT to fixlayers
+#20240623 xarchive may change folders to root group. ref: https://forum.puppylinux.com/viewtopic.php?p=123982#p123982
+#20240626 Caramel: missing $
 
 #20230429
 . /build-choices #3buildeasydistro copies it here.
@@ -1880,6 +1882,10 @@ fi
 if [ -d /mnt/${WKG_DEV}/${WKG_DIR}.session/files ];then
  rm -rf /mnt/${WKG_DEV}/${WKG_DIR}.session/files
 fi
+#20240623 xarchive may change folders to root group. ref: https://forum.puppylinux.com/viewtopic.php?p=123982#p123982
+# make sure stays as filesgrp (122)...
+chgrp 122 /mnt/${WKG_DEV}/${WKG_DIR}files
+chgrp 122 /mnt/${WKG_DEV}/${WKG_DIR}files/downloads
 #could have symlinked to /mnt/wkg, but do this every bootup...
 ln -snf /mnt/${WKG_DEV}/${WKG_DIR}files /mnt/${WKG_DEV}/${WKG_DIR}.session/files
 
@@ -2176,7 +2182,7 @@ if [ "$newModprobeHardwareProfile" ];then
    cp -a /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/modprobe.d /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/modprobe.d.${ModprobeHardwareProfile}
   fi
  fi
- if [ "$ModprobeHardwareProfile" != "newModprobeHardwareProfile" ];then
+ if [ "$ModprobeHardwareProfile" != "$newModprobeHardwareProfile" ];then #20240626
   if [ -d /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/modprobe.d.${newModprobeHardwareProfile} ];then
    rm -rf /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/modprobe.d
    cp -a /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/modprobe.d.${newModprobeHardwareProfile} /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/modprobe.d
