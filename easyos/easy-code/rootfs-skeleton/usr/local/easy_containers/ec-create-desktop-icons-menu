@@ -11,6 +11,7 @@
 #20220218 no longer using ROXDESKflg.
 #20220603 replace DB_* with SFS_DB_* in sfs .specs files.
 #20230913 fix usr-merge
+#20240702 Caramel: fix container sfs created before usr-merge.
 
 export TEXTDOMAIN=easy-containers
 export OUTPUT_CHARSET=UTF-8
@@ -54,7 +55,12 @@ do
   cp -f /mnt/wkg/sfs/${1}/mntpt/usr/share/applications/${aAPP}.desktop /usr/share/applications/ec-${aAPP}.desktop
  fi
  #and the run-script...
- cp -a -f /mnt/wkg/sfs/${1}/mntpt/usr/bin/ec-chroot-${aAPP} /usr/bin/
+ if [ -f /mnt/wkg/sfs/${1}/mntpt/usr/bin/ec-chroot-${aAPP} ];then #20240702
+  cp -a -f /mnt/wkg/sfs/${1}/mntpt/usr/bin/ec-chroot-${aAPP} /usr/bin/
+ else
+  #old sfs before usr-merge...
+  cp -a -f /mnt/wkg/sfs/${1}/mntpt/usr/sbin/ec-chroot-${aAPP} /usr/bin/
+ fi
 done
 
 #copy out the icons...
