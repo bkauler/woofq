@@ -12,6 +12,7 @@
 #20211206 new group 'filesgrp'. copy /root/.config/user-dirs.dirs
 #20230527 check in case copied in files to /files/apps/$1  20230528 revert (see blog post). 20230606 fix.
 #20240118 now have global /etc/gtk-3.0/settings.ini
+#20240703 predetermined gid and uid.
 
 [ ! "$1" ] && exit 1
 APPname="$1"
@@ -66,10 +67,13 @@ if [ ! -e ${PREFIXDIR1}/home/${APPname}/.config/user-dirs.dirs ];then #20211206
  CHGflg=1
 fi
 
+#20240703 predetermined uid and gid (ex: 28546)...
+UGID="$(echo 2$((64#${APPname})) | head -c 5 | xargs -I XXX printf %-5s XXX | tr ' ' 0)"
+
 #run ${APPname} as user ${APPname}, and group ${APPname}...
 grep -q "^${APPname}:" ${PREFIXDIR1}/etc/group
 if [ $? -ne 0 ];then
- busybox addgroup ${APPname} 2>/dev/null
+ busybox addgroup -g ${UGID} ${APPname} 2>/dev/null #20240703
  if [ "$PREFIXDIR1" ];then
   sed -i "/^${APPname}:/d" ${PREFIXDIR1}/etc/group
   grep "^${APPname}:" /etc/group >> ${PREFIXDIR1}/etc/group
@@ -80,7 +84,7 @@ fi
 grep -q "^${APPname}:" ${PREFIXDIR1}/etc/passwd
 if [ $? -ne 0 ];then
  # -S create a system user.  -D don't assign a password.  -H don't create a home directory.
- busybox adduser -h /home/${APPname} -G ${APPname} -D -H ${APPname} 2>/dev/null
+ busybox adduser -u ${UGID} -h /home/${APPname} -G ${APPname} -D -H ${APPname} 2>/dev/null
  if [ "$PREFIXDIR1" ];then
   grep "^${APPname}:" /etc/passwd >> ${PREFIXDIR1}/etc/passwd
   grep "^${APPname}:" /etc/shadow >> ${PREFIXDIR1}/etc/shadow

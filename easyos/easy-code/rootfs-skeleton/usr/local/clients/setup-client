@@ -74,6 +74,7 @@
 #20240511 fix for official chromium d/l.
 #20240511 the official chromium pkg puts up msg that google api keys missing. disable. 20240513 revert.
 #20240515 handle ungoogled chromium.
+#20240703 predetermined gid and uid.
 
 APPname="${1/=*/}"  #ex: seamonkey
 APPflag="${1/*=/}" #ex: true
@@ -255,9 +256,11 @@ CHGflg=0 #20210916  20210918 revert 20210917...
 if [ ! "$PREFIXDIR2" ];then #20210915 dir2sfs is creating an sfs, this code has to be delayed, see create-client-environment below.
  #create user, no login...
  #when running from woofQ, host needs to be easyos, so that /etc/passwd and /etc/group are compatible...
+ #20240703 predetermined uid and gid (ex: 28546)...
+ UGID="$(echo 2$((64#${APPname})) | head -c 5 | xargs -I XXX printf %-5s XXX | tr ' ' 0)"
  grep -q "^${APPname}:" ${PREFIXDIR1}/etc/group
  if [ $? -ne 0 ];then
-  busybox addgroup ${APPname} 2>/dev/null
+  busybox addgroup -g ${UGID} ${APPname} 2>/dev/null
   if [ "$PREFIXDIR1" ];then
    sed -i "/^${APPname}:/d" ${PREFIXDIR1}/etc/group
    grep "^${APPname}:" /etc/group >> ${PREFIXDIR1}/etc/group
@@ -268,7 +271,7 @@ if [ ! "$PREFIXDIR2" ];then #20210915 dir2sfs is creating an sfs, this code has 
  grep -q "^${APPname}:" ${PREFIXDIR1}/etc/passwd
  if [ $? -ne 0 ];then
   # -S create a system user.  -D don't assign a password.  -H don't create a home directory.
-  busybox adduser -h /home/${APPname} -G ${APPname} -D -H ${APPname} 2>/dev/null
+  busybox adduser -u ${UGID} -h /home/${APPname} -G ${APPname} -D -H ${APPname} 2>/dev/null #20240703
   if [ "$PREFIXDIR1" ];then
    grep "^${APPname}:" /etc/passwd >> ${PREFIXDIR1}/etc/passwd
    grep "^${APPname}:" /etc/shadow >> ${PREFIXDIR1}/etc/shadow
