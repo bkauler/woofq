@@ -326,6 +326,7 @@
 #20240504 hack fix oe cmake (packages-templates was supposed to)
 #20240511 if building with chromium-skeleton, copy latest version. 20240513 fix chromium-skeleton
 #20240606 scarthgap, have libreoffice pet, with all translations.
+#20240703 streamtuner2 run as a client.
 
 export LANG=C #faster.
 
@@ -4035,6 +4036,35 @@ Manager' can be used to enable or disable running as a non-root client."
   echo '...ok, hexchat will not run as a client.'
  fi
 fi
+
+#20240703
+if [ -e rootfs-complete/usr/bin/streamtuner2 ];then
+ SPOTAPPS='xxx'
+ if [ "$STREAMTUNERASCLIENT" == "" ];then
+  STREAMTUNERASCLIENT='ask'
+ fi
+ if [ "$STREAMTUNERASCLIENT" == "ask" ];then
+  echo
+  echo "Type any character then ENTER if you want StreamTuner2 to run as a client,
+or just ENTER not to. Note, in a running ${DISTRO_NAME_NORMAL} 'Menu->System->Login & Security
+Manager' can be used to enable or disable running as a non-root client."
+  echo
+  echo -n "ENTER only to run StreamTuner2 as root (any other char key for client): "
+  read SPOTAPPS
+ fi
+ if [ "$STREAMTUNERASCLIENT" == "no" ];then
+  SPOTAPPS=""
+ fi
+ if [ "$SPOTAPPS" ];then
+  STREAMTUNERASCLIENT='yes'
+  ./rootfs-complete/usr/local/clients/setup-client 'streamtuner2=true'
+  echo '...ok, streamtuner2 will run as client "streamtuner2".'
+ else
+  echo 'streamtuner2=false' >> rootfs-complete/root/.clients-status
+  echo '...ok, streamtuner2 will not run as a client.'
+ fi
+fi
+
 
 #130720 add QtWeb... 130723 add opera... 130821 add firefox... 140215 chromium... 20211213 remove chromium
 for AINTERNETAPP in QtWeb opera #firefox chromium
