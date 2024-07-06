@@ -326,7 +326,7 @@
 #20240504 hack fix oe cmake (packages-templates was supposed to)
 #20240511 if building with chromium-skeleton, copy latest version. 20240513 fix chromium-skeleton
 #20240606 scarthgap, have libreoffice pet, with all translations.
-#20240703 streamtuner2 run as a client.
+#20240703 streamtuner2 run as a client. 20240706 indexgen.sh no longer exists.
 
 export LANG=C #faster.
 
@@ -2495,8 +2495,8 @@ if [ "$WOOF_HOSTARCH" = "$WOOF_TARGETARCH" ];then #111123
  echo
  echo "Constructing configuration files for JWM, Fvwm95, IceWM, openbox..."
  chroot rootfs-complete /usr/sbin/fixmenus
- #generate help index...
- chroot rootfs-complete /usr/sbin/indexgen.sh
+ ##generate help index... 20240706 no longer used...
+ #chroot rootfs-complete /usr/sbin/indexgen.sh
  #...note, rootfs-skeleton/pinstall.sh pre-processes the help files.
 fi
 
