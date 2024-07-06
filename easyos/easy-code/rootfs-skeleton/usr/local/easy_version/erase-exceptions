@@ -16,6 +16,7 @@
 #20230513 preserve gnupg keys.
 #20230523 fix preserve appimages and flatpaks.
 #20230607 preserve smartgit setup. 20230612 save more smartgit
+#20240706 more browsers. more client apps.
 
 export TEXTDOMAIN=erase-exceptions
 export OUTPUT_CHARSET=UTF-8
@@ -65,6 +66,7 @@ export EVC_EXC_DLG="<window title=\"$(gettext 'Easy Version Control: erase excep
    ${CUPS_XML}
    <checkbox><label>$(gettext 'Installed AppImages home-folder and run script')</label><variable>EXC20</variable></checkbox>
    <checkbox><label>$(gettext 'Installed Flatpaks home-folder and run script')</label><variable>EXC21</variable></checkbox>
+   <checkbox><label>$(gettext 'Other client home-folders (ex: Claws, Hexchat)')</label><variable>EXC30</variable></checkbox>
    <hbox>
     <text><label>$(gettext 'Click the OK button:')</label></text>
     <button><label>$(gettext 'OK')</label><action>exit:save</action></button>
@@ -119,8 +121,8 @@ if [ "$EXIT" == "save" ];then
  if [ "$EXC1" == "true" ];then #Web browser profile
   cp -a /root/.mozilla /mnt/wkg/sfs/settings/erase-exceptions/root/
   rm -rf /mnt/wkg/sfs/settings/erase-exceptions/root/.mozilla/seamonkey/*.defaultOLD
-  #20210930 browsers running non-root...
-  for aB in seamonkey firefox chromium chrome
+  #20210930 browsers running non-root... 20240705...
+  for aB in seamonkey firefox chromium chrome vivaldi ungoogled
   do
    if [ -d /home/${aB} ];then
     if [ -d /home/${aB}/.cache ];then #20211123
@@ -220,6 +222,18 @@ if [ "$EXIT" == "save" ];then
    cp -a -f /root/.local/share/flatpak /mnt/wkg/sfs/settings/erase-exceptions/root/.local/share/
   fi
  fi
+ if [ "$EXC30" == "true" ];then #20240706
+  mkdir -p /mnt/wkg/sfs/settings/erase-exceptions/home
+  for aC in `find /home -mindepth 1 -maxdepth 1 -type d | tr '\n' ' '`
+  do
+   [ -d /mnt/wkg/sfs/settings/erase-exceptions${aC} ] && continue
+   [ "${aC}" == "/home/rover" ] && continue
+   [ "${aC}" == "/home/spot" ] && continue
+   [ "${aC}" == "/home/zeus" ] && continue
+   [  ! -f /usr/bin/${aC##*/}.bin0  ] && continue #flatpak or appimage
+   cp -a ${aC} /mnt/wkg/sfs/settings/erase-exceptions/home/
+  done
+ fi
  if [ "$EXC22" == "true" ];then #20230513 gnupg keys
   if [ -d /root/.gnupg ];then
    cp -a /root/.gnupg /mnt/wkg/sfs/settings/erase-exceptions/root/
@@ -253,7 +267,7 @@ if [ "$EXIT" == "save" ];then
  done
  #20230523 preserve new users...
  mkdir -p /mnt/wkg/sfs/settings/erase-exceptions/etc
- for aF in group gshadow password shadow
+ for aF in group gshadow passwd shadow
  do
   cp -a -f /etc/${aF} /mnt/wkg/sfs/settings/erase-exceptions/etc/
  done
