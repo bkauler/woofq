@@ -11,6 +11,7 @@
 #190112 fix for "TAGPREFIXFIX_: command not found"
 #20201117 esmourguit: gettext'ed Yes No buttons.
 #20210612 replaced all yaf-splash with gtkdialog-splash. note, still ok to kill yaf-splash, see gtkdialog-splash script.
+#20240703 bug fix. ref: https://forum.puppylinux.com/viewtopic.php?t=10710
 
 export TEXTDOMAIN=pupdialog
 export OUTPUT_CHARSET=UTF-8
@@ -123,7 +124,7 @@ do
  case $AFIELD in
   --[a-z]*)
    [ "$AVAL" == "" ] && AVAL="true" #so as not empty.
-   eval "${AVAR}='${AVAL}'"         #evaluate previous param.
+   eval "${AVAR}=\"${AVAL}\""         #evaluate previous param. 20240703 fix
    AVAR="`echo -n "$AFIELD"| tr -d '-' | tr '[a-z]' '[A-Z]'`"
    AVAL=''
   ;;
