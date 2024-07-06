@@ -13,6 +13,7 @@
 #20230527 check in case copied in files to /files/apps/$1  20230528 revert (see blog post). 20230606 fix.
 #20240118 now have global /etc/gtk-3.0/settings.ini
 #20240703 predetermined gid and uid.
+#20240705 adduser/addgroup problem pre-existing entries in host /etc/passwd,group
 
 [ ! "$1" ] && exit 1
 APPname="$1"
@@ -68,26 +69,49 @@ if [ ! -e ${PREFIXDIR1}/home/${APPname}/.config/user-dirs.dirs ];then #20211206
 fi
 
 #20240703 predetermined uid and gid (ex: 28546)...
-UGID="$(echo 2$((64#${APPname})) | head -c 5 | xargs -I XXX printf %-5s XXX | tr ' ' 0)"
+#20240705 APPname=streamtuner2, $((64#$APPname)) generates -2968389580449061182, need sed...
+UGID="$(echo -n 2$((64#${APPname})) | sed -e 's%[^0-9]%%g' | head -c 5 | xargs -I XXX printf %-5s XXX | tr ' ' 0)"
+grep -q -F ":${UGID}:" ${PREFIXDIR1}/etc/group ${PREFIXDIR1}/etc/passwd #20240704 precaution
+if [ $? -eq 0 ];then
+ #very unlikely to come here, but just in case...
+ UGID="${UGID/2/3}" #ex: 28526 becomes 38526
+fi
 
 #run ${APPname} as user ${APPname}, and group ${APPname}...
 grep -q "^${APPname}:" ${PREFIXDIR1}/etc/group
 if [ $? -ne 0 ];then
- busybox addgroup -g ${UGID} ${APPname} 2>/dev/null #20240703
+ #20240705 woofq: host /etc/group may already have entry...
  if [ "$PREFIXDIR1" ];then
+  cp -a -f /etc/group /etc/groupTMP
+  cp -a -f /etc/gshadow /etc/gshadowTMP
+  sed -i "/^${APPname}:/d" /etc/group
+  sed -i "/^${APPname}:/d" /etc/gshadow
   sed -i "/^${APPname}:/d" ${PREFIXDIR1}/etc/group
-  grep "^${APPname}:" /etc/group >> ${PREFIXDIR1}/etc/group
   sed -i "/^${APPname}:/d" ${PREFIXDIR1}/etc/gshadow
+  busybox addgroup -g ${UGID} ${APPname} 2>/dev/null
+  grep "^${APPname}:" /etc/group >> ${PREFIXDIR1}/etc/group
   grep "^${APPname}:" /etc/gshadow >> ${PREFIXDIR1}/etc/gshadow
+ else
+  busybox addgroup -g ${UGID} ${APPname} 2>/dev/null #20240703
  fi
 fi
 grep -q "^${APPname}:" ${PREFIXDIR1}/etc/passwd
 if [ $? -ne 0 ];then
  # -S create a system user.  -D don't assign a password.  -H don't create a home directory.
- busybox adduser -u ${UGID} -h /home/${APPname} -G ${APPname} -D -H ${APPname} 2>/dev/null
+ #20240705 woofq: host /etc/passwd may already have entry...
+ # -S create a system user.  -D don't assign a password.  -H don't create a home directory.
  if [ "$PREFIXDIR1" ];then
+  cp -a -f /etc/passwd /etc/passwdTMP
+  cp -a -f /etc/shadow /etc/shadowTMP
+  sed -i "/^${APPname}:/d" /etc/passwd
+  sed -i "/^${APPname}:/d" /etc/shadow
+  sed -i "/^${APPname}:/d" ${PREFIXDIR1}/etc/passwd
+  sed -i "/^${APPname}:/d" ${PREFIXDIR1}/etc/shadow
+  busybox adduser -u ${UGID} -h /home/${APPname} -G ${APPname} -D -H ${APPname} 2>/dev/null #20240703
   grep "^${APPname}:" /etc/passwd >> ${PREFIXDIR1}/etc/passwd
   grep "^${APPname}:" /etc/shadow >> ${PREFIXDIR1}/etc/shadow
+ else
+  busybox adduser -u ${UGID} -h /home/${APPname} -G ${APPname} -D -H ${APPname} 2>/dev/null #20240703
  fi
  #20211206 note, initrd expects these gids fscryptgrp=118, filesgrp=122...
  busybox addgroup ${APPname} fscryptgrp 2>/dev/null #20210915
@@ -121,6 +145,16 @@ fi
 #if [ $CHGflg -eq 1 ];then
 if [ "$(stat -c %U ${PREFIXDIR1}/home/${APPname})" != "${APPname}" ];then
  chown -h -R ${APPname}:${APPname} ${PREFIXDIR1}/home/${APPname} #20211205 added -h
+fi
+
+#20240705 restore host...
+if [ -f /etc/groupTMP ];then
+ mv -f /etc/groupTMP /etc/group
+ mv -f /etc/gshadowTMP /etc/gshadow
+fi
+if [ -f /etc/passwdTMP ];then
+ mv -f /etc/passwdTMP /etc/passwd
+ mv -f /etc/shadowTMP /etc/shadow
 fi
 
 #20230528 mostly revert... 20230606 fix...

@@ -74,7 +74,9 @@
 #20240511 fix for official chromium d/l.
 #20240511 the official chromium pkg puts up msg that google api keys missing. disable. 20240513 revert.
 #20240515 handle ungoogled chromium.
-#20240703 predetermined gid and uid.
+#20240703 predetermined gid and uid. 20240704 precaution.
+#20240705 adduser/addgroup problem pre-existing entries in host /etc/passwd,group
+#20240705 fix create /files/apps/<name> when called in woofq.
 
 APPname="${1/=*/}"  #ex: seamonkey
 APPflag="${1/*=/}" #ex: true
@@ -253,28 +255,51 @@ CHGflg=0 #20210916  20210918 revert 20210917...
  fi
 #fi
 
+UGID='' #20240706
 if [ ! "$PREFIXDIR2" ];then #20210915 dir2sfs is creating an sfs, this code has to be delayed, see create-client-environment below.
  #create user, no login...
  #when running from woofQ, host needs to be easyos, so that /etc/passwd and /etc/group are compatible...
  #20240703 predetermined uid and gid (ex: 28546)...
- UGID="$(echo 2$((64#${APPname})) | head -c 5 | xargs -I XXX printf %-5s XXX | tr ' ' 0)"
+ #20240705 APPname=streamtuner2, $((64#$APPname)) generates -2968389580449061182, need sed...
+ UGID="$(echo -n 2$((64#${APPname})) | sed -e 's%[^0-9]%%g' | head -c 5 | xargs -I XXX printf %-5s XXX | tr ' ' 0)"
+ grep -q -F ":${UGID}:" ${PREFIXDIR1}/etc/group ${PREFIXDIR1}/etc/passwd #20240704 precaution
+ if [ $? -eq 0 ];then
+  #very unlikely to come here, but just in case...
+  UGID="${UGID/2/3}" #ex: 28526 becomes 38526
+ fi
  grep -q "^${APPname}:" ${PREFIXDIR1}/etc/group
  if [ $? -ne 0 ];then
-  busybox addgroup -g ${UGID} ${APPname} 2>/dev/null
+  #20240705 woofq: host /etc/group may already have entry...
   if [ "$PREFIXDIR1" ];then
+   cp -a -f /etc/group /etc/groupTMP
+   cp -a -f /etc/gshadow /etc/gshadowTMP
+   sed -i "/^${APPname}:/d" /etc/group
+   sed -i "/^${APPname}:/d" /etc/gshadow
    sed -i "/^${APPname}:/d" ${PREFIXDIR1}/etc/group
-   grep "^${APPname}:" /etc/group >> ${PREFIXDIR1}/etc/group
    sed -i "/^${APPname}:/d" ${PREFIXDIR1}/etc/gshadow
+   busybox addgroup -g ${UGID} ${APPname} 2>/dev/null
+   grep "^${APPname}:" /etc/group >> ${PREFIXDIR1}/etc/group
    grep "^${APPname}:" /etc/gshadow >> ${PREFIXDIR1}/etc/gshadow
+  else
+   busybox addgroup -g ${UGID} ${APPname} 2>/dev/null
   fi
  fi
  grep -q "^${APPname}:" ${PREFIXDIR1}/etc/passwd
  if [ $? -ne 0 ];then
+  #20240705 woofq: host /etc/passwd may already have entry...
   # -S create a system user.  -D don't assign a password.  -H don't create a home directory.
-  busybox adduser -u ${UGID} -h /home/${APPname} -G ${APPname} -D -H ${APPname} 2>/dev/null #20240703
   if [ "$PREFIXDIR1" ];then
+   cp -a -f /etc/passwd /etc/passwdTMP
+   cp -a -f /etc/shadow /etc/shadowTMP
+   sed -i "/^${APPname}:/d" /etc/passwd
+   sed -i "/^${APPname}:/d" /etc/shadow
+   sed -i "/^${APPname}:/d" ${PREFIXDIR1}/etc/passwd
+   sed -i "/^${APPname}:/d" ${PREFIXDIR1}/etc/shadow
+   busybox adduser -u ${UGID} -h /home/${APPname} -G ${APPname} -D -H ${APPname} 2>/dev/null #20240703
    grep "^${APPname}:" /etc/passwd >> ${PREFIXDIR1}/etc/passwd
    grep "^${APPname}:" /etc/shadow >> ${PREFIXDIR1}/etc/shadow
+  else
+   busybox adduser -u ${UGID} -h /home/${APPname} -G ${APPname} -D -H ${APPname} 2>/dev/null #20240703
   fi
   #20211206 note, initrd expects these gids fscryptgrp=118, filesgrp=122...
   busybox addgroup ${APPname} fscryptgrp 2>/dev/null #20210915
@@ -315,6 +340,7 @@ if [ ! "$PREFIXDIR2" ];then #20210915 dir2sfs is creating an sfs, this code has 
   fi
   chown -h -H -R ${APPname}:${APPname} ${PREFIXDIR1}/home/${APPname} #-H Traverse symlinks on command line only
  fi
+ 
 fi
 
 #161231
@@ -988,6 +1014,15 @@ if [ -z "$APPspec" ];then
   rm -f ${PREFIXDIR1}/usr/bin/${APPname}.bin 2>/dev/null
   rm -f ${PREFIXDIR1}/usr/bin/${APPname}.bin0 2>/dev/null
  fi
+ #20240706 restore host...
+ if [ -f /etc/groupTMP ];then
+  mv -f /etc/groupTMP /etc/group
+  mv -f /etc/gshadowTMP /etc/gshadow
+ fi
+ if [ -f /etc/passwdTMP ];then
+  mv -f /etc/passwdTMP /etc/passwd
+  mv -f /etc/shadowTMP /etc/shadow
+ fi
  exit 1
 fi
 APPpath="$(dirname "$APPspec" | sed -e "s%^${PREFIXDIR1}/%/%")"
@@ -1007,6 +1042,15 @@ esac
 if [ $? -ne 0 ];then
  if [ ! "$PREFIXDIR2" ];then #20210915
   sed -i -e "/^${APPname}=/d" ${PREFIXDIR1}/root/.clients-status #remove.
+ fi
+ #20240706 restore host...
+ if [ -f /etc/groupTMP ];then
+  mv -f /etc/groupTMP /etc/group
+  mv -f /etc/gshadowTMP /etc/gshadow
+ fi
+ if [ -f /etc/passwdTMP ];then
+  mv -f /etc/passwdTMP /etc/passwd
+  mv -f /etc/shadowTMP /etc/shadow
  fi
  exit 1
 fi
@@ -1036,17 +1080,33 @@ if [ ! "$PREFIXDIR2" ];then #20210918 if an sfs, need to delay this...
  
   #20230617 previously did this in 'appimage' and 'flatpak' scripts, but want 
   # for all apps that run non-root...
-  if [ "${PREFIXDIR1}" == "" ];then
-   #not called from 3buildeasydistro.
-   if [ ! -d /files/apps/${APPname} ];then #precaution.
+  #20240705 can now do from woofq...
+  #20240706 note: created in woofq, then fixlayers in intrd will have to copy to /files symlink.
+  if [ "${PREFIXDIR1}" == "" -o -n "${UGID}" ];then
+   if [ ! -d ${PREFIXDIR1}/files/apps/${APPname} ];then #precaution.
     #create a path for optional open/save files for this app
-    mkdir -p /files/apps/${APPname}
-    chown ${APPname}:${APPname} /files/apps/${APPname}
+    mkdir -p ${PREFIXDIR1}/files/apps/${APPname}
+    #20240705 note: don't need this test now, as restoring below...
+    #if [ -n "${UGID}" ];then
+    # chown ${UGID}:${UGID} ${PREFIXDIR1}/files/apps/${APPname}
+    #else
+     chown ${APPname}:${APPname} ${PREFIXDIR1}/files/apps/${APPname}
+    #fi
     #for extra security, and setgid
-    chmod 2700 /files/apps/${APPname}
+    chmod 2700 ${PREFIXDIR1}/files/apps/${APPname}
    fi
   fi
   
  fi
+fi
+
+#20240706 restore host...
+if [ -f /etc/groupTMP ];then
+ mv -f /etc/groupTMP /etc/group
+ mv -f /etc/gshadowTMP /etc/gshadow
+fi
+if [ -f /etc/passwdTMP ];then
+ mv -f /etc/passwdTMP /etc/passwd
+ mv -f /etc/shadowTMP /etc/shadow
 fi
 ###end###

@@ -53,6 +53,7 @@
 #20240615 check previous chromium with different uid and gid.
 #20240616 fix updating kirkstone to scarthgap issues. 20240617 fix.
 #20240618 new $6 passed prevCOMPAT
+#20240706 predetermined uid and gid; fix update before 6.0.4
 
 WKG_DRV=$1 #ex: sda
 WKG_DEV=$2 #ex: sda2
@@ -640,25 +641,71 @@ if [ -d /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/lib/chromium ];then
   rm -f /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/bin/chromium.bin0 2>/dev/null
   sed -i '/\|chromium\|/d' /mnt/${WKG_DEV}/${WKG_DIR}.session/root/.packages/user-installed-packages 2>/dev/null
   rm -f /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/share/applications/chromium.desktop 2>/dev/null
- 
-  #20240615 check previous chromium with different uid and gid...
-  #i think might have this situation with previous easyos that had firefox builtin.
-  if [ -f /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/passwd ];then
-   UIDGIDa="$(grep '^chromium:' /easy_ro/easy_sfs/etc/passwd | cut -f 3,4 -d ':')"
-   UIDGIDb="$(grep '^chromium:' /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/passwd | cut -f 3,4 -d ':')"
-   if [ "$UIDGIDa" != "$UIDGIDb" ];then
-    sed -i '/^chromium:/d' /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/passwd
-    grep '^chromium:' /easy_ro/easy_sfs/etc/passwd >> /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/passwd
-    if [ -f /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/group ];then
-     sed -i '/^chromium:/d' /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/group
-     grep '^chromium:' /easy_ro/easy_sfs/etc/group >> /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/group
+  
+  #20240706 generic fix, see below...
+  ##20240615 check previous chromium with different uid and gid...
+  ##i think might have this situation with previous easyos that had firefox builtin.
+  #if [ -f /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/passwd ];then
+  # UIDGIDa="$(grep '^chromium:' /easy_ro/easy_sfs/etc/passwd | cut -f 3,4 -d ':')"
+  # UIDGIDb="$(grep '^chromium:' /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/passwd | cut -f 3,4 -d ':')"
+  # if [ "$UIDGIDa" != "$UIDGIDb" ];then
+  #  sed -i '/^chromium:/d' /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/passwd
+  #  grep '^chromium:' /easy_ro/easy_sfs/etc/passwd >> /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/passwd
+  #  if [ -f /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/group ];then
+  #   sed -i '/^chromium:/d' /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/group
+  #   grep '^chromium:' /easy_ro/easy_sfs/etc/group >> /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/group
+  #  fi
+  #  if [ -d /mnt/${WKG_DEV}/${WKG_DIR}.session/home/chromium ];then
+  #   chown -R ${UIDGIDa} /mnt/${WKG_DEV}/${WKG_DIR}.session/home/chromium
+  #  fi
+  # fi
+  #fi
+  
+ fi
+fi
+
+#20240706 easy 6.0.4 now has predetermined uid and gid. older easy will need fix...
+if [ -n "$prevVER" ];then
+ #3buildeasydistro creates these, via setup-client...
+ for APa in `find /easy_ro/easy_sfs/files/apps -mindepth 1 -maxdepth 1 -type d | tr '\n' ' '`
+ do
+  APn="${APa##*/}"
+  if [ ! -d /mnt/${WKG_DEV}/${WKG_DIR}files/apps/${APn} ];then
+   cp -a ${APa} /mnt/${WKG_DEV}/${WKG_DIR}files/apps/
+  fi
+ done
+ if [ -f /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/passwd ];then
+  while read PWa
+  do
+   echo -n "${PWa}" > /PWa
+   PWs="$(cut -f 1-4 -d ':' /PWa)"
+   PWn="$(cut -f 1 -d ':' /PWa)"
+   grep -q -F "${PWs}:" /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/passwd
+   if [ $? -ne 0 ];then
+    sed -i "/^${PWn}:/d" /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/passwd
+    echo "${PWa}" >> /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/passwd
+    UGIDa="$(cut -f 3,4 -d ':' /PWa)" #ex: 22068:22068
+    if [ -d /mnt/${WKG_DEV}/${WKG_DIR}.session/home/${PWn} ];then
+     chown -R ${UGIDa} /mnt/${WKG_DEV}/${WKG_DIR}.session/home/${PWn}
     fi
-    if [ -d /mnt/${WKG_DEV}/${WKG_DIR}.session/home/chromium ];then
-     chown -R ${UIDGIDa} /mnt/${WKG_DEV}/${WKG_DIR}.session/home/chromium
+    if [ -d /mnt/${WKG_DEV}/${WKG_DIR}files/apps/${PWn} ];then
+     chown -R ${UGIDa} /mnt/${WKG_DEV}/${WKG_DIR}files/apps/${PWn}
     fi
    fi
-  fi
-  
+  done < /easy_ro/easy_sfs/etc/passwd
+ fi
+ if [ -f /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/group ];then
+  while read PWa
+  do
+   echo -n "${PWa}" > /PWa
+   PWs="$(cut -f 1-3 -d ':' /PWa)"
+   PWn="$(cut -f 1 -d ':' /PWa)"
+   grep -q -F "${PWs}:" /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/group
+   if [ $? -ne 0 ];then
+    sed -i "/^${PWn}:/d" /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/group
+    echo "${PWa}" >> /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/group
+   fi
+  done < /easy_ro/easy_sfs/etc/group
  fi
 fi
 
