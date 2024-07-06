@@ -9,6 +9,7 @@
 #20230617 note: set-client now has already created /files/apps/<appname>
 #20231213 firefox: fix start 2nd instance. ref: https://discourse.mozilla.org/t/how-does-firefox-discover-a-running-instance-to-connect-to/109957
 #20240120 fix start and stop client dbus-daemon
+#20240706 increaseping wait.
 
 if [ "$(whoami)" != "root" ];then
  if [ -x /usr/bin/sudo-sh ];then
@@ -408,8 +409,8 @@ if [ "$EXIT" != "OK" ];then
  exit 0
 fi
 
-#need internet connection... 20230517 fix
-ping -4 -c 1 -w 5 google.com > /dev/null 2>&1
+#need internet connection... 20230517 fix 20240706 bump wait 5 to 8
+ping -4 -c 1 -w 8 google.com > /dev/null 2>&1
 if [ $? -ne 0 ];then
  M5="$(gettext 'An Internet connection is required to download an AppImage.')"
  popup "terminate=ok background=#ff8080 level=top process=wait|<big>${M5}</big>"

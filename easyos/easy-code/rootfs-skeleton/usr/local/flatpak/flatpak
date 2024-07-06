@@ -36,8 +36,8 @@ mkdir -p /tmp/flatpak
 mkdir -p /mnt/wkg/flatpak
 . /root/.packages/build-choices #20230502 has EOS_FSCRYPT_VER
 
-start_func() { #20230516
- ping -4 -c 1 -w 5 google.com > /dev/null 2>&1
+start_func() { #20230516 20240706 bump ping wait 5 to 8
+ ping -4 -c 1 -w 8 google.com > /dev/null 2>&1
  if [ $? -ne 0 ];then
   M3a="$(gettext 'ERROR: An Internet connection is required.')"
   popup "terminate=ok background=#ff8080 level=top process=wait|<big>${M3a}</big>"
