@@ -14,6 +14,7 @@
 # v431JP suppress some locale if no X
 # dev431JPbeta2: man [section] name 
 #120317 L18L: enable correct Character Encoding: UTF-8
+#20240710 syntax fix... ref: https://forum.puppylinux.com/viewtopic.php?p=125319#p125319
 
 CREDIT="man for puppy linux - 22 Dec 2009"
 if [ -x /usr/local/bin/man ];then
@@ -176,6 +177,8 @@ fi
 #exec defaulthtmlviewer http://threads.seas.gwu.edu/cgi-bin/man2web?program=${NAME}
 #v431 fix thanks to technosaurus...
 [ "${SECTION}" != "" ] && exec $HTMLVIEWER "http://linux.die.net/man/${SECTION}/${NAME}"
-exec $HTMLVIEWER "http://www.google.com/search?&q=man+\"${NAME}\"+site:linux.die.net&btnI=Search"
- 
+#20240710 syntax fix... ref: https://forum.puppylinux.com/viewtopic.php?p=125319#p125319
+#exec $HTMLVIEWER "http://www.google.com/search?&q=man+\"${NAME}\"+site:linux.die.net&btnI=Search"
+exec $HTMLVIEWER "http://www.google.com/search?q=man+\"${NAME}\"+site:linux.die.net&btnI=Search"
+
 ###END###
