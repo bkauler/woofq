@@ -5,6 +5,7 @@
 # hence here. ex: /usr/sbin/bootmanager
 #20230630 type-hint="6", ref: https://oldforum.puppylinux.com/viewtopic.php?t=115554
 #20231218 added cancel button.
+#20240713 remove >/dev/console
 
 export TEXTDOMAIN=sudo-sh
 export OUTPUT_CHARSET=UTF-8
@@ -82,8 +83,8 @@ if [ $DISPLAY ];then
   exit 1
  fi
 else
- echo >/dev/console
- echo -n "$(gettext 'Type admin password required to run this app:') " >/dev/console
+ echo #>/dev/console
+ echo -n "$(gettext 'Type admin password required to run this app:') " #>/dev/console
  read -t 30 rootPW
 fi
 
