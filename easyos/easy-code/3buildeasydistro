@@ -327,6 +327,7 @@
 #20240511 if building with chromium-skeleton, copy latest version. 20240513 fix chromium-skeleton
 #20240606 scarthgap, have libreoffice pet, with all translations.
 #20240703 streamtuner2 run as a client. 20240706 indexgen.sh no longer exists.
+#20240715 remove d/l seamonkey langpack.
 
 export LANG=C #faster.
 
@@ -4190,64 +4191,65 @@ if [ "$SMPATH" ];then
  done
 fi
 
-grep -q '^seamonkey-skeleton' ../woof-installed-packages #20220806
-if [ $? -ne 0 ];then
- #190113 download and install seamonkey language-pack...
- mkdir -p seamonkey-langpacks
- if [ "$SMPATH" ];then
-  #200220 problem have 2.53.1b1 but folder is 2.53.1...
-  #SMVER="$(find rootfs-complete/${SMPATH} -mindepth 1 -maxdepth 1 -type d -name 'seamonkey-*' | head -n 1 | rev | cut -f 1 -d '-' | rev)"
-  SMVER="$(grep '|seamonkey|' ../woof-installed-packages | head -n 1 | cut -f 3 -d '|' | cut -f 1 -d '-')"
-  SMDL=""
-  case "$DEFAULTLANG1" in
-   cs|de|fr|hu|it|ja|lt|nl|pl|ru|sk) SMDL="${DEFAULTLANG1}" ;;
-   en) SMDL='en-GB' ;;
-   es) SMDL='es-AR es-ES' ;;
-   nb|nn) aSMDL="nb-NO" ;; #20210128
-   pt) SMDL='pt-PT' ;;
-   sv) SMDL='sv-SE' ;;
-   zh) SMDL='zh-CN zh-TW' ;;
-  esac
-  for aSMDL in $SMDL
-  do
-   if [ ! -f seamonkey-langpacks/seamonkey-${SMVER}.${aSMDL}.langpack.xpi ];then
-    echo
-    smdlflg=''
-    if [ "$ASKDLSMLANGPACK" != "no" ];then #20210128
-     echo "Do you want to download a ${aSMDL} langpack for SeaMonkey?"
-     echo "Requires Internet access."
-     echo -n "Press ENTER only for yes: "
-     read smdlflg
-    fi
-    if [ "$smdlflg" == "" ];then
-     cd seamonkey-langpacks
-     download_file https://archive.mozilla.org/pub/seamonkey/releases/${SMVER}/langpack/seamonkey-${SMVER}.${aSMDL}.langpack.xpi
-     cd .. 
-    fi
-   fi
-   if [ -f seamonkey-langpacks/seamonkey-${SMVER}.${aSMDL}.langpack.xpi ];then
-    #echo "  installing SM ${aSMDL} langpack to rootfs-complete/${SMPATH}/seamonkey-${SMVER}/extensions"
-    #the name needs to be in this format: langpack-en-GB@seamonkey.mozilla.org.xpi
-    #cp -a -f seamonkey-langpacks/seamonkey-${SMVER}.${aSMDL}.langpack.xpi rootfs-complete/${SMPATH}/seamonkey-${SMVER}/extensions/langpack-${aSMDL}@seamonkey.mozilla.org.xpi
-    #...no, global install, it is disabled at startup. install here, it is enabled at startup...
-    SMPREFDIR="$(dirname $SMPREFS)"
-    echo "Installing SM ${aSMDL} langpack to ${SMPREFDIR}/extensions"
-    mkdir -p ${SMPREFDIR}/extensions #ex: rootfs-complete/root/.mozilla/seamonkey/3o1ptd5r.default/extensions
-    cp -a -f seamonkey-langpacks/seamonkey-${SMVER}.${aSMDL}.langpack.xpi ${SMPREFDIR}/extensions/langpack-${aSMDL}@seamonkey.mozilla.org.xpi
-    #activate it... 
-    if ! grep 'extensions\.ui\.locale' ${SMPREFS} >/dev/null;then
-     echo "user_pref(\"general.useragent.locale\", \"${aSMDL}\");
-user_pref(\"extensions.ui.dictionary.hidden\", true);
-user_pref(\"extensions.ui.lastCategory\", \"addons://list/locale\");
-user_pref(\"extensions.ui.locale.hidden\", false);" >> ${SMPREFS} #prefs.js
-     #getting addon to be enabled at first startup is tricky, this works...
-     #note, it may also be possible to preload user_pref("extensions.bootstrappedAddons", "{}");
-     echo "user_pref(\"extensions.autoDisableScopes\", 0);" >> ${SMPREFS}
-    fi
-   fi
-  done
- fi
-fi
+#20240715 remove...
+#grep -q '^seamonkey-skeleton' ../woof-installed-packages #20220806
+#if [ $? -ne 0 ];then
+# #190113 download and install seamonkey language-pack...
+# mkdir -p seamonkey-langpacks
+# if [ "$SMPATH" ];then
+#  #200220 problem have 2.53.1b1 but folder is 2.53.1...
+#  #SMVER="$(find rootfs-complete/${SMPATH} -mindepth 1 -maxdepth 1 -type d -name 'seamonkey-*' | head -n 1 | rev | cut -f 1 -d '-' | rev)"
+#  SMVER="$(grep '|seamonkey|' ../woof-installed-packages | head -n 1 | cut -f 3 -d '|' | cut -f 1 -d '-')"
+#  SMDL=""
+#  case "$DEFAULTLANG1" in
+#   cs|de|fr|hu|it|ja|lt|nl|pl|ru|sk) SMDL="${DEFAULTLANG1}" ;;
+#   en) SMDL='en-GB' ;;
+#   es) SMDL='es-AR es-ES' ;;
+#   nb|nn) aSMDL="nb-NO" ;; #20210128
+#   pt) SMDL='pt-PT' ;;
+#   sv) SMDL='sv-SE' ;;
+#   zh) SMDL='zh-CN zh-TW' ;;
+#  esac
+#  for aSMDL in $SMDL
+#  do
+#   if [ ! -f seamonkey-langpacks/seamonkey-${SMVER}.${aSMDL}.langpack.xpi ];then
+#    echo
+#    smdlflg=''
+#    if [ "$ASKDLSMLANGPACK" != "no" ];then #20210128
+#     echo "Do you want to download a ${aSMDL} langpack for SeaMonkey?"
+#     echo "Requires Internet access."
+#     echo -n "Press ENTER only for yes: "
+#     read smdlflg
+#    fi
+#    if [ "$smdlflg" == "" ];then
+#     cd seamonkey-langpacks
+#     download_file https://archive.mozilla.org/pub/seamonkey/releases/${SMVER}/langpack/seamonkey-${SMVER}.${aSMDL}.langpack.xpi
+#     cd .. 
+#    fi
+#   fi
+#   if [ -f seamonkey-langpacks/seamonkey-${SMVER}.${aSMDL}.langpack.xpi ];then
+#    #echo "  installing SM ${aSMDL} langpack to rootfs-complete/${SMPATH}/seamonkey-${SMVER}/extensions"
+#    #the name needs to be in this format: langpack-en-GB@seamonkey.mozilla.org.xpi
+#    #cp -a -f seamonkey-langpacks/seamonkey-${SMVER}.${aSMDL}.langpack.xpi rootfs-complete/${SMPATH}/seamonkey-${SMVER}/extensions/langpack-${aSMDL}@seamonkey.mozilla.org.xpi
+#    #...no, global install, it is disabled at startup. install here, it is enabled at startup...
+#    SMPREFDIR="$(dirname $SMPREFS)"
+#    echo "Installing SM ${aSMDL} langpack to ${SMPREFDIR}/extensions"
+#    mkdir -p ${SMPREFDIR}/extensions #ex: rootfs-complete/root/.mozilla/seamonkey/3o1ptd5r.default/extensions
+#    cp -a -f seamonkey-langpacks/seamonkey-${SMVER}.${aSMDL}.langpack.xpi ${SMPREFDIR}/extensions/langpack-${aSMDL}@seamonkey.mozilla.org.xpi
+#    #activate it... 
+#    if ! grep 'extensions\.ui\.locale' ${SMPREFS} >/dev/null;then
+#     echo "user_pref(\"general.useragent.locale\", \"${aSMDL}\");
+#user_pref(\"extensions.ui.dictionary.hidden\", true);
+#user_pref(\"extensions.ui.lastCategory\", \"addons://list/locale\");
+#user_pref(\"extensions.ui.locale.hidden\", false);" >> ${SMPREFS} #prefs.js
+#     #getting addon to be enabled at first startup is tricky, this works...
+#     #note, it may also be possible to preload user_pref("extensions.bootstrappedAddons", "{}");
+#     echo "user_pref(\"extensions.autoDisableScopes\", 0);" >> ${SMPREFS}
+#    fi
+#   fi
+#  done
+# fi
+#fi
 
 #20211201 if have bluegriffon, install langpack... 20211207 fix.
 if [ -f rootfs-complete/usr/bin/bluegriffon ];then
