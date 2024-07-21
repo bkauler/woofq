@@ -16,6 +16,7 @@
 #20231015 ignore path with "/releases/". ref: https://forum.puppylinux.com/viewtopic.php?p=100954#p100954
 #20231015 ignore path with space char. limine only recognizes vfat and ext2/3/4
 #20231116 bug fix wrong path.
+#20240721 fix 20231015 ignore "/releases/". improve finding easyos.
 
 export LANG=C
 
@@ -163,7 +164,7 @@ do
    do
     [ "$bLINUZ" == "" ] && continue
     [ "${bLINUZ:0:2}" == "/." ] && continue #20220712 ignore path starting with "."
-    if grep -q '/releases/' ${MOUNTPOINT}${bLINUZ};then continue; fi #20231015 ignore this path. 20231116
+    if grep -q '/releases/' <<<${MOUNTPOINT}${bLINUZ};then continue; fi #20231015 ignore this path. 20231116 20240721 fix.
     bPATH="${bLINUZ%/*}"
     
     ###find easyos###
@@ -183,6 +184,22 @@ do
       fi
       if [ -f ${MOUNTPOINT}${bPATH}/.session/etc/DISTRO_SPECS ];then
        . ${MOUNTPOINT}${bPATH}/.session/etc/DISTRO_SPECS
+      fi
+      #20240721 .session contents may be encrypted. can find DISTRO_SPECS inside initrd...
+      if [ -z "$DISTRO_NAME"  ];then
+       if [ -f ${MOUNTPOINT}${bPATH}/initrd -a ${MOUNTPOINT}${bPATH}/.session ];then
+        #...exist .session means this must be a easyos install.
+        cPWD="$(pwd)"
+        rm -rf /tmp/limine-installer/initrd-tree 2>/dev/null
+        mkdir /tmp/limine-installer/initrd-tree
+        cd /tmp/limine-installer/initrd-tree
+        cpio -id < ${MOUNTPOINT}${bPATH}/initrd
+        if [ -f etc/DISTRO_SPECS ];then
+         . etc/DISTRO_SPECS
+        fi
+        cd $cPWD
+        rm -rf /tmp/limine-installer/initrd-tree
+       fi
       fi
       if [ "$DISTRO_NAME" ];then
        echo "Found ${DISTRO_NAME} ${DISTRO_VERSION}"
