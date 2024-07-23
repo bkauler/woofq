@@ -328,6 +328,7 @@
 #20240606 scarthgap, have libreoffice pet, with all translations.
 #20240703 streamtuner2 run as a client. 20240706 indexgen.sh no longer exists.
 #20240715 remove d/l seamonkey langpack.
+#20240722 v7 limine.sys now limine-bios.sys
 
 export LANG=C #faster.
 
@@ -5975,10 +5976,10 @@ INTERFACE_RESOLUTION=800x600
    cp -a -f /usr/share/limine/BOOTIA32.EFI img_mntpt/EFI/BOOT/
   fi
  fi
- if [ "$USRMERGEconflict" == "no" ];then #20230909
-  cp -a -f rootfs-complete/usr/share/limine/limine.sys img_mntpt/
+ if [ "$USRMERGEconflict" == "no" ];then #20230909 20240722 v7 limine.sys now limine-bios.sys
+  cp -a -f rootfs-complete/usr/share/limine/limine-bios.sys img_mntpt/
  else
-  cp -a -f /usr/share/limine/limine.sys img_mntpt/
+  cp -a -f /usr/share/limine/limine-bios.sys img_mntpt/
  fi
 fi
 
