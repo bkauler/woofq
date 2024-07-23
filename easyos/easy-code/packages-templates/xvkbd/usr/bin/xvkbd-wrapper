@@ -1,9 +1,11 @@
 #!/bin/sh
 # BK 20151025
 #20230622 new tr console keyboard layout.
+#20240723 new polish
 
 XVKBDlangs="$(ls -1 /etc/X11/app-defaults | grep 'XVkbd\-' | grep -v -E 'common|small|strip' | cut -f 2 -d '-' | tr '\n' ' ')"
 # belgian danish fitaly french french2 german greek hebrew icelandic italian jisx6002 jisx6004 korean latin1 norwegian portuguese russian slovene spanish swedish swissgerman turkish uk 
+# 20240723 xvkbd 4.1 now has polish
 
 #console layout values: azerty be-latin1 br-abnt2 br-abnt br-latin1-abnt2 br-latin1-us by cf croat cz de de-latin1 dk dvorak dvorak-l dvorak-r es et fi fr gr hu101 hu il it jp106 lt mk nl no pl pt-latin1 ro ru se sg sk-qwerty sk-qwertz slovene srp sv-latin1 uk us wangbe (/lib/keymaps)
 xCONSKEYMAP="`cat /etc/keymap | cut -c 1-2`"
@@ -19,6 +21,7 @@ case $xCONSKEYMAP in
  it)  XVKEYMAP='italian' ;;
  #)  XVKEYMAP='korean' ;;
  no)  XVKEYMAP='norwegian' ;;
+ pl)  XVKEYMAP='polish' ;; #20240723
  pt)  XVKEYMAP='portuguese' ;;
  ru)  XVKEYMAP='russian' ;;
  sl)  XVKEYMAP='slovene' ;;

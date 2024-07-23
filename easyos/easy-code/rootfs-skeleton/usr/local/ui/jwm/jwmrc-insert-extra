@@ -2,6 +2,7 @@
 #20220214 insert icons so that they are in the right-side of tray.
 # called from /root/.xinitrc
 #20220331 bring back "Show desktop".
+#20240723 bring back virtual keyboard xvkbd.
 
 export TEXTDOMAIN=ui-jwm
 export OUTPUT_CHARSET=UTF-8
@@ -11,6 +12,11 @@ if [ ! -f /root/.jwm/tray-extra ];then
  mSHOW="$(gettext 'Show desktop')"
  echo "		<TrayButton popup=\"${mLOCK}\" icon=\"lock-screen48.png\">exec:/usr/local/apps/Xlock/AppRun</TrayButton>
 		<TrayButton popup=\"${mSHOW}\" icon=\"mini-desktop.xpm\">showdesktop</TrayButton>" > /root/.jwm/tray-extra
+ #20240723 xvkbd
+ if [ -e /usr/bin/xvkbd ];then
+  mXVKBD="$(gettext 'Virtual keyboard')"
+  echo "		<TrayButton popup=\"Virtual Keyboard\" icon=\"mini-keyboard.xpm\">exec:xvkbd-wrapper</TrayButton>" >> /root/.jwm/tray-extra
+ fi
 fi
 
 #insert file between two patterns...
