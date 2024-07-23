@@ -23,6 +23,7 @@
 #20230102 must run as root.
 #20230103 find any duplicate UUID etc.
 #20230626 new sudo-sh replaces sudo.
+#20240722 v7 limine.sys now limine-bios.sys
 
 #20230626
 if [ "$(whoami)" != "root" ];then
@@ -677,7 +678,7 @@ $(gettext '(Note: there will be one more window, a final sanity check, before co
   MNTflg=1
  fi
   
- cp -a -f /usr/share/limine/limine.sys /mnt/${DEVdest}/
+ cp -a -f /usr/share/limine/limine-bios.sys /mnt/${DEVdest}/ #20240722
  
  #20220721 copy limine.cfg
  echo "QUIET=no
@@ -704,8 +705,8 @@ INTERFACE_BRANDING=EasyOS Limine Boot Manager
   <text><label>\"$(gettext 'You have chosen to install Limine to this drive:') ${DRVdest}
 ${PTTYPEmsg}
 
-$(gettext 'The first step of installation has been done, limine.sys and limine.cfg have been copied here:')
-/mnt/${DEVdest}/limine.sys
+$(gettext 'The first step of installation has been done, limine-bios.sys and limine.cfg have been copied here:')
+/mnt/${DEVdest}/limine-bios.sys
 /mnt/${DEVdest}/limine.cfg
 
 $(gettext 'NOTICE: The Limine Installer is provided in good faith; however, the authors accept no liability in case anything goes wrong. You continue with the understanding that you take full responsibility for the consequences.')

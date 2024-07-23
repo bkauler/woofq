@@ -3,6 +3,7 @@
 #20220717 for compatibility with all linuxes, replace "which" with "type -p"
 #20220722 bring back root check.
 #20221023 may be running as zeus super-user.
+#20240722 v7 limine.sys now limine-bios.sys
 
 export TEXTDOMAIN=limine-installer
 export TEXTDOMAINDIR=/usr/share/locale
@@ -94,8 +95,8 @@ if [ ! -f /usr/share/limine/BOOTX64.EFI ];then
  echo "$(gettext 'File missing:') /usr/share/limine/BOOTX64.EFI"  >> /tmp/limine-installer/depend-checks.log
  exitval=1
 fi
-if [ ! -f /usr/share/limine/limine.sys ];then
- echo "$(gettext 'File missing:') /usr/share/limine/limine.sys"  >> /tmp/limine-installer/depend-checks.log
+if [ ! -f /usr/share/limine/limine-bios.sys ];then #20240722
+ echo "$(gettext 'File missing:') /usr/share/limine/limine-bios.sys"  >> /tmp/limine-installer/depend-checks.log
  exitval=1
 fi
 
