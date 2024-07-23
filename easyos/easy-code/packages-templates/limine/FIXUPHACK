@@ -1,0 +1,20 @@
+
+#20240722 now at v7.
+#create scripts for limine v4 compatibility...
+mkdir -p usr/bin
+
+if [ ! -e usr/bin/limine-version ];then
+ echo '#!/bin/ash
+exec limine version' > usr/bin/limine-version
+ chmod 755 usr/bin/limine-version
+ 
+ echo '#!/bin/ash
+exec limine bios-install $@' > usr/bin/limine-deploy
+ chmod 755 usr/bin/limine-deploy
+ 
+ echo '#!/bin/ash
+exec limine enroll-config $@' > usr/bin/limine-enroll-config
+ chmod 755 usr/bin/limine-enroll-config
+
+ #cp -a -f usr/share/limine/limine-bios.sys usr/share/limine/limine.sys
+fi
