@@ -44,6 +44,7 @@
 #20230427 screen out apps running non-root in main filesystem. 20230522 more.
 #20230626 new sudo-sh replaces sudo.
 #20230913 usr-merge fixes.
+#20240721 Caramel: do not want .session/files symlink in container.
 
 #20230626
 if [ "$(whoami)" != "root" ];then
@@ -370,6 +371,8 @@ echo '#Tick to run as user spot in container:' >> /mnt/${WKG_DEV}/${WKG_DIR}cont
    #191201 this is still a hack, copy all of .session to .session in container...
    mkdir -p /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_CREATE}/.session
    cp -a /mnt/${WKG_DEV}/${WKG_DIR}.session/* /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_CREATE}/.session/
+   #20240721 Caramel: do not want .session/files symlink...
+   rm -f /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_CREATE}/.session/files
    sync
   fi
   
