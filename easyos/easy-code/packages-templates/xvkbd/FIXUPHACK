@@ -17,6 +17,8 @@
 XVKBDfiles="$(find etc/X11/app-defaults -maxdepth 1 -type f -name 'XVkbd-*' 2>/dev/null)"
 [ ! "$XVKBDfiles" ] && XVKBDfiles="$(find usr/share/X11/app-defaults -maxdepth 1 -type f -name 'XVkbd-*')"
 
+#20240723 xvkbd 4.1 now have jamesbond's patch in oe, don't need this...
+# well, leave this here, in case other xvkbd pkg...
 for AFILE in ${XVKBDfiles}
 do
  [ "$AFILE" == "" ] && continue
