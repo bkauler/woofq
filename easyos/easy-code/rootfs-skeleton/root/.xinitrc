@@ -22,6 +22,7 @@
 #20220526 support EOS_SUPPORT_CONTAINERS==0
 #20230602 toggle touchpad on/off
 #20230720 default.jpg/.png mismatch.
+#20240726 Caramel: jwm keyboard fix. ref: https://forum.puppylinux.com/viewtopic.php?t=12241
 
 . /etc/rc.d/PUPSTATE #20220526 has EOS_SUPPORT_CONTAINERS
 
@@ -384,6 +385,17 @@ fi
 #  rox -p /root/Choices/ROX-Filer/PuppyPin
 # fi
 #fi
+
+#20240726 Caramel: ref: https://forum.puppylinux.com/viewtopic.php?t=12241
+XkbModel="$(grep '#xkbmodel0' /etc/X11/xorg.conf.d/10-evdev-puppy.conf | cut -f 4 -d '"')"
+XkbLayout="$(grep '#xkeymap0' /etc/X11/xorg.conf.d/10-evdev-puppy.conf | cut -f 4 -d '"')"
+XkbVariant="$(grep '#xkbvariant0' /etc/X11/xorg.conf.d/10-evdev-puppy.conf | grep -v '#Option' | cut -f 4 -d '"')"
+if [ -z "${XkbVariant}" ];then
+ VARIANT=''
+else
+ VARIANT="-variant ${XkbVariant}"
+fi
+setxkbmap -model "${XkbModel}" -layout "${XkbLayout}" ${VARIANT}
 
 #exec $CURRENTWM
 #v2.11 GuestToo suggested this improvement...
