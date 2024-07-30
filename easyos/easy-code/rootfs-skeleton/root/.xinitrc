@@ -387,15 +387,17 @@ fi
 #fi
 
 #20240726 Caramel: ref: https://forum.puppylinux.com/viewtopic.php?t=12241
-XkbModel="$(grep '#xkbmodel0' /etc/X11/xorg.conf.d/10-evdev-puppy.conf | cut -f 4 -d '"')"
-XkbLayout="$(grep '#xkeymap0' /etc/X11/xorg.conf.d/10-evdev-puppy.conf | cut -f 4 -d '"')"
-XkbVariant="$(grep '#xkbvariant0' /etc/X11/xorg.conf.d/10-evdev-puppy.conf | grep -v '#Option' | cut -f 4 -d '"')"
-if [ -z "${XkbVariant}" ];then
- VARIANT=''
-else
- VARIANT="-variant ${XkbVariant}"
-fi
-setxkbmap -model "${XkbModel}" -layout "${XkbLayout}" ${VARIANT}
+#XkbModel="$(grep '#xkbmodel0' /etc/X11/xorg.conf.d/10-evdev-puppy.conf | cut -f 4 -d '"')"
+#XkbLayout="$(grep '#xkeymap0' /etc/X11/xorg.conf.d/10-evdev-puppy.conf | cut -f 4 -d '"')"
+#XkbVariant="$(grep '#xkbvariant0' /etc/X11/xorg.conf.d/10-evdev-puppy.conf | grep -v '#Option' | cut -f 4 -d '"')"
+#if [ -z "${XkbVariant}" ];then
+# VARIANT=''
+#else
+# VARIANT="-variant ${XkbVariant}"
+#fi
+#setxkbmap -model "${XkbModel}" -layout "${XkbLayout}" ${VARIANT}
+#hmmm, seems only need to do this to get jwm to recognize layout...
+setxkbmap
 
 #exec $CURRENTWM
 #v2.11 GuestToo suggested this improvement...
