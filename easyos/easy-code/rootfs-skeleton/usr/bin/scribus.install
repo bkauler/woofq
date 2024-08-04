@@ -116,12 +116,14 @@ $(gettext 'Click the OK button for some final useful information...')\"</label><
 gtkdialog --center --program=PKG_INSTALLED_DLG1
 
 M3="$(gettext 'However, you may prefer to run some apps as the root user, a file-manager for example, where you want unfettered access to the entire filesystem, able to open, edit and save anywhere.')"
+M3b="$(gettext '(Very simple: execute /usr/bin/scribus.bin to run as root)')"
 export PKG_INSTALLED_DLG2="<window title=\"$(gettext 'Scribus install: notes')\" image-name=\"/usr/share/pixmaps/scribus.png\">
   <vbox>
     <frame>
       <text use-markup=\"true\"><label>\"<b>$(gettext 'Security notes')</b>\"</label></text>
       <text use-markup=\"true\"><label>\"$(gettext 'As has been stated in the previous window, the application has been installed to run as a non-root user. This provides isolation between apps, in other words, extra security.')
-${M3}\"</label></text>
+${M3}
+${M3b}\"</label></text>
     </frame>
     
     <frame>
