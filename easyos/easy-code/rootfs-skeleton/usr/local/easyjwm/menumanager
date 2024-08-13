@@ -1,5 +1,4 @@
 #!/bin/bash
-
 # 131222 01micko, script to manage what .desktop files show in menu
 # must be run as root
 # 160101 radky: support .desktop files outside /usr/share/applications
@@ -8,23 +7,24 @@
 # 210515 radky: adjust GUI to 3-pane format & update tree icons to svg
 # 210930 radky: adjust GUI header; add 'Processing' notification
 #20230626 new sudo-sh replaces sudo.
+#20240813 fixes. ref: https://forum.puppylinux.com/viewtopic.php?t=12417
 
-#20230626
-if [ "$(whoami)" != "root" ];then
- if [ -x /usr/bin/sudo-sh ];then
-  exec sudo-sh ${PPID} ${0} ${@}
- else
-  exec sudo -A ${0} ${@}
- fi
-fi
+#20230626 20240813
+if [ "$(whoami)" != "root" ];then exec sudo-sh ${PPID} ${0} ${@}; fi
 
 export TEXTDOMAIN=pmenumanager
 export OUTPUT_CHARSET=UTF-8
 
 export APPDIR="/usr/local/easyjwm"
 
+mkdir -p /tmp/easyjwm #20240813
+
+#20240813 menu entry translation fix...
+echo "^Name\\[${LANG:0:2}\\]=
+^Name=" > /tmp/easyjwm/mm-name
+
 # menu items in selected category
-export TMP1=/tmp/mm-items
+export TMP1=/tmp/easyjwm/mm-items
 
 # define gtkdialog
 [ "`which gtkdialog4 2>/dev/null`" ] && GTKDIALOG=gtkdialog4 || GTKDIALOG=gtkdialog
@@ -41,7 +41,7 @@ ln -sf $APPDIR/icons/menuhide.svg /usr/share/icons/hicolor/48x48/apps
 gtk-update-icon-cache -f -i /usr/share/icons/hicolor 2>/dev/null
 
 #Splash dlg...
-echo 0 > /tmp/mm-splash
+echo 0 > /tmp/easyjwm/mm-splash
 export MM_SPLASH='
 <window title="MM" icon-name="menu" resizable="false" decorated="true">'"
 <vbox>
@@ -49,7 +49,7 @@ export MM_SPLASH='
  <text use-markup=\"true\"><label>\"<b><span size='"'x-large'"'>      Menu Manager      </span></b>\"</label></text>"'
  <text><label>'$(gettext 'Loading...')'</label></text>
  <progressbar visible="false">
-  <input>while [ "$M" != "100" ]; do M=`cat /tmp/mm-splash`; echo $M; usleep 500000; done</input>
+  <input>while [ "$M" != "100" ]; do M=`cat /tmp/easyjwm/mm-splash`; echo $M; usleep 500000; done</input>
   <action type="exit">Ready</action>
  </progressbar>
 </vbox></window>'
@@ -81,11 +81,12 @@ export -f manage_files
 # hide menu item
 hide_menu_item() {
    if [ "$VISIBLE" ]; then
-      sed -i "/|$VISIBLE$/d" /tmp/mm-visible
+      sed -i "/|$VISIBLE$/d" /tmp/easyjwm/mm-visible
       FILE="$VISIBLE"
       ICON='menuhide'
-      NAME=$(grep -a -m1 '^Name=' ${DTDIR}/"${FILE}" | cut -d '=' -f2)
-      echo "${NAME}|${ICON}|${FILE}" >> /tmp/mm-hidden
+      #NAME=$(grep -a -m1 '^Name=' ${DTDIR}/"${FILE}" | cut -d '=' -f2)
+      NAME=$(grep -a -m1 -f /tmp/easyjwm/mm-name ${DTDIR}/"${FILE}" | cut -d '=' -f2) #20240813
+      echo "${NAME}|${ICON}|${FILE}" >> /tmp/easyjwm/mm-hidden
       if [ $(grep -a "^NoDisplay=false" ${DTDIR}/"${FILE}") ]; then
         sed -i "s%NoDisplay=false%NoDisplay=true%" ${DTDIR}/"${FILE}"
       elif [ ! $(grep -a "^NoDisplay=true" ${DTDIR}/"${FILE}") ]; then
@@ -98,11 +99,11 @@ export -f hide_menu_item
 # show menu item
 show_menu_item() {
    if [ "$HIDDEN" ]; then
-      sed -i "/|$HIDDEN$/d" /tmp/mm-hidden
+      sed -i "/|$HIDDEN$/d" /tmp/easyjwm/mm-hidden
       FILE="$HIDDEN"
       ICON='menushow'
-      NAME=$(grep -a -m1 '^Name=' ${DTDIR}/"${FILE}" | cut -d '=' -f2)
-      echo "${NAME}|${ICON}|${FILE}" >> /tmp/mm-visible
+      NAME=$(grep -a -m1 -f /tmp/easyjwm/mm-name ${DTDIR}/"${FILE}" | cut -d '=' -f2) #20240813
+      echo "${NAME}|${ICON}|${FILE}" >> /tmp/easyjwm/mm-visible
       if [ $(grep -a "^NoDisplay=true" ${DTDIR}/"${FILE}") ]; then
         sed -i "s%NoDisplay=true%NoDisplay=false%" ${DTDIR}/"${FILE}"
       fi
@@ -112,14 +113,14 @@ export -f show_menu_item
 
 # format menu items
 menu_item_format() {
-   rm -f /tmp/mm-visible /tmp/mm-hidden 2>/dev/null
+   rm -f /tmp/easyjwm/mm-visible /tmp/easyjwm/mm-hidden 2>/dev/null
    ICONHIDE="menuhide" ICONSHOW="menushow"
    while read FILE; do
-      NAME=$(grep -a -m1 '^Name=' ${DTDIR}/"$FILE" | cut -d '=' -f2)
+      NAME=$(grep -a -m1 -f /tmp/easyjwm/mm-name ${DTDIR}/"${FILE}" | cut -d '=' -f2) #20240813
       if [ $(grep -a 'NoDisplay=true' ${DTDIR}/"$FILE") ]; then
-         echo "${NAME}|${ICONHIDE}|${FILE}" >> /tmp/mm-hidden
+         echo "${NAME}|${ICONHIDE}|${FILE}" >> /tmp/easyjwm/mm-hidden
       else
-         echo "${NAME}|${ICONSHOW}|${FILE}" >> /tmp/mm-visible
+         echo "${NAME}|${ICONSHOW}|${FILE}" >> /tmp/easyjwm/mm-visible
       fi
    done < $TMP1
 }
@@ -204,6 +205,14 @@ Fun() {
 }
 export -f Fun
 
+#20240813 call one of the above
+IndirectFunc() {
+ #note: must use backticks here...
+ enCAT=`grep -F "|${1}|" /tmp/easyjwm/mm-categories | cut -f 3 -d '|'`
+ eval ${enCAT}
+}
+export -f IndirectFunc
+
 Desktop
 
 ########################################################################
@@ -238,19 +247,20 @@ HEADER="
    </hbox>"
 
 # set menu categories
- echo "x48|$(gettext 'Desktop')|Desktop
-pc48|$(gettext 'System')|System
-configuration48|$(gettext 'Setup')|Setup
-utility48|$(gettext 'Utility')|Utility
-folder48|$(gettext 'Filesystem')|Filesystem
-paint48|$(gettext 'Graphic')|Graphic
-word48|$(gettext 'Document')|Document
-spread48|$(gettext 'Business')|Business
-date48|$(gettext 'Personal')|Personal
-connect48|$(gettext 'Network')|Network
-www48|$(gettext 'Internet')|Internet
-multimedia48|$(gettext 'Multimedia')|Multimedia
-games48|$(gettext 'Fun')|Fun" > /tmp/mm-categories
+#20240813 some /usr/local/lib/X11/pixmaps/*48.png do not exist, change to 24...
+ echo "x24|$(gettext 'Desktop')|Desktop
+pc24|$(gettext 'System')|System
+configuration24|$(gettext 'Setup')|Setup
+utility24|$(gettext 'Utility')|Utility
+folder24|$(gettext 'Filesystem')|Filesystem
+paint24|$(gettext 'Graphic')|Graphic
+word24|$(gettext 'Document')|Document
+spread24|$(gettext 'Business')|Business
+date24|$(gettext 'Personal')|Personal
+connect24|$(gettext 'Network')|Network
+www24|$(gettext 'Internet')|Internet
+multimedia24|$(gettext 'Multimedia')|Multimedia
+games24|$(gettext 'Fun')|Fun" > /tmp/easyjwm/mm-categories
 
 # set GUI
 export menuManager='
@@ -266,11 +276,11 @@ export menuManager='
           <tree hover-selection="false" headers-clickable="false" enable-search="false">
             <variable>CATEGORY</variable>
             <label>'$(gettext "Category")'</label>
-            <input file icon-column="0">/tmp/mm-categories</input>
+            <input file icon-column="0">/tmp/easyjwm/mm-categories</input>
             <width>160</width>
-            <action signal="button-press-event">echo "'$(gettext 'Processing...')'||" > /tmp/mm-visible</action>
+            <action signal="button-press-event">echo "'$(gettext 'Processing...')'||" > /tmp/easyjwm/mm-visible</action>
             <action signal="button-press-event">refresh:VISIBLE</action>
-            <action signal="button-release-event">$CATEGORY</action>
+            <action signal="button-release-event">IndirectFunc $CATEGORY</action>
             <action signal="button-release-event">refresh:VISIBLE</action>
             <action signal="button-release-event">refresh:HIDDEN</action>
             <action signal="row-activated">$CATEGORY</action>
@@ -283,7 +293,7 @@ export menuManager='
           <tree rules-hint="false" hover-selection="true" exported_column="1" column-visible="true|false|false" headers-clickable="false" enable-search="false">
             <variable>VISIBLE</variable>
             <label>'$(gettext "Visible Menu Items")'|icon|file</label>
-            <input icon_column="1">sort /tmp/mm-visible 2>/dev/null</input>
+            <input icon_column="1">sort /tmp/easyjwm/mm-visible 2>/dev/null</input>
             <action signal="button-release-event">hide_menu_item</action>
             <action signal="button-release-event">refresh:VISIBLE</action>
             <action signal="button-release-event">refresh:HIDDEN</action>
@@ -294,7 +304,7 @@ export menuManager='
           <tree rules-hint="false" hover-selection="true" exported_column="1" column-visible="true|false|false" headers-clickable="false" enable-search="false">
             <variable>HIDDEN</variable>
             <label>'$(gettext "Hidden Menu Items")'|icon|file</label>
-            <input icon_column="1">sort /tmp/mm-hidden 2>/dev/null</input>
+            <input icon_column="1">sort /tmp/easyjwm/mm-hidden 2>/dev/null</input>
             <action signal="button-release-event">show_menu_item</action>
             <action signal="button-release-event">refresh:VISIBLE</action>
             <action signal="button-release-event">refresh:HIDDEN</action>
@@ -319,10 +329,11 @@ export menuManager='
    </button>
   </hbox>
  </vbox>
- <action signal="show">echo 100 > /tmp/mm-splash</action>
+ <action signal="show">echo 100 > /tmp/easyjwm/mm-splash</action>
 </window>'
 
+echo "${menuManager}" > /tmp/easyjwm/mm-menuManager #TEST
 $GTKDIALOG -p menuManager --geometry="$GEO" --styles=/tmp/easyjwm/gtkrc_xml_info.css
 
 # cleanup
-rm -f /tmp/mm-* 2>/dev/null
+rm -f /tmp/easyjwm/mm-* 2>/dev/null
