@@ -90,8 +90,8 @@ yes|celluloid|celluloid|exe,dev,doc,nls|compat:kirkstone|
 yes|cgtkcalc|cgtkcalc|exe,dev>null,doc,nls|compat:kirkstone|
 yes|chrome-skel-ask||exe|pet:noarch| #20231215
 no|chromium|chromium-x11|exe,dev,doc,nls|compat:kirkstone| #20221222  20230312 back to firefox. 20230316 yes. 20231103 now firefox. 20231111 20231223
-yes|chromium-skel-ask||exe|pet:noarch| #20240503
-yes|chromium-skeleton||exe|pet:noarch| #20240511
+no|chromium-skel-ask||exe|pet:noarch| #20240503 20240814
+no|chromium-skeleton||exe|pet:noarch| #20240511 20240814
 yes|chrpath|chrpath|exe,dev,doc,nls|compat:kirkstone|
 yes|cifs-utils||exe,dev,doc,nls|pet:kirkstone| #recompiled in oe but still does not work. use pet.
 yes|clang|clang|exe>dev,dev,doc,nls|compat:kirkstone| #20221223
@@ -169,11 +169,11 @@ yes|fftag||exe|pet:noarch| #replaces pmetatagger.
 yes|fftw|fftw|exe,dev,doc,nls|compat:kirkstone| #20230801 needed by mlt
 yes|file|file|exe,dev,doc,nls|compat:kirkstone
 yes|findutils|findutils|exe,dev,doc,nls|compat:kirkstone
-no|firefox|firefox|exe,dev,doc,nls|compat:kirkstone| #20231103 compiled in oe. 20231111 20231214 20231223  20240511
+yes|firefox-skel-ask||exe|pet:noarch| #20240814 install before firefox coz firefox.desktop
+yes|firefox|firefox|exe,dev,doc,nls|compat:kirkstone| #20231103 compiled in oe. 20231111 20231214 20231223  20240511 2-240814
 no|firefox-l10n|firefox-l10n-*|exe,dev,doc,nls|compat:kirkstone| #20231103 compiled in oe. 20231214 20231223
-no|firefox-l10n|firefox-l10n-bg,firefox-l10n-cs,firefox-l10n-da,firefox-l10n-de,firefox-l10n-el,firefox-l10n-en-ca,firefox-l10n-en-gb,firefox-l10n-en-us,firefox-l10n-es-ar,firefox-l10n-es-cl,firefox-l10n-es-es,firefox-l10n-es-mx,firefox-l10n-et,firefox-l10n-fi,firefox-l10n-fr,firefox-l10n-hr,firefox-l10n-hu,firefox-l10n-hy-am,firefox-l10n-is,firefox-l10n-it,firefox-l10n-lt,firefox-l10n-lv,firefox-l10n-mk,firefox-l10n-nb-no,firefox-l10n-nl,firefox-l10n-nn-no,firefox-l10n-pl,firefox-l10n-pt-br,firefox-l10n-pt-pt,firefox-l10n-ro,firefox-l10n-ru,firefox-l10n-sk,firefox-l10n-sl,firefox-l10n-sq,firefox-l10n-sr,firefox-l10n-sv-se,firefox-l10n-tr,firefox-l10n-uk,firefox-l10n-uz,firefox-l10n-zh-cn,firefox-l10n-zh-tw|exe,dev,doc,nls|compat:kirkstone| #20231103 compiled in oe. 20231111 20240429  20240511
+yes|firefox-l10n|firefox-l10n-bg,firefox-l10n-cs,firefox-l10n-da,firefox-l10n-de,firefox-l10n-el,firefox-l10n-en-ca,firefox-l10n-en-gb,firefox-l10n-en-us,firefox-l10n-es-ar,firefox-l10n-es-cl,firefox-l10n-es-es,firefox-l10n-es-mx,firefox-l10n-et,firefox-l10n-fi,firefox-l10n-fr,firefox-l10n-hr,firefox-l10n-hu,firefox-l10n-hy-am,firefox-l10n-is,firefox-l10n-it,firefox-l10n-lt,firefox-l10n-lv,firefox-l10n-mk,firefox-l10n-nb-no,firefox-l10n-nl,firefox-l10n-nn-no,firefox-l10n-pl,firefox-l10n-pt-br,firefox-l10n-pt-pt,firefox-l10n-ro,firefox-l10n-ru,firefox-l10n-sk,firefox-l10n-sl,firefox-l10n-sq,firefox-l10n-sr,firefox-l10n-sv-se,firefox-l10n-tr,firefox-l10n-uk,firefox-l10n-uz,firefox-l10n-zh-cn,firefox-l10n-zh-tw|exe,dev,doc,nls|compat:kirkstone| #20231103 compiled in oe. 20231111 20240429  20240511 20240814
 no|firefox-skeleton||exe|pet:noarch| #trying chromium. 20221222  20230312 yes, want mozbare. 20230316 no
-no|firefox-skel-ask||exe|pet:noarch| #20221222  20230312 no. 20230316 yes. 20231103 now firefox built in oe. 20231111 20231214 20231223 20240429 now partly builtin to rootfs-skeleton
 yes|firmware_asus_e200ha||exe|pet:noarch| #needed for my asus e200ha notebook.
 yes|firmware_linux_acer_aspire1||exe|pet:noarch| #for my acer aspire1 laptop. note has regulatory.db useful all wifi.
 yes|firmware_linux_all_k5p15p85||exe|pet:noarch| #20230201
@@ -484,6 +484,7 @@ yes|libsdl-mixer|libsdl-mixer|exe,dev,doc,nls|compat:kirkstone|
 yes|libsdl-ttf|libsdl-ttf|exe,dev,doc,nls|compat:kirkstone|
 yes|libsdl2|libsdl2|exe,dev,doc,nls|compat:kirkstone|
 yes|libsdl2-image|libsdl2-image|exe,dev,doc,nls|compat:kirkstone| #a config option for qemu.
+yes|libsdl2-mixer|libsdl2-mixer|exe,dev,doc,nls|compat:kirkstone| #20240814
 yes|libsdl2-ttf|libsdl2-ttf|exe,dev,doc,nls|compat:kirkstone|
 yes|libsecret|libsecret|exe,dev,doc,nls|compat:kirkstone| #network-manager-applet needs this. 20230918 20231013
 yes|libsigc++-2.0|libsigc++-2.0|exe,dev,doc,nls|compat:kirkstone
@@ -941,6 +942,7 @@ yes|yasm|yasm|exe>dev,dev,doc,nls|compat:kirkstone
 yes|ycalc||exe,dev,doc,nls|pet:kirkstone|  #failed to compile in oe. i like it
 yes|yelp-tools|yelp-tools|exe>dev,dev,doc,nls|compat:kirkstone|
 yes|yelp-xsl|yelp-xsl|exe,dev,doc,nls|compat:kirkstone| #want this in main fs in case install yelp
+yes|yff||exe|pet:noarch| #20240814
 yes|youtube-dl||exe|pet:noarch|
 yes|youtubedl-gui||exe|pet:noarch|
 yes|z2_geany_bacon_hack||exe|pet:noarch| #temp hack for geany. will probably have to remove soon.
