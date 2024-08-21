@@ -329,6 +329,7 @@
 #20240703 streamtuner2 run as a client. 20240706 indexgen.sh no longer exists.
 #20240715 remove d/l seamonkey langpack.
 #20240722 v7 limine.sys now limine-bios.sys
+#20240814 remove usr-merge test (limine-version test doesn't work anyway as it is now a script). fix limine-deploy
 
 export LANG=C #faster.
 
@@ -1000,13 +1001,13 @@ _END1
 done
 echo ''
 
-#20230909 find out if OE compiled with "usrmerge" in DISTRO_FEATURES...
+#20230909 find out if OE compiled with "usrmerge" in DISTRO_FEATURES... 20240814 remove test...
 USRMERGEconflict='no'
-TEST1="$(sandbox3/rootfs-complete/usr/bin/limine-version 2>&1)"
-grep -q 'No such file or directory' <<<"$TEST1"
-if [ $? -eq 0 ];then
- USRMERGEconflict='yes'
-fi
+#TEST1="$(sandbox3/rootfs-complete/usr/bin/limine-version 2>&1)"
+#grep -q 'No such file or directory' <<<"$TEST1"
+#if [ $? -eq 0 ];then
+# USRMERGEconflict='yes'
+#fi
 
 #20230904 check symlinks...
 while read aL
@@ -6019,12 +6020,12 @@ if [ "$BOOTLOADER" == "limine" ];then
  LOOP3="$(losetup -f)"
  losetup ${LOOP3} ${SKELETON_NAME}.img
  sleep 0.5
- if [ "$WOOF_TARGETARCH" == "$WOOF_HOSTARCH" -a "$USRMERGEconflict" == "no" ];then #20221010 20230909
-  echo "EXECUTING: rootfs-complete/usr/bin/limine-deploy ${LOOP3} --force-mbr"
-  rootfs-complete/usr/bin/limine-deploy ${LOOP3} --force-mbr
+ if [ "$WOOF_TARGETARCH" == "$WOOF_HOSTARCH" -a "$USRMERGEconflict" == "no" ];then #20221010 20230909 20240814
+  echo "EXECUTING: rootfs-complete/usr/bin/limine  bios-install ${LOOP3} --force-mbr"
+  rootfs-complete/usr/bin/limine bios-install ${LOOP3} --force-mbr
  else
-  echo "EXECUTING: limine-deploy ${LOOP3} --force-mbr"
-  limine-deploy ${LOOP3} --force-mbr
+  echo "EXECUTING: limine bios-install ${LOOP3} --force-mbr"
+  limine bios-install ${LOOP3} --force-mbr 
  fi
  sleep 0.1
  sync
