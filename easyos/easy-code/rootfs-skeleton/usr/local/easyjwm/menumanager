@@ -7,7 +7,7 @@
 # 210515 radky: adjust GUI to 3-pane format & update tree icons to svg
 # 210930 radky: adjust GUI header; add 'Processing' notification
 #20230626 new sudo-sh replaces sudo.
-#20240813 fixes. ref: https://forum.puppylinux.com/viewtopic.php?t=12417
+#20240813 fixes. ref: https://forum.puppylinux.com/viewtopic.php?t=12417  20240814 fix.
 
 #20230626 20240813
 if [ "$(whoami)" != "root" ];then exec sudo-sh ${PPID} ${0} ${@}; fi
@@ -205,10 +205,10 @@ Fun() {
 }
 export -f Fun
 
-#20240813 call one of the above
+#20240813 call one of the above. 20240814 fix...
 IndirectFunc() {
  #note: must use backticks here...
- enCAT=`grep -F "|${1}|" /tmp/easyjwm/mm-categories | cut -f 3 -d '|'`
+ enCAT=`grep -F "|${@}|" /tmp/easyjwm/mm-categories | cut -f 3 -d '|'`
  eval ${enCAT}
 }
 export -f IndirectFunc
