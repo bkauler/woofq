@@ -22,7 +22,8 @@
 #20220526 support EOS_SUPPORT_CONTAINERS==0
 #20230602 toggle touchpad on/off
 #20230720 default.jpg/.png mismatch.
-#20240726 Caramel: jwm keyboard fix. ref: https://forum.puppylinux.com/viewtopic.php?t=12241
+#20240726 Caramel: jwm keyboard fix. ref: https://forum.puppylinux.com/viewtopic.php?t=12241  20240831 fix.
+#20240831 now tray mostly full-width (see tray_dims) and want labels.
 
 . /etc/rc.d/PUPSTATE #20220526 has EOS_SUPPORT_CONTAINERS
 
@@ -126,6 +127,8 @@ fi
 #180409 easyos, check containerized-apps still on desktop...
 #note, created in /usr/local/easy_containers/easy-containers, but session-wipe may remove desktop icons.
 [ -x /usr/local/easy_containers/ec-fix-desktop ] && /usr/local/easy_containers/ec-fix-desktop
+
+setxkbmap #20240831 moved before run xmodmap.
 
 userresources=$HOME/.Xresources
 usermodmap=$HOME/.Xmodmap
@@ -267,7 +270,11 @@ if [ "${UI_DESK_MANAGER}" == "jwm" ];then #20220208
   #20220407 make sure menu label gone...
   sed -i '/root:3/s/label="/popup="/' /root/.jwmrc-tray
   #20220407 make sure tasks are not labeled...
-  sed -i "/<TaskList/s/ labeled=\".*\"/ labeled=\"false\"/" /root/.jwmrc-tray
+  #20240831 now tray mostly full-width (see tray_dims) and want labels...
+  TRAYVflg=$(grep -q -F 'layout="vertical"' /root/.jwmrc-tray)
+  if [ $SCRN_X -le 1024 -o $TRAYVflg -eq 0 ];then
+   sed -i "/<TaskList/s/ labeled=\".*\"/ labeled=\"false\"/" /root/.jwmrc-tray
+  fi
   touch /tmp/sfschg.flg.persist #20220413 so sets tray dims below.
  fi
  if [ "$SCRN_X" != "$oldSCRNX" -o -e /tmp/sfschg.flg.persist ];then #20220321
@@ -397,7 +404,7 @@ fi
 #fi
 #setxkbmap -model "${XkbModel}" -layout "${XkbLayout}" ${VARIANT}
 #hmmm, seems only need to do this to get jwm to recognize layout...
-setxkbmap
+#setxkbmap #20240831 moved up.
 
 #exec $CURRENTWM
 #v2.11 GuestToo suggested this improvement...
