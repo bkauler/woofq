@@ -37,7 +37,7 @@ $(gettext 'This must be one word, with capitalization as required.')
 $(gettext 'This must be short, two or three words only.')
 
 <b>$(gettext 'Technical notes')</b>
-$(gettext 'Custom entries are in /usr/local/flatpak/custom. You may manually edit these files, and also delete them.')
+$(gettext 'Custom entries are in /usr/local/flapi/custom. You may manually edit these files, and also delete them.')
 "
 export HELP_FP_CUST="
 <window resizable=\"false\" title=\"$(gettext 'Help: Flatpak add')\" icon-name=\"${HELPICON}\" window_position=\"1\">
@@ -161,18 +161,18 @@ fi
 if [ "$ENTRY_URL" == "" -o "$ENTRY_TRIPLET" == "" -o "ENTRY_NAME" == "" ];then
  M1="$(gettext 'Please fill in all fields.')"
  popup "process=wait background=#ffa0a0 terminate=ok level=top|<big>${M1}</big>"
- exec /usr/local/flatpak/customize preload
+ exec /usr/local/flapi/customize preload
 fi
 if [ "${ENTRY_URL:0:4}" != "http" ];then
  M2="$(gettext 'A complete URL is required, with https:// prefix.')"
  popup "process=wait background=#ffa0a0 terminate=ok level=top|<big>${M2}</big>"
- exec /usr/local/flatpak/customize preload
+ exec /usr/local/flapi/customize preload
 fi
 #20230802 detect incorrect app name...
 if [ "${ENTRY_NAME//[a-zA-Z_0-9]/}" != "" ];then
  M3="$(gettext 'The app name must only contain a-z, A-Z, 0-9 or an underscore. All other characters, including a space, are invalid. Please enter a single word, with capitalization as required.')"
  popup "process=wait background=#ffa0a0 terminate=ok level=top|<big>${M3}</big>"
- exec /usr/local/flatpak/customize preload
+ exec /usr/local/flapi/customize preload
 fi
 
 if [ "$ENTRY_DESCRIPTION" == "" ];then
@@ -188,7 +188,7 @@ M5c="$(gettext 'To verify the app ID, the flathub.org page has being brought up 
 pupdialog --background '#ffd020' --yes-label "${M5a}" --no-label "${M5b}" --yesno "${M5c}" 0 0
 if [ $? -ne 0 ];then
  kill `pgrep -f mozbare`
- exec /usr/local/flatpak/customize preload
+ exec /usr/local/flapi/customize preload
 fi
 kill `pgrep -f mozbare`
 
@@ -211,9 +211,9 @@ cURL='${ENTRY_URL}'
 cTRIPLET='${ENTRY_TRIPLET}'
 cAPPname='${ENTRY_NAME/ /}'
 cAPPdesc='${ENTRY_DESCRIPTION^}'
-" > /usr/local/flatpak/custom/${ENTRY_NAME,,} #ex: goldendict
+" > /usr/local/flapi/custom/${ENTRY_NAME,,} #ex: goldendict
 
 M5="$(gettext 'New entry created. Flapi will now start.')"
 popup "process=wait background=#ffb000 terminate=ok level=top|<big>${M5}</big>"
-exec /usr/local/flatpak/flatpak
+exec /usr/local/flapi/flapi
 ###end###

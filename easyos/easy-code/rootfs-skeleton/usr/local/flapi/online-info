@@ -1,5 +1,5 @@
 #!/bin/bash
-#called from /usr/local/flatpak/flatpak
+#called from /usr/local/flapi/flapi
 #up to nine variables passed in:
 #$TREEaudio, $TREEbusiness, $TREEdeveloper, $TREEgames, $TREEgraphics, $TREEnetwork, $TREEproductivity, $TREEsystem, $TREEvideo, $TREEother
 
@@ -141,8 +141,8 @@ esac
 
 #20230510 custom...
 if [ "$URL" == "" ];then
- if [ -f /usr/local/flatpak/custom/${aPARAM,,} ];then
-  . /usr/local/flatpak/custom/${aPARAM,,}
+ if [ -f /usr/local/flapi/custom/${aPARAM,,} ];then
+  . /usr/local/flapi/custom/${aPARAM,,}
   URL="$cURL"
  fi
 fi

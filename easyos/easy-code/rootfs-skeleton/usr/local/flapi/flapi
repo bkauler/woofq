@@ -16,6 +16,7 @@
 #20230701 fix when cannot register with flathub.org
 #20231213 firefox: fix start 2nd instance. ref: https://discourse.mozilla.org/t/how-does-firefox-discover-a-running-instance-to-connect-to/109957
 #20240120 fix start and stop client dbus-daemon
+#20240903 path now /usr/local/flapi
 
 if [ "$(whoami)" != "root" ];then
  if [ -x /usr/bin/sudo-sh ];then
@@ -139,8 +140,8 @@ do
  esac
  
  #20230510 custom
- aCUST="$(grep -F -l "${aFP##*/}" /usr/local/flatpak/custom/* | head -n 1)"
- if [ "$aCUST" ];then #ex: /usr/local/flatpak/custom/goldendict
+ aCUST="$(grep -F -l "${aFP##*/}" /usr/local/flapi/custom/* | head -n 1)"
+ if [ "$aCUST" ];then #ex: /usr/local/flapi/custom/goldendict
   . ${aCUST}
   aFP="${cAPPname}"
  fi
@@ -153,19 +154,19 @@ done
 ARCH='amd64'
 
 #20230511 remove custom entry if already builtin...
-grep -v '^#' /usr/local/flatpak/entries/${ARCH}/entries > /tmp/flatpak/arch-entries
-for aCUST in $(find /usr/local/flatpak/custom -mindepth 1 -maxdepth 1 -type f | tr '\n' ' ')
+grep -v '^#' /usr/local/flapi/entries/${ARCH}/entries > /tmp/flatpak/arch-entries
+for aCUST in $(find /usr/local/flapi/custom -mindepth 1 -maxdepth 1 -type f | tr '\n' ' ')
 do
  aNAME="${aCUST##*/}"
  [ "${aNAME}" == "template" ] && continue
  aPTN="=\\\"${aNAME}\\\""
  grep -q -F "${aPTN}" /tmp/flatpak/arch-entries
  if [ $? -eq 0 ];then
-  rm -f /usr/local/flatpak/custom/${aNAME}
+  rm -f /usr/local/flapi/custom/${aNAME}
  fi
 done
 
-/usr/local/flatpak/entries/${ARCH}/entries #this evaluates each entry.
+/usr/local/flapi/entries/${ARCH}/entries #this evaluates each entry.
 ENTRIESaudio="$(cat /tmp/flatpak/ENTRIESaudio)"
 ENTRIESdeveloper="$(cat /tmp/flatpak/ENTRIESdeveloper)"
 ENTRIESgames="$(cat /tmp/flatpak/ENTRIESgames)"
@@ -267,7 +268,7 @@ export FP_DLG1="<window title=\"$(gettext 'Flatpak Installer')\" image-name=\"/u
       <button space-expand=\"false\" space-fill=\"false\"><label>$(gettext 'Customize')</label><action>exit:BUTcust</action></button>
       <text space-expand=\"true\" space-fill=\"true\"><label>\"  \"</label></text>
       <button><label>$(gettext 'Install/Update/Delete')</label><action>exit:BUTinstall</action></button>
-      <button><label>$(gettext 'Online Information')</label><action>/usr/local/flatpak/online-info \"\$TREEaudio\" \"\$TREEdeveloper\" \"\$TREEgames\" \"\$TREEgraphics\" \"\$TREEnetwork\" \"\$TREEoffice\" \"\$TREEproductivity\" \"\$TREEsystem\" \"\$TREEvideo\" \"\$TREEother\" </action></button>
+      <button><label>$(gettext 'Online Information')</label><action>/usr/local/flapi/online-info \"\$TREEaudio\" \"\$TREEdeveloper\" \"\$TREEgames\" \"\$TREEgraphics\" \"\$TREEnetwork\" \"\$TREEoffice\" \"\$TREEproductivity\" \"\$TREEsystem\" \"\$TREEvideo\" \"\$TREEother\" </action></button>
     </hbox>
   </vbox>
 </window>
@@ -279,7 +280,7 @@ eval "$xRETVALS"
 
 if [ "$EXIT" == "BUTcust" ];then #20230510
  start_func #20230516
- exec /usr/local/flatpak/customize
+ exec /usr/local/flapi/customize
 fi
 
 if [ "$EXIT" != "BUTinstall" ];then
@@ -372,8 +373,8 @@ case "${aAPP}" in
 esac
 
 #20230510 custom
-if [ -f /usr/local/flatpak/custom/${aAPP,,} ];then
- . /usr/local/flatpak/custom/${aAPP,,}
+if [ -f /usr/local/flapi/custom/${aAPP,,} ];then
+ . /usr/local/flapi/custom/${aAPP,,}
  TRIPLET="${cTRIPLET}"
  case "$cCATEGORY" in
   audio)        MENUcat='X-Multimedia-sound'; MENUtop='Multimedia'; ;;
@@ -642,10 +643,10 @@ fi
 setup-client "${aAPP,,}=true"
 
 #20230509 need a hack for zoom...
-if [ -d /usr/local/flatpak/skeletons/${aAPP,,}/home/${aAPP,,} ];then
- chown -R ${aAPP,,}:${aAPP,,} /usr/local/flatpak/skeletons/${aAPP,,}/home/${aAPP,,}
- cp -a -f /usr/local/flatpak/skeletons/${aAPP,,}/home/${aAPP,,}/* /home/${aAPP,,}/ 2>/dev/null
- cp -a -f /usr/local/flatpak/skeletons/${aAPP,,}/home/${aAPP,,}/.[a-zA-Z0-9]* /home/${aAPP,,}/ 2>/dev/null
+if [ -d /usr/local/flapi/skeletons/${aAPP,,}/home/${aAPP,,} ];then
+ chown -R ${aAPP,,}:${aAPP,,} /usr/local/flapi/skeletons/${aAPP,,}/home/${aAPP,,}
+ cp -a -f /usr/local/flapi/skeletons/${aAPP,,}/home/${aAPP,,}/* /home/${aAPP,,}/ 2>/dev/null
+ cp -a -f /usr/local/flapi/skeletons/${aAPP,,}/home/${aAPP,,}/.[a-zA-Z0-9]* /home/${aAPP,,}/ 2>/dev/null
 fi
 
 #update jwm menu...

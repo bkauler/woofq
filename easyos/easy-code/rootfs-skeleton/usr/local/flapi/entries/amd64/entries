@@ -116,7 +116,7 @@ ENTRIESother="
 echo "$ENTRIESother" > /tmp/flatpak/ENTRIESother
 
 #20230510 custom...
-for aCUST in $(find /usr/local/flatpak/custom -mindepth 1 -maxdepth 1 -type f | tr '\n' ' ')
+for aCUST in $(find /usr/local/flapi/custom -mindepth 1 -maxdepth 1 -type f | tr '\n' ' ')
 do
  aNAME="${aCUST##*/}" #ex: goldendict
  [ "$aNAME" == "template" ] && continue
