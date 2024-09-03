@@ -1,6 +1,6 @@
 #!/bin/bash
 #20210906 based on support/setup-spot
-#20230409 also called from /usr/local/appi/appi, /usr/local/flatpak/flatpak
+#20230409 also called from /usr/local/appi/appi, /usr/local/flapi/flapi
 #20230805 also called from /usr/local/clients/choose-clients
 #called from dir2sfs, 3buildeasydistro
 # intention is the following:
@@ -49,7 +49,7 @@
 #20220923 setup for spot in container.
 #20230302 support vivaldi --no-sandbox for crippled-root in container.
 #20230330 prevent other apps from seeing in home folder.
-#20230409 /usr/local/flatpak/flatpak has already created /home/${APPname}, so test for .config
+#20230409 /usr/local/flapi/flapi has already created /home/${APPname}, so test for .config
 #20230409 a bit tricky coz /home/<app> is symlink for flatpaks.
 #20230412 .DirIcon symlink and target of commandline-symlink must have same owner:group as parent folder.
 #20230502 support fscrypt v2
@@ -154,7 +154,7 @@ fi
 CHGflg=0 #20210916  20210918 revert 20210917...
 #if [ ! "$PREFIXDIR2" ];then #20210917 dir2sfs is creating an sfs, this code has to be delayed, see create-client-environment below.
  if [ "$APPflag" == "true" ];then #20210915
-  #20230409 /usr/local/flatpak/flatpak has already created /home/${APPname}, so test for .config ...
+  #20230409 /usr/local/flapi/flapi has already created /home/${APPname}, so test for .config ...
   if [ ! -d ${PREFIXDIR1}/home/${APPname}/.config ];then
    CHGflg=1 #20210916
    mkdir -p ${PREFIXDIR1}/home/${APPname}
