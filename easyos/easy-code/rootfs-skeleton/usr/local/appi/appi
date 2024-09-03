@@ -10,6 +10,7 @@
 #20231213 firefox: fix start 2nd instance. ref: https://discourse.mozilla.org/t/how-does-firefox-discover-a-running-instance-to-connect-to/109957
 #20240120 fix start and stop client dbus-daemon
 #20240706 increaseping wait.
+#20240903 path now /usr/local/appi
 
 if [ "$(whoami)" != "root" ];then
  if [ -x /usr/bin/sudo-sh ];then
@@ -82,7 +83,7 @@ do
 done
 
 ARCH='amd64'
-/usr/local/appimage/entries/${ARCH}/entries #this evaluates each entry.
+/usr/local/appi/entries/${ARCH}/entries #this evaluates each entry.
 ENTRIESaudio="$(cat /tmp/appimage/ENTRIESaudio)"
 ENTRIESdeveloper="$(cat /tmp/appimage/ENTRIESdeveloper)"
 ENTRIESgames="$(cat /tmp/appimage/ENTRIESgames)"
@@ -184,7 +185,7 @@ export APPIMG_DLG1="<window title=\"$(gettext 'AppImage Installer')\">
       <button space-expand=\"false\" space-fill=\"false\"><label>$(gettext 'Exit')</label><action>exit:QUIT</action></button>
       <text space-expand=\"true\" space-fill=\"true\"><label>\"  \"</label></text>
       <button><label>$(gettext 'Install/Update/Delete')</label><action>exit:BUTinstall</action></button>
-      <button><label>$(gettext 'Online Information')</label><action>/usr/local/appimage/online-info \"\$TREEaudio\" \"\$TREEdeveloper\" \"\$TREEgames\" \"\$TREEgraphics\" \"\$TREEnetwork\" \"\$TREEoffice\" \"\$TREEproductivity\" \"\$TREEsystem\" \"\$TREEvideo\" \"\$TREEother\" </action></button>
+      <button><label>$(gettext 'Online Information')</label><action>/usr/local/appi/online-info \"\$TREEaudio\" \"\$TREEdeveloper\" \"\$TREEgames\" \"\$TREEgraphics\" \"\$TREEnetwork\" \"\$TREEoffice\" \"\$TREEproductivity\" \"\$TREEsystem\" \"\$TREEvideo\" \"\$TREEother\" </action></button>
     </hbox>
   </vbox>
 </window>
@@ -461,7 +462,7 @@ if [ "$CHOOSEDL" != "" ];then
  fi
 else
  #this is an update.
- /usr/local/appimage/github-find-latest-ver-api ${MEMBER} ${PROJECT} ${APPIMG}
+ /usr/local/appi/github-find-latest-ver-api ${MEMBER} ${PROJECT} ${APPIMG}
  #...creates /tmp/appimage/URLtag, APPver, APPname
  if [ $? -ne 0 ];then
   exec appi
@@ -643,17 +644,17 @@ Exec=${aAPP,,}" > /usr/share/applications/${aAPP,,}.desktop
   cat /tmp/appimage/mimetype >> /usr/share/applications/${aAPP,,}.desktop
  fi
 
- if [ -d /usr/local/appimage/skeletons/${aAPP,,}/usr ];then
-  cp -a -f /usr/local/appimage/skeletons/${aAPP,,}/usr/* /usr/
+ if [ -d /usr/local/appi/skeletons/${aAPP,,}/usr ];then
+  cp -a -f /usr/local/appi/skeletons/${aAPP,,}/usr/* /usr/
  fi
 
  #create /usr/bin/${aAPP,,} script to run as user ${aAPP,,} ...
  setup-client "${aAPP,,}=true"
 
- if [ -d /usr/local/appimage/skeletons/${aAPP,,}/home/${aAPP,,} ];then
-  chown -R ${aAPP,,}:${aAPP,,} /usr/local/appimage/skeletons/${aAPP,,}/home/${aAPP,,}
-  cp -a -f /usr/local/appimage/skeletons/${aAPP,,}/home/${aAPP,,}/* /home/${aAPP,,}/ 2>/dev/null
-  cp -a -f /usr/local/appimage/skeletons/${aAPP,,}/home/${aAPP,,}/.[a-zA-Z0-9]* /home/${aAPP,,}/ 2>/dev/null
+ if [ -d /usr/local/appi/skeletons/${aAPP,,}/home/${aAPP,,} ];then
+  chown -R ${aAPP,,}:${aAPP,,} /usr/local/appi/skeletons/${aAPP,,}/home/${aAPP,,}
+  cp -a -f /usr/local/appi/skeletons/${aAPP,,}/home/${aAPP,,}/* /home/${aAPP,,}/ 2>/dev/null
+  cp -a -f /usr/local/appi/skeletons/${aAPP,,}/home/${aAPP,,}/.[a-zA-Z0-9]* /home/${aAPP,,}/ 2>/dev/null
  fi
 
  #update jwm menu...
@@ -753,7 +754,7 @@ $(gettext 'However, you may prefer to run some apps as the root user, a file-man
        <text><label>$(gettext 'Click for more information:')</label></text>
        <button>
          <label>root</label>
-         <action>/usr/local/appimage/notes-security & </action>
+         <action>/usr/local/appi/notes-security & </action>
        </button>
       </hbox>
     </frame>
