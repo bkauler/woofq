@@ -1,9 +1,10 @@
-#!/bin/ash
+#!/bin/bash
 #20220214 insert icons into the tray.
 # called from /root/.xinitrc when X starts.
 #20220413 sfsget now has icon sfs48.png
 #20220530 EOS_TOP_LEVEL_ZRAM==1 then have "save" icon.
 #20230720 no longer separate pkgget & sfsget icons.
+#20240902 insert user-created icons. remove invalid entries.
 
 export TEXTDOMAIN=ui-jwm
 export OUTPUT_CHARSET=UTF-8
@@ -22,20 +23,92 @@ if [ ! -f /root/.jwm/tray-icons ];then
  mSHARE="$(gettext 'share')"
  mUPDATE="$(gettext 'update')"
  mPKG="$(gettext 'pkg')"
- echo "		<TrayButton ${LABEL}=\"${mFILES}\" icon=\"folders48.png\">exec:/usr/local/bin/rox --dir=/files</TrayButton>
-		<TrayButton ${LABEL}=\"${mWWW}\" icon=\"www48.png\">exec:defaultbrowser</TrayButton>
-		<TrayButton ${LABEL}=\"${mAPPS}\" icon=\"apps48.png\">exec:easyapps</TrayButton>
-		<TrayButton ${LABEL}=\"${mPKG}\" icon=\"pet48.png\">exec:pkg-wrap</TrayButton>
-		<TrayButton ${LABEL}=\"${mSETUP}\" icon=\"configuration48.png\">exec:easysetup</TrayButton>
-		<TrayButton ${LABEL}=\"${mEDIT}\" icon=\"edit48.png\">exec:defaulttexteditor</TrayButton>
-		<TrayButton ${LABEL}=\"${mCONSOLE}\" icon=\"console48.png\">exec:defaultterminal</TrayButton>
-		<TrayButton ${LABEL}=\"${mSHARE}\" icon=\"network48.png\">exec:/usr/local/EasyShare/easyshare</TrayButton>
-		<TrayButton ${LABEL}=\"${mUPDATE}\" icon=\"update48.png\">exec:easy-update</TrayButton>" > /root/.jwm/tray-icons
+ echo "<TrayButton ${LABEL}=\"${mFILES}\" icon=\"folders48.png\">exec:/usr/local/bin/rox --dir=/files</TrayButton>
+<TrayButton ${LABEL}=\"${mWWW}\" icon=\"www48.png\">exec:defaultbrowser</TrayButton>
+<TrayButton ${LABEL}=\"${mAPPS}\" icon=\"apps48.png\">exec:easyapps</TrayButton>
+<TrayButton ${LABEL}=\"${mPKG}\" icon=\"pet48.png\">exec:pkg-wrap</TrayButton>
+<TrayButton ${LABEL}=\"${mSETUP}\" icon=\"configuration48.png\">exec:easysetup</TrayButton>
+<TrayButton ${LABEL}=\"${mEDIT}\" icon=\"edit48.png\">exec:defaulttexteditor</TrayButton>
+<TrayButton ${LABEL}=\"${mCONSOLE}\" icon=\"console48.png\">exec:defaultterminal</TrayButton>
+<TrayButton ${LABEL}=\"${mSHARE}\" icon=\"network48.png\">exec:/usr/local/EasyShare/easyshare</TrayButton>
+<TrayButton ${LABEL}=\"${mUPDATE}\" icon=\"update48.png\">exec:easy-update</TrayButton>" > /root/.jwm/tray-icons
  if [ "$EOS_TOP_LEVEL_ZRAM" == "1" ];then #20220530
   mSAVE="$(gettext 'save')"
   echo "<TrayButton ${LABEL}=\"${mSAVE}\" icon=\"save48.png\">exec:ask-save-zram1</TrayButton>" >> /root/.jwm/tray-icons
  fi
 fi
+
+#20240902 insert user-created icons from rox desktop...
+while read aLINE
+do
+ [ "$aLINE" == "" ] && continue
+ #ex:   <icon x="218" y="362" label="nanosaur">/home/nanosaur/nanosaur</icon>
+ #ex:   <icon x="30" y="826" label="droidcam.desktop">/usr/share/applications/droidcam.desktop</icon>
+ #ex:   <icon x="76" y="736" label="chromium">/usr/bin/chromium</icon>
+ aAPP="$(cut -f 2 -d '>' <<<${aLINE} | cut -f 1 -d '<')"
+ aLABEL="$(cut -f 6 -d '"' <<<${aLINE})"
+ aICON=''
+ if [ -e /home/${aAPP##*/} ];then
+  aAPP="${aAPP##*/}"
+ fi
+ aAPP0="${aAPP}"
+ #finding the icon may be a bit involved...
+ if [ -e /usr/share/applications/${aAPP##*/} ];then
+  aICON="$(grep '^Icon=' /usr/share/applications/${aAPP##*/} | cut -f 2 -d'=')"
+  aAPP="$(grep '^Exec=' /usr/share/applications/${aAPP##*/} | cut -f 2 -d'=')"
+ fi
+ if [ -z "$aICON" ];then
+  aAPP="${aAPP0}"
+  if [ -e /usr/share/applications/${aAPP##*/}.desktop ];then
+   aICON="$(grep '^Icon=' /usr/share/applications/${aAPP##*/}.desktop | cut -f 2 -d'=')"
+   aAPP="$(grep '^Exec=' /usr/share/applications/${aAPP##*/}.desktop | cut -f 2 -d'=')"
+  fi
+ fi
+ if [ -z "$aICON" ];then
+  aAPP="${aAPP0}"
+  if [ -e /usr/share/pixmaps/${aAPP##*/}.png ];then
+   aICON="/usr/share/pixmaps/${aAPP##*/}.png"
+  fi
+ fi
+ if [ -z "$aICON" ];then
+  aICON="$(grep -A1 -F "${aAPP}" /root/.config/rox.sourceforge.net/ROX-Filer/globicons | tail -n1 | cut -f 2 -d '>' | cut -f 1 -d '<')"
+ fi
+ if [ -z "$aICON" ];then
+  aICON="/usr/share/pixmaps/executable.png"
+ fi
+ #note: ${aICON##*/} should exist where jwm looks for icons (see /root/.jwmrc)...
+ #a quick hack, jwm looks in /usr/share/pixmaps...
+ if [ ! -e /usr/share/pixmaps/${aICON##*/} ];then
+  ln -s -r ${aICON} /usr/share/pixmaps/${aICON##*/}
+ fi
+ grep -q -F "exec:${aAPP}<" /root/.jwm/tray-icons
+ if [ $? -ne 0 ];then
+  echo "<TrayButton popup=\"${aLABEL/.*/}\" icon=\"${aICON##*/}\">exec:${aAPP}</TrayButton>" >> /root/.jwm/tray-icons
+ fi
+done <<EOF1
+$(grep -F '<icon ' /root/Choices/ROX-Filer/PuppyPin | grep -v -E 'bin/rox|default|pkg-wrap|easy|ask-save|pup_event|/ec-|local')
+EOF1
+
+#20240902 remove invalid entries from /root/.jwm/tray-icons
+#may have imported when change rox->jwm mode, then app got deleted...
+cp -f /root/.jwm/tray-icons /tmp/jwm-tray-icons-tmp
+while read aLINE
+do
+ [ "$aLINE" == "" ] && continue
+ aAPP="$(cut -f 2 -d ':' <<<${aLINE} | cut -f 1 -d '<')"
+ if [ "${aAPP:0:1}" == "/" ];then
+  if [ ! -e "${aAPP/ */}" ];then
+   #note: % delimiter instead of /, must backslash the first %...
+   sed -i "\%${aAPP/ */}%d" /root/.jwm/tray-icons
+  fi
+ else
+  which "${aAPP/ */}" > /dev/null
+  if [ $? -ne 0 ];then
+   sed -i "\%${aAPP/ */}%d" /root/.jwm/tray-icons
+  fi
+ fi
+done < /tmp/jwm-tray-icons-tmp
+rm -f /tmp/jwm-tray-icons-tmp
 
 #insert file between two patterns in /root/.jwmrc-tray...
 sed -i -e '/STARTICONS/,/ENDICONS/{/STARTICONS/!{/ENDICONS/!d}}' -e '/STARTICONS/r /root/.jwm/tray-icons' /root/.jwmrc-tray
