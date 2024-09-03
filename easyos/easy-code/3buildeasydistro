@@ -287,7 +287,7 @@
 #20230224 merge applications.in into applications  20230225 fix. 20230226 fix.
 #20230304 support distro name other than "EasyOS" and "Easy". 
 #20230305 tweaks. support rename "easy.sfs". support "easy-*.img" rename.
-#20230403 easy.run-once-top: remove appimage.desktop in container.
+#20230403 easy.run-once-top: remove appi.desktop in container.
 #20230416 pre-populate initrd sfs .png and .specs files.
 #20230423 trying to fix norwegian.
 #20230429 no need to substitute variable values in initrd.
@@ -330,6 +330,7 @@
 #20240715 remove d/l seamonkey langpack.
 #20240722 v7 limine.sys now limine-bios.sys
 #20240814 remove usr-merge test (limine-version test doesn't work anyway as it is now a script). fix limine-deploy
+#20240903 path now /usr/local/appi
 
 export LANG=C #faster.
 
@@ -5753,7 +5754,7 @@ cat << 'EOF3' >> rootfs-complete/.control/${DISTRO_NAME_SHORT,,}.run-once-top
  [ -f /root/.jwm/jwmrc-personal ] && sed -i '/defaultscreenshot/d' /root/.jwm/jwmrc-personal #181116 up-arrow launches screeny.
  [ -f /root/.jwm/jwmrc-personal2 ] && sed -i '/defaultscreenshot/d' /root/.jwm/jwmrc-personal2 #181116 up-arrow launches screeny.
  #have to run fixmenus, but firstly, delete some .desktop files...
- for aDT in appimage BootManagerSTAR easy-STAR ec-STAR childproof cups Desktop-STAR easydd firewall-STAR floppy-STAR gparted Internet-STAR loginmanager MoManagerSTAR MouseSTAR Multiple-Sound-Card-Wizard Partview Pdisk-STAR Pmount-STAR printer-STAR PuddSTAR qsync QuickSetup remove-builtin Set-STAR TopSTAR video-STAR
+ for aDT in appi BootManagerSTAR easy-STAR ec-STAR childproof cups Desktop-STAR easydd firewall-STAR floppy-STAR gparted Internet-STAR loginmanager MoManagerSTAR MouseSTAR Multiple-Sound-Card-Wizard Partview Pdisk-STAR Pmount-STAR printer-STAR PuddSTAR qsync QuickSetup remove-builtin Set-STAR TopSTAR video-STAR
  do
   rm -f /usr/share/applications/${aDT/STAR/*}.desktop 2>/dev/null
  done

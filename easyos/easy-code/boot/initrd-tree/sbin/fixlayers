@@ -37,7 +37,7 @@
 #20230210 always load .str.en, in case non-english is incomplete.
 #20230211 .str files folder hierarchy reorganized.
 #20230309 have removed /usr/local/debget
-#20230327 /usr/local/appimage  20230408 /usr/local/flatpak  20230422 easyjwm easysetup
+#20230327 /usr/local/appi  20230408 /usr/local/flatpak  20230422 easyjwm easysetup
 #20230423 remove complicated code that may be removing desktop icons from PuppyPin
 #20230423 make sure "pkg" icon runs pkg-wrap (easy 5.2.2) --can remove this later, after everyone hass updated.
 #20230510 preserve flatpak user customizations.
@@ -54,6 +54,7 @@
 #20240616 fix updating kirkstone to scarthgap issues. 20240617 fix.
 #20240618 new $6 passed prevCOMPAT
 #20240706 predetermined uid and gid; fix update before 6.0.4
+#20240903 path now /usr/local/appi
 
 WKG_DRV=$1 #ex: sda
 WKG_DEV=$2 #ex: sda2
@@ -366,7 +367,8 @@ if [ -d /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/flatpak/custom ];then
  mv -f /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/flatpak/custom /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/flatpak-custom
 fi
 #now delete all folders that are in skeleton...
-for aD in android_build appimage apps/Connect apps/PupZip apps/ROX-Filer apps/Trash apps/XkbConfigurationManager bluepup clients easyapps easy_containers easyjwm easysetup EasyShare easy_version firmware flatpak limine-installer momanager petget pgprs pup_event sfsget shellcms simple_network_setup SimpleVP ui UltraSNS video_upgrade
+#20240903 path changed from usr/local/appimage to usr/local/appi
+for aD in android_build appi appimage apps/Connect apps/PupZip apps/ROX-Filer apps/Trash apps/XkbConfigurationManager bluepup clients easyapps easy_containers easyjwm easysetup EasyShare easy_version firmware flatpak limine-installer momanager petget pgprs pup_event sfsget shellcms simple_network_setup SimpleVP ui UltraSNS video_upgrade
 do
  if [ -e /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/${aD} ];then
   rm -rf /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/${aD}
