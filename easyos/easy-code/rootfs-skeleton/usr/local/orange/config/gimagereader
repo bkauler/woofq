@@ -1,0 +1,25 @@
+#!/bin/ash
+export TEXTDOMAIN=orange
+export OUTPUT_CHARSET=UTF-8
+
+#pkg-name
+PN=gimagereader
+#executable-name
+EN=gimagereader
+#real-name
+RN=gImageReader
+#alt-exe-names
+AN="gimagereader-gtk gimagereader-qt5"
+#short-descr
+SD="Optical character recognition"
+#homepage
+HP="https://github.com/manisandro/gImageReader"
+#mini-icon (found in /usr/local/lib/X11/mini-icons)
+MI=mini-Graphic-scanner
+#run app as this user ***FUTURE***
+UN=gimagereader
+#post-install frame...
+PF="    <frame>
+      <text use-markup=\"true\"><label>\"<b>$(gettext 'Tesseract languages')</b>\"</label></text>
+      <text use-markup=\"true\"><label>\"$(gettext 'gImageReader is a GUI for tesseract, which requires language packages. These may be installed via PKGget and are named tessdata-* or tesseract-lang-*. The English language at least is already installed.')\"</label></text>
+    </frame>"
