@@ -126,7 +126,7 @@ if [ "${UN}" != "root" ];then
 fi
 
 #remove all installed .desktop files...
-for aDT in $(grep '/usr/share/applications' /root/.packages/${TREE1}.files | tr '\n' ' ')
+for aDT in $(grep '/usr/share/applications/.*desktop' /root/.packages/${TREE1}.files | tr '\n' ' ')
 do
  rm -f /usr/share/applications/${aDT##*/}
 done
@@ -202,8 +202,10 @@ if [ -f /root/.jwm/tray-icons ];then
  grep -q -F "exec:${EN}<" /root/.jwm/tray-icons
  if [ $? -ne 0 ];then
   echo "<TrayButton popup=\"${RN}\" icon=\"${EN}.png\">exec:${EN}</TrayButton>" >> /root/.jwm/tray-icons
-  #insert file between two patterns in /root/.jwmrc-tray...
-  sed -i -e '/STARTICONS/,/ENDICONS/{/STARTICONS/!{/ENDICONS/!d}}' -e '/STARTICONS/r /root/.jwm/tray-icons' /root/.jwmrc-tray
+  if [ "${UI_DESK_MANAGER}" == "jwm" ];then
+   #insert file between two patterns in /root/.jwmrc-tray...
+   sed -i -e '/STARTICONS/,/ENDICONS/{/STARTICONS/!{/ENDICONS/!d}}' -e '/STARTICONS/r /root/.jwm/tray-icons' /root/.jwmrc-tray
+  fi
  fi
 fi
 
