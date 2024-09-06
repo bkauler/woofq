@@ -55,6 +55,7 @@
 #20240618 new $6 passed prevCOMPAT
 #20240706 predetermined uid and gid; fix update before 6.0.4
 #20240903 path now /usr/local/appi, /usr/local/flapi
+#20240906 new /usr/local/orange
 
 WKG_DRV=$1 #ex: sda
 WKG_DEV=$2 #ex: sda2
@@ -368,7 +369,8 @@ if [ -d /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/flapi/custom ];then
 fi
 #now delete all folders that are in skeleton...
 #20240903 path changed from usr/local/appimage to usr/local/appi. ditto for flatpak to flapi
-for aD in android_build appi appimage apps/Connect apps/PupZip apps/ROX-Filer apps/Trash apps/XkbConfigurationManager bluepup clients easyapps easy_containers easyjwm easysetup EasyShare easy_version firmware flapi flatpak limine-installer momanager petget pgprs pup_event sfsget shellcms simple_network_setup SimpleVP ui UltraSNS video_upgrade
+#20240906 add: orange
+for aD in android_build appi appimage apps/Connect apps/PupZip apps/ROX-Filer apps/Trash apps/XkbConfigurationManager bluepup clients easyapps easy_containers easyjwm easysetup EasyShare easy_version firmware flapi flatpak limine-installer momanager orange petget pgprs pup_event sfsget shellcms simple_network_setup SimpleVP ui UltraSNS video_upgrade
 do
  if [ -e /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/${aD} ];then
   rm -rf /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/local/${aD}

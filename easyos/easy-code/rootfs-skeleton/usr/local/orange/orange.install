@@ -5,6 +5,7 @@
 #pass in pkg-name PN=$1.
 #restriction: executable-name and icon-name to be the same.
 #  also expect exist /usr/share/pixmaps/icon-name.png
+#20240906 if uninstall, need to remove .bin, .bin0
 
 export TEXTDOMAIN=orange
 export OUTPUT_CHARSET=UTF-8
@@ -132,6 +133,12 @@ do
 done
 sed -i '\%/usr/share/applications%d' /root/.packages/${TREE1}.files
 echo "/usr/share/applications/${EN}.desktop" >> /root/.packages/${TREE1}.files
+
+#20240906 if uninstall, need to remove these...
+if [ "${UN}" != "root" ];then
+ echo "/usr/bin/${EN}.bin" >> /root/.packages/${TREE1}.files
+ echo "/usr/bin/${EN}.bin0" >> /root/.packages/${TREE1}.files
+fi
 
 #fix .desktop, find menu category...
 cp -a -f /tmp/orange/${EN}.desktop /usr/share/applications/${EN}.desktop
