@@ -6,9 +6,13 @@
 #20221018 show hw and software actual times.
 #20221020 fix hwclock, need to use busybox applet.
 #20230308 no need for 'Done' msg at end.
+#20240906 Caramel: fix hardware profiling. ref: https://forum.puppylinux.com/viewtopic.php?p=130352#p130352
 
 export TEXTDOMAIN=set_hwclock_type
 export OUTPUT_CHARSET=UTF-8
+
+#20240906
+. /tmp/pc-hardware-profile #has PC_HARDWARE_PROFILE ref: /etc/rc.d/rc.country
 
 [ -f /etc/clock ] && . /etc/clock
 
@@ -45,6 +49,8 @@ if [ "$HWCLOCKTIME" = "utc" ] || [ "$HWCLOCKTIME" = "localtime" ]; then
         hwPATTERN="s/^HWCLOCKTIME=[^#]*/HWCLOCKTIME='$HWCLOCKTIME'/"
         sed -i "$hwPATTERN" /etc/clock
     fi
+    #20240906
+    cp -a -f /etc/clock /etc/clock.${PC_HARDWARE_PROFILE}
     
     M3="$(gettext "Yes")"
     M4="$(gettext "No")"
