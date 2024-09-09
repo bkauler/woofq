@@ -18,6 +18,7 @@
 #20240120 fix start and stop client dbus-daemon
 #20240903 path now /usr/local/flapi
 #20240905 translate menu top category. aware of jwm-mode. new notes-security
+#20240906 brave browser.
 
 if [ "$(whoami)" != "root" ];then
  if [ -x /usr/bin/sudo-sh ];then
@@ -372,6 +373,7 @@ case "${aAPP}" in
  UnGoogled) TRIPLET='com.github.Eloston.UngoogledChromium'; MENUcat='X-Internet-browser'; MENUtop='Internet'; MENUname='Un-Googled Chromium web browser' ;;
  KTorrent) TRIPLET='org.kde.ktorrent'; MENUcat='P2P'; MENUtop='Internet'; MENUname='KTorrent KDE BitTorrent client'; ;;
  Maps) TRIPLET='org.gnome.Maps'; MENUcat='X-Personal'; MENUtop='Personal'; MENUname='Maps OpenStreetMaps world map'; ;;
+ Brave) TRIPLET='com.brave.Browser'; MENUcat='X-Internet-browser'; MENUtop='Internet'; MENUname='Brave web browser'; ;;
  ZZZ) TRIPLET=''; MENUcat=''; MENUtop=''; MENUname=''; ;;
 esac
 
@@ -610,6 +612,7 @@ fi
 #20230505 make qt fonts bigger "--env=QT_SCALE_FACTOR=1.2"
 # same for gtk " --env=GDK_DPI_SCALE=1.2"  20230516 reduce both to 1.1
 #20231213 prevent 2nd instance dbus-daemon... 20240120 fix...
+#20240907 append passed params $@
 echo "#!/bin/sh
 APPlow=\"${aAPP,,}\"
 busybox ps | grep -q ' \${APPlow:0:8}.*dbus\-daemon'
@@ -625,7 +628,7 @@ else
  fi
 fi
 export XDG_DATA_DIRS=/mnt/wkg/flatpak/exports/share:/home/${aAPP,,}/.local/share/flatpak/exports/share:${XDG_DATA_DIRS} #need to fool flatpak.
-flatpak run --env=GDK_DPI_SCALE=1.1 --env=QT_SCALE_FACTOR=1.1 --filesystem=host --socket=system-bus --socket=cups --socket=ssh-auth --socket=session-bus ${TRIPLET}
+flatpak run --env=GDK_DPI_SCALE=1.1 --env=QT_SCALE_FACTOR=1.1 --filesystem=host --socket=system-bus --socket=cups --socket=ssh-auth --socket=session-bus ${TRIPLET} \$@
 pidof -o \${$} \${APPlow}.bin >/dev/null
 if [ \$? -ne 0 ];then
  kill \$DBUS_SESSION_BUS_PID
@@ -771,6 +774,7 @@ $(gettext 'You can do it any time in the future, and also can delete the desktop
       </hbox>"
 fi
 
+export aAPP #20240906
 export FP_DLG6="<window title=\"$(gettext 'Flatpak Installer: notes')\" image-name=\"/usr/share/pixmaps/flatpak.png\">
   <vbox>
     <frame>

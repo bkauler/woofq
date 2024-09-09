@@ -18,7 +18,7 @@ $(gettext 'The installation also created a .desktop file, that specifies an entr
   /usr/share/applications/${aAPP,,}.desktop
 $(gettext 'And this is one line in the file:')
   Exec=${aAPP,,}
-$(gettext 'To change to run the AppImage as the root user, edit that line:')
+$(gettext 'To change to run the Flatpak as the root user, edit that line:')
   Exec=${aAPP,,}<b>.bin</b>
 $(gettext 'Then in a terminal, run these two commands to update the menu:')
   # fixmenus
@@ -27,12 +27,13 @@ $(gettext 'In the future, this might be automated by the Flatpak Installer, but 
 
 <b>$(gettext 'A final warning')</b>
 $(gettext 'Some Flatpaks will not run as root, and some may require the Exec line in the .desktop file to have this appended:')
- Exec=${aAPP,,}.bin <b>--no-sandbox</b>
+ Exec=${aAPP,,}.bin <b>--no-sandbox</b>\"</label></text>
     <hbox>
      <button ok></button>
     </hbox>
   </vbox>
 </window>
 "
+#echo "$FLATPAK_DLGsec" > /tmp/FLATPAK_DLGsec
 gtkdialog --center --program=FLATPAK_DLGsec
 ###end###
