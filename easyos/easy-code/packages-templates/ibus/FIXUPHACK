@@ -1,0 +1,21 @@
+
+mkdir -p etc/profile.d
+echo 'export GTK_IM_MODULE=ibus
+export QT_IM_MODULE=ibus
+export XMODIFIERS=@im=ibus' > etc/profile.d/ibus
+
+mkdir -p etc/init.d
+echo '#!/bin/sh
+case "$1" in
+ start)
+  ibus-daemon --daemonize --xim --replace --restart
+ ;;
+ restart)
+  killall ibus-daemon
+  ibus-daemon --daemonize --xim --replace --restart
+ *)
+  killall ibus-daemon
+ ;;
+esac
+' > etc/init.d/ibus
+chmod 755 etc/init.d/ibus
