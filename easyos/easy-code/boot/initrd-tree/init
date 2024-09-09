@@ -191,6 +191,7 @@
 #20240623 xarchive may change folders to root group. ref: https://forum.puppylinux.com/viewtopic.php?p=123982#p123982
 #20240626 Caramel: missing $
 #20240712 support skeleton 912MiB wkg-part. 20240715 944MiB wkg-part.
+#20240909 fix /etc/profile $LANG
 
 #20230429
 . /build-choices #3buildeasydistro copies it here.
@@ -2357,6 +2358,18 @@ if [ "$QLANG" ];then
   else
    #20230221 oh, busybox ash does not support ${QLANG^^} capitalization
    QLcaps="$(echo -n "$QLANG" | tr '[a-z]' '[A-Z]')"
+   case "$QLANG" in #20240909 ref /sbin/ask-language line 36
+    cs) QLcaps='CZ' ;;
+    el) QLcaps='GR' ;;
+    en) QLcaps='US' ;;
+    et) QLcaps='EE' ;;
+    sl) QLcaps='SK' ;;
+    sq) QLcaps='AL' ;;
+    sr) QLcaps='RS' ;;
+    sv) QLcaps='SE' ;;
+    uk) QLcaps='UA' ;;
+    zh) QLcaps='CN' ;;
+   esac
    sed -i -e "s%^LANG=.*%LANG=${QLANG}_${QLcaps}.UTF-8%" /easy_new/etc/profile
   fi
  fi
