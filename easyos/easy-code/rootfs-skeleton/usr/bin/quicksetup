@@ -137,6 +137,7 @@
 #20230622 new tr console keyboard layout.
 #20230626 new sudo-sh replaces sudo.
 #20231125 also update KEYMAP in /mnt/wkg/sfs/settings/initrd/CONFIG; read in initrd. 20231126 fix.
+#20240909 if select/deselect zh locale, need reboot.
 
 #20230626
 if [ "$(whoami)" != "root" ];then
@@ -1395,7 +1396,23 @@ if [ "$SET_LOCALE" ];then
  [ "$PARAM2" = "quiet" ] && CURRLANG=en_US #so as to force below code block to run...
 
  if [ "$LANGCHOICE" != "" -a "${LANGCHOICE}${UTF8}" != "$CURRLANG" ];then
-  FLAG_CHANGED="${FLAG_CHANGED}${TT_mainlanguage}:restart|"
+  
+  #20240909 select/deselect chinese req reboot...
+  SETIT='restart'
+  case "${CURRLANG/_*/}" in
+   zh)
+    if [ "${LANGCHOICE/_*/}" != "zh" ];then
+     SETIT='reboot'
+    fi
+   ;;
+   *)
+    if [ "${LANGCHOICE/_*/}" == "zh" ];then
+     SETIT='reboot'
+    fi
+   ;;
+  esac
+  FLAG_CHANGED="${FLAG_CHANGED}${TT_mainlanguage}:${SETIT}|"
+  
   # creates locale files in /usr/lib/locale...
   OLDLANGLINE="LANG=$CURRLANG"
   NEWLANGLINE="LANG=${LANGCHOICE}"

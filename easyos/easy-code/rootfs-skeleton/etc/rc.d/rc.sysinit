@@ -67,6 +67,7 @@
 #20231214 some code deletes .desktop files moved to initrd.
 #20240115 create symlink /var/service to /etc/service, for runit.
 #20240118 fix flatpak in easyvoid.
+#20240909 handle ibus input method.
 
 #unset TZ #100319 busybox hwclock gives priority to this (rather than /etc/localtime) and 'init' has set it wrong.
 #...comment-out for now. note, TZ now set in rc.country.
@@ -130,6 +131,22 @@ load_consolefont
 #...this is done in rc.country, but needs to be move above all the o/p to /dev/console.
 
 STATUS=0
+
+#2024090 ibus
+if [ -e /root/Startup/ibus ];then
+ case "$ORIGLANG1" in
+  zh)
+   chmod 755 /root/Startup/ibus
+   cp -a -f /mnt/.easy_ro/easy_sfs/etc/profile.d/ibus /etc/profile.d/
+  ;;
+  *)
+   chmod 644 /root/Startup/ibus
+   if [ -f /etc/profile.d/ibus ];then
+    rm -f /etc/profile.d/ibus
+   fi
+  ;;
+ esac
+fi
 
 ##############MAKE FILESYSTEM USABLE################
 #echo "MAKE FILESYSTEM USABLE"
