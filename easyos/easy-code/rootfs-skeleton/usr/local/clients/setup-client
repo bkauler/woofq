@@ -77,6 +77,7 @@
 #20240703 predetermined gid and uid. 20240704 precaution.
 #20240705 adduser/addgroup problem pre-existing entries in host /etc/passwd,group
 #20240705 fix create /files/apps/<name> when called in woofq.
+#20240912 fix if param passed to .bin has a space char.
 
 APPname="${1/=*/}"  #ex: seamonkey
 APPflag="${1/*=/}" #ex: true
@@ -127,25 +128,42 @@ gen_bin_func() {
  #fi
  #hmmm, 3buildeasydistro creates chromium.bin with APPin=rootfs-complete/usr/bin/chromium
  #20231213 prevent 2nd instance dbus-daemon...
- echo "#!/bin/sh
+ echo -n '' > ${APPin}.bin
+ cat <<'EOF1' >> ${APPin}.bin
+#!/bin/sh
+#20240912 instead of passing $@ to *.bin0, put quotes if space...
+ARGS=""
+if [ -n "$1" ];then
+ while [ -n "$1" ]
+ do
+  #do not put quotes around if a single word. example is "-edit" for seamonkey, the quotes stuff it up entirely...
+  if [ "${1/ /}" == "${1}" ];then
+   ARGS="${ARGS} ${1}"
+  else
+   ARGS="${ARGS} \"${1}\""
+  fi
+  shift
+ done
+fi
 busybox ps | grep -q '${APPname:0:8}.*dbus\-daemon'
-DBUSflg=\$?
-if [ \$DBUSflg -ne 0 ];then
- export \$(dbus-launch) #if app needs to access dbus.
- echo \"DBUS_SESSION_BUS_ADDRESS='\${DBUS_SESSION_BUS_ADDRESS}'
-DBUS_SESSION_BUS_PID='\${DBUS_SESSION_BUS_PID}'\" > \${HOME}/.DBUS-DAEMON-VARS
+DBUSflg=$?
+if [ $DBUSflg -ne 0 ];then
+ export $(dbus-launch) #if app needs to access dbus.
+ echo "DBUS_SESSION_BUS_ADDRESS='${DBUS_SESSION_BUS_ADDRESS}'
+DBUS_SESSION_BUS_PID='${DBUS_SESSION_BUS_PID}'" > ${HOME}/.DBUS-DAEMON-VARS
 else 
- if [ -s \${HOME}/.DBUS-DAEMON-VARS ];then
-  eval \$(cat \${HOME}/.DBUS-DAEMON-VARS)
+ if [ -s ${HOME}/.DBUS-DAEMON-VARS ];then
+  eval $(cat ${HOME}/.DBUS-DAEMON-VARS)
   export DBUS_SESSION_BUS_ADDRESS DBUS_SESSION_BUS_PID
  fi
 fi
-${APPpath}/${APPname}.bin0 \$@
-if [ \$DBUSflg -ne 0 ];then
- kill \$DBUS_SESSION_BUS_PID
- rm -f \${HOME}/.DBUS-DAEMON-VARS 2>/dev/null
+${APPpath}/${APPname}.bin0 $ARGS
+if [ $DBUSflg -ne 0 ];then
+ kill $DBUS_SESSION_BUS_PID
+ rm -f ${HOME}/.DBUS-DAEMON-VARS 2>/dev/null
 fi
-" > ${APPin}.bin
+EOF1
+ 
  chmod 755 ${APPin}.bin
 }
 
@@ -384,8 +402,8 @@ fi
 
 ARGS=""
 #[ $1 ] && while [ "$1" ]; do ARGS="$ARGS \"$1\""; shift; done
-if [ $1 ];then
- while [ "$1" ]
+if [ -n "$1" ];then #20240912
+ while [ -n "$1" ]
  do
   #do not put quotes around if a single word. example is "-edit" for seamonkey, the quotes stuff it up entirely...
   if [ "${1/ /}" == "${1}" ];then
