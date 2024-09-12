@@ -5,6 +5,7 @@
 #20220530 EOS_TOP_LEVEL_ZRAM==1 then have "save" icon.
 #20230720 no longer separate pkgget & sfsget icons.
 #20240902 insert user-created icons. remove invalid entries.
+#20240912 invalid icon in tray. ref: https://forum.puppylinux.com/viewtopic.php?p=130762#p130762
 
 export TEXTDOMAIN=ui-jwm
 export OUTPUT_CHARSET=UTF-8
@@ -80,6 +81,12 @@ do
  #a quick hack, jwm looks in /usr/share/pixmaps...
  if [ ! -e /usr/share/pixmaps/${aICON##*/} ];then
   ln -s -r ${aICON} /usr/share/pixmaps/${aICON##*/}
+ fi
+ #20240912 icon in rox to open a folder...
+ #  PuppyPin ex: <icon x="1144" y="164" label="usr">/usr</icon>
+ if [ -d "${aAPP}" -a "${aAPP:0:1}" == "/" ];then
+  aAPP="/usr/local/bin/rox --dir=${aAPP}"
+  aICON="folder48.png"
  fi
  grep -q -F "exec:${aAPP}<" /root/.jwm/tray-icons
  if [ $? -ne 0 ];then
