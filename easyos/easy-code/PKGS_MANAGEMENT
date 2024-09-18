@@ -144,7 +144,8 @@ case $DISTRO_BINARY_COMPAT in #110705
   IGNORE_XSERVER_XORG='xserver-xorg xf86-input-evdev xf86-input-keyboard xf86-input-mouse xf86-input-synaptics xf86-video-fbdev xf86-video-intel xf86-video-vesa'
   #20240629 db shows this as a dep but no such pkg: ncurses-terminfo-base
   #20240904 gimagereader has valgrind dep. add valgrind here to avoid that (its in the devx anyway).
-  PKG_NAME_IGNORE="alsa-state base-files base-passwd bash-completion gnome-themes-standard initscripts keymaps linux-quirky ncurses-terminfo-base opkg-utils petget run-postinsts shadow shadow-securetty shadow-sysroot sysfiles sysklogd sysvinit-inittab update-rc.d update-rc valgrind xserver-nodm-init ${IGNORE_X11_PROTO} ${IGNORE_XORG_BASE}"
+  #20240917 ibus has python3-core but there is no such pkg...
+  PKG_NAME_IGNORE="alsa-state base-files base-passwd bash-completion gnome-themes-standard initscripts keymaps linux-quirky ncurses-terminfo-base opkg-utils petget python3-core run-postinsts shadow shadow-securetty shadow-sysroot sysfiles sysklogd sysvinit-inittab update-rc.d update-rc valgrind xserver-nodm-init ${IGNORE_X11_PROTO} ${IGNORE_XORG_BASE}"
  ;;
  void) #20240115
   #this is a hack for now, as using dbus and dbus-glib from kirkstone.
