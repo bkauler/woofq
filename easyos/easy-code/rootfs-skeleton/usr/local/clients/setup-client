@@ -145,24 +145,25 @@ if [ -n "$1" ];then
   shift
  done
 fi
-busybox ps | grep -q '${APPname:0:8}.*dbus\-daemon'
-DBUSflg=$?
-if [ $DBUSflg -ne 0 ];then
- export $(dbus-launch) #if app needs to access dbus.
- echo "DBUS_SESSION_BUS_ADDRESS='${DBUS_SESSION_BUS_ADDRESS}'
-DBUS_SESSION_BUS_PID='${DBUS_SESSION_BUS_PID}'" > ${HOME}/.DBUS-DAEMON-VARS
+EOF1
+
+echo "busybox ps | grep -q '${APPname:0:8}.*dbus\-daemon'
+DBUSflg=\$?
+if [ \$DBUSflg -ne 0 ];then
+ export \$(dbus-launch) #if app needs to access dbus.
+ echo \"DBUS_SESSION_BUS_ADDRESS='\${DBUS_SESSION_BUS_ADDRESS}'
+DBUS_SESSION_BUS_PID='\${DBUS_SESSION_BUS_PID}'\" > \${HOME}/.DBUS-DAEMON-VARS
 else 
- if [ -s ${HOME}/.DBUS-DAEMON-VARS ];then
-  eval $(cat ${HOME}/.DBUS-DAEMON-VARS)
+ if [ -s \${HOME}/.DBUS-DAEMON-VARS ];then
+  eval \$(cat \${HOME}/.DBUS-DAEMON-VARS)
   export DBUS_SESSION_BUS_ADDRESS DBUS_SESSION_BUS_PID
  fi
 fi
-${APPpath}/${APPname}.bin0 $ARGS
-if [ $DBUSflg -ne 0 ];then
- kill $DBUS_SESSION_BUS_PID
- rm -f ${HOME}/.DBUS-DAEMON-VARS 2>/dev/null
-fi
-EOF1
+${APPpath}/${APPname}.bin0 \$ARGS
+if [ \$DBUSflg -ne 0 ];then
+ kill \$DBUS_SESSION_BUS_PID
+ rm -f \${HOME}/.DBUS-DAEMON-VARS 2>/dev/null
+fi" >> ${APPin}.bin
  
  chmod 755 ${APPin}.bin
 }
