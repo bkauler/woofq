@@ -70,6 +70,7 @@
 #20230626 new sudo-sh
 #20230710 ignore .desktop with "NoDisplay=true"
 #2024626 careful rev broken if LANG=C and utf8 chars.
+#20240916 fix geany display chinese chars.
 
 #***MOMANAGER IS ENGLISH ONLY (NOT GETTEXT'ED)***
 #it is for use by developers/translators with knowledge of english.
@@ -1065,6 +1066,16 @@ Click 'Abort' to give up..." 0 0
    else
     killall geany 2> /dev/null #otherwise geany will return immediately and continue executing this script.
     sleep 0.5
+    #20240916 fix geany incorrect chinese display...
+    # ref: https://bkhome.org/news/202409/geany-mysterious-chinese-behaviour.html
+    # ref: https://stackoverflow.com/questions/17364951/remove-all-lines-before-a-match-with-sed
+    FirstLine="$(head -n 1 /tmp/momanager/${ATEXTDOMAIN}.po)"
+    if [ "${FirstLine:0:1}" == "#" ];then
+     sed -i -n '/^msgid/,$p' /tmp/momanager/${ATEXTDOMAIN}.po
+    fi
+    #...nup. the problem seems to be if have invalid utf-8 chars, so cleanup...
+    mv -f /tmp/momanager/${ATEXTDOMAIN}.po /tmp/momanager/orig1.po
+    iconv -f utf-8 -t utf-8 -c -o /tmp/momanager/${ATEXTDOMAIN}.po /tmp/momanager/orig1.po
     LANG=C defaulttexteditor /tmp/momanager/${ATEXTDOMAIN}.po
    fi
    if diff -q /tmp/momanager/${ATEXTDOMAIN}.poBACKUP1 /tmp/momanager/${ATEXTDOMAIN}.po  >/dev/null 2>&1; then #130503 130506
