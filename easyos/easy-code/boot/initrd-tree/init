@@ -192,6 +192,7 @@
 #20240626 Caramel: missing $
 #20240712 support skeleton 912MiB wkg-part. 20240715 944MiB wkg-part.
 #20240909 fix /etc/profile $LANG
+#20240920 992MiB wkg-part, removed 880
 
 #20230429
 . /build-choices #3buildeasydistro copies it here.
@@ -1098,8 +1099,8 @@ PW=''; ALLOW_ASK_PW=''; Bmntd=0; Tmntd=0 #20220517
 Wsize="$(fdisk -u -l /dev/${WKG_DRV} | grep "^/dev/${WKG_DEV} " | tr -s ' ' | rev | cut -f 3 -d ' ' | rev)"
 #20220621 new skeleton 7MiB 1st, 816MiB 2nd, Wstart=16384
 #20220911 for easy bookworm, bumped wkg-part to 848MiB. 20221226 kirkstone 672MiB
-#20240113 easyvoid, skeleton wkg-part now 920MiB. 20240116 now 880MiB 20240612 896MiB  20240712 912MiB  20240715 944MiB
-if [ "$Wsize" == "912M" -o "$Wsize" == "944M" -o "$Wsize" == "896M" -o "$Wsize" == "880M" ];then #current skeleton.
+#20240113 easyvoid, skeleton wkg-part now 920MiB. 20240116 now 880MiB 20240612 896MiB  20240712 912MiB  20240715 944MiB  20240920 992miB
+if [ "$Wsize" == "912M" -o "$Wsize" == "944M" -o "$Wsize" == "896M" -o "$Wsize" == "992M" ];then #current skeleton.
  #starting sector of wkg partition...
  Wstart="$(fdisk -u -l /dev/${WKG_DRV} | grep "^/dev/${WKG_DEV} " | tr -s ' ' | rev | cut -f 6 -d ' ' | rev)"
  #need to be paranoid here, to get this right, restrict to my skeletons...
@@ -1110,7 +1111,7 @@ if [ "$Wsize" == "912M" -o "$Wsize" == "944M" -o "$Wsize" == "896M" -o "$Wsize" 
   #fdisk should have informed kernel to rescan partition table, however precaution...
   partprobe /dev/${WKG_DRV}
   Wnewsize="$(fdisk -u -l /dev/${WKG_DRV} | grep "^/dev/${WKG_DEV} " | tr -s ' ' | rev | cut -f 3 -d ' ' | rev)"
-  if [ "$Wnewsize" == "912M" -o "$Wnewsize" == "944M" -o "$Wnewsize" == "896M" -o "$Wnewsize" == "880M" ];then
+  if [ "$Wnewsize" == "912M" -o "$Wnewsize" == "944M" -o "$Wnewsize" == "896M" -o "$Wnewsize" == "992M" ];then
    echo -e "\\033[1;31m ${S121:-ERROR: unable to resize working-partition}\\033[0;39m" #red.
    Wbad=1 #20220511
   else
