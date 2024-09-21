@@ -60,6 +60,7 @@
 #20240225 fix for woofv. 20240226
 #20240229 sync void db using xbps-install. 20240306 full path /usr/bin/xbps-install
 #20240503 remove woofV.
+#20240918 fix debdb2pupdb -- using bacon version.
 
 LANGORG="$(locale | grep '^LANG=' | cut -d '=' -f 2)" #121116
 export LANG=C #faster.
@@ -526,20 +527,21 @@ done
 v1PATTERN="s%\\-[0-9.]*${DISTRO_BINARY_COMPAT}[0-9.]*$%%"
 v2PATTERN="s%\\+[0-9.]*${DISTRO_BINARY_COMPAT}[0-9.]*$%%"
 
+#20240918 back to bacon debdb2pupdb, restore this...
 #20220829 debdb2pupdb no longer needs this...
-##130305 debdb2pupdb.bac now also check that deps exist, need this list of pkgs...
-#if [ "$RUNNINGPUP" = "no" ];then #130316 debdb2pupdb does not read this file in a running pup.
-# case ${DISTRO_BINARY_COMPAT} in
-#  ubuntu|debian|raspbian|devuan) #150419
-#   echo -n " " > /tmp/0setupcompletelistpkgs
-#   COMPLETELISTPKGS="$(grep '^Package: ' Packages*pre 2>/dev/null | cut -f 2 -d ' ' | tr '\n' ' ')"
-#   echo "$COMPLETELISTPKGS" >> /tmp/0setupcompletelistpkgs
-#   [ -f /tmp/0setupnewinvaliddeps ] && rm -f /tmp/0setupnewinvaliddeps #see debdb2pupdb.
-#  ;;
-# esac
-#else
-# [ -f /tmp/0setupcompletelistpkgs ] && rm -f /tmp/0setupcompletelistpkgs
-#fi
+#130305 debdb2pupdb.bac now also check that deps exist, need this list of pkgs...
+if [ "$RUNNINGPUP" = "no" ];then #130316 debdb2pupdb does not read this file in a running pup.
+ case ${DISTRO_BINARY_COMPAT} in
+  ubuntu|debian|raspbian|devuan) #150419
+   echo -n " " > /tmp/0setupcompletelistpkgs
+   COMPLETELISTPKGS="$(grep '^Package: ' Packages*pre 2>/dev/null | cut -f 2 -d ' ' | tr '\n' ' ')"
+   echo "$COMPLETELISTPKGS" >> /tmp/0setupcompletelistpkgs
+   [ -f /tmp/0setupnewinvaliddeps ] && rm -f /tmp/0setupnewinvaliddeps #see debdb2pupdb.
+  ;;
+ esac
+else
+ [ -f /tmp/0setupcompletelistpkgs ] && rm -f /tmp/0setupcompletelistpkgs
+fi
 
 #w008 convert pkg database ${PKGLISTFILE}pre to a standard format...
 #120812 subcategory... 190613...

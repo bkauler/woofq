@@ -1,4 +1,4 @@
-#!/bin/ash
+#!/bin/bash
 #(c) Copyright 2009 Barry Kauler.
 #100617 support slackware .txz pkgs.
 #100626 '-' chars were getting removed from dependencies.
@@ -57,9 +57,15 @@
 #20230914 void: run everytime in pkgget, so have "q" on cmdline.
 #20230915 copy void pkg db back to woofq easy-distro
 #20240112 fix PROJECTPATH. 20240113 get void nonfree. 20240116 fix 20230915
+#20240225 fix for woofv. 20240226
+#20240229 sync void db using xbps-install. 20240306 full path /usr/bin/xbps-install
+#20240503 remove woofV.
+#20240918 fix debdb2pupdb -- using bacon version.
 
 LANGORG="$(locale | grep '^LANG=' | cut -d '=' -f 2)" #121116
 export LANG=C #faster.
+
+echo -n '' > /tmp/woofV/pkgs-homepages #cvt.sh called from void0setup
 
 #20230914
 QUIET=no
@@ -201,7 +207,7 @@ do
   if [ "$downloadit" = "" ] ; then #120126
    DLFILE="`basename $PKGLISTURI`"
    [ -f $DLFILE ] && mv -f $DLFILE /tmp/${DLFILE}-backup1 #v431 otherwise wget creates a new file ${DLFILE}.1
-   rxvt -name pet -bg orange -geometry 80x10 -e wget $PKGLISTURI
+   urxvt -name PKGget -bg orange -geometry 80x10 -e wget $PKGLISTURI
    sync
    xDLFILE="$DLFILE"
    if [ -f $DLFILE ];then
@@ -521,20 +527,21 @@ done
 v1PATTERN="s%\\-[0-9.]*${DISTRO_BINARY_COMPAT}[0-9.]*$%%"
 v2PATTERN="s%\\+[0-9.]*${DISTRO_BINARY_COMPAT}[0-9.]*$%%"
 
+#20240918 back to bacon debdb2pupdb, restore this...
 #20220829 debdb2pupdb no longer needs this...
-##130305 debdb2pupdb.bac now also check that deps exist, need this list of pkgs...
-#if [ "$RUNNINGPUP" = "no" ];then #130316 debdb2pupdb does not read this file in a running pup.
-# case ${DISTRO_BINARY_COMPAT} in
-#  ubuntu|debian|raspbian|devuan) #150419
-#   echo -n " " > /tmp/0setupcompletelistpkgs
-#   COMPLETELISTPKGS="$(grep '^Package: ' Packages*pre 2>/dev/null | cut -f 2 -d ' ' | tr '\n' ' ')"
-#   echo "$COMPLETELISTPKGS" >> /tmp/0setupcompletelistpkgs
-#   [ -f /tmp/0setupnewinvaliddeps ] && rm -f /tmp/0setupnewinvaliddeps #see debdb2pupdb.
-#  ;;
-# esac
-#else
-# [ -f /tmp/0setupcompletelistpkgs ] && rm -f /tmp/0setupcompletelistpkgs
-#fi
+#130305 debdb2pupdb.bac now also check that deps exist, need this list of pkgs...
+if [ "$RUNNINGPUP" = "no" ];then #130316 debdb2pupdb does not read this file in a running pup.
+ case ${DISTRO_BINARY_COMPAT} in
+  ubuntu|debian|raspbian|devuan) #150419
+   echo -n " " > /tmp/0setupcompletelistpkgs
+   COMPLETELISTPKGS="$(grep '^Package: ' Packages*pre 2>/dev/null | cut -f 2 -d ' ' | tr '\n' ' ')"
+   echo "$COMPLETELISTPKGS" >> /tmp/0setupcompletelistpkgs
+   [ -f /tmp/0setupnewinvaliddeps ] && rm -f /tmp/0setupnewinvaliddeps #see debdb2pupdb.
+  ;;
+ esac
+else
+ [ -f /tmp/0setupcompletelistpkgs ] && rm -f /tmp/0setupcompletelistpkgs
+fi
 
 #w008 convert pkg database ${PKGLISTFILE}pre to a standard format...
 #120812 subcategory... 190613...
@@ -679,21 +686,6 @@ _EOF1
   ;;
   t2) #w017
    LANG=${LANGORG} echo "...it's already in the Puppy standard format."
-  ;;
-  void) #20230901 from woof-ce testing
-   echo "executing void0setup..."
-   export ONE_PKGLISTS_COMPAT #20240113
-   if [ "$RUNNINGPUP" = "no" ];then
-    support/void/void0setup
-   else
-    /usr/local/petget/support/void/void0setup
-   fi
-   #void0setup sets category field to "uncategorized", so fix...
-   #mv -f Packages-${DISTRO_BINARY_COMPAT}-${DISTRO_COMPAT_VERSION} Packages-${DISTRO_BINARY_COMPAT}-${DISTRO_COMPAT_VERSION}temp
-   #${FIND_CAT} Packages-${DISTRO_BINARY_COMPAT}-${DISTRO_COMPAT_VERSION}temp > Packages-${DISTRO_BINARY_COMPAT}-${DISTRO_COMPAT_VERSION}
-   mv -f ${ONE_PKGLISTS_COMPAT} ${ONE_PKGLISTS_COMPAT}temp
-   ${FIND_CAT} ${ONE_PKGLISTS_COMPAT}temp > ${ONE_PKGLISTS_COMPAT}
-   rm -f ${ONE_PKGLISTS_COMPAT}temp
   ;;
   puppy)
    echo "...it's already in the Puppy standard format."
