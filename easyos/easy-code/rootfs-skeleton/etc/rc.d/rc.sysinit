@@ -68,6 +68,7 @@
 #20240115 create symlink /var/service to /etc/service, for runit.
 #20240118 fix flatpak in easyvoid.
 #20240909 handle ibus input method.
+#20240922 fix mount /dev/pts
 
 #unset TZ #100319 busybox hwclock gives priority to this (rather than /etc/localtime) and 'init' has set it wrong.
 #...comment-out for now. note, TZ now set in rc.country.
@@ -208,7 +209,7 @@ ln -s /proc/mounts /etc/mtab
 
 if [ $PREMNTD -eq 0 ];then #190811
  mkdir -p /dev/pts #120503 if kernel mounts a f.s. on /dev, removes my skeleton /dev
- busybox mount /dev/pts
+ busybox mount -t devpts devpts /dev/pts #20240922 fix.
  STATUS=$((STATUS+$?))
  mkdir /sys 2>/dev/null
  busybox mount -t sysfs none /sys
