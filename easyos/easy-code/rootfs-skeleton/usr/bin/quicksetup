@@ -140,6 +140,7 @@
 #20240909 if select/deselect zh locale, need reboot.
 #20240916 simplify translations.
 #20240917 zh: check if input-method pkg installed.
+#20240926 fix so works in both easyos and qv.
 
 #20230626
 if [ "$(whoami)" != "root" ];then
@@ -169,6 +170,17 @@ fi
 #. /etc/rc.d/BOOTCONFIG
 . /etc/rc.d/BOOTCONSTRAINED #120714
 . /root/.packages/build-choices #20230209 has BUILD_SUPPORT_LANGS
+
+#20240926
+if [ "$DISTRO_NAME_SHORT" == "Easy" ];then
+ WDpath="/mnt/${WKG_DEV}/${WKG_DIR}"
+ XLpath='/root/'
+ SFpath='/mnt/wkg/sfs'
+else
+ WDpath='/'
+ XLpath='/'
+ SFpath='/data'
+fi
 
 #20220715
 if [ -f /etc/clock.${PC_HARDWARE_PROFILE} ];then
@@ -379,7 +391,7 @@ $(gettext "The chosen locale file is generated in /usr/lib/locale (if not alread
   H_u1="`gettext 'Help: UTF-8'`"
   H_u2="$(gettext "UTF-8 is a Unicode standard in which international characters are represented in 8, 16 or more bits, and plain ASCII (8th bit = 0) text files are valid UTF-8 encoding. UTF-8 has become the defacto standard in Linux. The reason is, basically, that UTF-8 encoded files can be used anywhere in the world and do not need a particular <b>character set</b> translation.")
 
-$(gettext "<b>Note 1:</b> Some Easy OS users do not use UTF-8 as there is a slight speed penalty running applications -- all English users are ok running without UTF-8.")
+$(gettext "<b>Note 1:</b> Some users do not use UTF-8 as there is a slight speed penalty running applications -- all English users are ok running without UTF-8.")
      
 $(gettext "<b>Note 2:</b> Non-unicode rendering is achieved by 8-bit character sets, such as ISO-8859-1 for normal Latin1 English, or ISO-8859-2 for Eastern European Latin2 languages.")
 
@@ -562,7 +574,7 @@ ${CHOICES_CLI}"
  if [ "$SET_TIMEZONE" ];then
  
   H_t1="`gettext 'Help: Time Zone'`"
-  H_t2="$(gettext "This needs to be set to ensure that Easy knows the correct time and date.")
+  H_t2="$(gettext "This needs to be set to ensure that the OS knows the correct time and date.")
 $(gettext "If you cannot find an entry for your location, choose one of the <b>GMT</b> entries. Finding the correct entry is best, as it automatically applies DST (Daylight Saving Time), whereas the GMT entries are fixed offsets from the GMT (UTC) reference.")
 
 <b>$(gettext "Technical")</b>
@@ -585,7 +597,7 @@ $(gettext 'If your board does not have a hardware clock, it is essential to tick
 $(gettext 'UTC is Coordinated Universal Time, which is basically the same as GMT, Greenwich Mean Time. The latter is the time at the Royal Observatory in Greenwich, London -- this is a time that does not have daylight saving or summer time as does the rest of the UK. It is said to simplify things if the computer hardware clock is set to UTC.')
 
 <b>$(gettext 'Local time')</b>
-$(gettext 'By default, Easy OS assumes that the hardware clock is set to local time, as this is what MS DOS and Windows systems normally use. If you were to change the hardware clock to UTC, you would also have to ensure that all operating systems recognise that, else they will show the wrong time/date.')"
+$(gettext 'By default, the OS assumes that the hardware clock is set to local time, as this is what MS DOS and Windows systems normally use. If you were to change the hardware clock to UTC, you would also have to ensure that all operating systems recognise that, else they will show the wrong time/date.')"
   fi
   export DLG_HELP_UTC="<window resizable=\"false\" title=\"${H_utc1}\" icon-name=\"${HELPICON}\" window_position=\"1\"><vbox><text use-markup=\"true\"><label>\"${H_utc2}\"</label><variable>DLG_HELP_UTC</variable></text><hbox><button><label>${M_close}</label><action type=\"closewindow\">DLG_HELP_UTC</action></button></hbox></vbox></window>"
 
@@ -901,7 +913,7 @@ nVidia: nv nouveau</i>
 
 '
   H_xw4="$(gettext '<b>Video Upgrade Wizard</b>
-What this offers depends on the particular build of Easy OS. It may offer upgrade PETs for the commercial nVidia and ATI Xorg drivers. In the case of Wary Puppy, there is an offer to upgrade Xorg from version 7.3 to 7.6. Some builds of Puppy do not offer any upgrades via this Wizard, but may have upgrade PETs available elswhere, such as via the Puppy Package Manager or the Puppy Forum.')
+What this offers depends on the particular build of the OS. It may offer upgrade PETs for the commercial nVidia and ATI Xorg drivers. In the case of Wary Puppy, there is an offer to upgrade Xorg from version 7.3 to 7.6. Some builds of Puppy do not offer any upgrades via this Wizard, but may have upgrade PETs available elswhere, such as via the Puppy Package Manager or the Puppy Forum.')
 
 $(gettext '<b>Note 1:</b> If you need to run either of these Wizards later on, they are available via the <b>setup</b> icon on the desktop, or the <b>Setup</b> category in the menu.')
 $(gettext '<b>Note 2:</b> The <b>Xorg Video Wizard</b> via the <b>setup</b> icon is a full graphical application, with many more options than the text-mode version, such as finetuning screen dimensions and adjusting brightness. You might want to run that afterward to further finetune your X configuration.')"
@@ -1217,9 +1229,9 @@ if [ $DISPLAY ];then
  if [ $SYNCME -eq 1 ];then
   sync & #make sure it is written to disk. 140217 separate process to avoid delay. could use 'fsync' but think better to flush everything.
  fi
- #note also, there is a totally different file, /mnt/${WKG_DEV}/${WKG_DIR}.fsckme.flg, that forces a  20220801
+ #note also, there is a totally different file, ${WDpath}.fsckme.flg, that forces a  20220801
  #f.s. check if a forced reboot/shutdown (such as power failure).
- #note, also, there is a totally different file, /root/.XLOADED, set in /xwin, forces run xorgwizard
+ #note, also, there is a totally different file, ${XLpath}.XLOADED, set in /xwin, forces run xorgwizard
  #if a power failure or crash. xwin reads this also.
 
  RETVALS="`${GTKDIALOGEXE} --program=QUICKSETUP_DIALOG`"
@@ -1305,12 +1317,12 @@ if [ "$SET_KEYBOARD" ];then
   echo -n "${NEW_KMAP}${KEXT}" > /etc/keymap #120627
   #20231125 also write here, read in initrd...
   if [ "$KMAPPATH" == "/lib/keymaps" ];then #check same keymaps as used in initrd.
-   sed -i -e "s%^KEYMAP=.*%KEYMAP='${NEW_KMAP}'%" /mnt/wkg/sfs/settings/initrd/CONFIG
+   sed -i -e "s%^KEYMAP=.*%KEYMAP='${NEW_KMAP}'%" ${SFpath}/settings/initrd/CONFIG
    #20231126 see init... hmmm, recalc KB_HW_PROFILE as maybe kb plugged in just now...
    KB_HW_PROFILE="$(ls -1 -d /sys/class/input/*/*::capslock 2>/dev/null | cut -f 1-5 -d '/' | xargs -I XXX cat XXX/name | tr -d '\n'| sed -e 's%[^0-9a-zA-Z]%%g' | cut -c 1-60)"
-   #. /mnt/wkg/sfs/settings/initrd/CONFIG #has KEYMAP, KB_HW_PROFILE
-   echo -n "$NEW_KMAP" > /mnt/wkg/sfs/settings/initrd/keymap.${KB_HW_PROFILE}
-   sed -i -e "s%^KB_HW_PROFILE.*%KB_HW_PROFILE='${KB_HW_PROFILE}'%" /mnt/wkg/sfs/settings/initrd/CONFIG
+   #. ${SFpath}/settings/initrd/CONFIG #has KEYMAP, KB_HW_PROFILE
+   echo -n "$NEW_KMAP" > ${SFpath}/settings/initrd/keymap.${KB_HW_PROFILE}
+   sed -i -e "s%^KB_HW_PROFILE.*%KB_HW_PROFILE='${KB_HW_PROFILE}'%" ${SFpath}/settings/initrd/CONFIG
   fi
   #echo -n "$FONTMAP" > /etc/fontmap
   echo -n "$CODEPAGE" > /etc/codepage
@@ -1472,10 +1484,10 @@ if [ "$SET_LOCALE" ];then
   NEWLANG="`echo -n "$NEWLANGLINE" | cut -f 2 -d '='`" #ex: de_DE.UTF-8
   
   #20230218 .qlang 2-letter locale, used in init script in initrd...
-  if [ -s /mnt/${WKG_DEV}/${WKG_DIR}.qlang ];then
-   QLANG="$(cat /mnt/${WKG_DEV}/${WKG_DIR}.qlang)"
+  if [ -s ${WDpath}.qlang ];then
+   QLANG="$(cat ${WDpath}.qlang)"
    if [ "$QLANG" != "${NEWLANG/_*/}" ];then
-    echo -n "${NEWLANG/_*/}" > /mnt/${WKG_DEV}/${WKG_DIR}.qlang
+    echo -n "${NEWLANG/_*/}" > ${WDpath}.qlang
    fi
   fi
   
