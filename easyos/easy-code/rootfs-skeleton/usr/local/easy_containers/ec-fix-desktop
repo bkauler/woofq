@@ -8,6 +8,7 @@
 #20220425 easyjwm can also set no labels below icons.
 #20220607 replaced DB_* with SFS_DB_* in sfs .specs files.
 #20230913 fix for usr-merge
+#20241011 new builtin eqv container.
 
 . /etc/DISTRO_SPECS #190911
 
@@ -15,7 +16,7 @@
 #190903 erase .session folder will also erase this...
 if [ ! -f /root/.config/rox.sourceforge.net/ROX-Filer/globicons ];then
  #in case of .session erase, need to delete all containers except inbuilt...
- #well, don't have to, but as globicons not exit, cannot perform the fixes below.
+ #well, don't have to, but as globicons not exist, cannot perform the fixes below.
  for aCONT in `ls -1 /mnt/wkg/containers`
  do
   [ "$aCONT" == "" ] && continue
@@ -24,6 +25,7 @@ if [ ! -f /root/.config/rox.sourceforge.net/ROX-Filer/globicons ];then
   [ "$aCONT" == "${DISTRO_COMPAT_VERSION}" ] && continue #190911 pyro or buster
   [ "$aCONT" == "ssh0" ] && continue
   [ "$aCONT" == "www" ] && continue
+  [ "$aCONT" == "eqv" ] && continue #20241011
   rm -rf /mnt/wkg/containers/${aCONT}
  done
  exit
