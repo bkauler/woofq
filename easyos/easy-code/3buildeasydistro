@@ -331,6 +331,7 @@
 #20240722 v7 limine.sys now limine-bios.sys
 #20240814 remove usr-merge test (limine-version test doesn't work anyway as it is now a script). fix limine-deploy
 #20240903 path now /usr/local/appi, /usr/local/flapi
+#20241010 delete eqv container if support missing.
 
 export LANG=C #faster.
 
@@ -5083,6 +5084,12 @@ cd ../boot
 
 [ -d initrd-tree-populated ] && rm -rf initrd-tree-populated
 cp -a initrd-tree initrd-tree-populated
+
+##20241010 test support for eqv container. ***what is wrong, removing this***
+#if [ ! -d ../rootfs-complete/usr/local/eqv/eqv ];then
+# rm -rf initrd-tree-populated/skeleton/containers/eqv
+#fi
+
 #currently don't need some of the binaries (that i compiled in buildroot)...
 #[ -f initrd-tree-populated/bin/coreutils ] && rm -f initrd-tree-populated/bin/coreutils
 #[ -f initrd-tree-populated/bin/mksquashfs ] && rm -f initrd-tree-populated/bin/mksquashfs
