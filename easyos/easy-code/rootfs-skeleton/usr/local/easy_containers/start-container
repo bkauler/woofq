@@ -39,6 +39,8 @@
 #20230326 appimage, exec script will be at top-level, modify $PATH add "/"
 #20230327 if top ro layer is an appimage, mount it.
 #20231107 if nvidia sfs loaded in main f.s., also load in container. 20231108 fix.
+#20241010 eqv.sfs has easy.sfs dep but isn't loading. 20241010 revert.
+#20241010 extra layer may be path to a folder.
 
 export TEXTDOMAIN=easy-containers #190813
 export OUTPUT_CHARSET=UTF-8
@@ -257,6 +259,27 @@ else
  RO=''
 fi
 
+##20241010 eqv.sfs has easy.sfs dep but isn't loading
+##file 'specs' got loaded above, has SFS_DB_dependencies
+##note, sfsget etc do not handle this elegantly, because it is a crossover.
+## we want to load the easy.sfs in oe scarthgap
+#if [ "$SFS_DB_apps" == "eqv" ];then
+# if [ "$SFS_DB_path" == "easyos/void/current" ];then
+#  if [ -n "$SFS_DB_dependencies" ];then
+#   case "$SFS_DB_dependencies" in
+#    easy*)
+#     ESFS="$(ls -1 /mnt/wkg/sfs/easyos/${DISTRO_BINARY_COMPAT}/${DISTRO_COMPAT_VERSION}/easy_*.sfs | sed -e "s%/mnt/wkg/sfs/easyos/${DISTRO_BINARY_COMPAT}/${DISTRO_COMPAT_VERSION}/%%" | sort -t '_' -k 2,2 -V | tail -n 1)"
+#     ln -snf /mnt/wkg/sfs/easyos/${DISTRO_BINARY_COMPAT}/${DISTRO_COMPAT_VERSION}/${ESFS} easy.sfs
+#     grep -q -F 'easy.sfs' base-load-list
+#     if [ $? -ne 0 ];then
+#      echo 'easy.sfs' >> base-load-list
+#     fi
+#    ;;
+#   esac
+#  fi
+# fi
+#fi
+
 #bottom ro layer(s)
 #note, path to easy.sfs may change, if booting off usb stick.
 #20230326 support a layer a folder instead of a .sfs...
@@ -302,17 +325,25 @@ fi
 EXTRASFS=''
 for NUM in 4 3 2 1
 do
- eval "ROsfs=\$EASY_LAYER_RO${NUM}" #implements indirection. EASY_LAYER_RO1='devx-*.sfs' in configuration file, will assign 'devx.sfs' to ROsfs
- if [ "$ROsfs" ];then
+ eval "ROspec=\$EASY_LAYER_RO${NUM}" #implements indirection. EASY_LAYER_RO1='devx-*.sfs' in configuration file, will assign 'devx.sfs' to ROspec
+ if [ -n "$ROspec" ];then
+  #20241010 support path to a folder (see eqv container)...
   #181123 sfs name is now a symlink, ex: devx.sfs
-  if [ -f "$ROsfs" ];then
-   ANAME="${ROsfs/.sfs/}"
+  if [ -f "$ROspec" ];then
+   ANAME="${ROspec/.sfs/}"
    mkdir -p ./.${ANAME}
    if [ "$(grep "containers/${EXE}/\.${ANAME} " /proc/mounts)" == "" ];then #may not have unmounted before.
     busybox mount -r -t squashfs -o noatime,loop ${ANAME}.sfs .${ANAME}
     [ $? -ne 0 ] && exit 3
    fi
    EXTRASFS=".${ANAME}${RO}:${EXTRASFS}"
+  elif [ -d "$ROspec" ];then
+   #aufs failed with ROspec=/usr/local/eqv/eqv ...hmmm... copy it...
+   #note, aufs also fail if a layer is a bind-mount, so have to copy...
+   if [ ! -d ".ro${NUM}" ];then
+    cp -a "$ROspec" ".ro${NUM}"
+   fi
+   EXTRASFS=".ro${NUM}${RO}:${EXTRASFS}"
   fi
  fi
 done
