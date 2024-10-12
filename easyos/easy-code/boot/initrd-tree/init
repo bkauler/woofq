@@ -193,6 +193,7 @@
 #20240712 support skeleton 912MiB wkg-part. 20240715 944MiB wkg-part.
 #20240909 fix /etc/profile $LANG
 #20240920 992MiB wkg-part, removed 880
+#20241011 support eqv builtin container. --optional
 
 #20230429
 . /build-choices #3buildeasydistro copies it here.
@@ -2125,12 +2126,14 @@ if [ ! -f /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/shadow ];then
   echo -e "\\033[1;35m${S201:-First-bootup security setup...}\\033[0;39m" #purple
   echo "  ${S202:-Setting same password for users zeus and root}"
   ePW="$(cryptpw -m SHA512 ${rootPW})" #note: busybox mkpasswd is an alias for cryptpw
+  mkdir -p /mnt/${WKG_DEV}/${WKG_DIR}.session/etc #20241011
   grep -v -E '^zeus|^root' /easy_ro/easy_sfs/etc/shadow > /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/shadow
   echo "zeus:${ePW}:17693:0:99999:7:::
 root:${ePW}:17693:0:99999:7:::" >> /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/shadow
   if [ "$EOS_SUPPORT_CONTAINERS" != "0" ];then
-   for aCONT in `ls -1 /mnt/${WKG_DEV}/${WKG_DIR}containers` #desk console ssh0 www
+   for aCONT in `ls -1 /mnt/${WKG_DEV}/${WKG_DIR}containers` #desk console eqv ssh0 www
    do
+    mkdir -p /mnt/${WKG_DEV}/${WKG_DIR}containers/${aCONT}/.session/etc #20241011
     cp -a -f /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/shadow /mnt/${WKG_DEV}/${WKG_DIR}containers/${aCONT}/.session/etc/
    done
   fi
@@ -2305,6 +2308,7 @@ if [ $EOS_TOP_LEVEL_ZRAM -eq 1 ];then #20220521
   mkdir /easy_rw/console
   mkdir /easy_rw/ssh0
   mkdir /easy_rw/${INIT_DISTRO_COMPAT_VERSION} #ex: dunfell, bookworm
+  #mkdir /easy_rw/eqv #20241011
  fi
  rmdir /easy_rw/lost+found #20220615
 fi
