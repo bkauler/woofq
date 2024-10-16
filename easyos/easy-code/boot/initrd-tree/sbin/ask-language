@@ -3,6 +3,7 @@
 #20230425 support compressed 'dialog'.
 #20230522 LANG=en_US.UTF-8 fixes dialog display psfu utf-8 text.
 #20240909 support zh_CN
+#20241014 support ja_JP
 
 #20230210
 . /build-choices #copied from easy.sfs, see init script. 202304 3buildeasydistro copies it here.
@@ -32,8 +33,8 @@ fi
 clear
 
 #20230221 need matching country... 20230222 fix 20230423 add no_NO
-#20240909 add zh_CN
-LANGS12='bg_BG cs_CZ da_DK de_DE el_GR en_US es_ES et_EE fi_FI fr_FR hr_HR hu_HU is_IS it_IT lt_LT lv_LV mk_MK nl_NL no_NO pl_PL pt_PT ro_RO ru_RU sk_SK sl_SK sq_AL sr_RS sv_SE tr_TR uk_UA zh_CN'
+#20240909 add zh_CN  20241014 add ja_JP
+LANGS12='bg_BG cs_CZ da_DK de_DE el_GR en_US es_ES et_EE fi_FI fr_FR hr_HR hu_HU is_IS it_IT ja_JP lt_LT lv_LV mk_MK nl_NL no_NO pl_PL pt_PT ro_RO ru_RU sk_SK sl_SK sq_AL sr_RS sv_SE tr_TR uk_UA zh_CN'
 echo -n "$LANGS12" > LANGS12
 QLANG="$(cat qlang)"
 grep -o "${QLANG}_[A-Z][A-Z]" LANGS12 > DEFLANG12
