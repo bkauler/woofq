@@ -6,6 +6,7 @@
 #restriction: executable-name and icon-name to be the same.
 #  also expect exist /usr/share/pixmaps/icon-name.png
 #20240906 if uninstall, need to remove .bin, .bin0
+#20241016 PNalt alternative package name (devuan).
 
 export TEXTDOMAIN=orange
 export OUTPUT_CHARSET=UTF-8
@@ -22,10 +23,15 @@ fi
 #note: UN currently only recognized if =root
 
 #precaution...
+Iflg=0
 grep -q -F "|${PN}|" /root/.packages/user-installed-packages 2>/dev/null
-if [ $? -eq 0 ];then
- exit
+if [ $? -eq 0 ];then Iflg=1; fi
+if [ -n "$PNalt" ];then
+ grep -q -F "|${PNalt}|" /root/.packages/user-installed-packages 2>/dev/null
+ if [ $? -eq 0 ];then Iflg=1; fi
 fi
+if [ $Iflg -eq 1 ];then exit; fi
+
 which ${EN} >/dev/null
 RV=$?
 if [ $RV -ne 0 ];then
@@ -87,6 +93,12 @@ kill `pgrep -f mozbare` 2>/dev/null
 
 #oe will be -official but for debian may be -main, so have "-*" here...
 DBfnd="$(grep -H -F "|${PN}|" /root/.packages/Packages-${DISTRO_BINARY_COMPAT}-${DISTRO_COMPAT_VERSION}-* | head -n 1)"
+if [ -z "$DBfnd" ];then
+ if [ -n "$PNalt" ];then
+  DBfnd="$(grep -H -F "|${PNalt}|" /root/.packages/Packages-${DISTRO_BINARY_COMPAT}-${DISTRO_COMPAT_VERSION}-* | head -n 1)"
+  if [ -n "$DBfnd" ];then PN="${PNalt}"; fi
+ fi
+fi
 if [ -z "$DBfnd" ];then #precaution
  ##debian...
  #DBfnd="$(grep -H '|obs-studio|' /root/.packages/Packages-${DISTRO_BINARY_COMPAT}-${DISTRO_COMPAT_VERSION}-* | head -n 1)"
@@ -182,7 +194,7 @@ $(gettext 'With user home directory:')
 
 $(gettext 'This means that the app will only be able to save files in the home directory or anywhere in the /files folder.')
 $(gettext 'For your convenience, this folder has been created:')
-  /files/apps/${PN}
+  /files/apps/${EN}
 $(gettext 'You may, if you wish, configure the app to open/save in this folder.')" 
 fi
 
