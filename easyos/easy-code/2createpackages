@@ -99,6 +99,7 @@
 #20230902 support void .xbps pkgs. pkg may have 'INSTALL' script.
 #20230903 void has usr-merge.
 #20230904 woofq now only support usr-merge and sbin-merge.
+#20241015 daedalus alsa-lib seems $ONESYMLINK has space char.
 
 export LANG=C #faster.
 
@@ -1562,16 +1563,17 @@ _EOF1
  #put them into the _DEV pkg. ex: gcc_dev: usr/lib/gcc/i486-linux-gnu/4.3/libgcc_s.so.
  #note, 3builddistro checks rootfs-complete for invalid symlinks, moves them to devx.
  #140126 was getting .so files back in the EXE dir, fix...
+ #20241015 daedalus alsa-lib seems $ONESYMLINK has space char...
  if [ "$EXE" = "" -a "$DEV" = "_DEV" ];then #140126
   cd sandbox2b
   find ./ -type l | sed -e 's/^\.\///' |
   while read ONESYMLINK
   do
    #161025 xorg_base template usr/share/X11/rgb.txt is a file, but sandbox2b has it as a symlink, do not put symlink into devx...
-   [ -s ../packages-${DISTRO_FILE_PREFIX}/${GENERICNAME}/${ONESYMLINK} ] && [ ! -h ../packages-${DISTRO_FILE_PREFIX}/${GENERICNAME}/${ONESYMLINK} ] && continue
-   UPONE="`dirname "$ONESYMLINK"`"
+   [ -s "../packages-${DISTRO_FILE_PREFIX}/${GENERICNAME}/${ONESYMLINK}" ] && [ ! -h "../packages-${DISTRO_FILE_PREFIX}/${GENERICNAME}/${ONESYMLINK}" ] && continue
+   UPONE="$(dirname "${ONESYMLINK}")"
    [ "$UPONE" = "." ] && UPONE=""
-   DESTFILE="`readlink $ONESYMLINK`"
+   DESTFILE="$(readlink "${ONESYMLINK}")"
    if [ "`echo -n "$DESTFILE" | cut -c 1`" = "/" ];then
     exePATHSPEC="../packages-${DISTRO_FILE_PREFIX}/${GENERICNAME}${EXE}${DESTFILE}"
     #devPATHSPEC="../packages-${DISTRO_FILE_PREFIX}/${GENERICNAME}${DEV}${DESTFILE}"
@@ -1580,7 +1582,7 @@ _EOF1
     #devPATHSPEC="../packages-${DISTRO_FILE_PREFIX}/${GENERICNAME}${DEV}/${UPONE}/${DESTFILE}"
    fi
    if [ ! -e $exePATHSPEC ];then #140126
-    if [ ! -e ../packages-${DISTRO_FILE_PREFIX}/${GENERICNAME}${DEV}/${ONESYMLINK} ];then
+    if [ ! -e "../packages-${DISTRO_FILE_PREFIX}/${GENERICNAME}${DEV}/${ONESYMLINK}" ];then
      mkdir -p ../packages-${DISTRO_FILE_PREFIX}/${GENERICNAME}${DEV}/${UPONE}
      cp -a "$ONESYMLINK" ../packages-${DISTRO_FILE_PREFIX}/${GENERICNAME}${DEV}/${UPONE}/
     fi
