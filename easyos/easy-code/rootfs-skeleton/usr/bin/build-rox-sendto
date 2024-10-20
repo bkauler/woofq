@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #(c) Copyright Barry Kauler 2018, license GPLv3 (/usr/share/legal)
 #rebuild the rox-filer "Open With" (Send To) right-click menu.
 #optional path/name of a single .desktop file, optional prefix +/-
@@ -20,6 +20,7 @@
 #20231205 add application_x-7z-compressed to xarchive
 #20231206 screen out firefox & vivaldi if not installed.
 #20240114 fix 20230902, add .xbps
+#20241020 generate usr/share/applications/mimeapps.list
 
 #may call this in woofQ, when current dir is sandbox3/rootfs-complete, so test...
 CWD="`pwd`"
@@ -326,5 +327,28 @@ do
  done
  
 done
+
+#20241020 generate usr/share/applications/mimeapps.list
+echo -n '' > /tmp/mimeapps.list-tmp
+echo '[Default Applications]' > usr/share/applications/mimeapps.list
+#scan etc/xdg/rox.sourceforge.net/OpenWith...
+MIMEscan="$(find etc/xdg/rox.sourceforge.net/OpenWith -type l | xargs -I XXX ls -l XXX)"
+#ex: lrwxrwxrwx 1 root root 35 Oct 19 21:40 etc/xdg/rox.sourceforge.net/OpenWith/.video_x-theora+ogg/VLC -> /usr/share/applications/vlc.desktop
+while read aM
+do
+ Mtype="$(echo -n "$aM" | cut -f 5 -d '/' | tr '_' '/')" #ex: .video/x-theora
+ [ "${Mtype:0:1}" != "." ] && continue
+ Mtype="${Mtype:1:99}"
+ Mdt="${aM##*/}" #ex: vlc.desktop
+ [ "${Mdt/desktop/}" = "${Mdt}" ] && continue
+ echo "${Mtype}=${Mdt}" >> /tmp/mimeapps.list-tmp
+done <<<"${MIMEscan}"
+
+sort -u /tmp/mimeapps.list-tmp >> usr/share/applications/mimeapps.list
+
+echo '
+[Added Associations]
+' >> usr/share/applications/mimeapps.list
+
 
 ###END###
