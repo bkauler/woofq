@@ -186,6 +186,16 @@ fi
  /usr/local/clients/setup-client 'firefox=true'
 #fi
 
+#20241019 daedalus has firefox-esr builtin in easy.sfs, need fix...
+if [ -e /usr/bin/firefox.bin0 ];then
+ if [ ! -h /usr/bin/firefox.bin0 ];then
+  grep -q -F 'exec firefox-esr' /usr/bin/firefox.bin0
+  if [ $? -eq 0 ];then
+   sed -i -e 's%exec firefox-esr%exec /usr/lib/firefox/firefox%' /usr/bin/firefox.bin0
+  fi
+ fi
+fi
+
 sed -i '/^NoDisplay/d' /usr/share/applications/firefox.desktop
 fixmenus
 jwm -reload
