@@ -332,6 +332,8 @@
 #20240814 remove usr-merge test (limine-version test doesn't work anyway as it is now a script). fix limine-deploy
 #20240903 path now /usr/local/appi, /usr/local/flapi
 #20241010 delete eqv container if support missing.
+#20241019 tweak update-ca-certificates
+#20241019 /etc/group audio: too many users (61+)
 
 export LANG=C #faster.
 
@@ -4692,7 +4694,11 @@ fi
 
 #170511 'ca-certificates' package... 20230921 p11-kit fix in packages-templates
 if [ "$WOOF_HOSTARCH" == "$WOOF_TARGETARCH" ];then #20230921 fix wasn't running.
- chroot rootfs-complete /usr/bin/update-ca-certificates
+ chroot rootfs-complete /usr/bin/update-ca-certificates --fresh #20241019 append --fresh
+ #20241019 also check this exists (void pkg has it)...
+ if [ ! -e rootfs-complete/etc/ssl/certs.pem ];then
+  ln -s /etc/ssl/certs/ca-certificates.crt rootfs-complete/etc/ssl/certs.pem
+ fi
 else
  echo "Note, need to run /usr/sbin/update-ca-certificates in rc.sysinit at first bootup."
 fi
@@ -5507,6 +5513,12 @@ do
  cp -a -f ../rootfs-skeleton${aXML} rootfs-complete${bXML}
  rm -f rootfs-complete${aXML} #remove the .xml.in file
 done
+
+#20241019 audio: entry in /etc/group has too many users 61+ alsa-lib getgrnam_r() fail...
+#hack, take out some users...
+AUDGRP="$(grep '^audio:' rootfs-complete/etc/group | sed -e 's%,mypaint%%' -e 's%,galculator%%' -e 's%,guitar%%' -e 's%,gimagereader%%')"
+sed -i '/^audio:/d' rootfs-complete/etc/group
+echo "${AUDGRP}" >> rootfs-complete/etc/group
 
 echo #190131...
 
