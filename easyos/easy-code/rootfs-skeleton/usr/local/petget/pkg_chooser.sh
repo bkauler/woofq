@@ -48,6 +48,7 @@
 #20230914 void: update pkg db every time run pkgget.
 #20230914 stupid grep: "grep: warning: stray \ before -" use busybox grep. no, grep -P works. no, in case only have busybox grep, it doesn't understand -P
 #20240228 when easyvoid has pkgget frontend for xbps, no need to update pkg db at startup. 20240229 revert.
+#20241018 remove "devuan-" prefix on radiobuttons.
 
 #/usr/local/petget/service_pack.sh & #121125 offer download Service Pack.
 
@@ -274,7 +275,7 @@ do
  REPOCUT="`echo -n "$ONEREPO" | cut -f 2-4 -d '-'`"
  [ "$REPOS_RADIO" = "" ] && FIRST_DB="$REPOCUT"
  xREPOCUT="$(echo -n "$REPOCUT" | sed -e 's%\-official$%%')" #120905 window too wide.
- xREPOCUT="$(echo -n "$xREPOCUT" | sed -e 's%^debian\-%%')" #20230309
+ xREPOCUT="$(echo -n "$xREPOCUT" | sed -e 's%^debian\-%%' -e 's%^devuan\-%%')" #20230309  20241018 devuan
  REPOS_RADIO="${REPOS_RADIO}<radiobutton><label>${xREPOCUT}</label><action>/tmp/petget/filterversion.sh ${REPOCUT}</action><action>/usr/local/petget/filterpkgs.sh</action><action>refresh:TREE1</action></radiobutton>"
  echo "$REPOCUT" >> /tmp/petget/petget_active_repo_list #120903 needed in findnames.sh
  repocnt=`expr $repocnt + 1`

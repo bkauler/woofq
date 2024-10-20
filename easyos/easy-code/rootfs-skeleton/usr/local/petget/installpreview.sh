@@ -37,6 +37,7 @@
 #20240307 cannot run non-root in container.
 #20240308 WKGFREEK is empty in a container.
 #20240503 remove woofV.
+#20241020 examine deps for already-installed pkg.
 
 export TEXTDOMAIN=petget___installpreview.sh
 export OUTPUT_CHARSET=UTF-8
@@ -53,7 +54,7 @@ case "$DISTRO_TARGETARCH" in #20240227
  *)     xARCH="$DISTRO_TARGETARCH" ;;
 esac
 export XBPS_ARCH="$xARCH"
-mkdir -p /tmp/woofV
+#mkdir -p /tmp/woofV
 
 size_func() {
  local SK
@@ -108,11 +109,11 @@ X1PID=$!
 
 #120827 'examine dependencies' button does not work if pkg already installed...
 EXAMDEPSFLAG='yes'
-ttPTN='^'"$TREE1"'|.*ALREADY INSTALLED'
-if [ "`grep "$ttPTN" /tmp/petget/filterpkgs.results.post`" != "" ];then #created by postfilterpkgs.sh
- EXAMDEPSFLAG='no'
-
-fi
+#20241020 yes it does, remove...
+#ttPTN='^'"$TREE1"'|.*ALREADY INSTALLED'
+#if [ "`grep "$ttPTN" /tmp/petget/filterpkgs.results.post`" != "" ];then #created by postfilterpkgs.sh
+# EXAMDEPSFLAG='no'
+#fi
 
 #120504 if findnames.sh searched multiple repos, /tmp/petget/current-repo-triad (set in pkg_chooser.sh) might be wrong...
 [ -f /tmp/petget/current-repo-triad.previous ] && rm -f /tmp/petget/current-repo-triad.previous

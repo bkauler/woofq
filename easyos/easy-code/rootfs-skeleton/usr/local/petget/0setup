@@ -28,7 +28,7 @@
 #130126 find_cat rewritten. works as before, also can post-process an entire db-entry or db-entries-file. arch code rewritten by noryb009
 #130305 debdb2pupdb.bac now also check that deps exist, create list of pkgs.
 #130306 fix arch linux build.
-#130316 debdb2pupdb does not use /tmp/0setupcompletelistpkgs in a running puppy.
+#130316 debdb2pupdb does not use /tmp/0setup_tmp/0setupcompletelistpkgs in a running puppy.
 #130319 remove 'raspbian' from updates code section.
 #140215 ubuntu trusty tahr, at 140215 have added lots of xorg pkgs with "-lts-" in name. don't see the point of them.
 #141011 attempt auto fix if DISTRO_PKGS_SPECS-* has wrong/older pkg name, than what is in deb db.
@@ -61,11 +61,15 @@
 #20240229 sync void db using xbps-install. 20240306 full path /usr/bin/xbps-install
 #20240503 remove woofV.
 #20240918 fix debdb2pupdb -- using bacon version.
+#20241018 /tmp/woofV not used. 20241019 use /tmp/0setup_tmp  use debdb2pupdb-nim
 
 LANGORG="$(locale | grep '^LANG=' | cut -d '=' -f 2)" #121116
 export LANG=C #faster.
 
-echo -n '' > /tmp/woofV/pkgs-homepages #cvt.sh called from void0setup
+#echo -n '' > /tmp/0setup_tmp/woofV/pkgs-homepages #cvt.sh called from void0setup
+#190613 somewhere for temp files... 20241019
+mkdir -p /tmp/0setup_tmp
+mkdir -p /tmp/debget #20241019 debdb2pupdb-nim uses this.
 
 #20230914
 QUIET=no
@@ -120,19 +124,19 @@ esac
 #filter pkg selection based on board type...
 xBOOT_BOARD="#$(echo -n "$BOOT_BOARD" | tr '[a-z]' '[A-Z]')" #ex: #ODROIDX
 xBOARDS='#RASPI #ODROIDX #MELE #PC'
-cp -f ${DPSFILE} /tmp/DISTRO_PKGS_SPECS-${DISTRO_BINARY_COMPAT}-${DISTRO_COMPAT_VERSION}COPY
+cp -f ${DPSFILE} /tmp/0setup_tmp/DISTRO_PKGS_SPECS-${DISTRO_BINARY_COMPAT}-${DISTRO_COMPAT_VERSION}COPY
 #also filter DISTRO_SPECS...
-cp -f ${SPEC_DS} /tmp/DISTRO_SPECSCOPY #170521
+cp -f ${SPEC_DS} /tmp/0setup_tmp/DISTRO_SPECSCOPY #170521
 for eachBOARD in $xBOARDS
 do
  [ "$eachBOARD" == "$xBOOT_BOARD" ] && continue
- sed -i "/${eachBOARD}/d" /tmp/DISTRO_PKGS_SPECS-${DISTRO_BINARY_COMPAT}-${DISTRO_COMPAT_VERSION}COPY
- sed -i "/${eachBOARD}/d" /tmp/DISTRO_SPECSCOPY
+ sed -i "/${eachBOARD}/d" /tmp/0setup_tmp/DISTRO_PKGS_SPECS-${DISTRO_BINARY_COMPAT}-${DISTRO_COMPAT_VERSION}COPY
+ sed -i "/${eachBOARD}/d" /tmp/0setup_tmp/DISTRO_SPECSCOPY
 done
 [ "$RUNNINGPUP" == "no" ] && echo "PKGS_SPECS_TABLE has been filtered for board '${xBOOT_BOARD}'"
-. /tmp/DISTRO_PKGS_SPECS-${DISTRO_BINARY_COMPAT}-${DISTRO_COMPAT_VERSION}COPY
+. /tmp/0setup_tmp/DISTRO_PKGS_SPECS-${DISTRO_BINARY_COMPAT}-${DISTRO_COMPAT_VERSION}COPY
 [ "$RUNNINGPUP" == "no" ] && echo "File DISTRO_SPECS has been filtered for board '${xBOOT_BOARD}'"
-. /tmp/DISTRO_SPECSCOPY
+. /tmp/0setup_tmp/DISTRO_SPECSCOPY
 
 #remove comments from PKGS_SPECS_TABLE
 PKGS_SPECS_TABLE="`echo "$PKGS_SPECS_TABLE" | grep -v '^#'`"
@@ -143,9 +147,11 @@ if [ "$RUNNINGPUP" = "no" ];then
  [ $? -eq 1 ] && exit
 fi
 
-[ -f ./support/debdb2pupdb ] && cp -f ./support/debdb2pupdb /usr/local/petget/ #121111 0setup needs it here, when run from PPM. 20220829 20230914
+[ -f ./support/debdb2pupdb ] && cp -a -f ./support/debdb2pupdb /usr/local/petget/ #121111 0setup needs it here, when run from PPM. 20220829 20230914
 #note, 3builddistro copies it into rootfs-complete/usr/local/petget when building a pup.
 #121112 note, debdb2pupdb no longer calls find_cat.
+[ -f ./support/debdb2pupdb-nim ] && cp -a -f ./support/debdb2pupdb-nim /usr/local/petget/ #20241019
+#...note, debdb2pupdb-nim has find_cat builtin.
 
 #w015 to speed things up, this func replaced by compiled app support/find_cat ...
 [ -f ./support/find_cat ] && cp -f ./support/find_cat /usr/local/petget/ #130126
@@ -165,8 +171,6 @@ else
  MAGEIA2PPM='/usr/local/petget/mageia2ppm' #see 3builddistro
 fi
 
-#190613 somewhere for temp files...
-mkdir -p /tmp/0setup_tmp
 #w091018 now logging errors for future recall...
 mkdir -p /var/woof
 RUNDATE="`date`"
@@ -206,7 +210,7 @@ do
   fi
   if [ "$downloadit" = "" ] ; then #120126
    DLFILE="`basename $PKGLISTURI`"
-   [ -f $DLFILE ] && mv -f $DLFILE /tmp/${DLFILE}-backup1 #v431 otherwise wget creates a new file ${DLFILE}.1
+   [ -f $DLFILE ] && mv -f $DLFILE /tmp/0setup_tmp/${DLFILE}-backup1 #v431 otherwise wget creates a new file ${DLFILE}.1
    urxvt -name PKGget -bg orange -geometry 80x10 -e wget $PKGLISTURI
    sync
    xDLFILE="$DLFILE"
@@ -324,8 +328,8 @@ do
         END{
          output();
         }
-       '  > /tmp/${PKGLISTFILE}temp #130306
-       ${FIND_CAT} /tmp/${PKGLISTFILE}temp > $PKGLISTFILE #130126 130306
+       '  > /tmp/0setup_tmp/${PKGLISTFILE}temp #130306
+       ${FIND_CAT} /tmp/0setup_tmp/${PKGLISTFILE}temp > $PKGLISTFILE #130126 130306
       fi
       rm -rf sandbox0 2>/dev/null
      ;;
@@ -430,7 +434,7 @@ package lists for 12.04.1 -- it is generally recommended to accept."
      read downloadit
      if [ "$downloadit" = "" ] ; then #120126
       DLFILE="`basename $PKGLISTURI`"
-      [ -f $DLFILE ] && mv -f $DLFILE /tmp/${DLFILE}-backup1 #v431 otherwise wget creates a new file ${DLFILE}.1
+      [ -f $DLFILE ] && mv -f $DLFILE /tmp/0setup_tmp/${DLFILE}-backup1 #v431 otherwise wget creates a new file ${DLFILE}.1
       rxvt -name pet -bg orange -geometry 80x10 -e wget $PKGLISTURI
       sync
       xDLFILE="$DLFILE"
@@ -514,7 +518,7 @@ do
   fi
   if [ "$downloadit" = "" ] ; then #120126
    DLFILE="`basename $PKGLISTURI`"
-   [ -f $DLFILE ] && mv -f $DLFILE /tmp/${DLFILE}-backup1 #v431 otherwise wget creates a new file ${DLFILE}.1 111129 prevent error msg.
+   [ -f $DLFILE ] && mv -f $DLFILE /tmp/0setup_tmp/${DLFILE}-backup1 #v431 otherwise wget creates a new file ${DLFILE}.1 111129 prevent error msg.
    rxvt -name pet -bg orange -geometry 80x10 -e wget $PKGLISTURI
    sync
    [ -f $DLFILE ] && LANG=${LANGORG} echo "...success"
@@ -527,20 +531,21 @@ done
 v1PATTERN="s%\\-[0-9.]*${DISTRO_BINARY_COMPAT}[0-9.]*$%%"
 v2PATTERN="s%\\+[0-9.]*${DISTRO_BINARY_COMPAT}[0-9.]*$%%"
 
+#20241019 use debdb2pupdb-nim if exists...
 #20240918 back to bacon debdb2pupdb, restore this...
 #20220829 debdb2pupdb no longer needs this...
 #130305 debdb2pupdb.bac now also check that deps exist, need this list of pkgs...
 if [ "$RUNNINGPUP" = "no" ];then #130316 debdb2pupdb does not read this file in a running pup.
  case ${DISTRO_BINARY_COMPAT} in
   ubuntu|debian|raspbian|devuan) #150419
-   echo -n " " > /tmp/0setupcompletelistpkgs
+   echo -n " " > /tmp/0setup_tmp/0setupcompletelistpkgs
    COMPLETELISTPKGS="$(grep '^Package: ' Packages*pre 2>/dev/null | cut -f 2 -d ' ' | tr '\n' ' ')"
-   echo "$COMPLETELISTPKGS" >> /tmp/0setupcompletelistpkgs
-   [ -f /tmp/0setupnewinvaliddeps ] && rm -f /tmp/0setupnewinvaliddeps #see debdb2pupdb.
+   echo "$COMPLETELISTPKGS" >> /tmp/0setup_tmp/0setupcompletelistpkgs
+   [ -f /tmp/0setup_tmp/0setupnewinvaliddeps ] && rm -f /tmp/0setup_tmp/0setupnewinvaliddeps #see debdb2pupdb.
   ;;
  esac
 else
- [ -f /tmp/0setupcompletelistpkgs ] && rm -f /tmp/0setupcompletelistpkgs
+ [ -f /tmp/0setup_tmp/0setupcompletelistpkgs ] && rm -f /tmp/0setup_tmp/0setupcompletelistpkgs
 fi
 
 #w008 convert pkg database ${PKGLISTFILE}pre to a standard format...
@@ -555,34 +560,52 @@ do
  echo
  LANG=${LANGORG} echo "Processing ${ONE_PKGLISTS_COMPAT} into a standard format..."
  echo -n "" > $ONE_PKGLISTS_COMPAT
- echo -n "" > /tmp/${ONE_PKGLISTS_COMPAT}temp #130126
+ echo -n "" > /tmp/0setup_tmp/${ONE_PKGLISTS_COMPAT}temp #130126
  case ${DISTRO_BINARY_COMPAT} in
   ubuntu|debian|raspbian|devuan) #150419
-  
-   if [ -f /usr/local/petget/debdb2pupdb ];then #121111 20230914
+   
+   if [ -f /usr/local/petget/debdb2pupdb-nim ];then #20241019
+    #the bacon one isn't working in daedalus.
+    rm -f /tmp/debget/debian-pkgs-db 2>/dev/null
+    rm -f /tmp/debget/puppy-pkgs-db 2>/dev/null
+    rm -f /tmp/debget/debian-pkgs-homepage 2>/dev/null
+    cp -a -f ${ONE_PKGLISTS_COMPAT}pre /tmp/debget/debian-pkgs-db
+    #debdb2pupdb-nim has find_cat builtin. reads /tmp/debget/debian-pkgs-db
+    /usr/local/petget/debdb2pupdb-nim ${DISTRO_BINARY_COMPAT} ${DISTRO_COMPAT_VERSION}
+    #...writes to /tmp/debget/puppy-pkgs-db, debian-pkgs-homepage
+    mv -f /tmp/debget/puppy-pkgs-db ${ONE_PKGLISTS_COMPAT}
+    #homepages...
+    if [ -f ./PKGS_HOMEPAGES ];then #running in woof.
+     cat  /tmp/debget/debian-pkgs-homepage >> /tmp/0setup_tmp/woof-homepages.acc
+     sort --key=1,1 --field-separator=" " --unique /tmp/0setup_tmp/woof-homepages.acc > ./PKGS_HOMEPAGES
+    fi
+    if [ "$RUNNINGPUP" = "no" ];then
+     touch invaliddepslist #debdb2pupdb-nim doesn't read this.
+    fi
+   elif [ -f /usr/local/petget/debdb2pupdb ];then #121111 20230914
     #new fast compiled app...
     #create an intermediate-converted file...
     LANG=${LANGORG} echo " please wait..."
     #121113 added "Section"...
     #121113 insert STARTMARKER...
     MANIPULATED1="$(grep -E '^Package:|^Installed\-Size:|^Architecture:|^Version:|^Depends:|^Filename:|^Description:|^Homepage:|^Section:' ${ONE_PKGLISTS_COMPAT}pre | tr '[\t"|`]' ' ' | tr -s ' ' | sed -e 's%^Installed\-Size%InstalledSize%' -e 's%^Package:%STARTMARKER|PKG\nPackage:%' -e 's%: %|%' -e 's% $%%')" #`geany
-    echo "$MANIPULATED1" > /tmp/woof-debdb.in
+    echo "$MANIPULATED1" > /tmp/woof-debdb.in #read by debdb2pupdb
     #call new app. note, this in turn calls /usr/local/petget/find_pkgs...
-    /usr/local/petget/debdb2pupdb ${DISTRO_BINARY_COMPAT} ${DISTRO_COMPAT_VERSION} > /tmp/${ONE_PKGLISTS_COMPAT}temp #130126 $ONE_PKGLISTS_COMPAT
-    ${FIND_CAT} /tmp/${ONE_PKGLISTS_COMPAT}temp > $ONE_PKGLISTS_COMPAT #130126
+    /usr/local/petget/debdb2pupdb ${DISTRO_BINARY_COMPAT} ${DISTRO_COMPAT_VERSION} > /tmp/0setup_tmp/${ONE_PKGLISTS_COMPAT}temp #130126 $ONE_PKGLISTS_COMPAT
+    ${FIND_CAT} /tmp/0setup_tmp/${ONE_PKGLISTS_COMPAT}temp > $ONE_PKGLISTS_COMPAT #130126
     #homepages also get logged...
-    if [ -f /tmp/woof-homepages.acc ];then
+    if [ -f /tmp/0setup_tmp/woof-homepages.acc ];then
      if [ -f ./PKGS_HOMEPAGES ];then #running in woof.
-      cat  ./PKGS_HOMEPAGES >> /tmp/woof-homepages.acc
-      sort --key=1,1 --field-separator=" " --unique /tmp/woof-homepages.acc > ./PKGS_HOMEPAGES #121113
+      cat  ./PKGS_HOMEPAGES >> /tmp/0setup_tmp/woof-homepages.acc
+      sort --key=1,1 --field-separator=" " --unique /tmp/0setup_tmp/woof-homepages.acc > ./PKGS_HOMEPAGES #121113
      fi
     fi
-    #130316 /tmp/0setupnewinvaliddeps is created by debdb2pupdb, when run in woof.
+    #130316 /tmp/0setup_tmp/0setupnewinvaliddeps is created by debdb2pupdb, when run in woof.
     # 3builddistro will have to copy this file 'invaliddepslist' into rootfs-complete/usr/local/petget/ ...
     # it is read by debdb2pupdb in a running puppy.
     if [ "$RUNNINGPUP" = "no" ];then
      echo -n ' ' > invaliddepslist
-     NIDL1="$(sort -u /tmp/0setupnewinvaliddeps | tr '\n' ' ')"
+     NIDL1="$(sort -u /tmp/0setup_tmp/0setupnewinvaliddeps | tr '\n' ' ')"
      echo -n "$NIDL1" >> invaliddepslist
     fi
    else
@@ -613,7 +636,7 @@ do
       #DB_category="`${FIND_CAT} $xPackage "$Description"`" #120812 find_cat now returns category[;subcategory], ex: Document;edit
       DB_dependencies="`echo -n "$Depends" | sed -e 's%, %\n%g' | cut -f 1 -d ' ' | tr '\n' ' ' | sed -e 's% $%%' -e 's% %,+%g' -e 's%,$%%'`"
       [ "$DB_dependencies" != "" ] && DB_dependencies='+'"$DB_dependencies"
-      echo "$DB_pkgname|$Package|$DB_version|$DB_pkgrelease|$DB_category|${InstalledSize}K|$DB_path|$DB_fullfilename|$DB_dependencies|$Description|$DISTRO_BINARY_COMPAT|$DISTRO_COMPAT_VERSION|" >> /tmp/${ONE_PKGLISTS_COMPAT}temp #130126 $ONE_PKGLISTS_COMPAT
+      echo "$DB_pkgname|$Package|$DB_version|$DB_pkgrelease|$DB_category|${InstalledSize}K|$DB_path|$DB_fullfilename|$DB_dependencies|$Description|$DISTRO_BINARY_COMPAT|$DISTRO_COMPAT_VERSION|" >> /tmp/0setup_tmp/${ONE_PKGLISTS_COMPAT}temp #130126 $ONE_PKGLISTS_COMPAT
       echo -n "$Package "
       Description=''; Filename=''; Package=''; InstalledSize=''; Architecture=''; Version=''; Depends='' #160411
       endflag=''
@@ -621,7 +644,7 @@ do
     done<<_END1
 $(grep -E '^Package:|^Installed\-Size:|^Architecture:|^Version:|^Depends:|^Filename:|^Description:' ${ONE_PKGLISTS_COMPAT}pre | tr '[\t"|`]' ' ' | tr -s ' ' | grep -v '\\-dbg$' | sed -e 's%^Installed\-Size%InstalledSize%' -e 's%: %="%' -e 's% $%%' -e 's%$%"%')
 _END1
-    ${FIND_CAT} /tmp/${ONE_PKGLISTS_COMPAT}temp > $ONE_PKGLISTS_COMPAT #130126
+    ${FIND_CAT} /tmp/0setup_tmp/${ONE_PKGLISTS_COMPAT}temp > $ONE_PKGLISTS_COMPAT #130126
    fi
    #140215 ubuntu trusty tahr, at 140215 have added lots of xorg pkgs with "-lts-" in name. don't see the point of them...
    sed -i -e '/\-lts\-/d' $ONE_PKGLISTS_COMPAT
@@ -653,7 +676,7 @@ _END1
      DB_pkgname="`echo -n "$DB_fullfilename" | sed -e 's%-x86.*%%' -e 's%-i[3456]86.*%%' -e 's%-noarch.*%%'`"
      DB_version="$(echo -n "$DB_pkgname" | sed -e "s%${DB_nameonly}-%%")"
      DB_pkgrelease="$(echo -n "$DB_fullfilename" | sed -e 's%\.txz%%' -e 's%\.tgz%%' -e "s%${DB_pkgname}-%%")"
-     echo "$DB_pkgname|$DB_nameonly|$DB_version|$DB_pkgrelease|$DB_category|${DB_size}|$DB_path|$DB_fullfilename|$DB_dependencies|$DB_description|$DISTRO_BINARY_COMPAT|$DISTRO_COMPAT_VERSION||" >> /tmp/${ONE_PKGLISTS_COMPAT}temp
+     echo "$DB_pkgname|$DB_nameonly|$DB_version|$DB_pkgrelease|$DB_category|${DB_size}|$DB_path|$DB_fullfilename|$DB_dependencies|$DB_description|$DISTRO_BINARY_COMPAT|$DISTRO_COMPAT_VERSION||" >> /tmp/0setup_tmp/${ONE_PKGLISTS_COMPAT}temp
      echo -n "${DB_nameonly} "
      DESCFLG=0
      DB_pkgname=''; DB_nameonly=''; DB_version=''; DB_pkgrelease=''; DB_category=''; DB_size=''; DB_path=''; DB_fullfilename=''; DB_dependencies=''; DB_description=''
@@ -679,7 +702,7 @@ _END1
 $(cat ${ONE_PKGLISTS_COMPAT}pre | tr '\t' ' ' | tr -s ' ' | sed -e 's%^PACKAGE %%' -e 's% (uncompressed):%:%' -e 's% $%%')
 _EOF1
 
-   ${FIND_CAT} /tmp/${ONE_PKGLISTS_COMPAT}temp > $ONE_PKGLISTS_COMPAT #130126
+   ${FIND_CAT} /tmp/0setup_tmp/${ONE_PKGLISTS_COMPAT}temp > $ONE_PKGLISTS_COMPAT #130126
   ;;
   arch)
    LANG=${LANGORG} echo "...it's already in the Puppy standard format."
@@ -698,9 +721,9 @@ _EOF1
    mv $temp_file $ONE_PKGLISTS_COMPAT
   ;;
   mageia) #110612
-   [ -f $ONE_PKGLISTS_COMPAT ] && mv -f $ONE_PKGLISTS_COMPAT /tmp/${ONE_PKGLISTS_COMPAT}-OLD
+   [ -f $ONE_PKGLISTS_COMPAT ] && mv -f $ONE_PKGLISTS_COMPAT /tmp/0setup_tmp/${ONE_PKGLISTS_COMPAT}-OLD
    ${MAGEIA2PPM} ${ONE_PKGLISTS_COMPAT}pre $DISTRO_COMPAT_VERSION
-   mv -f /tmp/mageia2ppm-ppm-temp4 ${ONE_PKGLISTS_COMPAT}
+   mv -f /tmp/0setup_tmp/mageia2ppm-ppm-temp4 ${ONE_PKGLISTS_COMPAT}
   ;;
   *) #141116 handle buildroot
    echo "...it's already in the Puppy standard format."
@@ -708,9 +731,9 @@ _EOF1
  esac
  echo
  #rm -f ${ONE_PKGLISTS_COMPAT}pre 2>/dev/null
- mv -f ${ONE_PKGLISTS_COMPAT}pre /tmp/ 2>/dev/null
- sort --field-separator='|' --key=1 ${ONE_PKGLISTS_COMPAT} > /tmp/$PKGLISTFILE
- mv -f /tmp/$PKGLISTFILE ${ONE_PKGLISTS_COMPAT}
+ mv -f ${ONE_PKGLISTS_COMPAT}pre /tmp/0setup_tmp/ 2>/dev/null
+ sort --field-separator='|' --key=1 ${ONE_PKGLISTS_COMPAT} > /tmp/0setup_tmp/$PKGLISTFILE
+ mv -f /tmp/0setup_tmp/$PKGLISTFILE ${ONE_PKGLISTS_COMPAT}
 
  if [ "$DISTRO_BINARY_COMPAT" == "void" ];then #20230915  20240116 moved up, as to copy both db's.
   if [ "$RUNNINGPUP" == "no" ];then
@@ -731,13 +754,13 @@ if [ "$DBUPDATEFLAG" = "" ];then #121113 empty now means yes.
   [ "$PKGUPDATES" == "" ] && continue #190830
   [ ! -f $PKGUPDATES ] && continue #190813
   [ ! -s $PKGUPDATES ] && continue #190813
-  cat $PKGUPDATES > /tmp/0setup_xxx1
-  cat $ONE_PKGLISTS_COMPAT >> /tmp/0setup_xxx1
+  cat $PKGUPDATES > /tmp/0setup_tmp/0setup_xxx1
+  cat $ONE_PKGLISTS_COMPAT >> /tmp/0setup_tmp/0setup_xxx1
   sync
   #want to discard the older package...
-  sort --unique --field-separator='|' --key=2,2 /tmp/0setup_xxx1 > $ONE_PKGLISTS_COMPAT
+  sort --unique --field-separator='|' --key=2,2 /tmp/0setup_tmp/0setup_xxx1 > $ONE_PKGLISTS_COMPAT
   #...assumes pkg names remain the same, ex "firefox" (2nd field in db).
-  mv -f $PKGUPDATES /tmp/$PKGUPDATES #dump -updates db file.
+  mv -f $PKGUPDATES /tmp/0setup_tmp/$PKGUPDATES #dump -updates db file.
  done
 fi
 sync
@@ -994,13 +1017,13 @@ do
     zCHOICE="$(echo -n "$zACTUAL" | head -n $zNUM | tail -n 1)"
     if [ "$zCHOICE" ];then
      zREPL="s%${ONEBINARYPARTNAME}%${zCHOICE}%"
-     sed -e "$zREPL" $DPSFILE > /tmp/${DPSFILE}temp
-     diff -s $DPSFILE /tmp/${DPSFILE}temp > /tmp/${DPSFILE}diff
+     sed -e "$zREPL" $DPSFILE > /tmp/0setup_tmp/${DPSFILE}temp
+     diff -s $DPSFILE /tmp/0setup_tmp/${DPSFILE}temp > /tmp/0setup_tmp/${DPSFILE}diff
      if [ $? ];then
       echo "propose to update ${ONEBINARYPARTNAME} with ${zCHOICE}:"
       echo "This is proposed updated line(s) in file ${DPSFILE}:"
       echo
-      cat /tmp/${DPSFILE}diff
+      cat /tmp/0setup_tmp/${DPSFILE}diff
       echo
       echo -n "Type ENTER to agree, else any other char: "
       read agree1
