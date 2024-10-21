@@ -333,7 +333,7 @@
 #20240903 path now /usr/local/appi, /usr/local/flapi
 #20241010 delete eqv container if support missing.
 #20241019 tweak update-ca-certificates
-#20241019 /etc/group audio: too many users (61+)
+#20241019 /etc/group audio: too many users (61+). 20241021 revert.
 
 export LANG=C #faster.
 
@@ -5514,11 +5514,12 @@ do
  rm -f rootfs-complete${aXML} #remove the .xml.in file
 done
 
-#20241019 audio: entry in /etc/group has too many users 61+ alsa-lib getgrnam_r() fail...
-#hack, take out some users...
-AUDGRP="$(grep '^audio:' rootfs-complete/etc/group | sed -e 's%,mypaint%%' -e 's%,galculator%%' -e 's%,guitar%%' -e 's%,gimagereader%%')"
-sed -i '/^audio:/d' rootfs-complete/etc/group
-echo "${AUDGRP}" >> rootfs-complete/etc/group
+#20241021 revert. (/etc/alsa/conf.d/99* pulse takes over, avoids this problem)
+##20241019 audio: entry in /etc/group has too many users 61+ alsa-lib getgrnam_r() fail...
+##hack, take out some users...
+#AUDGRP="$(grep '^audio:' rootfs-complete/etc/group | sed -e 's%,mypaint%%' -e 's%,galculator%%' -e 's%,guitar%%' -e 's%,gimagereader%%')"
+#sed -i '/^audio:/d' rootfs-complete/etc/group
+#echo "${AUDGRP}" >> rootfs-complete/etc/group
 
 echo #190131...
 
