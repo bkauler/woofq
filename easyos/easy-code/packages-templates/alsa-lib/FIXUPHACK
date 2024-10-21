@@ -1,3 +1,8 @@
 
 #161231 slackware 14.2, this is set to "pulse", stuffs up amixer...
 rm -f etc/asound.conf 2>/dev/null
+
+#20241021 daedalus
+if [ -f etc/alsa/conf.d/99-pulseaudio-default.conf.example ];then
+ mv -f etc/alsa/conf.d/99-pulseaudio-default.conf.example etc/alsa/conf.d/99-pulseaudio-default.conf
+fi
