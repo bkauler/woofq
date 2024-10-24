@@ -479,6 +479,13 @@ if [ -f /.sfschg.flg -o ! -f /etc/networkmodules ];then #this file gets created 
    #170515 oe, /usr/lib/gconv/gconv-modules.cache is missing...
    [ -d /usr/lib/gconv ] && [ ! -f /usr/lib/gconv/gconv-modules.cache ] && /usr/sbin/iconvconfig
    update-desktop-database #171109 creates /usr/share/applications/mimeinfo.cache
+   #20241024 scarthgap 6.4+ supports deb pkgs...
+   if [ "$WOOF_HOSTARCH" != "$WOOF_TARGETARCH" ];then
+    if [ "$DISTRO_COMPAT_VERSION" == "scarthgap" ];then
+     #this will create dummy deb pkgs for all oe pkgs and install them...
+     /usr/local/petget/debget/reg-oe2deb.sh
+    fi
+   fi
   fi
  fi
 fi

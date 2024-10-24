@@ -334,6 +334,7 @@
 #20241010 delete eqv container if support missing.
 #20241019 tweak update-ca-certificates
 #20241019 /etc/group audio: too many users (61+). 20241021 revert.
+#20241024 easyos scarthgap 6.4+ will support installing devuan daedalus debs.
 
 export LANG=C #faster.
 
@@ -2113,6 +2114,12 @@ else
  done
 fi
 echo
+
+#20241024 easyos scarthgap 6.4+ will support installing devuan daedalus debs...
+if [ "${DISTRO_COMPAT_VERSION}" == "scarthgap" ];then
+ . ../PROJECTPATH
+ cp -a -f ${PROJECTPATH}/easy-distro/${WOOF_TARGETARCH}/devuan/daedalus/Packages-devuan-daedalus-* rootfs-complete/root/.packages/
+fi
 
 #also copy this...
 cp -f ../PKGS_MANAGEMENT rootfs-complete/root/.packages/
@@ -5520,6 +5527,19 @@ done
 #AUDGRP="$(grep '^audio:' rootfs-complete/etc/group | sed -e 's%,mypaint%%' -e 's%,galculator%%' -e 's%,guitar%%' -e 's%,gimagereader%%')"
 #sed -i '/^audio:/d' rootfs-complete/etc/group
 #echo "${AUDGRP}" >> rootfs-complete/etc/group
+
+#20241024 scarthgap 6.4+ supports deb pkgs...
+if [ "$WOOF_HOSTARCH" = "$WOOF_TARGETARCH" ];then
+ if [ "$DISTRO_COMPAT_VERSION" == "scarthgap" ];then
+  #this will create dummy deb pkgs for all oe pkgs and install them...
+  chroot rootfs-complete /usr/local/petget/debget/reg-oe2deb.sh
+  echo
+  echo -n "ENTER to continue: "
+  read keepgoing
+ fi
+fi
+
+
 
 echo #190131...
 
