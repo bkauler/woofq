@@ -15,7 +15,9 @@ echo -n '' > /tmp/reg-oe2deb/Pnv
 
 if [ -n "$1" ];then
  echo "${1}|${2}" > /tmp/reg-oe2deb/Pnv
+ Nflg=0
 else
+ Nflg=1
  for aOE in $(cut -f 2,3 -d '|' /root/.packages/woof-installed-packages)
  do
   if [ -z "${aOE}" ];then continue; fi
@@ -96,7 +98,13 @@ Description: Dummy deb pkg" > ${Pn}_${Pv}_${Pa}/DEBIAN/control
  dpkg-deb --build ${Pn}_${Pv}_${Pa}
  
  #install deb
- dpkg -i ${Pn}_${Pv}_${Pa}.deb
+ if [ $Nflg -eq 0 ];then
+  #dpkg is a wrapper script and will record installed pkg to user-installed-packages
+  dpkg -i ${Pn}_${Pv}_${Pa}.deb
+ else
+  #dpkg.bin is the actual binary
+  dpkg.bin -i ${Pn}_${Pv}_${Pa}.deb
+ fi
  
  #delete deb pkg
  rm -f ${Pn}_${Pv}_${Pa}.deb
