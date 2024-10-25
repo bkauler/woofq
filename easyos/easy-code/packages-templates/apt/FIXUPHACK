@@ -1,10 +1,21 @@
 
-echo 'deb http://deb.debian.org/debian bullseye main contrib non-free
-deb-src http://deb.debian.org/debian bullseye main contrib non-free
-deb http://deb.debian.org/debian-security/ bullseye-security main contrib non-free
-deb-src http://deb.debian.org/debian-security/ bullseye-security main contrib non-free
-deb http://deb.debian.org/debian bullseye-updates main contrib non-free
-deb-src http://deb.debian.org/debian bullseye-updates main contrib non-free' > etc/apt/sources.list
+#20241025
+case "${DISTRO_COMPAT_VERSION}" in
+ scarthgap|daedalus)
+  echo 'deb http://deb.devuan.org/merged daedalus                  main non-free-firmware non-free contrib
+deb http://deb.devuan.org/merged daedalus-updates          main non-free-firmware non-free contrib
+deb http://deb.devuan.org/merged daedalus-security         main non-free-firmware non-free contrib' > etc/apt/sources.list
+ ;;
+ *)
+  Vdeb="${DISTRO_COMPAT_VERSION}"
+  echo "deb http://deb.debian.org/debian ${Vdeb} main contrib non-free
+deb-src http://deb.debian.org/debian ${Vdeb} main contrib non-free
+deb http://deb.debian.org/debian-security/ ${Vdeb}-security main contrib non-free
+deb-src http://deb.debian.org/debian-security/ ${Vdeb}-security main contrib non-free
+deb http://deb.debian.org/debian ${Vdeb}-updates main contrib non-free
+deb-src http://deb.debian.org/debian ${Vdeb}-updates main contrib non-free" > etc/apt/sources.list
+ ;;
+esac
 
 #20220906 apt-key needs apt-config
 cp -a -f ../apt_DEV/usr/bin/apt-config usr/bin/ 2>/dev/null
