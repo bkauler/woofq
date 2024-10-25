@@ -5531,6 +5531,9 @@ done
 #20241024 scarthgap 6.4+ supports deb pkgs...
 if [ "$WOOF_HOSTARCH" = "$WOOF_TARGETARCH" ];then
  if [ "$DISTRO_COMPAT_VERSION" == "scarthgap" ];then
+  echo
+  echo -n "ENTER to install dummy deb pkgs: "
+  read keepgoing0
   #this will create dummy deb pkgs for all oe pkgs and install them...
   chroot rootfs-complete /usr/local/petget/debget/reg-oe2deb.sh
   echo
