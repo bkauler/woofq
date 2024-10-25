@@ -56,6 +56,7 @@
 #20240706 predetermined uid and gid; fix update before 6.0.4
 #20240903 path now /usr/local/appi, /usr/local/flapi
 #20240906 new /usr/local/orange
+#20241025 scarthgap now supports dpkg and apt
 
 WKG_DRV=$1 #ex: sda
 WKG_DEV=$2 #ex: sda2
@@ -788,6 +789,13 @@ fi
 
 #20221020 check for redundant user-installed pkgs...
 /sbin/uninstall
+
+#20241025 scarthgap now supports dpkg and apt
+if [ -e /easy_ro/easy_sfs/usr/bin/dpkg.bin ];then
+ #make sure these are correct (dpkg is now a wrapper script)...
+ rm -f /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/bin/dpkg 2>/dev/null
+ rm -f /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/bin/dpkg.bin 2>/dev/null
+fi
 
 #some fixes have to be done after switch_root (in rc.sysinit). set a flag...
 #if upgrading, this will have the previous version...
