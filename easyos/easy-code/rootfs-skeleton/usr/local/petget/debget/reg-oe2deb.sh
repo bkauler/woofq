@@ -1,8 +1,9 @@
-#!/bin/ash
+#!/bin/bash
 #pass in name and version of a oe pkg.
 #if nothing passed in, do them all in oe-deb-names
 #dummy deb will be created and installed.
 #requires 'dpkg' to be installed.
+#20241025 dummy debs must have oe version.
 
 cd /usr/local/petget/debget #where this script and oe-deb-names is.
 #sanity check...
@@ -66,7 +67,8 @@ else
   fi
   if [ -z "${Pfnd}" ];then continue; fi
   if [ -z "${aV}" ];then continue; fi
-  aPnv="$(echo -n "${Pfnd}" | tr ',' '\n' | sed -e '/^$/d' | sed -e "s%$%|${aV}%" | tr '\n' ' ')"
+  #20241025 $aV is the debian version, but want oe version $Poev...
+  aPnv="$(echo -n "${Pfnd}" | tr ',' '\n' | sed -e '/^$/d' | sed -e "s%$%|${Poev}%" | tr '\n' ' ')"
   echo "${aPnv}" >> /tmp/reg-oe2deb/Pnv
  done
 fi
@@ -74,9 +76,19 @@ fi
 
 Pnv="$(cat /tmp/reg-oe2deb/Pnv | tr '\n' ' ' | tr -s ' ' | tr ' ' '\n' | sort -u | tr '\n' ' ')"
 
+######################
+#20241025
+DISTRO_BINARY_COMPAT=devuan
+DISTRO_COMPAT_VERSION=daedalus
+. /root/.packages/PKGS_MANAGEMENT #has PKG_NAME_IGNORE
+PKG_NAME_IGNORE=" ${PKG_NAME_IGNORE} "
+
 for aNV in ${Pnv}
 do
  Pn="${aNV/|*/}"
+ #20241025 these ones installed further down...
+ grep -q -F -i " ${Pn} " <<<"${PKG_NAME_IGNORE}"
+ if [ $? -eq 0 ];then continue; fi
  echo "${Pn}"
  Pv="${aNV/*|/}"
  #get architecture...
@@ -113,6 +125,41 @@ Description: Dummy deb pkg" > ${Pn}_${Pv}_${Pa}/DEBIAN/control
  #echo -n "CONTINUE: "
  #read goone
  sync
+done
+
+#20241025
+#prevent apt from installing some pkgs...
+for Pn in ${PKG_NAME_IGNORE}
+do
+ [ -z "${Pn}" ] && continue
+ #get architecture...
+ Pa="$(grep -h -F "|${Pn}|" /root/.packages/Packages-devuan-daedalus-* | head -n 1 | cut -f 8 -d '|' | rev | cut -f 1 -d '_' | cut -f 2- -d '.' | rev)"
+ if [ -z "$Pa" ];then continue; fi
+ Pv='999.999' #set very high version
+ #create folder with control file...
+ mkdir -p ${Pn}_${Pv}_${Pa}/DEBIAN
+ echo "Package: ${Pn}
+Version: ${Pv}
+Architecture: ${Pa}
+Maintainer: BK
+Installed-Size: 5
+Depends: 
+Section: 
+Priority: optional
+Description: Dummy deb pkg" > ${Pn}_${Pv}_${Pa}/DEBIAN/control
+ #build deb pkg
+ dpkg-deb --build ${Pn}_${Pv}_${Pa}
+ #install deb
+ if [ $Nflg -eq 0 ];then
+  #dpkg is a wrapper script and will record installed pkg to user-installed-packages
+  dpkg -i ${Pn}_${Pv}_${Pa}.deb
+ else
+  #dpkg.bin is the actual binary
+  dpkg.bin -i ${Pn}_${Pv}_${Pa}.deb
+ fi
+ #delete deb pkg
+ rm -f ${Pn}_${Pv}_${Pa}.deb
+ rm -rf ${Pn}_${Pv}_${Pa}
 done
 
 ###end###
