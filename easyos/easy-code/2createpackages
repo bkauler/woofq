@@ -100,6 +100,7 @@
 #20230903 void has usr-merge.
 #20230904 woofq now only support usr-merge and sbin-merge.
 #20241015 daedalus alsa-lib seems $ONESYMLINK has space char.
+#20241025 want DISTRO_COMPAT_VERSION in FIXUPHACK
 
 export LANG=C #faster.
 
@@ -120,6 +121,7 @@ echo
 
 [ ! "$DISTRO_DB_SUBNAME" ] && DISTRO_DB_SUBNAME="$DISTRO_COMPAT_VERSION" #121102 fallback if DISTRO_DB_SUBNAME not defined in file DISTRO_SPECS.
 export DISTRO_BINARY_COMPAT #120517 i want this in FIXUPHACK scripts.
+export DISTRO_COMPAT_VERSION #20241025 ditto
 export DISTRO_FILE_PREFIX   #130421 ditto.
 if [ -f ./DISTRO_COMPAT_REPOS-${DISTRO_BINARY_COMPAT}-${DISTRO_COMPAT_VERSION} ];then
 . ./DISTRO_COMPAT_REPOS-${DISTRO_BINARY_COMPAT}-${DISTRO_COMPAT_VERSION}
