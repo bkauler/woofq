@@ -1,0 +1,98 @@
+#20241028
+
+if [ -f usr/share/applications/vim.desktop ];then
+ rm -f usr/share/applications/vim.desktop
+fi
+
+echo '[Desktop Entry]
+GenericName=GVim
+Comment[af]=Redigeer tekslêers
+Comment[ar]=حرّر ملفات نصية
+Comment[az]=Mətn fayllarını redaktə edin
+Comment[be]=Рэдагаваньне тэкставых файлаў
+Comment[bg]=Редактиране на текстови файлове
+Comment[bs]=Izmijeni tekstualne datoteke
+Comment[ca]=Edita fitxers de text
+Comment[cs]=Úprava textových souborů
+Comment[cy]=Golygu ffeiliau testun
+Comment[da]=Rediger tekstfiler
+Comment[de]=Textdateien bearbeiten
+Comment[el]=Επεξεργασία αρχείων κειμένου
+Comment[en_CA]=Edit text files
+Comment[en_GB]=Edit text files
+Comment[eo]=Redakti tekstajn dosierojn
+Comment[es]=Editar archivos de texto
+Comment[et]=Redigeeri tekstifaile
+Comment[eu]=Editatu testu-fitxategiak
+Comment[fa]=ویرایش پرونده‌های متنی
+Comment[fi]=Muokkaa tekstitiedostoja
+Comment[fr]=Éditer des fichiers texte
+Comment[ga]=Cuir comhaid téacs in eagar
+Comment[he]=ערוך קבצי טקסט
+Comment[hr]=Uređivanje tekstualne datoteke
+Comment[hu]=Szövegfájlok szerkesztése
+Comment[id]=Edit file teks
+Comment[is]=Vinna með textaskrár
+Comment[it]=Edita file di testo
+Comment[ja]=テキストファイルを編集します
+Comment[ko]=텍스트 파일을 편집합니다
+Comment[lt]=Redaguoti tekstines bylas
+Comment[lv]=Rediģēt teksta failus
+Comment[mk]=Уреди текстуални фајлови
+Comment[mn]=Текст файл боловсруулах
+Comment[ms]=Edit fail teks
+Comment[nb]=Rediger tekstfiler
+Comment[nl]=Tekstbestanden bewerken
+Comment[nn]=Rediger tekstfiler
+Comment[no]=Rediger tekstfiler
+Comment[pl]=Edytuj pliki tekstowe
+Comment[pt]=Editar ficheiros de texto
+Comment[pt_BR]=Edite arquivos de texto
+Comment[ro]=Editare fişiere text
+Comment[ru]=Редактирование текстовых файлов
+Comment[sk]=Úprava textových súborov
+Comment[sl]=Urejanje datotek z besedili
+Comment[sq]=Përpuno files teksti
+Comment[sr]=Уређујте текст фајлове
+Comment[sv]=Redigera textfiler
+Comment[tk]=Metin faýllary editle
+Comment[tr]=Metin dosyaları düzenleyin
+Comment[uk]=Редагувати текстові файли
+Comment[vi]=Soạn thảo tập tin văn bản
+Comment[wa]=Asspougnî des fitcs tecses
+Comment[zh_CN]=编辑文本文件
+Comment[zh_TW]=編輯文字檔
+Comment=Edit text files
+Name=GVim text editor
+Name[bg]=GVim текстов редактор
+Name[zh_CN]=GVim 文本编辑器
+Name[zh_TW]=GVim 文字編輯器
+Name[da]=GVim tekst editor
+Name[nl]=GVim-teksteditor
+Name[fi]=GVim tekstieditori
+Name[fr]=Éditeur de texte GVim
+Name[de]=GVim-Texteditor
+Name[hu]=GVim szövegszerkesztő
+Name[it]=Editor di testo GVim
+Name[no]=GVim tekstredigerer
+Name[pl]=Edytor tekstu GVim
+Name[pt]=Editor de texto GVim
+Name[ru]=текстовый редактор GVim
+Name[es]=Editor de texto GVim
+Name[sv]=GVim textredigerare
+Name[tr]=GVim metin düzenleyicisi
+Icon=gvim.png
+Categories=TextEditor
+StartupNotify=true
+Exec=gvim
+Terminal=false
+Type=Application
+' > usr/share/applications/gvim.desktop
+
+mkdir -p usr/share/pixmaps
+ln -snf ../icons/hicolor/48x48/apps/gvim.png usr/share/pixmaps/gvim.png
+
+if [ -d usr/share/man ];then
+ rm -rf usr/share/man
+fi
+

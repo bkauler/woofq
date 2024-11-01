@@ -1,0 +1,18 @@
+
+#20241029 daedalus
+
+case "${DISTRO_BINARY_COMPAT}" in
+ devuan|debian|ubuntu)
+   #symlinks in usr/lib/x86_64 get broken, as x86_64 is link to .
+   LIBdirs="$(find usr/lib -mindepth 1 -maxdepth 1 -type d)"
+   LLVMdir="$(echo -n "${LIBdirs}" | grep '/llvm')" #ex: usr/lib/llvm-16
+   if [ -n "$LLVMdir" ];then
+    ln -s ${LLVMdir##*/}/lib/libunwind.so.1.0 usr/lib/libunwind.so.1.0
+    ln -s ${LLVMdir##*/}/lib/libunwind.so.1.0 usr/lib/libunwind.so.1
+    ARCHdir="$(echo -n "${LIBdirs}" | grep -v '/llvm' | head -n 1)" #ex: usr/lib/x86_64-linux-gnu
+    if [ -n "$ARCHdir" ];then
+     rm -rf ./${ARCHdir}
+    fi
+   fi
+ ;;
+esac
