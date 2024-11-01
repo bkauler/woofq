@@ -40,6 +40,7 @@
 #20230309 support compat:kirkstone
 #20230902 support void .xbps pkgs.
 #20230908 replace yaf-splash with gtkdialog-splash
+#20241029 handle compat:security last field of Packages-devuan-daedalus-security
 
 export LANG=C #faster.
 
@@ -391,8 +392,9 @@ do
  #ONEDBENTRY=:GENERICNAME:|PETorCOMPAT|DBFILE|pkgname|nameonly|version|pkgrelease|category[;subcategory]|size|path|fullfilename|dependencies|description|compileddistro|compiledrelease|repo|
  #...pkgname onwards is the full db entry for a package.
  LINECNT=$(($LINECNT + 1))
+ #20241029 handle compat:security last field of Packages-devuan-daedalus-security
  PETorCOMPAT="`echo -n "$ONEDBENTRY" | cut -f 2 -d '|'`" #ex: compat
- if [ "$PETorCOMPAT" != "pet" -a "$PETorCOMPAT" != "compat" ];then
+ if [ "$PETorCOMPAT" != "pet" -a "$PETorCOMPAT" != "compat" -a "$PETorCOMPAT" != "$DISTRO_COMPAT_VERSION" ];then #20241029
   echo
   echo "Syntax ERROR in status/findpkgs_FINAL_PKGS-${DISTRO_BINARY_COMPAT}-${DISTRO_COMPAT_VERSION},"
   echo "line number ${LINECNT}:"

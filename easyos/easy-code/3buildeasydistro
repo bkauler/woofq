@@ -334,7 +334,8 @@
 #20241010 delete eqv container if support missing.
 #20241019 tweak update-ca-certificates
 #20241019 /etc/group audio: too many users (61+). 20241021 revert.
-#20241024 easyos scarthgap 6.4+ will support installing devuan daedalus debs.
+#20241024 easyos scarthgap 6.4+ will support installing devuan daedalus debs. 20241026 20241027 remove.
+#20241028 generate /etc/os-release
 
 export LANG=C #faster.
 
@@ -5528,20 +5529,35 @@ done
 #sed -i '/^audio:/d' rootfs-complete/etc/group
 #echo "${AUDGRP}" >> rootfs-complete/etc/group
 
-#20241024 scarthgap 6.4+ supports deb pkgs...
-if [ "$WOOF_HOSTARCH" = "$WOOF_TARGETARCH" ];then
- if [ "$DISTRO_COMPAT_VERSION" == "scarthgap" ];then
-  echo
-  echo -n "ENTER to install dummy deb pkgs: "
-  read keepgoing0
+#20241027 remove...
+##20241024 scarthgap 6.4+ supports deb pkgs...
+#if [ "$WOOF_HOSTARCH" = "$WOOF_TARGETARCH" ];then
+# if [ "$DISTRO_COMPAT_VERSION" == "scarthgap" ];then
+#  echo
+  #echo -n "ENTER to run apt update: "
+  #read keepgoing0
+  ##20241026 try this...
+  #cp -a -f /etc/resolv.conf rootfs-complete/etc/
+  #chroot rootfs-complete /usr/bin/apt update
+  #echo "# nameservers go in here" > rootfs-complete/etc/resolv.conf
+  #echo -n "ENTER to install dummy deb pkgs: "
+  #read keepgoing0
   #this will create dummy deb pkgs for all oe pkgs and install them...
-  chroot rootfs-complete /usr/local/petget/debget/reg-oe2deb.sh
-  echo
-  echo -n "ENTER to continue: "
-  read keepgoing
- fi
-fi
+#  chroot rootfs-complete /usr/local/petget/debget/reg-oe2deb.sh
+#  echo
+  #echo -n "ENTER to continue: "
+  #read keepgoing
+# fi
+#fi
 
+#20241028
+echo "PRETTY_NAME=\"${DISTRO_NAME_LONG}\"
+NAME=\"${DISTRO_NAME_NORMAL}\"
+VERSION_ID=\"${DISTRO_VERSION}\"
+VERSION=\"${DISTRO_VERSION}\"
+VERSION_CODENAME=\"${DISTRO_COMPAT_VERSION}\"
+ID=\"${DISTRO_COMPAT_VERSION}\"
+HOME_URL=\"https://bkhome.org/news\"" > rootfs-complete/etc/os-release
 
 
 echo #190131...

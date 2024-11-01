@@ -62,6 +62,7 @@
 #20240503 remove woofV.
 #20240918 fix debdb2pupdb -- using bacon version.
 #20241018 /tmp/woofV not used. 20241019 use /tmp/0setup_tmp  use debdb2pupdb-nim
+#20241029 does not exist: http://deb.devuan.org/merged/dists/daedalus-updates-security/main/binary-amd64/Packages.xz
 
 LANGORG="$(locale | grep '^LANG=' | cut -d '=' -f 2)" #121116
 export LANG=C #faster.
@@ -414,6 +415,7 @@ package lists for 12.04.1 -- it is generally recommended to accept."
     #190813 hack, deb-multimedia.org/dists/buster/main does not have updates...
     case $DISTRO_BINARY_COMPAT in
      debian) [ "${PKGLISTURI/*debian*/}" != "" ] && continue ;;
+     devuan) [ "${PKGLISTURI/*security*/}" == "" ] && continue ;; #20241029
     esac
     PKGLISTS_COMPAT_UPDATES="${PKGLISTS_COMPAT_UPDATES} ${PKGLISTFILE}" #see further down.
     skipdl=""

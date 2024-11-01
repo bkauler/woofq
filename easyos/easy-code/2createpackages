@@ -101,6 +101,7 @@
 #20230904 woofq now only support usr-merge and sbin-merge.
 #20241015 daedalus alsa-lib seems $ONESYMLINK has space char.
 #20241025 want DISTRO_COMPAT_VERSION in FIXUPHACK
+#20241029 handle compat:security last field of Packages-devuan-daedalus-security
 
 export LANG=C #faster.
 
@@ -431,8 +432,9 @@ Do it, then rerun this script and choose to build $GENERICNAME." >> ERROR-2CREAT
   #120812 category now allows optional subcategory...
   #ONEDBENTRY=:GENERICNAME:|PETorCOMPAT|DBFILE|pkgname|nameonly|version|pkgrelease|category[;subcategory]|size|path|fullfilename|dependencies|description|compileddistro|compiledrelease|repo|
   #...pkgname onwards is the full db entry for a package.
+  #20241029 handle compat:security last field of Packages-devuan-daedalus-security
   PETorCOMPAT="`echo -n "$ONEDBENTRY" | cut -f 2 -d '|'`" #ex: compat
-  if [ "$PETorCOMPAT" != "pet" -a "$PETorCOMPAT" != "compat" ];then
+  if [ "$PETorCOMPAT" != "pet" -a "$PETorCOMPAT" != "compat" -a "$PETorCOMPAT" != "$DISTRO_COMPAT_VERSION" ];then #20241029
    echo "
 Syntax ERROR in status/findpkgs_FINAL_PKGS-${DISTRO_BINARY_COMPAT}-${DISTRO_COMPAT_VERSION}:
  $ONEDBENTRY
