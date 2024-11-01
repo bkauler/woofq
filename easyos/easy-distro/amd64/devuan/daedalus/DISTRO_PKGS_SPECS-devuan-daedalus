@@ -145,6 +145,8 @@ yes|chromaprint|libchromaprint1,libchromaprint-dev|exe,dev,doc,nls| #20180512
 yes|chrome-skel-ask||exe|pet:noarch| #20241015
 no|chromium|chromium,chromium-common|exe,dev,doc,nls| #20210802 20220206
 no|chromium-l10n|chromium-l10n|exe,dev,doc,nls| #20210802 part of chromium pkg. 20220206
+yes|chromium|chromium,chromium-common|exe,dev,doc|daedalus:security| #20241029 chromium
+yes|chromium-l10n|chromium-l10n|exe,dev,doc|daedalus:security| #20241029 chromium
 yes|chrpath|chrpath|exe,dev,doc,nls|compat:kirkstone| #needed for yocto.  20220507
 yes|cifs-utils|cifs-utils|exe,dev,doc,nls| #used with samba.
 yes|cjson|libcjson1,libcjson-dev|exe,dev,doc,nls|
@@ -267,7 +269,7 @@ yes|file|file,libmagic1,libmagic-dev,libmagic-mgc|exe,dev,doc,nls| #20210801
 no|file-sharing-curlftpfs-mpscan-noarch||exe| #20180103
 yes|findutils|findutils|exe,dev>null,doc,nls
 no|firefox|firefox,firefox-locale-en,firefox-dev|exe,dev,doc,nls
-yes|firefox|firefox-esr,firefox-esr-l10n-*|exe,dev,doc,nls| #20210801
+no|firefox|firefox-esr,firefox-esr-l10n-*|exe,dev,doc,nls| #20210801 20241029
 no|firefox-skeleton||exe|pet:noarch| #20220206
 no|firmware|atmel-firmware,linux-firmware,linux-firmware-nonfree,nouveau-firmware,prism2-usb-firmware-installer|exe,dev,doc,nls|
 yes|firmware_asus_e200ha||exe|pet:noarch| #needed for my asus e200ha notebook. #PC 20190824  20210803
@@ -618,6 +620,8 @@ yes|libbrotli|libbrotli1,libbrotli-dev|exe,dev,doc,nls| #20210801
 yes|libbs2b|libbs2b0,libbs2b-dev|exe,dev,doc,nls|
 yes|libbsd|libbsd0,libbsd-dev|exe,dev,doc,nls|
 yes|libburn|libburn4,libburn-dev|exe,dev,doc,nls| #needed by xorriso
+yes|libcpp|libc++1-16|exe,dev,doc| #20241029 chromium
+yes|libcpp-abi|libc++abi1-16|exe,dev,doc| #20241029 chromium
 yes|libcaca|libcaca0|exe,dev,doc,nls| #leave out dev
 yes|libcanberra|libcanberra0,libcanberra-dev,libcanberra-gtk-common-dev,libcanberra-gtk3-0,libcanberra-gtk-dev|exe,dev,doc,nls| #20201118 added to.
 yes|libcanberra-gtk0|libcanberra-gtk0|exe,dev,doc,nls| #20220206
@@ -738,6 +742,7 @@ no|libgnome-desktop-3-20|libgnome-desktop-3-20|exe,dev,doc,nls| #20220206 202303
 yes|libgpg-error|libgpg-error0,libgpg-error-dev|exe,dev,doc,nls|
 yes|libgphoto2|libgphoto2-6,libgphoto2-dev,libgphoto2-port12|exe,dev,doc,nls|
 yes|libgringotts|libgringotts2,libgringotts-dev|exe,dev,doc,nls
+yes|libgs10|libgs10|exe,dev>null,doc>null,nls>null| #20241027 have gs v9 from oe, some apps need v10 lib.
 yes|libgsf|gir1.2-gsf-1,libgsf-1-114,libgsf-1-common,libgsf-1-dev|exe,dev,doc,nls|
 yes|libgssrpc4|libgssrpc4|exe,dev,doc,nls| #20220206
 no|libgtk3.0-cil|libgtk3.0-cil|exe,dev,doc,nls| #20220206 20230310 no
@@ -745,6 +750,7 @@ yes|libgtkhtml|libgtkhtml|exe,dev,doc,nls|compat:kirkstone| #needed by osmo and 
 yes|libgudev|libgudev-1.0-0,libgudev-1.0-dev|exe,dev,doc,nls|
 yes|libgupnp-igd-1.0-dev|libgupnp-igd-1.0-dev|exe,dev,doc,nls| #20220206
 yes|libhandy-1-0|libhandy-1-0|exe,dev,doc,nls| #20241021 evince needs this. left out libhandy-dev too many deps.
+yes|libharfbuzz-subset0|libharfbuzz-subset0|exe,dev,doc| #20241029 chromium
 yes|libheif|libheif1,libheif-dev|exe,dev,doc,nls| #20190731 gimp needs this.
 yes|libhtml-parser-perl|libhtml-parser-perl|exe,dev,doc,nls| #20200308 needed by pplog.
 yes|libhtml-tagset-perl|libhtml-tagset-perl|exe,dev,doc,nls|
@@ -808,6 +814,7 @@ yes|libmd|libmd0,libmd-dev|exe,dev,doc,nls| #20210801
 yes|libmd4c0|libmd4c0,libmd4c-dev|exe,dev,doc,nls| #20241019 audacious
 yes|libmdds-dev|libmdds-dev|exe>dev,dev| #20241014 libreoffice pet
 no|libmimic|libmimic0,libmimic-dev|exe,dev,doc,nls| #20210801
+yes|libminizip1|libminizip1|exe,dev,doc| #20241029 chromium
 no|libmjpegutils|libmjpegutils-2.1-0|exe,dev,doc,nls| #20220206 20220510
 yes|libmms0|libmms0,libmms-dev|exe,dev,doc,nls| #20241019 audacious
 yes|libmng|libmng1,libmng-dev|exe,dev,doc,nls| #20190731 gimp needs libmng1
@@ -866,6 +873,7 @@ yes|libonig|libonig5,libonig-dev|exe,dev,doc,nls| #20210801
 yes|libopencore|libopencore-amrnb0,libopencore-amrnb-dev,libopencore-amrwb0,libopencore-amrwb-dev|exe,dev,doc,nls| #was libopencore dep for ffmpeg3 or mplayer2--can delete if mplayer2
 yes|libopengl-dev|libopengl-dev|exe,dev,doc,nls| #20220206
 no|libopenh264-7|libopenh264-7|exe,dev,doc,nls| #20220206 20230310 no
+yes|libopenh264-7|libopenh264-7|exe,dev,doc| #20241029 chromium
 yes|libopenmpt|libopenmpt-modplug1,libopenmpt0,openmpt123,libopenmpt-dev,libopenmpt-modplug-dev|exe,dev,doc,nls| #20180512
 yes|libopenobex|libopenobex2,libopenobex2-dev|exe,dev,doc,nls| #needed by a udev rule in /lib/udev/rules.d
 no|liborcus|liborcus-parser-0.17-0|exe,dev,doc,nls| #20210802 dev pkgs left out. needed by chromium. 20220206  20230310 no
@@ -907,6 +915,7 @@ yes|libqt5dbus5|libqt5dbus5|exe,dev,doc,nls| #20241019 audacious
 yes|libqt5gui5|libqt5gui5|exe,dev,doc,nls| #20241019 audacious
 yes|libqt5multimedia5|libqt5multimedia5|exe,dev,doc,nls| #20241019 audacious
 yes|libqt5network5|libqt5network5|exe,dev,doc,nls| #20241019 audacious
+yes|libqt5svg5|libqt5svg5|exe,dev,doc,nls| #20241029 need for neovim-qt
 yes|libqt5widgets5|libqt5widgets5|exe,dev,doc,nls| #20241019 audacious
 no|libquicktime|libquicktime2,libquicktime-dev|exe,dev,doc,nls| #20170713 20220510
 no|libqxp|libqxp-0.0-0|exe,dev,doc,nls| #20200803 needed by libreoffice
@@ -998,6 +1007,7 @@ no|libuno-purpenvhelpergcc3-3|libuno-purpenvhelpergcc3-3|exe,dev,doc,nls| #20220
 no|libuno-sal3|libuno-sal3|exe,dev,doc,nls| #20220527 reqd by libreoffice-writer
 no|libuno-salhelpergcc3-3|libuno-salhelpergcc3-3|exe,dev,doc,nls| #20220527 reqd by libreoffice-writer
 yes|libunwind|libunwind8,libunwind-dev|exe,dev,doc,nls|
+yes|libunwind-16|libunwind-16|exe,dev,doc| #20241029 chromium
 yes|libupnp|libupnp13|exe,dev,doc,nls| #20220206
 yes|liburing|liburing2|exe,dev,doc,nls| #20220206
 yes|liburi-perl|liburi-perl|exe,dev,doc,nls|
@@ -1061,6 +1071,7 @@ yes|libxml-namespacesupport-perl|libxml-namespacesupport-perl|exe,dev,doc,nls|
 yes|libxml-sax-base-perl|libxml-sax-base-perl|exe,dev,doc,nls| #20220206
 yes|libxml-sax-perl|libxml-sax-perl|exe,dev,doc,nls|
 yes|libxmu|libxmuu1,libxmu-headers,libxmu6|exe,dev,doc,nls|
+yes|libxnvctrl0|libxnvctrl0|exe,dev,doc| #20241029 chromium
 yes|libxplc0.3.13-dev|libxplc0.3.13-dev|exe,dev,doc,nls| #20220206
 yes|libxpm|libxpm4|exe,dev,doc,nls|
 yes|libxpresent|libxpresent1|exe,dev,doc,nls| #20230310 needed by mpv
@@ -1091,6 +1102,7 @@ no|linux_firmware_dvb||exe| #REMOVED 20160329
 yes|linux-header|linux-libc-dev|exe>dev,dev,doc,nls
 yes|linux_headers|linux_headers-5.15.43*|exe>dev,dev,doc,nls|pet:daedalus| #20230309
 no|lirc|liblircclient0,liblircclient-dev|exe,dev,doc,nls| #20230310 no
+yes|lite-xl||exe|pet:daedalus| #20241031
 no|llvm11-runtime|llvm-11-runtime,libllvm11|exe,dev,doc,nls| #20210801 20210804 mesa needs this but plan to recompile mesa without it.
 yes|llvm-runtime|llvm-15-runtime,libllvm15|exe,dev,doc,nls|
 no|lmarbles||exe,dev,doc,nls|pet:dunfell| #20180318
@@ -1160,7 +1172,8 @@ no|mscw||exe|pet:noarch| #multiple sound card wizard. 20200107 now inbuilt in wo
 no|ms-sys||exe
 yes|mtdev|libmtdev1,libmtdev-dev|exe,dev,doc,nls|
 yes|mtools|mtools|exe,dev,doc,nls|
-yes|mtpaint|mtpaint|exe,dev,doc,nls|compat:kirkstone| #note, there is also a deb. 20220507
+no|mtpaint|mtpaint|exe,dev,doc,nls|compat:kirkstone| #note, there is also a deb. 20220507
+yes|mtpaint||exe|pet:daedalus| #20241027 v3.50.10
 yes|mtr|mtr|exe,dev,doc,nls
 no|musl|musl,musl-tools,musl-dev|exe>dev,dev,doc,nls|
 yes|mxml|libmxml1,libmxml-dev|exe,dev,doc,nls| #20170713
@@ -1295,7 +1308,8 @@ yes|picscale|picscale|exe,dev,doc,nls|compat:kirkstone| #20220816 fixed.
 no|pidgin|pidgin,libpurple0,pidgin-data,finch|exe,dev,doc,nls| #20190730 removed as needs gstreamer.
 yes|pinentry|pinentry-gnome3|exe,dev,doc,nls| #20190805 dep of gnome-keyring
 yes|pixman|libpixman-1-0,libpixman-1-dev|exe,dev,doc,nls|
-yes|pkgconfig|pkg-config,pkgconf,libpkgconf3,pkgconf-bin|exe>dev,dev,doc,nls| #20241014
+no|pkgconfig|pkgconf,libpkgconf3,pkgconf-bin|exe>dev,dev,doc,nls| #20241014 20241030 stupid deletes pkg-config symlink.
+yes|pkgconfig|pkgconfig|exe,dev,doc,nls|compat:kirkstone| #20241030 use this, it works.
 no|planner|planner,planner-data|exe,dev,doc,nls| #20190731 20241013 needs more deps
 yes|pmcputemp||exe,dev,doc,nls|pet:daedalus| #by 01micko. oe one does not work 20220507
 no|pmetatagger||exe|pet:noarch| #20200303 replaced with fftag
@@ -1480,6 +1494,7 @@ no|staroffice|libstaroffice-0.0-0|exe,dev,doc,nls| #20200803 needed by libreoffi
 yes|startup-notification|libstartup-notification0,libstartup-notification0-dev|exe,dev,doc,nls
 yes|strace|strace|exe>dev,dev,doc,nls
 yes|streamripper|streamripper|exe,dev,doc,nls
+no|sublime||exe>dev,dev,doc>dev,nls>dev|pet:daedalus| #20241030 20241031 no.
 yes|subversion|libapr1,libaprutil1,libpq5,libsvn1,subversion|exe>dev,dev,doc,nls|
 no|sudo|sudo|exe,dev,doc,nls| #20230623 removed. does not work, replaced with my script.
 yes|sudo-sh||exe|pet:daedalus| #20241019 mini-sudo
@@ -1521,6 +1536,7 @@ yes|ufiformat|ufiformat|exe,dev,doc,nls|compat:kirkstone| #20220507
 no|uget|uget|exe,dev,doc,nls| #20190730 removed as needs gstreamer
 yes|unbound|libunbound8,libunbound-dev|exe,dev,doc,nls| #20200803  20210801
 yes|unclutter|unclutter|exe,dev>null,doc,nls|compat:kirkstone| #note, there is also a deb. 20220507
+yes|ungoogled-skel-ask||exe|pet:noarch| #20241029
 yes|unixodbc|libodbc1,unixodbc-dev|exe,dev,doc,nls|
 no|uno-libs-private|uno-libs-private|exe,dev,doc,nls| #20220527 reqd by libreoffice-writer
 yes|unrar|unrar|exe,dev,doc,nls
@@ -1543,6 +1559,7 @@ yes|vamps|vamps|exe,dev,doc,nls
 yes|vcdimager|libvcdinfo0,libvcdinfo-dev,vcdimager|exe,dev,doc,nls|
 no|vdpau-video|vdpau-va-driver|exe,dev,doc,nls| #170320 needed by vlc #PC  20210801
 no|viewnior||exe,dev,doc,nls| #now using gpicview.
+no|vim|vim|exe>dev,dev,doc>dev,nls>dev|compat:kirkstone| #20241029  20241031 no.
 yes|vivaldi-skel-ask||exe|pet:noarch| #20241015
 no|vlc|vlc,vlc-nox,vlc-data,libvlc5,libvlc-dev,libvlccore8,libvlccore-dev|exe,dev,doc,nls| #PC
 no|vlc-browser-plugin|browser-plugin-vlc|exe,dev,doc,nls
@@ -1626,7 +1643,7 @@ no|xsane|xsane,xsane-common,libgimp2.0|exe,dev,doc,nls| #20220908 no longer in r
 no|xserver-fbdev-alt||exe|pet:buster| #20190821 initrd uses this as debian xorg fbdev does not work.
 yes|xserver-xephyr|xserver-xephyr|exe,dev,doc,nls| #20180920
 no|xserver_xorg|xserver-xorg-dev,xserver-common,xserver-xorg,xserver-xorg-core,xserver-xorg-video-fbdev,xserver-xorg-video-vesa,xserver-xorg-input-synaptics,xserver-xorg-input-evdev,xserver-xorg-input-wacom|exe,dev,doc,nls| #note, modesetting_drv.so is in deb xserver-xorg-core #RASPI
-yes|xserver_xorg|xserver-xorg-dev,xserver-common,xserver-xorg,xserver-xorg-core,xserver-xorg-video-*,xserver-xorg-input-evdev,xserver-xorg-input-kbd,xserver-xorg-input-mouse,xserver-xorg-input-synaptics,xserver-xorg-input-wacom,-xserver-xorg-video-dummy,-xserver-xorg-video-vmware*|exe,dev,doc,nls| #PC
+yes|xserver_xorg|xserver-xorg-dev,xserver-common,xserver-xorg,xserver-xorg-core,xserver-xorg-video-*,xserver-xorg-input-evdev,xserver-xorg-input-kbd,xserver-xorg-input-mouse,xserver-xorg-input-synaptics,xserver-xorg-input-wacom,-xserver-xorg-video-dummy|exe,dev,doc,nls| #PC
 no|xserver-xorg-video-armsoc-exynos|xserver-xorg-video-armsoc-exynos|exe,dev,doc,nls| #ODROIDX
 yes|xsoldier|xsoldier|exe,dev,doc,nls| #needs sdl
 yes|xtrans|xtrans-dev|exe>dev,dev,doc,nls
@@ -1648,9 +1665,11 @@ yes|z3|libz3-4,libz3-dev|exe,dev,doc,nls| #20210802 needed by mesa.
 yes|zarfy|zarfy|exe,dev,doc,nls|compat:kirkstone| #handle multiple monitors. 20220507
 yes|zephyr|libzephyr4,libzephyr-dev|exe,dev,doc,nls|
 yes|zeromq3|libzmq5,libzmq3-dev|exe,dev,doc,nls|
+yes|zig||exe>dev,dev,doc>dev,nls>dev|pet:daedalus| #20241029
 yes|zip|zip|exe,dev>null,doc,nls
 yes|zlib|zlib1g,zlib1g-dev|exe,dev,doc,nls| #removed libx32z1-dev.
 no|zlibreoffice|libreoffice-common,libreoffice-core,libreoffice-writer,libreoffice-impress,libreoffice-draw,libreoffice-calc|exe| #20220529 hack attempt fix lo not starting.
+no|zls||exe>dev,dev,doc>dev,nls>dev|pet:daedalus| #20241029 zig language server. 20241031 no.
 no|z_mpscan_fix_precise||exe| #refer forum t=81808
 yes|zstd|zstd|exe,dev,doc,nls|compat:kirkstone| #20220507
 yes|zvbi|libzvbi-common,libzvbi0,libzvbi-dev|exe,dev,doc,nls|
