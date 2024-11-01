@@ -38,6 +38,7 @@
 #20240308 WKGFREEK is empty in a container.
 #20240503 remove woofV.
 #20241020 examine deps for already-installed pkg.
+#20241101 default install pkg non-root (based on code in qv installpreview.sh).
 
 export TEXTDOMAIN=petget___installpreview.sh
 export OUTPUT_CHARSET=UTF-8
@@ -102,7 +103,8 @@ create_deposed_sfs() {
 DB_FILE=Packages-`cat /tmp/petget/current-repo-triad` #ex: Packages-slackware-12.2-official
 tPATTERN='^'"$TREE1"'|'
 #xtPATTERN='|'"$TREE1"'|'
-
+CR='
+'
 
 gtkdialog-splash -close never -bg orange -text "$(gettext 'Please wait, processing package database files...')" &
 X1PID=$!
@@ -563,4 +565,141 @@ PKGS="`cat /tmp/petget_missing_dbentries-* | cut -f 1 -d '|' | tr '\n' '|'`"
 
 #popadd "name=petgetinstall terminate=now|" #150326
 echo "terminate=now|" > /tmp/popup_petgetinstall
+
+#20241101 install non-root
+if [ -f /root/.packages/${TREE1}.files ];then #ex TREE1=abiword-1.2-amd64 (1st field in db)
+ #code from qv installpreview.sh...
+ NRflg=0
+ #20240307 cannot run non-root in container...
+ ls -1 /INSIDE_* >/dev/null 2>&1
+ NOflg=$?
+ if [ $NOflg -ne 0 ];then
+  grep -q 'usr/share/applications' /root/.packages/${TREE1}.files
+  if [ $? -eq 0 ];then
+   for aDT in $(grep '/usr/share/applications/.*desktop$' /root/.packages/${TREE1}.files)
+   do
+    [ -z "$aDT" ] && continue
+    grep -q '^NoDisplay=true' ${aDT}
+    if [ $? -ne 0 ];then
+     #20240414 audacity.desktop has "Exec=env UBUNTU_MENUPROXY=0 audacity"
+     grep -q '^Exec=env ' ${aDT}
+     if [ $? -eq 0 ];then
+      sed -i -e 's|^Exec=env [^ ]* |Exec=|' ${aDT}
+     fi
+     #20240405 vlc.desktop has "Exec=/usr/bin/vlc --started-from-file %U"
+     #somewhere else knocks off that %U, but also need to get rid of /usr/bin/...
+     sed -i -e 's|^Exec=/usr/bin/|Exec=|' ${aDT}
+     EXEC="$(grep '^Exec=' ${aDT} | cut -f 2 -d '=' | cut -f 1 -d ' ' | head -n 1)"
+     grep -q '/' <<<${EXEC}
+     if [ $? -ne 0 ];then
+      if [ -x /usr/bin/${EXEC} ];then
+       #20241101 don't just default to run non-root, ask...
+       export IPV_ASK_DLG="<window title=\"PKGget: $(gettext 'package installed')\" image-name=\"/usr/local/lib/X11/pixmaps/pkg24.png\">
+     <vbox>
+      <text use-markup=\"true\"><label>\"$(gettext 'This package has been installed:') <b>${TREE1}</b>
+$(gettext 'The executable is:') /usr/bin/${EXEC}
+
+$(gettext 'Do you want to run the executable as the root user, or non-root?')
+$(gettext 'Choose root if you want unfettered system-wide write access. Choose non-root to restrict the executable to only be able to write in the application home folder or inside /files folder.')
+$(gettext 'Choose non-root if you are concerned about running the executable with maximum security.')
+$(gettext 'If in doubt, choose non-root; the next window will explain how you can flip the executable between root and non-root later, if you decide to change.')
+\"</label></text>
+      <hbox>
+       <button><label>root</label><action>EXIT:root</action></button>
+       <button><label>$(gettext 'non-root')</label><action>EXIT:nonroot</action></button>
+      </hbox>
+     </vbox></window>"
+       #echo "${IPV_ASK_DLG}" > /tmp/IPV_ASK_DLG #TEST
+       RETASK="$(gtkdialog --center --program=IPV_ASK_DLG)"
+       #20241101 also test for .bin (installed flatpak or appimage will have .bin not .bin0)
+       if [ -x /usr/bin/${EXEC}.bin0 -o -x /usr/bin/${EXEC}.bin ];then
+        #this means previous version was already setup to run non-root
+        #the update has installed a new /usr/bin/${EXEC}, so revert to run
+        #as root, then back to non-root...
+        rm -f /usr/bin/${EXEC}.bin0 2>/dev/null
+        rm -f /usr/bin/${EXEC}.bin 2>/dev/null
+        #hide, so setup-client can bring back in future...
+        if [ -d /home/.${EXEC} ];then #precaution.
+         rm -rf /home/.${EXEC}
+        fi
+        mv -f /home/${EXEC} /home/.${EXEC} 2>/dev/null
+        sed -i -e "s%^${EXEC}=.*%${EXEC}=false%" /root/.clients-status
+       fi
+       grep -q -F 'nonroot' <<<"${RETASK}"
+       if [ $? -eq 0 ];then
+        /usr/local/clients/setup-client "${EXEC}=true"
+        NRflg=1
+       fi
+       break
+      fi
+     fi
+    fi
+   done
+  fi
+ fi
+ 
+ #now put up message...
+ if [ $NRflg -eq 1 ];then
+  PPM_VOID_MSG="$(gettext 'There are a couple of different ways to flip an application to run as the root user:')
+    
+<b>1: .bin0</b>
+$(gettext 'Take the example of the word processor Abiword. You will find /usr/bin/abiword, but also there is /usr/bin/abiword.bin0. All that you have to do is execute the latter and Abiword will run as the root user. You can edit /usr/share/applications/abiword.desktop and a desktop icon if one exists, to run abiword.bin0. Or just run abiword.bin0 in a terminal.')
+
+<b>2: LoginManager</b>
+$(gettext 'There is a formal tool for flipping an app to run as non-root or root. The LoginManager is found in the System category of the menu. Alternatively, click on the <b>setup</b> desktop icon, choose the <b>EasyOS</b> tab and click the <b>Login Manager</b> button.')
+    "
+  export DLG_PPM_VOID="<window resizable=\"false\" title=\"PKGget: Help administrator\" image-name=\"/usr/local/lib/X11/pixmaps/pkg24.png\" window_position=\"1\">
+     <vbox>
+      <text use-markup=\"true\">
+       <label>\"${PPM_VOID_MSG}\"</label><variable>VAR_PPM_VOID</variable>
+      </text>
+      <hbox>
+       <button><label>Close</label><action type=\"closewindow\">VAR_PPM_VOID</action></button>
+      </hbox></vbox></window>"
+
+    
+  export IPV_DLG="<window title=\"PKGget: $(gettext 'package installed')\" image-name=\"/usr/local/lib/X11/pixmaps/pkg24.png\">
+     <vbox>
+      <text use-markup=\"true\"><label>\"$(gettext 'This package has been installed:') <b>${TREE1}</b>
+$(gettext 'This application has been installed:') <b>${EXEC}</b>
+$(gettext 'The application will run non-root, as this user:') ${EXEC}
+$(gettext 'With home directory:') /home/${EXEC}
+$(gettext 'The app also has private write access to:') /files/apps/${EXEC}\"</label></text>
+     
+     <frame>
+      <text use-markup=\"true\"><label>\"<b>$(gettext 'Administrator')</b>\"</label></text>
+      <hbox>
+       <text><label>$(gettext 'You may want some applications to have system-wide write permission, such as a file manager. It is very easy to flip to run as administrator (root user). Click button for explanation:')</label></text>
+       <vbox>
+        <button>
+         <input file>/usr/local/lib/X11/mini-icons/mini-question.xpm</input>
+         <action type=\"launch\">DLG_PPM_VOID</action>
+        </button>
+       </vbox>
+      </hbox>
+     </frame>
+     
+     <frame>
+      <text use-markup=\"true\"><label>\"<b>$(gettext 'Desktop icon')</b>\"</label></text>
+      <text use-markup=\"true\"><label>\"$(gettext 'An entry has been created in the menu; however, you can also create a desktop icon.')
+$(gettext 'All that you need to do is drag the icon from ROX-Filer, onto the desktop, that is it.')
+$(gettext 'You can do it any time in the future, and also can delete the desktop icon by right-click and choose Remove.')\"</label></text>
+      <hbox>
+       <text><label>$(gettext 'Click for ROX-Filer window:')</label></text>
+       <button>
+        <label>ROX-Filer</label>
+        <action>rox -d /home/${EXEC} & </action>
+       </button>
+      </hbox>
+     </frame>
+     <hbox>
+      <button ok></button>
+     </hbox>
+     </vbox></window>"
+  gtkdialog --center --program=IPV_DLG
+ else
+  vM1="$(gettext 'You have installed this package, to run as root:') ${TREE1} ${CR}$(gettext '(Choose Login and Security Manager in the Setup menu to flip to non-root)')"
+  popup "terminate=5 timecount=dn name=vinstallmsg background=#a0ffa0|<big>${vM1}</big>"
+ fi
+fi
 ###END###
