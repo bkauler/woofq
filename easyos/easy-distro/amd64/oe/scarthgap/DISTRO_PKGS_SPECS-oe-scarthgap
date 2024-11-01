@@ -36,7 +36,7 @@ yes|appstream|appstream|exe,dev,doc,nls|compat:scarthgap| #20240615 needed by fl
 yes|appstream-glib|appstream-glib|exe,dev,doc,nls|compat:scarthgap| #needed by celluloid.
 yes|apr|apr|exe,dev,doc,nls|compat:scarthgap
 yes|apr-util|apr-util|exe,dev,doc,nls|compat:scarthgap
-yes|apt|apt|exe,dev,doc,nls|compat:scarthgap| #20241012
+no|apt|apt|exe,dev,doc,nls|compat:scarthgap| #20241012  20241026 no.
 yes|archive-zip|archive-zip|exe,dev,doc,nls|compat:scarthgap| #20240603 perl module needed to compile libreoffice.
 yes|argon2|argon2|exe,dev,doc,nls|compat:scarthgap| #20230621 illegal instruction on older cpus. 20230907 maybe fixed.
 no|argon2||exe,dev,doc,nls|pet:scarthgap| #20230714 compiled in compaq presario core2 cpu.
@@ -120,8 +120,9 @@ yes|dbus-glib|dbus-glib|exe,dev,doc,nls|compat:scarthgap
 yes|dconf|dconf|exe,dev,doc,nls|compat:scarthgap| #20230406 needed by flatpak
 yes|defaults-chooser||exe|pet:noarch
 no|desk_background_carrabin||exe|pet:noarch| #20240815
-yes|desk_background_blue_blurred_blobs||exe|pet:noarch| #20240723
-yes|desk_background_china-village-lake||exe|pet:noarch| #20240909
+no|desk_background_blue_blurred_blobs||exe|pet:noarch| #20240723
+no|desk_background_china-village-lake||exe|pet:noarch| #20240909
+yes|desk_background_gentle-clear-beach||exe|pet:noarch| #20241026
 no|desk_background_kirkstone-orange||exe|pet:noarch| #20230124
 no|desk_background_light-orange-brown||exe|pet:noarch| #20230208 has easyOS text
 no|desk_background_pale-orange-brown-red||exe|pet:noarch| #20230209 has easyOS text
@@ -147,8 +148,8 @@ yes|docbook-xml-dtd4|docbook-xml-dtd4|exe>dev,dev,doc,nls|compat:scarthgap|
 yes|docbook-xsl-stylesheets|docbook-xsl-stylesheets|exe>dev,dev,doc,nls|compat:scarthgap|
 yes|dosfstools|dosfstools|exe,dev,doc,nls|compat:scarthgap
 yes|double-conversion|double-conversion|exe,dev,doc,nls|compat:scarthgap| #needed by inkscape.
-no|dpkg-deb|dpkg|exe,dev,doc,nls|compat:scarthgap| #go back to just dpkg-deb
-yes|dpkg|dpkg|exe,dev,doc,nls|compat:scarthgap| #20241012 want full dpkg and apt
+yes|dpkg-deb|dpkg|exe,dev,doc,nls|compat:scarthgap| #go back to just dpkg-deb. 20241016 yes.
+no|dpkg|dpkg|exe,dev,doc,nls|compat:scarthgap| #20241012 want full dpkg and apt. 20241026 no.
 yes|droidcam|droidcam|exe,dev,doc,nls|compat:scarthgap| #phone webcam.
 yes|Dropbox_GUI||exe|pet:noarch|
 yes|dtc|dtc|exe,dev,doc,nls|compat:scarthgap| #device tree compiler.
@@ -592,6 +593,7 @@ yes|libyaml|libyaml|exe,dev,doc,nls|compat:scarthgap| #needed by appstream-glib 
 yes|limine|limine|exe,dev,doc,nls|compat:scarthgap| #bootloader
 yes|linux-libc-headers|linux-libc-headers|exe>dev,dev,doc,nls|compat:scarthgap|
 yes|litehtml|litehtml|exe,dev,doc,nls|compat:scarthgap| #dep of claws-mail.
+yes|lite-xl||exe|pet:scarthgap| #20241031
 yes|llvm-clang||exe>dev,dev,doc,nls|pet:scarthgap| #20240622 maybe something wrong with oe pkg. compiled in amd laptop intput003
 yes|llvm-lib|clang|exe,dev>exe,doc,nls|compat:scarthgap| #20221223 20221225 do not separate out the dev
 yes|lmarbles||exe,dev,doc,nls|pet:scarthgap|
@@ -872,6 +874,7 @@ yes|startup-notification|startup-notification|exe,dev,doc,nls|compat:scarthgap|
 yes|stat|stat|exe,dev,doc,nls|compat:scarthgap
 yes|streamripper|streamripper|exe,dev,doc,nls|compat:scarthgap
 yes|streamtuner2||exe|pet:noarch| #20240702
+no|sublime||exe>dev,dev,doc>dev,nls>dev|pet:scarthgap| #20241030
 yes|subversion|subversion|exe>dev,dev,doc,nls|compat:scarthgap
 no|sudo|sudo|exe,dev,doc,nls|compat:scarthgap| #20230623 removed. does not work, replaced with my script.
 no|sudo-sh|sudo-sh|exe,dev,doc,nls|compat:scarthgap| #20230626 new mini-sudo. 20230630 broken.
@@ -913,9 +916,11 @@ yes|vala|vala|exe>dev,dev,doc>dev,nls|compat:scarthgap
 yes|vamps|vamps|exe,dev,doc,nls|compat:scarthgap|
 yes|vcdimager|vcdimager|exe,dev,doc,nls|compat:scarthgap|
 no|vigra|vigra|exe,dev,doc,nls|compat:scarthgap| #reqd by libreoffice. 20221223 no longer.
+no|vim|vim|exe,dev,doc,nls|compat:scarthgap| #20241028 20241031 no.
 yes|vivaldi-skel-ask||exe|pet:noarch| #20230303
 yes|vobcopy|vobcopy|exe,dev,doc,nls|compat:scarthgap|
 yes|vorbis-tools|vorbis-tools|exe,dev,doc,nls|compat:scarthgap|
+no|vscode||exe>dev,dev,doc>dev,nls>dev|pet:scarthgap| #20241027 20241028
 no|vte|vte|exe,dev,doc,nls|compat:scarthgap| #20240711 gtk4 version. no.
 yes|vte9|vte9|exe,dev,doc,nls|compat:scarthgap| #needed by sakura. gtk2 version. and geany-plugins.
 no|wag_profiles||exe|pet:noarch| #taken out of net_setup pet, see oldforum t=82092&start=300  20230919 removed
@@ -1013,7 +1018,9 @@ yes|youtube-dl||exe|pet:noarch|
 yes|youtubedl-gui||exe|pet:noarch|
 yes|z2_geany_bacon_hack||exe|pet:noarch| #temp hack for geany. will probably have to remove soon.
 yes|zarfy|zarfy|exe,dev,doc,nls|compat:scarthgap| #handle multiple monitors.
+yes|zig||exe>dev,dev,doc>dev,nls>dev|pet:scarthgap| #20241026
 yes|zip|zip|exe,dev>null,doc,nls|compat:scarthgap|
 yes|zlib|zlib|exe,dev,doc,nls|compat:scarthgap
+no|zls||exe>dev,dev,doc>dev,nls>dev|pet:scarthgap| #20241026 zig language server. 20241031 no.
 yes|zstd|zstd|exe,dev,doc,nls|compat:scarthgap|
 '
