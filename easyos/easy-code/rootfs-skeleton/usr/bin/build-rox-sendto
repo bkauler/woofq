@@ -20,7 +20,10 @@
 #20231205 add application_x-7z-compressed to xarchive
 #20231206 screen out firefox & vivaldi if not installed.
 #20240114 fix 20230902, add .xbps
-#20241020 generate usr/share/applications/mimeapps.list  20241021
+#20241020 generate usr/share/applications/mimeapps.list  20241021 20241027
+#20241027 add vscode (and text/x-zig).
+#20241028 add gvim
+#20241030 add sublime
 
 #may call this in woofQ, when current dir is sandbox3/rootfs-complete, so test...
 CWD="`pwd`"
@@ -123,7 +126,7 @@ do
 #  galculator) MIMEDIR='' ;;
 #  gcolorsel) MIMEDIR='' ;;
 #  gdmap) MIMEDIR='' ;;
-  geany)          MIMEDIR='text_plain text_x-chdr text_x-csrc text_x-c++hdr text_x-c++src text_x-java text_x-dsrc text_x-pascal text_x-perl text_x-python application_x-php application_x-httpd-php3 application_x-httpd-php4 application_x-httpd-php5 application_xml text_html text_css text_x-sql text_x-diff image_x-xpixmap application_xml application_javascript application_x-shellscript text_x-python3' ;;
+  geany)          MIMEDIR='text_plain text_x-chdr text_x-csrc text_x-c++hdr text_x-c++src text_x-java text_x-dsrc text_x-pascal text_x-perl text_x-python application_x-php application_x-httpd-php3 application_x-httpd-php4 application_x-httpd-php5 application_xml text_html text_css text_x-sql text_x-diff image_x-xpixmap application_xml application_javascript application_x-shellscript text_x-python3 text_x-nim' ;;
 #  getflash) MIMEDIR='' ;;
 #  gfnrename) MIMEDIR='' ;;
 #  gfontsel) MIMEDIR='' ;;
@@ -144,6 +147,7 @@ do
 #  gtk_chtheme_wrapper) MIMEDIR='' ;;
 #  gtklp) MIMEDIR='' ;;
 #  gtklpq) MIMEDIR='' ;;
+  gvim)    MIMEDIR='text_plain text_x-chdr text_x-csrc text_x-c++hdr text_x-c++src text_x-java text_x-dsrc text_x-pascal text_x-perl text_x-python application_x-php application_x-httpd-php3 application_x-httpd-php4 application_x-httpd-php5 application_xml text_html text_css text_x-sql text_x-diff image_x-xpixmap application_xml application_javascript application_x-shellscript text_x-python3 text_x-nim text_x-zig' ;;
   gwaveedit) MIMEDIR='audio'; aNAME='gWaveEdit' ;;
 #  gwhere) MIMEDIR='' ;;
 #  hardinfo) MIMEDIR='' ;;
@@ -250,12 +254,14 @@ do
   simpress|loimpress) MIMEDIR='application_vnd.oasis.opendocument.presentation application_vnd.oasis.opendocument.presentation-template application_vnd.ms-powerpoint application_vnd.openxmlformats-officedocument.presentationml.presentation application_vnd.openxmlformats-officedocument.presentationml.template application_vnd.openxmlformats-officedocument.presentationml.slideshow'; aNAME='LibreOffice-Impress' ;;
 #  sscontrol) MIMEDIR='' ;;
 #  ssh-gui) MIMEDIR='' ;;
+  sublime)    MIMEDIR='text_plain text_x-chdr text_x-csrc text_x-c++hdr text_x-c++src text_x-java text_x-dsrc text_x-pascal text_x-perl text_x-python application_x-php application_x-httpd-php3 application_x-httpd-php4 application_x-httpd-php5 application_xml text_html text_css text_x-sql text_x-diff image_x-xpixmap application_xml application_javascript application_x-shellscript text_x-python3 text_x-nim text_x-zig' ;;
   swriter|lowriter) MIMEDIR='text application_msword application_vnd.openxmlformats-officedocument.wordprocessingml.document application_vnd.openxmlformats-officedocument.wordprocessingml.template application_vnd.oasis.opendocument.text application_vnd.oasis.opendocument.text-template application_vnd.oasis.opendocument.text-web application_vnd.oasis.opendocument.text-master application_xml application_rtf'; aNAME='LibreOffice-Writer' ;;
 #  timezone-set) MIMEDIR='' ;;
 #  toppler) MIMEDIR='' ;;
 #  uget-gtk) MIMEDIR='' ;;
 #  urxvtcontrol) MIMEDIR='' ;;
 #  video_upgrade_wizard) MIMEDIR='' ;;
+  vscode)    MIMEDIR='text_plain text_x-chdr text_x-csrc text_x-c++hdr text_x-c++src text_x-java text_x-dsrc text_x-pascal text_x-perl text_x-python application_x-php application_x-httpd-php3 application_x-httpd-php4 application_x-httpd-php5 application_xml text_html text_css text_x-sql text_x-diff image_x-xpixmap application_xml application_javascript application_x-shellscript text_x-python3 text_x-nim text_x-zig' ;;
 #  wcpufreq) MIMEDIR='' ;;
 #  wizardwizard) MIMEDIR='' ;;
 #  xcalc) MIMEDIR='' ;;
@@ -342,6 +348,8 @@ do
  Mdt="${aM##*/}" #ex: vlc.desktop
  [ "${Mdt/desktop/}" = "${Mdt}" ] && continue
  grep -q -F '/usr/local/orange/' usr/share/applications/${Mdt} #20241021 orange-ball not yet installed
+ if [ $? -eq 0 ];then continue; fi
+ grep -q -F 'NoDisplay=true' usr/share/applications/${Mdt} #20241027
  if [ $? -eq 0 ];then continue; fi
  echo "${Mtype}=${Mdt}" >> /tmp/mimeapps.list-tmp
 done <<<"${MIMEscan}"
