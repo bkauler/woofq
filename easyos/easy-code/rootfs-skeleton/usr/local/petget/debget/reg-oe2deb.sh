@@ -3,7 +3,7 @@
 #if nothing passed in, do them all in oe-deb-names
 #dummy deb will be created and installed.
 #requires 'dpkg' to be installed.
-#20241025 dummy debs must have oe version.
+#20241025 dummy debs must have oe version. 20241026 revert.
 
 cd /usr/local/petget/debget #where this script and oe-deb-names is.
 #sanity check...
@@ -67,8 +67,8 @@ else
   fi
   if [ -z "${Pfnd}" ];then continue; fi
   if [ -z "${aV}" ];then continue; fi
-  #20241025 $aV is the debian version, but want oe version $Poev...
-  aPnv="$(echo -n "${Pfnd}" | tr ',' '\n' | sed -e '/^$/d' | sed -e "s%$%|${Poev}%" | tr '\n' ' ')"
+  #20241025 $aV is the debian version, but want oe version $Poev... 20241026 revert...
+  aPnv="$(echo -n "${Pfnd}" | tr ',' '\n' | sed -e '/^$/d' | sed -e "s%$%|${aV}%" | tr '\n' ' ')"
   echo "${aPnv}" >> /tmp/reg-oe2deb/Pnv
  done
 fi
