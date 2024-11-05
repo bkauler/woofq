@@ -19,6 +19,7 @@
 #20240903 path now /usr/local/flapi
 #20240905 translate menu top category. aware of jwm-mode. new notes-security
 #20240906 brave browser.
+#20241104 run build-rox-sendto as a separate process, because slow.
 
 if [ "$(whoami)" != "root" ];then
  if [ -x /usr/bin/sudo-sh ];then
@@ -696,8 +697,8 @@ else
  jwm -reload
 fi
 
-#update the right-click menu...
-build-rox-sendto /usr/share/applications/${aAPP,,}.desktop
+#update the right-click menu... 20241104 sep process
+build-rox-sendto /usr/share/applications/${aAPP,,}.desktop &
 
 if [ "$EOS_FSCRYPT_VER" == "1" ];then #20230502
  #20230409 flatpak sandbox doesn't work properly with ext4 fscrypt.

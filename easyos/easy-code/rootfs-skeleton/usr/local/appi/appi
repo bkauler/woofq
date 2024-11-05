@@ -12,6 +12,7 @@
 #20240706 increaseping wait.
 #20240903 path now /usr/local/appi
 #20240905 translate menu top category. aware of jwm-mode.
+#20241104 run build-rox-sendto as a separate process, because slow.
 
 if [ "$(whoami)" != "root" ];then
  if [ -x /usr/bin/sudo-sh ];then
@@ -700,8 +701,8 @@ Exec=${aAPP,,}" > /usr/share/applications/${aAPP,,}.desktop
   jwm -reload
  fi
  
- #update the right-click menu...
- build-rox-sendto /usr/share/applications/${aAPP,,}.desktop
+ #update the right-click menu... 20241104 sep process
+ build-rox-sendto /usr/share/applications/${aAPP,,}.desktop &
 
  #20230617 note: set-client now has already created this...
  #create a path for optional open/save files for this app

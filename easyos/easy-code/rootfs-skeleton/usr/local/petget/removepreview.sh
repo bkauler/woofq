@@ -41,6 +41,7 @@
 #20240310 uninstall fixes.
 #20240503 remove woofV.
 #20240906 jwm-mode aware.
+#20241104 run build-rox-sendto as a separate process, because slow.
 
 export TEXTDOMAIN=petget___removepreview.sh
 export OUTPUT_CHARSET=UTF-8
@@ -313,11 +314,22 @@ export LANG="$ORIGLANG"
 #/usr/sbin/indexgen.sh #${WKGDIR}/${APKGNAME}
 
 #180518 maybe remove from rox right-click open-with menu.
-DESKTOPFILES="`grep '\.desktop$' /root/.packages/${DB_pkgname}.files | tr '\n' ' '`"
-for ONEDESKTOP in $DESKTOPFILES
+DESKTOPFILES="$(grep '\.desktop$' /root/.packages/${DB_pkgname}.files)"
+#for ONEDESKTOP in $DESKTOPFILES
+#do
+# build-rox-sendto -/tmp/${ONEDESKTOP##*/} #20230629
+#done
+#20241104 run as separate process...
+if [ -n "${DESKTOPFILES}" ];then
+ echo "#!/bin/ash
+for ONEDESKTOP in ${DESKTOPFILES}
 do
- build-rox-sendto -/tmp/${ONEDESKTOP##*/} #20230629
-done
+ [ -z \"\$ONEDESKTOP\" ] && continue
+ build-rox-sendto -/tmp/\${ONEDESKTOP##*/} #20230629
+done" > /tmp/sep-rem-build-rox-sendto${$}
+ chmod 755 /tmp/sep-rem-build-rox-sendto${$}
+ /tmp/sep-rem-build-rox-sendto${$} &
+fi
 
 #110706 update menu if .desktop file exists...
 if [ -f /root/.packages/${DB_pkgname}.files ];then

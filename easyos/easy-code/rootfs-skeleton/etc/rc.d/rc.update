@@ -13,6 +13,7 @@
 #20231103 change how test exist /.sfschg.flg: as passed flag.
 #20231115 client scripts must all run as root.
 #20240304 easyvoid version update. 20240306  20240503 remove.
+#20241104 run build-rox-sendto as a separate process, because slow.
 
 #20231103
 if [ "$1" ];then
@@ -28,7 +29,7 @@ if [ -f /etc/networkmodules ];then #avoid 1st boot.
   #init script in initrd erases /etc/xdg when update, need to rebuild right-click
   #menu if there are user-installed packages...
   echo -n "build-rox-sendto " > /dev/console
-  build-rox-sendto
+  build-rox-sendto & #20241104 sep process
   
   #20231115
   #client start scripts must all start as root. this will enable any client, say

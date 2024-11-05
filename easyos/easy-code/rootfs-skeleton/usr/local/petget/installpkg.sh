@@ -93,6 +93,7 @@
 #20240114 fix 20230708
 #20240229 easyvoid. 20240302 20240306  20240503
 #2024626 careful rev broken if LANG=C and utf8 chars.
+#20241104 run build-rox-sendto as a separate process, because slow.
 
 #information from 'labrador', to expand a .pet directly to '/':
 #NAME="a52dec-0.7.4"
@@ -1062,54 +1063,59 @@ if [ "$NUMDESKFILE" != "0" ];then #171109
 fi
 
 #110706 fix 'Exec filename %u' line...
-DESKTOPFILES="`grep '\.desktop$' /root/.packages/${DLPKG_NAME}.files | tr '\n' ' '`"
-for ONEDESKTOP in $DESKTOPFILES
-do
- sed -i -e 's/ %u$//' $ONEDESKTOP #200402 note, already removed at #121015
- 
- #200402 Exec= must not contain a path...
- grep -q '^Exec=/' $ONEDESKTOP
- if [ $? -eq 0 ];then
-  EXESPEC="/$(grep '^Exec=/' ${ONEDESKTOP} | cut -f 2- -d '/')"
-  xEXESPEC="$(echo -n "$EXESPEC" | sed -e 's% [^/ ]*$%%')" #drop any param off end
-  EXENAME="$(basename $xEXESPEC)"
-  EXEPATH="$(dirname $xEXESPEC)"
-  xEXEPATH=''
-  case "$EXEPATH" in
-   /bin|/sbin|/usr/bin|/usr/sbin/|/usr/local/bin)
-    xEXEPATH="$EXEPATH"
-   ;;
-  esac
-  [ -x /bin/${EXENAME} ] && xEXEPATH='/bin'
-  [ -x /sbin/${EXENAME} ] && xEXEPATH='/sbin'
-  [ -x /usr/sbin/${EXENAME} ] && xEXEPATH='/usr/sbin'
-  [ -x /usr/local/bin/${EXENAME} ] && xEXEPATH='/usr/local/bin'
-  [ -x /usr/bin/${EXENAME} ] && xEXEPATH='/usr/bin'
-  if [ ! "$xEXEPATH" ];then
-   if [ "$EXENAME" == "AppRun" ];then #20210915 disaster. ref: http://forum.puppylinux.com/viewtopic.php?p=36693#p36693
-    #change $EXENAME to something sane... ex: extract "abiword" out of /usr/share/applications/abiword.desktop
-    EXENAME="$(echo -n "${ONEDESKTOP}" | LANG=${LANG_USER} rev | cut -f 1 -d '/' | cut -f 2- -d '.' | LANG=${LANG_USER} rev)" #20240626
-    which "$EXENAME" >/dev/null
-    if [ $? -eq 0 ];then #precaution
-     EXENAME="${EXENAME}xxx"
+DESKTOPFILES="$(grep '\.desktop$' /root/.packages/${DLPKG_NAME}.files)"
+if [ -n "${DESKTOPFILES}" ];then
+ for ONEDESKTOP in $DESKTOPFILES
+ do
+  [ -z "${ONEDESKTOP}" ] && continue
+  sed -i -e 's/ %u$//' $ONEDESKTOP #200402 note, already removed at #121015
+  
+  #200402 Exec= must not contain a path...
+  grep -q '^Exec=/' $ONEDESKTOP
+  if [ $? -eq 0 ];then
+   EXESPEC="/$(grep '^Exec=/' ${ONEDESKTOP} | cut -f 2- -d '/')"
+   xEXESPEC="$(echo -n "$EXESPEC" | sed -e 's% [^/ ]*$%%')" #drop any param off end
+   EXENAME="$(basename $xEXESPEC)"
+   EXEPATH="$(dirname $xEXESPEC)"
+   xEXEPATH=''
+   case "$EXEPATH" in
+    /bin|/sbin|/usr/bin|/usr/sbin/|/usr/local/bin)
+     xEXEPATH="$EXEPATH"
+    ;;
+   esac
+   [ -x /bin/${EXENAME} ] && xEXEPATH='/bin'
+   [ -x /sbin/${EXENAME} ] && xEXEPATH='/sbin'
+   [ -x /usr/sbin/${EXENAME} ] && xEXEPATH='/usr/sbin'
+   [ -x /usr/local/bin/${EXENAME} ] && xEXEPATH='/usr/local/bin'
+   [ -x /usr/bin/${EXENAME} ] && xEXEPATH='/usr/bin'
+   if [ ! "$xEXEPATH" ];then
+    if [ "$EXENAME" == "AppRun" ];then #20210915 disaster. ref: http://forum.puppylinux.com/viewtopic.php?p=36693#p36693
+     #change $EXENAME to something sane... ex: extract "abiword" out of /usr/share/applications/abiword.desktop
+     EXENAME="$(echo -n "${ONEDESKTOP}" | LANG=${LANG_USER} rev | cut -f 1 -d '/' | cut -f 2- -d '.' | LANG=${LANG_USER} rev)" #20240626
+     which "$EXENAME" >/dev/null
+     if [ $? -eq 0 ];then #precaution
+      EXENAME="${EXENAME}xxx"
+     fi
+    fi
+    echo -e "#!/bin/sh\nexec ${EXESPEC}" > /usr/bin/${EXENAME}
+    chmod 755 /usr/bin/${EXENAME}
+    xEXEPATH='/usr/bin'
+    if [ -e /root/.packages/${DLPKG_NAME}.remove ];then #puninstall.sh
+     echo "rm -f /usr/bin/${EXENAME}" >> /root/.packages/${DLPKG_NAME}.remove
+    else
+     echo -e "#!/bin/sh\nrm -f /usr/bin/${EXENAME}" > /root/.packages/${DLPKG_NAME}.remove
+     chmod 755 /root/.packages/${DLPKG_NAME}.remove
     fi
    fi
-   echo -e "#!/bin/sh\nexec ${EXESPEC}" > /usr/bin/${EXENAME}
-   chmod 755 /usr/bin/${EXENAME}
-   xEXEPATH='/usr/bin'
-   if [ -e /root/.packages/${DLPKG_NAME}.remove ];then #puninstall.sh
-    echo "rm -f /usr/bin/${EXENAME}" >> /root/.packages/${DLPKG_NAME}.remove
-   else
-    echo -e "#!/bin/sh\nrm -f /usr/bin/${EXENAME}" > /root/.packages/${DLPKG_NAME}.remove
-    chmod 755 /root/.packages/${DLPKG_NAME}.remove
-   fi
+   exePTN="s%^Exec=.*%Exec=${EXENAME}%"
+   sed -i -e "$exePTN" $ONEDESKTOP
   fi
-  exePTN="s%^Exec=.*%Exec=${EXENAME}%"
-  sed -i -e "$exePTN" $ONEDESKTOP
- fi
- 
- build-rox-sendto $ONEDESKTOP #180518 maybe add to rox right-click open-with menu.
-done
+  
+  #build-rox-sendto $ONEDESKTOP #180518 maybe add to rox right-click open-with menu.
+  #20241104 delay until installpreview.sh ...
+  echo "$ONEDESKTOP" >> /tmp/delay-install-sendto-desktops
+ done
+fi
 
 #120907 post-install hacks...
 /usr/local/petget/hacks-postinstall.sh $DLPKG_MAIN

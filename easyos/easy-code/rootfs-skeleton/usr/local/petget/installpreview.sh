@@ -39,12 +39,15 @@
 #20240503 remove woofV.
 #20241020 examine deps for already-installed pkg.
 #20241101 default install pkg non-root (based on code in qv installpreview.sh).
+#20241104 run build-rox-sendto as a separate process, because slow.
 
 export TEXTDOMAIN=petget___installpreview.sh
 export OUTPUT_CHARSET=UTF-8
 #. gettext.sh #120905 120907
 
 [ "$TREE1" = "" ] && exit #120504 nothing to install.
+
+echo -n '' > /tmp/delay-install-sendto-desktops #20241104
 
 . /etc/DISTRO_SPECS #has DISTRO_BINARY_COMPAT, DISTRO_COMPAT_VERSION
 . /root/.packages/DISTRO_PKGS_SPECS
@@ -566,10 +569,24 @@ PKGS="`cat /tmp/petget_missing_dbentries-* | cut -f 1 -d '|' | tr '\n' '|'`"
 #popadd "name=petgetinstall terminate=now|" #150326
 echo "terminate=now|" > /tmp/popup_petgetinstall
 
+#20241104 file writento in installpkg.sh ...
+if [ -s /tmp/delay-install-sendto-desktops ];then
+ DESKTOPFILES="$(cat /tmp/delay-install-sendto-desktops | tr '\n' ' ')"
+ echo "#!/bin/ash
+for ONEDESKTOP in ${DESKTOPFILES}
+do
+ [ -z \"\$ONEDESKTOP\" ] && continue
+ build-rox-sendto \${ONEDESKTOP##*/}
+done" > /tmp/sep-install-build-rox-sendto
+ chmod 755 /tmp/sep-install-build-rox-sendto
+ /tmp/sep-install-build-rox-sendto &
+ rm -f /tmp/delay-install-sendto-desktops
+fi
+
 #20241101 install non-root
 if [ -f /root/.packages/${TREE1}.files ];then #ex TREE1=abiword-1.2-amd64 (1st field in db)
  #code from qv installpreview.sh...
- NRflg=0
+ NRflg=0; RETASK=''
  #20240307 cannot run non-root in container...
  ls -1 /INSIDE_* >/dev/null 2>&1
  NOflg=$?
@@ -698,8 +715,11 @@ $(gettext 'You can do it any time in the future, and also can delete the desktop
      </vbox></window>"
   gtkdialog --center --program=IPV_DLG
  else
-  vM1="$(gettext 'You have installed this package, to run as root:') ${TREE1} ${CR}$(gettext '(Choose Login and Security Manager in the Setup menu to flip to non-root)')"
-  popup "terminate=5 timecount=dn name=vinstallmsg background=#a0ffa0|<big>${vM1}</big>"
+  grep -q -F 'root' <<<"${RETASK}"
+  if [ $? -eq 0 ];then
+   vM1="$(gettext 'You have installed this package, to run as root:') ${TREE1} ${CR}$(gettext '(Choose Login and Security Manager in the Setup menu to flip to non-root)')"
+   popup "terminate=5 timecount=dn name=vinstallmsg background=#a0ffa0|<big>${vM1}</big>"
+  fi
  fi
 fi
 ###END###
