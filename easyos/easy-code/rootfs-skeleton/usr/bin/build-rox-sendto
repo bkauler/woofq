@@ -366,7 +366,13 @@ do
  if [ $? -eq 0 ];then continue; fi
  grep -q -F 'NoDisplay=true' usr/share/applications/${Mdt} #20241027
  if [ $? -eq 0 ];then continue; fi
- echo "${Mtype}=${Mdt}" >> /tmp/build-rox-sendto/mimeapps.list-tmp
+ #20241106 fix format...
+ grep -q -F "${Mtype}=" /tmp/build-rox-sendto/mimeapps.list-tmp
+ if [ $? -eq 0 ];then
+  sed -i -e "s%\(${Mtype}=.*\)%\1;${Mdt}%" /tmp/build-rox-sendto/mimeapps.list-tmp
+ else
+  echo "${Mtype}=${Mdt}" >> /tmp/build-rox-sendto/mimeapps.list-tmp
+ fi
  
  #20241103 for "ALLf" want right-click top-level menu entries for all cases...
  if [ -s /tmp/build-rox-sendto/ALLf ];then
