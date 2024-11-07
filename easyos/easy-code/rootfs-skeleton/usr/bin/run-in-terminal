@@ -10,6 +10,10 @@ echo "$(gettext 'Current directory:')"
 pwd
 echo "$(gettext 'Press ENTER key to execute,')"
 echo "$(gettext 'or, type commandline parameters then ENTER:')"
-echo -n "./${@##*/}"
+if [ "$(whoami)" == "root" ];then
+ echo -n "# ./${@##*/}"
+else
+ echo -n "> ./${@##*/}"
+fi
 read params
 exec "./${@##*/}" ${params}
