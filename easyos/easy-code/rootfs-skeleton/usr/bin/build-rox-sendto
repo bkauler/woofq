@@ -26,11 +26,16 @@
 #20241030 add sublime
 #20241103 want "ALL" to be top-level right-click menu.
 #20241103 for "ALL", exclude some with "ALLf"
+#20241107 exclude some apps from mimeapps.list
 
+export LANG=C #20241107 for speed.
 mkdir -p /tmp/build-rox-sendto #20241103
 #20241103 LISTz is archive files
 LISTz='application_gzip application_vnd.debian.binary-package application_x-7z-compressed application_x-bzip application_x-bzip-compressed-tar application_x-bzip2 application_x-compressed-tar application_x-gzip application_x-rar application_x-tar application_x-xz application_x-xz-compressed-tar application_zip application_x-deb application_x-rpm application_zstd application_x-zstd application_zstd-compressed-tar application_x-xbps application_pet'
 tr ' ' '\n' <<<"${LISTz}" > /tmp/build-rox-sendto/LISTz
+#20241107 exclude these from mimeapps.list ...
+LISTnoma='ghasher packit uextract'
+tr ' ' '\n' <<<"${LISTnoma}" > /tmp/build-rox-sendto/LISTnoma
 
 #may call this in woofQ, when current dir is sandbox3/rootfs-complete, so test...
 CWD="`pwd`"
@@ -365,6 +370,10 @@ do
  grep -q -F '/usr/local/orange/' usr/share/applications/${Mdt} #20241021 orange-ball not yet installed
  if [ $? -eq 0 ];then continue; fi
  grep -q -F 'NoDisplay=true' usr/share/applications/${Mdt} #20241027
+ if [ $? -eq 0 ];then continue; fi
+ #20241107 exclude some...
+ Mname="${Mdt/.desktop/}"
+ grep -q -x -f /tmp/build-rox-sendto/LISTnoma <<<"${Mname}"
  if [ $? -eq 0 ];then continue; fi
  #20241106 fix format...
  grep -q -F "${Mtype}=" /tmp/build-rox-sendto/mimeapps.list-tmp
