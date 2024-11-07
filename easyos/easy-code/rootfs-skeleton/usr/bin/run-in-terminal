@@ -1,0 +1,15 @@
+#!/bin/ash
+#called via run-in-terminal.desktop
+
+export TEXTDOMAIN=run-in-terminal
+export OUTPUT_CHARSET=UTF-8
+
+#want to echo app to be run to the terminal, instead of running it immediately...
+cd "${@%/*}" 2>/dev/null
+echo "$(gettext 'Current directory:')"
+pwd
+echo "$(gettext 'Press ENTER key to execute,')"
+echo "$(gettext 'or, type commandline parameters then ENTER:')"
+echo -n "./${@##*/}"
+read params
+exec "./${@##*/}" ${params}
