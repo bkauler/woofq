@@ -27,6 +27,7 @@
 #20241103 want "ALL" to be top-level right-click menu.
 #20241103 for "ALL", exclude some with "ALLf"
 #20241107 exclude some apps from mimeapps.list
+#20241109 exclude pupzip
 
 export LANG=C #20241107 for speed.
 mkdir -p /tmp/build-rox-sendto #20241103
@@ -73,6 +74,7 @@ do
  aDTbase="$(basename $aDT .desktop)"
  case $aDTbase in
   default*) continue ;;
+  pupzip) continue ;; #20241109
   firefox|vivaldi) #20231206
    #these are ask entries in the menu. they have NoDisplay=true
    #need to check if installed...
