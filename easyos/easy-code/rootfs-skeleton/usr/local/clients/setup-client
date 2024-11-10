@@ -78,6 +78,7 @@
 #20240705 adduser/addgroup problem pre-existing entries in host /etc/passwd,group
 #20240705 fix create /files/apps/<name> when called in woofq.
 #20240912 fix if param passed to .bin has a space char.
+#20241108 commented-out a killall. ref: https://forum.puppylinux.com/viewtopic.php?p=135190#p135190
 
 APPname="${1/=*/}"  #ex: seamonkey
 APPflag="${1/*=/}" #ex: true
@@ -456,8 +457,9 @@ if [ $Cflg -eq 0 ];then #running on main desktop.
  
  if [ $Iflg -eq 1 ];then
   #intention is to run app non-root.
-  #kill any left-over processes from previous run of app...
-  killall --user ${APPname} ${APPname} > /dev/null 2>&1 #requires full killall from psmisc pkg.
+  #20241108 no... ref: https://forum.puppylinux.com/viewtopic.php?p=135190#p135190
+  ##kill any left-over processes from previous run of app...
+  #killall --user ${APPname} ${APPname} > /dev/null 2>&1 #requires full killall from psmisc pkg.
   #when dir2sfs has created an sfs, have to run this here, to setup /etc/passwd and /etc/group...
   /usr/local/clients/create-client-environment ${APPname}
   #this is a method to authorize x server to run by user... 
