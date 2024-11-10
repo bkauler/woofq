@@ -1,0 +1,10 @@
+
+#20241108 daedalus
+if [ ! -e usr/bin/glxgears ];then
+ for aF in $(find usr/bin -mindepth 1 -maxdepth 1 -type f)
+ do
+  [ -z "$aF" ] && continue
+  #ex: usr/bin/glxgears.x86_64-linux-gnu
+  ln -s ${aF##*/} ${aF%.*}
+ done
+fi
