@@ -194,6 +194,7 @@
 #20240909 fix /etc/profile $LANG
 #20240920 992MiB wkg-part, removed 880
 #20241011 support eqv builtin container. --optional
+#20241112 fix delete etc/xdg  ref: https://forum.puppylinux.com/viewtopic.php?p=135542#p135542
 
 #20230429
 . /build-choices #3buildeasydistro copies it here.
@@ -1756,7 +1757,30 @@ SFS_DB_hash='${ESUM}'" > /mnt/${WKG_DEV}/${WKG_DIR}sfs/easyos/${INIT_DISTRO_BINA
  #200830 this folder must always be pristine...
  #20230718 this also erases etc/xdg/rox.sourceforge.net which has right-click menu for user-installed apps,
  # so have put code into /etc/rc.d/rc.update to run build-rox-sendto after switch_root...
- [ -d /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/xdg ] && rm -rf /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/xdg
+ #20241112 a kde pkg installs /etc/xdg/menus/kf5-applications.menu, need to retain...
+ #[ -d /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/xdg ] && rm -rf /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/xdg
+ if [ -d /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/xdg ];then
+  for aD in autostart rox.sourceforge.net templates Xwayland-session.d
+  do
+   if [ -d /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/xdg/${aD} ];then
+    rm -rf /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/xdg/${aD}
+   fi
+  done
+  if [ -d /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/xdg/menus ];then
+   for aF in archived-cascading archived-inline
+   do
+    if [ -d /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/xdg/menus/${aF} ];then
+     rm -rf /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/xdg/menus/${aF}
+    fi
+   done
+   for aF in applications.menu hierarchy preferences.menu puppy-business.menu puppy-calculate.menu puppy-desktop.menu puppy-document.menu puppy-filesystem.menu puppy-fun.menu puppy-graphic.menu puppy-internet.menu puppy-multimedia.menu puppy-network.menu puppy-personal.menu puppy-setup.menu puppy-system.menu puppy-utility.menu settings.menu
+   do
+    if [ -f /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/xdg/menus/${aF} ];then
+     rm -f /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/xdg/menus/${aF}
+    fi
+   done
+  fi
+ fi
  
  #20230409 /files reverted, now a symlink. see further down.
  ##20211207 relocated here.

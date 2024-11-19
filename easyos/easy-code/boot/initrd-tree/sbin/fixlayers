@@ -57,6 +57,7 @@
 #20240903 path now /usr/local/appi, /usr/local/flapi
 #20240906 new /usr/local/orange
 #20241025 scarthgap now supports dpkg and apt
+#20241112 test executable in usr/games
 
 WKG_DRV=$1 #ex: sda
 WKG_DEV=$2 #ex: sda2
@@ -181,7 +182,7 @@ do
        continue
       fi
      else
-      if [ -e usr/bin/${aEXEC} -o -e usr/local/bin/${aEXEC} ];then
+      if [ -e usr/bin/${aEXEC} -o -e usr/local/bin/${aEXEC} -o -e usr/games/${aEXEC} ];then #20241112
        continue
       fi
      fi
