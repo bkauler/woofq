@@ -28,6 +28,7 @@
 #20241103 for "ALL", exclude some with "ALLf"
 #20241107 exclude some apps from mimeapps.list
 #20241109 exclude pupzip
+#20241112 compromise, to speed up.
 
 export LANG=C #20241107 for speed.
 mkdir -p /tmp/build-rox-sendto #20241103
@@ -355,6 +356,9 @@ do
  done
  
 done
+
+#20241112 compromise, to speed up, get out...
+if [ -n "${cDT}" ];then exit; fi
 
 #20241020 generate usr/share/applications/mimeapps.list
 echo -n '' > /tmp/build-rox-sendto/mimeapps.list-tmp

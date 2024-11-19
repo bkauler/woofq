@@ -1,6 +1,6 @@
 #!/bin/ash
 #Barry Kauler 2009
-#called from /usr/sbin/set_bg, /root/.xinitrc, /usr/local/sfsget/dir2sfs
+#called from /usr/sbin/set_bg, /root/.xinitrc
 #the background image is at /usr/share/backgrounds/default.jpg
 #this may have the wrong dimensions to suit either a 'normal' or a 'widescreen' monitor.
 #for now, keep this simple, assume image is suitable for normal screen, truncate vertically
@@ -18,6 +18,7 @@
 #20220215 read /etc/uimanager. cut sides if img ratio wider.
 #20220222 fix jwm wallpaper path is wrong.
 #20220309 fix exit.
+#20240420 record new image dimensions.
 
 LOG=/tmp/backg.log
 exec 1>>$LOG 2>&1
@@ -94,6 +95,8 @@ EOF
 #20220215 find out whether img needs to be truncated vert or horiz...
 imgASPECTRATIO=`expr $IMAGEHORIZ \* 100 \/ $IMAGEVERT` #ex: 1280x800 image is 160%
 
+NEWHORIZ=${IMAGEHORIZ} #20240420
+NEWVERT=${IMAGEVERT}   #20240420
 if [ $imgASPECTRATIO -gt $ASPECTRATIO ];then #20220215
  #cut equal amount from each side...
  NEWHORIZ=$(( ( $IMAGEVERT * $ROOTHORIZ ) / $ROOTVERT ))
@@ -131,6 +134,12 @@ else
   fsync /usr/share/backgrounds/${ASPECTRATIO}/${IMAGEBASE} #20220215
  fi
 fi
+
+#20240420 save for set_bg and .xinitrc to read...
+echo -n "${NEWHORIZ}" > /tmp/qwallpaper_img_newhoriz
+echo -n "${NEWVERT}" > /tmp/qwallpaper_img_newvert
+echo -n "${ROOTHORIZ}" > /tmp/qwallpaper_root_horiz
+echo -n "${ROOTVERT}" > /tmp/qwallpaper_root_vert
 
 #140107 fix if image not in subdir...
 if [ ! -f /usr/share/backgrounds/${ASPECTRATIO}/${IMAGEBASE} ];then
