@@ -1,0 +1,21 @@
+#!/bin/ash
+#20241122
+#called from ec-chroot when run container, as a separate process.
+#passed in name of container.
+
+EXE="$1"
+while [ true ];do
+ sleep 5
+ #if container not running, exit...
+ if [ ! -f /mnt/wkg/containers/${EXE}/container/INSIDE_${EXE} ];then sleep 2; fi
+ if [ ! -f /mnt/wkg/containers/${EXE}/container/INSIDE_${EXE} ];then exit 1; fi
+ #wait for file to be modified...
+ touch /mnt/wkg/containers/${EXE}/container/.flip-out-flg
+ inotifywait -e modify /mnt/wkg/containers/${EXE}/container/.flip-out-flg
+ if [ $? -ne 0 ];then exit 2; fi #0 = event occurred
+ sleep 0.5
+ #simple, just do this, sends alt-f6 to current window...
+ xdotool key Alt_L+F6
+done
+
+###end###
