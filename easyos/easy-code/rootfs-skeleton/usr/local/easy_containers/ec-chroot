@@ -64,15 +64,10 @@
 #20340409 note: /files symlink has returned (ref: init in intrd, rc.sysinit)
 #20230626 new sudo-sh replaces sudo.
 #20240114 easyos void: container named "current"
+#20241122 start a background process for flipping out of container.
 
-#20230626
-if [ "$(whoami)" != "root" ];then
- if [ -x /usr/bin/sudo-sh ];then
-  exec sudo-sh ${PPID} ${0} ${@}
- else
-  exec sudo -A ${0} ${@}
- fi
-fi
+#20230626 20241122
+if [ "$(whoami)" != "root" ];then exec sudo-sh ${PPID} ${0} ${@}; fi
 
 [ ! $1 ] && exit 1
 EXE="$1"; shift
@@ -81,6 +76,8 @@ EXE="$1"; shift
 
 . /etc/DISTRO_SPECS #190911
 . /etc/rc.d/PUPSTATE #has BOOT_DEV, BOOT_FS, BOOT_DIR, WKG_DEV, WKG_FS, WKG_DIR, QSFS_PATH
+mkdir -p /tmp/easy_containers
+echo "entered ec-chroot" > /tmp/easy_containers/ec-chroot-${EXE}.log
 
 #setup-container must have already been run.
 CONTAINER="/mnt/${WKG_DEV}/${WKG_DIR}containers/${EXE}/container"
@@ -98,8 +95,8 @@ esac
 
 #180720 if container is already running, minimized, then just switch into it...
 #note, 'start-container' mounts the layers with aufs, but that is not "running".
-busybox ps > /tmp/ec-chroot-ps
-grep "/ec\-run ${EXE}" /tmp/ec-chroot-ps > /dev/null #181123 fix test.
+busybox ps > /tmp/easy_containers/ec-chroot-ps
+grep -q "/ec-run ${EXE}" /tmp/easy_containers/ec-chroot-ps
 if [ $? -eq 0 ];then
  #WID="$(xdotool search -name ${EXE})"
  #...this returns hits for other windows with same sub-string in name!!!
@@ -112,7 +109,7 @@ if [ $? -eq 0 ];then
   WID="$(xdotool search -name "^Xephyr${DISPnum}$" | tail -n 1)"
   #190806 ...doesn't work in buster. xprop shows: WM_CLASS(STRING) = "Xephyr1", "Xephyr"
   # so, this hack...
-  if [ ! "$WID" ];then
+  if [ -z "$WID" ];then
    WIDs="$(xdotool search --class "^Xephyr$" | tr '\n' ' ')"
    for aWID in $WIDs
    do
@@ -128,15 +125,28 @@ if [ $? -eq 0 ];then
   #180723 see further down, this file gets created...
   [ ! "$WID" ] && [ -f /tmp/easy_containers/activewindows.log ] && WID="$(grep "^${EXE} " /tmp/easy_containers/activewindows.log | tail -n 1 | cut -f 2 -d ' ')"
  fi
- [ "$WID" ] && xdotool windowactivate ${WID}
+ if [ -n "$WID" ];then
+  #flip into container...
+  echo "flip into WID=${WID}" >> /tmp/easy_containers/ec-chroot-${EXE}.log
+  xdotool windowactivate ${WID}
+ fi
  exit
 fi
+
+echo "startup of ${EXE}" >> /tmp/easy_containers/ec-chroot-${EXE}.log
 
 #170225 start container, if not already... 181014...
 #if [ "$(mount | grep "containers/${EXE}")" == "" ];then
 if [ "$(grep "containers/${EXE}/container" /proc/mounts)" == "" ];then
  start-container ${EXE}
  [ $? -ne 0 ] && exit 1
+ #20241122 start a background process for flipping out of container...
+ if [ ! -e /tmp/easy_containers/flip-out-of-container-${EXE} ];then
+  cp -a -f /usr/local/easy_containers/flip-out-of-container /tmp/easy_containers/flip-out-of-container-${EXE}
+  chmod 755 /tmp/easy_containers/flip-out-of-container-${EXE}
+ fi
+ #note, this will kill itself when container exits...
+ /tmp/easy_containers/flip-out-of-container-${EXE} ${EXE} &
 fi
 #...now, must not write directly to .session, as aufs layers mounted.
 
