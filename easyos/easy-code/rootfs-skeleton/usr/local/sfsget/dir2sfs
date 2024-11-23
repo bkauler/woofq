@@ -53,6 +53,7 @@
 #2024626 careful rev broken if LANG=C and utf8 chars.
 #20240626 Caramel: _<arch>.sfs not optional, otherwise breaks filerpkgs.sh
 #20240903 script now /usr/local/appi/appi
+#20241123 new button to flip out of container.
 
 . /etc/rc.d/PUPSTATE
 . /etc/DISTRO_SPECS
@@ -819,7 +820,9 @@ case "$WM" in #20210508
    fi
   fi
   #put text on background...
-  if [ -x /usr/bin/popup ];then
+  if [ -x /usr/local/easy_containers/flip.sh ];then #20241123
+   /usr/local/easy_containers/flip.sh &
+  elif [ -x /usr/bin/popup ];then
    popup "level=bottom placement=center background=#06ee9b|<b><big><big>Containerized desk ${CR}Press Alt-F6 to flip</big></big></b>"
   elif [ -x /usr/bin/gtkdialog-splash ];then
    gtkdialog-splash -close never -fontsize large -text "Containerized desk${CR}Press Alt-F6 to flip" &

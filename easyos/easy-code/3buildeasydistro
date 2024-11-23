@@ -336,6 +336,7 @@
 #20241019 /etc/group audio: too many users (61+). 20241021 revert.
 #20241024 easyos scarthgap 6.4+ will support installing devuan daedalus debs. 20241026 20241027 remove.
 #20241028 generate /etc/os-release
+#20241123 new button to flip out of container.
 
 export LANG=C #faster.
 
@@ -5909,7 +5910,9 @@ case "$WM" in #20210508
   cp -f /root/Choices/ROX-Filer/globicons /root/.config/rox.sourceforge.net/ROX-Filer/
   cp -f /root/Choices/ROX-Filer/PuppyPin /root/.config/rox.sourceforge.net/ROX-Filer/
   #put text on background...
-  if [ -x /usr/sbin/popup ];then
+  if [ -x /usr/local/easy_containers/flip.sh ];then #20241123
+   /usr/local/easy_containers/flip.sh &
+  elif [ -x /usr/sbin/popup ];then
    popup "level=bottom placement=center background=#06ee9b|<b><big><big>Containerized desk ${CR}Press Alt-F6 to flip</big></big></b>"
   elif [ -x /usr/bin/gtkdialog-splash ];then
    gtkdialog-splash -close never -fontsize large -text "Containerized desk${CR}Press Alt-F6 to flip" &
