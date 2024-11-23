@@ -65,6 +65,7 @@
 #20230626 new sudo-sh replaces sudo.
 #20240114 easyos void: container named "current"
 #20241122 start a background process for flipping out of container.
+#20241123 copy clipboard into container.
 
 #20230626 20241122
 if [ "$(whoami)" != "root" ];then exec sudo-sh ${PPID} ${0} ${@}; fi
@@ -126,6 +127,13 @@ if [ $? -eq 0 ];then
   [ ! "$WID" ] && [ -f /tmp/easy_containers/activewindows.log ] && WID="$(grep "^${EXE} " /tmp/easy_containers/activewindows.log | tail -n 1 | cut -f 2 -d ' ')"
  fi
  if [ -n "$WID" ];then
+  #20241123 copy clipboard into container...
+  #note: see flip-out-of-container for copy clipboard out of container.
+  X11c="$(find /mnt/wkg/containers/${EXE}/container/tmp/.X11-unix -maxdepth 1 -type f -name 'X*' | tail -n 1)"
+  if [ -n "${X11c}" ];then
+   DISPc=":${X11c##*X}" #ex: :1
+   xclip -selection clipboard -o | DISPLAY=${DISPc} xclip -selection clipboard -i
+  fi
   #flip into container...
   echo "flip into WID=${WID}" >> /tmp/easy_containers/ec-chroot-${EXE}.log
   xdotool windowactivate ${WID}
