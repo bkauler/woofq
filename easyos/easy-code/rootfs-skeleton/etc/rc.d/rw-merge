@@ -13,7 +13,7 @@
 #20220907 /var no longer a symlink. ref: rc.sysinit  20220918
 #20221102 exclude /var/lock  20240118 exclude /var/lib/flatpak
 #20241124 ./.control is excluded. need to save *.run-once-*-flag (see also /sbin/rw-merge in initrd)
-#20241124 save /files if in container.
+#20241124 save /files if in container. add qualification.
 
 export LANG=C
 . /etc/rc.d/PUPSTATE
@@ -123,6 +123,18 @@ _END2
   FILESEXC='--exclude=./files'
  else
   FILESEXC=''
+  #qualification...
+  #if /mnt/wkg/files is bind-mounted on /files in container, then exclude...
+  ls -1 /INSIDE_* >/dev/null 2>&1
+  if [ $? -eq 0 ];then
+   CONTn="$(ls -1 /INSIDE_* | head -n 1 | cut -f 2- -d '_')" #ex: daedalus
+   if [ -f /.control/${CONTn}.configuration ];then
+    grep -q -F "EC_ACCESS_FOLDER_PATH='/files'" /.control/${CONTn}.configuration
+    if [ $? -eq 0 ];then
+     FILESEXC='--exclude=./files'
+    fi
+   fi
+  fi
  fi
  
  #need better exclusion...
