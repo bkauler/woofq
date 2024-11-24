@@ -41,6 +41,7 @@
 #20241101 default install pkg non-root (based on code in qv installpreview.sh).
 #20241104 run build-rox-sendto as a separate process, because slow.
 #20241124 maybe allow install app non-root in container.
+#20241124 hard-code some exclusions run non-root.
 
 export TEXTDOMAIN=petget___installpreview.sh
 export OUTPUT_CHARSET=UTF-8
@@ -622,8 +623,26 @@ if [ -f /root/.packages/${TREE1}.files ];then #ex TREE1=abiword-1.2-amd64 (1st f
      grep -q '/' <<<${EXEC}
      if [ $? -ne 0 ];then
       if [ -x /usr/bin/${EXEC} ];then
-       #20241101 don't just default to run non-root, ask...
-       export IPV_ASK_DLG="<window title=\"PKGget: $(gettext 'package installed')\" image-name=\"/usr/local/lib/X11/pixmaps/pkg24.png\">
+       #20241124 /usr/local/clients/choose-clients has some hard-coded exclusions.
+       #copy those to here...
+       #well, these are already builtin, but just in case not...
+       ASKflg=1; RETASK='root'
+       case "${EXEC}" in
+        awf-gtk2|awf-gtk3|bluepup|bluetooth-sendto|bootmanager|butniso2cd|ccrypt_gui) ASKflg=0 ;;
+        cdburner-wizard|chooselocale|cups_shell|date-time-wizard) ASKflg=0 ;;
+        default*|droidcam|easy*|eventmanager|ffconvert|ff*) ASKflg=0 ;;
+        filemnt|firewall_ng|flapi|Floppy_Formatter|flsynclient|fluid|ghostview|glade) ASKflg=0 ;;
+        gparted_shell|gtk3*|hostname-set|icon_switcher|input-wizard|ipinfo|jwmthememaker) ASKflg=0 ;;
+        limine-installer|loginmanager|momanager|mount-img|moveicons|mscw|mtpaintsnapshot.sh) ASKflg=0 ;;
+        notification-daemon|partview|pburn|Pdisk|petget|pmount|pprocess|Pudd|pupx) ASKflg=0 ;;
+        pupzip|pwsget|qsync|quicksetup|qwallpaper|rox|rxvt|sakura|screeny|set_*|set-*) ASKflg=0 ;;
+        tas|timezone-set|touchpad-toggle|urxvt*|usbviewshell|vv-dl-latest|wcpufreq|xarchive) ASKflg=0 ;;
+        xdelt_gui|xfdiff-cut|xfontsel|xorgwizard|xvkbd-wrapper|youtubedl-gui|zarfywrapper) ASKflg=0 ;;
+        gfnrename|gfontsel|gpptp|gtk*|pgprs|precord|prename|pupcamera|xdelta_gui) ASKflg=0 ;;
+       esac
+       if [ $ASKflg -eq 1 ];then
+        #20241101 don't just default to run non-root, ask...
+        export IPV_ASK_DLG="<window title=\"PKGget: $(gettext 'package installed')\" image-name=\"/usr/local/lib/X11/pixmaps/pkg24.png\">
      <vbox>
       <text use-markup=\"true\"><label>\"$(gettext 'This package has been installed:') <b>${TREE1}</b>
 $(gettext 'The executable is:') /usr/bin/${EXEC}
@@ -638,8 +657,8 @@ $(gettext 'If in doubt, choose non-root; the next window will explain how you ca
        <button><label>$(gettext 'non-root')</label><action>EXIT:nonroot</action></button>
       </hbox>
      </vbox></window>"
-       #echo "${IPV_ASK_DLG}" > /tmp/IPV_ASK_DLG #TEST
-       RETASK="$(gtkdialog --center --program=IPV_ASK_DLG)"
+        RETASK="$(gtkdialog --center --program=IPV_ASK_DLG)"
+       fi
        #20241101 also test for .bin (installed flatpak or appimage will have .bin not .bin0)
        if [ -x /usr/bin/${EXEC}.bin0 -o -x /usr/bin/${EXEC}.bin ];then
         #this means previous version was already setup to run non-root
