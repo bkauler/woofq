@@ -4,6 +4,7 @@
 #20220529 there are now sub-folders under .session-transit
 #20220530 ..um, have implemented as separate .session-transit in each container.
 #20220614 change "-mindepth 2" to "-mindepth 1"
+#20241124 .control gets missed out. (see also /etc/rc.d/rw-merge)
 
 WKG_DEV="$1"
 WKG_DIR="$2"
@@ -88,6 +89,11 @@ _END2
  # tar c -f - . | tar x -f - -C ${DEST}
  # anyway, use cp...
  cp -a -f --remove-destination * ${DEST}/ 2>/dev/null
+ #20241124 .control gets missed out... (see also /etc/rc.d/rw-merge)
+ if [ -d ./.control ];then
+  mkdir -p ${DEST}/.control
+  cp -a -f ./.control/*-flag ${DEST}/.control/ 2>/dev/null
+ fi
  sync
  cd /
  rm -rf ${aSRC%/*} #20220530 remove .session-transit folder.

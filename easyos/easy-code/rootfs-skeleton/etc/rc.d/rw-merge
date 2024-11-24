@@ -12,6 +12,7 @@
 #20220626 constrain sub-folder (/mnt/.easy_rw/sub-folder) optional $2. now called from easy-version-control. 20220627 fixes.
 #20220907 /var no longer a symlink. ref: rc.sysinit  20220918
 #20221102 exclude /var/lock  20240118 exclude /var/lib/flatpak
+#20241124 ./.control is excluded. need to save *.run-once-*-flag (see also /sbin/rw-merge in initrd)
 
 export LANG=C
 . /etc/rc.d/PUPSTATE
@@ -121,6 +122,15 @@ _END2
  #20221102 add /var/lock
  #20240118 add /var/lib/flatpak, as it is a symlink to /mnt/wkg/flatpak (see rc.sysinit)
  tar -cpf - --exclude='./files' --exclude='./dev' --exclude='./mnt' --exclude=${VAREXC} ${VARREXC} --exclude='./run' --exclude='./.*' --exclude='*/.cache' --exclude='./proc' --exclude='./sys' --exclude='./tmp' --exclude='./lost+found' --exclude='./root/.XLOADED' --exclude='./var/lock' --exclude='./var/lib/flatpak' --one-file-system . | tar -xf - -C ${DEST} --overwrite --warning=none
+ 
+ #20241124 ./.control is excluded. need to save *.run-once-*-flag ...
+ if [ -d ./.control ];then
+  if [ -n "$(ls -A ./.control)" ];then
+   mkdir -p ${DEST}/.control
+   cp -a -f ./.control/*-flag ${DEST}/.control/
+  fi
+ fi
+ 
 done
 sync
 
