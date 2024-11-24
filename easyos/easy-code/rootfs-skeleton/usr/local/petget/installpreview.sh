@@ -40,6 +40,7 @@
 #20241020 examine deps for already-installed pkg.
 #20241101 default install pkg non-root (based on code in qv installpreview.sh).
 #20241104 run build-rox-sendto as a separate process, because slow.
+#20241124 maybe allow install app non-root in container.
 
 export TEXTDOMAIN=petget___installpreview.sh
 export OUTPUT_CHARSET=UTF-8
@@ -590,6 +591,17 @@ if [ -f /root/.packages/${TREE1}.files ];then #ex TREE1=abiword-1.2-amd64 (1st f
  #20240307 cannot run non-root in container...
  ls -1 /INSIDE_* >/dev/null 2>&1
  NOflg=$?
+ #20241124 this needs to be qualified...
+ if [ $NOflg -eq 0 ];then
+  CONTn="$(ls -1 /INSIDE_* | head -n 1 | cut -f 2- -d '_')" #ex: daedalus
+  if [ -f /.control/${CONTn}.configuration ];then
+   grep -q -F "EC_CAP_file='false'" /.control/${CONTn}.configuration
+   if [ $? -eq 0 ];then
+    #this means container is allowed to execute chmod and chown
+    NOflg=1
+   fi
+  fi
+ fi
  if [ $NOflg -ne 0 ];then
   grep -q 'usr/share/applications' /root/.packages/${TREE1}.files
   if [ $? -eq 0 ];then
