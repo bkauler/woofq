@@ -722,6 +722,11 @@ fi
  do
   rm -f /usr/share/applications/${aDT/STAR/*}.desktop 2>/dev/null
  done
+ #20241124 some more network apps...
+ for aDT in easyshare nm-applet nm-connection-editor nmtui hostname-set
+ do
+  rm -f /usr/share/applications/${aDT/STAR/*}.desktop 2>/dev/null
+ done
  if [ -x /usr/bin/fixmenus ];then #20210505
   fixmenus
  elif [ -x /usr/bin/jwm ];then #20210505

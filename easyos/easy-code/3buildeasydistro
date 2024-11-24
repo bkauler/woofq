@@ -337,6 +337,7 @@
 #20241024 easyos scarthgap 6.4+ will support installing devuan daedalus debs. 20241026 20241027 remove.
 #20241028 generate /etc/os-release
 #20241123 new button to flip out of container.
+#20241124 remove menu network entries in container.
 
 export LANG=C #faster.
 
@@ -5825,6 +5826,16 @@ cat << 'EOF3' >> rootfs-complete/.control/${DISTRO_NAME_SHORT,,}.run-once-top
  done
  #181105 and for some old pups...
  for aDT in Floppy_Formatter Format-floppy-disk Gpptp GrubSTAR legacy_grub_2013 mtp_detect pbackup pgprs-connect PupsaveSTAR Remaster-STAR Resize-personal-storage-file
+ do
+  rm -f /usr/share/applications/${aDT/STAR/*}.desktop 2>/dev/null
+ done
+ #20210507 scpup...
+ for aDT in ALSA-sound-Wizard diskpup edit-initramfs f2stickpup frugalpup Pup-Kview Puppy-universal-installer SaveFolderBackup SFS-Load SS-control startupcontrol stickpup sys-update Xlock-lock-screen Xlock-setup Xorg-Video-Wizard
+ do
+  rm -f /usr/share/applications/${aDT/STAR/*}.desktop 2>/dev/null
+ done
+ #20241124 some more network apps...
+ for aDT in easyshare nm-applet nm-connection-editor nmtui hostname-set
  do
   rm -f /usr/share/applications/${aDT/STAR/*}.desktop 2>/dev/null
  done
