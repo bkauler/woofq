@@ -66,6 +66,7 @@
 #20240114 easyos void: container named "current"
 #20241122 start a background process for flipping out of container.
 #20241123 copy clipboard into container.
+#20241124 support EC_ACCESS_FOLDER_PATH=/files
 
 #20230626 20241122
 if [ "$(whoami)" != "root" ];then exec sudo-sh ${PPID} ${0} ${@}; fi
@@ -347,16 +348,15 @@ if [ "$EC_GLOBAL_CHROOT" == "pflask" ];then #180928
  if [ "$EC_ACCESS_FOLDER" == "true" ];then
   X="$(realpath "$EC_ACCESS_FOLDER_PATH")"
   X="${X/* */}" #remove any spaces.
-  #20211205 now /files/shared
-  #190913 changed /files/shared inside container to /mnt/wkg/files/shared
-  # -- symlink in path not allowed. /mnt/wkg in container is not a symlink. 191223 yes it is.
-  if [ -d $X ];then
-   FLDR="--mount=bind:${X}:/files/shared" #190829 changed from /shared-folder
+  #20211205 now EC_ACCESS_FOLDER_PATH=/files/shared
+  #20241124 support EC_ACCESS_FOLDER_PATH=/files
+  if [ -d "$X" ];then
+   FLDR="--mount=bind:${X}:${EC_ACCESS_FOLDER_PATH}" #190829 changed from /shared-folder
    #20211214 buster 2.6.2, /files/shared does not exist...
    if [ ! -e ${CONTAINER}/files/shared ];then
     mkdir -p ${CONTAINER}/files/shared
-    mkdir ${CONTAINER}/files/downloads 2>/dev/null
-    mkdir ${CONTAINER}/files/media 2>/dev/null
+    mkdir -p ${CONTAINER}/files/downloads
+    mkdir -p ${CONTAINER}/files/media
    fi
    if [ ! -e ${CONTAINER}/home ];then
     mkdir ${CONTAINER}/home
