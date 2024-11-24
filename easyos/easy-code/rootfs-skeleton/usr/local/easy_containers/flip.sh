@@ -29,7 +29,7 @@ class \"*\" style \"windowstuff\"
 echo "$gtkrc" > /tmp/flip_gtkrc${$}
 export GTK2_RC_FILES=/tmp/flip_gtkrc${$}:/root/.gtkrc-2.0
 
-H_flip="$(gettext 'Click button to flip back to main desktop.')${CR}$(gettext 'Or, flip with the key combination ALT+F6')${CR}$(gettext 'Note: some keyboards require FN+ALT+F6')${CR}${CR}$(gettext 'If the button is used, the clipboard content will also be copied to the main desktop clipboard.')${CR}${CR}$(gettext 'Back on the main desktop, you may flip back into the container by clicking on the desktop icon or entry in the tray. The container may be killed by right-click on the tray entry and choose <b>Kill</b>')"
+H_flip="$(gettext 'Click button to flip back to main desktop.')${CR}$(gettext 'Or, flip with the key combination ALT+F6')${CR}$(gettext 'Note: some keyboards require FN+ALT+F6')${CR}${CR}$(gettext 'If the button is used, the clipboard content will also be copied to the main desktop clipboard.')${CR}${CR}$(gettext 'Back on the main desktop, you may flip back into the container by clicking on the desktop icon or entry in the tray. The clipboard will be copied in.')${CR}$(gettext 'The container may be killed by right-click on the tray entry and choose <b>Kill</b>')"
 
 M_close="$(gettext 'Close')"
 export DLG_HELP_flip="<window resizable=\"false\" title=\"$(gettext 'Help: Flip out of container')\" icon-name=\"gtk-index\" window_position=\"1\">
