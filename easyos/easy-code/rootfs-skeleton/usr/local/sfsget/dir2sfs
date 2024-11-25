@@ -54,8 +54,8 @@
 #20240626 Caramel: _<arch>.sfs not optional, otherwise breaks filerpkgs.sh
 #20240903 script now /usr/local/appi/appi
 #20241123 new button to flip out of container.
-#20241125 fix font for x11 apps, improve startup speed.
-#20241125 run setxkbmap before start jwm, and before xmodmap (in desk-delayedrun).
+#20241125 fix font for x11 apps, improve startup speed.  20241126
+#20241125 run setxkbmap before start jwm, and before xmodmap (in desk-delayedrun). 20241126
 
 . /etc/rc.d/PUPSTATE
 . /etc/DISTRO_SPECS
@@ -561,11 +561,25 @@ else
  WM="jwm"
 fi
 
+#20241126 wait here for Xephyr to run...
+CNT=0
+while [ ! -S /tmp/.X11-unix/X[0-9] ];do
+ echo '/root/.xinitrc: waiting on /tmp/.X11-unix/X[0-9]'
+ sleep 0.1
+ CNT=$(($CNT+1))
+ [ $CNT -gt 50 ] && exit 1
+done
+sleep 0.1
+
+#20241125 run before start jwm, and before xmodmap (in desk-delayedrun)... 20241126
+setxkbmap
+
+#20241125 x11 apps need this (first line) to work... 20241126
+if [ -f ${HOME}/.Xresources ];then xrdb -merge -nocpp ${HOME}/.Xresources; fi
+if [ -f ${HOME}/.Xmodmap ];then xmodmap ${HOME}/.Xmodmap; fi
+
 #20210509 also launch rox here, instead of in current script... 20210510 add $PP...
 /usr/bin/desk-delayedrun ${WM} "${PP}" & #this will launch tray applets.
-
-#20241125 run before start jwm, and before xmodmap (in desk-delayedrun)...
-setxkbmap
 
 #20210509 start the window manager. when it terminates, the container will exit...
 ${WM}
@@ -802,17 +816,13 @@ fi
 CR='
 '
 
-#give enough time for jwm to start... 20241125 faster
-sleep 0.5
-if ! pidof ${WM} >/dev/null ;then sleep 0.5; fi
-if ! pidof ${WM} >/dev/null ;then sleep 0.5; fi
+#give enough time for jwm to start... 20241125 faster 20241126 faster.
+sleep 0.2
+if ! pidof ${WM} >/dev/null ;then sleep 0.2; fi
+if ! pidof ${WM} >/dev/null ;then sleep 0.2; fi
 if ! pidof ${WM} >/dev/null ;then sleep 1; fi
 if ! pidof ${WM} >/dev/null ;then sleep 2; fi
-sleep 0.2
-
-#20241125 x11 apps need this (first line) to work...
-if [ -f ${HOME}/.Xresources ];then xrdb -merge -nocpp ${HOME}/.Xresources; fi
-if [ -f ${HOME}/.Xmodmap ];then xmodmap ${HOME}/.Xmodmap; fi
+sleep 0.1
 
 case "$WM" in #20210508
  jwm)
