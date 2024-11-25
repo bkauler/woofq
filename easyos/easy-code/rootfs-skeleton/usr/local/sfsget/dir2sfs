@@ -54,6 +54,7 @@
 #20240626 Caramel: _<arch>.sfs not optional, otherwise breaks filerpkgs.sh
 #20240903 script now /usr/local/appi/appi
 #20241123 new button to flip out of container.
+#20241125 fix font for x11 apps, improve startup speed.
 
 . /etc/rc.d/PUPSTATE
 . /etc/DISTRO_SPECS
@@ -797,16 +798,17 @@ fi
 CR='
 '
 
-#give enough time for jwm to start...
-KERNMINOR=$(uname -r | cut -f 2 -d '.') #20210407...
-if [ $KERNMINOR -ge 10 ];then
- sleep 0.5
-else
- sleep 1.5 #must be >2  181217 increase from 3. 190202 increase from 3.5. 190806 increased from 4.
-fi
-if ! pidof ${WM} >/dev/null ;then sleep 2; fi
-if ! pidof ${WM} >/dev/null ;then sleep 4; fi
+#give enough time for jwm to start... 20241125 faster
 sleep 0.5
+if ! pidof ${WM} >/dev/null ;then sleep 0.5; fi
+if ! pidof ${WM} >/dev/null ;then sleep 0.5; fi
+if ! pidof ${WM} >/dev/null ;then sleep 1; fi
+if ! pidof ${WM} >/dev/null ;then sleep 2; fi
+sleep 0.2
+
+#20241125 x11 apps need this (first line) to work...
+if [ -f ${HOME}/.Xresources ];then xrdb -merge -nocpp ${HOME}/.Xresources; fi
+if [ -f ${HOME}/.Xmodmap ];then xmodmap ${HOME}/.Xmodmap; fi
 
 case "$WM" in #20210508
  jwm)
