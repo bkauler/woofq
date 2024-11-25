@@ -55,6 +55,7 @@
 #20240903 script now /usr/local/appi/appi
 #20241123 new button to flip out of container.
 #20241125 fix font for x11 apps, improve startup speed.
+#20241125 run setxkbmap before start jwm, and before xmodmap (in desk-delayedrun).
 
 . /etc/rc.d/PUPSTATE
 . /etc/DISTRO_SPECS
@@ -562,6 +563,9 @@ fi
 
 #20210509 also launch rox here, instead of in current script... 20210510 add $PP...
 /usr/bin/desk-delayedrun ${WM} "${PP}" & #this will launch tray applets.
+
+#20241125 run before start jwm, and before xmodmap (in desk-delayedrun)...
+setxkbmap
 
 #20210509 start the window manager. when it terminates, the container will exit...
 ${WM}

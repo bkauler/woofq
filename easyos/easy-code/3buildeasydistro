@@ -339,6 +339,7 @@
 #20241123 new button to flip out of container.
 #20241124 remove menu network entries in container.
 #20241125 fix font for x11 apps, improve startup speed.
+#20241125 run setxkbmap before start jwm, and before xmodmap (in desk-delayedrun).
 
 export LANG=C #faster.
 
@@ -5718,6 +5719,9 @@ fi
 
 #20210509 also launch rox here, instead of in current script...
 /usr/bin/desk-delayedrun ${WM} & #this will launch tray applets.
+
+#20241125 run before start jwm, and before xmodmap (in desk-delayedrun)...
+setxkbmap
 
 #20210509 start the window manager. when it terminates, the container will exit...
 ${WM}
