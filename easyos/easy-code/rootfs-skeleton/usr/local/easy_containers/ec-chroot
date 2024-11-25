@@ -67,6 +67,7 @@
 #20241122 start a background process for flipping out of container.
 #20241123 copy clipboard into container.
 #20241124 support EC_ACCESS_FOLDER_PATH=/files
+#20241124 update /.control/${EXE}.configuration in container.
 
 #20230626 20241122
 if [ "$(whoami)" != "root" ];then exec sudo-sh ${PPID} ${0} ${@}; fi
@@ -158,6 +159,10 @@ if [ "$(grep "containers/${EXE}/container" /proc/mounts)" == "" ];then
  /tmp/easy_containers/flip-out-of-container-${EXE} ${EXE} &
 fi
 #...now, must not write directly to .session, as aufs layers mounted.
+
+#20241124 update...
+mkdir -p /mnt/${WKG_DEV}/${WKG_DIR}containers/${EXE}/container/.control #um, will exist
+cp -a -f /mnt/${WKG_DEV}/${WKG_DIR}containers/${EXE}/configuration /mnt/${WKG_DEV}/${WKG_DIR}containers/${EXE}/container/.control/${EXE}.configuration
 
 #181105 in some old pups, 'keymaps' & 'consolefonts' folders missing (is in initrd)...
 if [ ! -d /mnt/${WKG_DEV}/${WKG_DIR}containers/${EXE}/container/lib/keymaps ];then
