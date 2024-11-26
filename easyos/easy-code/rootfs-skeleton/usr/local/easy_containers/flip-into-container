@@ -1,0 +1,28 @@
+#!/bin/ash
+#20241122 20241126
+#called from flip-out-of-container when run container, as a separate process.
+#passed in name of container.
+
+EXE="$1"
+while [ true ];do
+ sleep 2
+ #if container not running, exit...
+ if [ ! -f /mnt/wkg/containers/${EXE}/container/INSIDE_${EXE} ];then
+  exit 1
+ fi
+
+ X11c="$(find /mnt/wkg/containers/${EXE}/container/tmp/.X11-unix -maxdepth 1 -type f -name 'X*' | tail -n 1)"
+ if [ -z "${X11c}" ];then exit 2; fi
+ DISPc=":${X11c##*X}" #ex: :1
+ 
+ #20241126 flip in, copy clipboard in. ref: ec-chroot 
+ #note, ec-chroot creates/modifies this file on re-entry to container...
+ touch /tmp/easy_containers/flip-in-flg
+ inotifywait -e modify /tmp/easy_containers/flip-in-flg
+ if [ $? -ne 0 ];then exit 2; fi #0 = event occurred
+ sleep 1 #0.5
+ xclip -selection clipboard -o | DISPLAY=${DISPc} xclip -selection clipboard -i
+ 
+done
+
+###end###
