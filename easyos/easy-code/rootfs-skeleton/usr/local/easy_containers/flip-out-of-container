@@ -1,30 +1,39 @@
 #!/bin/ash
-#20241122
+#20241122 20241126
 #called from ec-chroot when run container, as a separate process.
 #passed in name of container.
 
 EXE="$1"
 while [ true ];do
- sleep 5
+ sleep 3
  #if container not running, exit...
  if [ ! -f /mnt/wkg/containers/${EXE}/container/INSIDE_${EXE} ];then sleep 2; fi
- if [ ! -f /mnt/wkg/containers/${EXE}/container/INSIDE_${EXE} ];then exit 1; fi
- #wait for file to be modified...
+ if [ ! -f /mnt/wkg/containers/${EXE}/container/INSIDE_${EXE} ];then sleep 2; fi
+ if [ ! -f /mnt/wkg/containers/${EXE}/container/INSIDE_${EXE} ];then
+  exit 1
+ fi
+
+ X11c="$(find /mnt/wkg/containers/${EXE}/container/tmp/.X11-unix -maxdepth 1 -type f -name 'X*' | tail -n 1)"
+ if [ -z "${X11c}" ];then exit 2; fi
+ DISPc=":${X11c##*X}" #ex: :1
+ 
+ #20241126 need another background process to detect when flip back into container...
+ pidof "flip-into-container-${EXE}" >/dev/null
+ if [ $? -ne 0 ];then
+  /tmp/easy_containers/flip-into-container-${EXE} ${EXE} &
+ fi
+ 
+ #flip out, wait for this file to be modified...
  touch /mnt/wkg/containers/${EXE}/container/.flip-out-flg
  inotifywait -e modify /mnt/wkg/containers/${EXE}/container/.flip-out-flg
  if [ $? -ne 0 ];then exit 2; fi #0 = event occurred
  sleep 0.5
- 
  #copy clipboard to main desktop...
  #note: see ec-chroot for copy clipboard into container.
- X11c="$(find /mnt/wkg/containers/${EXE}/container/tmp/.X11-unix -maxdepth 1 -type f -name 'X*' | tail -n 1)"
- if [ -n "${X11c}" ];then
-  DISPc=":${X11c##*X}" #ex: :1
-  DISPLAY=${DISPc} xclip -selection clipboard -o | xclip -selection clipboard -i
- fi
- 
- #simple, just do this, sends alt-f6 to current window...
+ DISPLAY=${DISPc} xclip -selection clipboard -o | xclip -selection clipboard -i
+ #simple, just do this, sends alt-f6 to minimize current window...
  xdotool key Alt_L+F6
+ 
 done
 
 ###end###

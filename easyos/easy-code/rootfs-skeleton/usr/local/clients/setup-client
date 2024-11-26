@@ -945,13 +945,14 @@ chromium_true() {
  
  #20230411 ALWAYSOPTS removed "--use-gl=desktop" doesn't work.
  #20231126 avoid "CBCM is not enabled" msg: --enable-chrome-browser-cloud-management=no
+ #20241127 running in container, want this: --enable-unsafe-swiftshader
  rm -f ${PREFIXDIR1}${APPpath}/${APPname} #in case it is a symlink.
  echo '#!/bin/bash
 if [ "$(whoami)" != "root" ];then exec sudo-sh ${PPID} ${0} ${@}; fi' > ${PREFIXDIR1}${APPpath}/${APPname}
  echo "APPbin='${APPpath}/${APPname}.bin'
 APPname='${APPname}'
 ALWAYSOPTS='--no-default-browser-check --no-first-run --enable-chrome-browser-cloud-management=no'
-ROOTOPTS='--no-sandbox --test-type'
+ROOTOPTS='--no-sandbox --test-type --enable-unsafe-swiftshader'
 #note, currently not using these two...
 CONTAINEROPTS='--no-sandbox --disable-features=AudioServiceSandbox' #20211007
 NONROOTMAINOPTS='--disable-features=AudioServiceSandbox' #20211007

@@ -68,6 +68,8 @@
 #20241123 copy clipboard into container.
 #20241124 support EC_ACCESS_FOLDER_PATH=/files
 #20241124 update /.control/${EXE}.configuration in container.
+#20241126 improve flip
+#20241127 temp hack for dbus
 
 #20230626 20241122
 if [ "$(whoami)" != "root" ];then exec sudo-sh ${PPID} ${0} ${@}; fi
@@ -129,13 +131,17 @@ if [ $? -eq 0 ];then
   [ ! "$WID" ] && [ -f /tmp/easy_containers/activewindows.log ] && WID="$(grep "^${EXE} " /tmp/easy_containers/activewindows.log | tail -n 1 | cut -f 2 -d ' ')"
  fi
  if [ -n "$WID" ];then
+  
   #20241123 copy clipboard into container...
   #note: see flip-out-of-container for copy clipboard out of container.
-  X11c="$(find /mnt/wkg/containers/${EXE}/container/tmp/.X11-unix -maxdepth 1 -type f -name 'X*' | tail -n 1)"
-  if [ -n "${X11c}" ];then
-   DISPc=":${X11c##*X}" #ex: :1
-   xclip -selection clipboard -o | DISPLAY=${DISPc} xclip -selection clipboard -i
-  fi
+  #X11c="$(find /mnt/wkg/containers/${EXE}/container/tmp/.X11-unix -maxdepth 1 -type f -name 'X*' | tail -n 1)"
+  #if [ -n "${X11c}" ];then
+  # DISPc=":${X11c##*X}" #ex: :1
+  # xclip -selection clipboard -o | DISPLAY=${DISPc} xclip -selection clipboard -i
+  #fi
+  #...20241126 not work, do this, indirect via flip-into-container script...
+  echo 1 > /tmp/easy_containers/flip-in-flg
+  
   #flip into container...
   echo "flip into WID=${WID}" >> /tmp/easy_containers/ec-chroot-${EXE}.log
   xdotool windowactivate ${WID}
@@ -151,11 +157,15 @@ if [ "$(grep "containers/${EXE}/container" /proc/mounts)" == "" ];then
  start-container ${EXE}
  [ $? -ne 0 ] && exit 1
  #20241122 start a background process for flipping out of container...
+ #20241126 another background process to copy clipboard in...
  if [ ! -e /tmp/easy_containers/flip-out-of-container-${EXE} ];then
   cp -a -f /usr/local/easy_containers/flip-out-of-container /tmp/easy_containers/flip-out-of-container-${EXE}
   chmod 755 /tmp/easy_containers/flip-out-of-container-${EXE}
+  cp -a -f /usr/local/easy_containers/flip-into-container /tmp/easy_containers/flip-into-container-${EXE}
+  chmod 755 /tmp/easy_containers/flip-into-container-${EXE}
  fi
  #note, this will kill itself when container exits...
+ #this will also start flip-into-container-${EXE} ...
  /tmp/easy_containers/flip-out-of-container-${EXE} ${EXE} &
 fi
 #...now, must not write directly to .session, as aufs layers mounted.
@@ -650,10 +660,14 @@ esac
 WID="$(xdotool getactivewindow)"
 /usr/local/easy_containers/logactivewindow ${EXE} ${WID} &
 
+#20241127 temp hack...
+DBUS='--mount=bind:/tmp/run/dbus/system_bus_socket:/tmp/system_bus_socket'
+#...in container need symlink from /run/dbus --do this is .control/ec-run (see start-container)
+
 ###THE BIG MOMENT###
 if [ "$EC_GLOBAL_CHROOT" == "pflask" ];then #180928
- echo "Executing: DISPLAY=${ecDISPLAY} ${NETNSexe} pflask ${FLDR} ${ENVI} ${NS} ${SND} ${DRI} ${CAPS} --no-userns --chroot=${CONTAINER} -- ${SPOT} /.control/ec-run ${EXE} ${@}"
- DISPLAY=${ecDISPLAY} ${NETNSexe} pflask ${FLDR} ${ENVI} ${NS} ${SND} ${DRI} ${CAPS} --no-userns --chroot=${CONTAINER} -- ${SPOT} /.control/ec-run ${EXE} ${@}
+ echo "Executing: DISPLAY=${ecDISPLAY} ${NETNSexe} pflask ${FLDR} ${ENVI} ${NS} ${SND} ${DBUS} ${DRI} ${CAPS} --no-userns --chroot=${CONTAINER} -- ${SPOT} /.control/ec-run ${EXE} ${@}"
+ DISPLAY=${ecDISPLAY} ${NETNSexe} pflask ${FLDR} ${ENVI} ${NS} ${SND} ${DBUS} ${DRI} ${CAPS} --no-userns --chroot=${CONTAINER} -- ${SPOT} /.control/ec-run ${EXE} ${@}
 else
  #--map-root-user needed if have -U, otherwise env will fail.
  DISPLAY=${ecDISPLAY} unshare ${uOPTS} ${ENVI} /bin/busybox chroot ${CONTAINER} /.control/ec-run ${EXE} ${@}

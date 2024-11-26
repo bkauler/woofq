@@ -180,6 +180,11 @@ fi
 [ "$(echo "$MOUNTS" | grep '/shm ')" == "" ] && busybox mount -t tmpfs shmfs /dev/shm
 [ "$(echo "$MOUNTS" | grep '/pts ')" == "" ] && busybox mount -t devpts -o newinstance devpts /dev/pts
 [ "$(echo "$MOUNTS" | grep '/sys ')" == "" ] && busybox mount -t sysfs none /sys
+
+#20241127 temp hack, see also ec-chroot
+mkdir -p /run/dbus
+ln -s /tmp/system_bus_socket /run/dbus/system_bus_socket
+
 EXE="$1"; shift
 #for appimage, insert "/" into PATH...
 PATH="/:/.control:${PATH}" xEXE="$(which $EXE)" #so will fallback to executing $@ if $EXE not exist.
