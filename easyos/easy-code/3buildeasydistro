@@ -6006,6 +6006,11 @@ elif [ -x /usr/bin/retrovol ];then #181115
 elif [ -x /root/Startup/xfce4-volumed ];then #20210508
  /root/Startup/xfce4-volumed &
 fi
+
+#20241130 hack fix...
+if [ -f /root/.Xresources ];then xrdb -merge -nocpp /root/.Xresources; fi
+if [ -f /root/.Xmodmap ];then xmodmap /root/.Xmodmap; fi
+
 ###end###
 EOF2
 chmod 755 rootfs-complete/usr/bin/desk-delayedrun
