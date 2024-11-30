@@ -70,6 +70,7 @@
 #20241124 update /.control/${EXE}.configuration in container.
 #20241126 improve flip
 #20241127 temp hack for dbus
+#20242230 alternative set kb layout for xephyr
 
 #20230626 20241122
 if [ "$(whoami)" != "root" ];then exec sudo-sh ${PPID} ${0} ${@}; fi
@@ -308,7 +309,14 @@ case "$EC_XSERVER" in #180703
    #Xephyr :${CNTxephyr} -fullscreen -title "${EXE}" -name "Xephyr${CNTxephyr}" -zap -dpi "$DPI" -nolisten tcp &
    #20210116 rufwoof: add -no-host-grab  ref: https://easyos.org/forum/showthread.php?tid=321 ref2: https://xorg-devel.x.narkive.com/ixVv99dS/patch-xephyr-option-to-disable-grabbing-the-host
    #20210119 reverted...
-   Xephyr :${CNTxephyr} -fullscreen -title "${EXE}" -name "Xephyr${CNTxephyr}" -dpi "$DPI" -nolisten tcp &
+   #20241130 have tried to set keyboard layout further down, but appears problems,
+   #so do it here...
+   XKBMAP="$(LANG=C setxkbmap -query | tr -s ' ')"
+   XMODEL="$(grep 'model:' <<<"${XKBMAP}" | cut -f 2 -d ' ')"
+   XLAYOUT="$(grep 'layout:' <<<"${XKBMAP}" | cut -f 2 -d ' ')"
+   XVARIANT="$(grep 'variant:' <<<"${XKBMAP}" | cut -f 2 -d ' ')"
+   XOPTIONS="$(grep 'options:' <<<"${XKBMAP}" | cut -f 2 -d ' ')"
+   Xephyr :${CNTxephyr} -xkb-model ${XMODEL} -xkb-layout ${XLAYOUT} -xkb-variant "${XVARIANT}" -xkb-options "${XOPTIONS}" -fullscreen -title "${EXE}" -name "Xephyr${CNTxephyr}" -dpi "$DPI" -nolisten tcp &
    #Xephyr :${CNTxephyr} -fullscreen -no-host-grab -title "${EXE}" -name "Xephyr${CNTxephyr}" -dpi "$DPI" -nolisten tcp &
    echo "${CNTxephyr} ${EXE}" >> /tmp/easy_containers/xephyr-windows
    #wait until ready to use...
@@ -610,7 +618,7 @@ if [ $? -eq 0 ];then
  cp -a -f /etc/hosts ${CONTAINER}/etc/
 fi
 
-#20230224 export keyboard layout to Xephyr server
+#20230224 export keyboard layout to Xephyr server... 20241130 alternative see above.
 # ref: https://unix.stackexchange.com/questions/304391/xephyr-keyboard-mapping-not-working-properly
 if [ "${ecDISPLAY/*:/}" != "0" ];then
  setxkbmap -display :0 -print | xkbcomp -w 0 - ${ecDISPLAY}
