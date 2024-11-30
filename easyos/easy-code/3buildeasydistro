@@ -340,6 +340,7 @@
 #20241124 remove menu network entries in container.
 #20241125 fix font for x11 apps, improve startup speed. 20241126
 #20241125 run setxkbmap before start jwm, and before xmodmap (in desk-delayedrun). 20241126
+#20241130 hack fix. ref: https://bkhome.org/news/202411/xrdb-fixed-in-container.html
 
 export LANG=C #faster.
 
@@ -6007,7 +6008,7 @@ elif [ -x /root/Startup/xfce4-volumed ];then #20210508
  /root/Startup/xfce4-volumed &
 fi
 
-#20241130 hack fix...
+#20241130 hack fix... ref: https://bkhome.org/news/202411/xrdb-fixed-in-container.html
 if [ -f /root/.Xresources ];then xrdb -merge -nocpp /root/.Xresources; fi
 if [ -f /root/.Xmodmap ];then xmodmap /root/.Xmodmap; fi
 
