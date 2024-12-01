@@ -58,3 +58,11 @@ export FLIP_DLG="<window decorated=\"false\" skip_taskbar_hint=\"true\">
 </window>"
 
 gtkdialog --program=FLIP_DLG --center
+
+#20241130 temp popup...
+if [ -x /usr/sbin/popup ];then
+ sleep 0.2
+ M1="$(gettext 'Containerized desktop')"
+ popup "terminate=3 timecnt=dn name=cdpopup placement=center background=#06ee9b|<b><big><big>${M1}</big></big></b>"
+fi
+###end###
