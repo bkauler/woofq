@@ -3,6 +3,7 @@
 #20230206 caramel: fixes
 #20240429 now builtin to rootfs-skeleton
 #20240622 set policies on first install.
+#20241201 tarball changed from .bz2 to .xz
 
 export TEXTDOMAIN=ff-dl-latest
 export OUTPUT_CHARSET=UTF-8
@@ -109,14 +110,14 @@ else
 fi
 
 #20230206 d/l...
-wget "https://download.mozilla.org/?product=firefox-latest-ssl&os=linux64&lang=${LANGFF}" -O firefox.tar.bz2
+wget "https://download.mozilla.org/?product=firefox-latest-ssl&os=linux64&lang=${LANGFF}" -O firefox.tar.xz
 RETVAL=$?
 
 sync
-if [ $RETVAL -ne 0 -o ! -s firefox.tar.bz2 ];then
+if [ $RETVAL -ne 0 -o ! -s firefox.tar.xz ];then
  MSG3="$(gettext 'Failed to download')"
  popup "background=#ffa0a0 level=top terminate=ok process=wait|<big>${MSG3}</big> "
- rm -f firefox.tar.bz2 2>/dev/null
+ rm -f firefox.tar.xz 2>/dev/null
  killall popup
  exit
 fi
@@ -127,11 +128,11 @@ fi
 if [ -d firefox ];then #paranoid precaution
  mv -f firefox firefoxPREV
 fi
-tar -xf firefox.tar.bz2
+tar -xf firefox.tar.xz
 if [ $? -ne 0 -o ! -e firefox/firefox-bin ];then
  MSG4="$(gettext 'Failed to install')"
  popup "background=#ffa0a0 level=top terminate=ok process=wait|<big>${MSG4}</big> "
- rm -f firefox.tar.bz2 2>/dev/null
+ rm -f firefox.tar.xz 2>/dev/null
  rm -rf firefox 2>/dev/null
  mv -f firefoxPREV firefox
  killall popup
@@ -157,7 +158,7 @@ mkdir -p firefox/dictionaries
 cp -a -f /etc/firefox-latest-version /etc/firefox-current-version
 sed -i 's/DL/CURR/' /etc/firefox-current-version #20230206
 rm -rf firefoxPREV
-rm -f firefox.tar.bz2
+rm -f firefox.tar.xz
 sync
 killall popup
 
