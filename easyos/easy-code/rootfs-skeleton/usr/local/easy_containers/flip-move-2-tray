@@ -1,0 +1,20 @@
+#!/bin/ash
+#20241210 called from flip.sh
+#create entry in tray, to flip out of container.
+#code similar to /usr/local/ui/jwm/jwmrc-insert-extra
+
+export TEXTDOMAIN=easy-containers
+export OUTPUT_CHARSET=UTF-8
+
+touch /root/.jwm/tray-extra
+
+grep -qF 'flip-tray.sh' /root/.jwm/tray-extra
+if [ $? -ne 0 ];then
+ Mflip="$(gettext 'Flip out of container')"
+ echo "		<TrayButton popup=\"${Mflip}\" icon=\"go-jump.png\">exec:/usr/local/easy_containers/flip-tray.sh</TrayButton>" >> /root/.jwm/tray-extra
+fi
+
+#insert file between two patterns...
+sed -i -e '/STARTEXTRA/,/ENDEXTRA/{/STARTEXTRA/!{/ENDEXTRA/!d}}' -e '/STARTEXTRA/r /root/.jwm/tray-extra' /root/.jwmrc-tray
+
+###end###
