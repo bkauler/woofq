@@ -69,6 +69,7 @@
 #20240118 fix flatpak in easyvoid.
 #20240909 handle ibus input method.
 #20240922 fix mount /dev/pts
+#20241211 /var/run symlink to /run, like other distros (and fix flatpak).
 
 #unset TZ #100319 busybox hwclock gives priority to this (rather than /etc/localtime) and 'init' has set it wrong.
 #...comment-out for now. note, TZ now set in rc.country.
@@ -236,33 +237,12 @@ if [ $PREMNTD -eq 0 ];then #190811
 fi
 mkdir -p /tmp/var/cache
 mkdir /tmp/var/lock #20221102
-mkdir /tmp/run
+#mkdir /tmp/run  #20241211 remove.
 
 #180617 limit rox-filer thumbnails... 180618
 if [ `ls -1 /root/.thumbnails/normal 2>/dev/null | wc -l` -gt 100 ];then
  ls -1t /root/.thumbnails/normal/* | tail -n +99 | xargs rm -f
 fi
-
-#20220907 do not have /var symlink. do not have /root/.var or /root/.var0 ...
-##180617 fix moving /var into /tmp... 180618
-#mkdir -p /root/.var
-#if [ ! -L /var ];then
-# cp -a -f /var /root/.var0 #180702
-# rm -rf /root/.var0/lib
-# rm -rf /root/.var0/local
-# rm -rf /root/.var0/cache/fontconfig #191002
-# cp -a -f /var/lib /root/.var/
-# cp -a -f /var/local /root/.var/
-# mkdir -p /root/.var/cache #191002
-# cp -a /var/cache/fontconfig /root/.var/cache/ #191002
-# rm -rf /var
-# ln -s /tmp/var /var
-# #ln -snf /tmp/run /run #/run also symlink into /tmp.  20220510 commented-out, see below.
-#fi
-#cp -a -f /root/.var0/* /var/
-#ln -s /root/.var/lib /var/lib #/var/lib to be a symlink to /root/.var/lib
-#ln -s /root/.var/local /var/local #ditto for /var/local
-#ln -s /root/.var/cache/fontconfig /var/cache/fontconfig #ditto /var/cache/fontconfig
 
 #20221102 see also 3buildeasydistro, rc.shutdown
 if [ -d /var/cache ];then
@@ -293,7 +273,9 @@ if [ -d /run ];then #20221026 hack fix.
   rm -f /run
  fi
 fi
-ln -snf /tmp/run /run #20220510 could have done ln -snf /tmp/var/run /run  20221102
+#ln -snf /tmp/run /run #20220510 could have done ln -snf /tmp/var/run /run  20221102 20241211 no.
+#20241211 populate...
+cp -a /mnt/.easy_ro/easy_sfs/var/run /run
 
 if [ -d /var/run ];then #20221102
  if [ ! -h /var/run ];then
@@ -302,7 +284,8 @@ if [ -d /var/run ];then #20221102
   rm -f /var/run
  fi
 fi
-ln -snf /tmp/run /var/run
+#ln -snf /tmp/run /var/run #20241211 no
+ln -s /run /var/run
 
 #20240117 for easyvoid
 if [ -d /var/service ];then #20240119 precaution, in case it somehow got created.
