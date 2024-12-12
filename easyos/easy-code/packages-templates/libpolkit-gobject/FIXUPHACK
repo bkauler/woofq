@@ -4,7 +4,7 @@ if [ -n "${LIB1}" ];then
  mkdir -p /tmp/ztempz
  mv -f ${LIB1} /tmp/ztempz/${LIB1##*/}
  rm -rf ./*
- mkdir usr/lib
+ mkdir -p usr/lib
  mv -f /tmp/ztempz/${LIB1##*/} usr/lib/${LIB1##*/}
  ln -s ${LIB1##*/} usr/lib/libpolkit-gobject-1.so.0
  rm -rf /tmp/ztempz
