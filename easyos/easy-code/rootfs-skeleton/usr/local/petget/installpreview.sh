@@ -42,6 +42,7 @@
 #20241104 run build-rox-sendto as a separate process, because slow.
 #20241124 maybe allow install app non-root in container.
 #20241124 hard-code some exclusions run non-root.
+#20241212 force some apps to run non-root.
 
 export TEXTDOMAIN=petget___installpreview.sh
 export OUTPUT_CHARSET=UTF-8
@@ -639,6 +640,10 @@ if [ -f /root/.packages/${TREE1}.files ];then #ex TREE1=abiword-1.2-amd64 (1st f
         tas|timezone-set|touchpad-toggle|urxvt*|usbviewshell|vv-dl-latest|wcpufreq|xarchive) ASKflg=0 ;;
         xdelt_gui|xfdiff-cut|xfontsel|xorgwizard|xvkbd-wrapper|youtubedl-gui|zarfywrapper) ASKflg=0 ;;
         gfnrename|gfontsel|gpptp|gtk*|pgprs|precord|prename|pupcamera|xdelta_gui) ASKflg=0 ;;
+       esac
+       #20241212 force some to run non-root...
+       case "${EXEC}" in
+        anydesk) ASKflg=0; RETASK='nonroot'; ;;
        esac
        if [ $ASKflg -eq 1 ];then
         #20241101 don't just default to run non-root, ask...
