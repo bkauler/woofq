@@ -71,6 +71,7 @@
 #20241126 improve flip
 #20241127 temp hack for dbus
 #20242230 alternative set kb layout for xephyr
+#20241212 /run no longer a symlink to /tmp/run
 
 #20230626 20241122
 if [ "$(whoami)" != "root" ];then exec sudo-sh ${PPID} ${0} ${@}; fi
@@ -668,8 +669,9 @@ esac
 WID="$(xdotool getactivewindow)"
 /usr/local/easy_containers/logactivewindow ${EXE} ${WID} &
 
-#20241127 temp hack...
-DBUS='--mount=bind:/tmp/run/dbus/system_bus_socket:/tmp/system_bus_socket'
+#20241127 temp hack... 20241212 /run no longer a symlink, but do this in case still is...
+RP="$(realpath /run)"
+DBUS="--mount=bind:${RP}/dbus/system_bus_socket:/tmp/system_bus_socket"
 #...in container need symlink from /run/dbus --do this is .control/ec-run (see start-container)
 
 ###THE BIG MOMENT###
