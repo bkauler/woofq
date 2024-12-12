@@ -79,6 +79,7 @@
 #20240705 fix create /files/apps/<name> when called in woofq.
 #20240912 fix if param passed to .bin has a space char.
 #20241108 commented-out a killall. ref: https://forum.puppylinux.com/viewtopic.php?p=135190#p135190
+#20241212 allow apps to run non-root in containers.
 
 APPname="${1/=*/}"  #ex: seamonkey
 APPflag="${1/*=/}" #ex: true
@@ -443,6 +444,25 @@ if [ "$ROOTARG" ];then
  if [ $? -eq 0 ];then Iflg=0; fi #=0 intention run as root.
 fi
 if [ "$ROOTFORCE" ];then Iflg=0; fi #app must run as root.
+
+#20241212 allow run app non-root in container...
+if [ $Cflg -eq 1 ];then #=1 running in container.
+ if [ $Iflg -eq 1 ];then #=1 want to run app non-root
+  #find out if container has permission to run chown and chmod...
+  CONT="$(find /.control -name "*.run-once-top-flag" | head -n 1 | cut -f 3 -d "/" | cut -f 1 -d ".")"
+  if [ -n "${CONT}" ];then #ex: daedalus
+   if [ -f /.control/${CONT}.configuration ];then
+    . /.control/${CONT}.configuration
+    if [ "${EC_CAP_file}" == "false" ];then
+     #pretend not running in a container...
+     Cflg=0
+     #however, in a container and cannot setup a sandbox...
+     NONROOTMAINOPTS="${NONROOTMAINOPTS} ${ROOTOPTS}"
+    fi
+   fi
+  fi
+ fi
+fi
 
 if [ $Cflg -eq 0 ];then #running on main desktop.
  #whoami will always be root. if Rflg<>0 that is an error...
@@ -876,7 +896,8 @@ opera_true() {
  echo '#!/bin/bash
 if [ "$(whoami)" != "root" ];then exec sudo-sh ${PPID} ${0} ${@}; fi' > ${PREFIXDIR1}${APPpath}/${APPname}
  echo "APPbin='${APPpath}/${APPname}.bin'
-APPname='${APPname}'" >> ${PREFIXDIR1}${APPpath}/${APPname}
+APPname='${APPname}'
+ROOTOPTS='--no-sandbox'" >> ${PREFIXDIR1}${APPpath}/${APPname}
  echo "$RUNASCLIENT" >> ${PREFIXDIR1}${APPpath}/${APPname}
  chmod 755 ${PREFIXDIR1}${APPpath}/${APPname}
  
