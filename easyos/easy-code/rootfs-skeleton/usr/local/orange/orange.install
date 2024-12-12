@@ -7,6 +7,7 @@
 #  also expect exist /usr/share/pixmaps/icon-name.png
 #20240906 if uninstall, need to remove .bin, .bin0
 #20241016 PNalt alternative package name (devuan).
+#20241212 pkg may be a pet.
 
 export TEXTDOMAIN=orange
 export OUTPUT_CHARSET=UTF-8
@@ -98,6 +99,9 @@ if [ -z "$DBfnd" ];then
   DBfnd="$(grep -H -F "|${PNalt}|" /root/.packages/Packages-${DISTRO_BINARY_COMPAT}-${DISTRO_COMPAT_VERSION}-* | head -n 1)"
   if [ -n "$DBfnd" ];then PN="${PNalt}"; fi
  fi
+fi
+if [ -z "$DBfnd" ];then #20241212
+ DBfnd="$(grep -H -F "|${PN}|" /root/.packages/Packages-pet-${DISTRO_COMPAT_VERSION}-official | head -n 1)"
 fi
 if [ -z "$DBfnd" ];then #precaution
  ##debian...
