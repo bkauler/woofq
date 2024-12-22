@@ -29,6 +29,10 @@
 #20241107 exclude some apps from mimeapps.list
 #20241109 exclude pupzip
 #20241112 compromise, to speed up.
+#20241222 add "i" app. ref: https://forum.puppylinux.com/viewtopic.php?t=12663
+#20241222 maybe translate right-click menu entry.
+
+LANGorig1="${LANG:0:2}" #20241222
 
 export LANG=C #20241107 for speed.
 mkdir -p /tmp/build-rox-sendto #20241103
@@ -83,8 +87,23 @@ do
   ;;
  esac
  aEXE="$(grep '^Exec=' $aDT | head -n 1 | cut -f 2 -d '=' | cut -f 1 -d ' ' | rev | cut -f 1 -d '/' | rev)"
+ if [ "$aEXE" == "env" ];then #20241222
+  #i.desktop has Exec=env I_GUI=true i
+  aEXE="$(grep '^Exec=' $aDT | head -n 1 | cut -f 2 -d '=' | cut -f 3 -d ' ' | rev | cut -f 1 -d '/' | rev)"
+ fi
  [ "$aEXE" == "" ] && continue
- aNAME="$(grep '^Name=' $aDT | head -n 1 | cut -f 2 -d '=' | cut -f 1 -d ' ')"
+ #20241222 aNAME is usually just the name of the app, but sometimes translate...
+ xNAME="$(grep '^Name=' $aDT | head -n 1 | cut -f 2 -d '=')"
+ #aNAME="$(grep '^Name=' $aDT | head -n 1 | cut -f 2 -d '=' | cut -f 1 -d ' ')"
+ aNAME="${xNAME/ */}"
+ if [ "$xNAME" == "$aNAME" ];then
+  #no space chars, so see if there is a translation...
+  #note, ignore translation if it has a space char...
+  yNAME="$(grep "^Name\[${LANGorig1}\]=" $aDT | head -n 1 | cut -f 2 -d '=' | sed '/ /d')"
+  if [ -n "$yNAME" ];then
+   aNAME="$yNAME" #ex: i.desktop has "Name[no]=Informasjon"
+  fi
+ fi
  aMT="$(grep '^MimeType=' $aDT | cut -f 2 -d '=' | tr ';' '\n' | grep -v '^x-' | tr '/' '_')"
  MIMEDIR=''
  NOT='' #20241103
@@ -170,6 +189,7 @@ do
 #  gwhere) MIMEDIR='' ;;
 #  hardinfo) MIMEDIR='' ;;
   homebank)       MIMEDIR='application_x-homebank' ;;
+  i)              MIMEDIR='inode_directory'; echo "${aEXE}" >> /tmp/build-rox-sendto/ALLf; ;; #20241222
 #  iconfinder) MIMEDIR='' ;;
 #  icon_switcher) MIMEDIR='' ;;
   inkscape)       MIMEDIR='image' ;;
@@ -397,7 +417,18 @@ do
   if [ $? -eq 0 ];then continue; fi
   for aALL in $(cat /tmp/build-rox-sendto/ALLf | tr '\' ' ')
   do
-   aNAME="$(grep '^Name=' usr/share/applications/${aALL}.desktop | head -n 1 | cut -f 2 -d '=' | cut -f 1 -d ' ')"
+   #20241222 aNAME is usually just the name of the app, but sometimes translate...
+   #aNAME="$(grep '^Name=' usr/share/applications/${aALL}.desktop | head -n 1 | cut -f 2 -d '=' | cut -f 1 -d ' ')"
+   xNAME="$(grep '^Name=' usr/share/applications/${aALL}.desktop | head -n 1 | cut -f 2 -d '=')"
+   aNAME="${xNAME/ */}"
+   if [ "$xNAME" == "$aNAME" ];then
+    #no space chars, so see if there is a translation...
+    #note, ignore translation if it has a space char...
+    yNAME="$(grep "^Name\[${LANGorig1}\]=" usr/share/applications/${aALL}.desktop | head -n 1 | cut -f 2 -d '=' | sed '/ /d')"
+    if [ -n "$yNAME" ];then
+     aNAME="$yNAME" #ex: i.desktop has "Name[no]=Informasjon"
+    fi
+   fi
    if [ "$cDT1" == "-" ];then
     #ex: DTs=/usr/share/applications/abiword.desktop
     if [ "/usr/share/applications/${aALL}.desktop" == "${DTs}" ];then
