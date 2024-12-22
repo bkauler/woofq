@@ -69,7 +69,7 @@
 #20240118 fix flatpak in easyvoid.
 #20240909 handle ibus input method.
 #20240922 fix mount /dev/pts
-#20241211 /var/run symlink to /run, like other distros (and fix flatpak).
+#20241211 /var/run symlink to /run, like other distros (and fix flatpak). 20241214 fix.
 
 #unset TZ #100319 busybox hwclock gives priority to this (rather than /etc/localtime) and 'init' has set it wrong.
 #...comment-out for now. note, TZ now set in rc.country.
@@ -237,7 +237,7 @@ if [ $PREMNTD -eq 0 ];then #190811
 fi
 mkdir -p /tmp/var/cache
 mkdir /tmp/var/lock #20221102
-#mkdir /tmp/run  #20241211 remove.
+mkdir /tmp/run  #20241211 remove. 20241214 keep.
 
 #180617 limit rox-filer thumbnails... 180618
 if [ `ls -1 /root/.thumbnails/normal 2>/dev/null | wc -l` -gt 100 ];then
@@ -272,10 +272,14 @@ if [ -d /run ];then #20221026 hack fix.
  else
   rm -f /run
  fi
+else
+ #20241214 paranoid, in case it is a broken symlink
+ rm -f /run
 fi
 #ln -snf /tmp/run /run #20220510 could have done ln -snf /tmp/var/run /run  20221102 20241211 no.
 #20241211 populate...
 cp -a /mnt/.easy_ro/easy_sfs/var/run /run
+mkdir -p /run #20241214 over-the-top paranoid
 
 if [ -d /var/run ];then #20221102
  if [ ! -h /var/run ];then
@@ -283,9 +287,16 @@ if [ -d /var/run ];then #20221102
  else
   rm -f /var/run
  fi
+else
+ #20241214 paranoid, in case it is a broken symlink
+ rm -f /var/run
 fi
 #ln -snf /tmp/run /var/run #20241211 no
 ln -s /run /var/run
+
+#20241214 put this in as precaution, in case anywhere expecting old /run symlink to /tmp/run...
+rm -rf /tmp/run
+ln -s /run /tmp/run
 
 #20240117 for easyvoid
 if [ -d /var/service ];then #20240119 precaution, in case it somehow got created.
