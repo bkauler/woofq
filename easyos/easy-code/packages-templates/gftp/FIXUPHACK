@@ -15,3 +15,9 @@ if [ -x usr/bin/gftp-gtk ];then
  fi
  mv -f usr/bin/gftp-gtk usr/bin/gftp
 fi
+
+#20241225 daedalus
+#stupid broken debian pkg, has gftprc in wrong place...
+if [ -f etc/gftp/gftprc ];then
+ cp -a -f etc/gftp/gftprc usr/share/gftp/
+fi
