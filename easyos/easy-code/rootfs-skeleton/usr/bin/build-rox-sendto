@@ -89,7 +89,7 @@ do
  aEXE="$(grep '^Exec=' $aDT | head -n 1 | cut -f 2 -d '=' | cut -f 1 -d ' ' | rev | cut -f 1 -d '/' | rev)"
  if [ "$aEXE" == "env" ];then #20241222
   #i.desktop has Exec=env I_GUI=true i
-  aEXE="$(grep '^Exec=' $aDT | head -n 1 | cut -f 2 -d '=' | cut -f 3 -d ' ' | rev | cut -f 1 -d '/' | rev)"
+  aEXE="$(grep '^Exec=' $aDT | head -n 1 | cut -f 2- -d '=' | cut -f 3 -d ' ' | rev | cut -f 1 -d '/' | rev)"
  fi
  [ "$aEXE" == "" ] && continue
  #20241222 aNAME is usually just the name of the app, but sometimes translate...
