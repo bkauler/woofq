@@ -72,6 +72,7 @@
 #20241127 temp hack for dbus
 #20242230 alternative set kb layout for xephyr
 #20241212 /run no longer a symlink to /tmp/run
+#20241225 fix daedalus container.
 
 #20230626 20241122
 if [ "$(whoami)" != "root" ];then exec sudo-sh ${PPID} ${0} ${@}; fi
@@ -637,8 +638,8 @@ do
 done
 #190911 "easy" container has been renamed...
 case "$EXE" in
- #20220604 fix...  20230219 added kirkstone  20240114 add scarthgap and current
- pyro|buster|dunfell|bookworm|kirkstone|scarthgap|current) #***will need future fix when more easyos series*** 20210118 added dunfell.
+ #20220604 fix...  20230219 added kirkstone  20240114 add scarthgap and current 20241225 add daedalus
+ pyro|buster|dunfell|bookworm|kirkstone|scarthgap|current|daedalus) #***will need future fix when more easyos series*** 20210118 added dunfell.
   if [ -f ${CONTAINER}/.control/${EXE}.run-once-top ];then
    bEXE="${EXE}"
   else
