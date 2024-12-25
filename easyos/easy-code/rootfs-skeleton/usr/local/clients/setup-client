@@ -80,6 +80,7 @@
 #20240912 fix if param passed to .bin has a space char.
 #20241108 commented-out a killall. ref: https://forum.puppylinux.com/viewtopic.php?p=135190#p135190
 #20241212 allow apps to run non-root in containers.
+#20241223 opera params.
 
 APPname="${1/=*/}"  #ex: seamonkey
 APPflag="${1/*=/}" #ex: true
@@ -451,6 +452,18 @@ if [ $Cflg -eq 1 ];then #=1 running in container.
   #find out if container has permission to run chown and chmod...
   CONT="$(find /.control -name "*.run-once-top-flag" | head -n 1 | cut -f 3 -d "/" | cut -f 1 -d ".")"
   if [ -n "${CONT}" ];then #ex: daedalus
+  
+   #20241223 host os running in container...
+   #ex: host scarthgap, in scarthgap container have easy.run-once-top-flag and scarthgap.configuration
+   if [ "$CONT" == "easy" ];then
+    if [ ! -f /.control/easy.configuration ];then
+     . /etc/DISTRO_SPECS
+     if [ -f /.control/${DISTRO_COMPAT_VERSION}.configuration ];then
+      CONT="${DISTRO_COMPAT_VERSION}"
+     fi
+    fi
+   fi
+
    if [ -f /.control/${CONT}.configuration ];then
     . /.control/${CONT}.configuration
     if [ "${EC_CAP_file}" == "false" ];then
@@ -897,7 +910,9 @@ opera_true() {
 if [ "$(whoami)" != "root" ];then exec sudo-sh ${PPID} ${0} ${@}; fi' > ${PREFIXDIR1}${APPpath}/${APPname}
  echo "APPbin='${APPpath}/${APPname}.bin'
 APPname='${APPname}'
-ROOTOPTS='--no-sandbox'" >> ${PREFIXDIR1}${APPpath}/${APPname}
+ROOTOPTS='--no-sandbox --test-type --enable-unsafe-swiftshader' #20241223
+NONROOTMAINOPTS='--disable-features=AudioServiceSandbox' #20241223
+" >> ${PREFIXDIR1}${APPpath}/${APPname}
  echo "$RUNASCLIENT" >> ${PREFIXDIR1}${APPpath}/${APPname}
  chmod 755 ${PREFIXDIR1}${APPpath}/${APPname}
  
