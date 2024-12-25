@@ -341,6 +341,7 @@
 #20241125 fix font for x11 apps, improve startup speed. 20241126
 #20241125 run setxkbmap before start jwm, and before xmodmap (in desk-delayedrun). 20241126
 #20241130 hack fix. ref: https://bkhome.org/news/202411/xrdb-fixed-in-container.html
+#20241225 run-once-top: remove more menu entries.
 
 export LANG=C #faster.
 
@@ -5858,6 +5859,18 @@ cat << 'EOF3' >> rootfs-complete/.control/${DISTRO_NAME_SHORT,,}.run-once-top
  for aDT in easyshare nm-applet nm-connection-editor nmtui hostname-set
  do
   rm -f /usr/share/applications/${aDT/STAR/*}.desktop 2>/dev/null
+ done
+ #20241225 remove the orange menu entries (coz they want to install non-root and dont ask)...
+ for aDT in $(grep -H '/usr/local/orange' /usr/share/applications/*.desktop | cut -f 1 -d ':')
+ do
+  [ -z "${aDT}" ] && continue
+  rm -f /usr/share/applications/${aDT##*/}
+ done
+ #20241225 also browsers are troublesome (no audio) sandbox inside container...
+ for aDT in $(grep -H 'Name=Download latest' /usr/share/applications/*.desktop | cut -f 1 -d ':')
+ do
+  [ -z "${aDT}" ] && continue
+  rm -f /usr/share/applications/${aDT##*/}
  done
  fixmenus
  #181105 reshape the backround image...
