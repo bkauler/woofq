@@ -29,7 +29,7 @@
 #20241107 exclude some apps from mimeapps.list
 #20241109 exclude pupzip
 #20241112 compromise, to speed up.
-#20241222 add "i" app. ref: https://forum.puppylinux.com/viewtopic.php?t=12663
+#20241222 add "i" app. ref: https://forum.puppylinux.com/viewtopic.php?t=12663  20241227
 #20241222 maybe translate right-click menu entry.
 
 LANGorig1="${LANG:0:2}" #20241222
@@ -101,7 +101,7 @@ do
   #note, ignore translation if it has a space char...
   yNAME="$(grep "^Name\[${LANGorig1}\]=" $aDT | head -n 1 | cut -f 2 -d '=' | sed '/ /d')"
   if [ -n "$yNAME" ];then
-   aNAME="$yNAME" #ex: i.desktop has "Name[no]=Informasjon"
+   aNAME="$yNAME" #ex: i.desktop has "Name[no]=Filinformasjon"
   fi
  fi
  aMT="$(grep '^MimeType=' $aDT | cut -f 2 -d '=' | tr ';' '\n' | grep -v '^x-' | tr '/' '_')"
@@ -189,7 +189,7 @@ do
 #  gwhere) MIMEDIR='' ;;
 #  hardinfo) MIMEDIR='' ;;
   homebank)       MIMEDIR='application_x-homebank' ;;
-  i)              MIMEDIR='inode_directory'; echo "${aEXE}" >> /tmp/build-rox-sendto/ALLf; ;; #20241222
+  i)              MIMEDIR='inode_directory application_easy-disk-image application_gzip application_pet application_vnd-debian-binary-package application_x-bzip-compressed-tar application_x-cpio application_x-compressed-tar application_x-linux-kernel application_x-squashfs-image application_x-tar application_x-xbps application_x-xz-compressed-tar applicatio_zip application_zstd-compressed-tar text_x-log text_x-patch'; echo "${aEXE}" >> /tmp/build-rox-sendto/ALLf; ;; #20241222 20241227
 #  iconfinder) MIMEDIR='' ;;
 #  icon_switcher) MIMEDIR='' ;;
   inkscape)       MIMEDIR='image' ;;
