@@ -334,7 +334,7 @@
 #20241010 delete eqv container if support missing.
 #20241019 tweak update-ca-certificates
 #20241019 /etc/group audio: too many users (61+). 20241021 revert.
-#20241024 easyos scarthgap 6.4+ will support installing devuan daedalus debs. 20241026 20241027 remove.
+#20241024 easyos scarthgap 6.4+ will support installing devuan daedalus debs. 20241026 20241027 remove. 20241227 fix remove.
 #20241028 generate /etc/os-release
 #20241123 new button to flip out of container.
 #20241124 remove menu network entries in container.
@@ -2125,7 +2125,8 @@ echo
 #20241024 easyos scarthgap 6.4+ will support installing devuan daedalus debs...
 if [ "${DISTRO_COMPAT_VERSION}" == "scarthgap" ];then
  . ../PROJECTPATH
- cp -a -f ${PROJECTPATH}/easy-distro/${WOOF_TARGETARCH}/devuan/daedalus/Packages-devuan-daedalus-* rootfs-complete/root/.packages/
+ #20241227 no removed...
+ #cp -a -f ${PROJECTPATH}/easy-distro/${WOOF_TARGETARCH}/devuan/daedalus/Packages-devuan-daedalus-* rootfs-complete/root/.packages/
 fi
 
 #also copy this...
