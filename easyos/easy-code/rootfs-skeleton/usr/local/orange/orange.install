@@ -8,6 +8,7 @@
 #20240906 if uninstall, need to remove .bin, .bin0
 #20241016 PNalt alternative package name (devuan).
 #20241212 pkg may be a pet.
+#20250102 bug fix line 167
 
 export TEXTDOMAIN=orange
 export OUTPUT_CHARSET=UTF-8
@@ -164,7 +165,7 @@ MC="$(grep "[ ,]${DC}[ ,]" /etc/xdg/menus/hierarchy | cut -f 1 -d ' ' | head -n 
 #...top menu category
 #fix .desktop file...
 sed -i -e "s%^Icon=.*%Icon=${EN}.png%" ${DT}
-sed -i -e "s%^Exec=.*%^Exec=${EN}%"  ${DT}
+sed -i -e "s%^Exec=.*%Exec=${EN}%"  ${DT}
 
 case "${MC}" in
  Desktop)    MENUtop="$(gettext 'Desktop')" ;;
