@@ -73,6 +73,7 @@
 #20242230 alternative set kb layout for xephyr
 #20241212 /run no longer a symlink to /tmp/run
 #20241225 fix daedalus container.
+#20250205 fix Xephyr cannot load .pcf fonts (rubix, ycalc, lite-xl not work).
 
 #20230626 20241122
 if [ "$(whoami)" != "root" ];then exec sudo-sh ${PPID} ${0} ${@}; fi
@@ -318,7 +319,8 @@ case "$EC_XSERVER" in #180703
    XLAYOUT="$(grep 'layout:' <<<"${XKBMAP}" | cut -f 2 -d ' ')"
    XVARIANT="$(grep 'variant:' <<<"${XKBMAP}" | cut -f 2 -d ' ')"
    XOPTIONS="$(grep 'options:' <<<"${XKBMAP}" | cut -f 2 -d ' ')"
-   Xephyr :${CNTxephyr} -xkb-model ${XMODEL} -xkb-layout ${XLAYOUT} -xkb-variant "${XVARIANT}" -xkb-options "${XOPTIONS}" -fullscreen -title "${EXE}" -name "Xephyr${CNTxephyr}" -dpi "$DPI" -nolisten tcp &
+   #20250105 add -fp so x11 apps can work...
+   Xephyr :${CNTxephyr} -xkb-model ${XMODEL} -xkb-layout ${XLAYOUT} -xkb-variant "${XVARIANT}" -xkb-options "${XOPTIONS}" -fullscreen -title "${EXE}" -name "Xephyr${CNTxephyr}" -dpi "$DPI" -nolisten tcp -fp /usr/share/fonts/misc,/usr/share/fonts/TTF,/usr/share/fonts/X11 &
    #Xephyr :${CNTxephyr} -fullscreen -no-host-grab -title "${EXE}" -name "Xephyr${CNTxephyr}" -dpi "$DPI" -nolisten tcp &
    echo "${CNTxephyr} ${EXE}" >> /tmp/easy_containers/xephyr-windows
    #wait until ready to use...
