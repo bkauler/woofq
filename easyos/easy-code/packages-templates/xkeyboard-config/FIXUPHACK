@@ -20,3 +20,10 @@ sync
 ln -snf base.lst etc/X11/xkb/rules/xorg.lst
 #maybe also this...
 ln -snf base.xml etc/X11/xkb/rules/xorg.xml
+
+#20250105
+#/tmp/xerrs.log: xkbcomp gives lots of warnings, like this:
+# "Could not resolve keysym XF86CameraAccessEnable"
+#fix with inet file from debian xkb-data deb
+cp -a -f defaults/inet etc/X11/xkb/symbols/
+rm -rf defaults
