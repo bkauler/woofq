@@ -342,6 +342,7 @@
 #20241125 run setxkbmap before start jwm, and before xmodmap (in desk-delayedrun). 20241126
 #20241130 hack fix. ref: https://bkhome.org/news/202411/xrdb-fixed-in-container.html
 #20241225 run-once-top: remove more menu entries.
+#20250106 remove any invalid orange-ball .desktop files. 20250107 improve
 
 export LANG=C #faster.
 
@@ -5645,6 +5646,25 @@ cp -f ec-easy48.png rootfs-complete/usr/share/pixmaps/
 cp -f easy48.png export-sfs-${DEFAULTLANG1}/easy.png
 #dummy .desktop...
 mkdir -p rootfs-complete/usr/share/applications
+
+#20250106 remove invalid orange-ball .desktop files... 20250107 improve.
+for xDT in $(grep -H '/usr/local/orange' rootfs-complete/usr/share/applications/*.desktop)
+do
+ #ex: rootfs-complete/usr/share/applications/vym.desktop:Exec=/usr/local/orange/orange.install vym
+ [ -z "$xDT" ] && continue
+ DT="${xDT/:*/}"
+ EX="${xDT##* }"
+ [ ! -e rootfs-complete/usr/local/orange/config/${EX} ] && continue
+ grep '^[A-Z]' rootfs-complete/usr/local/orange/config/${EX} > /tmp/orange-config-${EX}
+ sed -i -e 's%^%xx%' /tmp/orange-config-${EX}
+ . /tmp/orange-config-${EX} #have xxPN pkg name
+ grep -q -i -F "|${xxPN}|" rootfs-complete/root/.packages/Packages-*
+ if [ $? -ne 0 ];then
+  echo "Removing ${DT}"
+  rm -f rootfs-complete/usr/share/applications/${DT##*/}
+ fi
+ rm -f /tmp/orange-config-${EX}
+done
 
 if [ "$EOS_SUPPORT_CONTAINERS" != "0" ];then #20220525
  #190911 change name "easy" to "pyro" or "buster"...
