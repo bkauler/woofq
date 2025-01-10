@@ -102,6 +102,7 @@
 #20241015 daedalus alsa-lib seems $ONESYMLINK has space char.
 #20241025 want DISTRO_COMPAT_VERSION in FIXUPHACK
 #20241029 handle compat:security last field of Packages-devuan-daedalus-security
+#20250107 fix if path has a space.
 
 export LANG=C #faster.
 
@@ -1585,10 +1586,10 @@ _EOF1
     exePATHSPEC="../packages-${DISTRO_FILE_PREFIX}/${GENERICNAME}${EXE}/${UPONE}/${DESTFILE}"
     #devPATHSPEC="../packages-${DISTRO_FILE_PREFIX}/${GENERICNAME}${DEV}/${UPONE}/${DESTFILE}"
    fi
-   if [ ! -e $exePATHSPEC ];then #140126
+   if [ ! -e "$exePATHSPEC" ];then #140126 20250107 fix
     if [ ! -e "../packages-${DISTRO_FILE_PREFIX}/${GENERICNAME}${DEV}/${ONESYMLINK}" ];then
-     mkdir -p ../packages-${DISTRO_FILE_PREFIX}/${GENERICNAME}${DEV}/${UPONE}
-     cp -a "$ONESYMLINK" ../packages-${DISTRO_FILE_PREFIX}/${GENERICNAME}${DEV}/${UPONE}/
+     mkdir -p "../packages-${DISTRO_FILE_PREFIX}/${GENERICNAME}${DEV}/${UPONE}"
+     cp -a "$ONESYMLINK" "../packages-${DISTRO_FILE_PREFIX}/${GENERICNAME}${DEV}/${UPONE}/"
     fi
     continue
    fi
