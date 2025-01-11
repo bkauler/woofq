@@ -38,6 +38,7 @@
 #20220126 now PKGget
 #20220629 replace "Puppy" with "EasyOS".
 #20240301 support easyvoid.  20240503 remove.
+#20250111 remove "Trim the fat" button.
 
 export TEXTDOMAIN=petget___downloadpkgs.sh
 export OUTPUT_CHARSET=UTF-8
@@ -317,17 +318,18 @@ fi
 #announce summary of successfully installed pkgs...
 #installpkg.sh will have logged to /tmp/petget-installed-pkgs-log
 if [ -s /tmp/petget-installed-pkgs-log ];then
- if [ "$FLAGPET" != "yes" ];then #101016 do not offer to trim-the-fat if pet pkg(s)
-  BUTTONS9="<text><label>$(gettext "NOTE: If you are concerned about the large size of the installed packages, EasyOS has some clever code to delete files that are not likely to be needed for the application to actually run. If you would like to try this, click 'Trim the fat' button (otherwise just click 'OK'):")</label></text>
-   <hbox>
-    <button><label>$(gettext 'Trim the fat')</label><action type=\"exit\">BUTTON_TRIM_FAT</action></button>
-    <button ok></button>
-   </hbox>"
- else
+ #20250111 remove "Trim the fat" button...
+ #if [ "$FLAGPET" != "yes" ];then #101016 do not offer to trim-the-fat if pet pkg(s)
+ # BUTTONS9="<text><label>$(gettext "NOTE: If you are concerned about the large size of the installed packages, EasyOS has some clever code to delete files that are not likely to be needed for the application to actually run. If you would like to try this, click 'Trim the fat' button (otherwise just click 'OK'):")</label></text>
+ #  <hbox>
+ #   <button><label>$(gettext 'Trim the fat')</label><action type=\"exit\">BUTTON_TRIM_FAT</action></button>
+ #   <button ok></button>
+ #  </hbox>"
+ #else
   BUTTONS9="<hbox>
     <button ok></button>
    </hbox>"
- fi
+ #fi
  INSTALLEDMSG="`cat /tmp/petget-installed-pkgs-log`" #ex line: "PACKAGE: langpack_ru-20120720 CATEGORY: Setup"
  #note, same code in petget...
  #121011 L18L reported problem, category names also need translating...
