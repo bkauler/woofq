@@ -1,3 +1,10 @@
 
 #170527 oe pyro
 [ -d etc/init.d ] && rm -rf etc/init.d
+
+#20250111
+#daedalus: suid bit needs to be set (already set in scarthgap)...
+PTH=''
+if [ -f bin/fusermount ];then PTH='bin'; fi #daedalus
+if [ -f usr/bin/fusermount ];then PTH='usr/bin'; fi
+if [ -n "$PTH" ];then chmod 4755 ${PTH}/fusermount; fi
