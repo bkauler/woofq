@@ -5647,7 +5647,7 @@ cp -f easy48.png export-sfs-${DEFAULTLANG1}/easy.png
 #dummy .desktop...
 mkdir -p rootfs-complete/usr/share/applications
 
-#20250106 remove invalid orange-ball .desktop files... 20250107 improve.
+#20250106 remove invalid orange-ball .desktop files... 20250107 improve. 20250111 fix.
 for xDT in $(grep -H '/usr/local/orange' rootfs-complete/usr/share/applications/*.desktop)
 do
  #ex: rootfs-complete/usr/share/applications/vym.desktop:Exec=/usr/local/orange/orange.install vym
@@ -5655,10 +5655,13 @@ do
  DT="${xDT/:*/}"
  EX="${xDT##* }"
  [ ! -e rootfs-complete/usr/local/orange/config/${EX} ] && continue
- grep '^[A-Z]' rootfs-complete/usr/local/orange/config/${EX} > /tmp/orange-config-${EX}
+ grep -E '^PN|^EN|^RN|^AN|^SD|^HP|^MI|^UN' rootfs-complete/usr/local/orange/config/${EX} > /tmp/orange-config-${EX}
  sed -i -e 's%^%xx%' /tmp/orange-config-${EX}
  . /tmp/orange-config-${EX} #have xxPN pkg name
  grep -q -i -F "|${xxPN}|" rootfs-complete/root/.packages/Packages-*
+ if [ $? -ne 0 ];then
+  grep -q -i -F "|${xxPN}alt|" rootfs-complete/root/.packages/Packages-*
+ fi
  if [ $? -ne 0 ];then
   echo "Removing ${DT}"
   rm -f rootfs-complete/usr/share/applications/${DT##*/}
