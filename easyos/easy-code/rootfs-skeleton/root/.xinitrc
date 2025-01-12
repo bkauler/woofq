@@ -24,6 +24,7 @@
 #20230720 default.jpg/.png mismatch.
 #20240726 Caramel: jwm keyboard fix. ref: https://forum.puppylinux.com/viewtopic.php?t=12241  20240831 fix.
 #20240831 now tray mostly full-width (see tray_dims) and want labels.
+#20250112 fix jwm blurry wallpaper.
 
 . /etc/rc.d/PUPSTATE #20220526 has EOS_SUPPORT_CONTAINERS
 
@@ -107,10 +108,11 @@ if [ $RET1 -eq 11 ];then
   #truncated image created, update rox...
   iPTN="s%>.*</backdrop>%>${NEWIMAGE}</backdrop>%"
   sed -i -e "$iPTN" /root/Choices/ROX-Filer/PuppyPin
-  if [ "$UI_DESK_MANAGER" == "jwm" ];then #20220208
+  #20250112 do this always, so not blurry...
+  #if [ "$UI_DESK_MANAGER" == "jwm" ];then #20220208
    jPTN="s%<Background.*%<Background type=\"image\">${NEWIMAGE}</Background>%"
    sed -i -e "$jPTN" /root/.jwm/jwmrc-personal
-  fi
+  #fi
  fi
 fi
 #180904 don't need to do this, .xinitrc not run in desk0 container. ref '/usr/bin/desk0' script in container.
