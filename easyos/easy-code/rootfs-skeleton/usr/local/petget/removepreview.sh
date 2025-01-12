@@ -42,6 +42,7 @@
 #20240503 remove woofV.
 #20240906 jwm-mode aware.
 #20241104 run build-rox-sendto as a separate process, because slow.
+#20250112 fix remove.
 
 export TEXTDOMAIN=petget___removepreview.sh
 export OUTPUT_CHARSET=UTF-8
@@ -205,8 +206,8 @@ fi
 #131230 from here down, use busybox applets only...
 export LANG=C
 
-#20230629 preserve .desktop files, coz want to read them later...
-DESKTOPFILES="`grep '\.desktop$' /root/.packages/${DB_pkgname}.files | tr '\n' ' '`"
+#20230629 preserve .desktop files, coz want to read them later... 20250112
+DESKTOPFILES="`grep 'usr/share/applications.*\.desktop$' /root/.packages/${DB_pkgname}.files | tr '\n' ' '`"
 for ONEDESKTOP in $DESKTOPFILES
 do
  cp -f ${ONEDESKTOP} /tmp/${ONEDESKTOP##*/}
@@ -331,15 +332,6 @@ done" > /tmp/sep-rem-build-rox-sendto${$}
  /tmp/sep-rem-build-rox-sendto${$} &
 fi
 
-#110706 update menu if .desktop file exists...
-if [ -f /root/.packages/${DB_pkgname}.files ];then
- if [ "`grep '\.desktop$' /root/.packages/${DB_pkgname}.files`" != "" ];then
-  #Reconstruct configuration files for JWM, Fvwm95, IceWM...
-  fixmenus
-  jwm -reload
- fi
-fi
-
 #140204 no longer exporting LD_LIBRARY_PATH in /etc/profile, so must update /etc/ld.so.conf and /etc/ld.so.cache
 #glibc template changed, 'ldconfig' now in main f.s., not in devx.
 #note, similar code is in installpkg.sh
@@ -365,6 +357,7 @@ do
 done
 [ $LDFLG -eq 1 ] && ldconfig
 
+#20250112 orange-ball has already rolled-back .desktop so get it from saved /tmp...
 #20240307 if an app has been installed to run non-root, delete the .bin and .bin0...
 # (see also /usr/bin/xbps-remove.sh)
 Jflg=0 #20240906
@@ -374,7 +367,7 @@ if [ $? -eq 0 ];then
  do
   [ -z "$aDT" ] && continue
   [ -d "$aDT" ] && continue #20240906
-  EXEC="$(grep '^Exec=' ${aDT} | cut -f 2 -d '=' | cut -f 1 -d ' ')"
+  EXEC="$(grep '^Exec=' /tmp/${aDT##*/} | cut -f 2 -d '=' | cut -f 1 -d ' ')" #20250112
   if [ -n "$EXEC" ];then
    [ -f /usr/bin/${EXEC} ] && rm -f /usr/bin/${EXEC}
    [ -f /usr/bin/${EXEC}.bin ] && rm -f /usr/bin/${EXEC}.bin
@@ -412,7 +405,12 @@ if [ $? -eq 0 ];then
 </env:Envelope>" | rox -R
    fi
    #20240310 packages-templates may have renamed .desktop file when install...
-   rm -f /usr/share/applications/${EXEC}.desktop 2>/dev/null
+   if [ -f /usr/share/applications/${EXEC}.desktop ];then
+    grep -q -F 'usr/local/orange' /usr/share/applications/${EXEC}.desktop #20250112
+    if [ $? -ne 0 ];then
+     rm -f /usr/share/applications/${EXEC}.desktop
+    fi
+   fi
   
    #20240906 jwm-mode
    if [ -f /root/.jwm/tray-icons ];then
@@ -432,6 +430,16 @@ if [ $? -eq 0 ];then
    
   fi
  done
+fi
+
+#110706 update menu if .desktop file exists... 20250112
+if [ -f /root/.packages/${DB_pkgname}.files ];then
+ grep -q '\.desktop$' /root/.packages/${DB_pkgname}.files
+ if [ $? -eq 0 ];then
+  #Reconstruct configuration files for JWM, Fvwm95, IceWM...
+  fixmenus
+  jwm -reload
+ fi
 fi
 if [ $Jflg -eq 1 ];then #20240906
  jwm -restart
