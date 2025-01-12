@@ -39,6 +39,7 @@
 #20220629 replace "Puppy" with "EasyOS".
 #20240301 support easyvoid.  20240503 remove.
 #20250111 remove "Trim the fat" button.
+#20250112 remove leftover easyvoid code.
 
 export TEXTDOMAIN=petget___downloadpkgs.sh
 export OUTPUT_CHARSET=UTF-8
@@ -209,6 +210,7 @@ do
  
  #now download and install them...
  cd /root
+ DLpath='/root' #20250112
  
  for ONEFILE in `cat $ONELIST | cut -f 7,8,13 -d '|'` #100527 path|fullfilename|repo-id
  do
@@ -218,12 +220,6 @@ do
   ONEPATH="`echo -n "$ONEFILE" | cut -f 1 -d '|'`" #100527
   ONEFILE="`echo -n "$ONEFILE" | cut -f 1,2 -d '|' | tr '|' '/'`" #100527 path/fullfilename
   [ "`echo -n "$ONEFILE" | rev | cut -c 1-3 | rev`" = "pet" ] && FLAGPET='yes' #101016
-  if [ "$FLAGPET" == "yes" ];then #20240301
-   cd ${E1}/dl-pet
-   DLpath="${E1}/dl-pet"
-  else
-   DLpath='/root'
-  fi
   #if [ "$RADIO_URL_LOCAL" = "true" ];then
   if [ "`echo "$RETPARAMS" | grep 'RADIO_URL_LOCAL' | grep 'true'`" != "" ];then
    [ ! -f ${LOCALDIR}/${ONEFILE} ] && ONEFILE="`basename $ONEFILE`"
