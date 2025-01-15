@@ -63,6 +63,7 @@
 #20240918 fix debdb2pupdb -- using bacon version.
 #20241018 /tmp/woofV not used. 20241019 use /tmp/0setup_tmp  use debdb2pupdb-nim
 #20241029 does not exist: http://deb.devuan.org/merged/dists/daedalus-updates-security/main/binary-amd64/Packages.xz
+#20250115 bad quote char in DB_description. ref: https://forum.puppylinux.com/viewtopic.php?t=13626
 
 LANGORG="$(locale | grep '^LANG=' | cut -d '=' -f 2)" #121116
 export LANG=C #faster.
@@ -567,6 +568,7 @@ do
   ubuntu|debian|raspbian|devuan) #150419
    
    if [ -f /usr/local/petget/debdb2pupdb-nim ];then #20241019
+    #20250115 note: description field improved filtering.
     #the bacon one isn't working in daedalus.
     rm -f /tmp/debget/debian-pkgs-db 2>/dev/null
     rm -f /tmp/debget/puppy-pkgs-db 2>/dev/null
@@ -638,7 +640,12 @@ do
       #DB_category="`${FIND_CAT} $xPackage "$Description"`" #120812 find_cat now returns category[;subcategory], ex: Document;edit
       DB_dependencies="`echo -n "$Depends" | sed -e 's%, %\n%g' | cut -f 1 -d ' ' | tr '\n' ' ' | sed -e 's% $%%' -e 's% %,+%g' -e 's%,$%%'`"
       [ "$DB_dependencies" != "" ] && DB_dependencies='+'"$DB_dependencies"
-      echo "$DB_pkgname|$Package|$DB_version|$DB_pkgrelease|$DB_category|${InstalledSize}K|$DB_path|$DB_fullfilename|$DB_dependencies|$Description|$DISTRO_BINARY_COMPAT|$DISTRO_COMPAT_VERSION|" >> /tmp/0setup_tmp/${ONE_PKGLISTS_COMPAT}temp #130126 $ONE_PKGLISTS_COMPAT
+      if [ -n "$Description" ];then #20250115
+       DB_description="$(echo -n "$Description" | sed -e 's/[^ 0-9a-zA-Z.+_=,-]//g')" #filter out any undesirables.
+      else
+       DB_description=''
+      fi
+      echo "$DB_pkgname|$Package|$DB_version|$DB_pkgrelease|$DB_category|${InstalledSize}K|$DB_path|$DB_fullfilename|$DB_dependencies|$DB_description|$DISTRO_BINARY_COMPAT|$DISTRO_COMPAT_VERSION|" >> /tmp/0setup_tmp/${ONE_PKGLISTS_COMPAT}temp #130126 $ONE_PKGLISTS_COMPAT
       echo -n "$Package "
       Description=''; Filename=''; Package=''; InstalledSize=''; Architecture=''; Version=''; Depends='' #160411
       endflag=''

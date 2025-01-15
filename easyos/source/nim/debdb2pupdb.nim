@@ -6,6 +6,7 @@
 #writes to: /tmp/debget/puppy-pkgs-db, /tmp/debget/debian-pkgs-homepage
 #note: has find_cat builtin. this gives 55K binary (after strip):
 # nim c --mm:orc -d:useMalloc --passC:-flto --passL:-flto -d:release --opt:size debdb2pupdb.nim
+#20250115 improve filter description.
 
 #want commandLineParams(), fileExists()...
 import std/os
@@ -226,7 +227,10 @@ while readLine(debdbfile, oneline):
   add(pupline, "|")
   
   #remove some chars from the description...
-  valcut1 = replace(debarray["Description:"], re"[\(\)\|\>\<]", "")
+  #20250115 more filtering description...
+  #valcut1 = replace(debarray["Description:"], re"[\(\)\|\>\<]", "")
+  valcut1 = replace(debarray["Description:"], re"[^ 0-9a-zA-Z.+_=,-]", "")
+  #valcut1 = replace(debarray["Description:"], re"[^ 0-9a-zA-Z_=,-]", "")
   add(pupline, valcut1) #ex: efficient, featureful word processor with collaboration
   add(pupline, "|")
   add(pupline, compatdistro) #ex: debian
