@@ -10,6 +10,7 @@
 #180408 support nvme drives.
 #200712 nvme drives do not have /sys/block/*/device/vendor
 #20240623 Caramel: fix de hang: https://forum.puppylinux.com/viewtopic.php?p=123611#p123611
+#20250123 fix nvme partition icons redraw every bootup.
 
 [ ! -d /root/.pup_event ] && exit 0 #170718
 
@@ -57,7 +58,7 @@ else
  for ONEDRV in `ls -1 /sys/block | grep -vE 'loop|ram' | tr '\n' ' '`
  do
   odPATTERN="/root/.pup_event/drive_${ONEDRV}"
-  OKDRV="`grep "$odPATTERN" /root/Choices/ROX-Filer/PuppyPin`"
+  OKDRV="$(grep -F "$odPATTERN" /root/Choices/ROX-Filer/PuppyPin)"
   if [ "$OKDRV" = "" ];then
    rm -rf /root/.pup_event/drive_${ONEDRV}* 2>/dev/null
   else
@@ -75,12 +76,15 @@ else
    #eval $LANG
    #T_size="`gettext \"Size:\"`"  #*WARNING* translation must be same as in /sbin/pup_event_frontend_d create_icon_func() 
    #LANG=C
-   #120222 internationalization introduced bug, fix it...
+   #120222 internationalization introduced bug, fix it... 20250123 fix...
    #DRVMODEL1="`grep -o "<Summary>.*${T_size}" /root/.pup_event/drive_${ONEDRV}/AppInfo.xml | cut -f 2-20 -d ' ' | rev | cut -f 2-20 -d ' ' | rev`"
    #120222 above is fixed, however go one step further and eliminate dependency on the translation of "Size:"...
-   DRVMODEL1="`grep -o '<Summary>.*</Summary>' /root/.pup_event/drive_${ONEDRV}/AppInfo.xml | cut -f 2-9 -d ':' | cut -f 1 -d '<' | tr -s ' ' | rev | cut -f 3-99 -d ' ' | rev | sed -e 's%^ %%'`"
-   #note, this must be same as done in /sbin/probedisk... 200712...
-   DRVMODEL2="`cat /sys/block/$ONEDRV/device/vendor 2>/dev/null | tr -s ' '``cat /sys/block/${ONEDRV}/device/model | tr -s ' '`"
+   DRVMODEL1="`grep -o '<Summary>.*</Summary>' /root/.pup_event/drive_${ONEDRV}/AppInfo.xml | cut -f 2-9 -d ':' | cut -f 1 -d '<' | tr -s ' ' | rev | cut -f 3-99 -d ' ' | rev | tr -d ' '`"
+   #note, this must be same as done in /sbin/probedisk... 200712... 
+   #DRVMODEL2="`cat /sys/block/$ONEDRV/device/vendor 2>/dev/null | tr -s ' '``cat /sys/block/${ONEDRV}/device/model | tr -s ' '`"
+   VENDOR="`cat /sys/block/$ONEDRV/device/vendor 2>/dev/null | tr -d ' '`"
+   MODEL="`cat /sys/block/$ONEDRV/device/model | tr -d ' '`"
+   DRVMODEL2="$VENDOR$MODEL"
    if [ "$DRVMODEL1" != "$DRVMODEL2" ];then
     rm -rf /root/.pup_event/drive_${ONEDRV}* 2>/dev/null
     continue
