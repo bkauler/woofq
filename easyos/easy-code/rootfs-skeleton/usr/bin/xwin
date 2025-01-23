@@ -22,6 +22,7 @@
 #20230602 may need to load the zap20 bigger font... 20230607 revert.
 #20230921 no longer using /tmp/simple_network_setup/network_default_reconnect_required_flag
 #20231110 fix waiting for kernel video drivers.
+#20250118 again fix waiting for kernel video drivers.
 
 export TEXTDOMAIN=xwin
 export OUTPUT_CHARSET=UTF-8
@@ -51,6 +52,7 @@ KERNELVER="`uname -r`" #w479
 #20211016 rewritten... 20231110 fix...
 #180501 restored this, removed "udevadm settle" in rc.sysinit...
 ##180410 remove (inserted "udevadm settle" in rc.sysinit instead)...
+#20250118 fix...
 echo -n 'Waiting for kernel video drivers to load: '
 #in my nvidia sfs, this has blacklist of i915 and nouveau...
 if [ -f /etc/modprobe.d/nvidia.conf ];then
@@ -64,30 +66,40 @@ for VIDPATH in ${VIDPATHS}
 do
  VIDMODULEs=''
  while [ $CNT -lt 20 ];do
-  if [ ! "$VIDMODULEs" ];then
-   if [ -e /sys/bus/pci/devices/*:${VIDPATH}/modalias ];then
-    VIDALIAS="$(cat /sys/bus/pci/devices/*${VIDPATH}/modalias)"
-    if [ "$VIDALIAS" ];then
-     VIDMODULEs="$(modprobe -R ${VIDALIAS} 2>/dev/null)"
-     #...this returns intended modules, even before they have actually loaded.
-     # may have multiple matches, ex: nouveau nvidia_drm nvidia (on separate lines)
-     [ "$VIDMODULEs" == "" ] && continue 2
-     CNTvid=$(echo -n "$VIDMODULEs" | tr '\n' ' ' | wc -w)
-     CNTblack=0
-     for aVIDMOD in $VIDMODULEs
-     do
-      [ "$aVIDMOD" == "" ] && continue
-      grep -q "^blacklist ${aVIDMOD}" /etc/modprobe.d/gpu.conf /etc/modprobe.d/blacklist.conf ${NVCONF}
-      [ $? -eq 0 ] && CNTblack=$(($CNTblack+1))
-     done
-     #get out of inner loop if all potential modules are blacklisted...
-     [ $CNTblack -ge $CNTvid ] && continue 2
+  if [ -z "$VIDMODULEs" ];then
+   REALPATH="$(realpath /sys/bus/pci/devices/*:${VIDPATH})"
+   if [ -n "${REALPATH}" ];then
+    if [ -e ${REALPATH}/modalias ];then
+     VIDALIAS="$(cat ${REALPATH}/modalias)"
+     if [ -n "$VIDALIAS" ];then
+      VIDMODULEs="$(modprobe -R ${VIDALIAS} 2>/dev/null)"
+      #...this returns intended modules, even before they have actually loaded.
+      # may have multiple matches, ex: nouveau nvidia_drm nvidia (on separate lines)
+     fi
     fi
    fi
   fi
-  if [ "$VIDMODULEs" ];then
-   #kernel can be incredibly slow to update /proc/modules, check module loaded this way...
-   [ -e /sys/bus/pci/devices/*:${VIDPATH}/driver ] && continue 2 #module has loaded.
+  if [ -n "$VIDMODULEs" ];then
+   CNTvid=$(echo -n "$VIDMODULEs" | tr '\n' ' ' | wc -w)
+   CNTblack=0
+   for aVIDMOD in $VIDMODULEs
+   do
+    if [ -z "$aVIDMOD" ];then continue; fi
+    grep -q "^blacklist ${aVIDMOD}" /etc/modprobe.d/gpu.conf /etc/modprobe.d/blacklist.conf ${NVCONF}
+    if [ $? -eq 0 ];then
+     CNTblack=$(($CNTblack+1))
+     continue
+    fi
+    #find out if loaded...
+    grep -q "^${aVIDMOD} " /proc/modules
+    if [ $? -eq 0 ];then continue 3; fi
+    #kernel can be incredibly slow to update /proc/modules, check module loaded this way...
+    if [ -e ${REALPATH}/driver ];then continue 3; fi
+    #...my zenbook, don't get this. try this...
+    if [ -e /sys/bus/pci/drivers/${aVIDMOD} ];then continue 3; fi
+   done
+   #get out of inner loop if all potential modules are blacklisted...
+   [ $CNTblack -ge $CNTvid ] && continue 2
   fi
   #fall to here, then video driver not yet loaded.
   sleep 0.5
