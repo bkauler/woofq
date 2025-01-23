@@ -6071,6 +6071,7 @@ HASH="$(sha256sum export-sfs-${DEFAULTLANG1}/${DISTRO_NAME_SHORT,,}_${VER}_${DIS
 sed -i -e "s%^SFS_DB_hash=.*%SFS_DB_hash='${HASH}'%" export-sfs-${DEFAULTLANG1}/${DISTRO_NAME_SHORT,,}_${VER}_${DISTRO_TARGETARCH}.specs
 
 if [ "$BOOTLOADER" == "limine" ];then #20221010
+ #20250122 intel_iommu=igfx_off fix asus zenbook s 13
  #20230218  20230304
  BRANDINGFIELD="${DISTRO_NAME_NORMAL} Limine Boot Manager"
  COMMENTFIELD="${DISTRO_NAME_NORMAL} ${DISTRO_COMPAT_VERSION^} bootup" #ex: Kirkstone
@@ -6090,7 +6091,7 @@ INTERFACE_RESOLUTION=800x600
     PROTOCOL=linux
     KERNEL_PATH=boot://2/easyos/vmlinuz
     MODULE_PATH=boot://2/easyos/initrd
-    KERNEL_CMDLINE=rw wkg_uuid=${UUID2} wkg_dir=easyos/
+    KERNEL_CMDLINE=rw wkg_uuid=${UUID2} wkg_dir=easyos/ intel_iommu=igfx_off
 
 :  ${OPTIONSFIELD}
 ::${FBVFIELD}
@@ -6099,7 +6100,7 @@ INTERFACE_RESOLUTION=800x600
     PROTOCOL=linux
     KERNEL_PATH=boot://2/easyos/vmlinuz
     MODULE_PATH=boot://2/easyos/initrd
-    KERNEL_CMDLINE=rw qfix=vid nomodeset wkg_uuid=${UUID2} wkg_dir=easyos/
+    KERNEL_CMDLINE=rw qfix=vid nomodeset wkg_uuid=${UUID2} wkg_dir=easyos/ intel_iommu=igfx_off
 " > img_mntpt/limine.cfg
  
  if [ "$WOOF_TARGETARCH" == "x86" ];then #20220801
