@@ -195,6 +195,7 @@
 #20240920 992MiB wkg-part, removed 880
 #20241011 support eqv builtin container. --optional
 #20241112 fix delete etc/xdg  ref: https://forum.puppylinux.com/viewtopic.php?p=135542#p135542
+#20250124 make sure version-history-depth exists.
 
 #20230429
 . /build-choices #3buildeasydistro copies it here.
@@ -1626,6 +1627,11 @@ if [ ! -d /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${INIT_DISTRO_VERSION} ];then
  done
  
  #170816 there is a limit on history...
+ #20250124 want it to exist...
+ if [ ! -e /mnt/${WKG_DEV}/${WKG_DIR}.session/var/local/version-history-depth ];then
+  mkdir -p /mnt/${WKG_DEV}/${WKG_DIR}.session/var/local
+  echo -n '5' > /mnt/${WKG_DEV}/${WKG_DIR}.session/var/local/version-history-depth
+ fi
  if [ -s /mnt/${WKG_DEV}/${WKG_DIR}.session/var/local/version-history-depth ];then
   DEPTH_MAX="$(cat /mnt/${WKG_DEV}/${WKG_DIR}.session/var/local/version-history-depth)"
   VERS="$(ls -l -d /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-* | rev | cut -f 1 -d '-' | rev)" #181218 fix.
