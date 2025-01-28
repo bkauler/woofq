@@ -196,6 +196,8 @@
 #20241011 support eqv builtin container. --optional
 #20241112 fix delete etc/xdg  ref: https://forum.puppylinux.com/viewtopic.php?p=135542#p135542
 #20250124 make sure version-history-depth exists.
+#20250127 discard_granularity not work. ref: https://forum.puppylinux.com/viewtopic.php?t=13709
+#20250128 hdparm detect and CONFIG_USB_UAS kernel now maybe can run fstrim.
 
 #20230429
 . /build-choices #3buildeasydistro copies it here.
@@ -1085,10 +1087,37 @@ if [ "$WKG_FS" == "ext4" ];then #200302  200621 now have full hdparm.
  # TRIMflg="$(hdparm -I /dev/${WKG_DRV} 2>/dev/null | grep -o 'TRIM' | head -n 1)"
  # #run 'fstrim' after $WKG_DEV mounted, every 20th bootup...
  #fi
- TESTdiscard="$(cat /sys/block/${WKG_DRV}/queue/discard_granularity 2>/dev/null)"
- if [ "$TESTdiscard" ];then
+ #20250127 discard_granularity not work 6.12.x kernel...
+ #TESTdiscard="$(cat /sys/block/${WKG_DRV}/queue/discard_granularity 2>/dev/null)"
+ TESTdiscard="$(cat /sys/block/${WKG_DRV}/queue/discard_max_bytes 2>/dev/null)"
+ if [ -n "$TESTdiscard" ];then
   if [ "$TESTdiscard" != "0" ];then
    TRIMflg='1'
+  fi
+ fi
+ #20250128 hdparm detect and CONFIG_USB_UAS kernel now maybe can run fstrim...
+ if [ "$TESTdiscard" == "0" ];then
+  hdparm -I /dev/${WKG_DRV} | grep 'Data Set Management TRIM supported'
+  if [ $? -eq 0 ];then
+   #fstrim may still not work, depends if usb interface supports usb-attached-scsi
+   #ref: https://askubuntu.com/questions/860618/fstrim-on-external-ssd-drives-dont-work
+   #ref: https://www.jeffgeerling.com/blog/2020/enabling-trim-on-external-ssd-on-raspberry-pi
+   #figuring out my own method, this matches scsi number to drive:
+   T1="$(ls -d -1 /sys/bus/scsi/drivers/sd/*/block/${WKG_DRV} | head -n 1)"
+   #ex: /sys/bus/scsi/drivers/sd/6:0:0:0/block/sdb
+   if [ -n "$T1" ];then
+    T2="$(echo -n "$T1" | rev | cut -f 3 -d '/' | rev)" #ex: 6:0:0:0
+    T3="$(find /sys/devices/ -path "*/scsi_disk/${T2}/*" -name provisioning_mode)"
+    #ex: /sys/devices/pci0000:00/0000:00:14.0/usb2/2-4/2-4:1.0/host6/target6:0:0/6:0:0:0/scsi_disk/6:0:0:0/provisioning_mode
+    if [ -n "$T3" ];then
+     T4="$(cat "$T3")"
+     if [ "$T4" == "full" ];then
+      echo unmap > $T3
+      #ex: this changes /sys/block/sdb/queue/discard_max_bytes from 0 to 4294966784
+     fi
+     TRIMflg='1'
+    fi
+   fi
   fi
  fi
 fi
