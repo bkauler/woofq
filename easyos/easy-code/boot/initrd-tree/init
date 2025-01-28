@@ -1115,7 +1115,11 @@ if [ "$WKG_FS" == "ext4" ];then #200302  200621 now have full hdparm.
       echo unmap > $T3
       #ex: this changes /sys/block/sdb/queue/discard_max_bytes from 0 to 4294966784
      fi
-     TRIMflg='1'
+     #test again...
+     TESTdiscard="$(cat /sys/block/${WKG_DRV}/queue/discard_max_bytes 2>/dev/null)"
+     if [ "$TESTdiscard" != "0" ];then
+      TRIMflg='1'
+     fi
     fi
    fi
   fi
