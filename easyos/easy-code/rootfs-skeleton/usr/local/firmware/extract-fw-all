@@ -7,6 +7,7 @@
 #broadcom b43: http://linuxwireless.org/en/users/Drivers/b43/ -- need to compile b43-fwcutter and d/l firmware
 #broadcom brcm: http://linuxwireless.org/en/users/Drivers/brcm80211/
 #20220309 firmware param may have wildcards. fix symlinks.
+#20250128 fix wildcards.
 
 KERVER="$(uname -r)"
 rm -rf fnd-firmware 2> /dev/null
@@ -29,9 +30,13 @@ do
    #keep this simple...
    echo "FW WITH WILDCARD: ${AFIRMWARE}"
    FIRMDIR="$(dirname /lib/firmware/$AFIRMWARE | head -n 1)"
-   echo "TEST1: cp -a -f /lib/firmware/${AFIRMWARE} fnd-firmware${FIRMDIR}/"
    mkdir -p fnd-firmware${FIRMDIR}
-   cp -a -f /lib/firmware/${AFIRMWARE} fnd-firmware${FIRMDIR}/
+   #20250128 fix...
+   for aF in $(ls -1 /lib/firmware/${AFIRMWARE})
+   do
+    if [ -z "$aF" ];then continue; fi
+    cp -a -f ${aF} fnd-firmware${FIRMDIR}/
+   done
   else
    if [ -f /lib/firmware/$AFIRMWARE ];then
     FIRMDIR="$(dirname /lib/firmware/$AFIRMWARE)"
