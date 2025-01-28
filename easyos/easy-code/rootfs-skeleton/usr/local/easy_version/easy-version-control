@@ -47,6 +47,7 @@
 #20231110 Caramel: fix depth limit problem.
 #20240512 fix rollback to earlier version. 
 #20240515 fix finding .cache folders. 20240516
+#20250128 only exclude part of /var (ref: /etc/rc.d/rw-merge and init).
 
 if [ "$(whoami)" != "root" ];then
  if [ -x /usr/bin/sudo-sh ];then
@@ -579,7 +580,9 @@ if [ "$EXIT" == "ec_snapshot" ];then
  test_cont_mntd_func #test if container in use.
  [ $? -ne 0 ] && exit
  #170525 some exclusions from snapshot... 180606 need path root/.XLOADED 181121 exclude .control
- echo -e 'dev\nmnt\nproc\nrun\nsys\ntmp\nvar\n.fsckme.flg\nlost+found\nroot/.XLOADED\n.control' > /tmp/easy_version_control/snapshot-exclusions1
+ #20250128 only exclude part of /var (ref: /etc/rc.d/rw-merge)...
+ #echo -e 'dev\nmnt\nproc\nrun\nsys\ntmp\nvar\n.fsckme.flg\nlost+found\nroot/.XLOADED\n.control' > /tmp/easy_version_control/snapshot-exclusions1
+ echo -e 'dev\nmnt\nproc\nrun\nsys\ntmp\nvar/lock\nvar/lib/flatpak\nvar/cache\nvar/run\n.fsckme.flg\nlost+found\nroot/.XLOADED\n.control' > /tmp/easy_version_control/snapshot-exclusions1
  urxvt -geometry 80x10 -bg '#09A0FF' -e mksquashfs /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_NAME}/.session /mnt/${WKG_DEV}/${WKG_DIR}containers/${EC_NAME}/rw-${DATE}.sfs -ef /tmp/easy_version_control/snapshot-exclusions1 -no-exports
  
  if [ "$EOS_TOP_LEVEL_ZRAM" == "1" ];then #20220626 defined in PUPSTATE file.

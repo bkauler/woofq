@@ -198,6 +198,7 @@
 #20250124 make sure version-history-depth exists.
 #20250127 discard_granularity not work. ref: https://forum.puppylinux.com/viewtopic.php?t=13709
 #20250128 hdparm detect and CONFIG_USB_UAS kernel now maybe can run fstrim.
+#20250128 only exclude part of /var (ref: /etc/rc.d/rw-merge and easy-version-control).
 
 #20230429
 . /build-choices #3buildeasydistro copies it here.
@@ -1892,7 +1893,9 @@ XDG_VIDEOS_DIR="/files/media"' > ${bDL}/.config/user-dirs.dirs
  fi
    
  #20221015 code from easy-version-control...
- echo -e 'dev\nmnt\nproc\nrun\nsys\ntmp\nvar\n.fsckme.flg\nlost+found\nroot/.XLOADED\n.control' > exclusions1
+ #20250128 only exclude part of /var...
+ #echo -e 'dev\nmnt\nproc\nrun\nsys\ntmp\nvar\n.fsckme.flg\nlost+found\nroot/.XLOADED\n.control' > exclusions1
+ echo -e 'dev\nmnt\nproc\nrun\nsys\ntmp\nvar/lock\nvar/lib/flatpak\nvar/cache\nvar/run\n.fsckme.flg\nlost+found\nroot/.XLOADED\n.control' > exclusions1
  if [ -d /mnt/${WKG_DEV}/${WKG_DIR}.session/root/.ccache ];then #does oe create this? huge, 6.8GB
   echo 'root/.ccache' >> exclusions1
  fi
