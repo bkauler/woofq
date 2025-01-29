@@ -47,7 +47,7 @@
 #20231110 Caramel: fix depth limit problem.
 #20240512 fix rollback to earlier version. 
 #20240515 fix finding .cache folders. 20240516
-#20250128 only exclude part of /var (ref: /etc/rc.d/rw-merge and init).
+#20250128 only exclude part of /var (ref: /etc/rc.d/rw-merge and init). 20250129
 
 if [ "$(whoami)" != "root" ];then
  if [ -x /usr/bin/sudo-sh ];then
@@ -402,6 +402,9 @@ fi
 
 if [ "$EXIT" == "snapshot" ];then
  #170525 some exclusions from snapshot... 180606 need path root/.XLOADED  181121 exclude .control
+
+ #20250129 fix /var...
+ #echo -e 'dev\nmnt\nproc\nrun\nsys\ntmp\nvar/lock\nvar/lib/flatpak\nvar/cache\nvar/run\n.fsckme.flg\nlost+found\nroot/.XLOADED\n.control' > /tmp/easy_version_control/snapshot-exclusions1
  echo -e 'dev\nmnt\nproc\nrun\nsys\ntmp\nvar\n.fsckme.flg\nlost+found\nroot/.XLOADED\n.control' > /tmp/easy_version_control/snapshot-exclusions1
  if [ -d /root/.ccache ];then #20211212 does oe create this? huge, 6.8GB
   echo 'root/.ccache' >> /tmp/easy_version_control/snapshot-exclusions1
