@@ -14,6 +14,7 @@
 #20221102 exclude /var/lock  20240118 exclude /var/lib/flatpak
 #20241124 ./.control is excluded. need to save *.run-once-*-flag (see also /sbin/rw-merge in initrd)
 #20241124 save /files if in container. add qualification.
+#20250131 rationalize /var exclusion.
 
 export LANG=C
 . /etc/rc.d/PUPSTATE
@@ -115,7 +116,7 @@ _END2
   VARREXC=''
  else
   VAREXC='./var/cache'
-  VARREXC='--exclude=./var/run' #20220918
+  VARREXC='--exclude=./var/run  --exclude=./var/lock --exclude=./var/lib/flatpak' #20220918 20250131
  fi
  
  #20241124 save /files if in container...
@@ -142,7 +143,8 @@ _END2
  #...seems need bash for this exclude pattern. this works...
  #20221102 add /var/lock
  #20240118 add /var/lib/flatpak, as it is a symlink to /mnt/wkg/flatpak (see rc.sysinit)
- tar -cpf - ${FILESEXC} --exclude='./dev' --exclude='./mnt' --exclude=${VAREXC} ${VARREXC} --exclude='./run' --exclude='./.*' --exclude='*/.cache' --exclude='./proc' --exclude='./sys' --exclude='./tmp' --exclude='./lost+found' --exclude='./root/.XLOADED' --exclude='./var/lock' --exclude='./var/lib/flatpak' --one-file-system . | tar -xf - -C ${DEST} --overwrite --warning=none
+ #20250131 move 20221102 2024018 into $VARREXC
+ tar -cpf - ${FILESEXC} --exclude='./dev' --exclude='./mnt' --exclude=${VAREXC} ${VARREXC} --exclude='./run' --exclude='./.*' --exclude='*/.cache' --exclude='./proc' --exclude='./sys' --exclude='./tmp' --exclude='./lost+found' --exclude='./root/.XLOADED' --one-file-system . | tar -xf - -C ${DEST} --overwrite --warning=none
  
  #20241124 ./.control is excluded. need to save *.run-once-*-flag ...
  if [ -d ./.control ];then
