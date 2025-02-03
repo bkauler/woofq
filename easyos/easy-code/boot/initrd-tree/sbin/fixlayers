@@ -58,6 +58,7 @@
 #20240906 new /usr/local/orange
 #20241025 scarthgap now supports dpkg and apt
 #20241112 test executable in usr/games
+#20250203 remove old /usr/lib/modules/*
 
 WKG_DRV=$1 #ex: sda
 WKG_DEV=$2 #ex: sda2
@@ -716,7 +717,7 @@ if [ -n "$prevVER" ];then
 fi
 
 #20240616 fix updating issues... 20240618
-if [ -n "$prevVER" ];then
+if [ -n "$prevVER" ];then #prevVER set if a version update.
  #...ex: kirkstone
  #problem occurs when change default.png to/from default.jpg...
  if [ -f /mnt/${WKG_DEV}/${WKG_DIR}.session/root/Choices/ROX-Filer/PuppyPin ];then
@@ -782,6 +783,20 @@ EC_ICON=/usr/local/lib/X11/pixmaps/ec-easy48.png" > /mnt/${WKG_DEV}/${WKG_DIR}co
   if [ -d /mnt/${WKG_DEV}/${WKG_DIR}containers/${prevCOMPAT} ];then
    rm -rf /mnt/${WKG_DEV}/${WKG_DIR}containers/${prevCOMPAT}
   fi
+ fi
+fi
+
+#20250203 remove old kernel modules...
+if [ -n "$prevVER" ];then #prevVER set if a version update.
+ if [ -d /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/lib/modules ];then
+  for aD in $(ls -1 -d /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/lib/modules/* 2>/dev/null)
+  do
+   if [ -z "$aD" ];then continue; fi
+   xaD="${aD##*/}" #ex: 6.12.11
+   if [ "$xaD" != "$KERNVER" ];then #KERNVER exported from init
+    rm -rf /mnt/${WKG_DEV}/${WKG_DIR}.session/usr/lib/modules/${xaD}
+   fi
+  done
  fi
 fi
 
