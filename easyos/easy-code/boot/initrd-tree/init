@@ -199,6 +199,8 @@
 #20250127 discard_granularity not work. ref: https://forum.puppylinux.com/viewtopic.php?t=13709
 #20250128 hdparm detect and CONFIG_USB_UAS kernel now maybe can run fstrim.
 #20250128 only exclude part of /var (ref: /etc/rc.d/rw-merge and easy-version-control). 20250131 fix.
+#20250203 read KERNVER in fixlayers
+#20250203 /usr/sbin/easy-update should be /usr/bin/easy-update
 
 #20230429
 . /build-choices #3buildeasydistro copies it here.
@@ -222,6 +224,7 @@ export TZ='XXX-23' #20201201 imaginary place right around the world east of Gree
 #ref: http://www.gnu.org/s/libc/manual/html_node/TZ-Variable.html
 
 KERNVER="$(uname -r)" #20210524
+export KERNVER #20250203
 CR='
 '
 
@@ -1098,7 +1101,7 @@ if [ "$WKG_FS" == "ext4" ];then #200302  200621 now have full hdparm.
  fi
  #20250128 hdparm detect and CONFIG_USB_UAS kernel now maybe can run fstrim...
  if [ "$TESTdiscard" == "0" ];then
-  hdparm -I /dev/${WKG_DRV} | grep 'Data Set Management TRIM supported'
+  hdparm -I /dev/${WKG_DRV} | grep -q 'Data Set Management TRIM supported'
   if [ $? -eq 0 ];then
    #fstrim may still not work, depends if usb interface supports usb-attached-scsi
    #ref: https://askubuntu.com/questions/860618/fstrim-on-external-ssd-drives-dont-work
@@ -2524,7 +2527,7 @@ if [ "$xWKG_DEV" ];then #190817 200809 note, in future could test for $LOCKDOWN 
  #PTN1='s%.*easy\-update.*%  <icon x="544" y="32" label="save">/usr/sbin/lockdown-save</icon>%'
  #20201211 /usr/share/sss/initrd_strings/initd_strings* has translation for "save", but don't assume anything for "update"...
  #PTN1='s%label="update">/usr/sbin/easy-update%label="save">/usr/sbin/lockdown-save%'
- PTN1='s%label="[^"]*">/usr/sbin/easy-update%label="save">/usr/sbin/lockdown-save%'
+ PTN1='s%label="[^"]*">/usr/bin/easy-update%label="save">/usr/bin/lockdown-save%' #20250203
  sed -i -e "$PTN1" /easy_new/root/Choices/ROX-Filer/PuppyPin
  sed -i -e '/ask\-save\-zram1/d' /easy_new/root/Choices/ROX-Filer/PuppyPin #20220601 remove zram1 "save" icon.
  if [ "$EOS_SUPPORT_CONTAINERS" != "0" ];then
