@@ -2331,9 +2331,9 @@ if [ "$xWKG_DEV" ];then
   ln -s /mnt/.easy_ro/${aSFS}.sfs /xram/sfs/easyos/${DISTRO_BINARY_COMPAT}/${DISTRO_COMPAT_VERSION}/${aFULL} #20220524
   ln -s ../../sfs/easyos/${DISTRO_BINARY_COMPAT}/${DISTRO_COMPAT_VERSION}/${aFULL} /xram/releases/easy-${INIT_DISTRO_VERSION}/${aSFS}.sfs
  done
- #200827 also copy the .png and .specs files...
- cp -a -u /mnt/${WKG_DEV}/${WKG_DIR}sfs/easyos/${DISTRO_BINARY_COMPAT}/${DISTRO_COMPAT_VERSION}/*.specs /xram/sfs/easyos/${DISTRO_BINARY_COMPAT}/${DISTRO_COMPAT_VERSION}/
- cp -a -u /mnt/${WKG_DEV}/${WKG_DIR}sfs/easyos/${DISTRO_BINARY_COMPAT}/${DISTRO_COMPAT_VERSION}/*.png /xram/sfs/easyos/${DISTRO_BINARY_COMPAT}/${DISTRO_COMPAT_VERSION}/
+ #200827 also copy the .png and .specs files... 20250203 hide err...
+ cp -a -u /mnt/${WKG_DEV}/${WKG_DIR}sfs/easyos/${DISTRO_BINARY_COMPAT}/${DISTRO_COMPAT_VERSION}/*.specs /xram/sfs/easyos/${DISTRO_BINARY_COMPAT}/${DISTRO_COMPAT_VERSION}/ 2>/dev/null
+ cp -a -u /mnt/${WKG_DEV}/${WKG_DIR}sfs/easyos/${DISTRO_BINARY_COMPAT}/${DISTRO_COMPAT_VERSION}/*.png /xram/sfs/easyos/${DISTRO_BINARY_COMPAT}/${DISTRO_COMPAT_VERSION}/ 2>/dev/null
  sync
  WKG_DEV='zram0'
  WKG_FS="$xWKG_FS"
