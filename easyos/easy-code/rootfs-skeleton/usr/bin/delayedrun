@@ -92,15 +92,11 @@
 #20221023 may be running as zeus super-user. 20221031 hmmm, maybe still need bump to root.
 #20230626 new sudo-sh replaces sudo.
 #20240430 unmute audio.
+#20250204 unmute audio if boot on different audio hardware.
+#20250204 remove test exist sudo-sh
 
-#20230626
-if [ "$(whoami)" != "root" ];then
- if [ -x /usr/bin/sudo-sh ];then
-  exec sudo-sh ${PPID} ${0} ${@}
- else
-  exec sudo -A ${0} ${@}
- fi
-fi
+#20230626 20250204
+if [ "$(whoami)" != "root" ];then exec sudo-sh ${PPID} ${0} ${@}; fi
 
 export TEXTDOMAIN=delayedrun
 export OUTPUT_CHARSET=UTF-8
@@ -170,6 +166,7 @@ fi
 #first-time help/setup windows...
 #the test for /etc/videomode is for when Xvesa has finished choosing a resolution...
 preLANG="" #150429
+UNMUTEflg=0 #20250204
 if [ "`readlink /usr/bin/X`" = "Xorg" -o -e /etc/videomode ];then #w007
  if [ -f /.delayedrun_version_upgrade ];then #170225 refer init script in initramfs.
   rm -f /.delayedrun_version_upgrade
@@ -213,6 +210,7 @@ if [ "`readlink /usr/bin/X`" = "Xorg" -o -e /etc/videomode ];then #w007
      pactl set-sink-mute @DEFAULT_SINK@ false
      pactl set-sink-volume @DEFAULT_SINK@ "80%"
      mscw-not
+     UNMUTEflg=1 #20250204
      
     fi
    fi
@@ -329,6 +327,16 @@ fi
 #  fi
 # fi
 #fi
+
+#20250204 unmute and set level...
+if [ $UNMUTEflg -eq 0 ];then
+ if [ -e /tmp/10alsa-hardware-changed-flag ];then #see /etc/init.d/10alsa
+  rm -f /tmp/10alsa-hardware-changed-flag
+  sleep 0.5
+  pactl set-sink-mute @DEFAULT_SINK@ false
+  pactl set-sink-volume @DEFAULT_SINK@ "80%"
+ fi
+fi
 
 touch /tmp/delayedrun_finished_flag #111010
 ###END###

@@ -28,6 +28,7 @@
 #20211228 add hardware-profile /etc/pulse/default.pa
 #20211229 send card #'s to set-max-snd-level
 #20221031 /root/Startup/pulseaudio changed to /etc/init.d/pulseaudio
+#20250204 tell /usr/bin/delayedrun if audio hardware has changed.
 
 case "$1" in
  start|restart)
@@ -98,6 +99,14 @@ case "$1" in
     done
    done
   fi
+
+  #20250204 detect booting with new audio hardware...
+  PROF0="$(grep "^0+" /tmp/10alsa-AudioCardHardwareProfiles | head -n 1)"
+  #tell /usr/bin/delayedrun that audio hardware has changed...
+  if [ -n "$PROF0" -a ! -f /etc/asound.conf.${PROF0} ];then
+   touch /tmp/10alsa-hardware-changed-flag
+  fi
+  
   #try fix profile...
   if [ "$CURR_SND_HW_PROFILE" == "0+" ];then
    CURR_CARD="$(grep '^defaults.pcm.card' /etc/asound.conf | tr -s ' ' | cut -f 2 -d ' ')"
@@ -117,8 +126,10 @@ case "$1" in
   do
    if [ "$CURR_SND_HW_PROFILE" == "$aHP" ];then
     cp -af /etc/asound.conf /etc/asound.conf.${CURR_SND_HW_PROFILE}
-     #200523 1st bootup doesn't exist, hide error msg...
-    cp -af /etc/asound.state /etc/asound.state.${CURR_SND_HW_PROFILE} 2>/dev/null
+    if [ -f /etc/asound.state ];then
+     #200523 1st bootup doesn't exist...
+     cp -af /etc/asound.state /etc/asound.state.${CURR_SND_HW_PROFILE}
+    fi
     cp -f /etc/pulse/default.pa /etc/pulse/default.pa.${CURR_SND_HW_PROFILE} #20211228
     SND_HW_PROFILE="$CURR_SND_HW_PROFILE"
     FNDflg=1
