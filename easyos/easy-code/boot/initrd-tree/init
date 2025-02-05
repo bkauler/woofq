@@ -1101,7 +1101,7 @@ if [ "$WKG_FS" == "ext4" ];then #200302  200621 now have full hdparm.
  fi
  #20250128 hdparm detect and CONFIG_USB_UAS kernel now maybe can run fstrim...
  if [ "$TESTdiscard" == "0" ];then
-  hdparm -I /dev/${WKG_DRV} | grep -q 'Data Set Management TRIM supported'
+  hdparm -I /dev/${WKG_DRV} 2>/dev/null | grep -q 'Data Set Management TRIM supported'
   if [ $? -eq 0 ];then
    #fstrim may still not work, depends if usb interface supports usb-attached-scsi
    #ref: https://askubuntu.com/questions/860618/fstrim-on-external-ssd-drives-dont-work
