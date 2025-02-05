@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #all of the ubuntu firmware debs installed, go through all modules and find
 #needed firmware, extract to needed-firmware
 #maybe these debs: atmel-firmware linux-firmware linux-firmware-nonfree nouveau-firmware prism2-usb-firmware-installer
@@ -8,6 +8,7 @@
 #broadcom brcm: http://linuxwireless.org/en/users/Drivers/brcm80211/
 #20220309 firmware param may have wildcards. fix symlinks.
 #20250128 fix wildcards.
+#20250205 /usr/lib/firmware/brcm/ has some with space chars.
 
 KERVER="$(uname -r)"
 rm -rf fnd-firmware 2> /dev/null
@@ -31,12 +32,14 @@ do
    echo "FW WITH WILDCARD: ${AFIRMWARE}"
    FIRMDIR="$(dirname /lib/firmware/$AFIRMWARE | head -n 1)"
    mkdir -p fnd-firmware${FIRMDIR}
-   #20250128 fix...
-   for aF in $(ls -1 /lib/firmware/${AFIRMWARE})
+   #20250128 fix... 20250205 fix...
+   ls -1 /lib/firmware/${AFIRMWARE} > /tmp/exFIRMWARE1
+   #for aF in $(ls -1 /lib/firmware/${AFIRMWARE})
+   while read aF
    do
     if [ -z "$aF" ];then continue; fi
-    cp -a -f ${aF} fnd-firmware${FIRMDIR}/
-   done
+    cp -a -f --remove-destination "${aF}" fnd-firmware${FIRMDIR}/
+   done </tmp/exFIRMWARE1
   else
    if [ -f /lib/firmware/$AFIRMWARE ];then
     FIRMDIR="$(dirname /lib/firmware/$AFIRMWARE)"
