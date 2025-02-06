@@ -20,6 +20,7 @@
 #20240905 translate menu top category. aware of jwm-mode. new notes-security
 #20240906 brave browser.
 #20241104 run build-rox-sendto as a separate process, because slow.
+#20250205 more height.
 
 if [ "$(whoami)" != "root" ];then
  if [ -x /usr/bin/sudo-sh ];then
@@ -184,6 +185,7 @@ ENTRIESvideo="$(cat /tmp/flatpak/ENTRIESvideo)"
 ENTRIESother="$(cat /tmp/flatpak/ENTRIESother)"
 
 ###main gui###
+tHEIGHT='382' #20250205
 PACKAGE="Flatpak"
 DESCRIPTION="$(gettext 'Description')"
 SIZE="$(gettext 'Size')"
@@ -193,70 +195,70 @@ export FP_DLG1="<window title=\"$(gettext 'Flatpak Installer')\" image-name=\"/u
     <notebook labels=\"$(gettext 'Audio')|$(gettext 'Developer')|$(gettext 'Games')|$(gettext 'Graphics')|$(gettext 'Network')|$(gettext 'Office')|$(gettext 'Productivity')|$(gettext 'System')|$(gettext 'Video')|$(gettext 'Other')\">
       <tree column-resizeable=\"0\">
         <label>${PACKAGE}||${DESCRIPTION}</label>
-        <height>354</height>
+        <height>${tHEIGHT}</height>
         <variable>TREEaudio</variable>
         <action signal=\"enter-notify-event\" type=\"refresh\">TREEaudio</action>
         ${ENTRIESaudio}
       </tree>
       <tree column-resizeable=\"0\">
         <label>${PACKAGE}||${DESCRIPTION}</label>
-        <height>354</height>
+        <height>${tHEIGHT}</height>
         <variable>TREEdeveloper</variable>
         <action signal=\"enter-notify-event\" type=\"refresh\">TREEdeveloper</action>
         ${ENTRIESdeveloper}
       </tree>
       <tree column-resizeable=\"0\">
         <label>${PACKAGE}||${DESCRIPTION}</label>
-        <height>354</height>
+        <height>${tHEIGHT}</height>
         <variable>TREEgames</variable>
         <action signal=\"enter-notify-event\" type=\"refresh\">TREEgames</action>
         ${ENTRIESgames}
       </tree>
       <tree column-resizeable=\"0\">
         <label>${PACKAGE}||${DESCRIPTION}</label>
-        <height>354</height>
+        <height>${tHEIGHT}</height>
         <variable>TREEgraphics</variable>
         <action signal=\"enter-notify-event\" type=\"refresh\">TREEgraphics</action>
         ${ENTRIESgraphics}
       </tree>
       <tree column-resizeable=\"0\">
         <label>${PACKAGE}||${DESCRIPTION}</label>
-        <height>354</height>
+        <height>${tHEIGHT}</height>
         <variable>TREEnetwork</variable>
         <action signal=\"enter-notify-event\" type=\"refresh\">TREEnetwork</action>
         ${ENTRIESnetwork}
       </tree>
       <tree column-resizeable=\"0\">
         <label>${PACKAGE}||${DESCRIPTION}</label>
-        <height>354</height>
+        <height>${tHEIGHT}</height>
         <variable>TREEoffice</variable>
         <action signal=\"enter-notify-event\" type=\"refresh\">TREEoffice</action>
         ${ENTRIESoffice}
       </tree>
       <tree column-resizeable=\"0\">
         <label>${PACKAGE}||${DESCRIPTION}</label>
-        <height>354</height>
+        <height>${tHEIGHT}</height>
         <variable>TREEproductivity</variable>
         <action signal=\"enter-notify-event\" type=\"refresh\">TREEproductivity</action>
         ${ENTRIESproductivity}
       </tree>
       <tree column-resizeable=\"0\">
         <label>${PACKAGE}||${DESCRIPTION}</label>
-        <height>354</height>
+        <height>${tHEIGHT}</height>
         <variable>TREEsystem</variable>
         <action signal=\"enter-notify-event\" type=\"refresh\">TREEvideo</action>
         ${ENTRIESsystem}
       </tree>
       <tree column-resizeable=\"0\">
         <label>${PACKAGE}||${DESCRIPTION}</label>
-        <height>354</height>
+        <height>${tHEIGHT}</height>
         <variable>TREEvideo</variable>
         <action signal=\"enter-notify-event\" type=\"refresh\">TREEvideo</action>
         ${ENTRIESvideo}
       </tree>
       <tree column-resizeable=\"0\">
         <label>${PACKAGE}||${DESCRIPTION}</label>
-        <height>354</height>
+        <height>${tHEIGHT}</height>
         <variable>TREEother</variable>
         <action signal=\"enter-notify-event\" type=\"refresh\">TREEother</action>
         ${ENTRIESother}
