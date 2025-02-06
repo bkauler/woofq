@@ -201,6 +201,8 @@
 #20250128 only exclude part of /var (ref: /etc/rc.d/rw-merge and easy-version-control). 20250131 fix.
 #20250203 read KERNVER in fixlayers
 #20250203 /usr/sbin/easy-update should be /usr/bin/easy-update
+#20250206 probe TRIM support with sg_vpd if hdparm fail.
+#20250206 if WKG_UUID not on kernel cmdline (it is WKG_LABEL) then get it.
 
 #20230429
 . /build-choices #3buildeasydistro copies it here.
@@ -814,6 +816,13 @@ while [ $CNT -lt 20 ];do #drives may take couple seconds to become available. 18
 done
 [ ! "$WKG_DEV" ] && WKG_DEV="zram0" #190714
 
+#20250206 if WKG_UUID not on kernel cmdline (it is WKG_LABEL) then get it...
+if [ "$WKG_UUID" == "wkguuidunknown" ];then
+ yWKG_UUID="$(echo "$BLKIDS" | grep "^/dev/${WKG_DEV}:" | grep -o ' UUID="[^"]*' | cut -f 2 -d '"')"
+ if [ -n "$yWKG_UUID" ];then WKG_UUID="$yWKG_UUID"; fi
+fi
+echo -n "${WKG_UUID}" > /WKG_UUID
+
 Wdevs=$(echo -n "$WKG_DEV" | tr '\n' ' ' | wc -w) #precaution.
 [ $Wdevs -gt 1 ] && err_exit "${Wdevs} ${S101:-partitions have conflicting id} ${WKG_UUID} ${WKG_LABEL}"
 
@@ -885,6 +894,7 @@ fi
 ###check if user has requested lockdown###
 #200803 ref: /usr/sbin/lockdown-ram
 #200806 .lockdown.flg cannot be in .session folder, put into boot-part... 20220621 wkg-part...
+touch /TRIMwkg; touch /TRIMnotwkg #20250206
 mkdir -p /mnt/${WKG_DEV}
 WKG_FS="$(echo "$BLKIDS" | grep "^/dev/${WKG_DEV}:" | grep -o 'TYPE="[a-z0-9]*"' | cut -f 2 -d '"')" #200803 moved up.
 if [ "$LOCKDOWN" == "" -o "$DROPOUT" == "" ];then
@@ -980,6 +990,16 @@ if [ "$LOCKDOWN" == "" -o "$DROPOUT" == "" ];then
     #load_font_country ${QLANG}  #20230522
    fi
    export QLANG
+  fi
+
+  #20250206 further down this script test if drive support trim.
+  #gets saved this file so don't have to test again...
+  #file .trim-wkg has f.s. uuids in drives that support trim...
+  if [ -s /mnt/${WKG_DEV}/${WKG_DIR}.trim-wkg ];then
+   cp -f /mnt/${WKG_DEV}/${WKG_DIR}.trim-wkg /TRIMwkg
+  fi
+  if [ -s /mnt/${WKG_DEV}/${WKG_DIR}.trim-not-wkg ];then
+   cp -f /mnt/${WKG_DEV}/${WKG_DIR}.trim-not-wkg /TRIMnotwkg
   fi
   
   sync
@@ -1077,8 +1097,12 @@ TIME10k=$(dc -e"${TIMEs} 10000 * p" | cut -f 1 -d '.') #cheap flash stick: usb2=
 echo "${S115:-Working drive read speed test (lower the better):} ${TIME10k}"
 
 ###execute TRIM on ssd###
-TRIMflg=''
+TRIMflg=''; yTRIMflg=''
 if [ "$WKG_FS" == "ext4" ];then #200302  200621 now have full hdparm.
+ #20250206 see if already tested...
+ if grep -q "$WKG_UUID" /TRIMwkg;then yTRIMflg=1; fi
+ if grep -q "$WKG_UUID" /TRIMnotwkg;then yTRIMflg=0; fi
+ 
  #HDDflg="$(cat /sys/block/${WKG_DRV}/queue/rotational)" #20220612
  #20220526 hdparm only works on sata drives...
  #if [ "$HDDflg" != "0" ];then #0 it is an SSD
@@ -1101,31 +1125,64 @@ if [ "$WKG_FS" == "ext4" ];then #200302  200621 now have full hdparm.
  fi
  #20250128 hdparm detect and CONFIG_USB_UAS kernel now maybe can run fstrim...
  if [ "$TESTdiscard" == "0" ];then
-  hdparm -I /dev/${WKG_DRV} 2>/dev/null | grep -q 'Data Set Management TRIM supported'
+  #20250206 restrict further probe to usb drives...
+  readlink /sys/block/${WKG_DRV} | grep -q '/usb[0-9]'
   if [ $? -eq 0 ];then
-   #fstrim may still not work, depends if usb interface supports usb-attached-scsi
-   #ref: https://askubuntu.com/questions/860618/fstrim-on-external-ssd-drives-dont-work
-   #ref: https://www.jeffgeerling.com/blog/2020/enabling-trim-on-external-ssd-on-raspberry-pi
-   #figuring out my own method, this matches scsi number to drive:
-   T1="$(ls -d -1 /sys/bus/scsi/drivers/sd/*/block/${WKG_DRV} | head -n 1)"
-   #ex: /sys/bus/scsi/drivers/sd/6:0:0:0/block/sdb
-   if [ -n "$T1" ];then
-    T2="$(echo -n "$T1" | rev | cut -f 3 -d '/' | rev)" #ex: 6:0:0:0
-    T3="$(find /sys/devices/ -path "*/scsi_disk/${T2}/*" -name provisioning_mode)"
-    #ex: /sys/devices/pci0000:00/0000:00:14.0/usb2/2-4/2-4:1.0/host6/target6:0:0/6:0:0:0/scsi_disk/6:0:0:0/provisioning_mode
-    if [ -n "$T3" ];then
-     T4="$(cat "$T3")"
-     if [ "$T4" == "full" ];then
-      echo unmap > $T3
-      #ex: this changes /sys/block/sdb/queue/discard_max_bytes from 0 to 4294966784
+   #20250206 avoid running hdparm and/or sg_vpd every bootup...
+   if [ -z "$yTRIMflg" ];then
+    hdparm -I /dev/${WKG_DRV} 2>/dev/null | grep -qF 'Data Set Management TRIM supported'
+    RET1=$?
+    if [ $RET1 -ne 0 ];then
+     #for nvme ssd in usb caddy, this is a fallback test...
+     sg_vpd -p bl /dev/${WKG_DRV} | grep -q 'Maximum unmap LBA count: 0x[^0]'
+     if [ $? -eq 0 ];then
+      sg_vpd -p lbpv /dev/${WKG_DRV} | grep -qF 'LBPU=1'
+      RET1=$?
      fi
-     #test again...
-     TESTdiscard="$(cat /sys/block/${WKG_DRV}/queue/discard_max_bytes 2>/dev/null)"
-     if [ "$TESTdiscard" != "0" ];then
-      TRIMflg='1'
+    fi
+   elif [ "$yTRIMflg" == "1" ];then
+    RET1=0
+   else
+    RET1=1
+   fi
+   if [ $RET1 -eq 0 ];then
+    #fstrim may still not work, depends if usb interface supports usb-attached-scsi
+    #ref: https://askubuntu.com/questions/860618/fstrim-on-external-ssd-drives-dont-work
+    #ref: https://www.jeffgeerling.com/blog/2020/enabling-trim-on-external-ssd-on-raspberry-pi
+    #this matches scsi number to drive:
+    T1="$(ls -d -1 /sys/bus/scsi/drivers/sd/*/block/${WKG_DRV} | head -n 1)"
+    #ex: /sys/bus/scsi/drivers/sd/6:0:0:0/block/sdb
+    if [ -n "$T1" ];then
+     T2="$(echo -n "$T1" | rev | cut -f 3 -d '/' | rev)" #ex: 6:0:0:0
+     T3="$(find /sys/devices/ -path "*/scsi_disk/${T2}/*" -name provisioning_mode)"
+     #ex: /sys/devices/pci0000:00/0000:00:14.0/usb2/2-4/2-4:1.0/host6/target6:0:0/6:0:0:0/scsi_disk/6:0:0:0/provisioning_mode
+     if [ -n "$T3" ];then
+      T4="$(cat "$T3")"
+      if [ "$T4" == "full" ];then
+       echo unmap > $T3
+       #ex: this changes /sys/block/sdb/queue/discard_max_bytes from 0 to 4294966784
+      fi
+      #test again...
+      sleep 0.01
+      TESTdiscard="$(cat /sys/block/${WKG_DRV}/queue/discard_max_bytes 2>/dev/null)"
+      if [ "$TESTdiscard" != "0" ];then
+       TRIMflg='1'
+      fi
      fi
     fi
    fi
+  fi
+ fi
+ #20250206
+ if [ "$TRIMflg" == "1" ];then
+  grep -qF "${WKG_UUID}" /TRIMwkg
+  if [ $? -ne 0 ];then
+   echo "$WKG_UUID" >> /TRIMwkg
+  fi
+ else
+  grep -qF "${WKG_UUID}" /TRIMnotwkg
+  if [ $? -ne 0 ];then
+   echo "$WKG_UUID" >> /TRIMnotwkg
   fi
  fi
 fi
@@ -1580,7 +1637,14 @@ else
 fi
 export DATE #ex: Tue Mar  3 07:09:34 +08 2020
 
+
 ###TRIM###
+#20250206 record success or fail of trim test...
+if [ "$yTRIMflg" != "" ];then
+ cp -f /TRIMnotwkg /mnt/${WKG_DEV}/${WKG_DIR}.trim-not-wkg
+ cp -f /TRIMwkg /mnt/${WKG_DEV}/${WKG_DIR}.trim-wkg
+fi
+
 if [ "$TRIMflg" ];then #200302  20220621 now in wkg-part...
  [ ! -f /mnt/${WKG_DEV}/${WKG_DIR}.easyos-bootcnt ] && echo -n '0' > /mnt/${WKG_DEV}/${WKG_DIR}.easyos-bootcnt
  BOOTCNT=$(cat /mnt/${WKG_DEV}/${WKG_DIR}.easyos-bootcnt)
