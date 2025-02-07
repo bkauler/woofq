@@ -1100,8 +1100,8 @@ echo "${S115:-Working drive read speed test (lower the better):} ${TIME10k}"
 TRIMflg=''; yTRIMflg=''
 if [ "$WKG_FS" == "ext4" ];then #200302  200621 now have full hdparm.
  #20250206 see if already tested...
- if grep -q "$WKG_UUID" /TRIMwkg;then yTRIMflg=1; fi
- if grep -q "$WKG_UUID" /TRIMnotwkg;then yTRIMflg=0; fi
+ if grep -qF "$WKG_UUID" /TRIMwkg;then yTRIMflg=1; fi
+ if grep -qF "$WKG_UUID" /TRIMnotwkg;then yTRIMflg=0; fi
  
  #HDDflg="$(cat /sys/block/${WKG_DRV}/queue/rotational)" #20220612
  #20220526 hdparm only works on sata drives...
@@ -1134,7 +1134,7 @@ if [ "$WKG_FS" == "ext4" ];then #200302  200621 now have full hdparm.
     RET1=$?
     if [ $RET1 -ne 0 ];then
      #for nvme ssd in usb caddy, this is a fallback test...
-     sg_vpd -p bl /dev/${WKG_DRV} | grep -q 'Maximum unmap LBA count: 0x[^0]'
+     sg_vpd -p bl /dev/${WKG_DRV} 2>/dev/null | grep -q 'Maximum unmap LBA count: 0x[^0]'
      if [ $? -eq 0 ];then
       sg_vpd -p lbpv /dev/${WKG_DRV} | grep -qF 'LBPU=1'
       RET1=$?
@@ -1640,10 +1640,10 @@ export DATE #ex: Tue Mar  3 07:09:34 +08 2020
 
 ###TRIM###
 #20250206 record success or fail of trim test...
-if [ "$yTRIMflg" != "" ];then
+#if [ "$yTRIMflg" != "" ];then
  cp -f /TRIMnotwkg /mnt/${WKG_DEV}/${WKG_DIR}.trim-not-wkg
  cp -f /TRIMwkg /mnt/${WKG_DEV}/${WKG_DIR}.trim-wkg
-fi
+#fi
 
 if [ "$TRIMflg" ];then #200302  20220621 now in wkg-part...
  [ ! -f /mnt/${WKG_DEV}/${WKG_DIR}.easyos-bootcnt ] && echo -n '0' > /mnt/${WKG_DEV}/${WKG_DIR}.easyos-bootcnt
