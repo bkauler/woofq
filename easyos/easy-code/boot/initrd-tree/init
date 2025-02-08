@@ -203,6 +203,7 @@
 #20250203 /usr/sbin/easy-update should be /usr/bin/easy-update
 #20250206 probe TRIM support with sg_vpd if hdparm fail.
 #20250206 if WKG_UUID not on kernel cmdline (it is WKG_LABEL) then get it.
+#20250208 version update, want snapshot in the previous release also.
 
 #20230429
 . /build-choices #3buildeasydistro copies it here.
@@ -1982,6 +1983,13 @@ XDG_VIDEOS_DIR="/files/media"' > ${bDL}/.config/user-dirs.dirs
   cd ..
  fi
  mksquashfs /mnt/${WKG_DEV}/${WKG_DIR}.session /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${INIT_DISTRO_VERSION}/rw-${INIT_DISTRO_VERSION}.sfs -ef exclusions1 -comp lz4 -Xhc #>/dev/null
+ 
+ #20250208 want this snapshot in the previous release also...
+ if [ -n "$prevVER" ];then
+  nowDATE="$(date +%Y%m%d%H%M)" #YYY MM DD HH MM ex: 202502082144 
+  #hard link...
+  ln /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${INIT_DISTRO_VERSION}/rw-${INIT_DISTRO_VERSION}.sfs /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${prevVER}/rw-${nowDATE}.sfs
+ fi
  
  if [ "$EOS_SUPPORT_CONTAINERS" != "0" ];then
   #also save any container sessions:
