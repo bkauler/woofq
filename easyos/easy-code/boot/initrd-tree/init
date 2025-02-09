@@ -1989,6 +1989,7 @@ XDG_VIDEOS_DIR="/files/media"' > ${bDL}/.config/user-dirs.dirs
   nowDATE="$(date +%Y%m%d%H%M)" #YYY MM DD HH MM ex: 202502082144 
   #hard link...
   ln /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${INIT_DISTRO_VERSION}/rw-${INIT_DISTRO_VERSION}.sfs /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${prevVER}/rw-${nowDATE}.sfs
+  echo "${nowDATE} Snapshot just before update ${prevVER} to ${INIT_DISTRO_VERSION}" >> /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${prevVER}/snapshot-comments
  fi
  
  if [ "$EOS_SUPPORT_CONTAINERS" != "0" ];then
