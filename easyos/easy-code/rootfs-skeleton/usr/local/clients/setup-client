@@ -81,6 +81,7 @@
 #20241108 commented-out a killall. ref: https://forum.puppylinux.com/viewtopic.php?p=135190#p135190
 #20241212 allow apps to run non-root in containers.
 #20241223 opera params.
+#20250209 --disk-cache-size= ref: https://forum.puppylinux.com/viewtopic.php?t=13807
 
 APPname="${1/=*/}"  #ex: seamonkey
 APPflag="${1/*=/}" #ex: true
@@ -982,12 +983,13 @@ chromium_true() {
  #20230411 ALWAYSOPTS removed "--use-gl=desktop" doesn't work.
  #20231126 avoid "CBCM is not enabled" msg: --enable-chrome-browser-cloud-management=no
  #20241127 running in container, want this: --enable-unsafe-swiftshader
+ #20250209 --disk-cache-size= ref: https://forum.puppylinux.com/viewtopic.php?t=13807
  rm -f ${PREFIXDIR1}${APPpath}/${APPname} #in case it is a symlink.
  echo '#!/bin/bash
 if [ "$(whoami)" != "root" ];then exec sudo-sh ${PPID} ${0} ${@}; fi' > ${PREFIXDIR1}${APPpath}/${APPname}
  echo "APPbin='${APPpath}/${APPname}.bin'
 APPname='${APPname}'
-ALWAYSOPTS='--no-default-browser-check --no-first-run --enable-chrome-browser-cloud-management=no'
+ALWAYSOPTS='--no-default-browser-check --no-first-run --enable-chrome-browser-cloud-management=no --disk-cache-size=100000000'
 ROOTOPTS='--no-sandbox --test-type --enable-unsafe-swiftshader'
 #note, currently not using these two...
 CONTAINEROPTS='--no-sandbox --disable-features=AudioServiceSandbox' #20211007
