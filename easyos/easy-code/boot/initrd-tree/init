@@ -387,7 +387,7 @@ menu_func() {
  fi
  echo "NOX ${CNTm} ${S022:-Bootup to commandline only, no X}" >> /menulist
  CNTm=$(($CNTm+1))
- echo "RBSAVED ${CNTm} ${INIT_DISTRO_VERSION}: ${S023:-Rollback to last saved session}" >> /menulist
+ echo "RBSAVED ${CNTm} ${INIT_DISTRO_VERSION}: ${S023:-Rollback to last saved session}" >> /menulist #20250218
  CNTm=$(($CNTm+1))
  echo "RBPRISTINE ${CNTm} ${INIT_DISTRO_VERSION}: ${S024:-Rollback to pristine first-boot}" >> /menulist #20250218
  CNTm=$(($CNTm+1))
@@ -2429,7 +2429,7 @@ else
 fi
 
 #20250218 moved down...
-ln -snf /mnt/${WKG_DEV}/${WKG_DIR}files /mnt/${WKG_DEV}/${WKG_DIR}.session/files
+ln -snf /mnt/${WKG_DEV}/${WKG_DIR}files ${SESSIONHOME}/files
 
 if [ "$EOS_SUPPORT_CONTAINERS" != "0" ];then
  #20211111 delete container if no longer valid... 20211208 /mnt/zram0/containers does not exist...
