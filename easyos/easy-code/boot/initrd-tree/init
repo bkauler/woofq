@@ -205,7 +205,8 @@
 #20250206 if WKG_UUID not on kernel cmdline (it is WKG_LABEL) then get it.
 #20250208 version update, want snapshot in the previous release also.
 #20250211 copy sg_vpd to main f.s.
-#20250218 offer to delete version that have rolled back from.
+#20250218 offer to delete version that have rolled back from. (see /sbin/rollback)
+#20250218 fix /files folder in lockdown mode.
 
 #20230429
 . /build-choices #3buildeasydistro copies it here.
@@ -386,9 +387,9 @@ menu_func() {
  fi
  echo "NOX ${CNTm} ${S022:-Bootup to commandline only, no X}" >> /menulist
  CNTm=$(($CNTm+1))
- echo "RBSAVED ${CNTm} ${S023:-Rollback to last saved session}" >> /menulist
+ echo "RBSAVED ${CNTm} ${INIT_DISTRO_VERSION}: ${S023:-Rollback to last saved session}" >> /menulist
  CNTm=$(($CNTm+1))
- echo "RBPRISTINE ${CNTm} ${S024:-Rollback to pristine first-boot}" >> /menulist
+ echo "RBPRISTINE ${CNTm} ${INIT_DISTRO_VERSION}: ${S024:-Rollback to pristine first-boot}" >> /menulist #20250218
  CNTm=$(($CNTm+1))
  echo "RBPREVVER ${CNTm} ${S451:-Rollback to previous version}" >> /menulist
  CNTm=$(($CNTm+1))
@@ -499,28 +500,6 @@ menu_delay_func() {
     cp -a -f /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${backEASYver}/configuration-${backEASYver} /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${backEASYver}/configuration 2>/dev/null
     sync
     echo -n "${backEASYver},${backDATEver}" > /mnt/${WKG_DEV}/${WKG_DIR}.rollback.flg
-    #20250218 offer to delete version that have rolled back from...
-    echo
-    echo "${S500:-The version that you have rolled back from:} ${INIT_DISTRO_VERSION}"
-    echo "${S501:-If you have done this because that version is broken, it will be best to delete it.}"
-    echo "${S502:-This is the folder that may be deleted:}"
-    echo " /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${INIT_DISTRO_VERSION}"
-    echo "${S503:-Press any character then ENTER to delete, else just ENTER to keep:} "
-    echo -n "${S504:-(if no key press is received within 120 seconds, it will be kept)} "
-    read -t 120 -n 1 DELPREVflg
-    if [ "$DELPREVflg" != "" ];then
-     echo
-     echo "${S505:-...deleting rolled-back-from version}"
-     rm -rf /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${INIT_DISTRO_VERSION}
-     if [ -f /mnt/${WKG_DEV}/${WKG_DIR}sfs/easyos/${INIT_DISTRO_BINARY_COMPAT}/${INIT_DISTRO_COMPAT_VERSION}/easy_${INIT_DISTRO_VERSION}_${INIT_DISTRO_TARGETARCH}.sfs ];then
-      rm -f /mnt/${WKG_DEV}/${WKG_DIR}sfs/easyos/${INIT_DISTRO_BINARY_COMPAT}/${INIT_DISTRO_COMPAT_VERSION}/easy_${INIT_DISTRO_VERSION}_${INIT_DISTRO_TARGETARCH}.sfs
-      #***hopefully no symlink from a container***
-     fi
-     if [ -f /mnt/${WKG_DEV}/${WKG_DIR}sfs/easyos/${INIT_DISTRO_BINARY_COMPAT}/${INIT_DISTRO_COMPAT_VERSION}/devx_${INIT_DISTRO_VERSION}_${INIT_DISTRO_TARGETARCH}.sfs ];then
-      rm -f /mnt/${WKG_DEV}/${WKG_DIR}sfs/easyos/${INIT_DISTRO_BINARY_COMPAT}/${INIT_DISTRO_COMPAT_VERSION}/devx_${INIT_DISTRO_VERSION}_${INIT_DISTRO_TARGETARCH}.sfs
-     fi
-     sync
-    fi
    else #precaution.
     echo "\\033[1;31m ${S452:-ERROR there is no earlier version, cannot rollback.} \\033[0;39m" #red
    fi
@@ -1707,6 +1686,7 @@ fi
 
 #191224 if easy.sfs mounted on /tro (via loop0), rollback fails (easy.sfs seems to delete, but isn't), hence moved rollback below unmount /tnew
 if [ -s /mnt/${WKG_DEV}/${WKG_DIR}.rollback.flg ];then
+ export MENUVAR #20250218
  rollback "${WKG_DRV}" "${WKG_DEV}" "${WKG_DIR}" #20230104
  if [ -s /backVER ];then #20240514
   INIT_DISTRO_VERSION=$(cat /backVER) #have rolled back/forward to a different version.
@@ -2065,8 +2045,10 @@ fi
 # make sure stays as filesgrp (122)...
 chgrp 122 /mnt/${WKG_DEV}/${WKG_DIR}files
 chgrp 122 /mnt/${WKG_DEV}/${WKG_DIR}files/downloads
+
 #could have symlinked to /mnt/wkg, but do this every bootup...
-ln -snf /mnt/${WKG_DEV}/${WKG_DIR}files /mnt/${WKG_DEV}/${WKG_DIR}.session/files
+#ln -snf /mnt/${WKG_DEV}/${WKG_DIR}files /mnt/${WKG_DEV}/${WKG_DIR}.session/files
+#...20250218 moved this down below lockdown where WKG_DEV=zram0 & WKG_DIR=''...
 
 ###recompress easy.sfs### improve operating speed, recompress easy.sfs (refer quicksetup)
 if [ -s /mnt/${WKG_DEV}/${WKG_DIR}.session/.qsfs.flg ];then #181029 now in sfs folder...
@@ -2445,6 +2427,9 @@ if [ "$xWKG_DEV" ];then
 else
  SESSIONHOME="/mnt/${WKG_DEV}/${WKG_DIR}.session"
 fi
+
+#20250218 moved down...
+ln -snf /mnt/${WKG_DEV}/${WKG_DIR}files /mnt/${WKG_DEV}/${WKG_DIR}.session/files
 
 if [ "$EOS_SUPPORT_CONTAINERS" != "0" ];then
  #20211111 delete container if no longer valid... 20211208 /mnt/zram0/containers does not exist...

@@ -37,6 +37,7 @@
 #20240308 make sure .session/root has 700 perms.
 #20240512 :-english for vars
 #20240514 write /backVER if rollback/forward to different version.
+#20250218 offer to delete rolled-back-from version.
 
 WKG_DRV=$1 #ex: sda
 WKG_DEV=$2 #ex: sda2
@@ -54,6 +55,7 @@ if [ "$QLANG" ];then
 fi
 
 . /mnt/${WKG_DEV}/${WKG_DIR}.session/etc/DISTRO_SPECS #note, 'init' always copies this up. 170521 fix path.
+. /INIT_DISTRO_SPECS #20250218
 
 err_exit() {
  echo -e "\\033[1;31m${S001:-ERROR:} ${1}\\033[0;39m" #red
@@ -181,6 +183,38 @@ if [ "$backDATE" == "" ];then #200828 coz may have already been done above.
 fi
 echo -n "${backVER}" > /backVER #20240514
 sync
+
+#20250218 offer to delete version that have rolled back from...
+if [ "$MENUVAR" == "RBPREVVER" ];then
+ #...this test is for chose to rollback to prev ver at initrd menu,
+ # which we would normally only do in a recovery situation.
+ #current initrd is the version that we are going to roll back from,
+ # init script will ask to reboot computer.
+ echo
+ echo "${S500:-The version that you have rolled back from:} ${INIT_DISTRO_VERSION}"
+ echo "${S501:-If you have done this because that version is broken, it will be best to delete it.}"
+ echo "${S502:-This is the folder that may be deleted:}"
+ echo " /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${INIT_DISTRO_VERSION}"
+ echo "${S503:-Press any character then ENTER to delete, else just ENTER to keep:} "
+ echo -n "${S504:-(if no key press is received within 120 seconds, it will be kept)} "
+ read -t 120 -n 1 DELPREVflg
+ if [ "$DELPREVflg" != "" ];then
+  echo
+  #echo "${S505:-...deleting rolled-back-from version}"
+  echo "Deleting: /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${INIT_DISTRO_VERSION}"
+  rm -rf /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${INIT_DISTRO_VERSION}
+  if [ -f /mnt/${WKG_DEV}/${WKG_DIR}sfs/easyos/${INIT_DISTRO_BINARY_COMPAT}/${INIT_DISTRO_COMPAT_VERSION}/easy_${INIT_DISTRO_VERSION}_${INIT_DISTRO_TARGETARCH}.sfs ];then
+   echo "Deleting: /mnt/${WKG_DEV}/${WKG_DIR}sfs/easyos/${INIT_DISTRO_BINARY_COMPAT}/${INIT_DISTRO_COMPAT_VERSION}/easy_${INIT_DISTRO_VERSION}_${INIT_DISTRO_TARGETARCH}.sfs"
+   rm -f /mnt/${WKG_DEV}/${WKG_DIR}sfs/easyos/${INIT_DISTRO_BINARY_COMPAT}/${INIT_DISTRO_COMPAT_VERSION}/easy_${INIT_DISTRO_VERSION}_${INIT_DISTRO_TARGETARCH}.sfs
+   #***hopefully no symlink from a container***
+  fi
+  if [ -f /mnt/${WKG_DEV}/${WKG_DIR}sfs/easyos/${INIT_DISTRO_BINARY_COMPAT}/${INIT_DISTRO_COMPAT_VERSION}/devx_${INIT_DISTRO_VERSION}_${INIT_DISTRO_TARGETARCH}.sfs ];then
+   echo "Deleting: /mnt/${WKG_DEV}/${WKG_DIR}sfs/easyos/${INIT_DISTRO_BINARY_COMPAT}/${INIT_DISTRO_COMPAT_VERSION}/devx_${INIT_DISTRO_VERSION}_${INIT_DISTRO_TARGETARCH}.sfs"
+   rm -f /mnt/${WKG_DEV}/${WKG_DIR}sfs/easyos/${INIT_DISTRO_BINARY_COMPAT}/${INIT_DISTRO_COMPAT_VERSION}/devx_${INIT_DISTRO_VERSION}_${INIT_DISTRO_TARGETARCH}.sfs
+  fi
+  sync
+ fi
+fi
 
 echo "  ${S013:-...done}"
 
