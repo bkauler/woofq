@@ -204,6 +204,8 @@
 #20250206 probe TRIM support with sg_vpd if hdparm fail.
 #20250206 if WKG_UUID not on kernel cmdline (it is WKG_LABEL) then get it.
 #20250208 version update, want snapshot in the previous release also.
+#20250211 copy sg_vpd to main f.s.
+#20250218 offer to delete version that have rolled back from.
 
 #20230429
 . /build-choices #3buildeasydistro copies it here.
@@ -431,6 +433,7 @@ menu_func() {
   LOCKREM)
    #LOCKkeep='0'
    rm -f /mnt/${WKG_DEV}/${WKG_DIR}.lockdown.flg
+   echo #20250218
    echo "${S028:-...you have chosen to restore normal bootup; however,}"
    echo "\\033[1;31m   ${S029:-normal bootup will be restored on the NEXT bootup}\\033[0;39m" #red
   ;;
@@ -438,18 +441,23 @@ menu_func() {
    #delayed, see menu_delay_func...
    #mkdir -p /mnt/${WKG_DEV}/${WKG_DIR}.session/root
    #touch /mnt/${WKG_DEV}/${WKG_DIR}.session/root/bootcnt.txt #see /root/.profile
+   echo #20250218
    echo "${S030:-...will bootup to commandline, no X}"
   ;;
   RBSAVED)
+   echo #20250218
    echo "${S031:-...will rollback to last saved session}"
   ;;
   RBPRISTINE)
+   echo #20250218
    echo "${S032:-...will rollback to pristine first-boot}"
   ;;
   RBPREVVER) #20240512
+   echo #20250218
    echo "${S450:-...will rollback to last snapshot of previous version}"
   ;;
   FSCHECK)
+   echo #20250218
    echo "${S033:-...will perform filesystem check}"
   ;;
 #  LOGZEUS) #20221030 20221102 remove
@@ -491,6 +499,21 @@ menu_delay_func() {
     cp -a -f /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${backEASYver}/configuration-${backEASYver} /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${backEASYver}/configuration 2>/dev/null
     sync
     echo -n "${backEASYver},${backDATEver}" > /mnt/${WKG_DEV}/${WKG_DIR}.rollback.flg
+    #20250218 offer to delete version that have rolled back from...
+    echo
+    echo "${S500:-The version that you have rolled back from:} ${INIT_DISTRO_VERSION}"
+    echo "${S501:-If you have done this because that version is broken, it will be best to delete it.}"
+    echo "${S502:-This is the folder that may be deleted:}"
+    echo " /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${INIT_DISTRO_VERSION}"
+    echo "${S503:-Press any character then ENTER to delete, else just ENTER to keep:} "
+    echo -n "${S504:-(if no key press is received within 120 seconds, it will be kept)} "
+    read -t 120 -n 1 DELPREVflg
+    if [ "$DELPREVflg" != "" ];then
+     echo
+     echo "${S505:-...deleting rolled-back-from version}"
+     rm -rf /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${INIT_DISTRO_VERSION}
+     sync
+    fi
    else #precaution.
     echo "\\033[1;31m ${S452:-ERROR there is no earlier version, cannot rollback.} \\033[0;39m" #red
    fi
@@ -2692,7 +2715,10 @@ fi
 if [ -e /bin/dialog ];then
  cp -a -f --remove-destination /bin/dialog /easy_new/usr/bin/
 fi
-
+#20250211 copy sg_vpd, just in case want to use it...
+if [ -e /bin/sg_vpd ];then
+ cp -a -f --remove-destination /bin/sg_vpd /easy_new/usr/bin/
+fi
 
 #190811 redesign so can drop linux-capabilities (also changed /etc/rc.d/rc.sysinit)...
 #sync
