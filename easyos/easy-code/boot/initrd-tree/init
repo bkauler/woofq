@@ -512,6 +512,13 @@ menu_delay_func() {
      echo
      echo "${S505:-...deleting rolled-back-from version}"
      rm -rf /mnt/${WKG_DEV}/${WKG_DIR}releases/easy-${INIT_DISTRO_VERSION}
+     if [ -f /mnt/${WKG_DEV}/${WKG_DIR}sfs/easyos/${INIT_DISTRO_BINARY_COMPAT}/${INIT_DISTRO_COMPAT_VERSION}/easy_${INIT_DISTRO_VERSION}_${INIT_DISTRO_TARGETARCH}.sfs ];then
+      rm -f /mnt/${WKG_DEV}/${WKG_DIR}sfs/easyos/${INIT_DISTRO_BINARY_COMPAT}/${INIT_DISTRO_COMPAT_VERSION}/easy_${INIT_DISTRO_VERSION}_${INIT_DISTRO_TARGETARCH}.sfs
+      #***hopefully no symlink from a container***
+     fi
+     if [ -f /mnt/${WKG_DEV}/${WKG_DIR}sfs/easyos/${INIT_DISTRO_BINARY_COMPAT}/${INIT_DISTRO_COMPAT_VERSION}/devx_${INIT_DISTRO_VERSION}_${INIT_DISTRO_TARGETARCH}.sfs ];then
+      rm -f /mnt/${WKG_DEV}/${WKG_DIR}sfs/easyos/${INIT_DISTRO_BINARY_COMPAT}/${INIT_DISTRO_COMPAT_VERSION}/devx_${INIT_DISTRO_VERSION}_${INIT_DISTRO_TARGETARCH}.sfs
+     fi
      sync
     fi
    else #precaution.
