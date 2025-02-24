@@ -207,6 +207,7 @@
 #20250211 copy sg_vpd to main f.s.
 #20250218 offer to delete version that have rolled back from. (see /sbin/rollback)
 #20250218 fix /files folder in lockdown mode.
+#20250224 nvme external drive partition2 resize fail.
 
 #20230429
 . /build-choices #3buildeasydistro copies it here.
@@ -1214,7 +1215,10 @@ if [ "$Wsize" == "912M" -o "$Wsize" == "944M" -o "$Wsize" == "896M" -o "$Wsize" 
  if [ "$Wstart" == "16384" ];then
   #this has to be done with all partitions in WKG_DRV unmounted...
   echo -n -e "\\033[1;35m${S120:-Resizing working-partition to fill drive}\\033[0;39m\n " #purple
-  echo -e "d\n${WKG_PARTNUM}\nn\np\n${WKG_PARTNUM}\n${Wstart}\n\nw" | fdisk -u /dev/${WKG_DRV} > /dev/null 2>&1
+  #20250224 Crucial E100 480GB nvme usb3 drive, this fails, think due to drive block size 4096...
+  #  also asks a new question wants Y/N answer (ok if doesn't ask question, as "N" is not a valid command)...
+  #echo -e "d\n${WKG_PARTNUM}\nn\np\n${WKG_PARTNUM}\n${Wstart}\n\nw" | fdisk -u /dev/${WKG_DRV} > /dev/null 2>&1
+  echo -e "d\n${WKG_PARTNUM}\nn\np\n${WKG_PARTNUM}\n${Wstart}\n\nN\nw" | fdisk -u -b 512 /dev/${WKG_DRV} > /part2resize.log 2>&1
   #fdisk should have informed kernel to rescan partition table, however precaution...
   partprobe /dev/${WKG_DRV}
   Wnewsize="$(fdisk -u -l /dev/${WKG_DRV} | grep "^/dev/${WKG_DEV} " | tr -s ' ' | rev | cut -f 3 -d ' ' | rev)"
@@ -1486,6 +1490,9 @@ else
   . /mnt/${WKG_DEV}/${WKG_DIR}sfs/settings/initrd/CONFIG
  fi
  [ "$KEYMAP" != "us" ] && gunzip -c /lib/keymaps/${KEYMAP}.gz | loadkmap
+ 
+ #20250224 for debugging...
+ if [ -s /part2resize.log ];then cp -f /part2resize.log /mnt/${WKG_DEV}/${WKG_DIR}sfs/settings/initrd/ ; fi
  
  if [ "$POLICYflg" == "" ];then
   #folder has fscrypt enabled.
