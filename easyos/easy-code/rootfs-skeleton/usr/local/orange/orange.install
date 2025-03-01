@@ -9,6 +9,7 @@
 #20241016 PNalt alternative package name (devuan).
 #20241212 pkg may be a pet.
 #20250102 bug fix line 167
+#20250301 fix if install as root.
 
 export TEXTDOMAIN=orange
 export OUTPUT_CHARSET=UTF-8
@@ -243,6 +244,13 @@ if [ "${UI_DESK_MANAGER}" == "jwm" ];then
  MF="<frame>
    <text use-markup=\"true\"><label>\"<b>$(gettext 'Tray icon')</b>\"</label></text>
    <text use-markup=\"true\"><label>\"$(gettext 'An entry has been created in the menu; however, for your convenience an icon has also been created in the tray.')\"</label></text>
+ </frame>"
+elif [ "${UN}" == "root" ];then #20250301
+ MF="<frame>
+   <text use-markup=\"true\"><label>\"<b>$(gettext 'Desktop icon')</b>\"</label></text>
+   <text use-markup=\"true\"><label>\"$(gettext 'An entry has been created in the menu; however, you can also create a desktop icon.')
+$(gettext 'Run Rox-Filer and find the .desktop file in /usr/share/applications and drag it onto the desktop.')
+$(gettext 'You can do it any time in the future, and also can delete the desktop icon by right-click and choose Remove.')\"</label></text>
  </frame>"
 else #rox
  MF="    <frame>
