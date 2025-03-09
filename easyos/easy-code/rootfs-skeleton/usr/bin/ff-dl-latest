@@ -4,6 +4,7 @@
 #20240429 now builtin to rootfs-skeleton
 #20240622 set policies on first install.
 #20241201 tarball changed from .bz2 to .xz
+#20250302 fix menu disappear after update.
 
 export TEXTDOMAIN=ff-dl-latest
 export OUTPUT_CHARSET=UTF-8
@@ -173,6 +174,7 @@ if [ -d /usr/share/hunspell ];then
 fi
 
 if [ -d /home/firefox -a -f /usr/bin/firefox.bin ];then
+ sed -i '/^NoDisplay/d' /usr/share/applications/firefox.desktop #20250302
  MSG5="$(gettext 'Firefox update completed')"
  popup "background=#a0ffa0 level=top terminate=ok process=wait|<big>${MSG5}</big> "
  exit
