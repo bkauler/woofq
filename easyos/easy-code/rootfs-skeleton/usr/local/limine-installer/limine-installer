@@ -24,6 +24,7 @@
 #20230103 find any duplicate UUID etc.
 #20230626 new sudo-sh replaces sudo.
 #20240722 v7 limine.sys now limine-bios.sys
+#20250309 efibootmgr fix. ref: https://forum.puppylinux.com/viewtopic.php?t=13986
 
 #20230626
 if [ "$(whoami)" != "root" ];then
@@ -511,13 +512,17 @@ $(gettext 'See file:') /tmp/limine-installer/efibootmgr-error.log"
    
    if [ "$RUNefibootmgr" == "yes" ];then #20220715
     #if already a "limine" entry, delete it...
-    ENTRY="$(efibootmgr 2>/dev/null | grep ' limine$' | grep -o '000[0-9A-Z]')"
+    #20250309 ref: https://forum.puppylinux.com/viewtopic.php?t=13986
+    #ENTRY="$(efibootmgr 2>/dev/null | grep ' limine$' | grep -o '000[0-9A-Z]')"
+    ENTRY="$(efibootmgr 2>/dev/null | grep ' limine' | grep -o '000[0-9A-Z]')"
     if [ "$ENTRY" ];then
      efibootmgr -b ${ENTRY} -B 2>/dev/null
     fi
     DRVdest="$(echo -n "${ESPdest}" | sed -e 's%[0-9]*$%%' -e 's%p$%%')" #ex: sdb
     echo "efibootmgr -c -d /dev/${DRVdest} -p ${ESPdest/*[a-z]/} -L limine -l '\EFI\limine\${EFIname}.EFI'" #debug
-    efibootmgr -c -d /dev/${DRVdest} -p ${ESPdest/*[a-z]/} -L limine -l "\EFI\limine\${EFIname}.EFI" 2>/tmp/limine-installer/efibootmgr-install-error.log
+    #20250309 strange bug, ref: https://forum.puppylinux.com/viewtopic.php?t=13986
+    #efibootmgr -c -d /dev/${DRVdest} -p ${ESPdest/*[a-z]/} -L limine -l "\EFI\limine\${EFIname}.EFI" 2>/tmp/limine-installer/efibootmgr-install-error.log
+    efibootmgr -c -d /dev/${DRVdest} -p ${ESPdest/*[a-z]/} -L limine -l "\EFI\limine/"${EFIname}".EFI" 2>/tmp/limine-installer/efibootmgr-install-error.log
     EFIret=$?
     if [ $EFIret -ne 0 ];then
      Mfail="$(gettext 'The efibootmgr utility has failed to enter Limine into the UEFI nvmram.')
