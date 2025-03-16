@@ -1,0 +1,111 @@
+#!/bin/bash
+#a simple alternative to the debian 'apt' utility.
+#20250316 created.
+
+#ref: https://manpages.ubuntu.com/manpages/oracular/man8/apt.8.html
+#ref: https://ss64.com/bash/apt.html
+
+export TEXTDOMAIN=neo-apt
+export OUTPUT_CHARSET=UTF-8
+
+#test if running in a terminal...
+#if [ -t 0 ];then
+#...does that need bash? do it this way...
+if tty -s; then
+ true #we are running this from a terminal, good.
+else
+ #exec sakura -t NeoAPT -h -c 100 -r 35 -x "${0} ${@}"
+ exit
+fi
+
+. /etc/DISTRO_SPECS
+mkdir -p /tmp/petget
+
+EXM="$(gettext 'Example:')"
+
+OPT1="$1"
+shift
+
+[ -z "$OPT1" ] && OPT1=help
+#OPT1="${OPT1##*-}"
+case "$OPT1" in
+ install)
+  true
+ ;;
+ *)
+  echo "$(gettext 'NeoAPT is a simple replacement for Debian APT package management.')"
+  echo "$(gettext 'The NeoAPT apt utility currently only supports this:')"
+  echo "$(gettext '(no other commandline options than shown here are allowed)')"
+  echo
+  echo " apt install <$(gettext 'One or more package names, separated by spaces')>"
+  echo "  $(gettext 'Extra version or repository specification will be ignored.')"
+  echo "  ${EXM} apt install bluefish e3 nano"
+  exit
+ ;;
+esac
+
+if [ "$OPT1" == "install" ];then
+ for aP in ${@}
+ do
+  if [ -z "$aP" ];then continue; fi
+  #get rid of a version or repo appendage:
+  PN="${aP/=*/}"
+  PN="${PN/\/*/}"
+  #check if already installed:
+  grep -i -q -F "|${PN}|" /root/.packages/user-installed-packages /root/.packages/woof-installed-packages 2>/dev/null
+  if [ $? -eq 0 ];then
+   echo "$(gettext 'This package is already installed:') ${PN}"
+   echo -n "$(gettext 'Ignoring. Press ENTER key to continue:') "
+   read ignorepkg
+   continue
+  fi
+  #find if pkg in db:
+  DBfnd="$(grep -m 1 -H -i -F "|${PN}|" /root/.packages/Packages-${DISTRO_BINARY_COMPAT}-${DISTRO_COMPAT_VERSION}-* | head -n 1)"
+  if [ -z "$DBfnd" ];then
+   echo "$(gettext 'This package does not exist in the package repositories:') ${PN}"
+   echo -n "$(gettext 'Ignoring. Press ENTER key to continue:') "
+   read ignorepkg
+   continue
+  fi
+  #note, similar code in /usr/local/orange/orange.install ...
+  DBrepospec="${DBfnd/:*/}"
+  #ex: /root/.packages/Packages-oe-kirkstone-official
+  DBentry="${DBfnd/*:/}"
+  #ex: scribus-1.5.8-r3|scribus|1.5.8-r3||Document;layout|144116K|kirkstone|scribus-1.5.8-r3-nocona-64.tar.xz|+boost,+cairo,+cups,+cups-filters,+expat,+fontconfig,+freetype,+ghostscript,+glib-2.0,+gmp,+gnutls,+graphite2,+harfbuzz,+hunspell,+icu,+lcms,+libcdr,+libdrm,+libfreehand,+libgcrypt,+libidn,+libjpeg-turbo,+libmspub,+libpagemaker,+libpng,+librevenge,+librsvg,+libunistring,+libvisio,+libwpd,+libx11,+libxau,+libxcb,+libxdamage,+libxdmcp,+libxext,+libxfixes,+libxml2,+libxrender,+libxshmfence,+libxxf86vm,+mesa,+nettle,+openssl,+pixman,+poppler,+python3,+qtbase,+qttools,+sqlite3,+tiff,+util-linux,+xz,+zlib|Scribus Open source desktop publishing|oe|kirkstone||
+
+  TREE1="${DBentry%%|*}" #ex: scribus-1.5.8-r3
+  export TREE1
+  
+  DBreponame="${DBrepospec##*/}" #ex: Packages-oe-kirkstone-official
+  DBrepotriad="${DBreponame#*-}" #ex: oe-kirkstone-official
+  
+  #find icon:
+  DBcat="$(echo -n "${DBentry}" | cut -f 5 -d '|' | tr ';' '-')" #ex: Document-layout
+  if [ -f /usr/local/lib/X11/mini-icons/mini-${DBcat}.xpm ];then
+   MI="mini-${DBcat}"
+  elif [ -f /usr/local/lib/X11/mini-icons/mini-${DBcat/-*/}.xpm ];then
+   MI="mini-${DBcat/-*/}"
+  else
+   MI='mini-BuildingBlock'
+  fi
+  RN="$(echo -n "${DBentry}" | cut -f 2 -d '|')"
+  SD="$(echo -n "${DBentry}" | cut -f 10 -d '|')" #ex: Scribus Open source desktop publishing
+
+  echo "${DBrepotriad}" > /tmp/petget/current-repo-triad
+  echo "${TREE1}|${MI}|${RN} ${SD,}|${DBrepotriad}|" > /tmp/petget/filterpkgs.results.post
+
+  #generates some needed files in /tmp then exit...
+  /usr/local/petget/pkg_chooser.sh "gen-tmp-files-only"
+
+  #offer to install, with deps...
+  #too complicated asking each app run non-root, so install to run as root...
+  export RUNASROOT=yes
+  /usr/local/petget/installpreview.sh
+  
+  sync
+ done
+ exit
+fi
+
+
+###end###
