@@ -43,6 +43,7 @@
 #20241124 maybe allow install app non-root in container.
 #20241124 hard-code some exclusions run non-root.
 #20241212 force some apps to run non-root.
+#20250316 /usr/local/neo-apt/apt exports RUNASROOT=yes
 
 export TEXTDOMAIN=petget___installpreview.sh
 export OUTPUT_CHARSET=UTF-8
@@ -628,6 +629,7 @@ if [ -f /root/.packages/${TREE1}.files ];then #ex TREE1=abiword-1.2-amd64 (1st f
        #copy those to here...
        #well, these are already builtin, but just in case not...
        ASKflg=1; RETASK='root'
+       if [ "${RUNASROOT}" == "yes" ];then ASKflg=0; fi #20250316 called from /usr/local/neo-apt/apt
        case "${EXEC}" in
         awf-gtk2|awf-gtk3|bluepup|bluetooth-sendto|bootmanager|butniso2cd|ccrypt_gui) ASKflg=0 ;;
         cdburner-wizard|chooselocale|cups_shell|date-time-wizard) ASKflg=0 ;;
