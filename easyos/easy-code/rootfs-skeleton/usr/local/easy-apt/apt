@@ -1,6 +1,7 @@
 #!/bin/bash
 #a simple alternative to the debian 'apt' utility.
 #20250316 created. 20250317 name change to easy-apt
+#20250317 launch from Setup menu.
 
 #ref: https://manpages.ubuntu.com/manpages/oracular/man8/apt.8.html
 #ref: https://ss64.com/bash/apt.html
@@ -9,13 +10,23 @@ export TEXTDOMAIN=easy-apt
 export OUTPUT_CHARSET=UTF-8
 
 #test if running in a terminal...
-#if [ -t 0 ];then
-#...does that need bash? do it this way...
-if tty -s; then
- true #we are running this from a terminal, good.
-else
- #exec sakura -t EasyAPT -h -c 100 -r 35 -x "${0} ${@}"
+#...does "-t 1" need bash? do it this way...
+#if tty -s; then
+#run from jwm menu, need to do this way...
+case "$0" in
+ *apt-via-menu) Menuflg=1 ;;
+ *) Menuflg=0 ;;
+esac
+if [ $Menuflg -eq 1 ];then
+ #if [ "$DISPLAY" != ":0" ];then exit; fi
+ echo '/usr/local/easy-apt/apt help
+exec bash' > /tmp/apt-run-from-menu.$$
+ #chmod 755 /tmp/apt-run-from-menu.$$
+ sakura -t EasyAPT -c 100 -r 35 -x "bash --init-file /tmp/apt-run-from-menu.${$}"
+ rm -f /tmp/apt-run-from-menu.$$
  exit
+else
+ true #we are running this from a terminal, good.
 fi
 
 . /etc/DISTRO_SPECS
