@@ -1,11 +1,11 @@
 #!/bin/bash
 #a simple alternative to the debian 'apt' utility.
-#20250316 created.
+#20250316 created. 20250317 name change to easy-apt
 
 #ref: https://manpages.ubuntu.com/manpages/oracular/man8/apt.8.html
 #ref: https://ss64.com/bash/apt.html
 
-export TEXTDOMAIN=neo-apt
+export TEXTDOMAIN=easy-apt
 export OUTPUT_CHARSET=UTF-8
 
 #test if running in a terminal...
@@ -14,7 +14,7 @@ export OUTPUT_CHARSET=UTF-8
 if tty -s; then
  true #we are running this from a terminal, good.
 else
- #exec sakura -t NeoAPT -h -c 100 -r 35 -x "${0} ${@}"
+ #exec sakura -t EasyAPT -h -c 100 -r 35 -x "${0} ${@}"
  exit
 fi
 
@@ -33,11 +33,11 @@ case "$OPT1" in
   true
  ;;
  *)
-  echo "$(gettext 'NeoAPT is a simple replacement for Debian APT package management.')"
-  echo "$(gettext 'The NeoAPT apt utility currently only supports this:')"
+  echo "$(gettext 'EasyAPT is a simple replacement for Debian APT package management.')"
+  echo "$(gettext 'The EasyAPT apt utility currently only supports this:')"
   echo "$(gettext '(no other commandline options than shown here are allowed)')"
   echo
-  echo " apt install <$(gettext 'One or more package names, separated by spaces')>"
+  echo " apt install <$(gettext 'one or more package names, separated by spaces')>"
   echo "  $(gettext 'Extra version or repository specification will be ignored.')"
   echo "  ${EXM} apt install bluefish e3 nano"
   exit
