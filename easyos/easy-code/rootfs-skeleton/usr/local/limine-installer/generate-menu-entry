@@ -8,6 +8,7 @@
 #20220722 want to replace hdd uri with boot uri if possible.
 #20220726 efichain: show partition.
 #20220727 bios chainload: new GPT_UUID
+#20250327 fix chainload  ref: https://forum.puppylinux.com/viewtopic.php?p=144902#p144902
 
 SRC="$1"
 [ ! -f /tmp/limine-installer/i-${SRC#i-} ] && exit 1
@@ -26,8 +27,8 @@ if [ "$CAT" == "windows" ];then
  [ "${iEFIPATH:0:1}" == "/" ] && iEFIPATH="${iEFIPATH:1:99}"
  echo ":Windows ${iVERSION}
     COMMENT=Windows bootup
-    PROTOCOL=chainload
-    IMAGE_PATH=guid://${iPARTUUID}/${iEFIPATH}" > /tmp/limine-installer/gen-menu-entry
+    PROTOCOL=efi_chainload
+    IMAGE_PATH=guid://${iPARTUUID}/${iEFIPATH}" > /tmp/limine-installer/gen-menu-entry #20250327
  fi
  if [ "$iWINLOADER" ];then #20220716
   if [ "$iPTTYPE" == "gpt" ];then #20220727
@@ -37,9 +38,9 @@ if [ "$CAT" == "windows" ];then
   fi
   echo ":Windows ${iVERSION}
     COMMENT=Windows bootup
-    PROTOCOL=chainload
+    PROTOCOL=bios_chainload
     ${PTID}=${iPTUUID}
-    PARTITION=${iKNAME/*[a-z]/}" > /tmp/limine-installer/gen-menu-entry
+    PARTITION=${iKNAME/*[a-z]/}" > /tmp/limine-installer/gen-menu-entry #20250327
  fi
 fi
 
@@ -225,9 +226,9 @@ if [ "$CAT" == "mbrchain" ];then
   PTID="MBR_ID"
  fi
  echo ":MBR Chainload (drive ${iDRIVE})
-    PROTOCOL=chainload
+    PROTOCOL=bios_chainload
     #DRIVE=1
-    ${PTID}=${iPTUUID}" > /tmp/limine-installer/gen-menu-entry
+    ${PTID}=${iPTUUID}" > /tmp/limine-installer/gen-menu-entry #20250327
 fi
 
 if [ "$CAT" == "efichain" ];then
@@ -235,8 +236,8 @@ if [ "$CAT" == "efichain" ];then
  #dump leading slash:
  [ "${iEFIPATH:0:1}" == "/" ] && iEFIPATH="${iEFIPATH:1:99}"
  echo ":${iNAME} (partition ${iKNAME})
-    PROTOCOL=chainload
-    IMAGE_PATH=guid://${iPARTUUID}/${iEFIPATH}" > /tmp/limine-installer/gen-menu-entry
+    PROTOCOL=efi_chainload
+    IMAGE_PATH=guid://${iPARTUUID}/${iEFIPATH}" > /tmp/limine-installer/gen-menu-entry #20250327
 fi
 
 

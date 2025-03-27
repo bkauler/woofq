@@ -25,6 +25,7 @@
 #20230626 new sudo-sh replaces sudo.
 #20240722 v7 limine.sys now limine-bios.sys
 #20250309 efibootmgr fix. ref: https://forum.puppylinux.com/viewtopic.php?t=13986
+#20250327 set resolution  ref:https://forum.puppylinux.com/viewtopic.php?p=144364#p144364
 
 #20230626
 if [ "$(whoami)" != "root" ];then
@@ -440,8 +441,9 @@ GRAPHICS=no
 DEFAULT_ENTRY=1
 EDITOR_ENABLED=yes
 INTERFACE_BRANDING=EasyOS Limine Boot Manager
+INTERFACE_RESOLUTION=800x600
 " > ${MOUNTPOINT}/limine.cfg
-  cat /tmp/limine-installer/generated-entries >> ${MOUNTPOINT}/limine.cfg
+  cat /tmp/limine-installer/generated-entries >> ${MOUNTPOINT}/limine.cfg #20250327
 
   if [ "$RUNefibootmgr" == "yes" ];then #20220715
    #sanity check...
@@ -692,8 +694,9 @@ GRAPHICS=no
 DEFAULT_ENTRY=1
 EDITOR_ENABLED=yes
 INTERFACE_BRANDING=EasyOS Limine Boot Manager
+INTERFACE_RESOLUTION=800x600
 " > /mnt/${DEVdest}/limine.cfg
- cat /tmp/limine-installer/generated-entries >> /mnt/${DEVdest}/limine.cfg
+ cat /tmp/limine-installer/generated-entries >> /mnt/${DEVdest}/limine.cfg #20250327
  
  #20220722 for uri "hdd://1:2/path-to-vmlinuz-or-initrd",
  # 'generate-menu-entry' has created an incorrect uri, of format
