@@ -1,5 +1,6 @@
 #!/bin/ash
 #20230623
+#called from /usr/bin/sudo-sh C binary executable.
 #sudo does not work. something to do with busybox mkpasswd now using sha512?
 #script that wants to run as root has code that runs sudo-sh (suid binary)
 # hence here. ex: /usr/sbin/bootmanager
