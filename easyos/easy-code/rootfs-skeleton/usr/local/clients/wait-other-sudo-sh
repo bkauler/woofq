@@ -1,0 +1,40 @@
+#!/bin/ash
+#20250529
+#called from sudo-sh C binary, v1.4.
+#when sudo-sh entered non-root, it sends a message to /root/Startup/sudo-sh-ipc
+#which then runs sudo-sh as root.
+#the first sudo-sh will wait until the second one has finished, by calling this script.
+
+SENDERPID="$1" #pid of the non-root sudo-sh
+
+#the non-root sudo-sh has also written its pid to /tmp/sudo-sh-pid-nonroot
+#when sudo-sh runs as root, it will write its pid to /tmp/sudo-sh-pid-root
+# so all we have to do is wait for that root pid to finish.
+
+sleep 0.1
+
+ROOTPID="$(cat /tmp/sudo-sh-pid-root 2>/dev/null)"
+if [ -z "$ROOTPID" ];then sleep 0.5; ROOTPID="$(cat /tmp/sudo-sh-pid-root 2>/dev/null)"; fi #precaution
+if [ -z "$ROOTPID" ];then sleep 0.5; ROOTPID="$(cat /tmp/sudo-sh-pid-root 2>/dev/null)"; fi #precaution
+if [ -z "$ROOTPID" ];then sleep 0.5; ROOTPID="$(cat /tmp/sudo-sh-pid-root 2>/dev/null)"; fi #precaution
+if [ -z "$ROOTPID" ];then sleep 0.5; ROOTPID="$(cat /tmp/sudo-sh-pid-root 2>/dev/null)"; fi #precaution
+if [ -z "$ROOTPID" ];then exit; fi
+
+CNT=0
+while [ 1 ];do
+ if test -d /proc/${ROOTPID};then
+  sleep 0.5
+ else
+  break
+ fi
+ #precaution...
+ CNT=$((${CNT}+1))
+ if [ $CNT -gt 220 ];then
+  break
+ fi
+done
+
+rm -f /tmp/sudo-sh-pid-nonroot 2>/dev/null
+rm -f /tmp/sudo-sh-pid-root 2>/dev/null
+
+###end###
