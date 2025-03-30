@@ -43,7 +43,8 @@
 #20241124 maybe allow install app non-root in container.
 #20241124 hard-code some exclusions run non-root.
 #20241212 force some apps to run non-root.
-#20250316 /usr/local/neo-apt/apt exports RUNASROOT=yes
+#20250316 /usr/local/easy-apt/apt exports RUNASROOT=yes
+#20250330 install seamonkey as root only.
 
 export TEXTDOMAIN=petget___installpreview.sh
 export OUTPUT_CHARSET=UTF-8
@@ -629,7 +630,8 @@ if [ -f /root/.packages/${TREE1}.files ];then #ex TREE1=abiword-1.2-amd64 (1st f
        #copy those to here...
        #well, these are already builtin, but just in case not...
        ASKflg=1; RETASK='root'
-       if [ "${RUNASROOT}" == "yes" ];then ASKflg=0; fi #20250316 called from /usr/local/neo-apt/apt
+       if [ "${RUNASROOT}" == "yes" ];then ASKflg=0; fi #20250316 called from /usr/local/easy-apt/apt
+       #20250330 add seamonkey must run as root...
        case "${EXEC}" in
         awf-gtk2|awf-gtk3|bluepup|bluetooth-sendto|bootmanager|butniso2cd|ccrypt_gui) ASKflg=0 ;;
         cdburner-wizard|chooselocale|cups_shell|date-time-wizard) ASKflg=0 ;;
@@ -638,7 +640,7 @@ if [ -f /root/.packages/${TREE1}.files ];then #ex TREE1=abiword-1.2-amd64 (1st f
         gparted_shell|gtk3*|hostname-set|icon_switcher|input-wizard|ipinfo|jwmthememaker) ASKflg=0 ;;
         limine-installer|loginmanager|momanager|mount-img|moveicons|mscw|mtpaintsnapshot.sh) ASKflg=0 ;;
         notification-daemon|partview|pburn|Pdisk|petget|pmount|pprocess|Pudd|pupx) ASKflg=0 ;;
-        pupzip|pwsget|qsync|quicksetup|qwallpaper|rox|rxvt|sakura|screeny|set_*|set-*) ASKflg=0 ;;
+        pupzip|pwsget|qsync|quicksetup|qwallpaper|rox|rxvt|sakura|screeny|seamonkey|set_*|set-*) ASKflg=0 ;;
         tas|timezone-set|touchpad-toggle|urxvt*|usbviewshell|vv-dl-latest|wcpufreq|xarchive) ASKflg=0 ;;
         xdelt_gui|xfdiff-cut|xfontsel|xorgwizard|xvkbd-wrapper|youtubedl-gui|zarfywrapper) ASKflg=0 ;;
         gfnrename|gfontsel|gpptp|gtk*|pgprs|precord|prename|pupcamera|xdelta_gui) ASKflg=0 ;;
