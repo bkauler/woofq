@@ -94,6 +94,7 @@
 #20240229 easyvoid. 20240302 20240306  20240503
 #2024626 careful rev broken if LANG=C and utf8 chars.
 #20241104 run build-rox-sendto as a separate process, because slow.
+#20250406 fix Exec= line in .desktop has quotes.
 
 #information from 'labrador', to expand a .pet directly to '/':
 #NAME="a52dec-0.7.4"
@@ -888,6 +889,12 @@ do
  #hmmm, just assume claws.desktop doesn't need any fixing...
  if [ ! -e "$ONEDOT" ];then
   continue
+ fi
+ 
+ #20250406 daedalus gsmartcontrol.desktop has this line: Exec="/usr/bin/gsmartcontrol-root"
+ grep -q '^Exec="' $ONEDOT
+ if [ $? -eq 0 ];then
+  sed -i -e 's%^Exec="\(.*\)"$%Exec=\1%' $ONEDOT
  fi
  
  #120901 get rid of param on end of Exec, ex: Exec=gimp-2.8 %U
