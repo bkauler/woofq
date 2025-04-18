@@ -343,6 +343,7 @@
 #20241130 hack fix. ref: https://bkhome.org/news/202411/xrdb-fixed-in-container.html
 #20241225 run-once-top: remove more menu entries.
 #20250106 remove any invalid orange-ball .desktop files. 20250107 improve. 20250111 fix.
+#20250417 firefox-skeleton now with all langpacks downloaded. ref: 1download-latest-firefox
 
 export LANG=C #faster.
 
@@ -1318,22 +1319,17 @@ else
  cp -a -f /usr/lib/locale/en_* rootfs-complete/usr/lib/locale/
 fi
 
-#20211110 if building with firefox-skeleton, copy latest version...
+#20211110 if building with firefox-skeleton, copy latest version... 20250417
 grep -q '^firefox-skeleton' ../woof-installed-packages
 if [ $? -eq 0 ];then
  #hope this has been downloaded!
- if [ -f ../firefox-${DEFAULTLANG1}.tar.bz2 ];then
+ if [ -d ../firefox ];then
   echo 'Populating rootfs-complete/usr/lib/firefox...'
-  #cp -f ../firefox-${DEFAULTLANG1}.tar.bz2 rootfs-complete/usr/lib/firefox/
-  cd rootfs-complete/usr/lib
-  mv -f firefox firefox-skel
-  tar -xf ../../../../firefox-${DEFAULTLANG1}.tar.bz2
-  sync
-  cp -a -f --remove-destination firefox-skel/* firefox/
-  sync
-  rm -rf firefox-skel
-  cd ../../../
-  [ ! -d rootfs-complete ] && exit #sanity check.
+  cp -a -f --remove-destination ../firefox/* rootfs-complete/usr/lib/firefox/
+  if [ -f ../firefox-latest-version ];then
+   FFVER="$(cat ../firefox-latest-version | cut -f 2 -d "'")"
+   echo "FF_CURR_VER='${FFVER}'" > rootfs-complete/etc/firefox-current-version
+  fi
  else
   echo 'AAAARGH!!! 1download-latest-firefox has not been run. Build will be broken.'
  fi
