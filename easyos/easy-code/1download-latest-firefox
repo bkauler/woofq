@@ -2,34 +2,58 @@
 #20211110
 #201112 report the version.
 #20220720 select 64bit or 32bit
+#20250417 d/l en-US and .xpi language-packs.
 
 [ ! -f ./DISTRO_SPECS ] && exit
 . ./DISTRO_SPECS
 case "$DISTRO_TARGETARCH" in
- amd64) DLARCH="linux64" ;;
- x86)   DLARCH="linux" ;;
+ amd64) DLARCH="linux64"; xARCH='x86_64' ;;
+ x86)   DLARCH="linux"; xARCH='x86' ;;
 esac
 [ ! "$DLARCH" ] && exit
 
-if [ -f firefox-en.tar.bz2 ];then
- rm -f firefox-en.tar.bz2
+if [ -f firefox.tar.xz ];then
+ rm -f firefox.tar.xz
 fi
-if [ -f firefox-de.tar.bz2 ];then
- rm -f firefox-de.tar.bz2
-fi
-if [ -f firefox-fr.tar.bz2 ];then
- rm -f firefox-fr.tar.bz2
+if [ -d firefox ];then
+ rm -rf firefox
 fi
 
 wget --spider 'https://download.mozilla.org/?product=firefox-latest-ssl&os='"${DLARCH}"'&lang=en-US' >/tmp/dl-ff-latest-spider.log 2>&1
 FFVER="$(grep -o 'pub/firefox/releases/[^/]*' /tmp/dl-ff-latest-spider.log | head -n 1 | cut -f 4 -d '/')"
 echo -n "FF_DL_VER='${FFVER}'" > firefox-latest-version
 
-wget 'https://download.mozilla.org/?product=firefox-latest-ssl&os='"${DLARCH}"'&lang=en-US' -O firefox-en.tar.bz2
+wget 'https://download.mozilla.org/?product=firefox-latest-ssl&os='"${DLARCH}"'&lang=en-US' -O firefox.tar.xz
 sync
 
-wget 'https://download.mozilla.org/?product=firefox-latest-ssl&os='"${DLARCH}"'&lang=de' -O firefox-de.tar.bz2
+#ref: https://support.mozilla.org/en-US/kb/deploying-firefox-language-packs
+
+tar -xf firefox.tar.xz
+mkdir -p firefox/distribution/extensions
+
+VER2="$(echo -n "$FFVER" | cut -f 1,2 -d '.')"
+#ex: https://releases.mozilla.org/pub/firefox/releases/137.0/linux-x86_64/xpi/fr.xpi
+
+. ./build-choices #has BUILD_SUPPORT_LANGS
+
+LANG2="$(echo -n "${BUILD_SUPPORT_LANGS}" | tr ' ' '\n' | cut -f 1 -d ':' | tr '\n' ' ')"
+
+cd firefox/distribution/extensions
+for aL in ${LANG2}
+do
+ case "$aL" in
+  en) aL='en-GB' ;;
+  es) aL='es-ES' ;;
+  no) aL='nb-NO' ;;
+  pt) aL='pt-PT' ;;
+  sv) aL='sv-SE' ;;
+  zh) aL='zh-CN' ;;
+ esac
+ wget https://releases.mozilla.org/pub/firefox/releases/${VER2}/linux-${xARCH}/xpi/${aL}.xpi -O langpack-${aL}@firefox.mozilla.org.xpi
+ if [ $? -ne 0 ];then
+  rm -f langpack-${aL}@firefox.mozilla.org.xpi 2>/dev/null
+ fi
+done
 sync
 
-wget 'https://download.mozilla.org/?product=firefox-latest-ssl&os='"${DLARCH}"'&lang=fr' -O firefox-fr.tar.bz2
-sync
+cd ../../../
