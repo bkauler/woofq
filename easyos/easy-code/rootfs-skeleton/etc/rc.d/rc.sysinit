@@ -70,6 +70,7 @@
 #20240909 handle ibus input method.
 #20240922 fix mount /dev/pts
 #20241211 /var/run symlink to /run, like other distros (and fix flatpak). 20241214 fix.
+#20250418 firefox-skeleton pet is now building with all langpacks .xpi builtin, but starts en-US only...
 
 #unset TZ #100319 busybox hwclock gives priority to this (rather than /etc/localtime) and 'init' has set it wrong.
 #...comment-out for now. note, TZ now set in rc.country.
@@ -427,6 +428,23 @@ status_func $STATUS
 echo "VERSION UPDATE"
 ##force update when new version of ${DISTRO_NAME}...
 #echo -n "Updating..." >/dev/console #updating
+
+#20250418 firefox-skeleton pet is now building with all langpacks .xpi builtin, but starts en-US only...
+if [ -d /home/firefox ];then
+ if [ ! -f /etc/networkmodules ];then #first bootup
+  QLANG="$(cat /mnt/${WKG_DEV}/${WKG_DIR}.qlang)" #.qlang created in initrd. ex: it
+  if [ "$QLANG" != "en" -a "$QLANG" != "" ];then
+   FFLANG="$(find /usr/lib/firefox/distribution/extensions -mindepth 1 -maxdepth 1 -type f -name "langpack-${QLANG}*xpi" | head -n 1 | sed -e 's%.*langpack-%%' -e 's%@.*%%')"
+   if [ -n "$FFLANG" ];then
+    PREFSJS="$(find /home/firefox/.mozilla/firefox -type f -name prefs.js | tr '\n' ' ')"
+    for aP in $PREFSJS
+    do
+     echo "user_pref(\"intl.locale.requested\", \"${FFLANG},en-US\");" >> $aP
+    done
+   fi
+  fi
+ fi
+fi
 
 #141113 fixes for cross-build... 170920...
 if [ -f /.sfschg.flg -o ! -f /etc/networkmodules ];then #this file gets created 1st boot in rc.update
