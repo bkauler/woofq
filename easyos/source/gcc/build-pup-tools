@@ -1,13 +1,14 @@
 #!/bin/sh
 #20220807 added debdb2pupdb.c, find-cat.c
+#20250420 rem truncate
 
 gcc -o printcols printcols.c
 [ ! -f printcols ] && exit 1
 strip --strip-unneeded printcols
 
-gcc -o truncate truncate.c
-[ ! -f truncate ] && exit 1
-strip --strip-unneeded truncate
+#gcc -o truncate truncate.c
+#[ ! -f truncate ] && exit 1
+#strip --strip-unneeded truncate
 
 gcc -o vercmp vercmp.c
 [ ! -f vercmp ] && exit 1
