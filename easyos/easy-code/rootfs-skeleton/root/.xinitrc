@@ -25,6 +25,7 @@
 #20240726 Caramel: jwm keyboard fix. ref: https://forum.puppylinux.com/viewtopic.php?t=12241  20240831 fix.
 #20240831 now tray mostly full-width (see tray_dims) and want labels.
 #20250112 fix jwm blurry wallpaper.
+#20250429 /etc/xrandrindex no longer used (it was created in xrandrshell-OLD). handle zarfy.
 
 . /etc/rc.d/PUPSTATE #20220526 has EOS_SUPPORT_CONTAINERS
 
@@ -59,6 +60,13 @@ if [ -f /root/Choices/ROX-Filer/PuppyPinBACKUP ];then
  fi
 fi
 cp -a -f /root/Choices/ROX-Filer/PuppyPin /root/Choices/ROX-Filer/PuppyPinBACKUP
+
+#20250429 zarfy multiple monitor manager...
+if [ -s "/root/.local/share/:0/outputs.conf" ];then
+ sleep 0.1
+ zarfy -l
+ sleep 0.1
+fi
 
 #170528 unexpected change of screen dimensions may cause desktop drive icons to be displaced...
 # /usr/local/pup_event/frontend_startup, called from pup_event_frontend_d (further down .xinitrc)
@@ -179,20 +187,8 @@ fi
 
 [ -f /usr/local/bin/agenda_chk ] && agenda_chk &
 
-#v1.0.7 set by xrandrshell, part of xorg wizard... v3.99... 180102 note, no longer doing this in quicksetup.
-if [ -f /etc/xrandrindex ];then
-  #v3.99 workround for dual monitors, 'head -n 1'....
-  XRANDRDEFAULT="$(xrandr -q | grep '\*' | tr -s ' ' | grep '^ [0-9]' | cut -f 2,3 -d ' ' | cut -f 1 -d '*' | tr ' ' '@' | head -n 1)" #130202 return 1024x768@60.0
-  XRANDRINDEX="`cat /etc/xrandrindex`" #v3.99 XRANDRINDEX now is XxY resolution. #130202 now vertxhoriz@freq (refer quicksetup).
-  #but do not switch if default is already this resolution....
-  if [ "$XRANDRINDEX" = "$XRANDRDEFAULT" ];then
-   rm -f /etc/xrandrindex
-  else
-   NEW_XY="$(echo -n "$XRANDRINDEX" | cut -f 1 -d '@')" #130202
-   NEW_VFREQ="$(echo -n "$XRANDRINDEX" | cut -f 2 -d '@')" #130202
-   xrandr -s $NEW_XY -r $NEW_VFREQ #130202
-  fi
-fi
+#20250429 removed test for /etc/xrandrindex
+
 #180102 ref: /usr/sbin/quicksetup
 if [ -f /root/.xrandroverscan ];then
  eval "`cat /root/.xrandroverscan`"

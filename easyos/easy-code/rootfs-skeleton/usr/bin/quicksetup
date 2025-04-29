@@ -141,6 +141,7 @@
 #20240916 simplify translations.
 #20240917 zh: check if input-method pkg installed.
 #20240926 fix so works in both easyos and qv.
+#20250429 /etc/xrandrindex no longer used.
 
 #20230626
 if [ "$(whoami)" != "root" ];then
@@ -1651,8 +1652,6 @@ $(gettext 'If choose <b>Permanent</b>, the new resolution is written to /etc/X11
    case $EXIT in
     permanent)
      #180101 make new res permanent by altering xorg.conf (ref: xorgwizard-automatic)...
-     #echo -n "${TESTX}x${TESTY}@${TESTVR}" > /etc/xrandrindex #so will be set in .xinitrc at next X start. #130202 added freq.
-     rm -f /etc/xrandrindex 2>/dev/null #precaution
      CHOSENRES="${TESTX}x${TESTY}"
      REGEX1="s%.*#screen0modes%		Modes       \"${CHOSENRES}\" #screen0modes%"
      REGEX2="s%.*#monitor0prefmode%	Option      \"PreferredMode\" \"${CHOSENRES}\" #monitor0prefmode%"
@@ -1665,10 +1664,9 @@ $(gettext 'If choose <b>Permanent</b>, the new resolution is written to /etc/X11
      cp -a /etc/X11/xorg.conf.d /etc/X11/xorg.conf.d.${CURRENTPROFILE} #200113
     ;;
     session)
-     rm -f /etc/xrandrindex
+     true
     ;;
     *)
-     rm -f /etc/xrandrindex
      xrandr -s $DEF_XYRES -r $DEF_VFREQ #restore to what it was before. #130202 added freq.
     ;;
    esac

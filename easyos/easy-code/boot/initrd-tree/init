@@ -208,6 +208,7 @@
 #20250218 offer to delete version that have rolled back from. (see /sbin/rollback)
 #20250218 fix /files folder in lockdown mode.
 #20250224 nvme external drive partition2 resize fail.
+#20250420 another go with overlayfs. 20250422 nah, crap. ref: https://forum.puppylinux.com/viewtopic.php?t=1910
 
 #20230429
 . /build-choices #3buildeasydistro copies it here.
@@ -247,7 +248,10 @@ create_top_level_zram1() { #20220521
  ALLOCK=$(($USEK*2))
  echo "${ALLOCK}K" > /sys/block/zram1/disksize
  #echo "${USEK}K" > /sys/block/zram1/mem_limit
- busybox mke2fs -L "TOPLEVELZRAM" -m 0 -b 4096 /dev/zram1 > /dev/null
+ #20250420 busybox mke2fs does not support xattr feature... 20250422
+ #busybox mke2fs -L "TOPLEVELZRAM" -m 0 -b 4096 /dev/zram1 > /dev/null
+ mke2fs -L "TOPLEVELZRAM" -m 0 -b 4096 -t ext2 /dev/zram1 > /dev/null
+ #mke2fs -L "TOPLEVELZRAM" -m 0 -b 4096 -t ext4 -O ^64bit,^has_journal /dev/zram1 > /dev/null
 }
 
 create_savefile_func() { #20210524
@@ -771,7 +775,7 @@ export fbX #want in tnew
 
 export LANG=C
 
-#170206 reintroducing aufs in the kernel:
+#170206 reintroducing aufs in the kernel:  20250420 make overlayfs the default. 20250422 no.
 if grep -qw aufs /proc/filesystems; then
  LAYERFS='aufs'
  RO='=ro'
@@ -1060,7 +1064,10 @@ if [ "$WKG_DEV" == "zram0" -o "$xWKG_DEV" == "zram0" ];then #190706 190817
  echo "  ${S113:-Creating compressed zram. RAM allocated:} ${USEK}K"
  echo "${ALLOCK}K" > /sys/block/zram0/disksize
  echo "${USEK}K" > /sys/block/zram0/mem_limit
- busybox mke2fs -L "EASYOSZRAM" -m 0 -b 4096 /dev/zram0 > /dev/null #20201130 make sure block size is 4096!
+ #20250420 ...  20250422
+ #busybox mke2fs -L "EASYOSZRAM" -m 0 -b 4096 /dev/zram0 > /dev/null #20201130 make sure block size is 4096!
+ #mke2fs -L "EASYOSZRAM" -m 0 -b 4096 -t ext4 -O ^64bit,^has_journal /dev/zram0 > /dev/null
+ mke2fs -L "EASYOSZRAM" -m 0 -b 4096 -t ext2 /dev/zram0 > /dev/null
  #...has to be ext2, so won't ask for password etc.
 fi
 if [ "$WKG_DEV" != "zram0" ];then #190817
