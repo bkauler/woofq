@@ -2,6 +2,7 @@
 #20220207
 #20220217 update jwm drives menu and pop it up...
 #20220218 generate-drives-menu writes to /root/.jwmrc-drives internally.
+#20250510 replace xmessage with gxmessage
 
 . /etc/rc.d/PUPSTATE
 . /etc/uimanager #20220217 UI_DESK_MANAGER='jwm' #or rox
@@ -34,18 +35,15 @@ unmount_func() {
 common reason is the media is not currently inserted.
 If so, please remedy.')"
    else
-    xmessage -bg "#ff99ff" -title "$(gettext 'EasyOS drive manager: FAIL')" -center -buttons "$(gettext 'KILL')":10,"$(gettext 'EXIT')":20 "$(gettext 'FAILURE!')
-$(gettext 'One or more processes (programs) are currently
-using the partition. Here they are:')
+    #20250510...
+    Ktitle="$(gettext 'EasyOS drive manager: FAIL')"
+    gxmessage -wrap -bg "#ff99ff" -title "${Ktitle}" -center -geometry "500x350" -buttons "$(gettext 'KILL')":10,"$(gettext 'EXIT')":20 "$(gettext 'FAILURE!')
+$(gettext 'One or more processes (programs) are currently using the partition. Here they are:')
 ${EXTRAMSG0}
 
-$(gettext "If you press the 'KILL' button, EasyOS will attempt to
-kill the offending programs for you. Only do this as a
-last resort.")
-$(gettext "Firstly you should try to close the programs
-manually, so do not press 'KILL'.")
+$(gettext "If you press the 'KILL' button, Easy will attempt to kill the offending programs for you. Only do this as a last resort.")
+$(gettext "Firstly you should try to close the programs manually, so do not press 'KILL'.")
 $(gettext "PLEASE PRESS THE 'EXIT' BUTTON!")"
-
     if [ $? -eq 10 ];then
      fuser -k -m $MNTPT
      continue

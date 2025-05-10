@@ -95,6 +95,7 @@
 #2024626 careful rev broken if LANG=C and utf8 chars.
 #20241104 run build-rox-sendto as a separate process, because slow.
 #20250406 fix Exec= line in .desktop has quotes.
+#20250510 remove ".sh" from TEXTDOMAIN
 
 #information from 'labrador', to expand a .pet directly to '/':
 #NAME="a52dec-0.7.4"
@@ -103,7 +104,6 @@
 #i found this also works:
 #tar -z -x --strip=1 --directory=/ -f bluefish-1.0.7.tar.gz
 #v424 .pet pkgs may have post-uninstall script, puninstall.sh
-#20250510 remove ".sh" from TEXTDOMAIN
 
 export TEXTDOMAIN=petget___installpkg
 export OUTPUT_CHARSET=UTF-8

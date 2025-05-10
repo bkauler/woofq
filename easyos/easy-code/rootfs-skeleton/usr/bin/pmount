@@ -50,6 +50,7 @@
 #20221023 may be running as zeus super-user. 20221031 hmmm, maybe still need bump to root.
 #20230626 new sudo-sh replaces sudo.
 #20240315 support btrfs
+#20250510 remove hard cr in gxmessage
 
 #20230626
 if [ "$(whoami)" != "root" ];then
@@ -501,16 +502,14 @@ common reason is the media is not currently inserted.
 If so, please remedy.')"
    pupmessage -bg "#ff8080" -title "$(gettext 'Pmount Easy Drive Mounter')" -center "$m_30"
   else
-   gxmessage -wrap -bg "#ff99ff" -title "$(gettext 'Pmount Easy Drive Mounter')" -center -buttons "$(gettext 'KILL')":10,"$(gettext 'EXIT')":20 "$(gettext 'FAILURE!')
-$(gettext 'One or more processes (programs) are currently
-using the partition. Here they are:')
+   #20250510...
+   Ktitle="$(gettext 'Pmount Easy Drive Mounter')"
+   gxmessage -wrap -bg "#ff99ff" -title "${Ktitle}" -center -geometry "500x350" -buttons "$(gettext 'KILL')":10,"$(gettext 'EXIT')":20 "$(gettext 'FAILURE!')
+$(gettext 'One or more processes (programs) are currently using the partition. Here they are:')
 ${EXTRAMSG0}
 
-$(gettext "If you press the 'KILL' button, Easy will attempt to
-kill the offending programs for you. Only do this as a
-last resort.")
-$(gettext "Firstly you should try to close the programs
-manually, so do not press 'KILL'.")
+$(gettext "If you press the 'KILL' button, Easy will attempt to kill the offending programs for you. Only do this as a last resort.")
+$(gettext "Firstly you should try to close the programs manually, so do not press 'KILL'.")
 $(gettext "PLEASE PRESS THE 'EXIT' BUTTON!")"
    [ $? -eq 10 ] && fuser -k -m $MNTPT
   fi
