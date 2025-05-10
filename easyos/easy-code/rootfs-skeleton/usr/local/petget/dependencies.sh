@@ -36,8 +36,9 @@
 #131209 Packages-puppy- files renamed to Packages-pet-
 #20210612 replaced all yaf-splash with gtkdialog-splash. note, still ok to kill yaf-splash, see gtkdialog-splash script.
 #20220903 now supporting foreign dpkg|apt
+#20250510 remove ".sh" from TEXTDOMAIN
 
-export TEXTDOMAIN=petget___dependencies.sh
+export TEXTDOMAIN=petget___dependencies
 export OUTPUT_CHARSET=UTF-8
 
 if [ -f ./PKGS_MANAGEMENT ];then #110723

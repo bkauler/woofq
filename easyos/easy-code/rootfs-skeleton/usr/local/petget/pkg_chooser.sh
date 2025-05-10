@@ -49,10 +49,11 @@
 #20230914 stupid grep: "grep: warning: stray \ before -" use busybox grep. no, grep -P works. no, in case only have busybox grep, it doesn't understand -P
 #20240228 when easyvoid has pkgget frontend for xbps, no need to update pkg db at startup. 20240229 revert.
 #20241018 remove "devuan-" prefix on radiobuttons.
+#20250510 remove ".sh" from TEXTDOMAIN
 
 #/usr/local/petget/service_pack.sh & #121125 offer download Service Pack.
 
-export TEXTDOMAIN=petget___pkg_chooser.sh
+export TEXTDOMAIN=petget___pkg_chooser
 export OUTPUT_CHARSET=UTF-8
 
 #20230626

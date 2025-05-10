@@ -17,8 +17,9 @@
 #170815 now PKGget. 180208 now PETget 20220126 now PKGget
 #20220903 optional dpkg|apt sync
 #20230309 have removed /usr/local/debget
+#20250510 remove ".sh" from TEXTDOMAIN
 
-export TEXTDOMAIN=petget___configure.sh
+export TEXTDOMAIN=petget___configure
 export OUTPUT_CHARSET=UTF-8
 
 #export LANG=C

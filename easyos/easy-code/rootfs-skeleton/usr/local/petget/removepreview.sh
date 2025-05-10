@@ -43,8 +43,9 @@
 #20240906 jwm-mode aware.
 #20241104 run build-rox-sendto as a separate process, because slow.
 #20250112 fix remove.
+#20250510 remove ".sh" from TEXTDOMAIN
 
-export TEXTDOMAIN=petget___removepreview.sh
+export TEXTDOMAIN=petget___removepreview
 export OUTPUT_CHARSET=UTF-8
 
 . /etc/rc.d/PUPSTATE  #111228 this has PUPMODE and SAVE_LAYER.

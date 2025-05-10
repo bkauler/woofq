@@ -103,8 +103,9 @@
 #i found this also works:
 #tar -z -x --strip=1 --directory=/ -f bluefish-1.0.7.tar.gz
 #v424 .pet pkgs may have post-uninstall script, puninstall.sh
+#20250510 remove ".sh" from TEXTDOMAIN
 
-export TEXTDOMAIN=petget___installpkg.sh
+export TEXTDOMAIN=petget___installpkg
 export OUTPUT_CHARSET=UTF-8
 
 

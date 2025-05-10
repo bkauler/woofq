@@ -14,8 +14,9 @@
 #20210612 replaced all yaf-splash with gtkdialog-splash. note, still ok to kill yaf-splash, see gtkdialog-splash script.
 #20220122 fixed arch-linux url.
 #20240226 fix for void
+#20250510 remove ".sh" from TEXTDOMAIN
 
-export TEXTDOMAIN=petget___fetchinfo.sh
+export TEXTDOMAIN=petget___fetchinfo
 export OUTPUT_CHARSET=UTF-8
 
 . /etc/DISTRO_SPECS #has DISTRO_BINARY_COMPAT, DISTRO_COMPAT_VERSION

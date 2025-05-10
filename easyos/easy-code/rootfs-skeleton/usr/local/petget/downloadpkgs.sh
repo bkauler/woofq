@@ -40,8 +40,9 @@
 #20240301 support easyvoid.  20240503 remove.
 #20250111 remove "Trim the fat" button.
 #20250112 remove leftover easyvoid code.
+#20250510 remove ".sh" from TEXTDOMAIN
 
-export TEXTDOMAIN=petget___downloadpkgs.sh
+export TEXTDOMAIN=petget___downloadpkgs
 export OUTPUT_CHARSET=UTF-8
 
 #export LANG=C

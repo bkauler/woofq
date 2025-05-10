@@ -32,8 +32,9 @@
 #20210612 replaced all yaf-splash with gtkdialog-splash. note, still ok to kill yaf-splash, see gtkdialog-splash script.
 #20230914 stupid grep now objects to '\-' use busybox grep. no, grep -P works. no, in case only have busybox grep, it doesn't understand -P
 #20240227 add gtk4, qt6
+#20250510 remove ".sh" from TEXTDOMAIN
 
-export TEXTDOMAIN=petget___filterpkgs.sh
+export TEXTDOMAIN=petget___filterpkgs
 export OUTPUT_CHARSET=UTF-8
 
 #export LANG=C

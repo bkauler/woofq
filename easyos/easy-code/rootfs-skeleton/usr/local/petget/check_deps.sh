@@ -20,8 +20,9 @@
 #20220629 replace "Puppy" with "EasyOS".
 #20220905 dpkg/apt support.
 #20230708 handle file names with space char.
+#20250510 remove ".sh" from TEXTDOMAIN
 
-export TEXTDOMAIN=petget___check_deps.sh
+export TEXTDOMAIN=petget___check_deps
 export OUTPUT_CHARSET=UTF-8
 
 . /etc/DISTRO_SPECS #has DISTRO_BINARY_COMPAT, DISTRO_COMPAT_VERSION

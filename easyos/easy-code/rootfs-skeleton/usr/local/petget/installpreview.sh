@@ -45,8 +45,9 @@
 #20241212 force some apps to run non-root.
 #20250316 /usr/local/easy-apt/apt exports RUNASROOT=yes
 #20250330 install seamonkey as root only.
+#20250510 remove ".sh" from TEXTDOMAIN
 
-export TEXTDOMAIN=petget___installpreview.sh
+export TEXTDOMAIN=petget___installpreview
 export OUTPUT_CHARSET=UTF-8
 #. gettext.sh #120905 120907
 

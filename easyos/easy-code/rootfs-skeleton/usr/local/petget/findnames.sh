@@ -18,12 +18,13 @@
 #120827 search may find pkgs that are already installed, mark with mini-tick icon.
 #120908 need version field. (used in show_installed_version_diffs.sh). 120909 bug fix.
 #20230914 stupid grep now objects to '\-' use busybox grep. no, grep -P works. no, in case only have busybox grep, it doesn't understand -P
+#20250510 remove ".sh" from TEXTDOMAIN
 
 #puppy package database format:
 #pkgname|nameonly|version|pkgrelease|category|size|path|fullfilename|dependencies|description|compileddistro|compiledrelease|repo|
 #...'compileddistro|compiledrelease' (fields 11,12) identify where the package was compiled.
 
-export TEXTDOMAIN=petget___findnames.sh
+export TEXTDOMAIN=petget___findnames
 export OUTPUT_CHARSET=UTF-8
 
 . /etc/DISTRO_SPECS #has DISTRO_BINARY_COMPAT, DISTRO_COMPAT_VERSION
