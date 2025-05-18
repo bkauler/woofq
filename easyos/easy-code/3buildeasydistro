@@ -344,6 +344,7 @@
 #20241225 run-once-top: remove more menu entries.
 #20250106 remove any invalid orange-ball .desktop files. 20250107 improve. 20250111 fix.
 #20250417 firefox-skeleton now with all langpacks downloaded. ref: 1download-latest-firefox
+#20250515 ec-www.desktop fix if firefox builtin.
 
 export LANG=C #faster.
 
@@ -5010,12 +5011,14 @@ if [ "$DISTRO_BINARY_COMPAT" == "oe" ];then #20220201
  done
 fi
 
-#20220316 20220319 fix.
+#20220316 20220319 fix. 20250515 chromium fix...
 if [ "$EOS_SUPPORT_CONTAINERS" != "0" ];then #20220911
  if [ -e rootfs-complete/usr/bin/firefox ];then
   sed -i -e 's%SeaMonkey%Firefox%' rootfs-complete/usr/share/applications/ec-www.desktop
+  sed -i -e 's%Chromium%Firefox%' rootfs-complete/usr/share/applications/ec-www.desktop
  elif [ -e rootfs-complete/usr/bin/chrome ];then
   sed -i -e 's%SeaMonkey%Chrome%' rootfs-complete/usr/share/applications/ec-www.desktop
+  sed -i -e 's%Chromium%Chrome%' rootfs-complete/usr/share/applications/ec-www.desktop
  elif [ -e rootfs-complete/usr/bin/chromium ];then
   sed -i -e 's%SeaMonkey%Chromium%' rootfs-complete/usr/share/applications/ec-www.desktop
  else #seamonkey
