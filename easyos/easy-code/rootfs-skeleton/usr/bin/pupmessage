@@ -4,6 +4,7 @@
 #this script is a replacement for 'xmessage'.
 #two reasons: 1: better appearance than gxmessage, 2: non-English text.
 #120323 first version. only a partial replacement for xmessage.
+#20250521 change xmessage to gxmessage
 
 if [ ! $1 ];then
  echo "Partial replacement for xmessage.
@@ -44,13 +45,13 @@ ${AFIELD}"
 done
 SEPMSG="$PREVFIELD" #message to be displayed.
 
-#if certain options, use original xmessage (or gxmessage)...
+#if certain options, use original xmessage (or gxmessage)...  20250521...
 if [ "`echo "$SEPPARAMS" | grep -E '^-buttons|^-file|^-print|^-nearmouse|^-default'`" != "" ];then
  xSEPPARAMS=$(echo "$SEPPARAMS" | tr '\n' ' ')
  if [ "$TITLETEXT" ];then
-  exec xmessage $xSEPPARAMS -title "$TITLETEXT" "$SEPMSG"
+  exec gxmessage $xSEPPARAMS -title "$TITLETEXT" "$SEPMSG"
  else
-  exec xmessage $xSEPPARAMS "$SEPMSG"
+  exec gxmessage $xSEPPARAMS "$SEPMSG"
  fi
 fi
 
