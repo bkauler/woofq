@@ -96,6 +96,7 @@
 #20241104 run build-rox-sendto as a separate process, because slow.
 #20250406 fix Exec= line in .desktop has quotes.
 #20250510 remove ".sh" from TEXTDOMAIN
+#20250521 fix english text not translated.
 
 #information from 'labrador', to expand a .pet directly to '/':
 #NAME="a52dec-0.7.4"
@@ -191,6 +192,7 @@ DLPKG_NAME="`cat /tmp/petget_missing_dbentries-Packages-* | grep "$dbPATTERN" | 
 #131222 do not allow duplicate installs... 150103 quieten...
 PTN1='^'"$DLPKG_NAME"'|'
 if [ "`grep "$PTN1" /root/.packages/user-installed-packages 2>/dev/null`" != "" ];then
+ export LANG=${LANG_USER} #20250521
  if [ ! $DISPLAY ];then
   echo "$(gettext 'Sorry, this package is already installed. Aborting.')"
  else
