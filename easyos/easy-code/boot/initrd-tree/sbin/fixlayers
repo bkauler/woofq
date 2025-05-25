@@ -62,6 +62,7 @@
 #20250316 clean /usr/local/neo-apt 20250317 change name to easy-apt
 #20250401 fix .desktop Exec="..." in quotes. 20250406
 #20250429 remove xrandshell-OLD no longer in /usr/bin
+#20250525 .desktop may have multiple Exec= lines. ref: https://forum.puppylinux.com/viewtopic.php?p=149322#p149322
 
 WKG_DRV=$1 #ex: sda
 WKG_DEV=$2 #ex: sda2
@@ -182,18 +183,22 @@ do
      rm -f "$onespec"
     else #20231214
      #wider sweep, delete any .desktop that no longer exists the executable...
-     aEXEC="$(grep '^Exec=' ${onespec} | cut -f 2 -d '=' | cut -f 1 -d ' ')"
-     #20250401 daedalus gsmartcontrol has this line: Exec="/usr/bin/gsmartcontrol-root"  20250406
-     if [ "${aEXEC:0:1}" == "\"" ];then aEXEC="$(echo -n "${aEXEC}" | sed -e 's%^"%%' -e 's%"$%%')"; fi
-     if [ "${aEXEC:0:1}" == "/" ];then
-      if [ -e .${aEXEC} ];then
-       continue
+     #20250525 .desktop may have multiple Exec= lines...
+     EXECs="$(grep '^Exec=' ${onespec} | cut -f 2 -d '=' | cut -f 1 -d ' ' | tr '\n' ' ')"
+     for aEXEC in ${EXECs}
+     do
+      #20250401 daedalus gsmartcontrol has this line: Exec="/usr/bin/gsmartcontrol-root"  20250406
+      if [ "${aEXEC:0:1}" == "\"" ];then aEXEC="$(echo -n "${aEXEC}" | sed -e 's%^"%%' -e 's%"$%%')"; fi
+      if [ "${aEXEC:0:1}" == "/" ];then
+       if [ -e .${aEXEC} ];then
+        continue
+       fi
+      else
+       if [ -e usr/bin/${aEXEC} -o -e usr/local/bin/${aEXEC} -o -e usr/games/${aEXEC} ];then #20241112
+        continue
+       fi
       fi
-     else
-      if [ -e usr/bin/${aEXEC} -o -e usr/local/bin/${aEXEC} -o -e usr/games/${aEXEC} ];then #20241112
-       continue
-      fi
-     fi
+     done
      rm -f "$onespec"
     fi
    ;;
