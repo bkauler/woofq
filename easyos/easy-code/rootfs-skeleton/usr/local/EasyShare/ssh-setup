@@ -5,6 +5,7 @@
 #180811 easyos: /etc/rc.d/PUPSTATE has $BOOT_PW_FLG =X or empty.
 #180816 only guaranteed path on remote pc is /root
 #20221117 minor fix.
+#20250524 fix typo when call popup
 
 export TEXTDOMAIN=easyshare
 export OUTPUT_CHARSET=UTF-8
@@ -161,7 +162,7 @@ if [ "$IDENT_SERVER_METHOD" == "nmbd" ];then
   . /root/.config/firewall/fw.conf
   if [ "$CONFIG_SAMBA" == "true" -a "$CONFIG_SAMBA_CLIENT" == "true" ];then
    M_s1="$(gettext 'EasyShare is configured to use Samba for network probing. Samba is also needed for printing from Windows to a Linux PC. <b>Samba Setup</b> will now be run, and you must enable the Samba daemon.')"
-   popup "process=wait backgrount=#ffa0a0 terminate=ok level=top|<big>${M_s1}</big>"
+   popup "process=wait background=#ffa0a0 terminate=ok level=top|<big>${M_s1}</big>"
    /usr/local/EasyShare/samba-setup
   fi
  fi

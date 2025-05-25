@@ -31,6 +31,7 @@
 #20221212 fix detect more than one network.
 #20240201 easyVoid does not have iptables only iptables-legacy
 #20240616 export IPTABLES to be visible inside func called via gtkdialog.
+#20250524 fix typo when call popup
 
 if [ "$(whoami)" != "root" ];then
  if [ -x /usr/bin/sudo-sh ];then
@@ -495,7 +496,7 @@ cupsmode2_func() { #shared local printer.
   . /root/.config/firewall/fw.conf #has CONFIG_SAMBA, CONFIG_SAMBA_CLIENT
   if [ "$CONFIG_SAMBA" == "true" -a "$CONFIG_SAMBA_CLIENT" == "true" ];then
    M_slp2="$(gettext 'The CUPS daemon is running, which is sufficient for Linux-to-Linux printing. However, to print to or from Windows PCs, the Samba daemon must also be running -- <b>Samba Setup</b> will now be run.')"
-   popup "process=wait backgrount=#ffa0a0 terminate=ok level=top|<big>${M_slp2}</big>"
+   popup "process=wait background=#ffa0a0 terminate=ok level=top|<big>${M_slp2}</big>"
    /usr/local/EasyShare/samba-setup
   fi
  fi
@@ -560,7 +561,7 @@ cupsmode3_func() { #network printer.
   . /root/.config/firewall/fw.conf #has CONFIG_SAMBA, CONFIG_SAMBA_CLIENT
   if [ "$CONFIG_SAMBA" == "true" -a "$CONFIG_SAMBA_CLIENT" == "true" ];then
    M_slp2="$(gettext 'The CUPS daemon is running, which is sufficient for Linux-to-Linux printing. However, to print to or from Windows PCs, the Samba daemon must also be running -- <b>Samba Setup</b> will now be run.')"
-   popup "process=wait backgrount=#ffa0a0 terminate=ok level=top|<big>${M_slp2}</big>"
+   popup "process=wait background=#ffa0a0 terminate=ok level=top|<big>${M_slp2}</big>"
    /usr/local/EasyShare/samba-setup
   fi
  fi

@@ -5,6 +5,7 @@
 #20240622 set policies on first install.
 #20241201 tarball changed from .bz2 to .xz
 #20250302 fix menu disappear after update.
+#20250524 fix typo when call popup
 
 export TEXTDOMAIN=ff-dl-latest
 export OUTPUT_CHARSET=UTF-8
@@ -218,7 +219,7 @@ $(gettext 'Note: this can be changed later, via the menu Setup -> Default applic
    <button>
     <label>$(gettext 'DEFAULT')</label>
     <action>sed -i -e 's%^exec [^ ]*%exec firefox %' /usr/local/bin/defaultbrowser</action>
-    <action>popup 'background=#a0ffa0 terminate=2 timecnt=dn name=ffdone|${MSGdef}'</action>
+    <action>popup 'background=#a0ffa0 terminate=2 timecount=dn name=ffdone|${MSGdef}'</action>
    </button>
   </hbox>
  </frame>

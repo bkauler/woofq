@@ -48,6 +48,7 @@
 #20240512 fix rollback to earlier version. 
 #20240515 fix finding .cache folders. 20240516
 #20250128 only exclude part of /var (ref: /etc/rc.d/rw-merge and init). 20250129 20250131
+#20250524 fix typo when call popup
 
 if [ "$(whoami)" != "root" ];then
  if [ -x /usr/bin/sudo-sh ];then
@@ -641,7 +642,7 @@ if [ "$EXIT" == "ec_rollback" ];then
  busybox umount /tmp/easy_version_control/tmpmnt
  #20220703 completion msg...
  MSGecr="$(gettext 'Container rollback completed:')"
- popup "background=#a0ffa0 name=evcecr terminate=5 timecnt=dn|<big>${MSGecr} ${EC_NAME}</big>"
+ popup "background=#a0ffa0 name=evcecr terminate=5 timecount=dn|<big>${MSGecr} ${EC_NAME}</big>"
 fi
 
 ###end###
