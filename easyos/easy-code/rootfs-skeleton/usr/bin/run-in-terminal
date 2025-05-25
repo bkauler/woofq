@@ -16,4 +16,8 @@ else
  echo -n "> ./${@##*/}"
 fi
 read params
-exec "./${@##*/}" ${params}
+#20250525 fix...
+#ref: https://forum.puppylinux.com/viewtopic.php?p=149044#p149044
+#ref: https://bkhome.org/news/202009/detach-child-process-from-parent.html
+#exec "./${@##*/}" ${params}
+setsid --fork "./${@##*/}" ${params}
