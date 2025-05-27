@@ -1,0 +1,16 @@
+#!/bin/ash
+#want this partition to be mounted on a consistent mount-point.
+
+MNTPT="$(realpath "$0" | cut -f 1,2,3 -d '/')"
+
+grep -q '/mnt/build ' /proc/mounts
+
+if [ $? -ne 0 -a "$MNTPT" != "/mnt/build" ];then
+ busybox mount -o bind ${MNTPT} /mnt/build
+fi
+
+rox -d /mnt/build
+
+
+
+
