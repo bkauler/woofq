@@ -50,7 +50,7 @@ yes|adbfs|adbfs|exe,dev,doc,nls|compat:kirkstone| #needs fuse and adb  20220607
 yes|adduser|adduser|exe,dev,doc,nls| #20220911 replace busybox adduser.
 yes|advancecomp|advancecomp|exe>dev,dev,doc,nls
 yes|align||exe|pet:noarch
-yes|alsaequal|libasound2-plugin-equal|exe,dev,doc,nls| #170723 needed by pequalizer.
+no|alsaequal|libasound2-plugin-equal|exe,dev,doc,nls| #170723 needed by pequalizer. 20250525 no.
 yes|alsa-lib|libasound2,libasound2-data,libasound2-dev,libasound2-plugins,alsa-topology-conf,alsa-ucm-conf|exe,dev,doc,nls
 yes|alsa-utils|alsa-utils|exe,dev,doc,nls
 no|android-platform-system-core|adb,android-libadb,android-libbase,android-libboringssl,android-libcrypto-utils,android-libcutils,android-liblog,android-libadb-dev,android-libbase-dev,android-libboringssl-dev,android-libcrypto-utils-dev,android-libcutils-dev,android-liblog-dev|exe,dev,doc,nls| #20200710
@@ -131,7 +131,7 @@ yes|cairo|libcairo2,libcairo2-dev,libcairo-gobject2,libcairo-script-interpreter2
 yes|cairomm|libcairomm-1.0-1v5,libcairomm-1.0-dev|exe,dev,doc,nls| #needed by inkscape and gparted.
 no|calcoo|calcoo|exe,dev,doc,nls| #20200818
 no|capnproto|libcapnp-0.9.2|exe,dev,doc,nls| #20230310 no
-yes|caps|caps|exe,dev,doc,nls| #needed by zigberts pequalizer, refer t=31206&start=1290
+no|caps|caps|exe,dev,doc,nls| #needed by zigberts pequalizer, refer t=31206&start=1290  20250525 no.
 yes|ccrypt|ccrypt|exe,dev,doc,nls| #20200624 replaces bcrypt. note, ccrypt_gui in woofq is frontend.
 yes|cddetect|cddetect|exe,dev>null,doc,nls|compat:kirkstone| #20220507
 yes|cddetect_quick|cddetect-quick|exe,dev>null,doc,nls|compat:kirkstone| #20220507
@@ -1292,7 +1292,7 @@ yes|peasyscale-exec|peasyscale-exec|exe,dev,doc,nls|compat:kirkstone| #binary ne
 yes|peasyscale-noarch||exe|pet:noarch| #rcrsn51, jpg image resizer.
 yes|peasyscan-exec|peasyscan-exec|exe,dev,doc,nls|compat:kirkstone| #rcrsn51, binary needed by peasyscan. 20220507
 yes|peasyscan-noarch||exe,dev,doc,nls|pet:noarch| #PC
-yes|pequalizer||exe,dev,doc,nls|pet:noarch| #needs alsaequal, caps
+no|pequalizer||exe,dev,doc,nls|pet:noarch| #needs alsaequal, caps.  20250525 only works with alsa.
 yes|perl|libperl5.36,perl,perl-base,perl-modules-5.36|exe>dev,dev,doc,nls|
 yes|perl-compress-zlib|libcompress-raw-zlib-perl|exe>dev,dev,doc,nls
 yes|perl-digest-sha1|libdigest-sha-perl|exe,dev>null,doc>null,nls>null
