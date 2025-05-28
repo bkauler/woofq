@@ -16,9 +16,9 @@ woofQ, as per the other woof* build systems, is able to import binary packages f
 
 Also, binary packages compiled from source by T2sde or OpenEmbedded/Yocto (OE) can be imported.
 
-The current Kirkstone-series of EasyOS is built from packages compiled in OE, see the project here:
+The current Scarthgap-series of EasyOS is built from packages compiled in OE, see the project here:
 
-https://github.com/bkauler/oe-qky-kirkstone
+https://github.com/bkauler/oe-qky-scarthgap
 
 The website for EasyOS:
 
@@ -32,8 +32,13 @@ Barry Kauler's news pages for woofQ and EasyOS:
 
 https://bkhome.org/news/tag_easy.html
 
-And for OE:
 
-https://bkhome.org/news/tag_oe.html
+NOTES
+-----
+
+After downloading woofQ, you run 'merge2out' to setup the build environment.
+The script requires path /mnt/build, and there is a script 'bind-mount-on-mnt-build' that binds /mnt/build to a mounted partition. The partition should have at least 12GB free space.
+woofQ could probably be made to work with any host Linux distribution; however, currently only tested with EasyOS Scarthgap-series.
+Further instruction is found at /mnt/build/builds/woof/*/README.txt
 
 
