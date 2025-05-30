@@ -37,7 +37,7 @@ NOTES
 -----
 
 After downloading woofQ, you run 'merge2out' to setup the build environment.
-The script requires path /mnt/build, and there is a script 'bind-mount-on-mnt-build' that binds /mnt/build to a mounted partition. The partition should have at least 12GB free space.
+The script requires path /mnt/build, and there is a script 'bind-mount-on-mnt-build' that binds /mnt/build to a mounted partition. The partition should have at least 30GB free space (and if you ever plan to build oe-qky-scarthgap, require 500GB free).
 woofQ could probably be made to work with any host Linux distribution; however, currently only tested with EasyOS Scarthgap-series.
 Further instruction is found at /mnt/build/builds/woof/*/README.txt
 
