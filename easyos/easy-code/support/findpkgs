@@ -32,6 +32,7 @@
 #20210818 DISTRO_SPECS may now have ALT1_DISTRO_* variables.
 #20220120 log not fnd pkgs. support compat:dunfell
 #20230309 support compat:kirkstone
+#20250529 support compat:scarthgap
 
 #variable PKGS_SPECS_TABLE in file DISTRO_PKGS_SPECS-* to have optional values in 5th field:
 #yes|915resolution||exe,dev,doc,nls|[pet[:<repo>]] or yes|915resolution||exe,dev,doc,nls|[compat[:<repo>]]
@@ -357,6 +358,9 @@ do
    fi
    if [ "$PKGLOC1" == "compat" -a "$PKGLOC2" == "kirkstone" ];then #20230309
     xPACKAGELISTS_ORDER='Packages-oe-kirkstone-official'
+   fi
+   if [ "$PKGLOC1" == "compat" -a "$PKGLOC2" == "scarthgap" ];then #20250529
+    xPACKAGELISTS_ORDER='Packages-oe-scarthgap-official'
    fi
   fi
  fi

@@ -43,6 +43,7 @@
 #20230409 EMPTYDIRMARKER files will be in boot/initrd-tree
 #20230706 fix removing EMPTYDIRMARKER files in puppy folder.
 #20230909 no more puppy folder.
+#20250529 use oe scarthgap packages in non-oe builds.
 
 [ ! -d ./easy-arch ] && exit
 [ ! -d ./easy-code ] && exit
@@ -384,6 +385,13 @@ mkdir -p ${PKGSPATH}/local-repositories/${TARGETARCH}/packages-oe-kirkstone
 [ -f easy-distro/${TARGETARCH}/oe/kirkstone/Packages-oe-kirkstone-official ] && cp -af easy-distro/${TARGETARCH}/oe/kirkstone/Packages-oe-kirkstone-official ${BUILDSPATH}/easy-out_${HOSTARCH}_${TARGETARCH}_${COMPATDISTRO}_${COMPATVERSION}/
 [ -f easy-distro/${TARGETARCH}/oe/Packages-oe-kirkstone-official ] && cp -af easy-distro/${TARGETARCH}/oe/Packages-oe-kirkstone-official ${BUILDSPATH}/easy-out_${HOSTARCH}_${TARGETARCH}_${COMPATDISTRO}_${COMPATVERSION}/
 [ ! -e ${BUILDSPATH}/easy-out_${HOSTARCH}_${TARGETARCH}_${COMPATDISTRO}_${COMPATVERSION}/packages-oe-kirkstone ] && ln -sr ${PKGSPATH}/local-repositories/${TARGETARCH}/packages-oe-kirkstone ${BUILDSPATH}/easy-out_${HOSTARCH}_${TARGETARCH}_${COMPATDISTRO}_${COMPATVERSION}/packages-oe-kirkstone
+
+#20250529 want to use oe scarthgap pkgs in non-oe builds (for devuan excalibur/trixie)...
+mkdir -p ${PKGSPATH}/local-repositories/${TARGETARCH}/packages-oe-scarthgap
+[ -f easy-distro/${TARGETARCH}/oe/scarthgap/Packages-oe-scarthgap-official ] && cp -af easy-distro/${TARGETARCH}/oe/scarthgap/Packages-oe-scarthgap-official ${BUILDSPATH}/easy-out_${HOSTARCH}_${TARGETARCH}_${COMPATDISTRO}_${COMPATVERSION}/
+[ -f easy-distro/${TARGETARCH}/oe/Packages-oe-scarthgap-official ] && cp -af easy-distro/${TARGETARCH}/oe/Packages-oe-scarthgap-official ${BUILDSPATH}/easy-out_${HOSTARCH}_${TARGETARCH}_${COMPATDISTRO}_${COMPATVERSION}/
+[ ! -e ${BUILDSPATH}/easy-out_${HOSTARCH}_${TARGETARCH}_${COMPATDISTRO}_${COMPATVERSION}/packages-oe-scarthgap ] && ln -sr ${PKGSPATH}/local-repositories/${TARGETARCH}/packages-oe-scarthgap ${BUILDSPATH}/easy-out_${HOSTARCH}_${TARGETARCH}_${COMPATDISTRO}_${COMPATVERSION}/packages-oe-scarthgap
+
 
 #151104
 mkdir -p ${BUILDSPATH}/easy-out_${HOSTARCH}_${TARGETARCH}_${COMPATDISTRO}_${COMPATVERSION}/puppy

@@ -103,6 +103,7 @@
 #20241025 want DISTRO_COMPAT_VERSION in FIXUPHACK
 #20241029 handle compat:security last field of Packages-devuan-daedalus-security
 #20250107 fix if path has a space.
+#20250529 support compat:scarthgap
 
 export LANG=C #faster.
 
@@ -546,6 +547,11 @@ Do it, then rerun this script and choose to build $GENERICNAME." >> ERROR-2CREAT
     xPACKAGES='packages-oe-kirkstone'
     xDISTRO_BINARY_COMPAT='oe'
     xDISTRO_COMPAT_VERSION='kirkstone'
+   fi
+   if [ "$DBFILE" == "Packages-oe-scarthgap-official" ];then #20250529
+    xPACKAGES='packages-oe-scarthgap'
+    xDISTRO_BINARY_COMPAT='oe'
+    xDISTRO_COMPAT_VERSION='scarthgap'
    fi
   fi
   

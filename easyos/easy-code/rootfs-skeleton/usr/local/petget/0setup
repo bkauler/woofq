@@ -64,6 +64,7 @@
 #20241018 /tmp/woofV not used. 20241019 use /tmp/0setup_tmp  use debdb2pupdb-nim
 #20241029 does not exist: http://deb.devuan.org/merged/dists/daedalus-updates-security/main/binary-amd64/Packages.xz
 #20250115 bad quote char in DB_description. ref: https://forum.puppylinux.com/viewtopic.php?t=13626
+#20250529 support compat:scarthgap
 
 LANGORG="$(locale | grep '^LANG=' | cut -d '=' -f 2)" #121116
 export LANG=C #faster.
@@ -960,6 +961,9 @@ do
   fi
   if [ "$REPOSPEC2" == "kirkstone" ];then #20230309
    xPKGNAMES="$(cat Packages-oe-kirkstone-official | cut -f 1,2,3 -d '|')"
+  fi
+  if [ "$REPOSPEC2" == "scarthgap" ];then #20250529
+   xPKGNAMES="$(cat Packages-oe-scarthgap-official | cut -f 1,2,3 -d '|')"
   fi
  fi
  ASSIGNFIELD="`echo -n "$AFIELD2345" | cut -f 3 -d '|'`" #120804 ex: exe>dev,dev,doc,nls

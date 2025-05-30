@@ -41,6 +41,7 @@
 #20230902 support void .xbps pkgs.
 #20230908 replace yaf-splash with gtkdialog-splash
 #20241029 handle compat:security last field of Packages-devuan-daedalus-security
+#20250529 support compat:scarthgap
 
 export LANG=C #faster.
 
@@ -474,6 +475,11 @@ do
    if [ "$DBFILE" == "Packages-oe-kirkstone-official" ];then #20230309
     xPACKAGES='packages-oe-kirkstone'
     xBIN_URLS="https://distro.ibiblio.org/easyos/${DISTRO_TARGETARCH}/packages/oe" #db has "kirkstone" path.
+    xDISTRO_BINARY_COMPAT='oe'
+   fi
+   if [ "$DBFILE" == "Packages-oe-scarthgap-official" ];then #20250529
+    xPACKAGES='packages-oe-scarthgap'
+    xBIN_URLS="https://distro.ibiblio.org/easyos/${DISTRO_TARGETARCH}/packages/oe" #db has "scarthgap" path.
     xDISTRO_BINARY_COMPAT='oe'
    fi
   fi
