@@ -42,6 +42,7 @@
 #20230908 replace yaf-splash with gtkdialog-splash
 #20241029 handle compat:security last field of Packages-devuan-daedalus-security
 #20250529 support compat:scarthgap
+#20250605 Caramel: path fix. ref: https://forum.puppylinux.com/viewtopic.php?p=149684#p149684
 
 export LANG=C #faster.
 
@@ -466,20 +467,20 @@ do
     xDISTRO_BINARY_COMPAT='t2'
    fi
   fi
-  if [ "$DISTRO_BINARY_COMPAT" != "oe" ];then #20220120
+  if [ "$DISTRO_BINARY_COMPAT" != "oe" ];then #20220120 20250605
    if [ "$DBFILE" == "Packages-oe-dunfell-official" ];then
     xPACKAGES='packages-oe-dunfell'
-    xBIN_URLS="https://distro.ibiblio.org/easyos/${DISTRO_TARGETARCH}/packages/oe" #db has "dunfell" path.
+    xBIN_URLS="https://distro.ibiblio.org/easyos/${DISTRO_TARGETARCH}/packages/compat/oe" #db has "dunfell" path.
     xDISTRO_BINARY_COMPAT='oe'
    fi
    if [ "$DBFILE" == "Packages-oe-kirkstone-official" ];then #20230309
     xPACKAGES='packages-oe-kirkstone'
-    xBIN_URLS="https://distro.ibiblio.org/easyos/${DISTRO_TARGETARCH}/packages/oe" #db has "kirkstone" path.
+    xBIN_URLS="https://distro.ibiblio.org/easyos/${DISTRO_TARGETARCH}/packages/compat/oe" #db has "kirkstone" path.
     xDISTRO_BINARY_COMPAT='oe'
    fi
    if [ "$DBFILE" == "Packages-oe-scarthgap-official" ];then #20250529
     xPACKAGES='packages-oe-scarthgap'
-    xBIN_URLS="https://distro.ibiblio.org/easyos/${DISTRO_TARGETARCH}/packages/oe" #db has "scarthgap" path.
+    xBIN_URLS="https://distro.ibiblio.org/easyos/${DISTRO_TARGETARCH}/packages/compat/oe" #db has "scarthgap" path.
     xDISTRO_BINARY_COMPAT='oe'
    fi
   fi
