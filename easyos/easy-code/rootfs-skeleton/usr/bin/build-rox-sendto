@@ -31,6 +31,7 @@
 #20241112 compromise, to speed up.
 #20241222 add "i" app. ref: https://forum.puppylinux.com/viewtopic.php?t=12663  20241227
 #20241222 maybe translate right-click menu entry.
+#20250603 fix for building in woofQV.
 
 LANGorig1="${LANG:0:2}" #20241222
 
@@ -47,6 +48,7 @@ tr ' ' '\n' <<<"${LISTnoma}" > /tmp/build-rox-sendto/LISTnoma
 CWD="`pwd`"
 case "$CWD" in
  *rootfs-complete) true ;;
+ *rootfs) true ;; #20250603 woofqv
  *) cd / ;;
 esac
 
