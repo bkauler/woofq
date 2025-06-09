@@ -345,6 +345,7 @@
 #20250106 remove any invalid orange-ball .desktop files. 20250107 improve. 20250111 fix.
 #20250417 firefox-skeleton now with all langpacks downloaded. ref: 1download-latest-firefox
 #20250515 ec-www.desktop fix if firefox builtin.
+#20250608 limine.cfg remove sub-menu to fix broken video (now done in initrd).
 
 export LANG=C #faster.
 
@@ -6077,7 +6078,16 @@ if [ "$BOOTLOADER" == "limine" ];then #20221010
  OPTIONSFIELD="Options..."
  FBVFIELD="Fix broken video"
  FBVCOMMENTFIELD="Run Xorg Video Wizard to fix broken video"
-
+ #20250608 remove sub-menu to fix broken video (now done in initrd)...
+#
+#:  ${OPTIONSFIELD}
+#::${FBVFIELD}
+#    COMMENT=${FBVCOMMENTFIELD}
+#    RESOLUTION=800x600
+#    PROTOCOL=linux
+#    KERNEL_PATH=boot://2/easyos/vmlinuz
+#    MODULE_PATH=boot://2/easyos/initrd
+#    KERNEL_CMDLINE=rw qfix=vid nomodeset wkg_uuid=${UUID2} wkg_dir=easyos/ intel_iommu=igfx_off
  echo "VERBOSE=no
 TIMEOUT=10
 DEFAULT_ENTRY=1
@@ -6091,15 +6101,6 @@ INTERFACE_RESOLUTION=800x600
     KERNEL_PATH=boot://2/easyos/vmlinuz
     MODULE_PATH=boot://2/easyos/initrd
     KERNEL_CMDLINE=rw wkg_uuid=${UUID2} wkg_dir=easyos/ intel_iommu=igfx_off
-
-:  ${OPTIONSFIELD}
-::${FBVFIELD}
-    COMMENT=${FBVCOMMENTFIELD}
-    RESOLUTION=800x600
-    PROTOCOL=linux
-    KERNEL_PATH=boot://2/easyos/vmlinuz
-    MODULE_PATH=boot://2/easyos/initrd
-    KERNEL_CMDLINE=rw qfix=vid nomodeset wkg_uuid=${UUID2} wkg_dir=easyos/ intel_iommu=igfx_off
 " > img_mntpt/limine.cfg
  
  if [ "$WOOF_TARGETARCH" == "x86" ];then #20220801
