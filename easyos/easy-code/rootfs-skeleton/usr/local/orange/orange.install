@@ -10,6 +10,7 @@
 #20241212 pkg may be a pet.
 #20250102 bug fix line 167
 #20250301 fix if install as root.
+#20250610 work in woofQ and woofQV.
 
 export TEXTDOMAIN=orange
 export OUTPUT_CHARSET=UTF-8
@@ -95,19 +96,23 @@ fi
 kill `pgrep -f mozbare` 2>/dev/null
 
 #oe will be -official but for debian may be -main, so have "-*" here...
-DBfnd="$(grep -H -F "|${PN}|" /root/.packages/Packages-${DISTRO_BINARY_COMPAT}-${DISTRO_COMPAT_VERSION}-* | head -n 1)"
+DBfnd="$(grep -H -F "|${PN}|" /root/.packages/Packages-${DISTRO_BINARY_COMPAT}-${DISTRO_COMPAT_VERSION}* | head -n 1)" #20250610 remove "-"
 if [ -z "$DBfnd" ];then
  if [ -n "$PNalt" ];then
-  DBfnd="$(grep -H -F "|${PNalt}|" /root/.packages/Packages-${DISTRO_BINARY_COMPAT}-${DISTRO_COMPAT_VERSION}-* | head -n 1)"
+  DBfnd="$(grep -H -F "|${PNalt}|" /root/.packages/Packages-${DISTRO_BINARY_COMPAT}-${DISTRO_COMPAT_VERSION}* | head -n 1)" #20250610 remove "-"
   if [ -n "$DBfnd" ];then PN="${PNalt}"; fi
  fi
 fi
 if [ -z "$DBfnd" ];then #20241212
- DBfnd="$(grep -H -F "|${PN}|" /root/.packages/Packages-pet-${DISTRO_COMPAT_VERSION}-official | head -n 1)"
+ if [ "${DISTRO_NAME_SHORT}" == "QV" ];then #20250610
+  DBfnd="$(grep -H -F "|${PN}|" /root/.packages/Packages-pet-${DISTRO_BINARY_COMPAT}-official | head -n 1)"
+ else
+  DBfnd="$(grep -H -F "|${PN}|" /root/.packages/Packages-pet-${DISTRO_COMPAT_VERSION}-official | head -n 1)"
+ fi
 fi
 if [ -z "$DBfnd" ];then #precaution
  ##debian...
- #DBfnd="$(grep -H '|obs-studio|' /root/.packages/Packages-${DISTRO_BINARY_COMPAT}-${DISTRO_COMPAT_VERSION}-* | head -n 1)"
+ #DBfnd="$(grep -H '|obs-studio|' /root/.packages/Packages-${DISTRO_BINARY_COMPAT}-${DISTRO_COMPAT_VERSION}* | head -n 1)"
  exit
 fi
 DBrepospec="${DBfnd/:*/}"
