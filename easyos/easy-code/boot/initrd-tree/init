@@ -210,6 +210,7 @@
 #20250224 nvme external drive partition2 resize fail.
 #20250420 another go with overlayfs. 20250422 nah, crap. ref: https://forum.puppylinux.com/viewtopic.php?t=1910
 #20250608 fix broken video menu entry.
+#20250615 fix wkg-partition size >999M
 
 #20230429
 . /build-choices #3buildeasydistro copies it here.
@@ -1231,7 +1232,10 @@ PW=''; ALLOW_ASK_PW=''; Bmntd=0; Tmntd=0 #20220517
 
 #maybe resize working partition to fill drive... hmmm, /proc/partitions not working...
 #Wsize=$(grep ' ${WKG_DEV}$' /proc/partitions | tr -s ' ' | rev | cut -f 2 -d ' ' | rev)
-Wsize="$(fdisk -u -l /dev/${WKG_DRV} | grep "^/dev/${WKG_DEV} " | tr -s ' ' | rev | cut -f 3 -d ' ' | rev)"
+#20250615 fix for size >999 ...
+#Wsize="$(fdisk -u -l /dev/${WKG_DRV} | grep "^/dev/${WKG_DEV} " | tr -s ' ' | rev | cut -f 3 -d ' ' | rev)"
+sizeB=$(fdisk -u -l /dev/${WKG_DRV} | grep "^/dev/${WKG_DEV} " | tr -s ' ' | rev | cut -f 4 -d ' ' | rev)
+Wsize="$((${sizeB}/2/1024))M"
 #20220621 new skeleton 7MiB 1st, 816MiB 2nd, Wstart=16384
 #20220911 for easy bookworm, bumped wkg-part to 848MiB. 20221226 kirkstone 672MiB
 #20240113 easyvoid, skeleton wkg-part now 920MiB. 20240116 now 880MiB 20240612 896MiB  20240712 912MiB  20240715 944MiB  20240920 992miB
@@ -1248,7 +1252,10 @@ if [ "$Wsize" == "912M" -o "$Wsize" == "944M" -o "$Wsize" == "896M" -o "$Wsize" 
   echo -e "d\n${WKG_PARTNUM}\nn\np\n${WKG_PARTNUM}\n${Wstart}\n\nN\nw" | fdisk -u -b 512 /dev/${WKG_DRV} > /part2resize.log 2>&1
   #fdisk should have informed kernel to rescan partition table, however precaution...
   partprobe /dev/${WKG_DRV}
-  Wnewsize="$(fdisk -u -l /dev/${WKG_DRV} | grep "^/dev/${WKG_DEV} " | tr -s ' ' | rev | cut -f 3 -d ' ' | rev)"
+  #20250615 fix...
+  #Wnewsize="$(fdisk -u -l /dev/${WKG_DRV} | grep "^/dev/${WKG_DEV} " | tr -s ' ' | rev | cut -f 3 -d ' ' | rev)"
+  newsizeB="$(fdisk -u -l /dev/${WKG_DRV} | grep "^/dev/${WKG_DEV} " | tr -s ' ' | rev | cut -f 4 -d ' ' | rev)"
+  Wnewsize="$((${newsizeB}/2/1024))M"
   if [ "$Wnewsize" == "912M" -o "$Wnewsize" == "944M" -o "$Wnewsize" == "896M" -o "$Wnewsize" == "992M" ];then
    echo -e "\\033[1;31m ${S121:-ERROR: unable to resize working-partition}\\033[0;39m" #red.
    Wbad=1 #20220511

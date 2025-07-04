@@ -306,6 +306,23 @@ if [ -d /var/service ];then #20240119 precaution, in case it somehow got created
  fi
 fi
 ln -snf /etc/service /var/service
+
+#20250619 moved up (the flatpak thing was occurring first, creating /mnt/wkg a real folder)...
+##170221 the old idea of /mnt/files not so good. now have /mnt/wkg/files 190829 preferred path now /files
+#PUP_HOME="/mnt/${WKG_DEV}/${WKG_DIR}files"
+PUP_HOME='/files'
+echo "PUP_HOME='${PUP_HOME}'" >> /etc/rc.d/PUPSTATE
+if [ -z "$WKG_DIR" ];then #180129
+ ln -snf ${WKG_DEV} /mnt/wkg #for config files that need a fixed path to home, ie /mnt/wkg/files
+else
+ #drop the trailing "/" from $WKG_DIR...
+ ln -snf ${WKG_DEV}/${WKG_DIR%/} /mnt/wkg #for config files that need a fixed path to home, ie /mnt/wkg/files
+fi
+#also, update rox "home" to real path...
+#homePTN="s%dir=/mnt/.*/home%dir=/mnt/${WKG_DEV}/${WKG_DIR}files%"
+#sed -i -e "$homePTN" /root/Choices/ROX-Filer/PuppyPin
+sed -i -e 's%\-\-dir=[^"]*%--dir=/files%' /root/Choices/ROX-Filer/PuppyPin
+
 #20240118 easyvoid: have set system path in /etc/profile.d/flatpak,
 # however shotcut ignores that variable. have to also do this...
 if [ -d /var/lib/flatpak ];then #precaution, in case it somehow got created.
@@ -713,22 +730,6 @@ echo "MISC. SYSTEM SETUP"
 echo -e "${DISTRO_NAME} Linux\n`uname -s` `uname -r` [`uname -m` arch]\n\n" > /etc/issue
 echo "1" > /proc/sys/net/ipv4/ip_dynaddr
 busybox hostname -F /etc/hostname #141122 hostname in coreutils does not like this syntax, make sure use busybox applet.
-
-#20211205 /files is now not a symlink...
-##170221 the old idea of /mnt/files not so good. now have /mnt/wkg/files 190829 preferred path now /files
-#PUP_HOME="/mnt/${WKG_DEV}/${WKG_DIR}files"
-PUP_HOME='/files'
-echo "PUP_HOME='${PUP_HOME}'" >> /etc/rc.d/PUPSTATE
-if [ ! "$WKG_DIR" ];then #180129
- ln -snf ${WKG_DEV} /mnt/wkg #for config files that need a fixed path to home, ie /mnt/wkg/files
-else
- #drop the trailing "/" from $WKG_DIR...
- ln -snf ${WKG_DEV}/${WKG_DIR%/} /mnt/wkg #for config files that need a fixed path to home, ie /mnt/wkg/files
-fi
-#also, update rox "home" to real path...
-#homePTN="s%dir=/mnt/.*/home%dir=/mnt/${WKG_DEV}/${WKG_DIR}files%"
-#sed -i -e "$homePTN" /root/Choices/ROX-Filer/PuppyPin
-sed -i -e 's%\-\-dir=[^"]*%--dir=/files%' /root/Choices/ROX-Filer/PuppyPin
 
 #20210919 remove, fixup in initrd...
 ##190829 /files got renamed to /clients, so now can have it as a symlink... 190905 fix...

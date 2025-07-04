@@ -94,6 +94,7 @@
 #20240430 unmute audio.
 #20250204 unmute audio if boot on different audio hardware.
 #20250204 remove test exist sudo-sh
+#20250702 workaround network connection not recognized by pup_event_frontend_d. 20250703 proper fix.
 
 #20230626 20250204
 if [ "$(whoami)" != "root" ];then exec sudo-sh ${PPID} ${0} ${@}; fi
@@ -324,6 +325,19 @@ fi
 #   echo "delayedrun: have ethernet carrier, but no ip lease, take lo down then up, to trigger run netchg"
 #   ip link set lo down
 #   ip link set lo up
+#  fi
+# fi
+#fi
+
+#20250703 no, fixed. ref: https://bkhome.org/news/202507/proper-fix-for-network-tray-applet.html
+##20250702 i think the problem is when NetworkManager connects before pup_event_frontend_d has started
+##ref: https://bkhome.org/news/202507/workaround-for-broken-network-tray-applet.html
+##this is a workaround...
+#if [ -e /tmp/pup_event_backend/network_ ];then
+# if [ ! -s /tmp/pup_event_backend/network_ ];then
+#  xIF="$(getlocalip | grep '^[we][lt]' | cut -f 1 -d ':' | head -n 1)"
+#  if [ -n "${xIF}" ];then
+#   echo -n "${xIF}" > /tmp/pup_event_backend/network_
 #  fi
 # fi
 #fi
